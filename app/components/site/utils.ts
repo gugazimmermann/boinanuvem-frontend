@@ -28,3 +28,28 @@ export function useSmoothScroll() {
   return () => document.removeEventListener("click", handleClick);
 }
 
+// Re-export CNPJ utilities
+export {
+  formatCNPJ,
+  formatPhone,
+  mapCNPJDataToCompanyForm,
+  type CompanyFormData,
+} from "./utils/cnpj-utils";
+
+// Re-export mask utilities
+export {
+  maskCNPJ,
+  unmaskCNPJ,
+  maskPhone,
+  unmaskPhone,
+  maskCEP,
+  unmaskCEP,
+  createMaskHandler,
+} from "./utils/masks";
+
+// Re-export CEP utilities
+export {
+  mapCEPDataToAddressForm,
+  type AddressFormData,
+} from "./utils/cep-utils";
+

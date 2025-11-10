@@ -2,6 +2,7 @@ import { memo } from "react";
 import { NAV_LINKS, COLORS } from "./constants";
 import { Button } from "./ui";
 import { useSmoothScroll } from "./hooks";
+import { ROUTES } from "../../routes.config";
 
 export const Header = memo(function Header() {
   useSmoothScroll();
@@ -10,7 +11,7 @@ export const Header = memo(function Header() {
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between py-4">
-          <a href="/" className="text-2xl font-bold" style={{ color: COLORS.secondary }}>
+          <a href={ROUTES.HOME} className="text-2xl font-bold cursor-pointer" style={{ color: COLORS.secondary }}>
             Boi na Nuvem
           </a>
 
@@ -19,7 +20,7 @@ export const Header = memo(function Header() {
               <a
                 key={link.href}
                 href={link.href}
-                className="transition hover:opacity-80"
+                className="transition hover:opacity-80 cursor-pointer"
                 style={{ color: COLORS.textDark }}
               >
                 {link.label}
@@ -28,10 +29,10 @@ export const Header = memo(function Header() {
           </nav>
 
           <div className="flex items-center space-x-4">
-            <Button href="#" size="sm" variant="primary">
+            <Button href={ROUTES.LOGIN} size="sm" variant="primary">
               Get Started
             </Button>
-            <button className="md:hidden" aria-label="Toggle menu">
+            <button className="md:hidden cursor-pointer" aria-label="Toggle menu">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>

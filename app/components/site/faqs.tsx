@@ -33,7 +33,7 @@ export const FAQs = memo(function FAQs() {
             <div key={index} className="mb-4 last:mb-0">
               <button
                 onClick={() => toggleFaq(index)}
-                className="w-full flex justify-between items-center py-4 text-left hover:opacity-80 transition"
+                className="w-full flex justify-between items-center py-4 text-left hover:opacity-80 transition cursor-pointer"
               >
                 <span className="font-semibold text-gray-800">{faq.question}</span>
                 <span className="text-xl text-gray-500 ml-4">

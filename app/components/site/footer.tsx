@@ -16,7 +16,7 @@ export function Footer() {
                   <li key={idx}>
                     <a
                       href="#"
-                      className="text-gray-600 hover:text-black text-sm transition"
+                      className="text-gray-600 hover:text-black text-sm transition cursor-pointer"
                     >
                       {link}
                     </a>

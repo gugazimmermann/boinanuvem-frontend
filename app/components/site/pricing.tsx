@@ -1,6 +1,7 @@
 import { useState, memo } from "react";
 import { Section, Heading, Button } from "./ui";
 import { PRICING_PLANS, COLORS } from "./constants";
+import { ROUTES } from "../../routes.config";
 
 export const Pricing = memo(function Pricing() {
   const [isMonthly, setIsMonthly] = useState(true);
@@ -31,7 +32,7 @@ export const Pricing = memo(function Pricing() {
               <button
                 key={label}
                 onClick={() => setIsMonthly(index === 0)}
-                className="px-6 py-2 rounded-full transition font-medium"
+                className="px-6 py-2 rounded-full transition font-medium cursor-pointer"
                 style={
                   isActive
                     ? { backgroundColor: COLORS.primary, color: "white" }
@@ -113,7 +114,7 @@ export const Pricing = memo(function Pricing() {
                   })}
                 </ul>
               </div>
-              <Button href="#" variant={buttonVariant} fullWidth size="md">
+              <Button href={ROUTES.LOGIN} variant={buttonVariant} fullWidth size="md">
                 Get Started →
               </Button>
             </div>

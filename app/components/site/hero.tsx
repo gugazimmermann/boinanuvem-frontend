@@ -1,5 +1,6 @@
 import { Heading, Button, Section, SVGPlaceholder } from "./ui";
 import { COLORS } from "./constants";
+import { ROUTES } from "../../routes.config";
 
 export function Hero() {
   return (
@@ -18,7 +19,7 @@ export function Hero() {
             Transforming Your Ideas into Stunning Websites with Intuitive Tools and Limitless Possibilities.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-            <Button href="#" size="lg" variant="primary">
+            <Button href={ROUTES.LOGIN} size="lg" variant="primary">
               ⭐ Get Started
             </Button>
             <Button href="#" size="lg" variant="outline">

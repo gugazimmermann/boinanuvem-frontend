@@ -1,5 +1,6 @@
 import { Section, Heading, Button, Badge, SVGPlaceholder } from "./ui";
 import { BLOG_POSTS, COLORS } from "./constants";
+import { ROUTES } from "../../routes.config";
 
 export function Blog() {
   return (
@@ -59,7 +60,7 @@ export function Blog() {
           <br />
           With our user-friendly tools and expert support.
         </p>
-        <Button href="#" variant="primary" size="lg">
+        <Button href={ROUTES.LOGIN} variant="primary" size="lg">
           Get Started →
         </Button>
       </div>

@@ -35,7 +35,7 @@ export function Button({
   className = "",
   fullWidth = false,
 }: ButtonProps) {
-  const baseStyles = "rounded-full transition font-medium text-center";
+  const baseStyles = "rounded-full transition font-medium text-center cursor-pointer";
   const displayStyle = fullWidth ? "block w-full" : "inline-block";
   
   const variantColorStyle =

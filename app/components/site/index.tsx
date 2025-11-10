@@ -1,3 +1,4 @@
+export { AuthLayout } from "./auth-layout";
 export { Header } from "./header";
 export { Hero } from "./hero";
 export { TrustedBy } from "./trusted-by";
