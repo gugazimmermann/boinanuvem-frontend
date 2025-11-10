@@ -1,6 +1,12 @@
-import { Section, Heading, Button, Badge, SVGPlaceholder } from "./ui";
+import { Section, Heading, Button, Badge } from "./ui";
 import { BLOG_POSTS, COLORS } from "./constants";
 import { ROUTES } from "../../routes.config";
+
+const BLOG_IMAGES = [
+  "/images/bull.png",
+  "/images/grassland.png",
+  "/images/farm.png",
+] as const;
 
 export function Blog() {
   return (
@@ -12,15 +18,15 @@ export function Blog() {
     >
       <div className="text-center mb-12">
         <Heading level={2} color="secondary" className="mb-4">
-          <span style={{ color: COLORS.primary }}>Editor's</span> Desk
+          <span style={{ color: COLORS.primary }}>Blog</span> Boi na Nuvem
         </Heading>
         <p className="text-xl text-gray-600 mb-6 leading-relaxed">
-          Embrace Creativity with our Latest Designs & Expert Tips
+          Dicas, novidades e conteúdos exclusivos sobre gestão de fazendas
           <br />
-          Fueling your Projects for exceptional results and growth.
+          Acompanhe as melhores práticas e tendências da pecuária de corte.
         </p>
         <Button href="#" variant="secondary" size="md">
-          View All Posts
+          Ver Todos os Posts
         </Button>
       </div>
 
@@ -30,8 +36,13 @@ export function Blog() {
             key={index}
             className="bg-white p-6 rounded-2xl border border-gray-200 hover:shadow-lg transition"
           >
-            <div className="mb-4">
-              <SVGPlaceholder variant="blog" width={400} height={250} index={index} />
+            <div className="mb-4 rounded-lg overflow-hidden bg-gray-100" style={{ aspectRatio: "16/9" }}>
+              <img
+                src={BLOG_IMAGES[index] || BLOG_IMAGES[0]}
+                alt={post.title}
+                className="w-full h-full rounded-lg"
+                style={{ objectFit: "contain", width: "100%", height: "100%" }}
+              />
             </div>
             <Badge color={post.categoryColor} className="mb-3">
               {post.category}
@@ -53,15 +64,15 @@ export function Blog() {
         }}
       >
         <Heading level={2} className="mb-4" customColor="white">
-          Start your Website!!
+          Comece a gerenciar sua fazenda agora!
         </Heading>
         <p className="text-xl mb-8 leading-relaxed" style={{ color: COLORS.textLight }}>
-          Your digital presence begins here. Create a Captivating Website.
+          Sua gestão profissional começa aqui. Transforme a administração da sua fazenda.
           <br />
-          With our user-friendly tools and expert support.
+          Com ferramentas intuitivas e suporte especializado.
         </p>
         <Button href={ROUTES.LOGIN} variant="primary" size="lg">
-          Get Started →
+          Começar Agora →
         </Button>
       </div>
     </Section>

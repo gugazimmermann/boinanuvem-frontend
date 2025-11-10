@@ -1,5 +1,5 @@
 import { useState, useCallback, memo } from "react";
-import { Section, Heading, SVGPlaceholder } from "./ui";
+import { Section, Heading } from "./ui";
 import { FAQS, COLORS } from "./constants";
 
 export const FAQs = memo(function FAQs() {
@@ -19,13 +19,18 @@ export const FAQs = memo(function FAQs() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         <div>
           <Heading level={2} color="secondary" className="mb-4">
-            Frequently asked <span style={{ color: COLORS.primary }}>Questions</span>
+            Perguntas <span style={{ color: COLORS.primary }}>Frequentes</span>
           </Heading>
           <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-            Assertively provide access to cutting edge e-markets support proactive resources rapidiously.
+            Tire suas dúvidas sobre o Boi na Nuvem. Encontre respostas para as principais perguntas sobre nosso sistema de gestão para fazendas de gado de corte.
           </p>
-          <div className="hidden lg:block">
-            <SVGPlaceholder variant="faq" width={500} height={500} label="FAQs Image" />
+          <div className="hidden lg:block flex items-center justify-center">
+            <img
+              src="/images/cow_%.png"
+              alt="Perguntas Frequentes"
+              className="rounded-2xl"
+              style={{ maxWidth: "500px", width: "100%", height: "auto", objectFit: "contain" }}
+            />
           </div>
         </div>
         <div className="bg-white p-8 rounded-2xl border border-gray-200">

@@ -20,7 +20,7 @@ export function TrustedBy() {
       }}
     >
       <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-        <p className="font-medium text-gray-700 hidden lg:block">Trusted by 70K+ Clients —</p>
+        <p className="font-medium text-gray-700 hidden lg:block">Confiança de mais de 500 fazendas —</p>
         <div className="flex flex-wrap items-center justify-center gap-8 opacity-60">
           {TRUSTED_BRANDS.map((brand) => (
             <BrandLogo key={brand} name={brand} />

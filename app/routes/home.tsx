@@ -20,7 +20,7 @@ export function meta({}: Route.MetaArgs) {
     {
       name: "description",
       content:
-        "Boi na Nuvem - Create powerful websites easily with our highly customizable platform.",
+        "Boi na Nuvem - Sistema completo de gestão para fazendas de gado de corte. Gerencie propriedades, pastos, animais, pesos, nascimentos e muito mais.",
     },
   ];
 }

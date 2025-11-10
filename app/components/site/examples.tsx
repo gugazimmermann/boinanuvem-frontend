@@ -2,9 +2,9 @@ import { Section, Heading } from "./ui";
 import { COLORS } from "./constants";
 
 const FEATURES_LIST = [
-  "Powered by SemiColonWeb",
-  "Ultimate Design",
-  "Multi-Purpose Template",
+  "Gestão Completa de Propriedades e Pastos",
+  "Controle Total de Animais e Peso",
+  "Registro de Nascimentos e Reprodução",
 ] as const;
 
 export function Examples() {
@@ -21,10 +21,10 @@ export function Examples() {
           className="text-xs uppercase tracking-widest mb-4 block"
           style={{ color: COLORS.textLight }}
         >
-          Know More About Us
+          Saiba Mais Sobre Nós
         </span>
         <Heading level={2} className="mb-6" customColor="white">
-          Boi na Nuvem is a Powerful & Raw Multipurpose Platform.
+          Boi na Nuvem é uma Plataforma Completa e Poderosa para Gestão de Fazendas de Gado de Corte.
         </Heading>
         <ul className="space-y-2" style={{ color: COLORS.textLight }}>
           {FEATURES_LIST.map((feature, index) => (

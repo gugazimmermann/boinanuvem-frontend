@@ -30,7 +30,7 @@ export const Header = memo(function Header() {
 
           <div className="flex items-center space-x-4">
             <Button href={ROUTES.LOGIN} size="sm" variant="primary">
-              Get Started
+              Começar
             </Button>
             <button className="md:hidden cursor-pointer" aria-label="Toggle menu">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

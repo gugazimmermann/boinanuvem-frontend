@@ -15,18 +15,18 @@ export const Pricing = memo(function Pricing() {
     >
       <div className="text-center mb-12">
         <Heading level={2} color="secondary" className="mb-4">
-          The <span style={{ color: COLORS.primary }}>cost of doing business</span> shouldn't cost so damn much
+          Planos que <span style={{ color: COLORS.primary }}>cabem no seu bolso</span> sem comprometer qualidade
         </Heading>
         <p className="text-xl text-gray-600 leading-relaxed">
-          Enjoy budget-friendly options with our flexible pricing
+          Opções flexíveis de preços para diferentes tamanhos de propriedade
           <br />
-          Ensure affordability without compromising on quality or value.
+          Garanta eficiência e economia sem abrir mão de funcionalidades essenciais.
         </p>
       </div>
 
       <div className="flex justify-center mb-8">
         <div className="inline-flex rounded-full border-2 border-gray-300 p-1 bg-white">
-          {(["Monthly", "Annually"] as const).map((label, index) => {
+          {(["Mensal", "Anual"] as const).map((label, index) => {
             const isActive = (index === 0 && isMonthly) || (index === 1 && !isMonthly);
             return (
               <button
@@ -49,7 +49,7 @@ export const Pricing = memo(function Pricing() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
         {PRICING_PLANS.map((plan, index) => {
           const price = isMonthly ? plan.monthlyPrice : plan.annualPrice;
-          const period = isMonthly ? "month" : "year";
+          const period = isMonthly ? "mês" : "ano";
           const borderColor = plan.popular ? COLORS.primary : COLORS.bgLightSecondary;
           const buttonVariant = plan.popular ? "primary" : "secondary";
 
@@ -79,7 +79,7 @@ export const Pricing = memo(function Pricing() {
                     borderColor: COLORS.primary,
                   }}
                 >
-                  Most Popular
+                  Mais Popular
                 </span>
               )}
               <div className="flex justify-between items-start mb-6">
@@ -93,12 +93,12 @@ export const Pricing = memo(function Pricing() {
                   <div className="text-4xl font-bold" style={{ color: COLORS.primary }}>
                     {price}
                   </div>
-                  <div className="text-sm text-gray-500">per {period}</div>
+                  <div className="text-sm text-gray-500">por {period}</div>
                 </div>
               </div>
               <div className="mb-6 border-t-2 pt-5" style={{ borderColor }}>
                 <p className="font-bold mb-3 text-lg" style={{ color: COLORS.textDark }}>
-                  Included:
+                  Inclui:
                 </p>
                 <ul className="space-y-2">
                   {plan.features.map((feature, idx) => {
@@ -115,7 +115,7 @@ export const Pricing = memo(function Pricing() {
                 </ul>
               </div>
               <Button href={ROUTES.LOGIN} variant={buttonVariant} fullWidth size="md">
-                Get Started →
+                Começar Agora →
               </Button>
             </div>
           );

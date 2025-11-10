@@ -14,13 +14,13 @@ export function CTA() {
           Boi na Nuvem
         </Badge>
         <Heading level={2} color="dark" className="mb-6">
-          Crafted to Captivate Attention & Leave a Lasting Impact.
+          Transforme a gestão da sua fazenda com tecnologia de ponta.
         </Heading>
         <p className="text-xl mb-8 leading-relaxed" style={{ color: COLORS.textMedium }}>
-          Experience the pinnacle of creativity and craftsmanship with our high-quality designs, meticulously curated to enhance your brand's identity and resonate powerfully with your audience.
+          Experimente a melhor solução de gestão para fazendas de gado de corte. Sistema completo, intuitivo e poderoso, desenvolvido especialmente para otimizar a administração da sua propriedade e aumentar a produtividade do seu rebanho.
         </p>
         <Button href="#" size="lg" variant="primary">
-          Browse Layouts
+          Começar Agora
         </Button>
       </div>
     </Section>

@@ -16,85 +16,86 @@ export const COLORS = {
 
 // Navigation Links
 export const NAV_LINKS = [
-  { href: "#section-services", label: "Services" },
-  { href: "#section-examples", label: "Examples" },
-  { href: "#section-pricing", label: "Pricing" },
-  { href: "#section-faqs", label: "FAQs" },
+  { href: "#section-services", label: "Funcionalidades" },
+  { href: "#section-examples", label: "Sobre" },
+  { href: "#section-pricing", label: "Preços" },
+  { href: "#section-faqs", label: "Perguntas" },
   { href: "#section-blog", label: "Blog" },
 ] as const;
 
 // Services Data
 export const SERVICES = [
   {
-    title: "Connect Your Apps",
+    title: "Gestão de Propriedades e Pastos",
     content:
-      "Bridging the gap between apps, simplifying tasks and maximizing productivity by fostering seamless communication and efficient synergy.",
+      "Controle completo de suas propriedades e pastos. Cadastre áreas, delimite pastagens, monitore capacidade de lotação e gerencie rotação de pastos de forma eficiente.",
   },
   {
-    title: "Get More Features",
+    title: "Controle de Animais e Peso",
     content:
-      "Unleash your creativity with an expansive website builder toolkit, providing advanced features for unparalleled design and functionality.",
+      "Registre todos os seus animais com informações detalhadas. Acompanhe o peso ao longo do tempo, histórico de vacinações, tratamentos e muito mais.",
   },
   {
-    title: "Automations to the Max",
+    title: "Gestão de Nascimentos e Reprodução",
     content:
-      "Empower your website with advanced automation tools, enhancing user experience through intelligent, streamlined processes and personalized interactions.",
+      "Registre nascimentos, controle o ciclo reprodutivo das matrizes, acompanhe prenhezes e gerencie a genética do seu rebanho com relatórios completos e precisos.",
   },
 ] as const;
 
 // Features Data
 export const FEATURES = [
   {
-    badge: "Speed Optimization",
-    title: "92% Faster",
+    badge: "Eficiência",
+    title: "Economia de Tempo",
     content:
-      "Experience ~92% faster results with our optimized processes. Accelerate Projects and Achieve Goals effortlessly.",
-    button: "Discover the Speed",
+      "Reduza em até 70% o tempo gasto com planilhas e controles manuais. Automatize processos e foque no que realmente importa: sua produção.",
+    button: "Conheça a Eficiência",
   },
   {
-    badge: "Flexible",
-    title: "More Flexible",
+    badge: "Flexível",
+    title: "Totalmente Adaptável",
     content:
-      "Unlock unparalleled flexibility with our adaptive solutions, tailor-made to match your unique needs.",
-    button: "More Flexible",
+      "Sistema flexível que se adapta à realidade da sua fazenda. Configure conforme suas necessidades e dimensões do seu negócio.",
+    button: "Mais Flexibilidade",
   },
   {
-    badge: "Customizable",
-    title: "100% Customizable",
+    badge: "Completo",
+    title: "Gestão Completa",
     content:
-      "Achieve your vision with 100% customizable solutions, where every detail reflects your brand identity and goals.",
-    button: "Customize Now",
+      "Tudo em um só lugar: propriedades, pastos, animais, pesos, nascimentos, saúde, reprodução e muito mais. Gestão completa do seu rebanho.",
+    button: "Ver Funcionalidades",
   },
 ] as const;
 
 // Pricing Plans
 export const PRICING_PLANS = [
   {
-    name: "Basic",
-    description: "Best Plan for Startup Plan.",
-    monthlyPrice: "$5",
-    annualPrice: "$60",
+    name: "Básico",
+    description: "Plano ideal para pequenas propriedades.",
+    monthlyPrice: "R$ 99",
+    annualPrice: "R$ 990",
     features: [
-      "SEO Features",
-      "1 Users Access",
-      "100 User Accounts",
-      "1 Year License",
-      "24/7 Support",
+      "Até 1 Propriedade",
+      "Até 500 Animais",
+      "Gestão de Pastos",
+      "Controle de Peso",
+      "Registro de Nascimentos",
+      "Suporte por Email",
     ],
     popular: true,
   },
   {
-    name: "Business",
-    description: "A Perfect Business Plan For Your Full Team.",
-    monthlyPrice: "$49",
-    annualPrice: "$588",
+    name: "Empresarial",
+    description: "Plano completo para grandes fazendas e equipes.",
+    monthlyPrice: "R$ 299",
+    annualPrice: "R$ 2.990",
     features: [
-      "Unlimited Niche Demos",
-      "SEO Features",
-      "Ultimate Access",
-      "All User Accounts",
-      "Ultimate License",
-      "24/7 Support",
+      "Propriedades Ilimitadas",
+      "Animais Ilimitados",
+      "Múltiplos Usuários",
+      "Relatórios Avançados",
+      "API de Integração",
+      "Suporte Prioritário 24/7",
     ],
     popular: false,
   },
@@ -103,110 +104,110 @@ export const PRICING_PLANS = [
 // FAQs Data
 export const FAQS = [
   {
-    question: "How do I become an author?",
+    question: "Como funciona o sistema Boi na Nuvem?",
     answer:
-      "Assertively envisioneer out-of-the-box methodologies support strategic niches. Globally restore magnetic value before business resources. Interactively scale front-end niche markets before cross-platform partnerships. Dramatically myocardinate front-end synergy whereas best-of-breed users. Efficiently generate world-class action items with revolutionary growth strategies.",
+      "O Boi na Nuvem é um sistema completo de gestão para fazendas de gado de corte. Você pode cadastrar suas propriedades, pastos, animais, registrar pesos, nascimentos, vacinações e muito mais. Tudo de forma simples e intuitiva, com acesso de qualquer lugar através da nuvem.",
   },
   {
-    question: "An introduction to the marketplaces for authors?",
+    question: "Preciso de conhecimento técnico para usar?",
     answer:
-      "Assertively envisioneer out-of-the-box methodologies support strategic niches. Globally restore magnetic value before business resources. Interactively scale front-end niche markets before cross-platform partnerships.",
+      "Não! O sistema foi desenvolvido pensando na simplicidade. A interface é intuitiva e fácil de usar. Além disso, oferecemos treinamento e suporte completo para ajudar você a aproveitar ao máximo todas as funcionalidades.",
   },
   {
-    question: "Helpful resources for authors?",
+    question: "Posso usar em múltiplas propriedades?",
     answer:
-      "Assertively envisioneer out-of-the-box methodologies support strategic niches. Globally restore magnetic value before business resources. Interactively scale front-end niche markets before cross-platform partnerships. Dramatically myocardinate front-end synergy whereas best-of-breed users.",
+      "Sim! Dependendo do seu plano, você pode gerenciar uma ou múltiplas propriedades. O plano Empresarial permite propriedades ilimitadas, ideal para grandes fazendas ou grupos empresariais.",
   },
   {
-    question: "How can I get support for an item which isn't working correctly?",
+    question: "Como faço para obter suporte?",
     answer:
-      "Assertively envisioneer out-of-the-box methodologies support strategic niches. Globally restore magnetic value before business resources. Interactively scale front-end niche markets before cross-platform partnerships.",
+      "Oferecemos suporte por email para o plano Básico e suporte prioritário 24/7 para o plano Empresarial. Nossa equipe está sempre pronta para ajudar com qualquer dúvida ou problema que você possa ter.",
   },
   {
-    question: "Can I use trademarked names in my items?",
+    question: "Meus dados estão seguros?",
     answer:
-      "Assertively envisioneer out-of-the-box methodologies support strategic niches. Globally restore magnetic value before business resources. Interactively scale front-end niche markets before cross-platform partnerships.",
+      "Absolutamente! Utilizamos tecnologia de ponta para garantir a segurança dos seus dados. Todos os dados são armazenados na nuvem com criptografia e backups automáticos, garantindo total segurança e confiabilidade.",
   },
   {
-    question: "How much licences can I sale?",
+    question: "Posso cancelar a qualquer momento?",
     answer:
-      "Assertively envisioneer out-of-the-box methodologies support strategic niches. Globally restore magnetic value before business resources. Interactively scale front-end niche markets before cross-platform partnerships.",
+      "Sim, você pode cancelar sua assinatura a qualquer momento sem multas ou taxas adicionais. Seu acesso permanecerá ativo até o final do período já pago.",
   },
   {
-    question: "How do i return my products?",
+    question: "O sistema funciona offline?",
     answer:
-      "Assertively envisioneer out-of-the-box methodologies support strategic niches. Globally restore magnetic value before business resources. Interactively scale front-end niche markets before cross-platform partnerships.",
+      "O Boi na Nuvem é uma aplicação web que funciona melhor com conexão à internet. No entanto, estamos trabalhando em funcionalidades offline para áreas rurais com conexão limitada. Entre em contato para saber mais sobre nossas funcionalidades futuras.",
   },
 ] as const;
 
 // Blog Posts
 export const BLOG_POSTS = [
   {
-    category: "Minimalism",
+    category: "Gestão",
     categoryColor: COLORS.secondary,
-    title: "Mastering Minimalism: Crafting Powerful Designs with Less",
-    date: "2 days ago",
-    readTime: "5 min read",
+    title: "Como melhorar a gestão do seu rebanho com tecnologia",
+    date: "2 dias atrás",
+    readTime: "5 min de leitura",
   },
   {
-    category: "Communication",
+    category: "Produtividade",
     categoryColor: COLORS.primary,
     title:
-      "Color Psychology in Design: Unveiling the Emotive Palette of Visual Communication",
-    date: "3 days ago",
-    readTime: "6 min read",
+      "5 dicas para aumentar a produtividade na sua fazenda de gado de corte",
+    date: "3 dias atrás",
+    readTime: "6 min de leitura",
   },
   {
-    category: "Trends",
+    category: "Tendências",
     categoryColor: "oklch(55% 0.15 200)",
     title:
-      "Navigating UX/UI Trends: Designing Intuitive Digital Experiences for Modern Audiences",
-    date: "3 days ago",
-    readTime: "6 min read",
+      "O futuro da pecuária: tecnologia e inovação na gestão de fazendas",
+    date: "3 dias atrás",
+    readTime: "6 min de leitura",
   },
 ] as const;
 
 // Footer Sections
 export const FOOTER_SECTIONS = [
   {
-    title: "How we Work",
+    title: "Como Funciona",
     links: [
-      "Documentation",
-      "Feedback",
-      "Plugins",
-      "Support Forums",
-      "Themes",
-      "Boi na Nuvem Blog",
+      "Documentação",
+      "Tutoriais",
+      "Funcionalidades",
+      "Fórum de Suporte",
+      "API",
+      "Blog Boi na Nuvem",
     ],
   },
   {
-    title: "About Us",
+    title: "Sobre Nós",
     links: [
-      "Feedback",
-      "Documentation",
-      "Plugins",
-      "Support Forums",
-      "Themes",
-      "Contact Us",
+      "Quem Somos",
+      "Nossa História",
+      "Equipe",
+      "Trabalhe Conosco",
+      "Imprensa",
+      "Contato",
     ],
   },
   {
-    title: "How we do",
+    title: "Recursos",
     links: [
-      "Plugins",
-      "Support Forums",
-      "Themes",
-      "Boi na Nuvem Blog",
-      "Contact Us",
+      "Central de Ajuda",
+      "Fórum de Suporte",
+      "Vídeos Tutoriais",
+      "Blog Boi na Nuvem",
+      "Contato",
     ],
   },
   {
-    title: "Need Help?",
+    title: "Precisa de Ajuda?",
     links: [
-      "📞 +0 (11) 222 333",
-      "✉️ no-reply@canvas.com",
-      "📅 Mon - Sat | 09:00 - 16:00",
-      "📅 Sunday Closed",
+      "📞 (11) 9999-9999",
+      "✉️ contato@boinanuvem.com.br",
+      "📅 Seg - Sex | 08:00 - 18:00",
+      "📅 Sábado | 09:00 - 13:00",
     ],
   },
 ] as const;

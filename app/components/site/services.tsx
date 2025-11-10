@@ -18,7 +18,23 @@ export const Services = memo(function Services() {
       }}
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center mb-16">
-        <div className="space-y-6">
+        <div className="flex items-center justify-center order-2 md:order-1">
+          {activeTab === 0 ? (
+            <div className="flex items-center justify-center w-full">
+              <img
+                src="/images/livestock.png"
+                alt="Gestão de Propriedades e Pastos"
+                className="rounded-2xl"
+                style={{ maxWidth: "400px", width: "100%", height: "auto", objectFit: "contain" }}
+              />
+            </div>
+          ) : (
+            <div className="flex items-center justify-center w-full">
+              <SVGPlaceholder variant="service" index={activeTab} />
+            </div>
+          )}
+        </div>
+        <div className="space-y-6 order-1 md:order-2">
           {SERVICES.map((item, index) => (
             <div
               key={index}
@@ -48,19 +64,16 @@ export const Services = memo(function Services() {
             </div>
           ))}
         </div>
-        <div>
-          <SVGPlaceholder variant="service" index={activeTab} />
-        </div>
       </div>
 
       {/* Why Choose Us */}
       <div className="mt-24">
         <div className="text-center mb-12">
           <Heading level={2} color="secondary" className="mb-4">
-            Why you <span style={{ color: COLORS.primary }}>Choose</span> Us
+            Por que <span style={{ color: COLORS.primary }}>Escolher</span> o Boi na Nuvem
           </Heading>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-            Visionary Design, Seamless Integration, Powerful Tools & Unmatched Support. Turning your Ideas into Digital Reality.
+            Tecnologia de ponta, integração completa, ferramentas poderosas e suporte excepcional. Transforme a gestão da sua fazenda com soluções digitais modernas.
           </p>
         </div>
 
