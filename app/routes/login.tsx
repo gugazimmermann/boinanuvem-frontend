@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router";
 import { AuthLayout } from "../components/site/auth-layout";
 import { Input, Button } from "../components/ui";
 import { COLORS } from "../components/site/constants";
@@ -14,6 +15,14 @@ export function meta() {
 }
 
 export default function Login() {
+  const navigate = useNavigate();
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    // For now, ignore authentication and navigate to dashboard
+    navigate(ROUTES.DASHBOARD);
+  };
+
   return (
     <AuthLayout>
       <div className="w-full max-w-sm mx-auto overflow-hidden bg-white rounded-lg shadow-md">
@@ -35,7 +44,7 @@ export default function Login() {
             Faça login ou crie uma conta
           </p>
 
-          <form className="mt-6">
+          <form className="mt-6" onSubmit={handleSubmit}>
             <div className="w-full">
               <Input
                 type="email"

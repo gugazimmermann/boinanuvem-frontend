@@ -14,6 +14,7 @@ export const ROUTES = {
   REGISTER: "/cadastrar",
   FORGOT_PASSWORD: "/esqueceu-senha",
   NEW_PASSWORD: "/nova-senha",
+  DASHBOARD: "/dashboard",
 } as const;
 
 /**
@@ -25,6 +26,7 @@ export const ROUTE_NAMES = {
   REGISTER: "cadastrar",
   FORGOT_PASSWORD: "esqueceu-senha",
   NEW_PASSWORD: "nova-senha",
+  DASHBOARD: "dashboard",
 } as const;
 
 export type RoutePath = (typeof ROUTES)[keyof typeof ROUTES];

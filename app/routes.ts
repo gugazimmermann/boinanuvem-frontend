@@ -11,4 +11,7 @@ export default [
   route(ROUTE_NAMES.REGISTER, "routes/register.tsx"),
   route(ROUTE_NAMES.FORGOT_PASSWORD, "routes/forgot-password.tsx"),
   route(ROUTE_NAMES.NEW_PASSWORD, "routes/new-password.tsx"),
+  route(ROUTE_NAMES.DASHBOARD, "routes/dashboard.tsx", [
+    index("routes/dashboard/index.tsx"),
+  ]),
 ] satisfies RouteConfig;
