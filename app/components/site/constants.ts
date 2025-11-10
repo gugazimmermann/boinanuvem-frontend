@@ -1,4 +1,3 @@
-// Brand Colors
 export const COLORS = {
   primary: "oklch(62.7% 0.194 149.214)",
   secondary: "oklch(58.8% 0.158 241.966)",
@@ -14,7 +13,6 @@ export const COLORS = {
   textLight: "oklch(90% 0.05 241)",
 } as const;
 
-// Navigation Links
 export const NAV_LINKS = [
   { href: "#section-services", label: "Funcionalidades" },
   { href: "#section-examples", label: "Sobre" },
@@ -23,7 +21,6 @@ export const NAV_LINKS = [
   { href: "#section-blog", label: "Blog" },
 ] as const;
 
-// Services Data
 export const SERVICES = [
   {
     title: "Gestão de Propriedades e Pastos",
@@ -42,7 +39,6 @@ export const SERVICES = [
   },
 ] as const;
 
-// Features Data
 export const FEATURES = [
   {
     badge: "Eficiência",
@@ -67,7 +63,6 @@ export const FEATURES = [
   },
 ] as const;
 
-// Pricing Plans
 export const PRICING_PLANS = [
   {
     name: "Básico",
@@ -101,7 +96,6 @@ export const PRICING_PLANS = [
   },
 ] as const;
 
-// FAQs Data
 export const FAQS = [
   {
     question: "Como funciona o sistema Boi na Nuvem?",
@@ -140,7 +134,6 @@ export const FAQS = [
   },
 ] as const;
 
-// Blog Posts
 export const BLOG_POSTS = [
   {
     category: "Gestão",
@@ -167,7 +160,6 @@ export const BLOG_POSTS = [
   },
 ] as const;
 
-// Footer Sections
 export const FOOTER_SECTIONS = [
   {
     title: "Como Funciona",
@@ -212,6 +204,5 @@ export const FOOTER_SECTIONS = [
   },
 ] as const;
 
-// Trusted Brands
 export const TRUSTED_BRANDS = ["CNN", "GitHub", "Google", "PayPal", "Vimeo"] as const;
 

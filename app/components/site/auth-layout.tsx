@@ -14,7 +14,6 @@ export function AuthLayout({ children }: AuthLayoutProps) {
         background: `linear-gradient(135deg, ${COLORS.bgLight} 0%, ${COLORS.bgLightSecondary} 50%, ${COLORS.bgLightTertiary} 100%)`,
       }}
     >
-      {/* Navbar */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-200 shadow-sm">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between py-2">
@@ -31,12 +30,10 @@ export function AuthLayout({ children }: AuthLayoutProps) {
         </div>
       </nav>
 
-      {/* Main Content */}
       <main className="flex-1 flex items-center justify-center py-12 px-4">
         {children}
       </main>
 
-      {/* Simplified Footer */}
       <footer className="bg-white/50 border-t border-gray-200 py-3">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-2">

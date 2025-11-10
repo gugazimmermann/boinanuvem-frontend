@@ -32,7 +32,6 @@ export default function Register() {
   const [step, setStep] = useState<1 | 2>(1);
   const [companyErrors, setCompanyErrors] = useState<Record<string, string>>({});
 
-  // Company data state
   const [companyData, setCompanyData] = useState({
     cnpj: "",
     razaoSocial: "",
@@ -47,7 +46,6 @@ export default function Register() {
     cep: "",
   });
 
-  // User data state
   const [userData, setUserData] = useState({
     nome: "",
     email: "",
@@ -63,16 +61,13 @@ export default function Register() {
     repitaSenha: "",
   });
 
-  // Handle CNPJ lookup success
   const handleCNPJSuccess = useCallback((data: CNPJData) => {
     setCompanyData((prev) => {
       const mappedData = mapCNPJDataToCompanyForm(data, prev);
-      // Preserve the CNPJ value to prevent re-triggering
       return { ...mappedData, cnpj: prev.cnpj };
     });
   }, []);
 
-  // Use CNPJ lookup hook with unmasked CNPJ
   const { data: cnpjData, loading: cnpjLoading, error: cnpjError } = useCNPJLookup(
     unmaskCNPJ(companyData.cnpj),
     {
@@ -81,16 +76,13 @@ export default function Register() {
     }
   );
 
-  // Handle CEP lookup success for company data
   const handleCompanyCEPSuccess = useCallback((data: CEPData) => {
     setCompanyData((prev) => {
       const mappedData = mapCEPDataToAddressForm(data, prev);
-      // Preserve the CEP value to prevent re-triggering
       return { ...prev, ...mappedData, cep: prev.cep };
     });
   }, []);
 
-  // Use CEP lookup hook for company data with unmasked CEP
   const {
     data: companyCEPData,
     loading: companyCEPLoading,
@@ -100,16 +92,13 @@ export default function Register() {
     onSuccess: handleCompanyCEPSuccess,
   });
 
-  // Handle CEP lookup success for user data
   const handleUserCEPSuccess = useCallback((data: CEPData) => {
     setUserData((prev) => {
       const mappedData = mapCEPDataToAddressForm(data, prev);
-      // Preserve the CEP value to prevent re-triggering
       return { ...prev, ...mappedData, cep: prev.cep };
     });
   }, []);
 
-  // Use CEP lookup hook for user data with unmasked CEP
   const {
     data: userCEPData,
     loading: userCEPLoading,
@@ -122,7 +111,6 @@ export default function Register() {
   const handleCompanyDataChange = (field: keyof typeof companyData, value: string) => {
     let processedValue = value;
     
-    // Apply masks based on field type
     if (field === "cnpj") {
       processedValue = maskCNPJ(value);
     } else if (field === "telefone") {
@@ -132,7 +120,6 @@ export default function Register() {
     }
     
     setCompanyData((prev) => ({ ...prev, [field]: processedValue }));
-    // Clear error when user starts typing
     if (companyErrors[field]) {
       setCompanyErrors((prev) => {
         const newErrors = { ...prev };
@@ -142,7 +129,6 @@ export default function Register() {
     }
   };
 
-  // Validate company data
   const validateCompanyData = (): boolean => {
     const errors: Record<string, string> = {};
     const requiredFields: (keyof typeof companyData)[] = [
@@ -160,7 +146,6 @@ export default function Register() {
     requiredFields.forEach((field) => {
       let value = companyData[field];
       
-      // Use unmasked value for validation
       if (field === "cnpj") {
         value = unmaskCNPJ(value);
       } else if (field === "telefone") {
@@ -185,19 +170,16 @@ export default function Register() {
       }
     });
 
-    // Validate CNPJ length (14 digits)
     const unmaskedCNPJ = unmaskCNPJ(companyData.cnpj);
     if (unmaskedCNPJ && unmaskedCNPJ.length !== 14) {
       errors.cnpj = "CNPJ deve ter 14 dígitos";
     }
 
-    // Validate CEP length (8 digits)
     const unmaskedCEP = unmaskCEP(companyData.cep);
     if (unmaskedCEP && unmaskedCEP.length !== 8) {
       errors.cep = "CEP deve ter 8 dígitos";
     }
 
-    // Validate email format
     if (companyData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(companyData.email)) {
       errors.email = "Email inválido";
     }
@@ -217,7 +199,6 @@ export default function Register() {
       e.preventDefault();
     }
 
-    // Geocode both addresses using address components directly
     const [companyGeocode, userGeocode] = await Promise.all([
       geocodeAddress({
         rua: companyData.rua,
@@ -239,7 +220,6 @@ export default function Register() {
       }),
     ]);
 
-    // Build full addresses for display
     const companyAddress = buildAddressString({
       rua: companyData.rua,
       numero: companyData.numero,
@@ -260,10 +240,8 @@ export default function Register() {
       cep: userData.cep,
     });
 
-    // Build alert message
     let message = "=== Coordenadas dos Endereços ===\n\n";
 
-    // Company address
     message += "📍 Endereço da Empresa:\n";
     message += `${companyAddress}\n\n`;
     if ("error" in companyGeocode) {
@@ -273,7 +251,6 @@ export default function Register() {
       message += `✅ Longitude: ${companyGeocode.lon}\n\n`;
     }
 
-    // User address
     message += "👤 Endereço do Usuário:\n";
     message += `${userAddress}\n\n`;
     if ("error" in userGeocode) {
@@ -283,7 +260,6 @@ export default function Register() {
       message += `✅ Longitude: ${userGeocode.lon}\n`;
     }
 
-    // Show alert
     alert(message);
   };
 
@@ -294,7 +270,6 @@ export default function Register() {
     <AuthLayout>
       <div className="w-full max-w-2xl mx-auto overflow-hidden bg-white rounded-lg shadow-md">
         <div className="px-6 py-4">
-          {/* Logo */}
           <div className="flex justify-center mx-auto mb-4">
             <div
               className="w-auto h-7 sm:h-8 flex items-center text-2xl font-bold"
@@ -304,7 +279,6 @@ export default function Register() {
             </div>
           </div>
 
-          {/* Progress Indicator */}
           <div className="flex items-center justify-center mb-6">
             <div className="flex items-center">
               <div
@@ -333,19 +307,16 @@ export default function Register() {
             </div>
           </div>
 
-          {/* Title */}
           <h3 className="mt-3 text-xl font-medium text-center text-gray-600">
             {step === 1 ? "Dados da Empresa" : "Dados do Usuário"}
           </h3>
 
-          {/* Subtitle */}
           <p className="mt-1 text-center text-gray-500">
             {step === 1
               ? "Preencha os dados da sua empresa"
               : "Preencha seus dados pessoais"}
           </p>
 
-          {/* Form */}
           <form
             className="mt-6"
             onSubmit={(e) => {
@@ -358,7 +329,6 @@ export default function Register() {
             }}
           >
             {step === 1 ? (
-              // Step 1: Company Data
               <div className="space-y-4">
                 {cnpjLoading && (
                   <div className="text-sm text-blue-500 text-center">
@@ -423,7 +393,6 @@ export default function Register() {
                   </div>
                 </div>
 
-                {/* Address Section - CEP first */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <Input
@@ -524,7 +493,6 @@ export default function Register() {
                 </div>
               </div>
             ) : (
-              // Step 2: User Data
               <div className="space-y-4">
                 <div>
                   <Input
@@ -565,7 +533,6 @@ export default function Register() {
                   </div>
                 </div>
 
-                {/* Address Section - CEP first */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <Input
@@ -687,7 +654,6 @@ export default function Register() {
               </div>
             )}
 
-            {/* Navigation Buttons */}
             <div className="flex items-center justify-between mt-6">
               {step === 2 && (
                 <Button
@@ -727,7 +693,6 @@ export default function Register() {
           </form>
         </div>
 
-        {/* Footer Section */}
         <div className="flex items-center justify-center py-4 text-center bg-gray-50">
           <span className="text-sm text-gray-600">
             Já tem uma conta?{" "}

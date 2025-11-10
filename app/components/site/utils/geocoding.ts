@@ -58,13 +58,11 @@ export async function geocodeAddress(
   }
 
   try {
-    // Try structured query first (more reliable)
     const street = `${address.rua}${address.numero ? ` ${address.numero}` : ""}`;
     const city = address.cidade;
     const state = address.estado;
     const country = "Brazil";
 
-    // Build structured query URL
     const params = new URLSearchParams({
       format: "json",
       street: street,
@@ -89,7 +87,6 @@ export async function geocodeAddress(
 
     let data = await response.json();
 
-    // If structured query fails, try free-form query without CEP
     if (!data || data.length === 0) {
       const simpleAddress = `${street}, ${city}, ${state}, ${country}`;
       const encodedAddress = encodeURIComponent(simpleAddress);
@@ -108,7 +105,6 @@ export async function geocodeAddress(
       data = await response.json();
     }
 
-    // If still no results, try with just street and city
     if (!data || data.length === 0) {
       const minimalAddress = `${street}, ${city}, ${state}`;
       const encodedAddress = encodeURIComponent(minimalAddress);

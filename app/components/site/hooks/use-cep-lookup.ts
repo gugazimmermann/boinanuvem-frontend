@@ -51,7 +51,6 @@ export function useCEPLookup(
   const onSuccessRef = useRef(onSuccess);
   const onErrorRef = useRef(onError);
 
-  // Keep refs updated
   useEffect(() => {
     onSuccessRef.current = onSuccess;
     onErrorRef.current = onError;
@@ -65,7 +64,6 @@ export function useCEPLookup(
     async (cepValue: string) => {
       const cleanCEP = formatCEP(cepValue);
 
-      // Validate CEP length (8 digits)
       if (cleanCEP.length !== 8) {
         setError(null);
         setData(null);
@@ -73,7 +71,6 @@ export function useCEPLookup(
         return;
       }
 
-      // Prevent fetching the same CEP again
       if (lastFetchedCEP.current === cleanCEP) {
         return;
       }
@@ -108,7 +105,6 @@ export function useCEPLookup(
     [formatCEP]
   );
 
-  // Debounce CEP lookup
   useEffect(() => {
     if (!enabled) return;
 

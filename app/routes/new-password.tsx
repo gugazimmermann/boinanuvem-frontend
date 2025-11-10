@@ -18,7 +18,6 @@ export default function NewPassword() {
     <AuthLayout>
       <div className="w-full max-w-sm mx-auto overflow-hidden bg-white rounded-lg shadow-md">
         <div className="px-6 py-4">
-          {/* Logo */}
           <div className="flex justify-center mx-auto mb-4">
             <div
               className="w-auto h-7 sm:h-8 flex items-center text-2xl font-bold"
@@ -28,17 +27,14 @@ export default function NewPassword() {
             </div>
           </div>
 
-          {/* Title */}
           <h3 className="mt-3 text-xl font-medium text-center text-gray-600">
             Nova Senha
           </h3>
 
-          {/* Subtitle */}
           <p className="mt-1 text-center text-gray-500">
             Digite o código recebido e sua nova senha
           </p>
 
-          {/* Form */}
           <form className="mt-6">
             <div className="w-full">
               <Input
@@ -86,7 +82,6 @@ export default function NewPassword() {
           </form>
         </div>
 
-        {/* Footer Section */}
         <div className="flex items-center justify-center py-4 text-center bg-gray-50">
           <span className="text-sm text-gray-600">
             Não recebeu o código?{" "}

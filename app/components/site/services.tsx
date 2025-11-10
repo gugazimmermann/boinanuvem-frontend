@@ -66,7 +66,6 @@ export const Services = memo(function Services() {
         </div>
       </div>
 
-      {/* Why Choose Us */}
       <div className="mt-24">
         <div className="text-center mb-12">
           <Heading level={2} color="secondary" className="mb-4">

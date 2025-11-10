@@ -1,4 +1,3 @@
-// Utility function for smooth scrolling
 export function scrollToSection(sectionId: string, offset = 80) {
   const element = document.getElementById(sectionId);
   if (element) {
@@ -7,7 +6,6 @@ export function scrollToSection(sectionId: string, offset = 80) {
   }
 }
 
-// Hook for handling anchor clicks
 export function useSmoothScroll() {
   if (typeof window === "undefined") return;
 
@@ -28,7 +26,6 @@ export function useSmoothScroll() {
   return () => document.removeEventListener("click", handleClick);
 }
 
-// Re-export CNPJ utilities
 export {
   formatCNPJ,
   formatPhone,
@@ -36,7 +33,6 @@ export {
   type CompanyFormData,
 } from "./utils/cnpj-utils";
 
-// Re-export mask utilities
 export {
   maskCNPJ,
   unmaskCNPJ,
@@ -47,13 +43,11 @@ export {
   createMaskHandler,
 } from "./utils/masks";
 
-// Re-export CEP utilities
 export {
   mapCEPDataToAddressForm,
   type AddressFormData,
 } from "./utils/cep-utils";
 
-// Re-export geocoding utilities
 export {
   geocodeAddress,
   buildAddressString,
