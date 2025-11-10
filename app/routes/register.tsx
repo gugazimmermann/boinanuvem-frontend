@@ -34,31 +34,31 @@ export default function Register() {
 
   const [companyData, setCompanyData] = useState({
     cnpj: "",
-    razaoSocial: "",
+    companyName: "",
     email: "",
-    telefone: "",
-    rua: "",
-    numero: "",
-    complemento: "",
-    bairro: "",
-    cidade: "",
-    estado: "",
-    cep: "",
+    phone: "",
+    street: "",
+    number: "",
+    complement: "",
+    neighborhood: "",
+    city: "",
+    state: "",
+    zipCode: "",
   });
 
   const [userData, setUserData] = useState({
-    nome: "",
+    name: "",
     email: "",
-    telefone: "",
-    rua: "",
-    numero: "",
-    complemento: "",
-    bairro: "",
-    cidade: "",
-    estado: "",
-    cep: "",
-    senha: "",
-    repitaSenha: "",
+    phone: "",
+    street: "",
+    number: "",
+    complement: "",
+    neighborhood: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    password: "",
+    confirmPassword: "",
   });
 
   const handleCNPJSuccess = useCallback((data: CNPJData) => {
@@ -76,36 +76,36 @@ export default function Register() {
     }
   );
 
-  const handleCompanyCEPSuccess = useCallback((data: CEPData) => {
+  const handleCompanyZipCodeSuccess = useCallback((data: CEPData) => {
     setCompanyData((prev) => {
       const mappedData = mapCEPDataToAddressForm(data, prev);
-      return { ...prev, ...mappedData, cep: prev.cep };
+      return { ...prev, ...mappedData, zipCode: prev.zipCode };
     });
   }, []);
 
   const {
-    data: companyCEPData,
-    loading: companyCEPLoading,
-    error: companyCEPError,
-  } = useCEPLookup(unmaskCEP(companyData.cep), {
+    data: companyZipCodeData,
+    loading: companyZipCodeLoading,
+    error: companyZipCodeError,
+  } = useCEPLookup(unmaskCEP(companyData.zipCode), {
     debounceMs: 800,
-    onSuccess: handleCompanyCEPSuccess,
+    onSuccess: handleCompanyZipCodeSuccess,
   });
 
-  const handleUserCEPSuccess = useCallback((data: CEPData) => {
+  const handleUserZipCodeSuccess = useCallback((data: CEPData) => {
     setUserData((prev) => {
       const mappedData = mapCEPDataToAddressForm(data, prev);
-      return { ...prev, ...mappedData, cep: prev.cep };
+      return { ...prev, ...mappedData, zipCode: prev.zipCode };
     });
   }, []);
 
   const {
-    data: userCEPData,
-    loading: userCEPLoading,
-    error: userCEPError,
-  } = useCEPLookup(unmaskCEP(userData.cep), {
+    data: userZipCodeData,
+    loading: userZipCodeLoading,
+    error: userZipCodeError,
+  } = useCEPLookup(unmaskCEP(userData.zipCode), {
     debounceMs: 800,
-    onSuccess: handleUserCEPSuccess,
+    onSuccess: handleUserZipCodeSuccess,
   });
 
   const handleCompanyDataChange = (field: keyof typeof companyData, value: string) => {
@@ -113,9 +113,9 @@ export default function Register() {
     
     if (field === "cnpj") {
       processedValue = maskCNPJ(value);
-    } else if (field === "telefone") {
+    } else if (field === "phone") {
       processedValue = maskPhone(value);
-    } else if (field === "cep") {
+    } else if (field === "zipCode") {
       processedValue = maskCEP(value);
     }
     
@@ -133,14 +133,14 @@ export default function Register() {
     const errors: Record<string, string> = {};
     const requiredFields: (keyof typeof companyData)[] = [
       "cnpj",
-      "razaoSocial",
+      "companyName",
       "email",
-      "telefone",
-      "rua",
-      "bairro",
-      "cidade",
-      "estado",
-      "cep",
+      "phone",
+      "street",
+      "neighborhood",
+      "city",
+      "state",
+      "zipCode",
     ];
 
     requiredFields.forEach((field) => {
@@ -148,40 +148,40 @@ export default function Register() {
       
       if (field === "cnpj") {
         value = unmaskCNPJ(value);
-      } else if (field === "telefone") {
+      } else if (field === "phone") {
         value = value.replace(/\D/g, "");
-      } else if (field === "cep") {
+      } else if (field === "zipCode") {
         value = unmaskCEP(value);
       }
       
       if (!value || value.trim() === "") {
         const fieldLabels: Record<string, string> = {
           cnpj: "CNPJ",
-          razaoSocial: "Razão Social",
+          companyName: "Razão Social",
           email: "Email",
-          telefone: "Telefone",
-          rua: "Rua",
-          bairro: "Bairro",
-          cidade: "Cidade",
-          estado: "Estado",
-          cep: "CEP",
+          phone: "Telefone",
+          street: "Rua",
+          neighborhood: "Bairro",
+          city: "Cidade",
+          state: "Estado",
+          zipCode: "CEP",
         };
-        errors[field] = `${fieldLabels[field]} é obrigatório`;
+        errors[field] = `${fieldLabels[field]} is required`;
       }
     });
 
     const unmaskedCNPJ = unmaskCNPJ(companyData.cnpj);
     if (unmaskedCNPJ && unmaskedCNPJ.length !== 14) {
-      errors.cnpj = "CNPJ deve ter 14 dígitos";
+      errors.cnpj = "CNPJ must have 14 digits";
     }
 
-    const unmaskedCEP = unmaskCEP(companyData.cep);
-    if (unmaskedCEP && unmaskedCEP.length !== 8) {
-      errors.cep = "CEP deve ter 8 dígitos";
+    const unmaskedZipCode = unmaskCEP(companyData.zipCode);
+    if (unmaskedZipCode && unmaskedZipCode.length !== 8) {
+      errors.zipCode = "CEP must have 8 digits";
     }
 
     if (companyData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(companyData.email)) {
-      errors.email = "Email inválido";
+      errors.email = "Invalid email";
     }
 
     setCompanyErrors(errors);
@@ -201,60 +201,60 @@ export default function Register() {
 
     const [companyGeocode, userGeocode] = await Promise.all([
       geocodeAddress({
-        rua: companyData.rua,
-        numero: companyData.numero,
-        complemento: companyData.complemento,
-        bairro: companyData.bairro,
-        cidade: companyData.cidade,
-        estado: companyData.estado,
-        cep: companyData.cep,
+        street: companyData.street,
+        number: companyData.number,
+        complement: companyData.complement,
+        neighborhood: companyData.neighborhood,
+        city: companyData.city,
+        state: companyData.state,
+        zipCode: companyData.zipCode,
       }),
       geocodeAddress({
-        rua: userData.rua,
-        numero: userData.numero,
-        complemento: userData.complemento,
-        bairro: userData.bairro,
-        cidade: userData.cidade,
-        estado: userData.estado,
-        cep: userData.cep,
+        street: userData.street,
+        number: userData.number,
+        complement: userData.complement,
+        neighborhood: userData.neighborhood,
+        city: userData.city,
+        state: userData.state,
+        zipCode: userData.zipCode,
       }),
     ]);
 
     const companyAddress = buildAddressString({
-      rua: companyData.rua,
-      numero: companyData.numero,
-      complemento: companyData.complemento,
-      bairro: companyData.bairro,
-      cidade: companyData.cidade,
-      estado: companyData.estado,
-      cep: companyData.cep,
+      street: companyData.street,
+      number: companyData.number,
+      complement: companyData.complement,
+      neighborhood: companyData.neighborhood,
+      city: companyData.city,
+      state: companyData.state,
+      zipCode: companyData.zipCode,
     });
 
     const userAddress = buildAddressString({
-      rua: userData.rua,
-      numero: userData.numero,
-      complemento: userData.complemento,
-      bairro: userData.bairro,
-      cidade: userData.cidade,
-      estado: userData.estado,
-      cep: userData.cep,
+      street: userData.street,
+      number: userData.number,
+      complement: userData.complement,
+      neighborhood: userData.neighborhood,
+      city: userData.city,
+      state: userData.state,
+      zipCode: userData.zipCode,
     });
 
-    let message = "=== Coordenadas dos Endereços ===\n\n";
+    let message = "=== Address Coordinates ===\n\n";
 
-    message += "📍 Endereço da Empresa:\n";
+    message += "📍 Company Address:\n";
     message += `${companyAddress}\n\n`;
     if ("error" in companyGeocode) {
-      message += `❌ Erro: ${companyGeocode.error}\n\n`;
+      message += `❌ Error: ${companyGeocode.error}\n\n`;
     } else {
       message += `✅ Latitude: ${companyGeocode.lat}\n`;
       message += `✅ Longitude: ${companyGeocode.lon}\n\n`;
     }
 
-    message += "👤 Endereço do Usuário:\n";
+    message += "👤 User Address:\n";
     message += `${userAddress}\n\n`;
     if ("error" in userGeocode) {
-      message += `❌ Erro: ${userGeocode.error}\n`;
+      message += `❌ Error: ${userGeocode.error}\n`;
     } else {
       message += `✅ Latitude: ${userGeocode.lat}\n`;
       message += `✅ Longitude: ${userGeocode.lon}\n`;
@@ -332,7 +332,7 @@ export default function Register() {
               <div className="space-y-4">
                 {cnpjLoading && (
                   <div className="text-sm text-blue-500 text-center">
-                    Buscando dados do CNPJ...
+                    Searching CNPJ data...
                   </div>
                 )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -355,9 +355,9 @@ export default function Register() {
                       placeholder="Razão Social"
                       aria-label="Razão Social"
                       className="mt-0"
-                      value={companyData.razaoSocial}
-                      onChange={(e) => handleCompanyDataChange("razaoSocial", e.target.value)}
-                      error={companyErrors.razaoSocial}
+                      value={companyData.companyName}
+                      onChange={(e) => handleCompanyDataChange("companyName", e.target.value)}
+                      error={companyErrors.companyName}
                       required
                       inputClassName={inputClassName}
                     />
@@ -384,9 +384,9 @@ export default function Register() {
                       placeholder="Telefone"
                       aria-label="Telefone"
                       className="mt-0"
-                      value={companyData.telefone}
-                      onChange={(e) => handleCompanyDataChange("telefone", e.target.value)}
-                      error={companyErrors.telefone}
+                      value={companyData.phone}
+                      onChange={(e) => handleCompanyDataChange("phone", e.target.value)}
+                      error={companyErrors.phone}
                       required
                       inputClassName={inputClassName}
                     />
@@ -400,14 +400,14 @@ export default function Register() {
                       placeholder="CEP"
                       aria-label="CEP"
                       className="mt-0"
-                      value={companyData.cep}
-                      onChange={(e) => handleCompanyDataChange("cep", e.target.value)}
-                      error={companyCEPError || companyErrors.cep}
+                      value={companyData.zipCode}
+                      onChange={(e) => handleCompanyDataChange("zipCode", e.target.value)}
+                      error={companyZipCodeError || companyErrors.zipCode}
                       required
                       inputClassName={inputClassName}
                     />
-                    {companyCEPLoading && (
-                      <p className="mt-1 text-xs text-blue-500">Buscando endereço...</p>
+                    {companyZipCodeLoading && (
+                      <p className="mt-1 text-xs text-blue-500">Searching address...</p>
                     )}
                   </div>
                   <div className="md:col-span-2">
@@ -416,9 +416,9 @@ export default function Register() {
                       placeholder="Rua"
                       aria-label="Rua"
                       className="mt-0"
-                      value={companyData.rua}
-                      onChange={(e) => handleCompanyDataChange("rua", e.target.value)}
-                      error={companyErrors.rua}
+                      value={companyData.street}
+                      onChange={(e) => handleCompanyDataChange("street", e.target.value)}
+                      error={companyErrors.street}
                       required
                       inputClassName={inputClassName}
                     />
@@ -432,8 +432,8 @@ export default function Register() {
                       placeholder="Número"
                       aria-label="Número"
                       className="mt-0"
-                      value={companyData.numero}
-                      onChange={(e) => handleCompanyDataChange("numero", e.target.value)}
+                      value={companyData.number}
+                      onChange={(e) => handleCompanyDataChange("number", e.target.value)}
                       inputClassName={inputClassName}
                     />
                   </div>
@@ -443,8 +443,8 @@ export default function Register() {
                       placeholder="Complemento"
                       aria-label="Complemento"
                       className="mt-0"
-                      value={companyData.complemento}
-                      onChange={(e) => handleCompanyDataChange("complemento", e.target.value)}
+                      value={companyData.complement}
+                      onChange={(e) => handleCompanyDataChange("complement", e.target.value)}
                       inputClassName={inputClassName}
                     />
                   </div>
@@ -457,9 +457,9 @@ export default function Register() {
                       placeholder="Bairro"
                       aria-label="Bairro"
                       className="mt-0"
-                      value={companyData.bairro}
-                      onChange={(e) => handleCompanyDataChange("bairro", e.target.value)}
-                      error={companyErrors.bairro}
+                      value={companyData.neighborhood}
+                      onChange={(e) => handleCompanyDataChange("neighborhood", e.target.value)}
+                      error={companyErrors.neighborhood}
                       required
                       inputClassName={inputClassName}
                     />
@@ -470,9 +470,9 @@ export default function Register() {
                       placeholder="Cidade"
                       aria-label="Cidade"
                       className="mt-0"
-                      value={companyData.cidade}
-                      onChange={(e) => handleCompanyDataChange("cidade", e.target.value)}
-                      error={companyErrors.cidade}
+                      value={companyData.city}
+                      onChange={(e) => handleCompanyDataChange("city", e.target.value)}
+                      error={companyErrors.city}
                       required
                       inputClassName={inputClassName}
                     />
@@ -483,9 +483,9 @@ export default function Register() {
                       placeholder="Estado"
                       aria-label="Estado"
                       className="mt-0"
-                      value={companyData.estado}
-                      onChange={(e) => handleCompanyDataChange("estado", e.target.value)}
-                      error={companyErrors.estado}
+                      value={companyData.state}
+                      onChange={(e) => handleCompanyDataChange("state", e.target.value)}
+                      error={companyErrors.state}
                       required
                       inputClassName={inputClassName}
                     />
@@ -500,8 +500,8 @@ export default function Register() {
                     placeholder="Nome"
                     aria-label="Nome"
                     className="mt-0"
-                    value={userData.nome}
-                    onChange={(e) => setUserData((prev) => ({ ...prev, nome: e.target.value }))}
+                    value={userData.name}
+                    onChange={(e) => setUserData((prev) => ({ ...prev, name: e.target.value }))}
                     inputClassName={inputClassName}
                   />
                 </div>
@@ -524,9 +524,9 @@ export default function Register() {
                       placeholder="Telefone"
                       aria-label="Telefone"
                       className="mt-0"
-                      value={userData.telefone}
+                      value={userData.phone}
                       onChange={(e) =>
-                        setUserData((prev) => ({ ...prev, telefone: maskPhone(e.target.value) }))
+                        setUserData((prev) => ({ ...prev, phone: maskPhone(e.target.value) }))
                       }
                       inputClassName={inputClassName}
                     />
@@ -540,15 +540,15 @@ export default function Register() {
                       placeholder="CEP"
                       aria-label="CEP"
                       className="mt-0"
-                      value={userData.cep}
+                      value={userData.zipCode}
                       onChange={(e) =>
-                        setUserData((prev) => ({ ...prev, cep: maskCEP(e.target.value) }))
+                        setUserData((prev) => ({ ...prev, zipCode: maskCEP(e.target.value) }))
                       }
-                      error={userCEPError || undefined}
+                      error={userZipCodeError || undefined}
                       inputClassName={inputClassName}
                     />
-                    {userCEPLoading && (
-                      <p className="mt-1 text-xs text-blue-500">Buscando endereço...</p>
+                    {userZipCodeLoading && (
+                      <p className="mt-1 text-xs text-blue-500">Searching address...</p>
                     )}
                   </div>
                   <div className="md:col-span-2">
@@ -557,8 +557,8 @@ export default function Register() {
                       placeholder="Rua"
                       aria-label="Rua"
                       className="mt-0"
-                      value={userData.rua}
-                      onChange={(e) => setUserData((prev) => ({ ...prev, rua: e.target.value }))}
+                      value={userData.street}
+                      onChange={(e) => setUserData((prev) => ({ ...prev, street: e.target.value }))}
                       inputClassName={inputClassName}
                     />
                   </div>
@@ -571,8 +571,8 @@ export default function Register() {
                       placeholder="Número"
                       aria-label="Número"
                       className="mt-0"
-                      value={userData.numero}
-                      onChange={(e) => setUserData((prev) => ({ ...prev, numero: e.target.value }))}
+                      value={userData.number}
+                      onChange={(e) => setUserData((prev) => ({ ...prev, number: e.target.value }))}
                       inputClassName={inputClassName}
                     />
                   </div>
@@ -582,8 +582,8 @@ export default function Register() {
                       placeholder="Complemento"
                       aria-label="Complemento"
                       className="mt-0"
-                      value={userData.complemento}
-                      onChange={(e) => setUserData((prev) => ({ ...prev, complemento: e.target.value }))}
+                      value={userData.complement}
+                      onChange={(e) => setUserData((prev) => ({ ...prev, complement: e.target.value }))}
                       inputClassName={inputClassName}
                     />
                   </div>
@@ -596,8 +596,8 @@ export default function Register() {
                       placeholder="Bairro"
                       aria-label="Bairro"
                       className="mt-0"
-                      value={userData.bairro}
-                      onChange={(e) => setUserData((prev) => ({ ...prev, bairro: e.target.value }))}
+                      value={userData.neighborhood}
+                      onChange={(e) => setUserData((prev) => ({ ...prev, neighborhood: e.target.value }))}
                       inputClassName={inputClassName}
                     />
                   </div>
@@ -607,8 +607,8 @@ export default function Register() {
                       placeholder="Cidade"
                       aria-label="Cidade"
                       className="mt-0"
-                      value={userData.cidade}
-                      onChange={(e) => setUserData((prev) => ({ ...prev, cidade: e.target.value }))}
+                      value={userData.city}
+                      onChange={(e) => setUserData((prev) => ({ ...prev, city: e.target.value }))}
                       inputClassName={inputClassName}
                     />
                   </div>
@@ -618,8 +618,8 @@ export default function Register() {
                       placeholder="Estado"
                       aria-label="Estado"
                       className="mt-0"
-                      value={userData.estado}
-                      onChange={(e) => setUserData((prev) => ({ ...prev, estado: e.target.value }))}
+                      value={userData.state}
+                      onChange={(e) => setUserData((prev) => ({ ...prev, state: e.target.value }))}
                       inputClassName={inputClassName}
                     />
                   </div>
@@ -632,8 +632,8 @@ export default function Register() {
                       placeholder="Senha"
                       aria-label="Senha"
                       className="mt-0"
-                      value={userData.senha}
-                      onChange={(e) => setUserData((prev) => ({ ...prev, senha: e.target.value }))}
+                      value={userData.password}
+                      onChange={(e) => setUserData((prev) => ({ ...prev, password: e.target.value }))}
                       showPasswordToggle
                       inputClassName={inputClassName}
                     />
@@ -644,8 +644,8 @@ export default function Register() {
                       placeholder="Repita a Senha"
                       aria-label="Repita a Senha"
                       className="mt-0"
-                      value={userData.repitaSenha}
-                      onChange={(e) => setUserData((prev) => ({ ...prev, repitaSenha: e.target.value }))}
+                      value={userData.confirmPassword}
+                      onChange={(e) => setUserData((prev) => ({ ...prev, confirmPassword: e.target.value }))}
                       showPasswordToggle
                       inputClassName={inputClassName}
                     />

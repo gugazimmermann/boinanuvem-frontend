@@ -52,7 +52,6 @@ export function useCNPJLookup(
   const onSuccessRef = useRef(onSuccess);
   const onErrorRef = useRef(onError);
 
-  // Keep refs updated
   useEffect(() => {
     onSuccessRef.current = onSuccess;
     onErrorRef.current = onError;
@@ -66,7 +65,6 @@ export function useCNPJLookup(
     async (cnpjValue: string) => {
       const cleanCNPJ = formatCNPJ(cnpjValue);
 
-      // Validate CNPJ length (14 digits)
       if (cleanCNPJ.length !== 14) {
         setError(null);
         setData(null);
@@ -74,7 +72,6 @@ export function useCNPJLookup(
         return;
       }
 
-      // Prevent fetching the same CNPJ again
       if (lastFetchedCNPJ.current === cleanCNPJ) {
         return;
       }
@@ -88,7 +85,7 @@ export function useCNPJLookup(
         );
 
         if (!response.ok) {
-          throw new Error("CNPJ não encontrado");
+          throw new Error("CNPJ not found");
         }
 
         const cnpjData: CNPJData = await response.json();
@@ -97,7 +94,7 @@ export function useCNPJLookup(
         onSuccessRef.current?.(cnpjData);
       } catch (err) {
         const errorMessage =
-          err instanceof Error ? err.message : "CNPJ não encontrado ou inválido";
+          err instanceof Error ? err.message : "CNPJ not found or invalid";
         setError(errorMessage);
         setData(null);
         lastFetchedCNPJ.current = "";
@@ -109,7 +106,6 @@ export function useCNPJLookup(
     [formatCNPJ]
   );
 
-  // Debounce CNPJ lookup
   useEffect(() => {
     if (!enabled) return;
 

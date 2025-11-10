@@ -16,23 +16,23 @@ export interface GeocodeError {
  * Build a full address string from address components
  */
 export function buildAddressString(address: {
-  rua: string;
-  numero: string;
-  complemento?: string;
-  bairro: string;
-  cidade: string;
-  estado: string;
-  cep: string;
+  street: string;
+  number: string;
+  complement?: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  zipCode: string;
 }): string {
   const parts: string[] = [];
 
-  if (address.rua) parts.push(address.rua);
-  if (address.numero) parts.push(address.numero);
-  if (address.complemento) parts.push(address.complemento);
-  if (address.bairro) parts.push(address.bairro);
-  if (address.cidade) parts.push(address.cidade);
-  if (address.estado) parts.push(address.estado);
-  if (address.cep) parts.push(address.cep);
+  if (address.street) parts.push(address.street);
+  if (address.number) parts.push(address.number);
+  if (address.complement) parts.push(address.complement);
+  if (address.neighborhood) parts.push(address.neighborhood);
+  if (address.city) parts.push(address.city);
+  if (address.state) parts.push(address.state);
+  if (address.zipCode) parts.push(address.zipCode);
 
   return parts.join(", ");
 }
@@ -44,23 +44,23 @@ export function buildAddressString(address: {
  */
 export async function geocodeAddress(
   address: {
-    rua: string;
-    numero: string;
-    complemento?: string;
-    bairro: string;
-    cidade: string;
-    estado: string;
-    cep: string;
+    street: string;
+    number: string;
+    complement?: string;
+    neighborhood: string;
+    city: string;
+    state: string;
+    zipCode: string;
   }
 ): Promise<GeocodeResult | GeocodeError> {
-  if (!address.rua || !address.cidade || !address.estado) {
-    return { error: "Endereço incompleto" };
+  if (!address.street || !address.city || !address.state) {
+    return { error: "Incomplete address" };
   }
 
   try {
-    const street = `${address.rua}${address.numero ? ` ${address.numero}` : ""}`;
-    const city = address.cidade;
-    const state = address.estado;
+    const street = `${address.street}${address.number ? ` ${address.number}` : ""}`;
+    const city = address.city;
+    const state = address.state;
     const country = "Brazil";
 
     const params = new URLSearchParams({
@@ -82,7 +82,7 @@ export async function geocodeAddress(
     });
 
     if (!response.ok) {
-      return { error: `Erro na requisição: ${response.statusText}` };
+      return { error: `Request error: ${response.statusText}` };
     }
 
     let data = await response.json();
@@ -124,7 +124,7 @@ export async function geocodeAddress(
     }
 
     if (!data || data.length === 0) {
-      return { error: "Endereço não encontrado" };
+      return { error: "Address not found" };
     }
 
     const result = data[0];
@@ -135,7 +135,7 @@ export async function geocodeAddress(
     };
   } catch (error) {
     return {
-      error: error instanceof Error ? error.message : "Erro desconhecido",
+      error: error instanceof Error ? error.message : "Unknown error",
     };
   }
 }

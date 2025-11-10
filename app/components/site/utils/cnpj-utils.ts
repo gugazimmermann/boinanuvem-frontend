@@ -23,16 +23,16 @@ export function formatPhone(fullPhone: string): string {
  */
 export interface CompanyFormData {
   cnpj: string;
-  razaoSocial: string;
+  companyName: string;
   email: string;
-  telefone: string;
-  rua: string;
-  numero: string;
-  complemento: string;
-  bairro: string;
-  cidade: string;
-  estado: string;
-  cep: string;
+  phone: string;
+  street: string;
+  number: string;
+  complement: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  zipCode: string;
 }
 
 /**
@@ -44,16 +44,16 @@ export function mapCNPJDataToCompanyForm(
 ): CompanyFormData {
   return {
     cnpj: existingData?.cnpj || (data.cnpj ? maskCNPJ(data.cnpj) : ""),
-    razaoSocial: data.razao_social || "",
+    companyName: data.razao_social || "",
     email: data.email || "",
-    telefone: formatPhone(data.ddd_telefone_1 || ""),
-    rua: data.logradouro || "",
-    numero: data.numero || "",
-    complemento: data.complemento || "",
-    bairro: data.bairro || "",
-    cidade: data.municipio || "",
-    estado: data.uf || "",
-    cep: data.cep ? maskCEP(data.cep) : "",
+    phone: formatPhone(data.ddd_telefone_1 || ""),
+    street: data.logradouro || "",
+    number: data.numero || "",
+    complement: data.complemento || "",
+    neighborhood: data.bairro || "",
+    city: data.municipio || "",
+    state: data.uf || "",
+    zipCode: data.cep ? maskCEP(data.cep) : "",
   };
 }
 

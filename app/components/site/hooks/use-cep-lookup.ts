@@ -84,7 +84,7 @@ export function useCEPLookup(
         );
 
         if (!response.ok) {
-          throw new Error("CEP não encontrado");
+          throw new Error("CEP not found");
         }
 
         const cepData: CEPData = await response.json();
@@ -93,7 +93,7 @@ export function useCEPLookup(
         onSuccessRef.current?.(cepData);
       } catch (err) {
         const errorMessage =
-          err instanceof Error ? err.message : "CEP não encontrado ou inválido";
+          err instanceof Error ? err.message : "CEP not found or invalid";
         setError(errorMessage);
         setData(null);
         lastFetchedCEP.current = "";

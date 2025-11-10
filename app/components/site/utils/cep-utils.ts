@@ -5,13 +5,13 @@ import { maskCEP } from "./masks";
  * Map CEP API data to address form fields
  */
 export interface AddressFormData {
-  cep: string;
-  rua: string;
-  numero: string;
-  complemento: string;
-  bairro: string;
-  cidade: string;
-  estado: string;
+  zipCode: string;
+  street: string;
+  number: string;
+  complement: string;
+  neighborhood: string;
+  city: string;
+  state: string;
 }
 
 /**
@@ -22,14 +22,13 @@ export function mapCEPDataToAddressForm(
   existingData?: Partial<AddressFormData>
 ): Partial<AddressFormData> {
   return {
-    cep: existingData?.cep || (data.cep ? maskCEP(data.cep) : ""),
-    rua: data.street || existingData?.rua || "",
-    bairro: data.neighborhood || existingData?.bairro || "",
-    cidade: data.city || existingData?.cidade || "",
-    estado: data.state || existingData?.estado || "",
-    // Preserve existing values for numero and complemento
-    numero: existingData?.numero || "",
-    complemento: existingData?.complemento || "",
+    zipCode: existingData?.zipCode || (data.cep ? maskCEP(data.cep) : ""),
+    street: data.street || existingData?.street || "",
+    neighborhood: data.neighborhood || existingData?.neighborhood || "",
+    city: data.city || existingData?.city || "",
+    state: data.state || existingData?.state || "",
+    number: existingData?.number || "",
+    complement: existingData?.complement || "",
   };
 }
 
