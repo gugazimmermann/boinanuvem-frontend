@@ -8,7 +8,7 @@ export interface SidebarItemConfig {
 
 export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
   { label: "Dashboard", path: ROUTES.DASHBOARD, icon: "📊" },
-  { label: "Propriedades", path: "#", icon: "🏡" },
+  { label: "Propriedades", path: ROUTES.PROPRIEDADES, icon: "🏡" },
   { label: "Animais", path: "#", icon: "🐄" },
   { label: "Pastos", path: "#", icon: "🌾" },
   { label: "Relatórios", path: "#", icon: "📈" },

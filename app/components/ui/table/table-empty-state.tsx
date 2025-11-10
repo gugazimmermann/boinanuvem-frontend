@@ -44,13 +44,13 @@ export function TableEmptyState({
   );
 
   return (
-    <div className="flex items-center mt-6 text-center border rounded-lg h-96 dark:border-gray-700">
+    <div className="flex items-center mt-6 text-center border rounded-lg h-96">
       <div className="flex flex-col w-full max-w-sm px-4 mx-auto">
-        <div className="p-3 mx-auto text-blue-500 bg-blue-100 rounded-full dark:bg-gray-800">
+        <div className="p-3 mx-auto text-blue-500 bg-blue-100 rounded-full">
           {icon || defaultIcon}
         </div>
-        <h1 className="mt-3 text-lg text-gray-800 dark:text-white">{title}</h1>
-        <p className="mt-2 text-gray-500 dark:text-gray-400">{displayDescription}</p>
+        <h1 className="mt-3 text-lg text-gray-800">{title}</h1>
+        <p className="mt-2 text-gray-500">{displayDescription}</p>
         {(onClearSearch || onAddNew) && (
           <div className="flex items-center mt-4 sm:mx-auto gap-x-3">
             {onClearSearch && (

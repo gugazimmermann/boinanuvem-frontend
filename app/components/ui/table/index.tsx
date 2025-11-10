@@ -9,6 +9,7 @@ export {
   ProgressBar,
   UserAvatars,
   ActionButton,
+  TableActionButtons,
 } from "./table-helpers";
 export type {
   TableProps,
