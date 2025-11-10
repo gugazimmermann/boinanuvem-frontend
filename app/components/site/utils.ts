@@ -53,3 +53,11 @@ export {
   type AddressFormData,
 } from "./utils/cep-utils";
 
+// Re-export geocoding utilities
+export {
+  geocodeAddress,
+  buildAddressString,
+  type GeocodeResult,
+  type GeocodeError,
+} from "./utils/geocoding";
+

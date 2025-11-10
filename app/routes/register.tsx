@@ -12,6 +12,10 @@ import {
   maskCEP,
   unmaskCNPJ,
   unmaskCEP,
+  geocodeAddress,
+  buildAddressString,
+  type GeocodeResult,
+  type GeocodeError,
 } from "../components/site/utils";
 
 export function meta() {
@@ -208,6 +212,81 @@ export default function Register() {
     }
   };
 
+  const handleSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
+    if (e) {
+      e.preventDefault();
+    }
+
+    // Geocode both addresses using address components directly
+    const [companyGeocode, userGeocode] = await Promise.all([
+      geocodeAddress({
+        rua: companyData.rua,
+        numero: companyData.numero,
+        complemento: companyData.complemento,
+        bairro: companyData.bairro,
+        cidade: companyData.cidade,
+        estado: companyData.estado,
+        cep: companyData.cep,
+      }),
+      geocodeAddress({
+        rua: userData.rua,
+        numero: userData.numero,
+        complemento: userData.complemento,
+        bairro: userData.bairro,
+        cidade: userData.cidade,
+        estado: userData.estado,
+        cep: userData.cep,
+      }),
+    ]);
+
+    // Build full addresses for display
+    const companyAddress = buildAddressString({
+      rua: companyData.rua,
+      numero: companyData.numero,
+      complemento: companyData.complemento,
+      bairro: companyData.bairro,
+      cidade: companyData.cidade,
+      estado: companyData.estado,
+      cep: companyData.cep,
+    });
+
+    const userAddress = buildAddressString({
+      rua: userData.rua,
+      numero: userData.numero,
+      complemento: userData.complemento,
+      bairro: userData.bairro,
+      cidade: userData.cidade,
+      estado: userData.estado,
+      cep: userData.cep,
+    });
+
+    // Build alert message
+    let message = "=== Coordenadas dos Endereços ===\n\n";
+
+    // Company address
+    message += "📍 Endereço da Empresa:\n";
+    message += `${companyAddress}\n\n`;
+    if ("error" in companyGeocode) {
+      message += `❌ Erro: ${companyGeocode.error}\n\n`;
+    } else {
+      message += `✅ Latitude: ${companyGeocode.lat}\n`;
+      message += `✅ Longitude: ${companyGeocode.lon}\n\n`;
+    }
+
+    // User address
+    message += "👤 Endereço do Usuário:\n";
+    message += `${userAddress}\n\n`;
+    if ("error" in userGeocode) {
+      message += `❌ Erro: ${userGeocode.error}\n`;
+    } else {
+      message += `✅ Latitude: ${userGeocode.lat}\n`;
+      message += `✅ Longitude: ${userGeocode.lon}\n`;
+    }
+
+    // Show alert
+    alert(message);
+  };
+
   const inputClassName =
     "block w-full px-4 py-2 mt-2 text-gray-700 placeholder-gray-500 bg-white border rounded-lg focus:border-blue-400 focus:ring-opacity-40 focus:outline-none focus:ring focus:ring-blue-300";
 
@@ -273,6 +352,8 @@ export default function Register() {
               e.preventDefault();
               if (step === 1) {
                 handleNextStep();
+              } else {
+                handleSubmit(e);
               }
             }}
           >
@@ -632,9 +713,10 @@ export default function Register() {
                   </Button>
                 ) : (
                   <Button
-                    type="submit"
+                    type="button"
                     variant="primary"
                     size="md"
+                    onClick={handleSubmit}
                     className="px-6 py-2 text-sm font-medium tracking-wide text-white capitalize transition-colors duration-300 transform bg-blue-500 rounded-lg hover:bg-blue-400 focus:outline-none focus:ring focus:ring-blue-300 focus:ring-opacity-50"
                   >
                     Cadastrar
