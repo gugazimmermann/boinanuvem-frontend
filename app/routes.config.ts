@@ -5,7 +5,8 @@ export const ROUTES = {
   FORGOT_PASSWORD: "/esqueceu-senha",
   NEW_PASSWORD: "/nova-senha",
   DASHBOARD: "/dashboard",
-  PROPRIEDADES: "/dashboard/propriedades",
+  PROPERTIES: "/dashboard/propriedades",
+  PROFILE: "/dashboard/perfil",
 } as const;
 
 export const ROUTE_NAMES = {
@@ -15,7 +16,8 @@ export const ROUTE_NAMES = {
   FORGOT_PASSWORD: "esqueceu-senha",
   NEW_PASSWORD: "nova-senha",
   DASHBOARD: "dashboard",
-  PROPRIEDADES: "propriedades",
+  PROPERTIES: "propriedades",
+  PROFILE: "perfil",
 } as const;
 
 export type RoutePath = (typeof ROUTES)[keyof typeof ROUTES];

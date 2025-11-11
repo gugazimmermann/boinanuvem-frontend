@@ -74,5 +74,6 @@ export interface TableProps<T = unknown> {
   className?: string;
   rowClassName?: string | ((row: T, index: number) => string);
   loading?: boolean;
+  slim?: boolean;
 }
 

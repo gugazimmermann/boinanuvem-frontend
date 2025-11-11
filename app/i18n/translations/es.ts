@@ -73,5 +73,89 @@ export const es = {
         "Aún no tienes propiedades registradas. Agrega tu primera propiedad para comenzar.",
     },
   },
+
+  profile: {
+    title: "Perfil",
+    tabs: {
+      company: "Perfil de la Empresa",
+      user: "Perfil del Usuario",
+    },
+    company: {
+      title: "Datos de la Empresa",
+      save: "Guardar Cambios",
+      cancel: "Cancelar",
+      edit: "Editar",
+      subTabs: {
+        data: "Datos",
+        logs: "Registros",
+      },
+      fields: {
+        cnpj: "CNPJ",
+        companyName: "Razón Social",
+        email: "Correo Electrónico",
+        phone: "Teléfono",
+        street: "Calle",
+        number: "Número",
+        complement: "Complemento",
+        neighborhood: "Barrio",
+        city: "Ciudad",
+        state: "Estado",
+        zipCode: "Código Postal",
+      },
+      logs: {
+        title: "Registros de Uso",
+        description: "Historial de actividades de todos los usuarios de la empresa",
+        empty: "No se encontraron registros",
+        searchPlaceholder: "Buscar por usuario, acción, recurso o fecha...",
+        columns: {
+          user: "Usuario",
+          action: "Acción",
+          resource: "Recurso",
+          timestamp: "Fecha/Hora",
+        },
+      },
+    },
+    user: {
+      title: "Datos del Usuario",
+      save: "Guardar Cambios",
+      cancel: "Cancelar",
+      edit: "Editar",
+      subTabs: {
+        data: "Datos",
+        logs: "Registros",
+      },
+      fields: {
+        name: "Nombre",
+        email: "Correo Electrónico",
+        phone: "Teléfono",
+        street: "Calle",
+        number: "Número",
+        complement: "Complemento",
+        neighborhood: "Barrio",
+        city: "Ciudad",
+        state: "Estado",
+        zipCode: "Código Postal",
+      },
+      logs: {
+        title: "Mis Registros",
+        description: "Historial de tus actividades en el sistema",
+        empty: "No se encontraron registros",
+        searchPlaceholder: "Buscar por acción, recurso o fecha...",
+        columns: {
+          action: "Acción",
+          resource: "Recurso",
+          timestamp: "Fecha/Hora",
+        },
+      },
+    },
+    success: {
+      saved: "¡Datos guardados con éxito!",
+    },
+    errors: {
+      required: (field: string) => `${field} es obligatorio`,
+      invalid: (field: string) => `${field} inválido`,
+      saveFailed: "Error al guardar datos. Intenta de nuevo.",
+    },
+  },
 } as const;
 

@@ -20,6 +20,7 @@ export function Table<T extends Record<string, unknown>>({
   className = "",
   rowClassName = "",
   loading = false,
+  slim = false,
 }: TableProps<T>) {
   const getRowClassName = (row: T, index: number): string => {
     if (typeof rowClassName === "function") {
@@ -52,9 +53,78 @@ export function Table<T extends Record<string, unknown>>({
 
   return (
     <section className={`container px-4 mx-auto ${className}`}>
-      {header && <TableHeader {...header} />}
-
-      <TableFilters filters={filters} search={search} />
+      {header && search ? (
+        <>
+          <div className="sm:flex sm:items-center sm:justify-between">
+            <div>
+              <div className="flex items-center gap-x-3">
+                <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200">
+                  {header.title}
+                </h2>
+                {header.badge && (
+                  <span
+                    className={`px-3 py-1 text-xs rounded-full ${
+                      header.badge.variant === "primary"
+                        ? "text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30"
+                        : header.badge.variant === "secondary"
+                        ? "text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700"
+                        : header.badge.variant === "success"
+                        ? "text-emerald-500 dark:text-emerald-400 bg-emerald-100/60 dark:bg-emerald-900/30"
+                        : header.badge.variant === "warning"
+                        ? "text-yellow-600 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/30"
+                        : "text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30"
+                    }`}
+                  >
+                    {header.badge.label}
+                  </span>
+                )}
+              </div>
+              {header.description && (
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  {header.description}
+                </p>
+              )}
+            </div>
+            <div className="mt-4 sm:mt-0">
+              <div className="relative flex items-center">
+                <span className="absolute">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="w-5 h-5 mx-3 text-gray-400 dark:text-gray-500"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+                    />
+                  </svg>
+                </span>
+                <input
+                  type="text"
+                  placeholder={search.placeholder || "Search"}
+                  value={search.value}
+                  onChange={(e) => search.onChange(e.target.value)}
+                  className="block w-full py-1.5 pr-5 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg md:w-80 placeholder-gray-400/70 dark:placeholder-gray-500/70 pl-11 rtl:pr-11 rtl:pl-5 focus:border-blue-400 dark:focus:border-blue-500 focus:ring-blue-300 dark:focus:ring-blue-600 focus:outline-none focus:ring focus:ring-opacity-40"
+                />
+              </div>
+            </div>
+          </div>
+          {filters && filters.length > 0 && (
+            <div className="mt-4">
+              <TableFilters filters={filters} />
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          {header && <TableHeader {...header} />}
+          <TableFilters filters={filters} search={search} />
+        </>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-12 mt-6">
@@ -71,9 +141,9 @@ export function Table<T extends Record<string, unknown>>({
           icon={emptyState?.icon}
         />
       ) : (
-        <div className="flex flex-col mt-6">
+        <div className={`flex flex-col ${slim ? "mt-3" : "mt-6"}`}>
           <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-            <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
+            <div className={`inline-block min-w-full ${slim ? "py-1" : "py-2"} align-middle ${slim ? "md:px-3 lg:px-4" : "md:px-6 lg:px-8"}`}>
               <div className="overflow-hidden border border-gray-200 dark:border-gray-700 md:rounded-lg">
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                   <thead className="bg-gray-50 dark:bg-gray-800">
@@ -82,7 +152,7 @@ export function Table<T extends Record<string, unknown>>({
                         <th
                           key={column.key}
                           scope="col"
-                          className={`py-3.5 px-4 text-sm font-normal text-left rtl:text-right text-gray-500 dark:text-gray-400 ${
+                          className={`${slim ? "py-2 px-3 text-xs" : "py-3.5 px-4 text-sm"} font-normal text-left rtl:text-right text-gray-500 dark:text-gray-400 ${
                             column.headerClassName || ""
                           }`}
                         >
@@ -114,7 +184,7 @@ export function Table<T extends Record<string, unknown>>({
                           return (
                             <td
                               key={column.key}
-                              className={`px-4 py-4 text-sm whitespace-nowrap ${column.className || ""}`}
+                              className={`${slim ? "px-3 py-2 text-xs" : "px-4 py-4 text-sm"} whitespace-nowrap ${column.className || ""}`}
                             >
                               {value}
                             </td>
@@ -130,7 +200,7 @@ export function Table<T extends Record<string, unknown>>({
         </div>
       )}
 
-      {pagination && <TablePagination {...pagination} />}
+      {pagination && <TablePagination {...pagination} slim={slim} />}
     </section>
   );
 }

@@ -1,4 +1,5 @@
 import { forwardRef, type ButtonHTMLAttributes, type AnchorHTMLAttributes, type ReactNode } from "react";
+import { DASHBOARD_COLORS } from "../dashboard/utils/colors";
 
 type ButtonVariant = "primary" | "secondary" | "outline" | "ghost";
 type ButtonSize = "sm" | "md" | "lg";
@@ -41,33 +42,59 @@ const baseStyles = [
   "disabled:cursor-not-allowed",
 ].join(" ");
 
-const variantStyles: Record<ButtonVariant, string> = {
-  primary: [
-    "bg-blue-600",
+const getVariantStyles = (variant: ButtonVariant) => {
+  const base = [
     "text-white",
-    "hover:bg-blue-500",
-    "focus:ring-blue-300",
-  ].join(" "),
-  secondary: [
-    "bg-gray-600",
-    "text-white",
-    "hover:bg-gray-500",
-    "focus:ring-gray-300",
-  ].join(" "),
-  outline: [
-    "border-2",
-    "border-blue-600",
-    "text-blue-600",
-    "bg-transparent",
-    "hover:bg-blue-50",
-    "focus:ring-blue-300",
-  ].join(" "),
-  ghost: [
-    "text-blue-600",
-    "bg-transparent",
-    "hover:bg-blue-50",
-    "focus:ring-blue-300",
-  ].join(" "),
+  ].join(" ");
+  
+  switch (variant) {
+    case "primary":
+      return base;
+    case "secondary":
+      return [
+        "bg-gray-600",
+        "text-white",
+        "hover:bg-gray-500",
+        "focus:ring-gray-300",
+      ].join(" ");
+    case "outline":
+      return [
+        "border-2",
+        "bg-transparent",
+      ].join(" ");
+    case "ghost":
+      return [
+        "bg-transparent",
+      ].join(" ");
+    default:
+      return base;
+  }
+};
+
+const getVariantStyle = (variant: ButtonVariant) => {
+  switch (variant) {
+    case "primary":
+      return {
+        backgroundColor: DASHBOARD_COLORS.primary,
+        "--hover-bg": DASHBOARD_COLORS.primaryDark,
+        "--focus-ring": DASHBOARD_COLORS.primaryLight,
+      } as React.CSSProperties & { "--hover-bg"?: string; "--focus-ring"?: string };
+    case "outline":
+      return {
+        borderColor: DASHBOARD_COLORS.primary,
+        color: DASHBOARD_COLORS.primary,
+        "--hover-bg": `${DASHBOARD_COLORS.primaryLight}20`,
+        "--focus-ring": DASHBOARD_COLORS.primaryLight,
+      } as React.CSSProperties & { "--hover-bg"?: string; "--focus-ring"?: string };
+    case "ghost":
+      return {
+        color: DASHBOARD_COLORS.primary,
+        "--hover-bg": `${DASHBOARD_COLORS.primaryLight}20`,
+        "--focus-ring": DASHBOARD_COLORS.primaryLight,
+      } as React.CSSProperties & { "--hover-bg"?: string; "--focus-ring"?: string };
+    default:
+      return {};
+  }
 };
 
 const sizeStyles: Record<ButtonSize, { padding: string; icon: string; text: string }> = {
@@ -105,10 +132,11 @@ export const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonPr
   ) => {
     const sizeConfig = sizeStyles[size];
     const widthStyle = fullWidth ? "w-full justify-center" : "";
+    const variantStyle = getVariantStyle(variant);
     
     const combinedClassName = [
       baseStyles,
-      variantStyles[variant],
+      getVariantStyles(variant),
       sizeConfig.padding,
       sizeConfig.text,
       widthStyle,
@@ -135,6 +163,19 @@ export const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonPr
           ref={ref as React.Ref<HTMLAnchorElement>}
           href={href}
           className={combinedClassName}
+          style={variantStyle}
+          onMouseEnter={(e) => {
+            if (variantStyle["--hover-bg"]) {
+              e.currentTarget.style.backgroundColor = variantStyle["--hover-bg"] as string;
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (variant === "primary") {
+              e.currentTarget.style.backgroundColor = DASHBOARD_COLORS.primary;
+            } else {
+              e.currentTarget.style.backgroundColor = "";
+            }
+          }}
           {...anchorProps}
         >
           {content}
@@ -146,6 +187,19 @@ export const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonPr
       <button
         ref={ref as React.Ref<HTMLButtonElement>}
         className={combinedClassName}
+        style={variantStyle}
+        onMouseEnter={(e) => {
+          if (variantStyle["--hover-bg"]) {
+            e.currentTarget.style.backgroundColor = variantStyle["--hover-bg"] as string;
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (variant === "primary") {
+            e.currentTarget.style.backgroundColor = DASHBOARD_COLORS.primary;
+          } else {
+            e.currentTarget.style.backgroundColor = "";
+          }
+        }}
         {...(props as ButtonAsButtonProps)}
       >
         {content}

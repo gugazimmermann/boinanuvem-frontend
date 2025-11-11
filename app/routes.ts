@@ -9,6 +9,7 @@ export default [
   route(ROUTE_NAMES.NEW_PASSWORD, "routes/new-password.tsx"),
   route(ROUTE_NAMES.DASHBOARD, "routes/dashboard.tsx", [
     index("routes/dashboard/index.tsx"),
-    route(ROUTE_NAMES.PROPRIEDADES, "routes/dashboard/properties.tsx"),
+    route(ROUTE_NAMES.PROPERTIES, "routes/dashboard/properties.tsx"),
+    route(ROUTE_NAMES.PROFILE, "routes/dashboard/profile.tsx"),
   ]),
 ] satisfies RouteConfig;

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useLanguage, LANGUAGES, type Language } from "~/contexts/language-context";
 import { useTranslation } from "~/i18n";
+import { DASHBOARD_COLORS } from "../utils/colors";
 
 export function LanguageSelectorMenuItem() {
   const { language, setLanguage, languageInfo } = useLanguage();
@@ -79,10 +80,11 @@ export function LanguageSelectorMenuItem() {
               <span className="flex-1">{lang.name}</span>
               {language === lang.code && (
                 <svg
-                  className="w-4 h-4 flex-shrink-0 text-blue-500 dark:text-blue-400"
+                  className="w-4 h-4 flex-shrink-0 dark:text-blue-400"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  style={{ color: DASHBOARD_COLORS.primary }}
                 >
                   <path
                     strokeLinecap="round"

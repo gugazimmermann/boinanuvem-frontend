@@ -73,5 +73,89 @@ export const en = {
         "You don't have any properties registered yet. Add your first property to get started.",
     },
   },
+
+  profile: {
+    title: "Profile",
+    tabs: {
+      company: "Company Profile",
+      user: "User Profile",
+    },
+    company: {
+      title: "Company Data",
+      save: "Save Changes",
+      cancel: "Cancel",
+      edit: "Edit",
+      subTabs: {
+        data: "Data",
+        logs: "Logs",
+      },
+      fields: {
+        cnpj: "CNPJ",
+        companyName: "Company Name",
+        email: "Email",
+        phone: "Phone",
+        street: "Street",
+        number: "Number",
+        complement: "Complement",
+        neighborhood: "Neighborhood",
+        city: "City",
+        state: "State",
+        zipCode: "ZIP Code",
+      },
+      logs: {
+        title: "Usage Logs",
+        description: "Activity history of all company users",
+        empty: "No logs found",
+        searchPlaceholder: "Search by user, action, resource or date...",
+        columns: {
+          user: "User",
+          action: "Action",
+          resource: "Resource",
+          timestamp: "Date/Time",
+        },
+      },
+    },
+    user: {
+      title: "User Data",
+      save: "Save Changes",
+      cancel: "Cancel",
+      edit: "Edit",
+      subTabs: {
+        data: "Data",
+        logs: "Logs",
+      },
+      fields: {
+        name: "Name",
+        email: "Email",
+        phone: "Phone",
+        street: "Street",
+        number: "Number",
+        complement: "Complement",
+        neighborhood: "Neighborhood",
+        city: "City",
+        state: "State",
+        zipCode: "ZIP Code",
+      },
+      logs: {
+        title: "My Logs",
+        description: "History of your activities in the system",
+        empty: "No logs found",
+        searchPlaceholder: "Search by action, resource or date...",
+        columns: {
+          action: "Action",
+          resource: "Resource",
+          timestamp: "Date/Time",
+        },
+      },
+    },
+    success: {
+      saved: "Data saved successfully!",
+    },
+    errors: {
+      required: (field: string) => `${field} is required`,
+      invalid: (field: string) => `Invalid ${field}`,
+      saveFailed: "Error saving data. Please try again.",
+    },
+  },
 } as const;
 

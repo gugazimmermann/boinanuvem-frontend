@@ -1,5 +1,6 @@
 import { DashboardLayout } from "../../components/dashboard";
 import { useTranslation } from "~/i18n";
+import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
 
 export function meta() {
   return [
@@ -25,7 +26,10 @@ export default function Dashboard() {
               <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{t.dashboard.stats.totalAnimals}</p>
               <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">1,234</p>
             </div>
-            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+            <div 
+              className="w-10 h-10 dark:bg-blue-900/30 rounded-lg flex items-center justify-center"
+              style={{ backgroundColor: `${DASHBOARD_COLORS.primaryLight}40` }}
+            >
               <span className="text-lg">🐄</span>
             </div>
           </div>
@@ -72,7 +76,10 @@ export default function Dashboard() {
         <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">{t.dashboard.recentActivities.title}</h2>
         <div className="space-y-3">
           <div className="flex items-center space-x-3 pb-3 border-b border-gray-200 dark:border-gray-700">
-            <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+            <div 
+              className="w-8 h-8 dark:bg-blue-900/30 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: `${DASHBOARD_COLORS.primaryLight}40` }}
+            >
               <span className="text-sm">🐄</span>
             </div>
             <div className="flex-1">

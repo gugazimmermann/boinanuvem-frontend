@@ -1,4 +1,5 @@
 import { type ReactNode } from "react";
+import { Link } from "react-router";
 
 interface DropdownMenuItemProps {
   href?: string;
@@ -6,9 +7,23 @@ interface DropdownMenuItemProps {
   children: ReactNode;
 }
 
-export function DropdownMenuItem({ href = "#", onClick, children }: DropdownMenuItemProps) {
+export function DropdownMenuItem({ href, onClick, children }: DropdownMenuItemProps) {
   const className =
     "block px-4 py-2 text-sm text-gray-600 dark:text-gray-300 capitalize transition-colors duration-300 transform hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer";
+
+  const handleClick = () => {
+    if (onClick) {
+      onClick();
+    }
+  };
+
+  if (href) {
+    return (
+      <Link to={href} onClick={handleClick} className={className}>
+        {children}
+      </Link>
+    );
+  }
 
   if (onClick) {
     return (
@@ -19,9 +34,9 @@ export function DropdownMenuItem({ href = "#", onClick, children }: DropdownMenu
   }
 
   return (
-    <a href={href} className={className}>
+    <div className={className}>
       {children}
-    </a>
+    </div>
   );
 }
 

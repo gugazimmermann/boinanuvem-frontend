@@ -1,3 +1,5 @@
+import { DASHBOARD_COLORS } from "../utils/colors";
+
 interface AvatarButtonProps {
   onClick: () => void;
   isOpen: boolean;
@@ -8,9 +10,24 @@ export function AvatarButton({ onClick, isOpen, initial = "U" }: AvatarButtonPro
   return (
     <button
       onClick={onClick}
-      className="relative z-10 flex items-center p-1.5 text-sm text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border border-transparent dark:border-gray-700 rounded-md focus:border-blue-500 dark:focus:border-blue-400 focus:ring-opacity-40 focus:ring-blue-300 dark:focus:ring-blue-600 focus:ring focus:outline-none hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+      className="relative z-10 flex items-center p-1.5 text-sm text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border border-transparent dark:border-gray-700 rounded-md focus:ring-opacity-40 focus:ring focus:outline-none hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+      style={{
+        "--focus-border": DASHBOARD_COLORS.primary,
+        "--focus-ring": DASHBOARD_COLORS.primaryLight,
+      } as React.CSSProperties & { "--focus-border"?: string; "--focus-ring"?: string }}
+      onFocus={(e) => {
+        e.currentTarget.style.borderColor = DASHBOARD_COLORS.primary;
+        e.currentTarget.style.boxShadow = `0 0 0 3px ${DASHBOARD_COLORS.primaryLight}40`;
+      }}
+      onBlur={(e) => {
+        e.currentTarget.style.borderColor = "";
+        e.currentTarget.style.boxShadow = "";
+      }}
     >
-      <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold text-sm">
+      <div 
+        className="w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm"
+        style={{ backgroundColor: DASHBOARD_COLORS.primary }}
+      >
         {initial}
       </div>
       <svg

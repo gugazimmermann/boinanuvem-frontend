@@ -24,8 +24,8 @@ interface UserDropdownProps {
 }
 
 const createMenuItems = (t: TranslationKey): MenuItem[] => [
-  { label: t.userDropdown.companyProfile },
-  { label: t.userDropdown.userProfile },
+  { label: t.userDropdown.companyProfile, href: `${ROUTES.PROFILE}?tab=company` },
+  { label: t.userDropdown.userProfile, href: `${ROUTES.PROFILE}?tab=user` },
   { label: t.userDropdown.team },
   { divider: true },
   { label: t.userDropdown.help },
@@ -33,8 +33,8 @@ const createMenuItems = (t: TranslationKey): MenuItem[] => [
 ];
 
 export function UserDropdown({
-  name = "Usuário",
-  email = "usuario@exemplo.com",
+  name = "User",
+  email = "user@example.com",
   initial = "U",
   menuItems,
 }: UserDropdownProps) {
@@ -73,7 +73,11 @@ export function UserDropdown({
           item.divider ? (
             <hr key={index} className="border-gray-200 dark:border-gray-700" />
           ) : (
-            <DropdownMenuItem key={index} href={item.href} onClick={item.onClick}>
+            <DropdownMenuItem
+              key={index}
+              href={item.href}
+              onClick={item.onClick || (item.href ? () => setIsOpen(false) : undefined)}
+            >
               {item.label}
             </DropdownMenuItem>
           )

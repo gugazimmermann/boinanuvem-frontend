@@ -73,5 +73,89 @@ export const pt = {
         "Você ainda não possui propriedades cadastradas. Adicione sua primeira propriedade para começar.",
     },
   },
+
+  profile: {
+    title: "Perfil",
+    tabs: {
+      company: "Perfil da Empresa",
+      user: "Perfil do Usuário",
+    },
+    company: {
+      title: "Dados da Empresa",
+      save: "Salvar Alterações",
+      cancel: "Cancelar",
+      edit: "Editar",
+      subTabs: {
+        data: "Dados",
+        logs: "Logs",
+      },
+      fields: {
+        cnpj: "CNPJ",
+        companyName: "Razão Social",
+        email: "Email",
+        phone: "Telefone",
+        street: "Rua",
+        number: "Número",
+        complement: "Complemento",
+        neighborhood: "Bairro",
+        city: "Cidade",
+        state: "Estado",
+        zipCode: "CEP",
+      },
+      logs: {
+        title: "Logs de Uso",
+        description: "Histórico de atividades de todos os usuários da empresa",
+        empty: "Nenhum log encontrado",
+        searchPlaceholder: "Buscar por usuário, ação, recurso ou data...",
+        columns: {
+          user: "Usuário",
+          action: "Ação",
+          resource: "Recurso",
+          timestamp: "Data/Hora",
+        },
+      },
+    },
+    user: {
+      title: "Dados do Usuário",
+      save: "Salvar Alterações",
+      cancel: "Cancelar",
+      edit: "Editar",
+      subTabs: {
+        data: "Dados",
+        logs: "Logs",
+      },
+      fields: {
+        name: "Nome",
+        email: "Email",
+        phone: "Telefone",
+        street: "Rua",
+        number: "Número",
+        complement: "Complemento",
+        neighborhood: "Bairro",
+        city: "Cidade",
+        state: "Estado",
+        zipCode: "CEP",
+      },
+      logs: {
+        title: "Meus Logs",
+        description: "Histórico das suas atividades no sistema",
+        empty: "Nenhum log encontrado",
+        searchPlaceholder: "Buscar por ação, recurso ou data...",
+        columns: {
+          action: "Ação",
+          resource: "Recurso",
+          timestamp: "Data/Hora",
+        },
+      },
+    },
+    success: {
+      saved: "Dados salvos com sucesso!",
+    },
+    errors: {
+      required: (field: string) => `${field} é obrigatório`,
+      invalid: (field: string) => `${field} inválido`,
+      saveFailed: "Erro ao salvar dados. Tente novamente.",
+    },
+  },
 } as const;
 
