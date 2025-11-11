@@ -8,6 +8,7 @@ import {
   type TableFilter,
   type SortDirection,
 } from "~/components/ui";
+import { useTranslation } from "~/i18n";
 
 interface Property extends Record<string, unknown> {
   id: string;
@@ -84,6 +85,7 @@ export function meta() {
 }
 
 export default function Properties() {
+  const t = useTranslation();
   const [sortState, setSortState] = useState<{
     column: string | null;
     direction: SortDirection;
@@ -146,7 +148,7 @@ export default function Properties() {
   const columns: TableColumn<Property>[] = [
     {
       key: "name",
-      label: "Nome",
+      label: t.properties.table.name,
       sortable: true,
       render: (_, row) => (
         <div>
@@ -161,7 +163,7 @@ export default function Properties() {
     },
     {
       key: "area",
-      label: "Área",
+      label: t.properties.table.area,
       sortable: true,
       render: (value) => (
         <span className="text-gray-700 dark:text-gray-300">
@@ -174,7 +176,7 @@ export default function Properties() {
     },
     {
       key: "pastures",
-      label: "Localizações",
+      label: t.properties.table.locations,
       sortable: true,
       render: (value) => (
         <span className="text-gray-700 dark:text-gray-300">{value as number}</span>
@@ -182,7 +184,7 @@ export default function Properties() {
     },
     {
       key: "animals",
-      label: "Animais",
+      label: t.properties.table.animals,
       sortable: true,
       render: (value) => (
         <span className="text-gray-700 dark:text-gray-300">{value as number}</span>
@@ -190,11 +192,11 @@ export default function Properties() {
     },
     {
       key: "status",
-      label: "Status",
+      label: t.properties.table.status,
       sortable: true,
       render: (_, row) => (
         <StatusBadge
-          label={row.status === "active" ? "Ativa" : "Inativa"}
+          label={row.status === "active" ? t.properties.table.active : t.properties.table.inactive}
           variant={row.status === "active" ? "success" : "default"}
         />
       ),
@@ -214,7 +216,7 @@ export default function Properties() {
 
   const headerActions: TableAction[] = [
     {
-      label: "Adicionar Propriedade",
+      label: t.properties.addProperty,
       variant: "primary",
       leftIcon: (
         <svg
@@ -238,19 +240,19 @@ export default function Properties() {
 
   const filters: TableFilter[] = [
     {
-      label: "Todas",
+      label: t.properties.filters.all,
       value: "all",
       active: activeFilter === "all",
       onClick: () => setActiveFilter("all"),
     },
     {
-      label: "Ativas",
+      label: t.properties.filters.active,
       value: "active",
       active: activeFilter === "active",
       onClick: () => setActiveFilter("active"),
     },
     {
-      label: "Inativas",
+      label: t.properties.filters.inactive,
       value: "inactive",
       active: activeFilter === "inactive",
       onClick: () => setActiveFilter("inactive"),
@@ -267,17 +269,17 @@ export default function Properties() {
       columns={columns}
       data={paginatedData}
       header={{
-        title: "Propriedades",
+        title: t.properties.title,
         badge: {
-          label: `${filteredData.length} propriedades`,
+          label: t.properties.badge.properties(filteredData.length),
           variant: "primary",
         },
-        description: "Gerencie todas as suas propriedades rurais.",
+        description: t.properties.description,
         actions: headerActions,
       }}
       filters={filters}
       search={{
-        placeholder: "Buscar propriedades...",
+        placeholder: t.properties.searchPlaceholder,
         value: searchValue,
         onChange: setSearchValue,
       }}
@@ -290,13 +292,13 @@ export default function Properties() {
       sortState={sortState}
       onSort={handleSort}
       emptyState={{
-        title: "Nenhuma propriedade encontrada",
+        title: t.properties.emptyState.title,
         description: searchValue
-          ? `Sua busca "${searchValue}" não encontrou propriedades. Tente novamente ou adicione uma nova propriedade.`
-          : "Você ainda não possui propriedades cadastradas. Adicione sua primeira propriedade para começar.",
+          ? t.properties.emptyState.descriptionWithSearch(searchValue)
+          : t.properties.emptyState.descriptionWithoutSearch,
         onClearSearch: () => setSearchValue(""),
         onAddNew: () => console.log("Add new property clicked"),
-        addNewLabel: "Adicionar Propriedade",
+        addNewLabel: t.properties.addProperty,
       }}
     />
   );

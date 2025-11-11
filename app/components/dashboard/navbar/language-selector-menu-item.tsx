@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { useLanguage, LANGUAGES, type Language } from "~/contexts/language-context";
+import { useTranslation } from "~/i18n";
 
 export function LanguageSelectorMenuItem() {
   const { language, setLanguage, languageInfo } = useLanguage();
+  const t = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -39,7 +41,7 @@ export function LanguageSelectorMenuItem() {
             alt={languageInfo.name}
             className="w-5 h-5 rounded-sm object-cover"
           />
-          <span>Idioma</span>
+          <span>{t.common.language}</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-500 dark:text-gray-400">{languageInfo.name}</span>

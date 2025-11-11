@@ -6,6 +6,8 @@ import { DropdownMenuItem } from "./dropdown-menu-item";
 import { ThemeToggleMenuItem } from "./theme-toggle-menu-item";
 import { LanguageSelectorMenuItem } from "./language-selector-menu-item";
 import { ROUTES } from "../../../routes.config";
+import { useTranslation } from "~/i18n";
+import type { TranslationKey } from "~/i18n";
 
 interface MenuItem {
   label: string;
@@ -21,23 +23,26 @@ interface UserDropdownProps {
   menuItems?: MenuItem[];
 }
 
-const defaultMenuItems: MenuItem[] = [
-  { label: "Perfil da Empresa" },
-  { label: "Perfil do Usuario" },
-  { label: "Equipe" },
+const createMenuItems = (t: TranslationKey): MenuItem[] => [
+  { label: t.userDropdown.companyProfile },
+  { label: t.userDropdown.userProfile },
+  { label: t.userDropdown.team },
   { divider: true },
-  { label: "Ajuda" },
-  { label: "Sair", href: ROUTES.HOME },
+  { label: t.userDropdown.help },
+  { label: t.userDropdown.logout, href: ROUTES.HOME },
 ];
 
 export function UserDropdown({
   name = "Usuário",
   email = "usuario@exemplo.com",
   initial = "U",
-  menuItems = defaultMenuItems,
+  menuItems,
 }: UserDropdownProps) {
+  const t = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  const items = menuItems || createMenuItems(t);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -64,7 +69,7 @@ export function UserDropdown({
         <ThemeToggleMenuItem />
         <LanguageSelectorMenuItem />
         <hr className="border-gray-200 dark:border-gray-700" />
-        {menuItems.map((item, index) =>
+        {items.map((item, index) =>
           item.divider ? (
             <hr key={index} className="border-gray-200 dark:border-gray-700" />
           ) : (
