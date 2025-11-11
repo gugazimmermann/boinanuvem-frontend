@@ -26,7 +26,6 @@ export function meta() {
 
 export default function Team() {
   const t = useTranslation();
-  // Filter out main user from the list
   const [users, setUsers] = useState<TeamUser[]>([...mockUsers.filter((user) => !user.mainUser)]);
   const [searchValue, setSearchValue] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -43,7 +42,6 @@ export default function Team() {
   }, [searchValue]);
 
   const filteredUsers = users.filter((user) => {
-    // Exclude main user from filtered results
     if (user.mainUser) {
       return false;
     }

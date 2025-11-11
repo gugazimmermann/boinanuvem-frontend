@@ -18,7 +18,6 @@ interface UserFormData extends AddressFormData {
   phone: string;
 }
 
-// Get the main user for the current company
 const getMainUser = () => {
   const company = mockCompanies[0];
   if (!company) return null;
@@ -30,11 +29,9 @@ const getMainUser = () => {
   return mainUser || null;
 };
 
-// Get main user data and apply masks
 const getMainUserData = (): UserFormData => {
   const mainUser = getMainUser();
   if (!mainUser) {
-    // Fallback data if no main user exists
     return {
       name: "User",
       cpf: "",
@@ -166,7 +163,6 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
         setOriginalData(userData);
       }
     } else {
-      // If no userId, use main user data
       setData(mainUserData);
       setOriginalData(mainUserData);
     }
@@ -253,7 +249,6 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
           setOriginalData(data);
         }
       } else {
-        // Update the main user in mocked data if no userId is provided
         if (mainUser) {
           updateUser(mainUser.id, {
             name: data.name,

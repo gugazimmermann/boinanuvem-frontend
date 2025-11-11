@@ -34,7 +34,6 @@ const createMenuItems = (t: TranslationKey): MenuItem[] => [
   { label: t.userDropdown.logout, href: ROUTES.LOGIN },
 ];
 
-// Helper function to get initials from a name
 const getInitials = (name: string): string => {
   if (!name) return "U";
   const parts = name.trim().split(/\s+/);
@@ -43,7 +42,6 @@ const getInitials = (name: string): string => {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
-// Get the main user for the current company
 const getMainUser = () => {
   const company = mockCompanies[0];
   if (!company) return null;
@@ -64,7 +62,6 @@ export function UserDropdown({
   const t = useTranslation();
   const mainUser = useMemo(() => getMainUser(), []);
   
-  // Use main user data if available, otherwise use provided props or defaults
   const displayName = name || mainUser?.name || "User";
   const displayEmail = email || mainUser?.email || "user@example.com";
   const displayInitial = initial || getInitials(displayName);

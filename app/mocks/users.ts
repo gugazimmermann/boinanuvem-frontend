@@ -1,8 +1,6 @@
 import type { TeamUser } from "~/routes/dashboard/team";
 import type { UserFormData } from "~/components/dashboard/team/user-form-modal";
 
-// All users have the same password for now: Senha123! (BCrypt hashed)
-// Original password: Senha123!
 const DEFAULT_PASSWORD_HASH = "$2b$10$9c7eBs.MydmDkdO6SworA.ENm1i1yiT62zIzVrxJTecnU6Tl1ZhVu";
 
 export const mockUsers: TeamUser[] = [

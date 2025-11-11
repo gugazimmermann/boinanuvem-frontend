@@ -12,11 +12,9 @@ import type { CompanyFormData } from "~/components/site/utils/cnpj-utils";
 import { mockCompanies, updateCompany } from "~/mocks/companies";
 import { mockUsers } from "~/mocks/users";
 
-// Get the first company from mocked data and apply masks
 const getMockCompanyData = (): CompanyFormData => {
   const company = mockCompanies[0];
   if (!company) {
-    // Fallback data if no companies exist
     return {
       cnpj: "30.584.233/0001-40",
       companyName: "Fazenda São João Ltda",
@@ -48,15 +46,12 @@ const getMockCompanyData = (): CompanyFormData => {
 };
 
 const generateCompanyLogs = (companyId: string): ActivityLogEntry[] => {
-  // Filter users by companyId
   const companyUsers = mockUsers.filter((user) => user.companyId === companyId);
   
-  // If no users found for this company, return empty array
   if (companyUsers.length === 0) {
     return [];
   }
   
-  // Get user names from filtered users
   const users = companyUsers.map((user) => user.name);
   const actions = ["CREATE", "UPDATE", "DELETE", "VIEW", "EXPORT", "IMPORT", "ARCHIVE", "RESTORE"];
   const resourceTypes = ["Property", "Animal", "Pasture", "Report", "Vaccination", "Treatment", "Birth", "Weight", "User", "Settings"];
