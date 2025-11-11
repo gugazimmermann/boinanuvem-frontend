@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { AvatarButton } from "./avatar-button";
 import { DropdownMenu } from "./dropdown-menu";
 import { UserInfo } from "./user-info";
@@ -8,6 +8,8 @@ import { LanguageSelectorMenuItem } from "./language-selector-menu-item";
 import { ROUTES } from "../../../routes.config";
 import { useTranslation } from "~/i18n";
 import type { TranslationKey } from "~/i18n";
+import { mockUsers } from "~/mocks/users";
+import { mockCompanies } from "~/mocks/companies";
 
 interface MenuItem {
   label: string;
@@ -32,13 +34,41 @@ const createMenuItems = (t: TranslationKey): MenuItem[] => [
   { label: t.userDropdown.logout, href: ROUTES.LOGIN },
 ];
 
+// Helper function to get initials from a name
+const getInitials = (name: string): string => {
+  if (!name) return "U";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 0) return "U";
+  if (parts.length === 1) return parts[0][0]?.toUpperCase() || "U";
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+};
+
+// Get the main user for the current company
+const getMainUser = () => {
+  const company = mockCompanies[0];
+  if (!company) return null;
+  
+  const mainUser = mockUsers.find(
+    (user) => user.companyId === company.id && user.mainUser === true
+  );
+  
+  return mainUser || null;
+};
+
 export function UserDropdown({
-  name = "User",
-  email = "user@example.com",
-  initial = "U",
+  name,
+  email,
+  initial,
   menuItems,
 }: UserDropdownProps) {
   const t = useTranslation();
+  const mainUser = useMemo(() => getMainUser(), []);
+  
+  // Use main user data if available, otherwise use provided props or defaults
+  const displayName = name || mainUser?.name || "User";
+  const displayEmail = email || mainUser?.email || "user@example.com";
+  const displayInitial = initial || getInitials(displayName);
+  
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
@@ -62,9 +92,9 @@ export function UserDropdown({
 
   return (
     <div className="relative inline-block" ref={dropdownRef}>
-      <AvatarButton onClick={() => setIsOpen(!isOpen)} isOpen={isOpen} initial={initial} />
+      <AvatarButton onClick={() => setIsOpen(!isOpen)} isOpen={isOpen} initial={displayInitial} />
       <DropdownMenu isOpen={isOpen}>
-        <UserInfo name={name} email={email} initial={initial} />
+        <UserInfo name={displayName} email={displayEmail} initial={displayInitial} />
         <hr className="border-gray-200 dark:border-gray-700" />
         <ThemeToggleMenuItem />
         <LanguageSelectorMenuItem />

@@ -1,32 +1,68 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Input } from "~/components/ui";
 import { Button } from "~/components/ui";
 import { AddressForm } from "./address-form";
 import { ActivityLog, type ActivityLogEntry } from "./activity-log";
-import { maskPhone, unmaskPhone } from "~/components/site/utils/masks";
+import { maskPhone, unmaskPhone, maskCEP, unmaskCEP, maskCPF, unmaskCPF } from "~/components/site/utils/masks";
 import { useTranslation } from "~/i18n";
 import { DASHBOARD_COLORS } from "../utils/colors";
 import type { AddressFormData } from "~/components/site/utils/cep-utils";
-import { getUserById, updateUser } from "~/mocks/users";
+import { getUserById, updateUser, mockUsers } from "~/mocks/users";
+import { mockCompanies } from "~/mocks/companies";
 import type { UserFormData as TeamUserFormData } from "~/components/dashboard/team/user-form-modal";
 
 interface UserFormData extends AddressFormData {
   name: string;
+  cpf: string;
   email: string;
   phone: string;
 }
 
-const mockUserData: UserFormData = {
-  name: "João Silva",
-  email: "joao.silva@fazendasa joao.com.br",
-  phone: "(11) 98765-4321",
-  street: "Rua das Flores",
-  number: "123",
-  complement: "Apto 45",
-  neighborhood: "Centro",
-  city: "São Paulo",
-  state: "SP",
-  zipCode: "01310-100",
+// Get the main user for the current company
+const getMainUser = () => {
+  const company = mockCompanies[0];
+  if (!company) return null;
+  
+  const mainUser = mockUsers.find(
+    (user) => user.companyId === company.id && user.mainUser === true
+  );
+  
+  return mainUser || null;
+};
+
+// Get main user data and apply masks
+const getMainUserData = (): UserFormData => {
+  const mainUser = getMainUser();
+  if (!mainUser) {
+    // Fallback data if no main user exists
+    return {
+      name: "User",
+      cpf: "",
+      email: "user@example.com",
+      phone: "(00) 00000-0000",
+      street: "",
+      number: "",
+      complement: "",
+      neighborhood: "",
+      city: "",
+      state: "",
+      zipCode: "",
+    };
+  }
+
+  return {
+    name: mainUser.name || "",
+    cpf: maskCPF(mainUser.cpf || ""),
+    email: mainUser.email || "",
+    phone: maskPhone(mainUser.phone || ""),
+    street: mainUser.street || "",
+    number: mainUser.number || "",
+    complement: mainUser.complement || "",
+    neighborhood: mainUser.neighborhood || "",
+    city: mainUser.city || "",
+    state: mainUser.state || "",
+    zipCode: maskCEP(mainUser.zipCode || ""),
+  };
 };
 
 const generateUserLogs = (): ActivityLogEntry[] => {
@@ -100,9 +136,11 @@ interface UserProfileProps {
 
 export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserProfileProps) {
   const t = useTranslation();
+  const mainUserData = useMemo(() => getMainUserData(), []);
+  const mainUser = useMemo(() => getMainUser(), []);
   const [isEditing, setIsEditing] = useState(false);
-  const [data, setData] = useState<UserFormData>(mockUserData);
-  const [originalData, setOriginalData] = useState<UserFormData>(mockUserData);
+  const [data, setData] = useState<UserFormData>(mainUserData);
+  const [originalData, setOriginalData] = useState<UserFormData>(mainUserData);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState<"data" | "logs">("data");
@@ -113,21 +151,26 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
       if (user) {
         const userData: UserFormData = {
           name: user.name || "",
+          cpf: maskCPF(user.cpf || ""),
           email: user.email || "",
-          phone: user.phone || "",
-          street: "",
-          number: "",
-          complement: "",
-          neighborhood: "",
-          city: "",
-          state: "",
-          zipCode: "",
+          phone: maskPhone(user.phone || ""),
+          street: user.street || "",
+          number: user.number || "",
+          complement: user.complement || "",
+          neighborhood: user.neighborhood || "",
+          city: user.city || "",
+          state: user.state || "",
+          zipCode: maskCEP(user.zipCode || ""),
         };
         setData(userData);
         setOriginalData(userData);
       }
+    } else {
+      // If no userId, use main user data
+      setData(mainUserData);
+      setOriginalData(mainUserData);
     }
-  }, [userId]);
+  }, [userId, mainUserData]);
 
   const handleChange = (field: keyof UserFormData, value: string) => {
     setData((prev) => ({ ...prev, [field]: value }));
@@ -146,6 +189,11 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
 
     if (!data.name?.trim()) {
       newErrors.name = t.profile.errors.required(fieldLabels.name);
+    }
+    if (!data.cpf?.trim()) {
+      newErrors.cpf = t.profile.errors.required(fieldLabels.cpf || "CPF");
+    } else if (unmaskCPF(data.cpf).length !== 11) {
+      newErrors.cpf = t.profile.errors.invalid(fieldLabels.cpf || "CPF");
     }
     if (!data.email?.trim()) {
       newErrors.email = t.profile.errors.required(fieldLabels.email);
@@ -187,15 +235,16 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
           if (user) {
             const userData: UserFormData = {
               name: user.name || "",
+              cpf: maskCPF(user.cpf || ""),
               email: user.email || "",
-              phone: user.phone || "",
-              street: data.street || "",
-              number: data.number || "",
-              complement: data.complement || "",
-              neighborhood: data.neighborhood || "",
-              city: data.city || "",
-              state: data.state || "",
-              zipCode: data.zipCode || "",
+              phone: maskPhone(user.phone || ""),
+              street: user.street || "",
+              number: user.number || "",
+              complement: user.complement || "",
+              neighborhood: user.neighborhood || "",
+              city: user.city || "",
+              state: user.state || "",
+              zipCode: maskCEP(user.zipCode || ""),
             };
             setData(userData);
             setOriginalData(userData);
@@ -204,6 +253,22 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
           setOriginalData(data);
         }
       } else {
+        // Update the main user in mocked data if no userId is provided
+        if (mainUser) {
+          updateUser(mainUser.id, {
+            name: data.name,
+            cpf: unmaskCPF(data.cpf),
+            email: data.email,
+            phone: unmaskPhone(data.phone),
+            street: data.street,
+            number: data.number,
+            complement: data.complement,
+            neighborhood: data.neighborhood,
+            city: data.city,
+            state: data.state,
+            zipCode: unmaskCEP(data.zipCode),
+          });
+        }
         await new Promise((resolve) => setTimeout(resolve, 1000));
         setOriginalData(data);
       }
@@ -291,6 +356,18 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
               disabled={!isEditing}
             />
             <Input
+              label={t.profile.user.fields.cpf || "CPF"}
+              value={data.cpf}
+              onChange={(e) => handleChange("cpf", maskCPF(e.target.value))}
+              error={errors.cpf}
+              disabled={!isEditing}
+              placeholder="000.000.000-00"
+              maxLength={14}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <Input
               label={t.profile.user.fields.email}
               type="email"
               value={data.email}
@@ -298,9 +375,6 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
               error={errors.email}
               disabled={!isEditing}
             />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <Input
               label={t.profile.user.fields.phone}
               value={data.phone}

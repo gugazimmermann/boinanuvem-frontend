@@ -6,9 +6,17 @@ import { DASHBOARD_COLORS } from "../utils/colors";
 
 export interface UserFormData {
   name: string;
+  cpf?: string;
   email: string;
   phone: string;
   role: "admin" | "manager" | "user";
+  street?: string;
+  number?: string;
+  complement?: string;
+  neighborhood?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
   password?: string;
   confirmPassword?: string;
 }
@@ -190,9 +198,6 @@ export function UserFormModal({
                     onChange={(e) => handleChange("role", e.target.value)}
                     disabled={isSubmitting}
                     className="block w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    style={{
-                      focusRingColor: DASHBOARD_COLORS.primary,
-                    }}
                   >
                     <option value="user">{t.team.roles.user}</option>
                     <option value="manager">{t.team.roles.manager}</option>

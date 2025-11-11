@@ -10,6 +10,7 @@ import {
   maskCNPJ,
   maskPhone,
   maskCEP,
+  maskCPF,
   unmaskCNPJ,
   unmaskCEP,
   geocodeAddress,
@@ -48,6 +49,7 @@ export default function Register() {
 
   const [userData, setUserData] = useState({
     name: "",
+    cpf: "",
     email: "",
     phone: "",
     street: "",
@@ -480,15 +482,27 @@ export default function Register() {
               </div>
             ) : (
               <div className="space-y-4">
-                <div>
-                  <Input
-                    type="text"
-                    placeholder="Nome"
-                    aria-label="Nome"
-                    className="mt-0"
-                    value={userData.name}
-                    onChange={(e) => setUserData((prev) => ({ ...prev, name: e.target.value }))}
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <AuthInput
+                      type="text"
+                      placeholder="Nome"
+                      aria-label="Nome"
+                      className="mt-0"
+                      value={userData.name}
+                      onChange={(e) => setUserData((prev) => ({ ...prev, name: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <AuthInput
+                      type="text"
+                      placeholder="CPF"
+                      aria-label="CPF"
+                      className="mt-0"
+                      value={userData.cpf}
+                      onChange={(e) => setUserData((prev) => ({ ...prev, cpf: maskCPF(e.target.value) }))}
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -654,7 +668,7 @@ export default function Register() {
                     type="button"
                     variant="primary"
                     size="md"
-                    onClick={handleSubmit}
+                    onClick={() => handleSubmit()}
                   >
                     Cadastrar
                   </AuthButton>

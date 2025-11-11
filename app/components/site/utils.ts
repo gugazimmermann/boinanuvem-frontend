@@ -40,6 +40,8 @@ export {
   unmaskPhone,
   maskCEP,
   unmaskCEP,
+  maskCPF,
+  unmaskCPF,
   createMaskHandler,
 } from "./utils/masks";
 

@@ -1,15 +1,17 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { Table, type TableColumn, type TableAction } from "~/components/ui";
+import { Table, type TableColumn, type TableAction, Alert } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { UserFormModal, DeleteUserModal, type UserFormData } from "~/components/dashboard/team";
 import { getUserProfileRoute } from "~/routes.config";
 import { mockUsers, updateUser as updateMockUser } from "~/mocks/users";
 
-export interface TeamUser extends UserFormData {
+export interface TeamUser extends UserFormData, Record<string, unknown> {
   id: string;
   status: "active" | "inactive" | "pending";
   lastAccess?: string;
+  mainUser?: boolean;
+  companyId?: string;
 }
 
 export function meta() {
@@ -24,7 +26,8 @@ export function meta() {
 
 export default function Team() {
   const t = useTranslation();
-  const [users, setUsers] = useState<TeamUser[]>([...mockUsers]);
+  // Filter out main user from the list
+  const [users, setUsers] = useState<TeamUser[]>([...mockUsers.filter((user) => !user.mainUser)]);
   const [searchValue, setSearchValue] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
@@ -32,6 +35,7 @@ export default function Team() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<TeamUser | null>(null);
+  const [alertMessage, setAlertMessage] = useState<{ title: string; variant: "success" | "error" | "warning" | "info" } | null>(null);
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -39,6 +43,11 @@ export default function Team() {
   }, [searchValue]);
 
   const filteredUsers = users.filter((user) => {
+    // Exclude main user from filtered results
+    if (user.mainUser) {
+      return false;
+    }
+
     if (!searchValue.trim()) {
       return true;
     }
@@ -70,6 +79,13 @@ export default function Team() {
     }).format(date);
   };
 
+  const showAlert = (title: string, variant: "success" | "error" | "warning" | "info" = "success") => {
+    setAlertMessage({ title, variant });
+    setTimeout(() => {
+      setAlertMessage(null);
+    }, 3000);
+  };
+
   const handleAddUser = async (data: UserFormData) => {
     const newUser: TeamUser = {
       ...data,
@@ -77,7 +93,7 @@ export default function Team() {
       status: "pending",
     };
     setUsers([...users, newUser]);
-    alert(t.team.success.added);
+    showAlert(t.team.success.added, "success");
   };
 
   const handleEditUser = async (data: UserFormData) => {
@@ -90,14 +106,14 @@ export default function Team() {
           : user
       )
     );
-    alert(t.team.success.updated);
+    showAlert(t.team.success.updated, "success");
     setSelectedUser(null);
   };
 
   const handleDeleteUser = async () => {
     if (!selectedUser) return;
     setUsers(users.filter((user) => user.id !== selectedUser.id));
-    alert(t.team.success.deleted);
+    showAlert(t.team.success.deleted, "success");
     setSelectedUser(null);
   };
 
@@ -234,6 +250,14 @@ export default function Team() {
 
   return (
     <div>
+      {alertMessage && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
+          <Alert
+            title={alertMessage.title}
+            variant={alertMessage.variant}
+          />
+        </div>
+      )}
       <Table<TeamUser>
         columns={columns}
         data={paginatedData}

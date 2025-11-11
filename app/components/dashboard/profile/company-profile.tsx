@@ -1,31 +1,63 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Input } from "~/components/ui";
 import { Button } from "~/components/ui";
 import { AddressForm } from "./address-form";
 import { ActivityLog, type ActivityLogEntry } from "./activity-log";
 import { useCNPJLookup } from "~/components/site/hooks/use-cnpj-lookup";
 import { mapCNPJDataToCompanyForm } from "~/components/site/utils/cnpj-utils";
-import { maskCNPJ, unmaskCNPJ, maskPhone, unmaskPhone } from "~/components/site/utils/masks";
+import { maskCNPJ, unmaskCNPJ, maskPhone, unmaskPhone, maskCEP, unmaskCEP } from "~/components/site/utils/masks";
 import { useTranslation } from "~/i18n";
 import { DASHBOARD_COLORS } from "../utils/colors";
 import type { CompanyFormData } from "~/components/site/utils/cnpj-utils";
+import { mockCompanies, updateCompany } from "~/mocks/companies";
+import { mockUsers } from "~/mocks/users";
 
-const mockCompanyData: CompanyFormData = {
-  cnpj: "30.584.233/0001-40",
-  companyName: "Fazenda São João Ltda",
-  email: "contato@fazendasa joao.com.br",
-  phone: "(11) 98765-4321",
-  street: "Rua das Flores",
-  number: "123",
-  complement: "Sala 45",
-  neighborhood: "Centro",
-  city: "São Paulo",
-  state: "SP",
-  zipCode: "01310-100",
+// Get the first company from mocked data and apply masks
+const getMockCompanyData = (): CompanyFormData => {
+  const company = mockCompanies[0];
+  if (!company) {
+    // Fallback data if no companies exist
+    return {
+      cnpj: "30.584.233/0001-40",
+      companyName: "Fazenda São João Ltda",
+      email: "contato@fazendasa joao.com.br",
+      phone: "(11) 98765-4321",
+      street: "Rua das Flores",
+      number: "123",
+      complement: "Sala 45",
+      neighborhood: "Centro",
+      city: "São Paulo",
+      state: "SP",
+      zipCode: "01310-100",
+    };
+  }
+
+  return {
+    cnpj: maskCNPJ(company.cnpj),
+    companyName: company.companyName,
+    email: company.email,
+    phone: maskPhone(company.phone),
+    street: company.street,
+    number: company.number,
+    complement: company.complement,
+    neighborhood: company.neighborhood,
+    city: company.city,
+    state: company.state,
+    zipCode: maskCEP(company.zipCode),
+  };
 };
 
-const generateCompanyLogs = (): ActivityLogEntry[] => {
-  const users = ["João Silva", "Maria Santos", "Pedro Costa", "Ana Oliveira", "Carlos Mendes", "Juliana Ferreira", "Roberto Alves", "Fernanda Lima"];
+const generateCompanyLogs = (companyId: string): ActivityLogEntry[] => {
+  // Filter users by companyId
+  const companyUsers = mockUsers.filter((user) => user.companyId === companyId);
+  
+  // If no users found for this company, return empty array
+  if (companyUsers.length === 0) {
+    return [];
+  }
+  
+  // Get user names from filtered users
+  const users = companyUsers.map((user) => user.name);
   const actions = ["CREATE", "UPDATE", "DELETE", "VIEW", "EXPORT", "IMPORT", "ARCHIVE", "RESTORE"];
   const resourceTypes = ["Property", "Animal", "Pasture", "Report", "Vaccination", "Treatment", "Birth", "Weight", "User", "Settings"];
   
@@ -93,10 +125,12 @@ const generateCompanyLogs = (): ActivityLogEntry[] => {
   return logs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 };
 
-const mockCompanyLogs: ActivityLogEntry[] = generateCompanyLogs();
-
 export function CompanyProfile() {
   const t = useTranslation();
+  const mockCompanyData = useMemo(() => getMockCompanyData(), []);
+  const company = useMemo(() => mockCompanies[0], []);
+  const companyId = company?.id || "";
+  const mockCompanyLogs = useMemo(() => generateCompanyLogs(companyId), [companyId]);
   const [isEditing, setIsEditing] = useState(false);
   const [data, setData] = useState<CompanyFormData>(mockCompanyData);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -172,6 +206,22 @@ export function CompanyProfile() {
 
     setIsSaving(true);
     try {
+      // Update the mocked company data
+      const unmaskedCNPJ = unmaskCNPJ(data.cnpj);
+      updateCompany(unmaskedCNPJ, {
+        cnpj: unmaskedCNPJ,
+        companyName: data.companyName,
+        email: data.email,
+        phone: unmaskPhone(data.phone),
+        street: data.street,
+        number: data.number,
+        complement: data.complement,
+        neighborhood: data.neighborhood,
+        city: data.city,
+        state: data.state,
+        zipCode: unmaskCEP(data.zipCode),
+      });
+
       await new Promise((resolve) => setTimeout(resolve, 1000));
       setIsEditing(false);
       alert(t.profile.success.saved);
