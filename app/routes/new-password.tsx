@@ -1,5 +1,5 @@
 import { AuthLayout } from "../components/site/auth-layout";
-import { Input, Button } from "../components/ui";
+import { AuthInput, AuthButton } from "../components/site/ui";
 import { COLORS } from "../components/site/constants";
 import { ROUTES } from "../routes.config";
 
@@ -37,47 +37,43 @@ export default function NewPassword() {
 
           <form className="mt-6">
             <div className="w-full">
-              <Input
+              <AuthInput
                 type="text"
                 placeholder="Código de verificação"
                 aria-label="Código de verificação"
                 className="mt-0"
-                inputClassName="block w-full px-4 py-2 mt-2 text-gray-700 placeholder-gray-500 bg-white border rounded-lg focus:border-blue-400 focus:ring-opacity-40 focus:outline-none focus:ring focus:ring-blue-300"
               />
             </div>
 
             <div className="w-full mt-4">
-              <Input
+              <AuthInput
                 type="password"
                 placeholder="Nova senha"
                 aria-label="Nova senha"
                 className="mt-0"
                 showPasswordToggle
-                inputClassName="block w-full px-4 py-2 mt-2 text-gray-700 placeholder-gray-500 bg-white border rounded-lg focus:border-blue-400 focus:ring-opacity-40 focus:outline-none focus:ring focus:ring-blue-300"
               />
             </div>
 
             <div className="w-full mt-4">
-              <Input
+              <AuthInput
                 type="password"
                 placeholder="Repetir senha"
                 aria-label="Repetir senha"
                 className="mt-0"
                 showPasswordToggle
-                inputClassName="block w-full px-4 py-2 mt-2 text-gray-700 placeholder-gray-500 bg-white border rounded-lg focus:border-blue-400 focus:ring-opacity-40 focus:outline-none focus:ring focus:ring-blue-300"
               />
             </div>
 
             <div className="mt-6">
-              <Button
+              <AuthButton
                 type="submit"
                 variant="primary"
                 size="md"
                 fullWidth
-                className="px-6 py-2 text-sm font-medium tracking-wide text-white capitalize transition-colors duration-300 transform bg-blue-500 rounded-lg hover:bg-blue-400 focus:outline-none focus:ring focus:ring-blue-300 focus:ring-opacity-50"
               >
                 Redefinir Senha
-              </Button>
+              </AuthButton>
             </div>
           </form>
         </div>

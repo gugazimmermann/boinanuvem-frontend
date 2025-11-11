@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { AuthLayout } from "../components/site/auth-layout";
-import { Input, Button } from "../components/ui";
+import { AuthInput, AuthButton } from "../components/site/ui";
 import { COLORS } from "../components/site/constants";
 import { ROUTES } from "../routes.config";
 import { useCNPJLookup, type CNPJData, useCEPLookup, type CEPData } from "../components/site/hooks";
@@ -263,9 +263,6 @@ export default function Register() {
     alert(message);
   };
 
-  const inputClassName =
-    "block w-full px-4 py-2 mt-2 text-gray-700 placeholder-gray-500 bg-white border rounded-lg focus:border-blue-400 focus:ring-opacity-40 focus:outline-none focus:ring focus:ring-blue-300";
-
   return (
     <AuthLayout>
       <div className="w-full max-w-2xl mx-auto overflow-hidden bg-white rounded-lg shadow-md">
@@ -337,7 +334,7 @@ export default function Register() {
                 )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Input
+                    <AuthInput
                       type="text"
                       placeholder="CNPJ"
                       aria-label="CNPJ"
@@ -346,11 +343,10 @@ export default function Register() {
                       onChange={(e) => handleCompanyDataChange("cnpj", e.target.value)}
                       error={cnpjError || companyErrors.cnpj}
                       required
-                      inputClassName={inputClassName}
                     />
                   </div>
                   <div>
-                    <Input
+                    <AuthInput
                       type="text"
                       placeholder="Razão Social"
                       aria-label="Razão Social"
@@ -359,14 +355,13 @@ export default function Register() {
                       onChange={(e) => handleCompanyDataChange("companyName", e.target.value)}
                       error={companyErrors.companyName}
                       required
-                      inputClassName={inputClassName}
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Input
+                    <AuthInput
                       type="email"
                       placeholder="Email"
                       aria-label="Email"
@@ -375,11 +370,10 @@ export default function Register() {
                       onChange={(e) => handleCompanyDataChange("email", e.target.value)}
                       error={companyErrors.email}
                       required
-                      inputClassName={inputClassName}
                     />
                   </div>
                   <div>
-                    <Input
+                    <AuthInput
                       type="tel"
                       placeholder="Telefone"
                       aria-label="Telefone"
@@ -388,14 +382,13 @@ export default function Register() {
                       onChange={(e) => handleCompanyDataChange("phone", e.target.value)}
                       error={companyErrors.phone}
                       required
-                      inputClassName={inputClassName}
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <Input
+                    <AuthInput
                       type="text"
                       placeholder="CEP"
                       aria-label="CEP"
@@ -404,14 +397,13 @@ export default function Register() {
                       onChange={(e) => handleCompanyDataChange("zipCode", e.target.value)}
                       error={companyZipCodeError || companyErrors.zipCode}
                       required
-                      inputClassName={inputClassName}
                     />
                     {companyZipCodeLoading && (
                       <p className="mt-1 text-xs text-blue-500">Searching address...</p>
                     )}
                   </div>
                   <div className="md:col-span-2">
-                    <Input
+                    <AuthInput
                       type="text"
                       placeholder="Rua"
                       aria-label="Rua"
@@ -420,39 +412,36 @@ export default function Register() {
                       onChange={(e) => handleCompanyDataChange("street", e.target.value)}
                       error={companyErrors.street}
                       required
-                      inputClassName={inputClassName}
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <Input
+                    <AuthInput
                       type="text"
                       placeholder="Número"
                       aria-label="Número"
                       className="mt-0"
                       value={companyData.number}
                       onChange={(e) => handleCompanyDataChange("number", e.target.value)}
-                      inputClassName={inputClassName}
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <Input
+                    <AuthInput
                       type="text"
                       placeholder="Complemento"
                       aria-label="Complemento"
                       className="mt-0"
                       value={companyData.complement}
                       onChange={(e) => handleCompanyDataChange("complement", e.target.value)}
-                      inputClassName={inputClassName}
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <Input
+                    <AuthInput
                       type="text"
                       placeholder="Bairro"
                       aria-label="Bairro"
@@ -461,11 +450,10 @@ export default function Register() {
                       onChange={(e) => handleCompanyDataChange("neighborhood", e.target.value)}
                       error={companyErrors.neighborhood}
                       required
-                      inputClassName={inputClassName}
                     />
                   </div>
                   <div>
-                    <Input
+                    <AuthInput
                       type="text"
                       placeholder="Cidade"
                       aria-label="Cidade"
@@ -474,11 +462,10 @@ export default function Register() {
                       onChange={(e) => handleCompanyDataChange("city", e.target.value)}
                       error={companyErrors.city}
                       required
-                      inputClassName={inputClassName}
                     />
                   </div>
                   <div>
-                    <Input
+                    <AuthInput
                       type="text"
                       placeholder="Estado"
                       aria-label="Estado"
@@ -487,7 +474,6 @@ export default function Register() {
                       onChange={(e) => handleCompanyDataChange("state", e.target.value)}
                       error={companyErrors.state}
                       required
-                      inputClassName={inputClassName}
                     />
                   </div>
                 </div>
@@ -502,24 +488,22 @@ export default function Register() {
                     className="mt-0"
                     value={userData.name}
                     onChange={(e) => setUserData((prev) => ({ ...prev, name: e.target.value }))}
-                    inputClassName={inputClassName}
                   />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Input
+                    <AuthInput
                       type="email"
                       placeholder="Email"
                       aria-label="Email"
                       className="mt-0"
                       value={userData.email}
                       onChange={(e) => setUserData((prev) => ({ ...prev, email: e.target.value }))}
-                      inputClassName={inputClassName}
                     />
                   </div>
                   <div>
-                    <Input
+                    <AuthInput
                       type="tel"
                       placeholder="Telefone"
                       aria-label="Telefone"
@@ -528,14 +512,13 @@ export default function Register() {
                       onChange={(e) =>
                         setUserData((prev) => ({ ...prev, phone: maskPhone(e.target.value) }))
                       }
-                      inputClassName={inputClassName}
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <Input
+                    <AuthInput
                       type="text"
                       placeholder="CEP"
                       aria-label="CEP"
@@ -545,89 +528,82 @@ export default function Register() {
                         setUserData((prev) => ({ ...prev, zipCode: maskCEP(e.target.value) }))
                       }
                       error={userZipCodeError || undefined}
-                      inputClassName={inputClassName}
                     />
                     {userZipCodeLoading && (
                       <p className="mt-1 text-xs text-blue-500">Searching address...</p>
                     )}
                   </div>
                   <div className="md:col-span-2">
-                    <Input
+                    <AuthInput
                       type="text"
                       placeholder="Rua"
                       aria-label="Rua"
                       className="mt-0"
                       value={userData.street}
                       onChange={(e) => setUserData((prev) => ({ ...prev, street: e.target.value }))}
-                      inputClassName={inputClassName}
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <Input
+                    <AuthInput
                       type="text"
                       placeholder="Número"
                       aria-label="Número"
                       className="mt-0"
                       value={userData.number}
                       onChange={(e) => setUserData((prev) => ({ ...prev, number: e.target.value }))}
-                      inputClassName={inputClassName}
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <Input
+                    <AuthInput
                       type="text"
                       placeholder="Complemento"
                       aria-label="Complemento"
                       className="mt-0"
                       value={userData.complement}
                       onChange={(e) => setUserData((prev) => ({ ...prev, complement: e.target.value }))}
-                      inputClassName={inputClassName}
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <Input
+                    <AuthInput
                       type="text"
                       placeholder="Bairro"
                       aria-label="Bairro"
                       className="mt-0"
                       value={userData.neighborhood}
                       onChange={(e) => setUserData((prev) => ({ ...prev, neighborhood: e.target.value }))}
-                      inputClassName={inputClassName}
                     />
                   </div>
                   <div>
-                    <Input
+                    <AuthInput
                       type="text"
                       placeholder="Cidade"
                       aria-label="Cidade"
                       className="mt-0"
                       value={userData.city}
                       onChange={(e) => setUserData((prev) => ({ ...prev, city: e.target.value }))}
-                      inputClassName={inputClassName}
                     />
                   </div>
                   <div>
-                    <Input
+                    <AuthInput
                       type="text"
                       placeholder="Estado"
                       aria-label="Estado"
                       className="mt-0"
                       value={userData.state}
                       onChange={(e) => setUserData((prev) => ({ ...prev, state: e.target.value }))}
-                      inputClassName={inputClassName}
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Input
+                    <AuthInput
                       type="password"
                       placeholder="Senha"
                       aria-label="Senha"
@@ -635,11 +611,10 @@ export default function Register() {
                       value={userData.password}
                       onChange={(e) => setUserData((prev) => ({ ...prev, password: e.target.value }))}
                       showPasswordToggle
-                      inputClassName={inputClassName}
                     />
                   </div>
                   <div>
-                    <Input
+                    <AuthInput
                       type="password"
                       placeholder="Repita a Senha"
                       aria-label="Repita a Senha"
@@ -647,7 +622,6 @@ export default function Register() {
                       value={userData.confirmPassword}
                       onChange={(e) => setUserData((prev) => ({ ...prev, confirmPassword: e.target.value }))}
                       showPasswordToggle
-                      inputClassName={inputClassName}
                     />
                   </div>
                 </div>
@@ -656,37 +630,34 @@ export default function Register() {
 
             <div className="flex items-center justify-between mt-6">
               {step === 2 && (
-                <Button
+                <AuthButton
                   type="button"
                   variant="outline"
                   size="md"
                   onClick={() => setStep(1)}
-                  className="px-6 py-2 text-sm font-medium tracking-wide capitalize transition-colors duration-300 transform rounded-lg focus:outline-none focus:ring focus:ring-blue-300 focus:ring-opacity-50"
                 >
                   Voltar
-                </Button>
+                </AuthButton>
               )}
               <div className={step === 1 ? "ml-auto" : "ml-auto"}>
                 {step === 1 ? (
-                  <Button
+                  <AuthButton
                     type="button"
                     variant="primary"
                     size="md"
                     onClick={handleNextStep}
-                    className="px-6 py-2 text-sm font-medium tracking-wide text-white capitalize transition-colors duration-300 transform bg-blue-500 rounded-lg hover:bg-blue-400 focus:outline-none focus:ring focus:ring-blue-300 focus:ring-opacity-50"
                   >
                     Próximo
-                  </Button>
+                  </AuthButton>
                 ) : (
-                  <Button
+                  <AuthButton
                     type="button"
                     variant="primary"
                     size="md"
                     onClick={handleSubmit}
-                    className="px-6 py-2 text-sm font-medium tracking-wide text-white capitalize transition-colors duration-300 transform bg-blue-500 rounded-lg hover:bg-blue-400 focus:outline-none focus:ring focus:ring-blue-300 focus:ring-opacity-50"
                   >
                     Cadastrar
-                  </Button>
+                  </AuthButton>
                 )}
               </div>
             </div>
