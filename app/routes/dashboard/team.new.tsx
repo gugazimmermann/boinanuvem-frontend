@@ -27,6 +27,7 @@ export default function NewTeamMember() {
     cpf: "",
     email: "",
     phone: "",
+    role: "user",
     password: "",
     confirmPassword: "",
     street: "",
@@ -51,7 +52,7 @@ export default function NewTeamMember() {
   const {
     loading: zipCodeLoading,
     error: zipCodeError,
-  } = useCEPLookup(unmaskCEP(formData.zipCode), {
+  } = useCEPLookup(unmaskCEP(formData.zipCode || ""), {
     debounceMs: 800,
     onSuccess: handleZipCodeSuccess,
   });
@@ -103,27 +104,27 @@ export default function NewTeamMember() {
       newErrors.phone = t.profile.errors.required(fields.phone);
     }
     if (!formData.street?.trim()) {
-      newErrors.street = t.profile.errors.required("Rua");
+      newErrors.street = t.profile.errors.required(t.team.new.fields.street);
     }
     if (!formData.neighborhood?.trim()) {
-      newErrors.neighborhood = t.profile.errors.required("Bairro");
+      newErrors.neighborhood = t.profile.errors.required(t.team.new.fields.neighborhood);
     }
     if (!formData.city?.trim()) {
-      newErrors.city = t.profile.errors.required("Cidade");
+      newErrors.city = t.profile.errors.required(t.team.new.fields.city);
     }
     if (!formData.state?.trim()) {
-      newErrors.state = t.profile.errors.required("Estado");
+      newErrors.state = t.profile.errors.required(t.team.new.fields.state);
     }
     if (!formData.zipCode?.trim()) {
-      newErrors.zipCode = t.profile.errors.required("CEP");
+      newErrors.zipCode = t.profile.errors.required(t.team.new.fields.cep);
     }
     if (!formData.password?.trim()) {
       newErrors.password = t.profile.errors.required(fields.password);
     } else if (formData.password.length < 6) {
-      newErrors.password = "A senha deve ter pelo menos 6 caracteres";
+      newErrors.password = t.team.new.passwordMinLength;
     }
     if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "As senhas não coincidem";
+      newErrors.confirmPassword = t.team.new.passwordMismatch;
     }
 
     setErrors(newErrors);
@@ -138,7 +139,7 @@ export default function NewTeamMember() {
     try {
       const newUser = addUser({
         ...formData,
-        cpf: unmaskCPF(formData.cpf),
+        cpf: unmaskCPF(formData.cpf || ""),
         role: "user",
       });
       showAlert(t.team.success.added, "success");
@@ -170,7 +171,7 @@ export default function NewTeamMember() {
             {t.team.addModal.title}
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Preencha os dados para adicionar um novo membro à equipe
+            {t.team.new.description}
           </p>
         </div>
         <Button
@@ -178,7 +179,7 @@ export default function NewTeamMember() {
           onClick={() => navigate(ROUTES.TEAM)}
           disabled={isSubmitting}
         >
-          Voltar
+          {t.team.new.back}
         </Button>
       </div>
 
@@ -194,7 +195,7 @@ export default function NewTeamMember() {
                 disabled={isSubmitting}
               />
               <Input
-                label="CPF"
+                label={t.team.new.fields.cpf}
                 value={formData.cpf}
                 onChange={(e) => handleChange("cpf", e.target.value)}
                 error={errors.cpf}
@@ -226,20 +227,20 @@ export default function NewTeamMember() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Input
-                  label="CEP"
+                  label={t.team.new.fields.cep}
                   value={formData.zipCode}
                   onChange={(e) => handleChange("zipCode", e.target.value)}
-                  error={errors.zipCode || zipCodeError}
+                  error={errors.zipCode || zipCodeError || undefined}
                   disabled={isSubmitting || zipCodeLoading}
                   placeholder="00000-000"
                   maxLength={10}
                 />
                 {zipCodeLoading && (
-                  <p className="mt-1 text-xs text-blue-500 dark:text-blue-400">Buscando endereço...</p>
+                  <p className="mt-1 text-xs text-blue-500 dark:text-blue-400">{t.team.new.searchingAddress}</p>
                 )}
               </div>
               <Input
-                label="Rua"
+                label={t.team.new.fields.street}
                 value={formData.street}
                 onChange={(e) => handleChange("street", e.target.value)}
                 error={errors.street}
@@ -250,14 +251,14 @@ export default function NewTeamMember() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Input
-                label="Número"
+                label={t.profile.company.fields.number}
                 value={formData.number}
                 onChange={(e) => handleChange("number", e.target.value)}
                 error={errors.number}
                 disabled={isSubmitting}
               />
               <Input
-                label="Complemento"
+                label={t.team.new.fields.complement}
                 value={formData.complement}
                 onChange={(e) => handleChange("complement", e.target.value)}
                 error={errors.complement}
@@ -268,21 +269,21 @@ export default function NewTeamMember() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Input
-                label="Bairro"
+                label={t.team.new.fields.neighborhood}
                 value={formData.neighborhood}
                 onChange={(e) => handleChange("neighborhood", e.target.value)}
                 error={errors.neighborhood}
                 disabled={isSubmitting || zipCodeLoading}
               />
               <Input
-                label="Cidade"
+                label={t.team.new.fields.city}
                 value={formData.city}
                 onChange={(e) => handleChange("city", e.target.value)}
                 error={errors.city}
                 disabled={isSubmitting || zipCodeLoading}
               />
               <Input
-                label="Estado"
+                label={t.team.new.fields.state}
                 value={formData.state}
                 onChange={(e) => handleChange("state", e.target.value)}
                 error={errors.state}

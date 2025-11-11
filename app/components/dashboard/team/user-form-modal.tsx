@@ -105,10 +105,10 @@ export function UserFormModal({
     if ((!isEditing || changePassword) && !formData.password?.trim()) {
       newErrors.password = t.profile.errors.required(fields.password);
     } else if (formData.password && formData.password.length < 6) {
-      newErrors.password = "A senha deve ter pelo menos 6 caracteres";
+      newErrors.password = t.team.new.passwordMinLength;
     }
     if ((!isEditing || changePassword) && formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "As senhas não coincidem";
+      newErrors.confirmPassword = t.team.new.passwordMismatch;
     }
 
     setErrors(newErrors);
@@ -153,7 +153,7 @@ export function UserFormModal({
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               {isEditing
                 ? t.team.editModal.description
-                : "Preencha os dados para adicionar um novo usuário"}
+                : t.team.addModal.description}
             </p>
           </div>
 

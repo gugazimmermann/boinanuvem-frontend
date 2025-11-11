@@ -187,6 +187,7 @@ export const es = {
     },
     addModal: {
       title: "Agregar Nuevo Usuario",
+      description: "Completa los datos para agregar un nuevo usuario",
       fields: {
         name: "Nombre Completo",
         email: "Email",
@@ -231,6 +232,90 @@ export const es = {
       addFailed: "Error al agregar usuario. Intenta de nuevo.",
       updateFailed: "Error al actualizar usuario. Intenta de nuevo.",
       deleteFailed: "Error al eliminar usuario. Intenta de nuevo.",
+    },
+    permissions: {
+      title: "Permisos del Usuario",
+      description: "Define los permisos del usuario",
+      descriptionFor: (name: string) => `Define los permisos para ${name}`,
+      registration: "Registro",
+      selectAll: "Seleccionar todos",
+      savePermissions: "Guardar Permisos",
+      userNotFound: "Usuario no encontrado",
+      success: "¡Permisos actualizados con éxito!",
+      error: "Error al actualizar permisos. Intenta de nuevo.",
+      resources: {
+        property: "Propiedad",
+        location: "Ubicación",
+        employee: "Empleado",
+        serviceProvider: "Proveedor de Servicios",
+        supplier: "Proveedor",
+        buyer: "Comprador",
+      },
+      actions: {
+        view: "Ver",
+        add: "Agregar",
+        edit: "Editar",
+        remove: "Eliminar",
+      },
+    },
+    new: {
+      description: "Completa los datos para agregar un nuevo miembro al equipo",
+      back: "Volver",
+      searchingAddress: "Buscando dirección...",
+      passwordMismatch: "Las contraseñas no coinciden",
+      passwordMinLength: "La contraseña debe tener al menos 6 caracteres",
+      fields: {
+        cpf: "CPF",
+        cep: "Código Postal",
+        street: "Calle",
+        number: "Número",
+        complement: "Complemento",
+        neighborhood: "Barrio",
+        city: "Ciudad",
+        state: "Estado",
+      },
+    },
+  },
+  help: {
+    title: "Ayuda",
+    metaTitle: "Ayuda - Boi na Nuvem",
+    metaDescription: "Centro de ayuda y preguntas frecuentes de Boi na Nuvem",
+    heading: "¿Tienes alguna Pregunta?",
+    tableOfContent: "Índice",
+    all: "Todos",
+    categories: {
+      general: "General",
+      trust: "Confianza y Seguridad",
+      services: "Servicios",
+      billing: "Facturación",
+      cleaning: "Limpieza de Oficina",
+    },
+    faqs: {
+      payment: {
+        question: "¿Cómo puedo pagar por mi cita?",
+        answer:
+          "Puedes pagar por tu cita de varias formas: tarjeta de crédito, tarjeta de débito, transferencia bancaria o PIX. El pago se puede realizar directamente en la plataforma al reservar o en el momento de la consulta, dependiendo del servicio elegido.",
+      },
+      firstConsultation: {
+        question: "¿Qué puedo esperar en mi primera consulta?",
+        answer:
+          "En tu primera consulta, serás recibido por nuestro equipo que recopilará tu información básica y entenderá tus necesidades. Luego, tendrás una reunión con un especialista que analizará tu caso y propondrá las mejores soluciones para ti.",
+      },
+      openingHours: {
+        question: "¿Cuáles son sus horarios de atención?",
+        answer:
+          "Nuestro horario de atención es de lunes a viernes, de 8am a 6pm, y los sábados de 9am a 1pm. Estamos cerrados los domingos y días festivos. Para emergencias, tenemos un canal de soporte 24/7 disponible.",
+      },
+      referral: {
+        question: "¿Necesito una referencia?",
+        answer:
+          "Una referencia no es necesaria para la mayoría de nuestros servicios. Puedes reservar directamente a través de la plataforma. Sin embargo, algunos servicios específicos pueden requerir documentación adicional, que se informará al momento de la reserva.",
+      },
+      insurance: {
+        question: "¿El costo de la cita está cubierto por el seguro de salud privado?",
+        answer:
+          "Depende de tu plan de salud y el tipo de servicio. Algunos planes cubren nuestros servicios parcial o totalmente. Te recomendamos que contactes a tu aseguradora antes de reservar para verificar la cobertura. También podemos ayudarte a verificar esto a través de nuestro soporte.",
+      },
     },
   },
 } as const;

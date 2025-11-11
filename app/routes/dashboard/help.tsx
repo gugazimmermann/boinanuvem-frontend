@@ -1,53 +1,10 @@
 import type { Route } from "./+types/help";
-import { useState } from "react";
-
-const FAQ_CATEGORIES = [
-  { id: "general", label: "General" },
-  { id: "trust", label: "Trust & Safety" },
-  { id: "services", label: "Services" },
-  { id: "billing", label: "Billing" },
-  { id: "cleaning", label: "Office Cleaning" },
-] as const;
-
-const FAQ_ITEMS = [
-  {
-    id: "payment",
-    category: "billing",
-    question: "How can I pay for my appointment?",
-    answer:
-      "You can pay for your appointment in several ways: credit card, debit card, bank transfer, or PIX. Payment can be made directly on the platform when booking or at the time of consultation, depending on the service chosen.",
-  },
-  {
-    id: "first-consultation",
-    category: "general",
-    question: "What can I expect at my first consultation?",
-    answer:
-      "At your first consultation, you will be welcomed by our team who will collect your basic information and understand your needs. Then, you will have a meeting with a specialist who will analyze your case and propose the best solutions for you.",
-  },
-  {
-    id: "opening-hours",
-    category: "general",
-    question: "What are your opening hours?",
-    answer:
-      "Our business hours are Monday through Friday, from 8am to 6pm, and Saturdays from 9am to 1pm. We are closed on Sundays and holidays. For emergencies, we have a 24/7 support channel available.",
-  },
-  {
-    id: "referral",
-    category: "services",
-    question: "Do I need a referral?",
-    answer:
-      "A referral is not required for most of our services. You can book directly through the platform. However, some specific services may require additional documentation, which will be informed at the time of booking.",
-  },
-  {
-    id: "insurance",
-    category: "billing",
-    question: "Is the cost of the appointment covered by private health insurance?",
-    answer:
-      "It depends on your health plan and the type of service. Some plans cover our services partially or fully. We recommend that you contact your insurer before booking to verify coverage. We can also help you verify this through our support.",
-  },
-] as const;
+import { useState, useMemo } from "react";
+import { useTranslation } from "~/i18n";
 
 export function meta({}: Route.MetaArgs) {
+  // Note: meta functions run at build time, so translations aren't available here
+  // These are static and will be the same for all languages
   return [
     { title: "Help - Boi na Nuvem" },
     {
@@ -58,6 +15,7 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function Help() {
+  const t = useTranslation();
   const [openFaq, setOpenFaq] = useState<string | null>("payment");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
@@ -65,22 +23,63 @@ export default function Help() {
     setOpenFaq((prev) => (prev === faqId ? null : faqId));
   };
 
+  const faqCategories = useMemo(() => [
+    { id: "general", label: t.help.categories.general },
+    { id: "trust", label: t.help.categories.trust },
+    { id: "services", label: t.help.categories.services },
+    { id: "billing", label: t.help.categories.billing },
+    { id: "cleaning", label: t.help.categories.cleaning },
+  ], [t]);
+
+  const faqItems = useMemo(() => [
+    {
+      id: "payment",
+      category: "billing",
+      question: t.help.faqs.payment.question,
+      answer: t.help.faqs.payment.answer,
+    },
+    {
+      id: "first-consultation",
+      category: "general",
+      question: t.help.faqs.firstConsultation.question,
+      answer: t.help.faqs.firstConsultation.answer,
+    },
+    {
+      id: "opening-hours",
+      category: "general",
+      question: t.help.faqs.openingHours.question,
+      answer: t.help.faqs.openingHours.answer,
+    },
+    {
+      id: "referral",
+      category: "services",
+      question: t.help.faqs.referral.question,
+      answer: t.help.faqs.referral.answer,
+    },
+    {
+      id: "insurance",
+      category: "billing",
+      question: t.help.faqs.insurance.question,
+      answer: t.help.faqs.insurance.answer,
+    },
+  ], [t]);
+
   const filteredFaqs =
     selectedCategory === null
-      ? FAQ_ITEMS
-      : FAQ_ITEMS.filter((faq) => faq.category === selectedCategory);
+      ? faqItems
+      : faqItems.filter((faq) => faq.category === selectedCategory);
 
   return (
     <section className="bg-white dark:bg-gray-900">
       <div className="container px-6 py-12 mx-auto">
         <h1 className="text-2xl font-semibold text-center text-gray-800 lg:text-3xl dark:text-white">
-          Have any Questions?
+          {t.help.heading}
         </h1>
 
         <div className="mt-8 xl:mt-16 lg:flex lg:-mx-12">
           <div className="lg:mx-12">
             <h1 className="text-xl font-semibold text-gray-800 dark:text-white">
-              Table of Content
+              {t.help.tableOfContent}
             </h1>
 
             <div className="mt-4 space-y-4 lg:mt-8">
@@ -92,9 +91,9 @@ export default function Help() {
                     : "text-gray-500 dark:text-gray-300"
                 } hover:underline`}
               >
-                All
+                {t.help.all}
               </button>
-              {FAQ_CATEGORIES.map((category) => (
+              {faqCategories.map((category) => (
                 <button
                   key={category.id}
                   onClick={() => setSelectedCategory(category.id)}

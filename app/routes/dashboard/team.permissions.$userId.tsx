@@ -9,25 +9,10 @@ import type { UserPermissions, PermissionAction, ResourcePermissions } from "~/t
 import { defaultPermissions } from "~/types/permissions";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
 
-const permissionLabels = {
-  registration: {
-    property: "Propriedade",
-    location: "Localização",
-    employee: "Funcionário",
-    serviceProvider: "Prestador de Serviço",
-    supplier: "Fornecedor",
-    buyer: "Comprador",
-  },
-  actions: {
-    view: "Visualizar",
-    add: "Adicionar",
-    edit: "Editar",
-    remove: "Remover",
-  },
-};
+type PermissionResource = "property" | "location" | "employee" | "serviceProvider" | "supplier" | "buyer";
 
 interface ResourcePermissionSectionProps {
-  resource: keyof typeof permissionLabels.registration;
+  resource: PermissionResource;
   resourceLabel: string;
   permissions: ResourcePermissions;
   onPermissionChange: (action: PermissionAction, value: boolean) => void;
@@ -40,6 +25,7 @@ function ResourcePermissionSection({
   onPermissionChange,
   onSelectAll,
 }: ResourcePermissionSectionProps) {
+  const t = useTranslation();
   const checkboxRef = useRef<HTMLInputElement>(null);
   const allSelected = Object.values(permissions).every((v) => v === true);
   const someSelected = Object.values(permissions).some((v) => v === true);
@@ -67,7 +53,7 @@ function ResourcePermissionSection({
                 accentColor: DASHBOARD_COLORS.primary,
               }}
             />
-          <span>Selecionar todos</span>
+          <span>{t.team.permissions.selectAll}</span>
         </label>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -83,7 +69,7 @@ function ResourcePermissionSection({
               }}
             />
             <span className="text-sm text-gray-700 dark:text-gray-300">
-              {permissionLabels.actions[action]}
+              {t.team.permissions.actions[action]}
             </span>
           </label>
         ))}
@@ -125,7 +111,7 @@ export default function TeamPermissions() {
         setUser(foundUser);
         setPermissions(foundUser.permissions || defaultPermissions);
       } else {
-        showAlert("Usuário não encontrado", "error");
+        showAlert(t.team.permissions.userNotFound, "error");
         setTimeout(() => {
           navigate(ROUTES.TEAM);
         }, 2000);
@@ -134,7 +120,7 @@ export default function TeamPermissions() {
   }, [userId, navigate, showAlert]);
 
   const handlePermissionChange = (
-    resource: keyof typeof permissionLabels.registration,
+    resource: PermissionResource,
     action: PermissionAction,
     value: boolean
   ) => {
@@ -150,7 +136,7 @@ export default function TeamPermissions() {
     }));
   };
 
-  const handleSelectAll = (resource: keyof typeof permissionLabels.registration, value: boolean) => {
+  const handleSelectAll = (resource: PermissionResource, value: boolean) => {
     setPermissions((prev) => ({
       ...prev,
       registration: {
@@ -171,13 +157,13 @@ export default function TeamPermissions() {
     setIsSaving(true);
     try {
       updateUserPermissions(userId, permissions);
-      showAlert("Permissões atualizadas com sucesso!", "success");
+      showAlert(t.team.permissions.success, "success");
       setTimeout(() => {
         navigate(ROUTES.TEAM);
       }, 1500);
     } catch (error) {
       console.error("Error updating permissions:", error);
-      showAlert("Erro ao atualizar permissões. Tente novamente.", "error");
+      showAlert(t.team.permissions.error, "error");
     } finally {
       setIsSaving(false);
     }
@@ -195,13 +181,13 @@ export default function TeamPermissions() {
           </div>
         )}
         <div className="flex items-center justify-center min-h-[400px]">
-          <p className="text-gray-500 dark:text-gray-400">Carregando...</p>
+          <p className="text-gray-500 dark:text-gray-400">{t.common.loading}</p>
         </div>
       </div>
     );
   }
 
-  const resources = Object.keys(permissionLabels.registration) as Array<keyof typeof permissionLabels.registration>;
+  const resources: PermissionResource[] = ["property", "location", "employee", "serviceProvider", "supplier", "buyer"];
   const actions: PermissionAction[] = ["view", "add", "edit", "remove"];
 
   return (
@@ -218,10 +204,10 @@ export default function TeamPermissions() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Permissões do Usuário
+            {t.team.permissions.title}
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Defina as permissões para {user.name}
+            {t.team.permissions.descriptionFor(user.name)}
           </p>
         </div>
         <Button
@@ -229,7 +215,7 @@ export default function TeamPermissions() {
           onClick={() => navigate(ROUTES.TEAM)}
           disabled={isSaving}
         >
-          Voltar
+          {t.team.new.back}
         </Button>
       </div>
 
@@ -237,14 +223,14 @@ export default function TeamPermissions() {
         <div className="space-y-6">
           <div>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              Cadastro
+              {t.team.permissions.registration}
             </h2>
             <div className="space-y-6">
               {resources.map((resource) => (
                 <ResourcePermissionSection
                   key={resource}
                   resource={resource}
-                  resourceLabel={permissionLabels.registration[resource]}
+                  resourceLabel={t.team.permissions.resources[resource]}
                   permissions={permissions.registration[resource]}
                   onPermissionChange={(action, value) => handlePermissionChange(resource, action, value)}
                   onSelectAll={(value) => handleSelectAll(resource, value)}
@@ -260,7 +246,7 @@ export default function TeamPermissions() {
               onClick={() => navigate(ROUTES.TEAM)}
               disabled={isSaving}
             >
-              Cancelar
+              {t.team.addModal.cancel}
             </Button>
             <Button
               type="button"
@@ -268,7 +254,7 @@ export default function TeamPermissions() {
               onClick={handleSave}
               disabled={isSaving}
             >
-              {isSaving ? t.common.loading : "Salvar Permissões"}
+              {isSaving ? t.common.loading : t.team.permissions.savePermissions}
             </Button>
           </div>
         </div>

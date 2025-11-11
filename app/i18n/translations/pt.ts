@@ -187,6 +187,7 @@ export const pt = {
     },
     addModal: {
       title: "Adicionar Novo Usuário",
+      description: "Preencha os dados para adicionar um novo usuário",
       fields: {
         name: "Nome Completo",
         email: "Email",
@@ -231,6 +232,90 @@ export const pt = {
       addFailed: "Erro ao adicionar usuário. Tente novamente.",
       updateFailed: "Erro ao atualizar usuário. Tente novamente.",
       deleteFailed: "Erro ao excluir usuário. Tente novamente.",
+    },
+    permissions: {
+      title: "Permissões do Usuário",
+      description: "Defina as permissões do usuário",
+      descriptionFor: (name: string) => `Defina as permissões para ${name}`,
+      registration: "Cadastro",
+      selectAll: "Selecionar todos",
+      savePermissions: "Salvar Permissões",
+      userNotFound: "Usuário não encontrado",
+      success: "Permissões atualizadas com sucesso!",
+      error: "Erro ao atualizar permissões. Tente novamente.",
+      resources: {
+        property: "Propriedade",
+        location: "Localização",
+        employee: "Funcionário",
+        serviceProvider: "Prestador de Serviço",
+        supplier: "Fornecedor",
+        buyer: "Comprador",
+      },
+      actions: {
+        view: "Visualizar",
+        add: "Adicionar",
+        edit: "Editar",
+        remove: "Remover",
+      },
+    },
+    new: {
+      description: "Preencha os dados para adicionar um novo membro à equipe",
+      back: "Voltar",
+      searchingAddress: "Buscando endereço...",
+      passwordMismatch: "As senhas não coincidem",
+      passwordMinLength: "A senha deve ter pelo menos 6 caracteres",
+      fields: {
+        cpf: "CPF",
+        cep: "CEP",
+        street: "Rua",
+        number: "Número",
+        complement: "Complemento",
+        neighborhood: "Bairro",
+        city: "Cidade",
+        state: "Estado",
+      },
+    },
+  },
+  help: {
+    title: "Ajuda",
+    metaTitle: "Ajuda - Boi na Nuvem",
+    metaDescription: "Central de ajuda e perguntas frequentes do Boi na Nuvem",
+    heading: "Tem alguma Dúvida?",
+    tableOfContent: "Índice",
+    all: "Todos",
+    categories: {
+      general: "Geral",
+      trust: "Confiança e Segurança",
+      services: "Serviços",
+      billing: "Cobrança",
+      cleaning: "Limpeza de Escritório",
+    },
+    faqs: {
+      payment: {
+        question: "Como posso pagar pela minha consulta?",
+        answer:
+          "Você pode pagar pela sua consulta de várias formas: cartão de crédito, cartão de débito, transferência bancária ou PIX. O pagamento pode ser feito diretamente na plataforma ao agendar ou no momento da consulta, dependendo do serviço escolhido.",
+      },
+      firstConsultation: {
+        question: "O que posso esperar na minha primeira consulta?",
+        answer:
+          "Na sua primeira consulta, você será recebido pela nossa equipe que coletará suas informações básicas e entenderá suas necessidades. Em seguida, você terá uma reunião com um especialista que analisará seu caso e proporá as melhores soluções para você.",
+      },
+      openingHours: {
+        question: "Quais são os seus horários de funcionamento?",
+        answer:
+          "Nosso horário de funcionamento é de segunda a sexta, das 8h às 18h, e aos sábados das 9h às 13h. Estamos fechados aos domingos e feriados. Para emergências, temos um canal de suporte 24/7 disponível.",
+      },
+      referral: {
+        question: "Preciso de um encaminhamento?",
+        answer:
+          "Um encaminhamento não é necessário para a maioria dos nossos serviços. Você pode agendar diretamente pela plataforma. No entanto, alguns serviços específicos podem exigir documentação adicional, que será informada no momento do agendamento.",
+      },
+      insurance: {
+        question: "O custo da consulta é coberto pelo plano de saúde privado?",
+        answer:
+          "Depende do seu plano de saúde e do tipo de serviço. Alguns planos cobrem nossos serviços parcial ou totalmente. Recomendamos que você entre em contato com sua seguradora antes de agendar para verificar a cobertura. Também podemos ajudá-lo a verificar isso através do nosso suporte.",
+      },
     },
   },
 } as const;

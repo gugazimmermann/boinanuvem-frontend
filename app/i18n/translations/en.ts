@@ -187,6 +187,7 @@ export const en = {
     },
     addModal: {
       title: "Add New User",
+      description: "Fill in the data to add a new user",
       fields: {
         name: "Full Name",
         email: "Email",
@@ -231,6 +232,90 @@ export const en = {
       addFailed: "Error adding user. Please try again.",
       updateFailed: "Error updating user. Please try again.",
       deleteFailed: "Error deleting user. Please try again.",
+    },
+    permissions: {
+      title: "User Permissions",
+      description: "Define user permissions",
+      descriptionFor: (name: string) => `Define permissions for ${name}`,
+      registration: "Registration",
+      selectAll: "Select all",
+      savePermissions: "Save Permissions",
+      userNotFound: "User not found",
+      success: "Permissions updated successfully!",
+      error: "Error updating permissions. Please try again.",
+      resources: {
+        property: "Property",
+        location: "Location",
+        employee: "Employee",
+        serviceProvider: "Service Provider",
+        supplier: "Supplier",
+        buyer: "Buyer",
+      },
+      actions: {
+        view: "View",
+        add: "Add",
+        edit: "Edit",
+        remove: "Remove",
+      },
+    },
+    new: {
+      description: "Fill in the data to add a new team member",
+      back: "Back",
+      searchingAddress: "Searching address...",
+      passwordMismatch: "Passwords do not match",
+      passwordMinLength: "Password must be at least 6 characters",
+      fields: {
+        cpf: "CPF",
+        cep: "ZIP Code",
+        street: "Street",
+        number: "Number",
+        complement: "Complement",
+        neighborhood: "Neighborhood",
+        city: "City",
+        state: "State",
+      },
+    },
+  },
+  help: {
+    title: "Help",
+    metaTitle: "Help - Boi na Nuvem",
+    metaDescription: "Help center and frequently asked questions for Boi na Nuvem",
+    heading: "Have any Questions?",
+    tableOfContent: "Table of Content",
+    all: "All",
+    categories: {
+      general: "General",
+      trust: "Trust & Safety",
+      services: "Services",
+      billing: "Billing",
+      cleaning: "Office Cleaning",
+    },
+    faqs: {
+      payment: {
+        question: "How can I pay for my appointment?",
+        answer:
+          "You can pay for your appointment in several ways: credit card, debit card, bank transfer, or PIX. Payment can be made directly on the platform when booking or at the time of consultation, depending on the service chosen.",
+      },
+      firstConsultation: {
+        question: "What can I expect at my first consultation?",
+        answer:
+          "At your first consultation, you will be welcomed by our team who will collect your basic information and understand your needs. Then, you will have a meeting with a specialist who will analyze your case and propose the best solutions for you.",
+      },
+      openingHours: {
+        question: "What are your opening hours?",
+        answer:
+          "Our business hours are Monday through Friday, from 8am to 6pm, and Saturdays from 9am to 1pm. We are closed on Sundays and holidays. For emergencies, we have a 24/7 support channel available.",
+      },
+      referral: {
+        question: "Do I need a referral?",
+        answer:
+          "A referral is not required for most of our services. You can book directly through the platform. However, some specific services may require additional documentation, which will be informed at the time of booking.",
+      },
+      insurance: {
+        question: "Is the cost of the appointment covered by private health insurance?",
+        answer:
+          "It depends on your health plan and the type of service. Some plans cover our services partially or fully. We recommend that you contact your insurer before booking to verify coverage. We can also help you verify this through our support.",
+      },
     },
   },
 } as const;
