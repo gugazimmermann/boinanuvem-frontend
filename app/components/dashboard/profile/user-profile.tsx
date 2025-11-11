@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "~/components/ui";
 import { Button } from "~/components/ui";
 import { AddressForm } from "./address-form";
@@ -7,6 +7,8 @@ import { maskPhone, unmaskPhone } from "~/components/site/utils/masks";
 import { useTranslation } from "~/i18n";
 import { DASHBOARD_COLORS } from "../utils/colors";
 import type { AddressFormData } from "~/components/site/utils/cep-utils";
+import { getUserById, updateUser } from "~/mocks/users";
+import type { UserFormData as TeamUserFormData } from "~/components/dashboard/team/user-form-modal";
 
 interface UserFormData extends AddressFormData {
   name: string;
@@ -89,13 +91,43 @@ const generateUserLogs = (): ActivityLogEntry[] => {
 
 const mockUserLogs: ActivityLogEntry[] = generateUserLogs();
 
-export function UserProfile() {
+interface UserProfileProps {
+  userId?: string;
+  readOnly?: boolean;
+  onEdit?: () => void;
+  onSave?: (data: UserFormData) => Promise<void>;
+}
+
+export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserProfileProps) {
   const t = useTranslation();
   const [isEditing, setIsEditing] = useState(false);
   const [data, setData] = useState<UserFormData>(mockUserData);
+  const [originalData, setOriginalData] = useState<UserFormData>(mockUserData);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState<"data" | "logs">("data");
+
+  useEffect(() => {
+    if (userId) {
+      const user = getUserById(userId);
+      if (user) {
+        const userData: UserFormData = {
+          name: user.name || "",
+          email: user.email || "",
+          phone: user.phone || "",
+          street: "",
+          number: "",
+          complement: "",
+          neighborhood: "",
+          city: "",
+          state: "",
+          zipCode: "",
+        };
+        setData(userData);
+        setOriginalData(userData);
+      }
+    }
+  }, [userId]);
 
   const handleChange = (field: keyof UserFormData, value: string) => {
     setData((prev) => ({ ...prev, [field]: value }));
@@ -148,7 +180,33 @@ export function UserProfile() {
 
     setIsSaving(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      if (onSave) {
+        await onSave(data);
+        if (userId) {
+          const user = getUserById(userId);
+          if (user) {
+            const userData: UserFormData = {
+              name: user.name || "",
+              email: user.email || "",
+              phone: user.phone || "",
+              street: data.street || "",
+              number: data.number || "",
+              complement: data.complement || "",
+              neighborhood: data.neighborhood || "",
+              city: data.city || "",
+              state: data.state || "",
+              zipCode: data.zipCode || "",
+            };
+            setData(userData);
+            setOriginalData(userData);
+          }
+        } else {
+          setOriginalData(data);
+        }
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        setOriginalData(data);
+      }
       setIsEditing(false);
       alert(t.profile.success.saved);
     } catch (error) {
@@ -159,7 +217,7 @@ export function UserProfile() {
   };
 
   const handleCancel = () => {
-    setData(mockUserData);
+    setData(originalData);
     setErrors({});
     setIsEditing(false);
   };
@@ -211,8 +269,13 @@ export function UserProfile() {
             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
               {t.profile.user.title}
             </h2>
-            {!isEditing && (
+            {!isEditing && !readOnly && (
               <Button onClick={() => setIsEditing(true)} variant="primary" size="sm">
+                {t.profile.user.edit}
+              </Button>
+            )}
+            {!isEditing && readOnly && onEdit && (
+              <Button onClick={() => { onEdit(); setIsEditing(true); }} variant="primary" size="sm">
                 {t.profile.user.edit}
               </Button>
             )}

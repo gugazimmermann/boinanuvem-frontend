@@ -11,6 +11,7 @@ export const en = {
     pastures: "Pastures",
     reports: "Reports",
     settings: "Settings",
+    team: "Team",
   },
 
   navbar: {
@@ -155,6 +156,81 @@ export const en = {
       required: (field: string) => `${field} is required`,
       invalid: (field: string) => `Invalid ${field}`,
       saveFailed: "Error saving data. Please try again.",
+    },
+  },
+
+  team: {
+    title: "Team",
+    description: "Manage your company users",
+    addUser: "Add User",
+    editUser: "Edit User",
+    deleteUser: "Delete User",
+    viewUser: "View Details",
+    searchPlaceholder: "Search by name, email or role...",
+    table: {
+      name: "Name",
+      email: "Email",
+      role: "Role",
+      status: "Status",
+      lastAccess: "Last Access",
+      actions: "Actions",
+    },
+    status: {
+      active: "Active",
+      inactive: "Inactive",
+      pending: "Pending",
+    },
+    roles: {
+      admin: "Administrator",
+      manager: "Manager",
+      user: "User",
+    },
+    addModal: {
+      title: "Add New User",
+      fields: {
+        name: "Full Name",
+        email: "Email",
+        phone: "Phone",
+        role: "Role",
+        password: "Password",
+        confirmPassword: "Confirm Password",
+      },
+      cancel: "Cancel",
+      add: "Add",
+    },
+    editModal: {
+      title: "Edit User",
+      cancel: "Cancel",
+      save: "Save Changes",
+      changePassword: "Change password",
+      description: "Update the user information below",
+    },
+    deleteModal: {
+      title: "Confirm Deletion",
+      message: (name: string) => `Are you sure you want to delete user "${name}"? This action cannot be undone.`,
+      cancel: "Cancel",
+      confirm: "Delete",
+    },
+    userDetails: {
+      title: "User Details",
+      personalInfo: "Personal Information",
+      contactInfo: "Contact Information",
+      accountInfo: "Account Information",
+      close: "Close",
+    },
+    emptyState: {
+      title: "No users found",
+      description: "Add users to start managing your team.",
+    },
+    success: {
+      added: "User added successfully!",
+      updated: "User updated successfully!",
+      deleted: "User deleted successfully!",
+    },
+    errors: {
+      addFailed: "Error adding user. Please try again.",
+      updateFailed: "Error updating user. Please try again.",
+      deleteFailed: "Error deleting user. Please try again.",
     },
   },
 } as const;

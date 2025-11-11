@@ -88,7 +88,7 @@ export function TablePagination({
   const showPageNumbers = totalPages > 1;
 
   return (
-    <div className={`${slim ? "mt-3" : "mt-6"} flex items-center justify-between`}>
+    <div className={`${slim ? "mt-2" : "mt-4"} flex items-center justify-between`}>
       <button
         onClick={handlePrevious}
         disabled={currentPage === 1}

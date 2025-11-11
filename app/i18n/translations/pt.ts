@@ -11,6 +11,7 @@ export const pt = {
     pastures: "Pastos",
     reports: "Relatórios",
     settings: "Configurações",
+    team: "Equipe",
   },
 
   navbar: {
@@ -155,6 +156,81 @@ export const pt = {
       required: (field: string) => `${field} é obrigatório`,
       invalid: (field: string) => `${field} inválido`,
       saveFailed: "Erro ao salvar dados. Tente novamente.",
+    },
+  },
+
+  team: {
+    title: "Equipe",
+    description: "Gerencie os usuários da sua empresa",
+    addUser: "Adicionar Usuário",
+    editUser: "Editar Usuário",
+    deleteUser: "Excluir Usuário",
+    viewUser: "Ver Detalhes",
+    searchPlaceholder: "Buscar por nome, email ou função...",
+    table: {
+      name: "Nome",
+      email: "Email",
+      role: "Função",
+      status: "Status",
+      lastAccess: "Último Acesso",
+      actions: "Ações",
+    },
+    status: {
+      active: "Ativo",
+      inactive: "Inativo",
+      pending: "Pendente",
+    },
+    roles: {
+      admin: "Administrador",
+      manager: "Gerente",
+      user: "Usuário",
+    },
+    addModal: {
+      title: "Adicionar Novo Usuário",
+      fields: {
+        name: "Nome Completo",
+        email: "Email",
+        phone: "Telefone",
+        role: "Função",
+        password: "Senha",
+        confirmPassword: "Confirmar Senha",
+      },
+      cancel: "Cancelar",
+      add: "Adicionar",
+    },
+    editModal: {
+      title: "Editar Usuário",
+      cancel: "Cancelar",
+      save: "Salvar Alterações",
+      changePassword: "Alterar senha",
+      description: "Atualize as informações do usuário abaixo",
+    },
+    deleteModal: {
+      title: "Confirmar Exclusão",
+      message: (name: string) => `Tem certeza que deseja excluir o usuário "${name}"? Esta ação não pode ser desfeita.`,
+      cancel: "Cancelar",
+      confirm: "Excluir",
+    },
+    userDetails: {
+      title: "Detalhes do Usuário",
+      personalInfo: "Informações Pessoais",
+      contactInfo: "Informações de Contato",
+      accountInfo: "Informações da Conta",
+      close: "Fechar",
+    },
+    emptyState: {
+      title: "Nenhum usuário encontrado",
+      description: "Adicione usuários para começar a gerenciar sua equipe.",
+    },
+    success: {
+      added: "Usuário adicionado com sucesso!",
+      updated: "Usuário atualizado com sucesso!",
+      deleted: "Usuário excluído com sucesso!",
+    },
+    errors: {
+      addFailed: "Erro ao adicionar usuário. Tente novamente.",
+      updateFailed: "Erro ao atualizar usuário. Tente novamente.",
+      deleteFailed: "Erro ao excluir usuário. Tente novamente.",
     },
   },
 } as const;

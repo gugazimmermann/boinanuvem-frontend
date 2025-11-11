@@ -11,6 +11,7 @@ export const es = {
     pastures: "Pastos",
     reports: "Informes",
     settings: "Configuración",
+    team: "Equipo",
   },
 
   navbar: {
@@ -155,6 +156,81 @@ export const es = {
       required: (field: string) => `${field} es obligatorio`,
       invalid: (field: string) => `${field} inválido`,
       saveFailed: "Error al guardar datos. Intenta de nuevo.",
+    },
+  },
+
+  team: {
+    title: "Equipo",
+    description: "Gestiona los usuarios de tu empresa",
+    addUser: "Agregar Usuario",
+    editUser: "Editar Usuario",
+    deleteUser: "Eliminar Usuario",
+    viewUser: "Ver Detalles",
+    searchPlaceholder: "Buscar por nombre, email o función...",
+    table: {
+      name: "Nombre",
+      email: "Email",
+      role: "Función",
+      status: "Estado",
+      lastAccess: "Último Acceso",
+      actions: "Acciones",
+    },
+    status: {
+      active: "Activo",
+      inactive: "Inactivo",
+      pending: "Pendiente",
+    },
+    roles: {
+      admin: "Administrador",
+      manager: "Gerente",
+      user: "Usuario",
+    },
+    addModal: {
+      title: "Agregar Nuevo Usuario",
+      fields: {
+        name: "Nombre Completo",
+        email: "Email",
+        phone: "Teléfono",
+        role: "Función",
+        password: "Contraseña",
+        confirmPassword: "Confirmar Contraseña",
+      },
+      cancel: "Cancelar",
+      add: "Agregar",
+    },
+    editModal: {
+      title: "Editar Usuario",
+      cancel: "Cancelar",
+      save: "Guardar Cambios",
+      changePassword: "Cambiar contraseña",
+      description: "Actualiza la información del usuario a continuación",
+    },
+    deleteModal: {
+      title: "Confirmar Eliminación",
+      message: (name: string) => `¿Estás seguro de que deseas eliminar al usuario "${name}"? Esta acción no se puede deshacer.`,
+      cancel: "Cancelar",
+      confirm: "Eliminar",
+    },
+    userDetails: {
+      title: "Detalles del Usuario",
+      personalInfo: "Información Personal",
+      contactInfo: "Información de Contacto",
+      accountInfo: "Información de la Cuenta",
+      close: "Cerrar",
+    },
+    emptyState: {
+      title: "No se encontraron usuarios",
+      description: "Agrega usuarios para comenzar a gestionar tu equipo.",
+    },
+    success: {
+      added: "¡Usuario agregado con éxito!",
+      updated: "¡Usuario actualizado con éxito!",
+      deleted: "¡Usuario eliminado con éxito!",
+    },
+    errors: {
+      addFailed: "Error al agregar usuario. Intenta de nuevo.",
+      updateFailed: "Error al actualizar usuario. Intenta de nuevo.",
+      deleteFailed: "Error al eliminar usuario. Intenta de nuevo.",
     },
   },
 } as const;

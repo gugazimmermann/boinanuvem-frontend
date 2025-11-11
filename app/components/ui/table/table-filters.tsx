@@ -19,7 +19,7 @@ export function TableFilters({ filters = [], search }: TableFiltersProps) {
   }
 
   return (
-    <div className="mt-6 md:flex md:items-center md:justify-between">
+    <div className="mt-4 md:flex md:items-center md:justify-between">
       {hasFilters && (
         <div className="inline-flex overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 divide-x divide-gray-200 dark:divide-gray-700 rounded-lg rtl:flex-row-reverse">
           {filters.map((filter, index) => (

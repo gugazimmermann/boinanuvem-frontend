@@ -8,6 +8,7 @@ export interface SidebarItemConfig {
     pastures: string;
     reports: string;
     settings: string;
+    team: string;
   };
   path: string;
   icon?: string;
@@ -19,6 +20,7 @@ export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
   { translationKey: "animals", path: "#", icon: "🐄" },
   { translationKey: "pastures", path: "#", icon: "🌾" },
   { translationKey: "reports", path: "#", icon: "📈" },
+  { translationKey: "team", path: ROUTES.TEAM, icon: "👥" },
   { translationKey: "settings", path: "#", icon: "⚙️" },
 ];
 

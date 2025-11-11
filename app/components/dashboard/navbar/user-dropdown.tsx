@@ -26,10 +26,10 @@ interface UserDropdownProps {
 const createMenuItems = (t: TranslationKey): MenuItem[] => [
   { label: t.userDropdown.companyProfile, href: `${ROUTES.PROFILE}?tab=company` },
   { label: t.userDropdown.userProfile, href: `${ROUTES.PROFILE}?tab=user` },
-  { label: t.userDropdown.team },
+  { label: t.userDropdown.team, href: ROUTES.TEAM },
   { divider: true },
   { label: t.userDropdown.help },
-  { label: t.userDropdown.logout, href: ROUTES.HOME },
+  { label: t.userDropdown.logout, href: ROUTES.LOGIN },
 ];
 
 export function UserDropdown({

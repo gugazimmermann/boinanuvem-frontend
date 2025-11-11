@@ -44,7 +44,7 @@ export function TableEmptyState({
   );
 
   return (
-    <div className="flex items-center mt-6 text-center border border-gray-200 dark:border-gray-700 rounded-lg h-96 bg-white dark:bg-gray-800">
+    <div className="flex items-center mt-4 text-center border border-gray-200 dark:border-gray-700 rounded-lg h-96 bg-white dark:bg-gray-800">
       <div className="flex flex-col w-full max-w-sm px-4 mx-auto">
         <div className="p-3 mx-auto text-blue-500 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 rounded-full">
           {icon || defaultIcon}

@@ -52,7 +52,7 @@ export function Table<T extends Record<string, unknown>>({
   };
 
   return (
-    <section className={`container px-4 mx-auto ${className}`}>
+    <section className={className || "container px-4 mx-auto"}>
       {header && search ? (
         <>
           <div className="sm:flex sm:items-center sm:justify-between">
@@ -114,7 +114,7 @@ export function Table<T extends Record<string, unknown>>({
             </div>
           </div>
           {filters && filters.length > 0 && (
-            <div className="mt-4">
+            <div className="mt-3">
               <TableFilters filters={filters} />
             </div>
           )}
@@ -127,7 +127,7 @@ export function Table<T extends Record<string, unknown>>({
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center py-12 mt-6">
+        <div className={`flex items-center justify-center ${slim ? "py-6 mt-3" : "py-8 mt-4"}`}>
           <div className="text-gray-500 dark:text-gray-400">Loading...</div>
         </div>
       ) : data.length === 0 ? (
@@ -141,9 +141,9 @@ export function Table<T extends Record<string, unknown>>({
           icon={emptyState?.icon}
         />
       ) : (
-        <div className={`flex flex-col ${slim ? "mt-3" : "mt-6"}`}>
-          <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-            <div className={`inline-block min-w-full ${slim ? "py-1" : "py-2"} align-middle ${slim ? "md:px-3 lg:px-4" : "md:px-6 lg:px-8"}`}>
+        <div className={`flex flex-col ${slim ? "mt-3" : "mt-4"}`}>
+          <div className="-mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
+            <div className={`inline-block min-w-full ${slim ? "py-1" : "py-2"} align-middle px-4 sm:px-6 lg:px-8`}>
               <div className="overflow-hidden border border-gray-200 dark:border-gray-700 md:rounded-lg">
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                   <thead className="bg-gray-50 dark:bg-gray-800">

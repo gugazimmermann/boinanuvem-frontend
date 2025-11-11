@@ -8,8 +8,10 @@ export function DashboardLayout() {
       <Navbar />
       <div className="flex h-[calc(100vh-3rem)]">
         <Sidebar />
-        <main className="flex-1 p-4 overflow-y-auto bg-gray-100 dark:bg-gray-950">
-          <Outlet />
+        <main className="flex-1 overflow-y-auto bg-gray-100 dark:bg-gray-950">
+          <div className="p-4">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>
