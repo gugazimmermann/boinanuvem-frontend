@@ -58,7 +58,7 @@ export function Table<T extends Record<string, unknown>>({
 
       {loading ? (
         <div className="flex items-center justify-center py-12 mt-6">
-          <div className="text-gray-500">Loading...</div>
+          <div className="text-gray-500 dark:text-gray-400">Loading...</div>
         </div>
       ) : data.length === 0 ? (
         <TableEmptyState
@@ -74,15 +74,15 @@ export function Table<T extends Record<string, unknown>>({
         <div className="flex flex-col mt-6">
           <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
             <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-              <div className="overflow-hidden border border-gray-200 md:rounded-lg">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+              <div className="overflow-hidden border border-gray-200 dark:border-gray-700 md:rounded-lg">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-800">
                     <tr>
                       {columns.map((column) => (
                         <th
                           key={column.key}
                           scope="col"
-                          className={`py-3.5 px-4 text-sm font-normal text-left rtl:text-right text-gray-500 ${
+                          className={`py-3.5 px-4 text-sm font-normal text-left rtl:text-right text-gray-500 dark:text-gray-400 ${
                             column.headerClassName || ""
                           }`}
                         >
@@ -103,7 +103,7 @@ export function Table<T extends Record<string, unknown>>({
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                     {data.map((row, index) => (
                       <tr
                         key={index}

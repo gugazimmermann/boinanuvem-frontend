@@ -150,10 +150,10 @@ export default function Properties() {
       sortable: true,
       render: (_, row) => (
         <div>
-          <h2 className="font-medium text-gray-800">
+          <h2 className="font-medium text-gray-800 dark:text-gray-200">
             {row.name}
           </h2>
-          <p className="text-sm font-normal text-gray-600">
+          <p className="text-sm font-normal text-gray-600 dark:text-gray-400">
             {row.location}
           </p>
         </div>
@@ -164,7 +164,7 @@ export default function Properties() {
       label: "Área",
       sortable: true,
       render: (value) => (
-        <span className="text-gray-700">
+        <span className="text-gray-700 dark:text-gray-300">
           {(value as number).toLocaleString("pt-BR", {
             minimumFractionDigits: 1,
             maximumFractionDigits: 1,
@@ -177,7 +177,7 @@ export default function Properties() {
       label: "Localizações",
       sortable: true,
       render: (value) => (
-        <span className="text-gray-700">{value as number}</span>
+        <span className="text-gray-700 dark:text-gray-300">{value as number}</span>
       ),
     },
     {
@@ -185,7 +185,7 @@ export default function Properties() {
       label: "Animais",
       sortable: true,
       render: (value) => (
-        <span className="text-gray-700">{value as number}</span>
+        <span className="text-gray-700 dark:text-gray-300">{value as number}</span>
       ),
     },
     {

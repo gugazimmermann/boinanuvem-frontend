@@ -67,7 +67,7 @@ export function TablePagination({
       <button
         onClick={handlePrevious}
         disabled={currentPage === 1}
-        className="flex items-center px-5 py-2 text-sm text-gray-700 capitalize transition-colors duration-200 bg-white border rounded-md gap-x-2 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="flex items-center px-5 py-2 text-sm text-gray-700 dark:text-gray-300 capitalize transition-colors duration-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md gap-x-2 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -93,7 +93,7 @@ export function TablePagination({
               return (
                 <span
                   key={`ellipsis-${index}`}
-                  className="px-2 py-1 text-sm text-gray-500 rounded-md"
+                  className="px-2 py-1 text-sm text-gray-500 dark:text-gray-400 rounded-md"
                 >
                   ...
                 </span>
@@ -107,8 +107,8 @@ export function TablePagination({
                 onClick={() => onPageChange(page)}
                 className={`px-2 py-1 text-sm rounded-md transition-colors duration-200 ${
                   isActive
-                    ? "text-blue-500 bg-blue-100/60"
-                    : "text-gray-500 hover:bg-gray-100"
+                    ? "text-blue-500 dark:text-blue-400 bg-blue-100/60 dark:bg-blue-900/30"
+                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
                 }`}
               >
                 {page}
@@ -121,7 +121,7 @@ export function TablePagination({
       <button
         onClick={handleNext}
         disabled={currentPage === totalPages}
-        className="flex items-center px-5 py-2 text-sm text-gray-700 capitalize transition-colors duration-200 bg-white border rounded-md gap-x-2 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="flex items-center px-5 py-2 text-sm text-gray-700 dark:text-gray-300 capitalize transition-colors duration-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md gap-x-2 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <span>Próximo</span>
         <svg

@@ -8,7 +8,7 @@ export function AvatarButton({ onClick, isOpen, initial = "U" }: AvatarButtonPro
   return (
     <button
       onClick={onClick}
-      className="relative z-10 flex items-center p-1.5 text-sm text-gray-600 bg-white border border-transparent rounded-md focus:border-blue-500 focus:ring-opacity-40 focus:ring-blue-300 focus:ring focus:outline-none hover:bg-gray-50 cursor-pointer"
+      className="relative z-10 flex items-center p-1.5 text-sm text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border border-transparent dark:border-gray-700 rounded-md focus:border-blue-500 dark:focus:border-blue-400 focus:ring-opacity-40 focus:ring-blue-300 dark:focus:ring-blue-600 focus:ring focus:outline-none hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
     >
       <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold text-sm">
         {initial}

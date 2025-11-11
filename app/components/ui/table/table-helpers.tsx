@@ -8,10 +8,10 @@ interface StatusBadgeProps {
 
 const statusBadgeVariants = {
   success: "",
-  warning: "text-yellow-600 bg-yellow-100",
-  danger: "text-red-600 bg-red-100",
-  info: "text-blue-600 bg-blue-100",
-  default: "text-gray-500 bg-gray-100 gap-x-2",
+  warning: "text-yellow-600 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/30",
+  danger: "text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30",
+  info: "text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30",
+  default: "text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 gap-x-2",
 };
 
 export function StatusBadge({ label, variant = "default" }: StatusBadgeProps) {
@@ -51,9 +51,9 @@ export function ProgressBar({
   const percentage = Math.min(Math.max((value / max) * 100, 0), 100);
 
   return (
-    <div className={`w-48 h-1.5 bg-blue-200 overflow-hidden rounded-full ${className}`}>
+    <div className={`w-48 h-1.5 bg-blue-200 dark:bg-blue-900/30 overflow-hidden rounded-full ${className}`}>
       <div
-        className={`bg-blue-500 h-1.5 transition-all duration-300 ${barClassName}`}
+        className={`bg-blue-500 dark:bg-blue-600 h-1.5 transition-all duration-300 ${barClassName}`}
         style={{ width: `${percentage}%` }}
       />
     </div>
@@ -88,11 +88,11 @@ export function UserAvatars({
           key={index}
           src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`}
           alt={user.name}
-          className={`object-cover ${sizeClass} -mx-1 border-2 border-white rounded-full shrink-0`}
+          className={`object-cover ${sizeClass} -mx-1 border-2 border-white dark:border-gray-800 rounded-full shrink-0`}
         />
       ))}
       {remainingCount > 0 && (
-        <div className={`flex items-center justify-center ${sizeClass} -mx-1 text-xs text-blue-600 bg-blue-100 border-2 border-white rounded-full`}>
+        <div className={`flex items-center justify-center ${sizeClass} -mx-1 text-xs text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 border-2 border-white dark:border-gray-800 rounded-full`}>
           +{remainingCount}
         </div>
       )}
@@ -111,7 +111,7 @@ export function ActionButton({ onClick, icon, label, className = "" }: ActionBut
   return (
     <button
       onClick={onClick}
-      className={`px-1 py-1 text-gray-500 transition-colors duration-200 rounded-lg hover:bg-gray-100 ${className}`}
+      className={`px-1 py-1 text-gray-500 dark:text-gray-400 transition-colors duration-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 ${className}`}
       aria-label={label || "Actions"}
     >
       {icon || (
@@ -150,7 +150,7 @@ export function TableActionButtons({
       {onDelete && (
         <button
           type="button"
-          className="text-gray-700 transition-colors duration-200 hover:text-red-500 focus:outline-none cursor-pointer"
+          className="text-gray-700 dark:text-gray-300 transition-colors duration-200 hover:text-red-500 dark:hover:text-red-400 focus:outline-none cursor-pointer"
           onClick={onDelete}
           aria-label="Delete"
         >
@@ -174,7 +174,7 @@ export function TableActionButtons({
       {onEdit && (
         <button
           type="button"
-          className="text-gray-700 transition-colors duration-200 hover:text-yellow-500 focus:outline-none cursor-pointer"
+          className="text-gray-700 dark:text-gray-300 transition-colors duration-200 hover:text-yellow-500 dark:hover:text-yellow-400 focus:outline-none cursor-pointer"
           onClick={onEdit}
           aria-label="Edit"
         >

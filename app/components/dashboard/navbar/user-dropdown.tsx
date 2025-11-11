@@ -62,10 +62,10 @@ export function UserDropdown({
       <AvatarButton onClick={() => setIsOpen(!isOpen)} isOpen={isOpen} initial={initial} />
       <DropdownMenu isOpen={isOpen}>
         <UserInfo name={name} email={email} initial={initial} />
-        <hr className="border-gray-200" />
+        <hr className="border-gray-200 dark:border-gray-700" />
         {menuItems.map((item, index) =>
           item.divider ? (
-            <hr key={index} className="border-gray-200" />
+            <hr key={index} className="border-gray-200 dark:border-gray-700" />
           ) : (
             <DropdownMenuItem key={index} href={item.href} onClick={item.onClick}>
               {item.label}

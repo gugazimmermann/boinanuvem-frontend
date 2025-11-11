@@ -2,11 +2,11 @@ import type { TableHeaderProps } from "./types";
 import { Button } from "../button";
 
 const badgeVariants = {
-  primary: "text-blue-600 bg-blue-100",
-  secondary: "text-gray-600 bg-gray-100",
-  success: "text-emerald-500 bg-emerald-100/60",
-  warning: "text-yellow-600 bg-yellow-100",
-  danger: "text-red-600 bg-red-100",
+  primary: "text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30",
+  secondary: "text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700",
+  success: "text-emerald-500 dark:text-emerald-400 bg-emerald-100/60 dark:bg-emerald-900/30",
+  warning: "text-yellow-600 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/30",
+  danger: "text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30",
 };
 
 export function TableHeader({
@@ -19,7 +19,7 @@ export function TableHeader({
     <div className="sm:flex sm:items-center sm:justify-between">
       <div>
         <div className="flex items-center gap-x-3">
-          <h2 className="text-lg font-medium text-gray-800">
+          <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200">
             {title}
           </h2>
           {badge && (
@@ -33,7 +33,7 @@ export function TableHeader({
           )}
         </div>
         {description && (
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             {description}
           </p>
         )}
