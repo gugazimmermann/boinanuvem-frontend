@@ -6,6 +6,7 @@ interface TableEmptyStateProps {
   description?: string;
   searchQuery?: string;
   onClearSearch?: () => void;
+  clearSearchLabel?: string;
   onAddNew?: () => void;
   addNewLabel?: string;
   icon?: ReactNode;
@@ -16,6 +17,7 @@ export function TableEmptyState({
   description,
   searchQuery,
   onClearSearch,
+  clearSearchLabel = "Clear Search",
   onAddNew,
   addNewLabel = "Add vendor",
   icon,
@@ -60,7 +62,7 @@ export function TableEmptyState({
                 onClick={onClearSearch}
                 className="w-1/2 sm:w-auto"
               >
-                Clear Search
+                {clearSearchLabel}
               </Button>
             )}
             {onAddNew && (

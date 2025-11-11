@@ -153,6 +153,7 @@ export function Table<T extends Record<string, unknown>>({
           description={emptyState?.description}
           searchQuery={search?.value}
           onClearSearch={emptyState?.onClearSearch || (search?.value ? () => search.onChange("") : undefined)}
+          clearSearchLabel={emptyState?.clearSearchLabel}
           onAddNew={emptyState?.onAddNew}
           addNewLabel={emptyState?.addNewLabel}
           icon={emptyState?.icon}

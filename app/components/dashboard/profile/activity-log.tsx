@@ -135,6 +135,7 @@ export function ActivityLog({ logs, showUser = false, emptyMessage }: ActivityLo
         title: message,
         description: "",
         onClearSearch: searchValue ? () => setSearchValue("") : undefined,
+        clearSearchLabel: t.common.clearSearch,
       }}
       className="!px-0 !mx-0 !container"
       slim={true}

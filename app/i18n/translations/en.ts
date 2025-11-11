@@ -2,6 +2,7 @@ export const en = {
   common: {
     language: "Language",
     loading: "Loading...",
+    clearSearch: "Clear Search",
   },
 
   sidebar: {
@@ -72,6 +73,41 @@ export const en = {
         `Your search "${search}" did not find any properties. Try again or add a new property.`,
       descriptionWithoutSearch:
         "You don't have any properties registered yet. Add your first property to get started.",
+    },
+    deleteModal: {
+      title: "Confirm Deletion",
+      message: (name: string) => `Are you sure you want to delete property "${name}"? This action cannot be undone.`,
+      cancel: "Cancel",
+      confirm: "Delete",
+    },
+    success: {
+      deleted: "Property deleted successfully!",
+      updated: "Property updated successfully!",
+    },
+    errors: {
+      deleteFailed: "Error deleting property. Please try again.",
+      updateFailed: "Error updating property. Please try again.",
+    },
+    edit: {
+      title: "Edit Property",
+      description: "Update the property data",
+      save: "Save Changes",
+    },
+    details: {
+      propertyInfo: "Property Information",
+      address: "Address",
+      location: "Location",
+      createdAt: "Created At",
+      coordinates: "Coordinates",
+      cityState: "City / State",
+      activityCreated: "Property created",
+      activityActivated: "Property activated",
+      activityDeactivated: "Property deactivated",
+      statusLabel: "Status",
+      tabs: {
+        info: "Information",
+        activities: "Activities",
+      },
     },
   },
 

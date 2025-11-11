@@ -2,6 +2,7 @@ export const es = {
   common: {
     language: "Idioma",
     loading: "Cargando...",
+    clearSearch: "Limpiar Búsqueda",
   },
 
   sidebar: {
@@ -72,6 +73,41 @@ export const es = {
         `Tu búsqueda "${search}" no encontró propiedades. Intenta de nuevo o agrega una nueva propiedad.`,
       descriptionWithoutSearch:
         "Aún no tienes propiedades registradas. Agrega tu primera propiedad para comenzar.",
+    },
+    deleteModal: {
+      title: "Confirmar Eliminación",
+      message: (name: string) => `¿Estás seguro de que deseas eliminar la propiedad "${name}"? Esta acción no se puede deshacer.`,
+      cancel: "Cancelar",
+      confirm: "Eliminar",
+    },
+    success: {
+      deleted: "¡Propiedad eliminada con éxito!",
+      updated: "¡Propiedad actualizada con éxito!",
+    },
+    errors: {
+      deleteFailed: "Error al eliminar propiedad. Intenta de nuevo.",
+      updateFailed: "Error al actualizar propiedad. Intenta de nuevo.",
+    },
+    edit: {
+      title: "Editar Propiedad",
+      description: "Actualiza los datos de la propiedad",
+      save: "Guardar Cambios",
+    },
+    details: {
+      propertyInfo: "Información de la Propiedad",
+      address: "Dirección",
+      location: "Ubicación",
+      createdAt: "Fecha de Creación",
+      coordinates: "Coordenadas",
+      cityState: "Ciudad / Estado",
+      activityCreated: "Propiedad creada",
+      activityActivated: "Propiedad activada",
+      activityDeactivated: "Propiedad desactivada",
+      statusLabel: "Estado",
+      tabs: {
+        info: "Información",
+        activities: "Actividades",
+      },
     },
   },
 

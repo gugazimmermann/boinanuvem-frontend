@@ -2,6 +2,8 @@ import type { CompanyFormData } from "~/components/site/utils/cnpj-utils";
 
 export interface Company extends CompanyFormData {
   id: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export const mockCompanies: Company[] = [
@@ -18,10 +20,12 @@ export const mockCompanies: Company[] = [
     city: "São João do Itaperiú",
     state: "SC",
     zipCode: "88395000",
+    latitude: -26.559317100277863,
+    longitude: -48.75873810994559,
   },
 ];
 
-export function updateCompany(cnpj: string, data: Partial<CompanyFormData>): void {
+export function updateCompany(cnpj: string, data: Partial<Company>): void {
   const unmaskedCNPJ = cnpj.replace(/\D/g, "");
   const companyIndex = mockCompanies.findIndex(
     (company) => company.cnpj.replace(/\D/g, "") === unmaskedCNPJ

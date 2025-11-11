@@ -1,78 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
 import {
   Table,
   StatusBadge,
   TableActionButtons,
+  ConfirmationModal,
+  Alert,
   type TableColumn,
   type TableAction,
   type TableFilter,
   type SortDirection,
 } from "~/components/ui";
 import { useTranslation } from "~/i18n";
+import { mockProperties, deleteProperty, type Property as PropertyType } from "~/mocks/properties";
+import { ROUTES, getPropertyEditRoute, getPropertyViewRoute } from "~/routes.config";
 
-interface Property extends Record<string, unknown> {
-  id: string;
-  name: string;
-  location: string;
-  area: number;
-  status: "active" | "inactive";
-  animals: number;
-  pastures: number;
-  createdAt: string;
-}
-
-const mockProperties: Property[] = [
-  {
-    id: "1",
-    name: "Fazenda São João",
-    location: "São Paulo, SP",
-    area: 150.5,
-    status: "active",
-    animals: 120,
-    pastures: 8,
-    createdAt: "2024-01-15",
-  },
-  {
-    id: "2",
-    name: "Sítio Bela Vista",
-    location: "Minas Gerais, MG",
-    area: 85.2,
-    status: "active",
-    animals: 65,
-    pastures: 5,
-    createdAt: "2024-02-20",
-  },
-  {
-    id: "3",
-    name: "Chácara Verde",
-    location: "Rio de Janeiro, RJ",
-    area: 45.8,
-    status: "inactive",
-    animals: 0,
-    pastures: 2,
-    createdAt: "2024-03-10",
-  },
-  {
-    id: "4",
-    name: "Fazenda Esperança",
-    location: "Goiás, GO",
-    area: 320.0,
-    status: "active",
-    animals: 250,
-    pastures: 15,
-    createdAt: "2023-11-05",
-  },
-  {
-    id: "5",
-    name: "Rancho dos Ventos",
-    location: "Mato Grosso, MT",
-    area: 500.0,
-    status: "active",
-    animals: 380,
-    pastures: 20,
-    createdAt: "2023-09-12",
-  },
-];
+type Property = PropertyType & Record<string, unknown>;
 
 export function meta() {
   return [
@@ -86,20 +29,54 @@ export function meta() {
 
 export default function Properties() {
   const t = useTranslation();
+  const navigate = useNavigate();
+  const [properties, setProperties] = useState<Property[]>([...mockProperties]);
   const [sortState, setSortState] = useState<{
     column: string | null;
     direction: SortDirection;
-  }>({ column: "animals", direction: "desc" });
+  }>({ column: "name", direction: "asc" });
+
+  useEffect(() => {
+    setProperties([...mockProperties]);
+  }, []);
 
   const [searchValue, setSearchValue] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [alertMessage, setAlertMessage] = useState<{ title: string; variant: "success" | "error" | "warning" | "info" } | null>(null);
   const itemsPerPage = 10;
 
-  const filteredData = mockProperties.filter((property) => {
+  const showAlert = (title: string, variant: "success" | "error" | "warning" | "info" = "success") => {
+    setAlertMessage({ title, variant });
+    setTimeout(() => {
+      setAlertMessage(null);
+    }, 3000);
+  };
+
+  const handleDeleteClick = (property: Property) => {
+    setSelectedProperty(property);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDeleteProperty = async () => {
+    if (!selectedProperty) return;
+    const success = deleteProperty(selectedProperty.id);
+    if (success) {
+      setProperties(properties.filter((p) => p.id !== selectedProperty.id));
+      showAlert(t.properties.success.deleted, "success");
+    } else {
+      showAlert(t.properties.errors.deleteFailed, "error");
+    }
+    setSelectedProperty(null);
+  };
+
+  const filteredData = properties.filter((property) => {
     const matchesSearch =
       property.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-      property.location.toLowerCase().includes(searchValue.toLowerCase());
+      property.city.toLowerCase().includes(searchValue.toLowerCase()) ||
+      property.state.toLowerCase().includes(searchValue.toLowerCase());
 
     const matchesFilter =
       activeFilter === "all" ||
@@ -153,7 +130,7 @@ export default function Properties() {
             {row.name}
           </h2>
           <p className="text-sm font-normal text-gray-600 dark:text-gray-400">
-            {row.location}
+            {row.city}, {row.state}
           </p>
         </div>
       ),
@@ -175,16 +152,16 @@ export default function Properties() {
       key: "pastures",
       label: t.properties.table.locations,
       sortable: true,
-      render: (value) => (
-        <span className="text-gray-700 dark:text-gray-300">{value as number}</span>
+      render: () => (
+        <span className="text-gray-700 dark:text-gray-300">0</span>
       ),
     },
     {
       key: "animals",
       label: t.properties.table.animals,
       sortable: true,
-      render: (value) => (
-        <span className="text-gray-700 dark:text-gray-300">{value as number}</span>
+      render: () => (
+        <span className="text-gray-700 dark:text-gray-300">0</span>
       ),
     },
     {
@@ -204,8 +181,9 @@ export default function Properties() {
       headerClassName: "relative",
       render: (_, row) => (
         <TableActionButtons
-          onEdit={() => console.log("Edit clicked for", row.name)}
-          onDelete={() => console.log("Delete clicked for", row.name)}
+          onView={() => navigate(getPropertyViewRoute(row.id))}
+          onEdit={() => navigate(getPropertyEditRoute(row.id))}
+          onDelete={() => handleDeleteClick(row)}
         />
       ),
     },
@@ -231,7 +209,7 @@ export default function Properties() {
           />
         </svg>
       ),
-      onClick: () => console.log("Add property clicked"),
+      onClick: () => navigate(ROUTES.PROPERTIES_NEW),
     },
   ];
 
@@ -262,7 +240,8 @@ export default function Properties() {
   };
 
   return (
-    <Table<Property>
+    <div>
+      <Table<Property>
       columns={columns}
       data={paginatedData}
       header={{
@@ -293,11 +272,39 @@ export default function Properties() {
         description: searchValue
           ? t.properties.emptyState.descriptionWithSearch(searchValue)
           : t.properties.emptyState.descriptionWithoutSearch,
-        onClearSearch: () => setSearchValue(""),
-        onAddNew: () => console.log("Add new property clicked"),
+        onClearSearch: () => {
+          setSearchValue("");
+          setActiveFilter("all");
+        },
+        clearSearchLabel: t.common.clearSearch,
+        onAddNew: () => navigate(ROUTES.PROPERTIES_NEW),
         addNewLabel: t.properties.addProperty,
       }}
     />
+
+      {alertMessage && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
+          <Alert
+            title={alertMessage.title}
+            variant={alertMessage.variant}
+          />
+        </div>
+      )}
+
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setSelectedProperty(null);
+        }}
+        onConfirm={handleDeleteProperty}
+        title={t.properties.deleteModal.title}
+        message={t.properties.deleteModal.message(selectedProperty?.name || "")}
+        confirmLabel={t.properties.deleteModal.confirm}
+        cancelLabel={t.properties.deleteModal.cancel}
+        variant="danger"
+      />
+    </div>
   );
 }
 

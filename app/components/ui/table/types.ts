@@ -48,6 +48,7 @@ export interface TableEmptyState {
   title?: string;
   description?: string;
   onClearSearch?: () => void;
+  clearSearchLabel?: string;
   onAddNew?: () => void;
   addNewLabel?: string;
   icon?: ReactNode;
