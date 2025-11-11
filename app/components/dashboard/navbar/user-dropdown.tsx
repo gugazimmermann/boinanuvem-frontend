@@ -11,12 +11,16 @@ import type { TranslationKey } from "~/i18n";
 import { mockUsers } from "~/mocks/users";
 import { mockCompanies } from "~/mocks/companies";
 
-interface MenuItem {
-  label: string;
-  href?: string;
-  onClick?: () => void;
-  divider?: boolean;
-}
+type MenuItem =
+  | {
+      label: string;
+      href?: string;
+      onClick?: () => void;
+      divider?: false;
+    }
+  | {
+      divider: true;
+    };
 
 interface UserDropdownProps {
   name?: string;
@@ -30,7 +34,8 @@ const createMenuItems = (t: TranslationKey): MenuItem[] => [
   { label: t.userDropdown.userProfile, href: `${ROUTES.PROFILE}?tab=user` },
   { label: t.userDropdown.team, href: ROUTES.TEAM },
   { divider: true },
-  { label: t.userDropdown.help },
+  { label: t.userDropdown.help, href: ROUTES.HELP },
+  { divider: true },
   { label: t.userDropdown.logout, href: ROUTES.LOGIN },
 ];
 

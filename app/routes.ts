@@ -15,5 +15,6 @@ export default [
     route(ROUTE_NAMES.TEAM, "routes/dashboard/team.tsx"),
     route(ROUTE_NAMES.TEAM_NEW, "routes/dashboard/team.new.tsx"),
     route(ROUTE_NAMES.TEAM_PERMISSIONS, "routes/dashboard/team.permissions.$userId.tsx"),
+    route(ROUTE_NAMES.HELP, "routes/dashboard/help.tsx"),
   ]),
 ] satisfies RouteConfig;
