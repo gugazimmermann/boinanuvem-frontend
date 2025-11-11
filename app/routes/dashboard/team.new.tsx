@@ -235,7 +235,7 @@ export default function NewTeamMember() {
                   maxLength={10}
                 />
                 {zipCodeLoading && (
-                  <p className="mt-1 text-xs text-blue-500">Buscando endereço...</p>
+                  <p className="mt-1 text-xs text-blue-500 dark:text-blue-400">Buscando endereço...</p>
                 )}
               </div>
               <Input

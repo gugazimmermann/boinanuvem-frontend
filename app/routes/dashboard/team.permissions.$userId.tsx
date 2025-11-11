@@ -57,16 +57,16 @@ function ResourcePermissionSection({
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-medium text-gray-900 dark:text-gray-100">{resourceLabel}</h3>
         <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
-          <input
-            ref={checkboxRef}
-            type="checkbox"
-            checked={allSelected}
-            onChange={(e) => onSelectAll(e.target.checked)}
-            className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            style={{
-              accentColor: DASHBOARD_COLORS.primary,
-            }}
-          />
+            <input
+              ref={checkboxRef}
+              type="checkbox"
+              checked={allSelected}
+              onChange={(e) => onSelectAll(e.target.checked)}
+              className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:bg-gray-700"
+              style={{
+                accentColor: DASHBOARD_COLORS.primary,
+              }}
+            />
           <span>Selecionar todos</span>
         </label>
       </div>
@@ -77,7 +77,7 @@ function ResourcePermissionSection({
               type="checkbox"
               checked={permissions[action]}
               onChange={(e) => onPermissionChange(action, e.target.checked)}
-              className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:bg-gray-700"
               style={{
                 accentColor: DASHBOARD_COLORS.primary,
               }}

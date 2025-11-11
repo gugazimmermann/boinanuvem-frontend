@@ -141,7 +141,7 @@ export function UserFormModal({
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen px-4 py-4 text-center sm:block sm:p-0">
         <div
-          className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75 dark:bg-opacity-50"
+          className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75 dark:bg-opacity-50 cursor-pointer"
           onClick={onClose}
         />
 
@@ -232,7 +232,7 @@ export function UserFormModal({
                           }
                         }}
                         disabled={isSubmitting}
-                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+                        className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:bg-gray-700 disabled:opacity-50"
                         style={{
                           accentColor: DASHBOARD_COLORS.primary,
                         }}

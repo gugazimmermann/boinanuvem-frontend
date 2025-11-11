@@ -26,7 +26,7 @@ export function TableFilters({ filters = [], search }: TableFiltersProps) {
             <button
               key={filter.value}
               onClick={filter.onClick}
-              className={`px-5 py-2 text-xs font-medium transition-colors duration-200 sm:text-sm ${
+              className={`px-5 py-2 text-xs font-medium transition-colors duration-200 sm:text-sm cursor-pointer ${
                 filter.active
                   ? "text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700"
                   : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"

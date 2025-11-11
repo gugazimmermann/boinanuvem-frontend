@@ -176,7 +176,7 @@ export function Table<T extends Record<string, unknown>>({
                           {column.sortable && onSort ? (
                             <button
                               onClick={() => handleSort(column.key)}
-                              className="flex items-center gap-x-3 focus:outline-none"
+                              className="flex items-center gap-x-3 focus:outline-none cursor-pointer"
                             >
                               <span>{column.label}</span>
                               {sortState?.column === column.key && sortState.direction && (

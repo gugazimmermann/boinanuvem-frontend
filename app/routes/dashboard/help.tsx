@@ -86,7 +86,7 @@ export default function Help() {
             <div className="mt-4 space-y-4 lg:mt-8">
               <button
                 onClick={() => setSelectedCategory(null)}
-                className={`block text-left w-full ${
+                className={`block text-left w-full cursor-pointer ${
                   selectedCategory === null
                     ? "text-blue-500 dark:text-blue-400"
                     : "text-gray-500 dark:text-gray-300"
@@ -98,7 +98,7 @@ export default function Help() {
                 <button
                   key={category.id}
                   onClick={() => setSelectedCategory(category.id)}
-                  className={`block text-left w-full ${
+                  className={`block text-left w-full cursor-pointer ${
                     selectedCategory === category.id
                       ? "text-blue-500 dark:text-blue-400"
                       : "text-gray-500 dark:text-gray-300"
@@ -115,11 +115,11 @@ export default function Help() {
               <div key={faq.id}>
                 <button
                   onClick={() => toggleFaq(faq.id)}
-                  className="flex items-center focus:outline-none w-full text-left"
+                  className="flex items-center focus:outline-none w-full text-left cursor-pointer"
                 >
                   {openFaq === faq.id ? (
                     <svg
-                      className="flex-shrink-0 w-6 h-6 text-blue-500"
+                      className="flex-shrink-0 w-6 h-6 text-blue-500 dark:text-blue-400"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -135,7 +135,7 @@ export default function Help() {
                   ) : (
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="flex-shrink-0 w-6 h-6 text-blue-500"
+                      className="flex-shrink-0 w-6 h-6 text-blue-500 dark:text-blue-400"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -156,7 +156,7 @@ export default function Help() {
 
                 {openFaq === faq.id && (
                   <div className="flex mt-8 md:mx-10">
-                    <span className="border border-blue-500"></span>
+                    <span className="border border-blue-500 dark:border-blue-400"></span>
 
                     <p className="max-w-3xl px-4 text-gray-500 dark:text-gray-300">
                       {faq.answer}

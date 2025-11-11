@@ -87,7 +87,7 @@ export function ConfirmationModal({
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen px-4 py-4 text-center sm:block sm:p-0">
         <div
-          className="fixed inset-0 transition-opacity bg-black/5 dark:bg-black/10 backdrop-blur-sm"
+          className="fixed inset-0 transition-opacity bg-black/5 dark:bg-black/10 backdrop-blur-sm cursor-pointer"
           onClick={onClose}
           aria-hidden="true"
         />

@@ -111,7 +111,7 @@ export function ActionButton({ onClick, icon, label, className = "" }: ActionBut
   return (
     <button
       onClick={onClick}
-      className={`px-1 py-1 text-gray-500 dark:text-gray-400 transition-colors duration-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 ${className}`}
+      className={`px-1 py-1 text-gray-500 dark:text-gray-400 transition-colors duration-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer ${className}`}
       aria-label={label || "Actions"}
     >
       {icon || (
