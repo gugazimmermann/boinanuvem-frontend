@@ -3,8 +3,10 @@ import { useNavigate } from "react-router";
 import { Table, type TableColumn, type TableAction, Alert } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { UserFormModal, DeleteUserModal, type UserFormData } from "~/components/dashboard/team";
-import { getUserProfileRoute } from "~/routes.config";
+import { getUserProfileRoute, ROUTES } from "~/routes.config";
 import { mockUsers, updateUser as updateMockUser } from "~/mocks/users";
+
+import type { UserPermissions } from "~/types/permissions";
 
 export interface TeamUser extends UserFormData, Record<string, unknown> {
   id: string;
@@ -12,6 +14,7 @@ export interface TeamUser extends UserFormData, Record<string, unknown> {
   lastAccess?: string;
   mainUser?: boolean;
   companyId?: string;
+  permissions?: UserPermissions;
 }
 
 export function meta() {
@@ -36,6 +39,10 @@ export default function Team() {
   const [selectedUser, setSelectedUser] = useState<TeamUser | null>(null);
   const [alertMessage, setAlertMessage] = useState<{ title: string; variant: "success" | "error" | "warning" | "info" } | null>(null);
   const itemsPerPage = 10;
+
+  useEffect(() => {
+    setUsers([...mockUsers.filter((user) => !user.mainUser)]);
+  }, []);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -242,7 +249,7 @@ export default function Team() {
           />
         </svg>
       ),
-      onClick: () => setIsAddModalOpen(true),
+      onClick: () => navigate(ROUTES.TEAM_NEW),
     },
   ];
 
@@ -278,7 +285,7 @@ export default function Team() {
         emptyState={{
           title: t.team.emptyState.title,
           description: t.team.emptyState.description,
-          onAddNew: () => setIsAddModalOpen(true),
+          onAddNew: () => navigate(ROUTES.TEAM_NEW),
           addNewLabel: t.team.addUser,
         }}
       />

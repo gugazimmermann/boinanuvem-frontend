@@ -5,6 +5,7 @@ import { TableFilters } from "./table-filters";
 import { TablePagination } from "./table-pagination";
 import { TableSortIcon } from "./table-sort-icon";
 import { TableEmptyState } from "./table-empty-state";
+import { Button } from "../button";
 
 export function Table<T extends Record<string, unknown>>({
   columns,
@@ -85,7 +86,23 @@ export function Table<T extends Record<string, unknown>>({
                 </p>
               )}
             </div>
-            <div className="mt-4 sm:mt-0">
+            <div className="flex items-center gap-3 mt-4 sm:mt-0">
+              {header.actions && header.actions.length > 0 && (
+                <div className="flex items-center gap-x-3">
+                  {header.actions.map((action, index) => (
+                    <Button
+                      key={index}
+                      variant={action.variant || "outline"}
+                      size="sm"
+                      onClick={action.onClick}
+                      leftIcon={action.leftIcon || action.icon}
+                      rightIcon={action.rightIcon}
+                    >
+                      {action.label}
+                    </Button>
+                  ))}
+                </div>
+              )}
               <div className="relative flex items-center">
                 <span className="absolute">
                   <svg

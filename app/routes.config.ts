@@ -8,10 +8,16 @@ export const ROUTES = {
   PROPERTIES: "/dashboard/propriedades",
   PROFILE: "/dashboard/perfil",
   TEAM: "/dashboard/equipe",
+  TEAM_NEW: "/dashboard/equipe/novo",
+  TEAM_PERMISSIONS: "/dashboard/equipe/:userId/permissoes",
 } as const;
 
 export function getUserProfileRoute(userId: string): string {
   return `/dashboard/perfil/usuario/${userId}`;
+}
+
+export function getTeamPermissionsRoute(userId: string): string {
+  return `/dashboard/equipe/${userId}/permissoes`;
 }
 
 export const ROUTE_NAMES = {
@@ -25,6 +31,8 @@ export const ROUTE_NAMES = {
   PROFILE: "perfil",
   USER_PROFILE: "perfil/usuario/:userId",
   TEAM: "equipe",
+  TEAM_NEW: "equipe/novo",
+  TEAM_PERMISSIONS: "equipe/:userId/permissoes",
 } as const;
 
 export type RoutePath = (typeof ROUTES)[keyof typeof ROUTES];
