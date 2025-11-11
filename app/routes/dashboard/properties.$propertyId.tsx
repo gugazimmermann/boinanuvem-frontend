@@ -22,7 +22,7 @@ export default function PropertyDetails() {
   const navigate = useNavigate();
   const t = useTranslation();
   const property = getPropertyById(propertyId);
-  const [activeTab, setActiveTab] = useState<"info" | "activities">("info");
+  const [activeTab, setActiveTab] = useState<"information" | "info" | "activities">("information");
 
   if (!property) {
     return (
@@ -53,9 +53,15 @@ export default function PropertyDetails() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {property.name}
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              {property.name}
+            </h1>
+            <StatusBadge
+              label={property.status === "active" ? t.properties.table.active : t.properties.table.inactive}
+              variant={property.status === "active" ? "success" : "default"}
+            />
+          </div>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Code: {property.code} • {property.city}, {property.state}
           </p>
@@ -96,71 +102,22 @@ export default function PropertyDetails() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{t.properties.table.area}</p>
-              <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                {property.area.toLocaleString("pt-BR", {
-                  minimumFractionDigits: 1,
-                  maximumFractionDigits: 1,
-                })} ha
-              </p>
-            </div>
-            <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-              <span className="text-lg">📏</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{t.properties.table.locations}</p>
-              <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">0</p>
-            </div>
-            <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
-              <span className="text-lg">🌾</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{t.properties.table.animals}</p>
-              <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">0</p>
-            </div>
-            <div 
-              className="w-10 h-10 dark:bg-blue-900/30 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: `${DASHBOARD_COLORS.primaryLight}40` }}
-            >
-              <span className="text-lg">🐄</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{t.properties.table.status}</p>
-              <div className="mt-1">
-                <StatusBadge
-                  label={property.status === "active" ? t.properties.table.active : t.properties.table.inactive}
-                  variant={property.status === "active" ? "success" : "default"}
-                />
-              </div>
-            </div>
-            <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-              <span className="text-lg">📍</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div className="mb-4 border-b border-gray-200 dark:border-gray-700">
         <nav className="flex space-x-8" aria-label="Tabs">
+          <button
+            onClick={() => setActiveTab("information")}
+            className={`
+              py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
+              ${
+                activeTab === "information"
+                  ? "dark:text-blue-400"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+              }
+            `}
+            style={activeTab === "information" ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary } : undefined}
+          >
+            {t.properties.details.tabs.information}
+          </button>
           <button
             onClick={() => setActiveTab("info")}
             className={`
@@ -191,6 +148,80 @@ export default function PropertyDetails() {
           </button>
         </nav>
       </div>
+
+      {activeTab === "information" && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{t.properties.table.area}</p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                    {property.area.toLocaleString("pt-BR", {
+                      minimumFractionDigits: 1,
+                      maximumFractionDigits: 1,
+                    })} ha
+                  </p>
+                </div>
+                <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                  <span className="text-lg">📏</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{t.properties.table.locations}</p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">0</p>
+                </div>
+                <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
+                  <span className="text-lg">🌾</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{t.properties.table.animals}</p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">0</p>
+                </div>
+                <div 
+                  className="w-10 h-10 dark:bg-blue-900/30 rounded-lg flex items-center justify-center"
+                  style={{ backgroundColor: `${DASHBOARD_COLORS.primaryLight}40` }}
+                >
+                  <span className="text-lg">🐄</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{t.properties.table.uas}</p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">0</p>
+                </div>
+                <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
+                  <span className="text-lg">📊</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{t.properties.table.stockingRate}</p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">0</p>
+                </div>
+                <div className="w-10 h-10 bg-teal-100 dark:bg-teal-900/30 rounded-lg flex items-center justify-center">
+                  <span className="text-lg">📈</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {activeTab === "info" && (
         <div className="space-y-6">

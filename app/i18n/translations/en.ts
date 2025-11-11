@@ -60,6 +60,8 @@ export const en = {
       area: "Area",
       locations: "Locations",
       animals: "Animals",
+      uas: "Animal Unit",
+      stockingRate: "Stocking Rate",
       status: "Status",
       active: "Active",
       inactive: "Inactive",
@@ -105,7 +107,8 @@ export const en = {
       activityDeactivated: "Property deactivated",
       statusLabel: "Status",
       tabs: {
-        info: "Information",
+        information: "Information",
+        info: "Details",
         activities: "Activities",
       },
     },
