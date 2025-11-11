@@ -117,12 +117,10 @@ export default function Properties() {
     const aValue = a[sortState.column];
     const bValue = b[sortState.column];
 
-    // Handle null/undefined values
     if (aValue == null && bValue == null) return 0;
     if (aValue == null) return 1;
     if (bValue == null) return -1;
 
-    // Handle different data types
     let comparison = 0;
     if (typeof aValue === "string" && typeof bValue === "string") {
       comparison = aValue.localeCompare(bValue, "pt-BR", {
@@ -131,7 +129,6 @@ export default function Properties() {
     } else if (typeof aValue === "number" && typeof bValue === "number") {
       comparison = aValue - bValue;
     } else {
-      // Fallback to string comparison
       comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
     }
 
@@ -261,7 +258,7 @@ export default function Properties() {
 
   const handleSort = (column: string, direction: SortDirection) => {
     setSortState({ column, direction });
-    setCurrentPage(1); // Reset to first page when sorting changes
+    setCurrentPage(1);
   };
 
   return (

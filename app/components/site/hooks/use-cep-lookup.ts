@@ -27,12 +27,6 @@ export interface UseCEPLookupReturn {
   fetchCEP: (cep: string) => Promise<void>;
 }
 
-/**
- * Reusable hook for CEP lookup using BrasilAPI
- * @param cep - The CEP value to lookup
- * @param options - Configuration options
- * @returns CEP data, loading state, error, and fetch function
- */
 export function useCEPLookup(
   cep: string,
   options: UseCEPLookupOptions = {}

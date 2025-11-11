@@ -1,11 +1,9 @@
 export const pt = {
-  // Common
   common: {
     language: "Idioma",
     loading: "Carregando...",
   },
 
-  // Sidebar
   sidebar: {
     dashboard: "Dashboard",
     properties: "Propriedades",
@@ -15,12 +13,10 @@ export const pt = {
     settings: "Configurações",
   },
 
-  // Navbar
   navbar: {
     brand: "Boi na Nuvem",
   },
 
-  // User Dropdown
   userDropdown: {
     companyProfile: "Perfil da Empresa",
     userProfile: "Perfil do Usuario",
@@ -29,7 +25,6 @@ export const pt = {
     logout: "Sair",
   },
 
-  // Dashboard Page
   dashboard: {
     title: "Dashboard",
     stats: {
@@ -48,7 +43,6 @@ export const pt = {
     },
   },
 
-  // Properties Page
   properties: {
     title: "Propriedades",
     description: "Gerencie todas as suas propriedades rurais.",

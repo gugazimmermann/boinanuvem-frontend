@@ -1,11 +1,9 @@
 export const es = {
-  // Common
   common: {
     language: "Idioma",
     loading: "Cargando...",
   },
 
-  // Sidebar
   sidebar: {
     dashboard: "Panel de Control",
     properties: "Propiedades",
@@ -15,12 +13,10 @@ export const es = {
     settings: "Configuración",
   },
 
-  // Navbar
   navbar: {
     brand: "Boi na Nuvem",
   },
 
-  // User Dropdown
   userDropdown: {
     companyProfile: "Perfil de la Empresa",
     userProfile: "Perfil del Usuario",
@@ -29,7 +25,6 @@ export const es = {
     logout: "Salir",
   },
 
-  // Dashboard Page
   dashboard: {
     title: "Panel de Control",
     stats: {
@@ -48,7 +43,6 @@ export const es = {
     },
   },
 
-  // Properties Page
   properties: {
     title: "Propiedades",
     description: "Gestiona todas tus propiedades rurales.",

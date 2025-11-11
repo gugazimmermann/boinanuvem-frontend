@@ -12,12 +12,10 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
-    // Check localStorage first, then system preference
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("theme") as Theme | null;
       if (stored) return stored;
       
-      // Check system preference
       if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
         return "dark";
       }
@@ -27,13 +25,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const root = document.documentElement;
-    // Remove any existing theme classes
     root.classList.remove("light", "dark");
-    
-    // Add the current theme class
     root.classList.add(theme);
-    
-    // Update localStorage
     localStorage.setItem("theme", theme);
   }, [theme]);
 

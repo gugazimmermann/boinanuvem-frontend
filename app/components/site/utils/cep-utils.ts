@@ -1,9 +1,6 @@
 import type { CEPData } from "../hooks/use-cep-lookup";
 import { maskCEP } from "./masks";
 
-/**
- * Map CEP API data to address form fields
- */
 export interface AddressFormData {
   zipCode: string;
   street: string;
@@ -14,9 +11,6 @@ export interface AddressFormData {
   state: string;
 }
 
-/**
- * Transform CEP API data to address form data structure
- */
 export function mapCEPDataToAddressForm(
   data: CEPData,
   existingData?: Partial<AddressFormData>

@@ -36,25 +36,20 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>(() => {
-    // Check localStorage first, then browser language
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("language") as Language | null;
       if (stored && LANGUAGES[stored]) return stored;
       
-      // Check browser language
       const browserLang = navigator.language.split("-")[0] as Language;
       if (browserLang && LANGUAGES[browserLang]) {
         return browserLang;
       }
     }
-    return "pt"; // Default to Portuguese
+    return "pt";
   });
 
   useEffect(() => {
-    // Update localStorage
     localStorage.setItem("language", language);
-    
-    // Update HTML lang attribute
     document.documentElement.lang = language;
   }, [language]);
 

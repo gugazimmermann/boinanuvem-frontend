@@ -28,12 +28,6 @@ export interface UseCNPJLookupReturn {
   fetchCNPJ: (cnpj: string) => Promise<void>;
 }
 
-/**
- * Reusable hook for CNPJ lookup using BrasilAPI
- * @param cnpj - The CNPJ value to lookup
- * @param options - Configuration options
- * @returns CNPJ data, loading state, error, and fetch function
- */
 export function useCNPJLookup(
   cnpj: string,
   options: UseCNPJLookupOptions = {}

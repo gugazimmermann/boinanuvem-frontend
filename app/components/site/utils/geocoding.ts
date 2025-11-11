@@ -1,7 +1,3 @@
-/**
- * Geocoding utilities using OpenStreetMap Nominatim API (free, no API key required)
- */
-
 export interface GeocodeResult {
   lat: string;
   lon: string;
@@ -12,9 +8,6 @@ export interface GeocodeError {
   error: string;
 }
 
-/**
- * Build a full address string from address components
- */
 export function buildAddressString(address: {
   street: string;
   number: string;
@@ -37,11 +30,6 @@ export function buildAddressString(address: {
   return parts.join(", ");
 }
 
-/**
- * Geocode an address using OpenStreetMap Nominatim API
- * @param address - Address components
- * @returns Promise with latitude and longitude
- */
 export async function geocodeAddress(
   address: {
     street: string;
@@ -77,7 +65,7 @@ export async function geocodeAddress(
 
     let response = await fetch(url, {
       headers: {
-        "User-Agent": "BoiNaNuvem/1.0", // Required by Nominatim usage policy
+        "User-Agent": "BoiNaNuvem/1.0",
       },
     });
 

@@ -1,11 +1,9 @@
 export const en = {
-  // Common
   common: {
     language: "Language",
     loading: "Loading...",
   },
 
-  // Sidebar
   sidebar: {
     dashboard: "Dashboard",
     properties: "Properties",
@@ -15,12 +13,10 @@ export const en = {
     settings: "Settings",
   },
 
-  // Navbar
   navbar: {
     brand: "Boi na Nuvem",
   },
 
-  // User Dropdown
   userDropdown: {
     companyProfile: "Company Profile",
     userProfile: "User Profile",
@@ -29,7 +25,6 @@ export const en = {
     logout: "Logout",
   },
 
-  // Dashboard Page
   dashboard: {
     title: "Dashboard",
     stats: {
@@ -48,7 +43,6 @@ export const en = {
     },
   },
 
-  // Properties Page
   properties: {
     title: "Properties",
     description: "Manage all your rural properties.",

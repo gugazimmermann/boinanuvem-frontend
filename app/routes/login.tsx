@@ -19,7 +19,6 @@ export default function Login() {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // For now, ignore authentication and navigate to dashboard
     navigate(ROUTES.DASHBOARD);
   };
 
