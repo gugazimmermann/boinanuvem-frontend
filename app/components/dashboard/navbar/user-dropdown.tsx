@@ -3,6 +3,7 @@ import { AvatarButton } from "./avatar-button";
 import { DropdownMenu } from "./dropdown-menu";
 import { UserInfo } from "./user-info";
 import { DropdownMenuItem } from "./dropdown-menu-item";
+import { ThemeToggleMenuItem } from "./theme-toggle-menu-item";
 import { ROUTES } from "../../../routes.config";
 
 interface MenuItem {
@@ -62,6 +63,8 @@ export function UserDropdown({
       <AvatarButton onClick={() => setIsOpen(!isOpen)} isOpen={isOpen} initial={initial} />
       <DropdownMenu isOpen={isOpen}>
         <UserInfo name={name} email={email} initial={initial} />
+        <hr className="border-gray-200 dark:border-gray-700" />
+        <ThemeToggleMenuItem />
         <hr className="border-gray-200 dark:border-gray-700" />
         {menuItems.map((item, index) =>
           item.divider ? (

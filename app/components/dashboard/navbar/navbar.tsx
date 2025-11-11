@@ -2,7 +2,6 @@ import { Link } from "react-router";
 import { COLORS } from "../../site/constants";
 import { ROUTES } from "../../../routes.config";
 import { UserDropdown } from "./user-dropdown";
-import { ThemeToggle } from "./theme-toggle";
 
 export function Navbar() {
   return (
@@ -19,10 +18,7 @@ export function Navbar() {
             </Link>
           </div>
 
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            <UserDropdown />
-          </div>
+          <UserDropdown />
         </div>
       </div>
     </nav>
