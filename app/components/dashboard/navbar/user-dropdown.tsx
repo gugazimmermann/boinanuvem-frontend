@@ -4,6 +4,7 @@ import { DropdownMenu } from "./dropdown-menu";
 import { UserInfo } from "./user-info";
 import { DropdownMenuItem } from "./dropdown-menu-item";
 import { ThemeToggleMenuItem } from "./theme-toggle-menu-item";
+import { LanguageSelectorMenuItem } from "./language-selector-menu-item";
 import { ROUTES } from "../../../routes.config";
 
 interface MenuItem {
@@ -21,13 +22,9 @@ interface UserDropdownProps {
 }
 
 const defaultMenuItems: MenuItem[] = [
-  { label: "Ver perfil" },
-  { label: "Configurações" },
-  { label: "Atalhos de teclado" },
-  { divider: true },
-  { label: "Perfil da empresa" },
+  { label: "Perfil da Empresa" },
+  { label: "Perfil do Usuario" },
   { label: "Equipe" },
-  { label: "Convidar colegas" },
   { divider: true },
   { label: "Ajuda" },
   { label: "Sair", href: ROUTES.HOME },
@@ -65,6 +62,7 @@ export function UserDropdown({
         <UserInfo name={name} email={email} initial={initial} />
         <hr className="border-gray-200 dark:border-gray-700" />
         <ThemeToggleMenuItem />
+        <LanguageSelectorMenuItem />
         <hr className="border-gray-200 dark:border-gray-700" />
         {menuItems.map((item, index) =>
           item.divider ? (

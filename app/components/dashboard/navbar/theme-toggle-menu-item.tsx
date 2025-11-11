@@ -6,9 +6,9 @@ export function ThemeToggleMenuItem() {
   return (
     <button
       onClick={toggleTheme}
-      className="flex items-center justify-between w-full px-4 py-3 text-sm text-gray-600 dark:text-gray-300 capitalize transition-colors duration-300 transform hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+      className="flex items-center justify-between w-full px-4 py-2 text-sm text-gray-600 dark:text-gray-300 capitalize transition-colors duration-300 transform hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         {theme === "dark" ? (
           <svg
             className="w-5 h-5"

@@ -1,0 +1,81 @@
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+
+export type Language = "pt" | "en" | "es";
+
+interface LanguageInfo {
+  code: Language;
+  name: string;
+  flag: string;
+}
+
+export const LANGUAGES: Record<Language, LanguageInfo> = {
+  pt: {
+    code: "pt",
+    name: "Português",
+    flag: "/flags/br.svg",
+  },
+  en: {
+    code: "en",
+    name: "English",
+    flag: "/flags/us.svg",
+  },
+  es: {
+    code: "es",
+    name: "Español",
+    flag: "/flags/es.svg",
+  },
+};
+
+interface LanguageContextType {
+  language: Language;
+  setLanguage: (language: Language) => void;
+  languageInfo: LanguageInfo;
+}
+
+const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
+
+export function LanguageProvider({ children }: { children: ReactNode }) {
+  const [language, setLanguageState] = useState<Language>(() => {
+    // Check localStorage first, then browser language
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("language") as Language | null;
+      if (stored && LANGUAGES[stored]) return stored;
+      
+      // Check browser language
+      const browserLang = navigator.language.split("-")[0] as Language;
+      if (browserLang && LANGUAGES[browserLang]) {
+        return browserLang;
+      }
+    }
+    return "pt"; // Default to Portuguese
+  });
+
+  useEffect(() => {
+    // Update localStorage
+    localStorage.setItem("language", language);
+    
+    // Update HTML lang attribute
+    document.documentElement.lang = language;
+  }, [language]);
+
+  const setLanguage = (newLanguage: Language) => {
+    setLanguageState(newLanguage);
+  };
+
+  const languageInfo = LANGUAGES[language];
+
+  return (
+    <LanguageContext.Provider value={{ language, setLanguage, languageInfo }}>
+      {children}
+    </LanguageContext.Provider>
+  );
+}
+
+export function useLanguage() {
+  const context = useContext(LanguageContext);
+  if (context === undefined) {
+    throw new Error("useLanguage must be used within a LanguageProvider");
+  }
+  return context;
+}
+
