@@ -201,7 +201,6 @@ export function CompanyProfile() {
 
     setIsSaving(true);
     try {
-      // Update the mocked company data
       const unmaskedCNPJ = unmaskCNPJ(data.cnpj);
       updateCompany(unmaskedCNPJ, {
         cnpj: unmaskedCNPJ,
