@@ -83,20 +83,20 @@ export default function EditLocation() {
       newErrors.code = t.profile.errors.required(t.locations.table.code);
     }
     if (!formData.name?.trim()) {
-      newErrors.name = t.profile.errors.required("Nome");
+      newErrors.name = t.profile.errors.required(t.locations.edit.nameLabel);
     }
     if (!formData.locationType) {
-      newErrors.locationType = t.profile.errors.required("Tipo de Localização");
+      newErrors.locationType = t.profile.errors.required(t.locations.edit.locationTypeLabel);
     }
     if (!formData.propertyId?.trim()) {
-      newErrors.propertyId = t.profile.errors.required("Propriedade");
+      newErrors.propertyId = t.profile.errors.required(t.locations.edit.propertyLabel);
     }
     if (!formData.areaValue?.trim()) {
-      newErrors.areaValue = t.profile.errors.required("Área");
+      newErrors.areaValue = t.profile.errors.required(t.locations.edit.areaLabel);
     } else {
       const areaNum = parseFloat(formData.areaValue);
       if (isNaN(areaNum) || areaNum <= 0) {
-        newErrors.areaValue = "Área deve ser um número maior que zero";
+        newErrors.areaValue = t.locations.edit.areaValidationError;
       }
     }
 
@@ -112,7 +112,7 @@ export default function EditLocation() {
     try {
       const property = getPropertyById(formData.propertyId);
       if (!property) {
-        showAlert("Propriedade não encontrada. Tente novamente.", "error");
+        showAlert(t.locations.edit.propertyNotFound, "error");
         setIsSubmitting(false);
         return;
       }
@@ -205,7 +205,7 @@ export default function EditLocation() {
                 required
               />
               <Input
-                label="Nome da Localização"
+                label={t.locations.edit.nameLabel}
                 value={formData.name}
                 onChange={(e) => handleChange("name", e.target.value)}
                 error={errors.name}
@@ -217,7 +217,7 @@ export default function EditLocation() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Propriedade <span className="text-red-500">*</span>
+                {t.locations.edit.propertyLabel} <span className="text-red-500">*</span>
               </label>
               <select
                 value={formData.propertyId}
@@ -227,7 +227,7 @@ export default function EditLocation() {
                   errors.propertyId ? "border-red-500" : "border-gray-300 dark:border-gray-600"
                 }`}
               >
-                <option value="">Selecione uma propriedade</option>
+                <option value="">{t.locations.edit.selectProperty}</option>
                 {mockProperties.map((property) => (
                   <option key={property.id} value={property.id}>
                     {property.name}
@@ -241,7 +241,7 @@ export default function EditLocation() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Tipo de Localização <span className="text-red-500">*</span>
+                {t.locations.edit.locationTypeLabel} <span className="text-red-500">*</span>
               </label>
               <select
                 value={formData.locationType}
@@ -274,7 +274,7 @@ export default function EditLocation() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Input
-                label="Área"
+                label={t.locations.edit.areaLabel}
                 type="number"
                 step="0.1"
                 min="0"
@@ -285,9 +285,9 @@ export default function EditLocation() {
                 required
               />
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Tipo de Área <span className="text-red-500">*</span>
-                </label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {t.locations.areaType} <span className="text-red-500">*</span>
+              </label>
                 <select
                   value={formData.areaType}
                   onChange={(e) => handleChange("areaType", e.target.value as AreaType)}
@@ -296,12 +296,12 @@ export default function EditLocation() {
                     errors.areaType ? "border-red-500" : "border-gray-300 dark:border-gray-600"
                   }`}
                 >
-                  <option value={AreaType.HECTARES}>Hectares</option>
-                  <option value={AreaType.SQUARE_METERS}>Square Meters</option>
-                  <option value={AreaType.SQUARE_FEET}>Square Feet</option>
-                  <option value={AreaType.ACRES}>Acres</option>
-                  <option value={AreaType.SQUARE_KILOMETERS}>Square Kilometers</option>
-                  <option value={AreaType.SQUARE_MILES}>Square Miles</option>
+                  <option value={AreaType.HECTARES}>{t.locations.areaTypes.hectares}</option>
+                  <option value={AreaType.SQUARE_METERS}>{t.locations.areaTypes.square_meters}</option>
+                  <option value={AreaType.SQUARE_FEET}>{t.locations.areaTypes.square_feet}</option>
+                  <option value={AreaType.ACRES}>{t.locations.areaTypes.acres}</option>
+                  <option value={AreaType.SQUARE_KILOMETERS}>{t.locations.areaTypes.square_kilometers}</option>
+                  <option value={AreaType.SQUARE_MILES}>{t.locations.areaTypes.square_miles}</option>
                 </select>
                 {errors.areaType && (
                   <p className="mt-1 text-sm text-red-500">{errors.areaType}</p>
@@ -309,7 +309,7 @@ export default function EditLocation() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Status
+                  {t.locations.edit.statusLabel}
                 </label>
                 <select
                   value={formData.status}
@@ -317,8 +317,8 @@ export default function EditLocation() {
                   disabled={isSubmitting}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200"
                 >
-                  <option value="active">Ativa</option>
-                  <option value="inactive">Inativa</option>
+                  <option value="active">{t.locations.table.active}</option>
+                  <option value="inactive">{t.locations.table.inactive}</option>
                 </select>
               </div>
             </div>

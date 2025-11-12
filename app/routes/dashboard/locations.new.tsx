@@ -67,20 +67,20 @@ export default function NewLocation() {
       newErrors.code = t.profile.errors.required(t.locations.table.code);
     }
     if (!formData.name?.trim()) {
-      newErrors.name = t.profile.errors.required("Nome");
+      newErrors.name = t.profile.errors.required(t.locations.new.nameLabel);
     }
     if (!formData.locationType) {
-      newErrors.locationType = t.profile.errors.required("Tipo de Localização");
+      newErrors.locationType = t.profile.errors.required(t.locations.new.locationTypeLabel);
     }
     if (!formData.propertyId?.trim()) {
-      newErrors.propertyId = t.profile.errors.required("Propriedade");
+      newErrors.propertyId = t.profile.errors.required(t.locations.new.propertyLabel);
     }
     if (!formData.areaValue?.trim()) {
-      newErrors.areaValue = t.profile.errors.required("Área");
+      newErrors.areaValue = t.profile.errors.required(t.locations.new.areaLabel);
     } else {
       const areaNum = parseFloat(formData.areaValue);
       if (isNaN(areaNum) || areaNum <= 0) {
-        newErrors.areaValue = "Área deve ser um número maior que zero";
+        newErrors.areaValue = t.locations.new.areaValidationError;
       }
     }
 
@@ -96,7 +96,7 @@ export default function NewLocation() {
     try {
       const property = getPropertyById(formData.propertyId);
       if (!property) {
-        showAlert("Propriedade não encontrada. Tente novamente.", "error");
+        showAlert(t.locations.new.propertyNotFound, "error");
         setIsSubmitting(false);
         return;
       }
@@ -114,13 +114,13 @@ export default function NewLocation() {
         propertyId: formData.propertyId,
       };
       addLocation(locationData);
-      showAlert("Localização adicionada com sucesso!", "success");
+      showAlert(t.locations.new.success, "success");
       setTimeout(() => {
         navigate(ROUTES.LOCATIONS);
       }, 1500);
     } catch (error) {
       console.error("Error adding location:", error);
-      showAlert("Erro ao adicionar localização. Tente novamente.", "error");
+      showAlert(t.locations.new.error, "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -143,7 +143,7 @@ export default function NewLocation() {
             {t.locations.addLocation}
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Preencha os dados para adicionar uma nova localização
+            {t.locations.new.description}
           </p>
         </div>
         <Button
@@ -151,7 +151,7 @@ export default function NewLocation() {
           onClick={() => navigate(ROUTES.LOCATIONS)}
           disabled={isSubmitting}
         >
-          Voltar
+          {t.common.back}
         </Button>
       </div>
 
@@ -168,7 +168,7 @@ export default function NewLocation() {
                 required
               />
               <Input
-                label="Nome da Localização"
+                label={t.locations.new.nameLabel}
                 value={formData.name}
                 onChange={(e) => handleChange("name", e.target.value)}
                 error={errors.name}
@@ -180,7 +180,7 @@ export default function NewLocation() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Propriedade <span className="text-red-500">*</span>
+                {t.locations.new.propertyLabel} <span className="text-red-500">*</span>
               </label>
               <select
                 value={formData.propertyId}
@@ -190,7 +190,7 @@ export default function NewLocation() {
                   errors.propertyId ? "border-red-500" : "border-gray-300 dark:border-gray-600"
                 }`}
               >
-                <option value="">Selecione uma propriedade</option>
+                <option value="">{t.locations.new.selectProperty}</option>
                 {mockProperties.map((property) => (
                   <option key={property.id} value={property.id}>
                     {property.name}
@@ -204,7 +204,7 @@ export default function NewLocation() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Tipo de Localização <span className="text-red-500">*</span>
+                {t.locations.new.locationTypeLabel} <span className="text-red-500">*</span>
               </label>
               <select
                 value={formData.locationType}
@@ -237,7 +237,7 @@ export default function NewLocation() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Input
-                label="Área"
+                label={t.locations.new.areaLabel}
                 type="number"
                 step="0.1"
                 min="0"
@@ -248,9 +248,9 @@ export default function NewLocation() {
                 required
               />
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Tipo de Área <span className="text-red-500">*</span>
-                </label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {t.locations.areaType} <span className="text-red-500">*</span>
+              </label>
                 <select
                   value={formData.areaType}
                   onChange={(e) => handleChange("areaType", e.target.value as AreaType)}
@@ -259,12 +259,12 @@ export default function NewLocation() {
                     errors.areaType ? "border-red-500" : "border-gray-300 dark:border-gray-600"
                   }`}
                 >
-                  <option value={AreaType.HECTARES}>Hectares</option>
-                  <option value={AreaType.SQUARE_METERS}>Square Meters</option>
-                  <option value={AreaType.SQUARE_FEET}>Square Feet</option>
-                  <option value={AreaType.ACRES}>Acres</option>
-                  <option value={AreaType.SQUARE_KILOMETERS}>Square Kilometers</option>
-                  <option value={AreaType.SQUARE_MILES}>Square Miles</option>
+                  <option value={AreaType.HECTARES}>{t.locations.areaTypes.hectares}</option>
+                  <option value={AreaType.SQUARE_METERS}>{t.locations.areaTypes.square_meters}</option>
+                  <option value={AreaType.SQUARE_FEET}>{t.locations.areaTypes.square_feet}</option>
+                  <option value={AreaType.ACRES}>{t.locations.areaTypes.acres}</option>
+                  <option value={AreaType.SQUARE_KILOMETERS}>{t.locations.areaTypes.square_kilometers}</option>
+                  <option value={AreaType.SQUARE_MILES}>{t.locations.areaTypes.square_miles}</option>
                 </select>
                 {errors.areaType && (
                   <p className="mt-1 text-sm text-red-500">{errors.areaType}</p>
@@ -272,7 +272,7 @@ export default function NewLocation() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Status
+                  {t.locations.new.statusLabel}
                 </label>
                 <select
                   value={formData.status}
@@ -280,8 +280,8 @@ export default function NewLocation() {
                   disabled={isSubmitting}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200"
                 >
-                  <option value="active">Ativa</option>
-                  <option value="inactive">Inativa</option>
+                  <option value="active">{t.locations.table.active}</option>
+                  <option value="inactive">{t.locations.table.inactive}</option>
                 </select>
               </div>
             </div>
@@ -294,10 +294,10 @@ export default function NewLocation() {
               onClick={() => navigate(ROUTES.LOCATIONS)}
               disabled={isSubmitting}
             >
-              Cancelar
+              {t.common.cancel}
             </Button>
             <Button type="submit" variant="primary" disabled={isSubmitting}>
-              {isSubmitting ? t.common.loading : "Adicionar Localização"}
+              {isSubmitting ? t.common.loading : t.locations.new.addButton}
             </Button>
           </div>
         </form>

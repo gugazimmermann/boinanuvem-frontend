@@ -99,20 +99,20 @@ export default function NewProperty() {
       newErrors.code = t.profile.errors.required(t.properties.table.code);
     }
     if (!formData.name?.trim()) {
-      newErrors.name = t.profile.errors.required("Nome");
+      newErrors.name = t.profile.errors.required(t.properties.new.nameLabel);
     }
     if (!formData.city?.trim()) {
-      newErrors.city = t.profile.errors.required("Cidade");
+      newErrors.city = t.profile.errors.required(t.profile.fields.city);
     }
     if (!formData.state?.trim()) {
-      newErrors.state = t.profile.errors.required("Estado");
+      newErrors.state = t.profile.errors.required(t.profile.fields.state);
     }
     if (!formData.area?.trim()) {
-      newErrors.area = t.profile.errors.required("Área");
+      newErrors.area = t.profile.errors.required(t.properties.new.areaLabel);
     } else {
       const areaNum = parseFloat(formData.area);
       if (isNaN(areaNum) || areaNum <= 0) {
-        newErrors.area = "Área deve ser um número maior que zero";
+        newErrors.area = t.properties.new.areaValidationError;
       }
     }
 
@@ -141,13 +141,13 @@ export default function NewProperty() {
         zipCode: formData.zipCode,
       };
       addProperty(propertyData);
-      showAlert("Propriedade adicionada com sucesso!", "success");
+      showAlert(t.properties.new.success, "success");
       setTimeout(() => {
         navigate(ROUTES.PROPERTIES);
       }, 1500);
     } catch (error) {
       console.error("Error adding property:", error);
-      showAlert("Erro ao adicionar propriedade. Tente novamente.", "error");
+      showAlert(t.properties.new.error, "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -170,7 +170,7 @@ export default function NewProperty() {
             {t.properties.addProperty}
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Preencha os dados para adicionar uma nova propriedade
+            {t.properties.new.description}
           </p>
         </div>
         <Button
@@ -178,7 +178,7 @@ export default function NewProperty() {
           onClick={() => navigate(ROUTES.PROPERTIES)}
           disabled={isSubmitting}
         >
-          Voltar
+          {t.common.back}
         </Button>
       </div>
 
@@ -195,7 +195,7 @@ export default function NewProperty() {
                 required
               />
               <Input
-                label="Nome da Propriedade"
+                label={t.properties.new.nameLabel}
                 value={formData.name}
                 onChange={(e) => handleChange("name", e.target.value)}
                 error={errors.name}
@@ -208,7 +208,7 @@ export default function NewProperty() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Input
-                  label="CEP"
+                  label={t.profile.fields.zipCode}
                   value={formData.zipCode}
                   onChange={(e) => handleChange("zipCode", e.target.value)}
                   error={errors.zipCode || zipCodeError || undefined}
@@ -217,11 +217,11 @@ export default function NewProperty() {
                   maxLength={10}
                 />
                 {zipCodeLoading && (
-                  <p className="mt-1 text-xs text-blue-500 dark:text-blue-400">Buscando endereço...</p>
+                  <p className="mt-1 text-xs text-blue-500 dark:text-blue-400">{t.team.new.searchingAddress}</p>
                 )}
               </div>
               <Input
-                label="Rua"
+                label={t.profile.fields.street}
                 value={formData.street}
                 onChange={(e) => handleChange("street", e.target.value)}
                 error={errors.street}
@@ -232,14 +232,14 @@ export default function NewProperty() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Input
-                label="Número"
+                label={t.profile.fields.number}
                 value={formData.number}
                 onChange={(e) => handleChange("number", e.target.value)}
                 error={errors.number}
                 disabled={isSubmitting}
               />
               <Input
-                label="Complemento"
+                label={t.profile.fields.complement}
                 value={formData.complement}
                 onChange={(e) => handleChange("complement", e.target.value)}
                 error={errors.complement}
@@ -250,14 +250,14 @@ export default function NewProperty() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Input
-                label="Bairro"
+                label={t.profile.fields.neighborhood}
                 value={formData.neighborhood}
                 onChange={(e) => handleChange("neighborhood", e.target.value)}
                 error={errors.neighborhood}
                 disabled={isSubmitting || zipCodeLoading}
               />
               <Input
-                label="Cidade"
+                label={t.profile.fields.city}
                 value={formData.city}
                 onChange={(e) => handleChange("city", e.target.value)}
                 error={errors.city}
@@ -265,7 +265,7 @@ export default function NewProperty() {
                 required
               />
               <Input
-                label="Estado"
+                label={t.profile.fields.state}
                 value={formData.state}
                 onChange={(e) => handleChange("state", e.target.value)}
                 error={errors.state}
@@ -278,7 +278,7 @@ export default function NewProperty() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
-                label="Área (hectares)"
+                label={t.properties.new.areaLabel}
                 type="number"
                 step="0.1"
                 min="0"
@@ -290,7 +290,7 @@ export default function NewProperty() {
               />
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Status
+                  {t.properties.new.statusLabel}
                 </label>
                 <select
                   value={formData.status}
@@ -298,8 +298,8 @@ export default function NewProperty() {
                   disabled={isSubmitting}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200"
                 >
-                  <option value="active">Ativa</option>
-                  <option value="inactive">Inativa</option>
+                  <option value="active">{t.properties.table.active}</option>
+                  <option value="inactive">{t.properties.table.inactive}</option>
                 </select>
               </div>
             </div>
@@ -312,10 +312,10 @@ export default function NewProperty() {
               onClick={() => navigate(ROUTES.PROPERTIES)}
               disabled={isSubmitting}
             >
-              Cancelar
+              {t.common.cancel}
             </Button>
             <Button type="submit" variant="primary" disabled={isSubmitting}>
-              {isSubmitting ? t.common.loading : "Adicionar Propriedade"}
+              {isSubmitting ? t.common.loading : t.properties.new.addButton}
             </Button>
           </div>
         </form>
