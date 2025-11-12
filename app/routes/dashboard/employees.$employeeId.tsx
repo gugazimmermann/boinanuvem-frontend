@@ -232,7 +232,9 @@ export default function EmployeeDetails() {
                     <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
                       {t.employees.table.email}
                     </p>
-                    <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">{employee.email}</p>
+                    <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
+                      {employee.email}
+                    </p>
                   </div>
                 )}
                 {employee.phone && (
@@ -240,7 +242,9 @@ export default function EmployeeDetails() {
                     <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
                       {t.employees.table.phone}
                     </p>
-                    <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">{employee.phone}</p>
+                    <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
+                      {employee.phone}
+                    </p>
                   </div>
                 )}
                 <div>
@@ -389,4 +393,3 @@ export default function EmployeeDetails() {
     </div>
   );
 }
-

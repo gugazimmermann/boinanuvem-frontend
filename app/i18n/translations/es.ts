@@ -36,6 +36,10 @@ export const es = {
 
   dashboard: {
     title: "Panel de Control",
+    meta: {
+      title: "Panel de Control - Boi na Nuvem",
+      description: "Panel de control de Boi na Nuvem",
+    },
     stats: {
       totalAnimals: "Total de Animales",
       properties: "Propiedades",
@@ -56,6 +60,20 @@ export const es = {
   properties: {
     title: "Propiedades",
     description: "Gestiona todas tus propiedades rurales.",
+    meta: {
+      list: {
+        title: "Propiedades - Boi na Nuvem",
+      },
+      new: {
+        title: "Agregar Propiedad - Boi na Nuvem",
+      },
+      edit: {
+        title: "Editar Propiedad - Boi na Nuvem",
+      },
+      details: {
+        title: "Detalles de la Propiedad - Boi na Nuvem",
+      },
+    },
     addProperty: "Agregar Propiedad",
     searchPlaceholder: "Buscar propiedades...",
     filters: {
@@ -66,6 +84,7 @@ export const es = {
     table: {
       name: "Nombre",
       code: "Código",
+      address: "Dirección",
       area: "Área",
       locations: "Ubicaciones",
       animals: "Animales",
@@ -138,6 +157,7 @@ export const es = {
         information: "Información",
         info: "Detalles",
         locations: "Ubicaciones",
+        cadastros: "Registros",
         employees: "Empleados",
         serviceProviders: "Prestadores de Servicio",
         suppliers: "Proveedores",
@@ -186,6 +206,20 @@ export const es = {
   locations: {
     title: "Ubicaciones",
     description: "Gestione todas sus ubicaciones rurales.",
+    meta: {
+      list: {
+        title: "Ubicaciones - Boi na Nuvem",
+      },
+      new: {
+        title: "Agregar Ubicación - Boi na Nuvem",
+      },
+      edit: {
+        title: "Editar Ubicación - Boi na Nuvem",
+      },
+      details: {
+        title: "Detalles de la Ubicación - Boi na Nuvem",
+      },
+    },
     addLocation: "Agregar Ubicación",
     searchPlaceholder: "Buscar ubicaciones...",
     areaType: "Tipo de Área",
@@ -308,6 +342,20 @@ export const es = {
   employees: {
     title: "Empleados",
     description: "Gestione todos los empleados de la empresa.",
+    meta: {
+      list: {
+        title: "Empleados - Boi na Nuvem",
+      },
+      new: {
+        title: "Agregar Empleado - Boi na Nuvem",
+      },
+      edit: {
+        title: "Editar Empleado - Boi na Nuvem",
+      },
+      details: {
+        title: "Detalles del Empleado - Boi na Nuvem",
+      },
+    },
     addEmployee: "Agregar Empleado",
     searchPlaceholder: "Buscar empleados...",
     filters: {
@@ -361,7 +409,8 @@ export const es = {
       emailLabel: "Email",
       phoneLabel: "Teléfono",
       propertiesLabel: "Propiedades",
-      propertiesHint: "Mantenga presionado Ctrl (o Cmd en Mac) para seleccionar múltiples propiedades",
+      propertiesHint:
+        "Mantenga presionado Ctrl (o Cmd en Mac) para seleccionar múltiples propiedades",
       propertiesRequired: "Seleccione al menos una propiedad",
       statusLabel: "Estado",
       success: "¡Empleado agregado con éxito!",
@@ -377,7 +426,8 @@ export const es = {
       emailLabel: "Email",
       phoneLabel: "Teléfono",
       propertiesLabel: "Propiedades",
-      propertiesHint: "Mantenga presionado Ctrl (o Cmd en Mac) para seleccionar múltiples propiedades",
+      propertiesHint:
+        "Mantenga presionado Ctrl (o Cmd en Mac) para seleccionar múltiples propiedades",
       propertiesRequired: "Seleccione al menos una propiedad",
       statusLabel: "Estado",
     },
@@ -402,6 +452,20 @@ export const es = {
   serviceProviders: {
     title: "Prestadores de Servicio",
     description: "Gestione todos los prestadores de servicio de la empresa.",
+    meta: {
+      list: {
+        title: "Prestadores de Servicio - Boi na Nuvem",
+      },
+      new: {
+        title: "Agregar Prestador de Servicio - Boi na Nuvem",
+      },
+      edit: {
+        title: "Editar Prestador de Servicio - Boi na Nuvem",
+      },
+      details: {
+        title: "Detalles del Prestador de Servicio - Boi na Nuvem",
+      },
+    },
     addServiceProvider: "Agregar Prestador de Servicio",
     searchPlaceholder: "Buscar prestadores de servicio...",
     filters: {
@@ -414,6 +478,7 @@ export const es = {
       code: "Código",
       cpf: "CPF",
       cnpj: "CNPJ",
+      document: "Documento",
       email: "Email",
       phone: "Teléfono",
       properties: "Propiedades",
@@ -422,7 +487,8 @@ export const es = {
       inactive: "Inactivo",
     },
     badge: {
-      serviceProviders: (count: number) => `${count} prestador${count !== 1 ? "es" : ""} de servicio`,
+      serviceProviders: (count: number) =>
+        `${count} prestador${count !== 1 ? "es" : ""} de servicio`,
     },
     emptyState: {
       title: "No se encontraron prestadores de servicio",
@@ -457,7 +523,8 @@ export const es = {
       emailLabel: "Email",
       phoneLabel: "Teléfono",
       propertiesLabel: "Propiedades",
-      propertiesHint: "Mantenga presionado Ctrl (o Cmd en Mac) para seleccionar múltiples propiedades",
+      propertiesHint:
+        "Mantenga presionado Ctrl (o Cmd en Mac) para seleccionar múltiples propiedades",
       propertiesRequired: "Seleccione al menos una propiedad",
       statusLabel: "Estado",
       success: "¡Prestador de servicio agregado con éxito!",
@@ -474,7 +541,8 @@ export const es = {
       emailLabel: "Email",
       phoneLabel: "Teléfono",
       propertiesLabel: "Propiedades",
-      propertiesHint: "Mantenga presionado Ctrl (o Cmd en Mac) para seleccionar múltiples propiedades",
+      propertiesHint:
+        "Mantenga presionado Ctrl (o Cmd en Mac) para seleccionar múltiples propiedades",
       propertiesRequired: "Seleccione al menos una propiedad",
       statusLabel: "Estado",
     },
@@ -499,6 +567,20 @@ export const es = {
   suppliers: {
     title: "Proveedores",
     description: "Gestione todos los proveedores de la empresa.",
+    meta: {
+      list: {
+        title: "Proveedores - Boi na Nuvem",
+      },
+      new: {
+        title: "Agregar Proveedor - Boi na Nuvem",
+      },
+      edit: {
+        title: "Editar Proveedor - Boi na Nuvem",
+      },
+      details: {
+        title: "Detalles del Proveedor - Boi na Nuvem",
+      },
+    },
     addSupplier: "Agregar Proveedor",
     searchPlaceholder: "Buscar proveedores...",
     filters: {
@@ -511,6 +593,7 @@ export const es = {
       code: "Código",
       cpf: "CPF",
       cnpj: "CNPJ",
+      document: "Documento",
       email: "Email",
       phone: "Teléfono",
       properties: "Propiedades",
@@ -554,7 +637,8 @@ export const es = {
       emailLabel: "Email",
       phoneLabel: "Teléfono",
       propertiesLabel: "Propiedades",
-      propertiesHint: "Mantenga presionado Ctrl (o Cmd en Mac) para seleccionar múltiples propiedades",
+      propertiesHint:
+        "Mantenga presionado Ctrl (o Cmd en Mac) para seleccionar múltiples propiedades",
       propertiesRequired: "Seleccione al menos una propiedad",
       statusLabel: "Estado",
       success: "¡Proveedor agregado con éxito!",
@@ -571,7 +655,8 @@ export const es = {
       emailLabel: "Email",
       phoneLabel: "Teléfono",
       propertiesLabel: "Propiedades",
-      propertiesHint: "Mantenga presionado Ctrl (o Cmd en Mac) para seleccionar múltiples propiedades",
+      propertiesHint:
+        "Mantenga presionado Ctrl (o Cmd en Mac) para seleccionar múltiples propiedades",
       propertiesRequired: "Seleccione al menos una propiedad",
       statusLabel: "Estado",
     },
@@ -596,6 +681,20 @@ export const es = {
   buyers: {
     title: "Compradores",
     description: "Gestione todos los compradores de la empresa.",
+    meta: {
+      list: {
+        title: "Compradores - Boi na Nuvem",
+      },
+      new: {
+        title: "Agregar Comprador - Boi na Nuvem",
+      },
+      edit: {
+        title: "Editar Comprador - Boi na Nuvem",
+      },
+      details: {
+        title: "Detalles del Comprador - Boi na Nuvem",
+      },
+    },
     addBuyer: "Agregar Comprador",
     searchPlaceholder: "Buscar compradores...",
     filters: {
@@ -608,6 +707,7 @@ export const es = {
       code: "Código",
       cpf: "CPF",
       cnpj: "CNPJ",
+      document: "Documento",
       email: "Email",
       phone: "Teléfono",
       properties: "Propiedades",
@@ -651,7 +751,8 @@ export const es = {
       emailLabel: "Email",
       phoneLabel: "Teléfono",
       propertiesLabel: "Propiedades",
-      propertiesHint: "Mantenga presionado Ctrl (o Cmd en Mac) para seleccionar múltiples propiedades",
+      propertiesHint:
+        "Mantenga presionado Ctrl (o Cmd en Mac) para seleccionar múltiples propiedades",
       propertiesRequired: "Seleccione al menos una propiedad",
       statusLabel: "Estado",
       success: "¡Comprador agregado con éxito!",
@@ -668,7 +769,8 @@ export const es = {
       emailLabel: "Email",
       phoneLabel: "Teléfono",
       propertiesLabel: "Propiedades",
-      propertiesHint: "Mantenga presionado Ctrl (o Cmd en Mac) para seleccionar múltiples propiedades",
+      propertiesHint:
+        "Mantenga presionado Ctrl (o Cmd en Mac) para seleccionar múltiples propiedades",
       propertiesRequired: "Seleccione al menos una propiedad",
       statusLabel: "Estado",
     },
@@ -692,6 +794,12 @@ export const es = {
 
   profile: {
     title: "Perfil",
+    meta: {
+      title: "Perfil - Boi na Nuvem",
+      userProfile: {
+        title: "Perfil del Usuario - Boi na Nuvem",
+      },
+    },
     tabs: {
       company: "Perfil de la Empresa",
       user: "Perfil del Usuario",
@@ -777,6 +885,20 @@ export const es = {
   team: {
     title: "Equipo",
     description: "Gestiona los usuarios de tu empresa",
+    meta: {
+      list: {
+        title: "Equipo - Boi na Nuvem",
+      },
+      new: {
+        title: "Agregar Miembro - Boi na Nuvem",
+      },
+      edit: {
+        title: "Editar Miembro - Boi na Nuvem",
+      },
+      permissions: {
+        title: "Permisos del Usuario - Boi na Nuvem",
+      },
+    },
     addUser: "Agregar Usuario",
     editUser: "Editar Usuario",
     deleteUser: "Eliminar Usuario",
@@ -894,8 +1016,10 @@ export const es = {
   },
   help: {
     title: "Ayuda",
-    metaTitle: "Ayuda - Boi na Nuvem",
-    metaDescription: "Centro de ayuda y preguntas frecuentes de Boi na Nuvem",
+    meta: {
+      title: "Ayuda - Boi na Nuvem",
+      description: "Centro de ayuda y preguntas frecuentes de Boi na Nuvem",
+    },
     heading: "¿Tienes alguna Pregunta?",
     tableOfContent: "Índice",
     all: "Todos",

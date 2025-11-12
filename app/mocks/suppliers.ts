@@ -111,4 +111,3 @@ export function updateSupplier(supplierId: string, data: Partial<SupplierFormDat
   }
   return false;
 }
-

@@ -32,4 +32,3 @@ export const BRAZILIAN_STATES: BrazilianState[] = [
   { code: "SE", name: "Sergipe" },
   { code: "TO", name: "Tocantins" },
 ];
-

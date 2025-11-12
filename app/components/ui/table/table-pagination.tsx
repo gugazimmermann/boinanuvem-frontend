@@ -120,6 +120,16 @@ export function TablePagination({
 
         <div className={`flex items-center ${slim ? "gap-x-1.5" : "gap-x-2"}`}>
           {pageNumbers.map((page) => {
+            if (page === "ellipsis") {
+              return (
+                <span
+                  key="ellipsis"
+                  className={`${slim ? "px-2 py-1 text-xs min-w-[28px]" : "px-3 py-1.5 text-sm min-w-[36px]"} text-gray-500 dark:text-gray-400`}
+                >
+                  ...
+                </span>
+              );
+            }
             const isActive = page === currentPage;
             return (
               <button

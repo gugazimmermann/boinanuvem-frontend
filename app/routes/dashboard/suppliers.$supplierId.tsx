@@ -240,7 +240,9 @@ export default function SupplierDetails() {
                     <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
                       {t.suppliers.table.email}
                     </p>
-                    <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">{supplier.email}</p>
+                    <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
+                      {supplier.email}
+                    </p>
                   </div>
                 )}
                 {supplier.phone && (
@@ -248,7 +250,9 @@ export default function SupplierDetails() {
                     <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
                       {t.suppliers.table.phone}
                     </p>
-                    <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">{supplier.phone}</p>
+                    <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
+                      {supplier.phone}
+                    </p>
                   </div>
                 )}
                 <div>
@@ -397,4 +401,3 @@ export default function SupplierDetails() {
     </div>
   );
 }
-

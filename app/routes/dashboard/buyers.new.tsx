@@ -186,11 +186,7 @@ export default function NewBuyer() {
             {t.buyers.new.description}
           </p>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => navigate(ROUTES.BUYERS)}
-          disabled={isSubmitting}
-        >
+        <Button variant="outline" onClick={() => navigate(ROUTES.BUYERS)} disabled={isSubmitting}>
           {t.common.back}
         </Button>
       </div>
@@ -268,7 +264,10 @@ export default function NewBuyer() {
                 multiple
                 value={formData.propertyIds}
                 onChange={(e) => {
-                  const selectedIds = Array.from(e.target.selectedOptions, (option) => option.value);
+                  const selectedIds = Array.from(
+                    e.target.selectedOptions,
+                    (option) => option.value
+                  );
                   setFormData((prev) => ({ ...prev, propertyIds: selectedIds }));
                 }}
                 disabled={isSubmitting}
@@ -397,4 +396,3 @@ export default function NewBuyer() {
     </div>
   );
 }
-

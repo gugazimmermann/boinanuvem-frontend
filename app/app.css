@@ -8,7 +8,6 @@
     "Segoe UI Symbol", "Noto Color Emoji";
   --font-cookie: "Cookie", cursive;
 
-  /* Brand Colors */
   --color-primary: oklch(62.7% 0.194 149.214);
   --color-secondary: oklch(58.8% 0.158 241.966);
   --color-primary-dark: oklch(55% 0.194 149.214);

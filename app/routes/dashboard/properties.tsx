@@ -151,10 +151,18 @@ export default function Properties() {
       render: (_, row) => (
         <div>
           <h2 className="font-medium text-gray-800 dark:text-gray-200">{row.name}</h2>
-          <p className="text-sm font-normal text-gray-600 dark:text-gray-400">
-            {row.city}, {row.state}
-          </p>
+          <p className="text-sm font-normal text-gray-600 dark:text-gray-400">{row.code}</p>
         </div>
+      ),
+    },
+    {
+      key: "address",
+      label: t.properties.table.address,
+      sortable: false,
+      render: (_, row) => (
+        <span className="text-gray-700 dark:text-gray-300">
+          {row.city} / {row.state}
+        </span>
       ),
     },
     {

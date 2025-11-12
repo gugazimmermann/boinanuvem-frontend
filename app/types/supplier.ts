@@ -37,4 +37,3 @@ export interface SupplierFormData {
   state?: string;
   zipCode?: string;
 }
-

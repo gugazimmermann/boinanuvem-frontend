@@ -60,7 +60,9 @@ export const mockServiceProviders: ServiceProvider[] = [
   },
 ];
 
-export function getServiceProviderById(serviceProviderId: string | undefined): ServiceProvider | undefined {
+export function getServiceProviderById(
+  serviceProviderId: string | undefined
+): ServiceProvider | undefined {
   if (!serviceProviderId) return undefined;
   return mockServiceProviders.find((provider) => provider.id === serviceProviderId);
 }
@@ -100,7 +102,10 @@ export function deleteServiceProvider(serviceProviderId: string): boolean {
   return false;
 }
 
-export function updateServiceProvider(serviceProviderId: string, data: Partial<ServiceProviderFormData>): boolean {
+export function updateServiceProvider(
+  serviceProviderId: string,
+  data: Partial<ServiceProviderFormData>
+): boolean {
   const index = mockServiceProviders.findIndex((provider) => provider.id === serviceProviderId);
   if (index !== -1) {
     mockServiceProviders[index] = {
@@ -111,4 +116,3 @@ export function updateServiceProvider(serviceProviderId: string, data: Partial<S
   }
   return false;
 }
-

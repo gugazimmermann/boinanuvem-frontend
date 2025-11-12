@@ -100,8 +100,8 @@ export default function Suppliers() {
       return 0;
     }
 
-    let aValue = a[sortState.column];
-    let bValue = b[sortState.column];
+    const aValue = a[sortState.column];
+    const bValue = b[sortState.column];
 
     if (aValue == null && bValue == null) return 0;
     if (aValue == null) return 1;
@@ -136,9 +136,7 @@ export default function Suppliers() {
       render: (_, row) => (
         <div>
           <h2 className="font-medium text-gray-800 dark:text-gray-200">{row.name}</h2>
-          <p className="text-sm font-normal text-gray-600 dark:text-gray-400">
-            {row.code}
-          </p>
+          <p className="text-sm font-normal text-gray-600 dark:text-gray-400">{row.code}</p>
         </div>
       ),
     },
@@ -330,4 +328,3 @@ export default function Suppliers() {
     </div>
   );
 }
-

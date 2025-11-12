@@ -23,8 +23,14 @@ export default [
     route(ROUTE_NAMES.EMPLOYEES_VIEW, "routes/dashboard/employees.$employeeId.tsx"),
     route(ROUTE_NAMES.SERVICE_PROVIDERS, "routes/dashboard/service-providers.tsx"),
     route(ROUTE_NAMES.SERVICE_PROVIDERS_NEW, "routes/dashboard/service-providers.new.tsx"),
-    route(ROUTE_NAMES.SERVICE_PROVIDERS_EDIT, "routes/dashboard/service-providers.edit.$serviceProviderId.tsx"),
-    route(ROUTE_NAMES.SERVICE_PROVIDERS_VIEW, "routes/dashboard/service-providers.$serviceProviderId.tsx"),
+    route(
+      ROUTE_NAMES.SERVICE_PROVIDERS_EDIT,
+      "routes/dashboard/service-providers.edit.$serviceProviderId.tsx"
+    ),
+    route(
+      ROUTE_NAMES.SERVICE_PROVIDERS_VIEW,
+      "routes/dashboard/service-providers.$serviceProviderId.tsx"
+    ),
     route(ROUTE_NAMES.SUPPLIERS, "routes/dashboard/suppliers.tsx"),
     route(ROUTE_NAMES.SUPPLIERS_NEW, "routes/dashboard/suppliers.new.tsx"),
     route(ROUTE_NAMES.SUPPLIERS_EDIT, "routes/dashboard/suppliers.edit.$supplierId.tsx"),

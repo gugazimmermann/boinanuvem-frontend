@@ -3,6 +3,10 @@ export interface SidebarItemConfig {
     dashboard: string;
     properties: string;
     locations: string;
+    employees: string;
+    serviceProviders: string;
+    suppliers: string;
+    buyers: string;
     animals: string;
     pastures: string;
     reports: string;

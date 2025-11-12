@@ -33,20 +33,21 @@ const baseSelectStyles = [
   "pr-10",
 ].join(" ");
 
-const errorSelectStyles = ["border-red-400", "focus:border-red-400", "focus:ring-red-300"].join(" ");
+const errorSelectStyles = ["border-red-400", "focus:border-red-400", "focus:ring-red-300"].join(
+  " "
+);
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ label, helperText, error, className = "", selectClassName = "", id, options, ...selectProps }, ref) => {
+  (
+    { label, helperText, error, className = "", selectClassName = "", id, options, ...selectProps },
+    ref
+  ) => {
     const generatedId = useId();
     const selectId = id || generatedId;
     const hasError = Boolean(error);
     const displayText = error || helperText;
 
-    const selectStyles = [
-      baseSelectStyles,
-      hasError && errorSelectStyles,
-      selectClassName,
-    ]
+    const selectStyles = [baseSelectStyles, hasError && errorSelectStyles, selectClassName]
       .filter(Boolean)
       .join(" ");
 
@@ -59,7 +60,13 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         )}
 
         <div className="relative">
-          <select ref={ref} id={selectId} className={selectStyles} aria-invalid={hasError} {...selectProps}>
+          <select
+            ref={ref}
+            id={selectId}
+            className={selectStyles}
+            aria-invalid={hasError}
+            {...selectProps}
+          >
             <option value="">Selecione...</option>
             {options.map((option) => (
               <option key={option.value} value={option.value}>
@@ -84,7 +91,9 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         </div>
 
         {displayText && (
-          <p className={`mt-3 text-xs ${hasError ? "text-red-500" : "text-gray-400"}`}>{displayText}</p>
+          <p className={`mt-3 text-xs ${hasError ? "text-red-500" : "text-gray-400"}`}>
+            {displayText}
+          </p>
         )}
       </div>
     );
@@ -92,4 +101,3 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
 );
 
 Select.displayName = "Select";
-

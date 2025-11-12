@@ -36,6 +36,10 @@ export const pt = {
 
   dashboard: {
     title: "Dashboard",
+    meta: {
+      title: "Dashboard - Boi na Nuvem",
+      description: "Painel de controle do Boi na Nuvem",
+    },
     stats: {
       totalAnimals: "Total de Animais",
       properties: "Propriedades",
@@ -56,6 +60,20 @@ export const pt = {
   properties: {
     title: "Propriedades",
     description: "Gerencie todas as suas propriedades rurais.",
+    meta: {
+      list: {
+        title: "Propriedades - Boi na Nuvem",
+      },
+      new: {
+        title: "Adicionar Propriedade - Boi na Nuvem",
+      },
+      edit: {
+        title: "Editar Propriedade - Boi na Nuvem",
+      },
+      details: {
+        title: "Detalhes da Propriedade - Boi na Nuvem",
+      },
+    },
     addProperty: "Adicionar Propriedade",
     searchPlaceholder: "Buscar propriedades...",
     filters: {
@@ -66,6 +84,7 @@ export const pt = {
     table: {
       name: "Nome",
       code: "Código",
+      address: "Endereço",
       area: "Área",
       locations: "Localizações",
       animals: "Animais",
@@ -138,6 +157,7 @@ export const pt = {
         information: "Informações",
         info: "Detalhes",
         locations: "Localizações",
+        cadastros: "Cadastros",
         employees: "Funcionários",
         serviceProviders: "Prestadores de Serviço",
         suppliers: "Fornecedores",
@@ -186,6 +206,20 @@ export const pt = {
   locations: {
     title: "Localizações",
     description: "Gerencie todas as suas localizações rurais.",
+    meta: {
+      list: {
+        title: "Localizações - Boi na Nuvem",
+      },
+      new: {
+        title: "Adicionar Localização - Boi na Nuvem",
+      },
+      edit: {
+        title: "Editar Localização - Boi na Nuvem",
+      },
+      details: {
+        title: "Detalhes da Localização - Boi na Nuvem",
+      },
+    },
     addLocation: "Adicionar Localização",
     searchPlaceholder: "Buscar localizações...",
     areaType: "Tipo de Área",
@@ -309,6 +343,20 @@ export const pt = {
   employees: {
     title: "Funcionários",
     description: "Gerencie todos os funcionários da empresa.",
+    meta: {
+      list: {
+        title: "Funcionários - Boi na Nuvem",
+      },
+      new: {
+        title: "Adicionar Funcionário - Boi na Nuvem",
+      },
+      edit: {
+        title: "Editar Funcionário - Boi na Nuvem",
+      },
+      details: {
+        title: "Detalhes do Funcionário - Boi na Nuvem",
+      },
+    },
     addEmployee: "Adicionar Funcionário",
     searchPlaceholder: "Buscar funcionários...",
     filters: {
@@ -362,7 +410,8 @@ export const pt = {
       emailLabel: "Email",
       phoneLabel: "Telefone",
       propertiesLabel: "Propriedades",
-      propertiesHint: "Mantenha Ctrl (ou Cmd no Mac) pressionado para selecionar múltiplas propriedades",
+      propertiesHint:
+        "Mantenha Ctrl (ou Cmd no Mac) pressionado para selecionar múltiplas propriedades",
       propertiesRequired: "Selecione pelo menos uma propriedade",
       statusLabel: "Status",
       success: "Funcionário adicionado com sucesso!",
@@ -378,7 +427,8 @@ export const pt = {
       emailLabel: "Email",
       phoneLabel: "Telefone",
       propertiesLabel: "Propriedades",
-      propertiesHint: "Mantenha Ctrl (ou Cmd no Mac) pressionado para selecionar múltiplas propriedades",
+      propertiesHint:
+        "Mantenha Ctrl (ou Cmd no Mac) pressionado para selecionar múltiplas propriedades",
       propertiesRequired: "Selecione pelo menos uma propriedade",
       statusLabel: "Status",
     },
@@ -403,6 +453,20 @@ export const pt = {
   serviceProviders: {
     title: "Prestadores de Serviço",
     description: "Gerencie todos os prestadores de serviço da empresa.",
+    meta: {
+      list: {
+        title: "Prestadores de Serviço - Boi na Nuvem",
+      },
+      new: {
+        title: "Adicionar Prestador de Serviço - Boi na Nuvem",
+      },
+      edit: {
+        title: "Editar Prestador de Serviço - Boi na Nuvem",
+      },
+      details: {
+        title: "Detalhes do Prestador de Serviço - Boi na Nuvem",
+      },
+    },
     addServiceProvider: "Adicionar Prestador de Serviço",
     searchPlaceholder: "Buscar prestadores de serviço...",
     filters: {
@@ -415,6 +479,7 @@ export const pt = {
       code: "Código",
       cpf: "CPF",
       cnpj: "CNPJ",
+      document: "Documento",
       email: "Email",
       phone: "Telefone",
       properties: "Propriedades",
@@ -423,7 +488,8 @@ export const pt = {
       inactive: "Inativo",
     },
     badge: {
-      serviceProviders: (count: number) => `${count} prestador${count !== 1 ? "es" : ""} de serviço`,
+      serviceProviders: (count: number) =>
+        `${count} prestador${count !== 1 ? "es" : ""} de serviço`,
     },
     emptyState: {
       title: "Nenhum prestador de serviço encontrado",
@@ -458,7 +524,8 @@ export const pt = {
       emailLabel: "Email",
       phoneLabel: "Telefone",
       propertiesLabel: "Propriedades",
-      propertiesHint: "Mantenha Ctrl (ou Cmd no Mac) pressionado para selecionar múltiplas propriedades",
+      propertiesHint:
+        "Mantenha Ctrl (ou Cmd no Mac) pressionado para selecionar múltiplas propriedades",
       propertiesRequired: "Selecione pelo menos uma propriedade",
       statusLabel: "Status",
       success: "Prestador de serviço adicionado com sucesso!",
@@ -475,7 +542,8 @@ export const pt = {
       emailLabel: "Email",
       phoneLabel: "Telefone",
       propertiesLabel: "Propriedades",
-      propertiesHint: "Mantenha Ctrl (ou Cmd no Mac) pressionado para selecionar múltiplas propriedades",
+      propertiesHint:
+        "Mantenha Ctrl (ou Cmd no Mac) pressionado para selecionar múltiplas propriedades",
       propertiesRequired: "Selecione pelo menos uma propriedade",
       statusLabel: "Status",
     },
@@ -500,6 +568,20 @@ export const pt = {
   suppliers: {
     title: "Fornecedores",
     description: "Gerencie todos os fornecedores da empresa.",
+    meta: {
+      list: {
+        title: "Fornecedores - Boi na Nuvem",
+      },
+      new: {
+        title: "Adicionar Fornecedor - Boi na Nuvem",
+      },
+      edit: {
+        title: "Editar Fornecedor - Boi na Nuvem",
+      },
+      details: {
+        title: "Detalhes do Fornecedor - Boi na Nuvem",
+      },
+    },
     addSupplier: "Adicionar Fornecedor",
     searchPlaceholder: "Buscar fornecedores...",
     filters: {
@@ -512,6 +594,7 @@ export const pt = {
       code: "Código",
       cpf: "CPF",
       cnpj: "CNPJ",
+      document: "Documento",
       email: "Email",
       phone: "Telefone",
       properties: "Propriedades",
@@ -555,7 +638,8 @@ export const pt = {
       emailLabel: "Email",
       phoneLabel: "Telefone",
       propertiesLabel: "Propriedades",
-      propertiesHint: "Mantenha Ctrl (ou Cmd no Mac) pressionado para selecionar múltiplas propriedades",
+      propertiesHint:
+        "Mantenha Ctrl (ou Cmd no Mac) pressionado para selecionar múltiplas propriedades",
       propertiesRequired: "Selecione pelo menos uma propriedade",
       statusLabel: "Status",
       success: "Fornecedor adicionado com sucesso!",
@@ -572,7 +656,8 @@ export const pt = {
       emailLabel: "Email",
       phoneLabel: "Telefone",
       propertiesLabel: "Propriedades",
-      propertiesHint: "Mantenha Ctrl (ou Cmd no Mac) pressionado para selecionar múltiplas propriedades",
+      propertiesHint:
+        "Mantenha Ctrl (ou Cmd no Mac) pressionado para selecionar múltiplas propriedades",
       propertiesRequired: "Selecione pelo menos uma propriedade",
       statusLabel: "Status",
     },
@@ -597,6 +682,20 @@ export const pt = {
   buyers: {
     title: "Compradores",
     description: "Gerencie todos os compradores da empresa.",
+    meta: {
+      list: {
+        title: "Compradores - Boi na Nuvem",
+      },
+      new: {
+        title: "Adicionar Comprador - Boi na Nuvem",
+      },
+      edit: {
+        title: "Editar Comprador - Boi na Nuvem",
+      },
+      details: {
+        title: "Detalhes do Comprador - Boi na Nuvem",
+      },
+    },
     addBuyer: "Adicionar Comprador",
     searchPlaceholder: "Buscar compradores...",
     filters: {
@@ -609,6 +708,7 @@ export const pt = {
       code: "Código",
       cpf: "CPF",
       cnpj: "CNPJ",
+      document: "Documento",
       email: "Email",
       phone: "Telefone",
       properties: "Propriedades",
@@ -652,7 +752,8 @@ export const pt = {
       emailLabel: "Email",
       phoneLabel: "Telefone",
       propertiesLabel: "Propriedades",
-      propertiesHint: "Mantenha Ctrl (ou Cmd no Mac) pressionado para selecionar múltiplas propriedades",
+      propertiesHint:
+        "Mantenha Ctrl (ou Cmd no Mac) pressionado para selecionar múltiplas propriedades",
       propertiesRequired: "Selecione pelo menos uma propriedade",
       statusLabel: "Status",
       success: "Comprador adicionado com sucesso!",
@@ -669,7 +770,8 @@ export const pt = {
       emailLabel: "Email",
       phoneLabel: "Telefone",
       propertiesLabel: "Propriedades",
-      propertiesHint: "Mantenha Ctrl (ou Cmd no Mac) pressionado para selecionar múltiplas propriedades",
+      propertiesHint:
+        "Mantenha Ctrl (ou Cmd no Mac) pressionado para selecionar múltiplas propriedades",
       propertiesRequired: "Selecione pelo menos uma propriedade",
       statusLabel: "Status",
     },
@@ -693,6 +795,12 @@ export const pt = {
 
   profile: {
     title: "Perfil",
+    meta: {
+      title: "Perfil - Boi na Nuvem",
+      userProfile: {
+        title: "Perfil do Usuário - Boi na Nuvem",
+      },
+    },
     tabs: {
       company: "Perfil da Empresa",
       user: "Perfil do Usuário",
@@ -778,6 +886,20 @@ export const pt = {
   team: {
     title: "Equipe",
     description: "Gerencie os usuários da sua empresa",
+    meta: {
+      list: {
+        title: "Equipe - Boi na Nuvem",
+      },
+      new: {
+        title: "Adicionar Membro - Boi na Nuvem",
+      },
+      edit: {
+        title: "Editar Membro - Boi na Nuvem",
+      },
+      permissions: {
+        title: "Permissões do Usuário - Boi na Nuvem",
+      },
+    },
     addUser: "Adicionar Usuário",
     editUser: "Editar Usuário",
     deleteUser: "Excluir Usuário",
@@ -895,8 +1017,10 @@ export const pt = {
   },
   help: {
     title: "Ajuda",
-    metaTitle: "Ajuda - Boi na Nuvem",
-    metaDescription: "Central de ajuda e perguntas frequentes do Boi na Nuvem",
+    meta: {
+      title: "Ajuda - Boi na Nuvem",
+      description: "Central de ajuda e perguntas frequentes do Boi na Nuvem",
+    },
     heading: "Tem alguma Dúvida?",
     tableOfContent: "Índice",
     all: "Todos",

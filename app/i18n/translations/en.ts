@@ -36,6 +36,10 @@ export const en = {
 
   dashboard: {
     title: "Dashboard",
+    meta: {
+      title: "Dashboard - Boi na Nuvem",
+      description: "Boi na Nuvem control panel",
+    },
     stats: {
       totalAnimals: "Total Animals",
       properties: "Properties",
@@ -56,6 +60,20 @@ export const en = {
   properties: {
     title: "Properties",
     description: "Manage all your rural properties.",
+    meta: {
+      list: {
+        title: "Properties - Boi na Nuvem",
+      },
+      new: {
+        title: "Add Property - Boi na Nuvem",
+      },
+      edit: {
+        title: "Edit Property - Boi na Nuvem",
+      },
+      details: {
+        title: "Property Details - Boi na Nuvem",
+      },
+    },
     addProperty: "Add Property",
     searchPlaceholder: "Search properties...",
     filters: {
@@ -66,6 +84,7 @@ export const en = {
     table: {
       name: "Name",
       code: "Code",
+      address: "Address",
       area: "Area",
       locations: "Locations",
       animals: "Animals",
@@ -138,6 +157,7 @@ export const en = {
         information: "Information",
         info: "Details",
         locations: "Locations",
+        cadastros: "Registrations",
         employees: "Employees",
         serviceProviders: "Service Providers",
         suppliers: "Suppliers",
@@ -186,6 +206,20 @@ export const en = {
   locations: {
     title: "Locations",
     description: "Manage all your rural locations.",
+    meta: {
+      list: {
+        title: "Locations - Boi na Nuvem",
+      },
+      new: {
+        title: "Add Location - Boi na Nuvem",
+      },
+      edit: {
+        title: "Edit Location - Boi na Nuvem",
+      },
+      details: {
+        title: "Location Details - Boi na Nuvem",
+      },
+    },
     addLocation: "Add Location",
     searchPlaceholder: "Search locations...",
     areaType: "Area Type",
@@ -309,6 +343,20 @@ export const en = {
   employees: {
     title: "Employees",
     description: "Manage all company employees.",
+    meta: {
+      list: {
+        title: "Employees - Boi na Nuvem",
+      },
+      new: {
+        title: "Add Employee - Boi na Nuvem",
+      },
+      edit: {
+        title: "Edit Employee - Boi na Nuvem",
+      },
+      details: {
+        title: "Employee Details - Boi na Nuvem",
+      },
+    },
     addEmployee: "Add Employee",
     searchPlaceholder: "Search employees...",
     filters: {
@@ -403,6 +451,20 @@ export const en = {
   serviceProviders: {
     title: "Service Providers",
     description: "Manage all company service providers.",
+    meta: {
+      list: {
+        title: "Service Providers - Boi na Nuvem",
+      },
+      new: {
+        title: "Add Service Provider - Boi na Nuvem",
+      },
+      edit: {
+        title: "Edit Service Provider - Boi na Nuvem",
+      },
+      details: {
+        title: "Service Provider Details - Boi na Nuvem",
+      },
+    },
     addServiceProvider: "Add Service Provider",
     searchPlaceholder: "Search service providers...",
     filters: {
@@ -415,6 +477,7 @@ export const en = {
       code: "Code",
       cpf: "CPF",
       cnpj: "CNPJ",
+      document: "Document",
       email: "Email",
       phone: "Phone",
       properties: "Properties",
@@ -500,6 +563,20 @@ export const en = {
   suppliers: {
     title: "Suppliers",
     description: "Manage all company suppliers.",
+    meta: {
+      list: {
+        title: "Suppliers - Boi na Nuvem",
+      },
+      new: {
+        title: "Add Supplier - Boi na Nuvem",
+      },
+      edit: {
+        title: "Edit Supplier - Boi na Nuvem",
+      },
+      details: {
+        title: "Supplier Details - Boi na Nuvem",
+      },
+    },
     addSupplier: "Add Supplier",
     searchPlaceholder: "Search suppliers...",
     filters: {
@@ -512,6 +589,7 @@ export const en = {
       code: "Code",
       cpf: "CPF",
       cnpj: "CNPJ",
+      document: "Document",
       email: "Email",
       phone: "Phone",
       properties: "Properties",
@@ -597,6 +675,20 @@ export const en = {
   buyers: {
     title: "Buyers",
     description: "Manage all company buyers.",
+    meta: {
+      list: {
+        title: "Buyers - Boi na Nuvem",
+      },
+      new: {
+        title: "Add Buyer - Boi na Nuvem",
+      },
+      edit: {
+        title: "Edit Buyer - Boi na Nuvem",
+      },
+      details: {
+        title: "Buyer Details - Boi na Nuvem",
+      },
+    },
     addBuyer: "Add Buyer",
     searchPlaceholder: "Search buyers...",
     filters: {
@@ -609,6 +701,7 @@ export const en = {
       code: "Code",
       cpf: "CPF",
       cnpj: "CNPJ",
+      document: "Document",
       email: "Email",
       phone: "Phone",
       properties: "Properties",
@@ -693,6 +786,12 @@ export const en = {
 
   profile: {
     title: "Profile",
+    meta: {
+      title: "Profile - Boi na Nuvem",
+      userProfile: {
+        title: "User Profile - Boi na Nuvem",
+      },
+    },
     tabs: {
       company: "Company Profile",
       user: "User Profile",
@@ -778,6 +877,20 @@ export const en = {
   team: {
     title: "Team",
     description: "Manage your company users",
+    meta: {
+      list: {
+        title: "Team - Boi na Nuvem",
+      },
+      new: {
+        title: "Add Member - Boi na Nuvem",
+      },
+      edit: {
+        title: "Edit Member - Boi na Nuvem",
+      },
+      permissions: {
+        title: "User Permissions - Boi na Nuvem",
+      },
+    },
     addUser: "Add User",
     editUser: "Edit User",
     deleteUser: "Delete User",
@@ -895,8 +1008,10 @@ export const en = {
   },
   help: {
     title: "Help",
-    metaTitle: "Help - Boi na Nuvem",
-    metaDescription: "Help center and frequently asked questions for Boi na Nuvem",
+    meta: {
+      title: "Help - Boi na Nuvem",
+      description: "Help center and frequently asked questions for Boi na Nuvem",
+    },
     heading: "Have any Questions?",
     tableOfContent: "Table of Content",
     all: "All",

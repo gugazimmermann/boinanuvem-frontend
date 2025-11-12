@@ -174,7 +174,7 @@ export default function EditTeamMember() {
         ...formData,
         cpf: unmaskCPF(formData.cpf || ""),
       };
-      
+
       if (!changePassword) {
         delete updateData.password;
         delete updateData.confirmPassword;
@@ -416,4 +416,3 @@ export default function EditTeamMember() {
     </div>
   );
 }
-

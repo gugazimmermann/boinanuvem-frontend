@@ -4,10 +4,10 @@ import { useTranslation } from "~/i18n";
 
 export function meta(_args: Route.MetaArgs) {
   return [
-    { title: "Help - Boi na Nuvem" },
+    { title: "Ajuda - Boi na Nuvem" },
     {
       name: "description",
-      content: "Help center and frequently asked questions for Boi na Nuvem",
+      content: "Central de ajuda e perguntas frequentes do Boi na Nuvem",
     },
   ];
 }

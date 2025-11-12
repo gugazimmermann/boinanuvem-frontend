@@ -37,4 +37,3 @@ export interface ServiceProviderFormData {
   state?: string;
   zipCode?: string;
 }
-

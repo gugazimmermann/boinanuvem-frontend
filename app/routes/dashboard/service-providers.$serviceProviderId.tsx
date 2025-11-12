@@ -28,7 +28,9 @@ export default function ServiceProviderDetails() {
     return (
       <div className="space-y-6">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-          <p className="text-gray-600 dark:text-gray-400 mb-4">{t.serviceProviders.emptyState.title}</p>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            {t.serviceProviders.emptyState.title}
+          </p>
           <Button variant="outline" onClick={() => navigate(ROUTES.SERVICE_PROVIDERS)}>
             {t.team.new.back}
           </Button>
@@ -51,10 +53,14 @@ export default function ServiceProviderDetails() {
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{serviceProvider.name}</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              {serviceProvider.name}
+            </h1>
             <StatusBadge
               label={
-                serviceProvider.status === "active" ? t.serviceProviders.table.active : t.serviceProviders.table.inactive
+                serviceProvider.status === "active"
+                  ? t.serviceProviders.table.active
+                  : t.serviceProviders.table.inactive
               }
               variant={serviceProvider.status === "active" ? "success" : "default"}
             />
@@ -211,20 +217,26 @@ export default function ServiceProviderDetails() {
                   <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
                     {t.serviceProviders.table.code}
                   </p>
-                  <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">{serviceProvider.code}</p>
+                  <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
+                    {serviceProvider.code}
+                  </p>
                 </div>
                 <div>
                   <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
                     {t.serviceProviders.table.name}
                   </p>
-                  <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">{serviceProvider.name}</p>
+                  <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
+                    {serviceProvider.name}
+                  </p>
                 </div>
                 {serviceProvider.cpf && (
                   <div>
                     <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
                       {t.serviceProviders.table.cpf}
                     </p>
-                    <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">{serviceProvider.cpf}</p>
+                    <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
+                      {serviceProvider.cpf}
+                    </p>
                   </div>
                 )}
                 {serviceProvider.cnpj && (
@@ -232,7 +244,9 @@ export default function ServiceProviderDetails() {
                     <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
                       {t.serviceProviders.table.cnpj}
                     </p>
-                    <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">{serviceProvider.cnpj}</p>
+                    <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
+                      {serviceProvider.cnpj}
+                    </p>
                   </div>
                 )}
                 {serviceProvider.email && (
@@ -240,7 +254,9 @@ export default function ServiceProviderDetails() {
                     <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
                       {t.serviceProviders.table.email}
                     </p>
-                    <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">{serviceProvider.email}</p>
+                    <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
+                      {serviceProvider.email}
+                    </p>
                   </div>
                 )}
                 {serviceProvider.phone && (
@@ -248,7 +264,9 @@ export default function ServiceProviderDetails() {
                     <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
                       {t.serviceProviders.table.phone}
                     </p>
-                    <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">{serviceProvider.phone}</p>
+                    <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
+                      {serviceProvider.phone}
+                    </p>
                   </div>
                 )}
                 <div>
@@ -397,4 +415,3 @@ export default function ServiceProviderDetails() {
     </div>
   );
 }
-

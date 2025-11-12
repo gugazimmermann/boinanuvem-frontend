@@ -254,7 +254,10 @@ export default function NewEmployee() {
                 multiple
                 value={formData.propertyIds}
                 onChange={(e) => {
-                  const selectedIds = Array.from(e.target.selectedOptions, (option) => option.value);
+                  const selectedIds = Array.from(
+                    e.target.selectedOptions,
+                    (option) => option.value
+                  );
                   setFormData((prev) => ({ ...prev, propertyIds: selectedIds }));
                 }}
                 disabled={isSubmitting}
@@ -383,4 +386,3 @@ export default function NewEmployee() {
     </div>
   );
 }
-

@@ -57,7 +57,9 @@ export function PasturePlanningGraph({ data }: PasturePlanningGraphProps) {
   if (!data || data.length === 0) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-        <p className="text-gray-600 dark:text-gray-400">{t.properties.details.pasturePlanning.noData}</p>
+        <p className="text-gray-600 dark:text-gray-400">
+          {t.properties.details.pasturePlanning.noData}
+        </p>
       </div>
     );
   }
@@ -86,13 +88,10 @@ export function PasturePlanningGraph({ data }: PasturePlanningGraphProps) {
       <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-6">
         {t.properties.details.pasturePlanning.title}
       </h2>
-      
+
       <div className="w-full">
         <ResponsiveContainer width="100%" height={450}>
-          <ComposedChart
-            data={chartData}
-            margin={{ top: 10, right: 30, left: 0, bottom: 80 }}
-          >
+          <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 80 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={gridColor} opacity={0.3} />
             <XAxis
               dataKey="month"
@@ -126,12 +125,7 @@ export function PasturePlanningGraph({ data }: PasturePlanningGraphProps) {
                 style: { textAnchor: "middle", fill: textColor, fontSize: 12 },
               }}
             />
-            <YAxis
-              yAxisId="classification"
-              orientation="right"
-              hide={true}
-              domain={[0, 5]}
-            />
+            <YAxis yAxisId="classification" orientation="right" hide={true} domain={[0, 5]} />
             <Tooltip
               contentStyle={{
                 backgroundColor: isDark ? "#1f2937" : "#ffffff",
@@ -140,11 +134,16 @@ export function PasturePlanningGraph({ data }: PasturePlanningGraphProps) {
                 color: textColor,
               }}
               labelStyle={{ color: textColor, fontWeight: "bold" }}
-              formatter={(value: number | string, name: string, props: any) => {
-                if (name === t.properties.details.pasturePlanning.forage || name === "classificationHeight") {
-                  const classification = props.payload.classification;
+              formatter={(value: number | string, name: string, props: { payload?: { classification?: string } }) => {
+                if (
+                  name === t.properties.details.pasturePlanning.forage ||
+                  name === "classificationHeight"
+                ) {
+                  const classification = props.payload?.classification;
                   return [
-                    t.properties.details.pasturePlanning.classification[classification as keyof typeof t.properties.details.pasturePlanning.classification] || classification,
+                    t.properties.details.pasturePlanning.classification[
+                      classification as keyof typeof t.properties.details.pasturePlanning.classification
+                    ] || classification,
                     t.properties.details.pasturePlanning.forage,
                   ];
                 }
@@ -196,15 +195,23 @@ export function PasturePlanningGraph({ data }: PasturePlanningGraphProps) {
             >
               {chartData.map((entry, index) => {
                 const color = isDark
-                  ? CLASSIFICATION_COLORS_DARK[entry.classification as keyof typeof CLASSIFICATION_COLORS_DARK]
-                  : CLASSIFICATION_COLORS[entry.classification as keyof typeof CLASSIFICATION_COLORS];
+                  ? CLASSIFICATION_COLORS_DARK[
+                      entry.classification as keyof typeof CLASSIFICATION_COLORS_DARK
+                    ]
+                  : CLASSIFICATION_COLORS[
+                      entry.classification as keyof typeof CLASSIFICATION_COLORS
+                    ];
                 return <Cell key={`cell-${index}`} fill={color} />;
               })}
               <LabelList
                 dataKey="classification"
                 position="insideBottom"
-                formatter={(value: string) => {
-                  const translated = t.properties.details.pasturePlanning.classification[value as keyof typeof t.properties.details.pasturePlanning.classification] || value;
+                formatter={(value) => {
+                  if (!value || typeof value !== "string") return "";
+                  const translated =
+                    t.properties.details.pasturePlanning.classification[
+                      value as keyof typeof t.properties.details.pasturePlanning.classification
+                    ] || value;
                   return translated.length > 6 ? translated.substring(0, 4) : translated;
                 }}
                 style={{ fill: isDark ? "#ffffff" : "#000000", fontSize: 9, fontWeight: "bold" }}

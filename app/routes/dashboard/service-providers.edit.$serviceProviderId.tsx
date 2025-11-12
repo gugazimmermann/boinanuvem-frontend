@@ -198,7 +198,11 @@ export default function EditServiceProvider() {
       <div className="space-y-6">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
           <p className="text-gray-600 dark:text-gray-400">{t.serviceProviders.emptyState.title}</p>
-          <Button variant="outline" onClick={() => navigate(ROUTES.SERVICE_PROVIDERS)} className="mt-4">
+          <Button
+            variant="outline"
+            onClick={() => navigate(ROUTES.SERVICE_PROVIDERS)}
+            className="mt-4"
+          >
             {t.team.new.back}
           </Button>
         </div>
@@ -225,7 +229,9 @@ export default function EditServiceProvider() {
         </div>
         <Button
           variant="outline"
-          onClick={() => serviceProviderId && navigate(getServiceProviderViewRoute(serviceProviderId))}
+          onClick={() =>
+            serviceProviderId && navigate(getServiceProviderViewRoute(serviceProviderId))
+          }
           disabled={isSubmitting}
         >
           {t.team.new.back}
@@ -305,7 +311,10 @@ export default function EditServiceProvider() {
                 multiple
                 value={formData.propertyIds}
                 onChange={(e) => {
-                  const selectedIds = Array.from(e.target.selectedOptions, (option) => option.value);
+                  const selectedIds = Array.from(
+                    e.target.selectedOptions,
+                    (option) => option.value
+                  );
                   setFormData((prev) => ({ ...prev, propertyIds: selectedIds }));
                 }}
                 disabled={isSubmitting}
@@ -420,7 +429,9 @@ export default function EditServiceProvider() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => serviceProviderId && navigate(getServiceProviderViewRoute(serviceProviderId))}
+              onClick={() =>
+                serviceProviderId && navigate(getServiceProviderViewRoute(serviceProviderId))
+              }
               disabled={isSubmitting}
             >
               {t.profile.company.cancel}
@@ -434,4 +445,3 @@ export default function EditServiceProvider() {
     </div>
   );
 }
-

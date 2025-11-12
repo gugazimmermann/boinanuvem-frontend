@@ -1,9 +1,24 @@
-import { useState } from "react";
-import { useParams, useNavigate } from "react-router";
-import { Button, StatusBadge, Table, type TableColumn, type SortDirection, PasturePlanningGraph } from "~/components/ui";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router";
+import {
+  Button,
+  StatusBadge,
+  Table,
+  type TableColumn,
+  type SortDirection,
+  PasturePlanningGraph,
+} from "~/components/ui";
 import { PropertyMap } from "~/components/ui/property-map";
 import { useTranslation } from "~/i18n";
-import { ROUTES, getPropertyEditRoute, getLocationViewRoute, getEmployeeViewRoute, getServiceProviderViewRoute, getSupplierViewRoute, getBuyerViewRoute } from "~/routes.config";
+import {
+  ROUTES,
+  getPropertyEditRoute,
+  getLocationViewRoute,
+  getEmployeeViewRoute,
+  getServiceProviderViewRoute,
+  getSupplierViewRoute,
+  getBuyerViewRoute,
+} from "~/routes.config";
 import { getPropertyById } from "~/mocks/properties";
 import { getLocationsByPropertyId } from "~/mocks/locations";
 import { getEmployeesByPropertyId } from "~/mocks/employees";
@@ -14,7 +29,6 @@ import type { Location, Employee, ServiceProvider, Supplier, Buyer } from "~/typ
 import { AreaType } from "~/types";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
 import { LocationTypeBadge } from "~/components/dashboard/utils/location-type-badge";
-import { TableActionButtons } from "~/components/ui/table/table-helpers";
 
 const formatAreaType = (type: AreaType): string => {
   const typeMap: Record<AreaType, string> = {
@@ -42,14 +56,51 @@ export default function PropertyDetails() {
   const { propertyId } = useParams<{ propertyId: string }>();
   const navigate = useNavigate();
   const t = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const property = getPropertyById(propertyId);
-  const [activeTab, setActiveTab] = useState<"information" | "info" | "locations" | "employees" | "serviceProviders" | "suppliers" | "buyers" | "activities">(
-    "information"
+
+  const tabParam = searchParams.get("tab");
+  const subTabParam = searchParams.get("subTab");
+
+  const [activeTab, setActiveTab] = useState<
+    "information" | "info" | "locations" | "cadastros" | "activities"
+  >(
+    (tabParam === "info" ||
+    tabParam === "locations" ||
+    tabParam === "cadastros" ||
+    tabParam === "activities"
+      ? tabParam
+      : "information") as "information" | "info" | "locations" | "cadastros" | "activities"
   );
+
+  const [cadastrosSubTab, setCadastrosSubTab] = useState<
+    "employees" | "serviceProviders" | "suppliers" | "buyers"
+  >(
+    (subTabParam === "serviceProviders" || subTabParam === "suppliers" || subTabParam === "buyers"
+      ? subTabParam
+      : "employees") as "employees" | "serviceProviders" | "suppliers" | "buyers"
+  );
+
   const [sortState, setSortState] = useState<{
     column: string | null;
     direction: SortDirection;
   }>({ column: "name", direction: "asc" });
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "info" || tab === "locations" || tab === "cadastros" || tab === "activities") {
+      setActiveTab(tab);
+    } else if (!tab) {
+      setActiveTab("information");
+    }
+
+    const subTab = searchParams.get("subTab");
+    if (subTab === "serviceProviders" || subTab === "suppliers" || subTab === "buyers") {
+      setCadastrosSubTab(subTab);
+    } else if (subTab === "employees" || (activeTab === "cadastros" && !subTab)) {
+      setCadastrosSubTab("employees");
+    }
+  }, [searchParams, activeTab]);
 
   if (!property) {
     return (
@@ -131,7 +182,10 @@ export default function PropertyDetails() {
       <div className="mb-4 border-b border-gray-200 dark:border-gray-700">
         <nav className="flex space-x-8" aria-label="Tabs">
           <button
-            onClick={() => setActiveTab("information")}
+            onClick={() => {
+              setActiveTab("information");
+              setSearchParams({});
+            }}
             className={`
               py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
               ${
@@ -149,7 +203,10 @@ export default function PropertyDetails() {
             {t.properties.details.tabs.information}
           </button>
           <button
-            onClick={() => setActiveTab("info")}
+            onClick={() => {
+              setActiveTab("info");
+              setSearchParams({ tab: "info" });
+            }}
             className={`
               py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
               ${
@@ -167,7 +224,10 @@ export default function PropertyDetails() {
             {t.properties.details.tabs.info}
           </button>
           <button
-            onClick={() => setActiveTab("locations")}
+            onClick={() => {
+              setActiveTab("locations");
+              setSearchParams({ tab: "locations" });
+            }}
             className={`
               py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
               ${
@@ -185,79 +245,32 @@ export default function PropertyDetails() {
             {t.properties.details.tabs.locations}
           </button>
           <button
-            onClick={() => setActiveTab("employees")}
+            onClick={() => {
+              setActiveTab("cadastros");
+              setCadastrosSubTab("employees");
+              setSearchParams({ tab: "cadastros", subTab: "employees" });
+            }}
             className={`
               py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
               ${
-                activeTab === "employees"
+                activeTab === "cadastros"
                   ? "dark:text-blue-400"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
               }
             `}
             style={
-              activeTab === "employees"
+              activeTab === "cadastros"
                 ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
                 : undefined
             }
           >
-            {t.properties.details.tabs.employees}
+            {t.properties.details.tabs.cadastros}
           </button>
           <button
-            onClick={() => setActiveTab("serviceProviders")}
-            className={`
-              py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
-              ${
-                activeTab === "serviceProviders"
-                  ? "dark:text-blue-400"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-              }
-            `}
-            style={
-              activeTab === "serviceProviders"
-                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
-                : undefined
-            }
-          >
-            {t.properties.details.tabs.serviceProviders}
-          </button>
-          <button
-            onClick={() => setActiveTab("suppliers")}
-            className={`
-              py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
-              ${
-                activeTab === "suppliers"
-                  ? "dark:text-blue-400"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-              }
-            `}
-            style={
-              activeTab === "suppliers"
-                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
-                : undefined
-            }
-          >
-            {t.properties.details.tabs.suppliers}
-          </button>
-          <button
-            onClick={() => setActiveTab("buyers")}
-            className={`
-              py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
-              ${
-                activeTab === "buyers"
-                  ? "dark:text-blue-400"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-              }
-            `}
-            style={
-              activeTab === "buyers"
-                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
-                : undefined
-            }
-          >
-            {t.properties.details.tabs.buyers}
-          </button>
-          <button
-            onClick={() => setActiveTab("activities")}
+            onClick={() => {
+              setActiveTab("activities");
+              setSearchParams({ tab: "activities" });
+            }}
             className={`
               py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
               ${
@@ -623,14 +636,6 @@ export default function PropertyDetails() {
                 />
               ),
             },
-            {
-              key: "actions",
-              label: "",
-              headerClassName: "relative",
-              render: (_, row) => (
-                <TableActionButtons onView={() => navigate(getLocationViewRoute(row.id))} />
-              ),
-            },
           ];
 
           return (
@@ -650,6 +655,7 @@ export default function PropertyDetails() {
                 onSort={(column, direction) => {
                   setSortState({ column, direction });
                 }}
+                onRowClick={(row) => navigate(getLocationViewRoute(row.id))}
                 emptyState={{
                   title: t.locations.emptyState.title,
                   description: t.locations.emptyState.descriptionWithoutSearch,
@@ -661,501 +667,570 @@ export default function PropertyDetails() {
           );
         })()}
 
-      {activeTab === "employees" &&
-        property &&
-        (() => {
-          const employees = getEmployeesByPropertyId(property.id);
-
-          const sortedEmployees = [...employees].sort((a, b) => {
-            if (!sortState.column || !sortState.direction) {
-              return 0;
-            }
-
-            let aValue = a[sortState.column as keyof Employee];
-            let bValue = b[sortState.column as keyof Employee];
-
-            if (aValue == null && bValue == null) return 0;
-            if (aValue == null) return 1;
-            if (bValue == null) return -1;
-
-            let comparison = 0;
-            if (typeof aValue === "string" && typeof bValue === "string") {
-              comparison = aValue.localeCompare(bValue, "pt-BR", {
-                sensitivity: "base",
-              });
-            } else if (typeof aValue === "number" && typeof bValue === "number") {
-              comparison = aValue - bValue;
-            } else {
-              comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
-            }
-
-            return sortState.direction === "asc" ? comparison : -comparison;
-          });
-
-          const columns: TableColumn<Employee>[] = [
-            {
-              key: "name",
-              label: t.employees.table.name,
-              sortable: true,
-              render: (_, row) => (
-                <div>
-                  <h2 className="font-medium text-gray-800 dark:text-gray-200">{row.name}</h2>
-                  <p className="text-sm font-normal text-gray-600 dark:text-gray-400">{row.code}</p>
-                </div>
-              ),
-            },
-            {
-              key: "cpf",
-              label: t.employees.table.cpf,
-              sortable: true,
-              render: (_, row) => (
-                <span className="text-gray-700 dark:text-gray-300">{row.cpf || "-"}</span>
-              ),
-            },
-            {
-              key: "email",
-              label: t.employees.table.email,
-              sortable: true,
-              render: (_, row) => (
-                <span className="text-gray-700 dark:text-gray-300">{row.email || "-"}</span>
-              ),
-            },
-            {
-              key: "phone",
-              label: t.employees.table.phone,
-              sortable: true,
-              render: (_, row) => (
-                <span className="text-gray-700 dark:text-gray-300">{row.phone || "-"}</span>
-              ),
-            },
-            {
-              key: "status",
-              label: t.employees.table.status,
-              sortable: true,
-              render: (_, row) => (
-                <StatusBadge
-                  label={
-                    row.status === "active" ? t.employees.table.active : t.employees.table.inactive
+      {activeTab === "cadastros" && property && (
+        <div className="space-y-6">
+          <div className="mb-4">
+            <nav className="flex space-x-3" aria-label="Sub Tabs">
+              <button
+                onClick={() => {
+                  setCadastrosSubTab("employees");
+                  setSearchParams({ tab: "cadastros", subTab: "employees" });
+                }}
+                className={`
+                  px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer
+                  ${
+                    cadastrosSubTab === "employees"
+                      ? "shadow-sm"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
                   }
-                  variant={row.status === "active" ? "success" : "default"}
-                />
-              ),
-            },
-            {
-              key: "actions",
-              label: "",
-              headerClassName: "relative",
-              render: (_, row) => (
-                <TableActionButtons onView={() => navigate(getEmployeeViewRoute(row.id))} />
-              ),
-            },
-          ];
-
-          return (
-            <div className="space-y-6">
-              <Table<Employee>
-                columns={columns}
-                data={sortedEmployees}
-                header={{
-                  title: t.employees.title,
-                  badge: {
-                    label: t.employees.badge.employees(employees.length),
-                    variant: "primary",
-                  },
-                  description: t.employees.description,
+                `}
+                style={
+                  cadastrosSubTab === "employees"
+                    ? {
+                        backgroundColor: `${DASHBOARD_COLORS.primaryLight}40`,
+                        color: DASHBOARD_COLORS.primaryDark,
+                      }
+                    : undefined
+                }
+              >
+                {t.properties.details.tabs.employees}
+              </button>
+              <button
+                onClick={() => {
+                  setCadastrosSubTab("serviceProviders");
+                  setSearchParams({ tab: "cadastros", subTab: "serviceProviders" });
                 }}
-                sortState={sortState}
-                onSort={(column, direction) => {
-                  setSortState({ column, direction });
-                }}
-                emptyState={{
-                  title: t.employees.emptyState.title,
-                  description: t.employees.emptyState.descriptionWithoutSearch,
-                  onAddNew: () => navigate(ROUTES.EMPLOYEES_NEW),
-                  addNewLabel: t.employees.addEmployee,
-                }}
-              />
-            </div>
-          );
-        })()}
-
-      {activeTab === "serviceProviders" &&
-        property &&
-        (() => {
-          const serviceProviders = getServiceProvidersByPropertyId(property.id);
-
-          const sortedServiceProviders = [...serviceProviders].sort((a, b) => {
-            if (!sortState.column || !sortState.direction) {
-              return 0;
-            }
-
-            let aValue = a[sortState.column as keyof ServiceProvider];
-            let bValue = b[sortState.column as keyof ServiceProvider];
-
-            if (aValue == null && bValue == null) return 0;
-            if (aValue == null) return 1;
-            if (bValue == null) return -1;
-
-            let comparison = 0;
-            if (typeof aValue === "string" && typeof bValue === "string") {
-              comparison = aValue.localeCompare(bValue, "pt-BR", {
-                sensitivity: "base",
-              });
-            } else if (typeof aValue === "number" && typeof bValue === "number") {
-              comparison = aValue - bValue;
-            } else {
-              comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
-            }
-
-            return sortState.direction === "asc" ? comparison : -comparison;
-          });
-
-          const columns: TableColumn<ServiceProvider>[] = [
-            {
-              key: "name",
-              label: t.serviceProviders.table.name,
-              sortable: true,
-              render: (_, row) => (
-                <div>
-                  <h2 className="font-medium text-gray-800 dark:text-gray-200">{row.name}</h2>
-                  <p className="text-sm font-normal text-gray-600 dark:text-gray-400">{row.code}</p>
-                </div>
-              ),
-            },
-            {
-              key: "cpf",
-              label: t.serviceProviders.table.cpf,
-              sortable: true,
-              render: (_, row) => (
-                <span className="text-gray-700 dark:text-gray-300">{row.cpf || "-"}</span>
-              ),
-            },
-            {
-              key: "cnpj",
-              label: t.serviceProviders.table.cnpj,
-              sortable: true,
-              render: (_, row) => (
-                <span className="text-gray-700 dark:text-gray-300">{row.cnpj || "-"}</span>
-              ),
-            },
-            {
-              key: "email",
-              label: t.serviceProviders.table.email,
-              sortable: true,
-              render: (_, row) => (
-                <span className="text-gray-700 dark:text-gray-300">{row.email || "-"}</span>
-              ),
-            },
-            {
-              key: "phone",
-              label: t.serviceProviders.table.phone,
-              sortable: true,
-              render: (_, row) => (
-                <span className="text-gray-700 dark:text-gray-300">{row.phone || "-"}</span>
-              ),
-            },
-            {
-              key: "status",
-              label: t.serviceProviders.table.status,
-              sortable: true,
-              render: (_, row) => (
-                <StatusBadge
-                  label={
-                    row.status === "active" ? t.serviceProviders.table.active : t.serviceProviders.table.inactive
+                className={`
+                  px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer
+                  ${
+                    cadastrosSubTab === "serviceProviders"
+                      ? "shadow-sm"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
                   }
-                  variant={row.status === "active" ? "success" : "default"}
-                />
-              ),
-            },
-            {
-              key: "actions",
-              label: "",
-              headerClassName: "relative",
-              render: (_, row) => (
-                <TableActionButtons onView={() => navigate(getServiceProviderViewRoute(row.id))} />
-              ),
-            },
-          ];
-
-          return (
-            <div className="space-y-6">
-              <Table<ServiceProvider>
-                columns={columns}
-                data={sortedServiceProviders}
-                header={{
-                  title: t.serviceProviders.title,
-                  badge: {
-                    label: t.serviceProviders.badge.serviceProviders(serviceProviders.length),
-                    variant: "primary",
-                  },
-                  description: t.serviceProviders.description,
+                `}
+                style={
+                  cadastrosSubTab === "serviceProviders"
+                    ? {
+                        backgroundColor: `${DASHBOARD_COLORS.primaryLight}40`,
+                        color: DASHBOARD_COLORS.primaryDark,
+                      }
+                    : undefined
+                }
+              >
+                {t.properties.details.tabs.serviceProviders}
+              </button>
+              <button
+                onClick={() => {
+                  setCadastrosSubTab("suppliers");
+                  setSearchParams({ tab: "cadastros", subTab: "suppliers" });
                 }}
-                sortState={sortState}
-                onSort={(column, direction) => {
-                  setSortState({ column, direction });
-                }}
-                emptyState={{
-                  title: t.serviceProviders.emptyState.title,
-                  description: t.serviceProviders.emptyState.descriptionWithoutSearch,
-                  onAddNew: () => navigate(ROUTES.SERVICE_PROVIDERS_NEW),
-                  addNewLabel: t.serviceProviders.addServiceProvider,
-                }}
-              />
-            </div>
-          );
-        })()}
-
-      {activeTab === "suppliers" &&
-        property &&
-        (() => {
-          const suppliers = getSuppliersByPropertyId(property.id);
-
-          const sortedSuppliers = [...suppliers].sort((a, b) => {
-            if (!sortState.column || !sortState.direction) {
-              return 0;
-            }
-
-            let aValue = a[sortState.column as keyof Supplier];
-            let bValue = b[sortState.column as keyof Supplier];
-
-            if (aValue == null && bValue == null) return 0;
-            if (aValue == null) return 1;
-            if (bValue == null) return -1;
-
-            let comparison = 0;
-            if (typeof aValue === "string" && typeof bValue === "string") {
-              comparison = aValue.localeCompare(bValue, "pt-BR", {
-                sensitivity: "base",
-              });
-            } else if (typeof aValue === "number" && typeof bValue === "number") {
-              comparison = aValue - bValue;
-            } else {
-              comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
-            }
-
-            return sortState.direction === "asc" ? comparison : -comparison;
-          });
-
-          const columns: TableColumn<Supplier>[] = [
-            {
-              key: "name",
-              label: t.suppliers.table.name,
-              sortable: true,
-              render: (_, row) => (
-                <div>
-                  <h2 className="font-medium text-gray-800 dark:text-gray-200">{row.name}</h2>
-                  <p className="text-sm font-normal text-gray-600 dark:text-gray-400">{row.code}</p>
-                </div>
-              ),
-            },
-            {
-              key: "cpf",
-              label: t.suppliers.table.cpf,
-              sortable: true,
-              render: (_, row) => (
-                <span className="text-gray-700 dark:text-gray-300">{row.cpf || "-"}</span>
-              ),
-            },
-            {
-              key: "cnpj",
-              label: t.suppliers.table.cnpj,
-              sortable: true,
-              render: (_, row) => (
-                <span className="text-gray-700 dark:text-gray-300">{row.cnpj || "-"}</span>
-              ),
-            },
-            {
-              key: "email",
-              label: t.suppliers.table.email,
-              sortable: true,
-              render: (_, row) => (
-                <span className="text-gray-700 dark:text-gray-300">{row.email || "-"}</span>
-              ),
-            },
-            {
-              key: "phone",
-              label: t.suppliers.table.phone,
-              sortable: true,
-              render: (_, row) => (
-                <span className="text-gray-700 dark:text-gray-300">{row.phone || "-"}</span>
-              ),
-            },
-            {
-              key: "status",
-              label: t.suppliers.table.status,
-              sortable: true,
-              render: (_, row) => (
-                <StatusBadge
-                  label={
-                    row.status === "active" ? t.suppliers.table.active : t.suppliers.table.inactive
+                className={`
+                  px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer
+                  ${
+                    cadastrosSubTab === "suppliers"
+                      ? "shadow-sm"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
                   }
-                  variant={row.status === "active" ? "success" : "default"}
-                />
-              ),
-            },
-            {
-              key: "actions",
-              label: "",
-              headerClassName: "relative",
-              render: (_, row) => (
-                <TableActionButtons onView={() => navigate(getSupplierViewRoute(row.id))} />
-              ),
-            },
-          ];
-
-          return (
-            <div className="space-y-6">
-              <Table<Supplier>
-                columns={columns}
-                data={sortedSuppliers}
-                header={{
-                  title: t.suppliers.title,
-                  badge: {
-                    label: t.suppliers.badge.suppliers(suppliers.length),
-                    variant: "primary",
-                  },
-                  description: t.suppliers.description,
+                `}
+                style={
+                  cadastrosSubTab === "suppliers"
+                    ? {
+                        backgroundColor: `${DASHBOARD_COLORS.primaryLight}40`,
+                        color: DASHBOARD_COLORS.primaryDark,
+                      }
+                    : undefined
+                }
+              >
+                {t.properties.details.tabs.suppliers}
+              </button>
+              <button
+                onClick={() => {
+                  setCadastrosSubTab("buyers");
+                  setSearchParams({ tab: "cadastros", subTab: "buyers" });
                 }}
-                sortState={sortState}
-                onSort={(column, direction) => {
-                  setSortState({ column, direction });
-                }}
-                emptyState={{
-                  title: t.suppliers.emptyState.title,
-                  description: t.suppliers.emptyState.descriptionWithoutSearch,
-                  onAddNew: () => navigate(ROUTES.SUPPLIERS_NEW),
-                  addNewLabel: t.suppliers.addSupplier,
-                }}
-              />
-            </div>
-          );
-        })()}
-
-      {activeTab === "buyers" &&
-        property &&
-        (() => {
-          const buyers = getBuyersByPropertyId(property.id);
-
-          const sortedBuyers = [...buyers].sort((a, b) => {
-            if (!sortState.column || !sortState.direction) {
-              return 0;
-            }
-
-            let aValue = a[sortState.column as keyof Buyer];
-            let bValue = b[sortState.column as keyof Buyer];
-
-            if (aValue == null && bValue == null) return 0;
-            if (aValue == null) return 1;
-            if (bValue == null) return -1;
-
-            let comparison = 0;
-            if (typeof aValue === "string" && typeof bValue === "string") {
-              comparison = aValue.localeCompare(bValue, "pt-BR", {
-                sensitivity: "base",
-              });
-            } else if (typeof aValue === "number" && typeof bValue === "number") {
-              comparison = aValue - bValue;
-            } else {
-              comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
-            }
-
-            return sortState.direction === "asc" ? comparison : -comparison;
-          });
-
-          const columns: TableColumn<Buyer>[] = [
-            {
-              key: "name",
-              label: t.buyers.table.name,
-              sortable: true,
-              render: (_, row) => (
-                <div>
-                  <h2 className="font-medium text-gray-800 dark:text-gray-200">{row.name}</h2>
-                  <p className="text-sm font-normal text-gray-600 dark:text-gray-400">{row.code}</p>
-                </div>
-              ),
-            },
-            {
-              key: "cpf",
-              label: t.buyers.table.cpf,
-              sortable: true,
-              render: (_, row) => (
-                <span className="text-gray-700 dark:text-gray-300">{row.cpf || "-"}</span>
-              ),
-            },
-            {
-              key: "cnpj",
-              label: t.buyers.table.cnpj,
-              sortable: true,
-              render: (_, row) => (
-                <span className="text-gray-700 dark:text-gray-300">{row.cnpj || "-"}</span>
-              ),
-            },
-            {
-              key: "email",
-              label: t.buyers.table.email,
-              sortable: true,
-              render: (_, row) => (
-                <span className="text-gray-700 dark:text-gray-300">{row.email || "-"}</span>
-              ),
-            },
-            {
-              key: "phone",
-              label: t.buyers.table.phone,
-              sortable: true,
-              render: (_, row) => (
-                <span className="text-gray-700 dark:text-gray-300">{row.phone || "-"}</span>
-              ),
-            },
-            {
-              key: "status",
-              label: t.buyers.table.status,
-              sortable: true,
-              render: (_, row) => (
-                <StatusBadge
-                  label={
-                    row.status === "active" ? t.buyers.table.active : t.buyers.table.inactive
+                className={`
+                  px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer
+                  ${
+                    cadastrosSubTab === "buyers"
+                      ? "shadow-sm"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
                   }
-                  variant={row.status === "active" ? "success" : "default"}
-                />
-              ),
-            },
-            {
-              key: "actions",
-              label: "",
-              headerClassName: "relative",
-              render: (_, row) => (
-                <TableActionButtons onView={() => navigate(getBuyerViewRoute(row.id))} />
-              ),
-            },
-          ];
+                `}
+                style={
+                  cadastrosSubTab === "buyers"
+                    ? {
+                        backgroundColor: `${DASHBOARD_COLORS.primaryLight}40`,
+                        color: DASHBOARD_COLORS.primaryDark,
+                      }
+                    : undefined
+                }
+              >
+                {t.properties.details.tabs.buyers}
+              </button>
+            </nav>
+          </div>
 
-          return (
-            <div className="space-y-6">
-              <Table<Buyer>
-                columns={columns}
-                data={sortedBuyers}
-                header={{
-                  title: t.buyers.title,
-                  badge: {
-                    label: t.buyers.badge.buyers(buyers.length),
-                    variant: "primary",
-                  },
-                  description: t.buyers.description,
-                }}
-                sortState={sortState}
-                onSort={(column, direction) => {
-                  setSortState({ column, direction });
-                }}
-                emptyState={{
-                  title: t.buyers.emptyState.title,
-                  description: t.buyers.emptyState.descriptionWithoutSearch,
-                  onAddNew: () => navigate(ROUTES.BUYERS_NEW),
-                  addNewLabel: t.buyers.addBuyer,
-                }}
-              />
-            </div>
-          );
-        })()}
+          {cadastrosSubTab === "employees" &&
+            (() => {
+              const employees = getEmployeesByPropertyId(property.id);
+
+              const sortedEmployees = [...employees].sort((a, b) => {
+                if (!sortState.column || !sortState.direction) {
+                  return 0;
+                }
+
+                const aValue = a[sortState.column as keyof Employee];
+                const bValue = b[sortState.column as keyof Employee];
+
+                if (aValue == null && bValue == null) return 0;
+                if (aValue == null) return 1;
+                if (bValue == null) return -1;
+
+                let comparison = 0;
+                if (typeof aValue === "string" && typeof bValue === "string") {
+                  comparison = aValue.localeCompare(bValue, "pt-BR", {
+                    sensitivity: "base",
+                  });
+                } else if (typeof aValue === "number" && typeof bValue === "number") {
+                  comparison = aValue - bValue;
+                } else {
+                  comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
+                }
+
+                return sortState.direction === "asc" ? comparison : -comparison;
+              });
+
+              const columns: TableColumn<Employee>[] = [
+                {
+                  key: "name",
+                  label: t.employees.table.name,
+                  sortable: true,
+                  render: (_, row) => (
+                    <div>
+                      <h2 className="font-medium text-gray-800 dark:text-gray-200">{row.name}</h2>
+                      <p className="text-sm font-normal text-gray-600 dark:text-gray-400">
+                        {row.code}
+                      </p>
+                    </div>
+                  ),
+                },
+                {
+                  key: "cpf",
+                  label: t.employees.table.cpf,
+                  sortable: true,
+                  render: (_, row) => (
+                    <span className="text-gray-700 dark:text-gray-300">{row.cpf || "-"}</span>
+                  ),
+                },
+                {
+                  key: "email",
+                  label: t.employees.table.email,
+                  sortable: true,
+                  render: (_, row) => (
+                    <span className="text-gray-700 dark:text-gray-300">{row.email || "-"}</span>
+                  ),
+                },
+                {
+                  key: "phone",
+                  label: t.employees.table.phone,
+                  sortable: true,
+                  render: (_, row) => (
+                    <span className="text-gray-700 dark:text-gray-300">{row.phone || "-"}</span>
+                  ),
+                },
+                {
+                  key: "status",
+                  label: t.employees.table.status,
+                  sortable: true,
+                  render: (_, row) => (
+                    <StatusBadge
+                      label={
+                        row.status === "active"
+                          ? t.employees.table.active
+                          : t.employees.table.inactive
+                      }
+                      variant={row.status === "active" ? "success" : "default"}
+                    />
+                  ),
+                },
+              ];
+
+              return (
+                <div className="space-y-6">
+                  <Table<Employee>
+                    columns={columns}
+                    data={sortedEmployees}
+                    header={{
+                      title: t.employees.title,
+                      badge: {
+                        label: t.employees.badge.employees(employees.length),
+                        variant: "primary",
+                      },
+                      description: t.employees.description,
+                    }}
+                    sortState={sortState}
+                    onSort={(column, direction) => {
+                      setSortState({ column, direction });
+                    }}
+                    onRowClick={(row) => navigate(getEmployeeViewRoute(row.id))}
+                    emptyState={{
+                      title: t.employees.emptyState.title,
+                      description: t.employees.emptyState.descriptionWithoutSearch,
+                      onAddNew: () => navigate(ROUTES.EMPLOYEES_NEW),
+                      addNewLabel: t.employees.addEmployee,
+                    }}
+                  />
+                </div>
+              );
+            })()}
+
+          {cadastrosSubTab === "serviceProviders" &&
+            (() => {
+              const serviceProviders = getServiceProvidersByPropertyId(property.id);
+
+              const sortedServiceProviders = [...serviceProviders].sort((a, b) => {
+                if (!sortState.column || !sortState.direction) {
+                  return 0;
+                }
+
+                const aValue = a[sortState.column as keyof ServiceProvider];
+                const bValue = b[sortState.column as keyof ServiceProvider];
+
+                if (aValue == null && bValue == null) return 0;
+                if (aValue == null) return 1;
+                if (bValue == null) return -1;
+
+                let comparison = 0;
+                if (typeof aValue === "string" && typeof bValue === "string") {
+                  comparison = aValue.localeCompare(bValue, "pt-BR", {
+                    sensitivity: "base",
+                  });
+                } else if (typeof aValue === "number" && typeof bValue === "number") {
+                  comparison = aValue - bValue;
+                } else {
+                  comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
+                }
+
+                return sortState.direction === "asc" ? comparison : -comparison;
+              });
+
+              const columns: TableColumn<ServiceProvider>[] = [
+                {
+                  key: "name",
+                  label: t.serviceProviders.table.name,
+                  sortable: true,
+                  render: (_, row) => (
+                    <div>
+                      <h2 className="font-medium text-gray-800 dark:text-gray-200">{row.name}</h2>
+                      <p className="text-sm font-normal text-gray-600 dark:text-gray-400">
+                        {row.code}
+                      </p>
+                    </div>
+                  ),
+                },
+                {
+                  key: "document",
+                  label: t.serviceProviders.table.document,
+                  sortable: true,
+                  render: (_, row) => (
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {row.cpf || row.cnpj || "-"}
+                    </span>
+                  ),
+                },
+                {
+                  key: "email",
+                  label: t.serviceProviders.table.email,
+                  sortable: true,
+                  render: (_, row) => (
+                    <span className="text-gray-700 dark:text-gray-300">{row.email || "-"}</span>
+                  ),
+                },
+                {
+                  key: "phone",
+                  label: t.serviceProviders.table.phone,
+                  sortable: true,
+                  render: (_, row) => (
+                    <span className="text-gray-700 dark:text-gray-300">{row.phone || "-"}</span>
+                  ),
+                },
+                {
+                  key: "status",
+                  label: t.serviceProviders.table.status,
+                  sortable: true,
+                  render: (_, row) => (
+                    <StatusBadge
+                      label={
+                        row.status === "active"
+                          ? t.serviceProviders.table.active
+                          : t.serviceProviders.table.inactive
+                      }
+                      variant={row.status === "active" ? "success" : "default"}
+                    />
+                  ),
+                },
+              ];
+
+              return (
+                <div className="space-y-6">
+                  <Table<ServiceProvider>
+                    columns={columns}
+                    data={sortedServiceProviders}
+                    header={{
+                      title: t.serviceProviders.title,
+                      badge: {
+                        label: t.serviceProviders.badge.serviceProviders(serviceProviders.length),
+                        variant: "primary",
+                      },
+                      description: t.serviceProviders.description,
+                    }}
+                    sortState={sortState}
+                    onSort={(column, direction) => {
+                      setSortState({ column, direction });
+                    }}
+                    onRowClick={(row) => navigate(getServiceProviderViewRoute(row.id))}
+                    emptyState={{
+                      title: t.serviceProviders.emptyState.title,
+                      description: t.serviceProviders.emptyState.descriptionWithoutSearch,
+                      onAddNew: () => navigate(ROUTES.SERVICE_PROVIDERS_NEW),
+                      addNewLabel: t.serviceProviders.addServiceProvider,
+                    }}
+                  />
+                </div>
+              );
+            })()}
+
+          {cadastrosSubTab === "suppliers" &&
+            (() => {
+              const suppliers = getSuppliersByPropertyId(property.id);
+
+              const sortedSuppliers = [...suppliers].sort((a, b) => {
+                if (!sortState.column || !sortState.direction) {
+                  return 0;
+                }
+
+                const aValue = a[sortState.column as keyof Supplier];
+                const bValue = b[sortState.column as keyof Supplier];
+
+                if (aValue == null && bValue == null) return 0;
+                if (aValue == null) return 1;
+                if (bValue == null) return -1;
+
+                let comparison = 0;
+                if (typeof aValue === "string" && typeof bValue === "string") {
+                  comparison = aValue.localeCompare(bValue, "pt-BR", {
+                    sensitivity: "base",
+                  });
+                } else if (typeof aValue === "number" && typeof bValue === "number") {
+                  comparison = aValue - bValue;
+                } else {
+                  comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
+                }
+
+                return sortState.direction === "asc" ? comparison : -comparison;
+              });
+
+              const columns: TableColumn<Supplier>[] = [
+                {
+                  key: "name",
+                  label: t.suppliers.table.name,
+                  sortable: true,
+                  render: (_, row) => (
+                    <div>
+                      <h2 className="font-medium text-gray-800 dark:text-gray-200">{row.name}</h2>
+                      <p className="text-sm font-normal text-gray-600 dark:text-gray-400">
+                        {row.code}
+                      </p>
+                    </div>
+                  ),
+                },
+                {
+                  key: "document",
+                  label: t.suppliers.table.document,
+                  sortable: true,
+                  render: (_, row) => (
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {row.cpf || row.cnpj || "-"}
+                    </span>
+                  ),
+                },
+                {
+                  key: "email",
+                  label: t.suppliers.table.email,
+                  sortable: true,
+                  render: (_, row) => (
+                    <span className="text-gray-700 dark:text-gray-300">{row.email || "-"}</span>
+                  ),
+                },
+                {
+                  key: "phone",
+                  label: t.suppliers.table.phone,
+                  sortable: true,
+                  render: (_, row) => (
+                    <span className="text-gray-700 dark:text-gray-300">{row.phone || "-"}</span>
+                  ),
+                },
+                {
+                  key: "status",
+                  label: t.suppliers.table.status,
+                  sortable: true,
+                  render: (_, row) => (
+                    <StatusBadge
+                      label={
+                        row.status === "active"
+                          ? t.suppliers.table.active
+                          : t.suppliers.table.inactive
+                      }
+                      variant={row.status === "active" ? "success" : "default"}
+                    />
+                  ),
+                },
+              ];
+
+              return (
+                <div className="space-y-6">
+                  <Table<Supplier>
+                    columns={columns}
+                    data={sortedSuppliers}
+                    header={{
+                      title: t.suppliers.title,
+                      badge: {
+                        label: t.suppliers.badge.suppliers(suppliers.length),
+                        variant: "primary",
+                      },
+                      description: t.suppliers.description,
+                    }}
+                    sortState={sortState}
+                    onSort={(column, direction) => {
+                      setSortState({ column, direction });
+                    }}
+                    onRowClick={(row) => navigate(getSupplierViewRoute(row.id))}
+                    emptyState={{
+                      title: t.suppliers.emptyState.title,
+                      description: t.suppliers.emptyState.descriptionWithoutSearch,
+                      onAddNew: () => navigate(ROUTES.SUPPLIERS_NEW),
+                      addNewLabel: t.suppliers.addSupplier,
+                    }}
+                  />
+                </div>
+              );
+            })()}
+
+          {cadastrosSubTab === "buyers" &&
+            (() => {
+              const buyers = getBuyersByPropertyId(property.id);
+
+              const sortedBuyers = [...buyers].sort((a, b) => {
+                if (!sortState.column || !sortState.direction) {
+                  return 0;
+                }
+
+                const aValue = a[sortState.column as keyof Buyer];
+                const bValue = b[sortState.column as keyof Buyer];
+
+                if (aValue == null && bValue == null) return 0;
+                if (aValue == null) return 1;
+                if (bValue == null) return -1;
+
+                let comparison = 0;
+                if (typeof aValue === "string" && typeof bValue === "string") {
+                  comparison = aValue.localeCompare(bValue, "pt-BR", {
+                    sensitivity: "base",
+                  });
+                } else if (typeof aValue === "number" && typeof bValue === "number") {
+                  comparison = aValue - bValue;
+                } else {
+                  comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
+                }
+
+                return sortState.direction === "asc" ? comparison : -comparison;
+              });
+
+              const columns: TableColumn<Buyer>[] = [
+                {
+                  key: "name",
+                  label: t.buyers.table.name,
+                  sortable: true,
+                  render: (_, row) => (
+                    <div>
+                      <h2 className="font-medium text-gray-800 dark:text-gray-200">{row.name}</h2>
+                      <p className="text-sm font-normal text-gray-600 dark:text-gray-400">
+                        {row.code}
+                      </p>
+                    </div>
+                  ),
+                },
+                {
+                  key: "document",
+                  label: t.buyers.table.document,
+                  sortable: true,
+                  render: (_, row) => (
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {row.cpf || row.cnpj || "-"}
+                    </span>
+                  ),
+                },
+                {
+                  key: "email",
+                  label: t.buyers.table.email,
+                  sortable: true,
+                  render: (_, row) => (
+                    <span className="text-gray-700 dark:text-gray-300">{row.email || "-"}</span>
+                  ),
+                },
+                {
+                  key: "phone",
+                  label: t.buyers.table.phone,
+                  sortable: true,
+                  render: (_, row) => (
+                    <span className="text-gray-700 dark:text-gray-300">{row.phone || "-"}</span>
+                  ),
+                },
+                {
+                  key: "status",
+                  label: t.buyers.table.status,
+                  sortable: true,
+                  render: (_, row) => (
+                    <StatusBadge
+                      label={
+                        row.status === "active" ? t.buyers.table.active : t.buyers.table.inactive
+                      }
+                      variant={row.status === "active" ? "success" : "default"}
+                    />
+                  ),
+                },
+              ];
+
+              return (
+                <div className="space-y-6">
+                  <Table<Buyer>
+                    columns={columns}
+                    data={sortedBuyers}
+                    header={{
+                      title: t.buyers.title,
+                      badge: {
+                        label: t.buyers.badge.buyers(buyers.length),
+                        variant: "primary",
+                      },
+                      description: t.buyers.description,
+                    }}
+                    sortState={sortState}
+                    onSort={(column, direction) => {
+                      setSortState({ column, direction });
+                    }}
+                    onRowClick={(row) => navigate(getBuyerViewRoute(row.id))}
+                    emptyState={{
+                      title: t.buyers.emptyState.title,
+                      description: t.buyers.emptyState.descriptionWithoutSearch,
+                      onAddNew: () => navigate(ROUTES.BUYERS_NEW),
+                      addNewLabel: t.buyers.addBuyer,
+                    }}
+                  />
+                </div>
+              );
+            })()}
+        </div>
+      )}
 
       {activeTab === "activities" && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">

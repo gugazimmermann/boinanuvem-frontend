@@ -35,4 +35,3 @@ export interface EmployeeFormData {
   state?: string;
   zipCode?: string;
 }
-

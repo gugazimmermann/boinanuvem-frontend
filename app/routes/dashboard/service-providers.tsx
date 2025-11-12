@@ -30,7 +30,9 @@ export function meta() {
 export default function ServiceProviders() {
   const t = useTranslation();
   const navigate = useNavigate();
-  const [serviceProviders, setServiceProviders] = useState<ServiceProvider[]>([...mockServiceProviders]);
+  const [serviceProviders, setServiceProviders] = useState<ServiceProvider[]>([
+    ...mockServiceProviders,
+  ]);
   const [sortState, setSortState] = useState<{
     column: string | null;
     direction: SortDirection;
@@ -44,7 +46,9 @@ export default function ServiceProviders() {
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [selectedServiceProvider, setSelectedServiceProvider] = useState<ServiceProvider | null>(null);
+  const [selectedServiceProvider, setSelectedServiceProvider] = useState<ServiceProvider | null>(
+    null
+  );
   const [alertMessage, setAlertMessage] = useState<{
     title: string;
     variant: "success" | "error" | "warning" | "info";
@@ -100,8 +104,8 @@ export default function ServiceProviders() {
       return 0;
     }
 
-    let aValue = a[sortState.column];
-    let bValue = b[sortState.column];
+    const aValue = a[sortState.column];
+    const bValue = b[sortState.column];
 
     if (aValue == null && bValue == null) return 0;
     if (aValue == null) return 1;
@@ -136,9 +140,7 @@ export default function ServiceProviders() {
       render: (_, row) => (
         <div>
           <h2 className="font-medium text-gray-800 dark:text-gray-200">{row.name}</h2>
-          <p className="text-sm font-normal text-gray-600 dark:text-gray-400">
-            {row.code}
-          </p>
+          <p className="text-sm font-normal text-gray-600 dark:text-gray-400">{row.code}</p>
         </div>
       ),
     },
@@ -196,7 +198,11 @@ export default function ServiceProviders() {
       sortable: true,
       render: (_, row) => (
         <StatusBadge
-          label={row.status === "active" ? t.serviceProviders.table.active : t.serviceProviders.table.inactive}
+          label={
+            row.status === "active"
+              ? t.serviceProviders.table.active
+              : t.serviceProviders.table.inactive
+          }
           variant={row.status === "active" ? "success" : "default"}
         />
       ),
@@ -330,4 +336,3 @@ export default function ServiceProviders() {
     </div>
   );
 }
-

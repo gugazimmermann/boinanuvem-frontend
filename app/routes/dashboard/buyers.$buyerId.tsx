@@ -53,9 +53,7 @@ export default function BuyerDetails() {
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{buyer.name}</h1>
             <StatusBadge
-              label={
-                buyer.status === "active" ? t.buyers.table.active : t.buyers.table.inactive
-              }
+              label={buyer.status === "active" ? t.buyers.table.active : t.buyers.table.inactive}
               variant={buyer.status === "active" ? "success" : "default"}
             />
           </div>
@@ -385,9 +383,7 @@ export default function BuyerDetails() {
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   {t.buyers.details.statusLabel}:{" "}
-                  {buyer.status === "active"
-                    ? t.buyers.table.active
-                    : t.buyers.table.inactive}
+                  {buyer.status === "active" ? t.buyers.table.active : t.buyers.table.inactive}
                 </p>
               </div>
             </div>
@@ -397,4 +393,3 @@ export default function BuyerDetails() {
     </div>
   );
 }
-
