@@ -211,11 +211,11 @@ export default function PropertyDetails() {
                     {t.properties.table.area}
                   </p>
                   <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                    {property.area.toLocaleString("pt-BR", {
-                      minimumFractionDigits: 1,
-                      maximumFractionDigits: 1,
+                    {property.area.value.toLocaleString("pt-BR", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
                     })}{" "}
-                    ha
+                    {formatAreaType(property.area.type)}
                   </p>
                 </div>
                 <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
@@ -311,11 +311,11 @@ export default function PropertyDetails() {
                     {t.properties.table.area}
                   </p>
                   <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
-                    {property.area.toLocaleString("pt-BR", {
-                      minimumFractionDigits: 1,
-                      maximumFractionDigits: 1,
+                    {property.area.value.toLocaleString("pt-BR", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
                     })}{" "}
-                    hectares
+                    {formatAreaType(property.area.type)}
                   </p>
                 </div>
                 <div>
@@ -482,8 +482,8 @@ export default function PropertyDetails() {
               render: (_, row) => (
                 <span className="text-gray-700 dark:text-gray-300">
                   {row.area.value.toLocaleString("pt-BR", {
-                    minimumFractionDigits: 1,
-                    maximumFractionDigits: 1,
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
                   })}{" "}
                   {formatAreaType(row.area.type)}
                 </span>

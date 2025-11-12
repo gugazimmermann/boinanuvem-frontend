@@ -1,4 +1,5 @@
 import type { Property, PropertyFormData } from "~/types";
+import { AreaType } from "~/types";
 
 export type { Property, PropertyFormData };
 
@@ -7,7 +8,10 @@ export const mockProperties: Property[] = [
     id: "550e8400-e29b-41d4-a716-446655440010",
     code: "001",
     name: "Fazenda do Juca",
-    area: 150.5,
+    area: {
+      value: 150.5,
+      type: AreaType.HECTARES,
+    },
     status: "active",
     createdAt: "2024-01-15",
     companyId: "550e8400-e29b-41d4-a716-446655440000",
@@ -25,7 +29,10 @@ export const mockProperties: Property[] = [
     id: "550e8400-e29b-41d4-a716-446655440011",
     code: "002",
     name: "Sítio Limoeiro",
-    area: 85.2,
+    area: {
+      value: 85.2,
+      type: AreaType.HECTARES,
+    },
     status: "active",
     createdAt: "2024-02-20",
     companyId: "550e8400-e29b-41d4-a716-446655440000",
@@ -43,7 +50,10 @@ export const mockProperties: Property[] = [
     id: "550e8400-e29b-41d4-a716-446655440012",
     code: "003",
     name: "Chácara do Juca",
-    area: 45.8,
+    area: {
+      value: 45.8,
+      type: AreaType.HECTARES,
+    },
     status: "active",
     createdAt: "2024-03-10",
     companyId: "550e8400-e29b-41d4-a716-446655440000",

@@ -14,8 +14,21 @@ import {
 import { useTranslation } from "~/i18n";
 import { mockProperties, deleteProperty } from "~/mocks/properties";
 import type { Property } from "~/types";
+import { AreaType } from "~/types";
 import { getLocationsByPropertyId } from "~/mocks/locations";
 import { ROUTES, getPropertyEditRoute, getPropertyViewRoute } from "~/routes.config";
+
+const formatAreaType = (type: AreaType): string => {
+  const typeMap: Record<AreaType, string> = {
+    [AreaType.HECTARES]: "ha",
+    [AreaType.SQUARE_METERS]: "m²",
+    [AreaType.SQUARE_FEET]: "ft²",
+    [AreaType.ACRES]: "ac",
+    [AreaType.SQUARE_KILOMETERS]: "km²",
+    [AreaType.SQUARE_MILES]: "mi²",
+  };
+  return typeMap[type] || type;
+};
 
 export function meta() {
   return [
@@ -97,8 +110,14 @@ export default function Properties() {
       return 0;
     }
 
-    const aValue = a[sortState.column];
-    const bValue = b[sortState.column];
+    let aValue = a[sortState.column];
+    let bValue = b[sortState.column];
+
+    // Handle area sorting (area is now an object)
+    if (sortState.column === "area") {
+      aValue = a.area.value;
+      bValue = b.area.value;
+    }
 
     if (aValue == null && bValue == null) return 0;
     if (aValue == null) return 1;
@@ -143,13 +162,13 @@ export default function Properties() {
       key: "area",
       label: t.properties.table.area,
       sortable: true,
-      render: (value) => (
+      render: (_, row) => (
         <span className="text-gray-700 dark:text-gray-300">
-          {(value as number).toLocaleString("pt-BR", {
-            minimumFractionDigits: 1,
-            maximumFractionDigits: 1,
+          {row.area.value.toLocaleString("pt-BR", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
           })}{" "}
-          ha
+          {formatAreaType(row.area.type)}
         </span>
       ),
     },

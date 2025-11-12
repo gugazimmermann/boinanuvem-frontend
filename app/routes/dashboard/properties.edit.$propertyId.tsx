@@ -8,6 +8,7 @@ import { mapCEPDataToAddressForm } from "~/components/site/utils";
 import { ROUTES, getPropertyViewRoute } from "~/routes.config";
 import { getPropertyById, updateProperty } from "~/mocks/properties";
 import type { PropertyFormData } from "~/types";
+import { AreaType } from "~/types";
 
 export function meta() {
   return [
@@ -30,7 +31,8 @@ export default function EditProperty() {
     name: string;
     city: string;
     state: string;
-    area: string;
+    areaValue: string;
+    areaType: AreaType;
     status: "active" | "inactive";
     zipCode: string;
     street: string;
@@ -42,7 +44,8 @@ export default function EditProperty() {
     name: "",
     city: "",
     state: "",
-    area: "",
+    areaValue: "",
+    areaType: AreaType.HECTARES,
     status: "active",
     zipCode: "",
     street: "",
@@ -58,7 +61,8 @@ export default function EditProperty() {
         name: property.name,
         city: property.city,
         state: property.state,
-        area: property.area.toString(),
+        areaValue: property.area.value.toString(),
+        areaType: property.area.type,
         status: property.status,
         zipCode: property.zipCode,
         street: property.street,
@@ -101,9 +105,9 @@ export default function EditProperty() {
     }, 3000);
   };
 
-  const handleChange = (field: keyof typeof formData, value: string) => {
+  const handleChange = (field: keyof typeof formData, value: string | AreaType) => {
     if (field === "zipCode") {
-      setFormData((prev) => ({ ...prev, [field]: maskCEP(value) }));
+      setFormData((prev) => ({ ...prev, [field]: maskCEP(value as string) }));
     } else {
       setFormData((prev) => ({ ...prev, [field]: value }));
     }
@@ -131,12 +135,12 @@ export default function EditProperty() {
     if (!formData.state?.trim()) {
       newErrors.state = t.profile.errors.required(t.profile.company.fields.state);
     }
-    if (!formData.area?.trim()) {
-      newErrors.area = t.profile.errors.required(t.properties.edit.areaLabel);
+    if (!formData.areaValue?.trim()) {
+      newErrors.areaValue = t.profile.errors.required(t.properties.edit.areaLabel);
     } else {
-      const areaNum = parseFloat(formData.area);
+      const areaNum = parseFloat(formData.areaValue);
       if (isNaN(areaNum) || areaNum <= 0) {
-        newErrors.area = t.properties.edit.areaValidationError;
+        newErrors.areaValue = t.properties.edit.areaValidationError;
       }
     }
 
@@ -153,7 +157,10 @@ export default function EditProperty() {
       const propertyData: Partial<PropertyFormData> = {
         code: formData.code,
         name: formData.name,
-        area: parseFloat(formData.area),
+        area: {
+          value: parseFloat(formData.areaValue),
+          type: formData.areaType,
+        },
         status: formData.status,
         street: formData.street,
         number: formData.number,
@@ -315,18 +322,45 @@ export default function EditProperty() {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Input
                 label={t.properties.edit.areaLabel}
                 type="number"
                 step="0.1"
                 min="0"
-                value={formData.area}
-                onChange={(e) => handleChange("area", e.target.value)}
-                error={errors.area}
+                value={formData.areaValue}
+                onChange={(e) => handleChange("areaValue", e.target.value)}
+                error={errors.areaValue}
                 disabled={isSubmitting}
                 required
               />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {t.locations.areaType} <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.areaType}
+                  onChange={(e) => handleChange("areaType", e.target.value as AreaType)}
+                  disabled={isSubmitting}
+                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200 ${
+                    errors.areaType ? "border-red-500" : "border-gray-300 dark:border-gray-600"
+                  }`}
+                >
+                  <option value={AreaType.HECTARES}>{t.locations.areaTypes.hectares}</option>
+                  <option value={AreaType.SQUARE_METERS}>
+                    {t.locations.areaTypes.square_meters}
+                  </option>
+                  <option value={AreaType.SQUARE_FEET}>{t.locations.areaTypes.square_feet}</option>
+                  <option value={AreaType.ACRES}>{t.locations.areaTypes.acres}</option>
+                  <option value={AreaType.SQUARE_KILOMETERS}>
+                    {t.locations.areaTypes.square_kilometers}
+                  </option>
+                  <option value={AreaType.SQUARE_MILES}>
+                    {t.locations.areaTypes.square_miles}
+                  </option>
+                </select>
+                {errors.areaType && <p className="mt-1 text-sm text-red-500">{errors.areaType}</p>}
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {t.properties.edit.statusLabel}

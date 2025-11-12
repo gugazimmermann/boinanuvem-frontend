@@ -86,7 +86,84 @@ export function TablePagination({
   }, [currentPage, totalPages]);
 
   const showPageNumbers = totalPages > 1;
+  const showPagination = totalPages > 1;
+  const hasLessThan10Pages = totalPages < 10;
 
+  if (!showPagination) {
+    return null;
+  }
+
+  // Style for less than 10 pages: centered, always visible page numbers
+  if (hasLessThan10Pages) {
+    return (
+      <div className={`${slim ? "mt-2" : "mt-4"} flex items-center justify-center gap-2`}>
+        <button
+          onClick={handlePrevious}
+          disabled={currentPage === 1}
+          className={`flex items-center ${slim ? "px-3 py-1.5 text-xs" : "px-4 py-2 text-sm"} text-gray-700 dark:text-gray-300 capitalize transition-colors duration-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md gap-x-2 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer`}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={1.5}
+            stroke="currentColor"
+            className={`${slim ? "w-4 h-4" : "w-5 h-5"} rtl:-scale-x-100`}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M6.75 15.75L3 12m0 0l3.75-3.75M3 12h18"
+            />
+          </svg>
+          <span className="hidden sm:inline">anterior</span>
+        </button>
+
+        <div className={`flex items-center ${slim ? "gap-x-1.5" : "gap-x-2"}`}>
+          {pageNumbers.map((page) => {
+            const isActive = page === currentPage;
+            return (
+              <button
+                key={page}
+                onClick={() => onPageChange(page)}
+                className={`${slim ? "px-2 py-1 text-xs min-w-[28px]" : "px-3 py-1.5 text-sm min-w-[36px]"} rounded-md transition-colors duration-200 cursor-pointer ${
+                  isActive
+                    ? "text-blue-500 dark:text-blue-400 bg-blue-100/60 dark:bg-blue-900/30 font-medium"
+                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                }`}
+              >
+                {page}
+              </button>
+            );
+          })}
+        </div>
+
+        <button
+          onClick={handleNext}
+          disabled={currentPage === totalPages}
+          className={`flex items-center ${slim ? "px-3 py-1.5 text-xs" : "px-4 py-2 text-sm"} text-gray-700 dark:text-gray-300 capitalize transition-colors duration-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md gap-x-2 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer`}
+        >
+          <span className="hidden sm:inline">Próximo</span>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={1.5}
+            stroke="currentColor"
+            className={`${slim ? "w-4 h-4" : "w-5 h-5"} rtl:-scale-x-100`}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3"
+            />
+          </svg>
+        </button>
+      </div>
+    );
+  }
+
+  // Style for 10+ pages: justify-between with ellipsis, page numbers hidden on mobile
   return (
     <div className={`${slim ? "mt-2" : "mt-4"} flex items-center justify-between`}>
       <button

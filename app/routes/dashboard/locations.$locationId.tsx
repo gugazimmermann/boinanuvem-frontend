@@ -184,8 +184,8 @@ export default function LocationDetails() {
                   </p>
                   <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
                     {location.area.value.toLocaleString("pt-BR", {
-                      minimumFractionDigits: 1,
-                      maximumFractionDigits: 1,
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
                     })}{" "}
                     {formatAreaType(location.area.type)}
                   </p>
@@ -293,8 +293,8 @@ export default function LocationDetails() {
                   </p>
                   <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
                     {location.area.value.toLocaleString("pt-BR", {
-                      minimumFractionDigits: 1,
-                      maximumFractionDigits: 1,
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
                     })}{" "}
                     {formatAreaType(location.area.type)}
                   </p>

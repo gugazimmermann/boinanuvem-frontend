@@ -193,8 +193,8 @@ export default function Locations() {
       render: (_, row) => (
         <span className="text-gray-700 dark:text-gray-300">
           {row.area.value.toLocaleString("pt-BR", {
-            minimumFractionDigits: 1,
-            maximumFractionDigits: 1,
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
           })}{" "}
           {formatAreaType(row.area.type)}
         </span>

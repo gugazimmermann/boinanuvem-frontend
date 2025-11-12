@@ -2,11 +2,13 @@
  * Property-related types
  */
 
+import type { Area } from "./location";
+
 export interface Property extends Record<string, unknown> {
   id: string;
   code: string;
   name: string;
-  area: number;
+  area: Area;
   status: "active" | "inactive";
   createdAt: string;
   companyId: string;
@@ -24,7 +26,7 @@ export interface Property extends Record<string, unknown> {
 export interface PropertyFormData {
   code: string;
   name: string;
-  area: number;
+  area: Area;
   status: "active" | "inactive";
   companyId: string;
   street: string;
