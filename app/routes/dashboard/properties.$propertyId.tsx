@@ -3,10 +3,11 @@ import { useParams, useNavigate } from "react-router";
 import { Button, StatusBadge, Table, type TableColumn, type SortDirection, PasturePlanningGraph } from "~/components/ui";
 import { PropertyMap } from "~/components/ui/property-map";
 import { useTranslation } from "~/i18n";
-import { ROUTES, getPropertyEditRoute, getLocationViewRoute } from "~/routes.config";
+import { ROUTES, getPropertyEditRoute, getLocationViewRoute, getEmployeeViewRoute } from "~/routes.config";
 import { getPropertyById } from "~/mocks/properties";
 import { getLocationsByPropertyId } from "~/mocks/locations";
-import type { Location } from "~/types";
+import { getEmployeesByPropertyId } from "~/mocks/employees";
+import type { Location, Employee } from "~/types";
 import { AreaType } from "~/types";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
 import { LocationTypeBadge } from "~/components/dashboard/utils/location-type-badge";
@@ -39,7 +40,7 @@ export default function PropertyDetails() {
   const navigate = useNavigate();
   const t = useTranslation();
   const property = getPropertyById(propertyId);
-  const [activeTab, setActiveTab] = useState<"information" | "info" | "locations" | "activities">(
+  const [activeTab, setActiveTab] = useState<"information" | "info" | "locations" | "employees" | "activities">(
     "information"
   );
   const [sortState, setSortState] = useState<{
@@ -179,6 +180,24 @@ export default function PropertyDetails() {
             }
           >
             {t.properties.details.tabs.locations}
+          </button>
+          <button
+            onClick={() => setActiveTab("employees")}
+            className={`
+              py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
+              ${
+                activeTab === "employees"
+                  ? "dark:text-blue-400"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+              }
+            `}
+            style={
+              activeTab === "employees"
+                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
+                : undefined
+            }
+          >
+            {t.properties.details.tabs.employees}
           </button>
           <button
             onClick={() => setActiveTab("activities")}
@@ -579,6 +598,124 @@ export default function PropertyDetails() {
                   description: t.locations.emptyState.descriptionWithoutSearch,
                   onAddNew: () => navigate(ROUTES.LOCATIONS_NEW),
                   addNewLabel: t.locations.addLocation,
+                }}
+              />
+            </div>
+          );
+        })()}
+
+      {activeTab === "employees" &&
+        property &&
+        (() => {
+          const employees = getEmployeesByPropertyId(property.id);
+
+          const sortedEmployees = [...employees].sort((a, b) => {
+            if (!sortState.column || !sortState.direction) {
+              return 0;
+            }
+
+            let aValue = a[sortState.column as keyof Employee];
+            let bValue = b[sortState.column as keyof Employee];
+
+            if (aValue == null && bValue == null) return 0;
+            if (aValue == null) return 1;
+            if (bValue == null) return -1;
+
+            let comparison = 0;
+            if (typeof aValue === "string" && typeof bValue === "string") {
+              comparison = aValue.localeCompare(bValue, "pt-BR", {
+                sensitivity: "base",
+              });
+            } else if (typeof aValue === "number" && typeof bValue === "number") {
+              comparison = aValue - bValue;
+            } else {
+              comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
+            }
+
+            return sortState.direction === "asc" ? comparison : -comparison;
+          });
+
+          const columns: TableColumn<Employee>[] = [
+            {
+              key: "name",
+              label: t.employees.table.name,
+              sortable: true,
+              render: (_, row) => (
+                <div>
+                  <h2 className="font-medium text-gray-800 dark:text-gray-200">{row.name}</h2>
+                  <p className="text-sm font-normal text-gray-600 dark:text-gray-400">{row.code}</p>
+                </div>
+              ),
+            },
+            {
+              key: "cpf",
+              label: t.employees.table.cpf,
+              sortable: true,
+              render: (_, row) => (
+                <span className="text-gray-700 dark:text-gray-300">{row.cpf || "-"}</span>
+              ),
+            },
+            {
+              key: "email",
+              label: t.employees.table.email,
+              sortable: true,
+              render: (_, row) => (
+                <span className="text-gray-700 dark:text-gray-300">{row.email || "-"}</span>
+              ),
+            },
+            {
+              key: "phone",
+              label: t.employees.table.phone,
+              sortable: true,
+              render: (_, row) => (
+                <span className="text-gray-700 dark:text-gray-300">{row.phone || "-"}</span>
+              ),
+            },
+            {
+              key: "status",
+              label: t.employees.table.status,
+              sortable: true,
+              render: (_, row) => (
+                <StatusBadge
+                  label={
+                    row.status === "active" ? t.employees.table.active : t.employees.table.inactive
+                  }
+                  variant={row.status === "active" ? "success" : "default"}
+                />
+              ),
+            },
+            {
+              key: "actions",
+              label: "",
+              headerClassName: "relative",
+              render: (_, row) => (
+                <TableActionButtons onView={() => navigate(getEmployeeViewRoute(row.id))} />
+              ),
+            },
+          ];
+
+          return (
+            <div className="space-y-6">
+              <Table<Employee>
+                columns={columns}
+                data={sortedEmployees}
+                header={{
+                  title: t.employees.title,
+                  badge: {
+                    label: t.employees.badge.employees(employees.length),
+                    variant: "primary",
+                  },
+                  description: t.employees.description,
+                }}
+                sortState={sortState}
+                onSort={(column, direction) => {
+                  setSortState({ column, direction });
+                }}
+                emptyState={{
+                  title: t.employees.emptyState.title,
+                  description: t.employees.emptyState.descriptionWithoutSearch,
+                  onAddNew: () => navigate(ROUTES.EMPLOYEES_NEW),
+                  addNewLabel: t.employees.addEmployee,
                 }}
               />
             </div>

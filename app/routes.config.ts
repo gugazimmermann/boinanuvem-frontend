@@ -14,6 +14,10 @@ export const ROUTES = {
   LOCATIONS_NEW: "/dashboard/localizacoes/novo",
   LOCATIONS_EDIT: "/dashboard/localizacoes/:locationId/editar",
   LOCATIONS_VIEW: "/dashboard/localizacoes/:locationId",
+  EMPLOYEES: "/dashboard/funcionarios",
+  EMPLOYEES_NEW: "/dashboard/funcionarios/novo",
+  EMPLOYEES_EDIT: "/dashboard/funcionarios/:employeeId/editar",
+  EMPLOYEES_VIEW: "/dashboard/funcionarios/:employeeId",
   PROFILE: "/dashboard/perfil",
   TEAM: "/dashboard/equipe",
   TEAM_NEW: "/dashboard/equipe/novo",
@@ -49,6 +53,14 @@ export function getLocationViewRoute(locationId: string): string {
   return `/dashboard/localizacoes/${locationId}`;
 }
 
+export function getEmployeeEditRoute(employeeId: string): string {
+  return `/dashboard/funcionarios/${employeeId}/editar`;
+}
+
+export function getEmployeeViewRoute(employeeId: string): string {
+  return `/dashboard/funcionarios/${employeeId}`;
+}
+
 export const ROUTE_NAMES = {
   HOME: "",
   LOGIN: "entrar",
@@ -65,6 +77,10 @@ export const ROUTE_NAMES = {
   LOCATIONS_NEW: "localizacoes/novo",
   LOCATIONS_EDIT: "localizacoes/:locationId/editar",
   LOCATIONS_VIEW: "localizacoes/:locationId",
+  EMPLOYEES: "funcionarios",
+  EMPLOYEES_NEW: "funcionarios/novo",
+  EMPLOYEES_EDIT: "funcionarios/:employeeId/editar",
+  EMPLOYEES_VIEW: "funcionarios/:employeeId",
   PROFILE: "perfil",
   USER_PROFILE: "perfil/usuario/:userId",
   TEAM: "equipe",
