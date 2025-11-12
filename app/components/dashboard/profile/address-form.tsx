@@ -1,9 +1,10 @@
-import { Input } from "~/components/ui";
+import { Input, Select } from "~/components/ui";
 import { useCEPLookup } from "~/components/site/hooks/use-cep-lookup";
 import { mapCEPDataToAddressForm } from "~/components/site/utils/cep-utils";
 import { maskCEP, unmaskCEP } from "~/components/site/utils/masks";
 import { useTranslation } from "~/i18n";
 import type { AddressFormData } from "~/components/site/utils/cep-utils";
+import { BRAZILIAN_STATES } from "~/utils/brazilian-states";
 
 interface AddressFormProps {
   data: Partial<AddressFormData>;
@@ -96,13 +97,16 @@ export function AddressForm({ data, errors, onChange, disabled = false }: Addres
           />
         </div>
         <div>
-          <Input
+          <Select
             label={fieldLabels.state}
             value={data.state || ""}
             onChange={(e) => onChange("state", e.target.value)}
             error={errors.state}
             disabled={disabled || zipCodeLoading}
-            maxLength={2}
+            options={BRAZILIAN_STATES.map((state) => ({
+              value: state.code,
+              label: state.code,
+            }))}
           />
         </div>
       </div>

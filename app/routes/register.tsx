@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { AuthLayout } from "../components/site/auth-layout";
-import { AuthInput, AuthButton } from "../components/site/ui";
+import { AuthInput, AuthButton, AuthSelect } from "../components/site/ui";
 import { COLORS } from "../components/site/constants";
 import { ROUTES } from "../routes.config";
 import { useCNPJLookup, type CNPJData, useCEPLookup, type CEPData } from "../components/site/hooks";
@@ -16,6 +16,7 @@ import {
   geocodeAddress,
   buildAddressString,
 } from "../components/site/utils";
+import { BRAZILIAN_STATES } from "../utils/brazilian-states";
 
 export function meta() {
   return [
@@ -454,14 +455,16 @@ export default function Register() {
                     />
                   </div>
                   <div>
-                    <AuthInput
-                      type="text"
-                      placeholder="Estado"
+                    <AuthSelect
                       aria-label="Estado"
                       className="mt-0"
                       value={companyData.state}
                       onChange={(e) => handleCompanyDataChange("state", e.target.value)}
                       error={companyErrors.state}
+                      options={BRAZILIAN_STATES.map((state) => ({
+                        value: state.code,
+                        label: state.code,
+                      }))}
                       required
                     />
                   </div>
@@ -597,13 +600,15 @@ export default function Register() {
                     />
                   </div>
                   <div>
-                    <AuthInput
-                      type="text"
-                      placeholder="Estado"
+                    <AuthSelect
                       aria-label="Estado"
                       className="mt-0"
                       value={userData.state}
                       onChange={(e) => setUserData((prev) => ({ ...prev, state: e.target.value }))}
+                      options={BRAZILIAN_STATES.map((state) => ({
+                        value: state.code,
+                        label: state.code,
+                      }))}
                     />
                   </div>
                 </div>

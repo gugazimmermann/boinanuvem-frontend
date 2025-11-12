@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
-import { Input, Button, Alert } from "~/components/ui";
+import { Input, Select, Button, Alert } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { maskCEP, unmaskCEP } from "~/components/site/utils/masks";
 import { useCEPLookup, type CEPData } from "~/components/site/hooks";
@@ -9,6 +9,7 @@ import { ROUTES, getPropertyViewRoute } from "~/routes.config";
 import { getPropertyById, updateProperty } from "~/mocks/properties";
 import type { PropertyFormData } from "~/types";
 import { AreaType } from "~/types";
+import { BRAZILIAN_STATES } from "~/utils/brazilian-states";
 
 export function meta() {
   return [
@@ -310,14 +311,16 @@ export default function EditProperty() {
                 disabled={isSubmitting || zipCodeLoading}
                 required
               />
-              <Input
+              <Select
                 label={t.profile.company.fields.state}
                 value={formData.state}
                 onChange={(e) => handleChange("state", e.target.value)}
                 error={errors.state}
                 disabled={isSubmitting || zipCodeLoading}
-                maxLength={2}
-                placeholder="SC"
+                options={BRAZILIAN_STATES.map((state) => ({
+                  value: state.code,
+                  label: state.code,
+                }))}
                 required
               />
             </div>
