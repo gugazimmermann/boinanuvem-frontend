@@ -33,12 +33,10 @@ export function PropertyMap({
 
     let mounted = true;
 
-    // Dynamically import Leaflet only on client side
     import("leaflet")
       .then((L) => {
         if (!mounted || !mapRef.current) return;
 
-        // Fix for default marker icon issue
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         delete (L.default as any).Icon.Default.prototype._getIconUrl;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -80,9 +78,7 @@ export function PropertyMap({
         );
       });
 
-    import("leaflet/dist/leaflet.css").catch(() => {
-      // CSS import failure is not critical
-    });
+    import("leaflet/dist/leaflet.css").catch(() => {});
 
     const cleanup = () => {
       mounted = false;

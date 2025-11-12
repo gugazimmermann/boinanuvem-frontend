@@ -1,7 +1,3 @@
-/**
- * Table component types
- */
-
 import type { ReactNode } from "react";
 
 export type SortDirection = "asc" | "desc" | null;

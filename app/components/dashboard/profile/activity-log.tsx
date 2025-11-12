@@ -33,7 +33,6 @@ export function ActivityLog({
     }).format(date);
   };
 
-  // Reset to first page when search changes
   useEffect(() => {
     setCurrentPage(1);
   }, [searchValue]);

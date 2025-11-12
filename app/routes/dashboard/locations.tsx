@@ -114,13 +114,11 @@ export default function Locations() {
     let aValue = a[sortState.column];
     let bValue = b[sortState.column];
 
-    // Handle area sorting (area is now an object)
     if (sortState.column === "area") {
       aValue = a.area.value;
       bValue = b.area.value;
     }
 
-    // Handle locationType sorting (it's an enum, compare as string)
     if (sortState.column === "locationType") {
       aValue = a.locationType;
       bValue = b.locationType;

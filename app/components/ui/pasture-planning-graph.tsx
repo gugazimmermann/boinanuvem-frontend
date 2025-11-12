@@ -21,10 +21,10 @@ interface PasturePlanningGraphProps {
 }
 
 const CLASSIFICATION_COLORS = {
-  Poor: "oklch(60% 0.2 25)", // Red
-  Medium: "oklch(70% 0.2 80)", // Yellow/Orange
-  Good: "oklch(65% 0.2 150)", // Green
-  Excellent: "oklch(60% 0.25 180)", // Blue
+  Poor: "oklch(60% 0.2 25)",
+  Medium: "oklch(70% 0.2 80)",
+  Good: "oklch(65% 0.2 150)",
+  Excellent: "oklch(60% 0.25 180)",
 } as const;
 
 const CLASSIFICATION_COLORS_DARK = {
@@ -62,7 +62,6 @@ export function PasturePlanningGraph({ data }: PasturePlanningGraphProps) {
     );
   }
 
-  // Height mapping for classification bars: Excellent (largest) -> Poor (smallest)
   const classificationHeightMap: Record<string, number> = {
     Excellent: 4,
     Good: 3,
@@ -70,7 +69,6 @@ export function PasturePlanningGraph({ data }: PasturePlanningGraphProps) {
     Poor: 1,
   };
 
-  // Transform data for the chart
   const chartData = data.map((d) => ({
     month: monthMap[d.month] || d.month.substring(0, 3),
     min: d.min,
@@ -207,7 +205,6 @@ export function PasturePlanningGraph({ data }: PasturePlanningGraphProps) {
                 position="insideBottom"
                 formatter={(value: string) => {
                   const translated = t.properties.details.pasturePlanning.classification[value as keyof typeof t.properties.details.pasturePlanning.classification] || value;
-                  // Show abbreviated version for better fit
                   return translated.length > 6 ? translated.substring(0, 4) : translated;
                 }}
                 style={{ fill: isDark ? "#ffffff" : "#000000", fontSize: 9, fontWeight: "bold" }}

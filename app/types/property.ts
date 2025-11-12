@@ -1,7 +1,3 @@
-/**
- * Property-related types
- */
-
 import type { Area } from "./location";
 
 export interface PasturePlanningMonth {

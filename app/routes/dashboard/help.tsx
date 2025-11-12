@@ -3,8 +3,6 @@ import { useState, useMemo } from "react";
 import { useTranslation } from "~/i18n";
 
 export function meta(_args: Route.MetaArgs) {
-  // Note: meta functions run at build time, so translations aren't available here
-  // These are static and will be the same for all languages
   return [
     { title: "Help - Boi na Nuvem" },
     {

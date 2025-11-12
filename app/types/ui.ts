@@ -1,7 +1,3 @@
-/**
- * UI component-related types
- */
-
 import type { ReactNode } from "react";
 
 export interface ConfirmationModalProps {

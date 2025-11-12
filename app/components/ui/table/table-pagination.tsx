@@ -93,7 +93,6 @@ export function TablePagination({
     return null;
   }
 
-  // Style for less than 10 pages: centered, always visible page numbers
   if (hasLessThan10Pages) {
     return (
       <div className={`${slim ? "mt-2" : "mt-4"} flex items-center justify-center gap-2`}>
@@ -163,7 +162,6 @@ export function TablePagination({
     );
   }
 
-  // Style for 10+ pages: justify-between with ellipsis, page numbers hidden on mobile
   return (
     <div className={`${slim ? "mt-2" : "mt-4"} flex items-center justify-between`}>
       <button

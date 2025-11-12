@@ -5,7 +5,6 @@ export { AreaType, LocationType };
 export type { Area, Location, LocationFormData };
 
 export const mockLocations: Location[] = [
-  // Fazenda do Juca - 12 locations
   {
     id: "660e8400-e29b-41d4-a716-446655440010",
     code: "001",
@@ -138,7 +137,6 @@ export const mockLocations: Location[] = [
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440010",
   },
-  // Sítio Limoeiro - 8 locations
   {
     id: "660e8400-e29b-41d4-a716-446655440022",
     code: "013",
@@ -227,7 +225,6 @@ export const mockLocations: Location[] = [
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440011",
   },
-  // Chácara do Juca - 4 locations
   {
     id: "660e8400-e29b-41d4-a716-446655440030",
     code: "021",

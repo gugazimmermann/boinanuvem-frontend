@@ -113,7 +113,6 @@ export default function Properties() {
     let aValue = a[sortState.column];
     let bValue = b[sortState.column];
 
-    // Handle area sorting (area is now an object)
     if (sortState.column === "area") {
       aValue = a.area.value;
       bValue = b.area.value;

@@ -1,7 +1,3 @@
-/**
- * Location-related types and enums
- */
-
 export enum AreaType {
   HECTARES = "hectares",
   SQUARE_METERS = "square_meters",

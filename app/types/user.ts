@@ -1,7 +1,3 @@
-/**
- * User-related types
- */
-
 export type UserRole = "admin" | "manager" | "user";
 
 export interface UserFormData {

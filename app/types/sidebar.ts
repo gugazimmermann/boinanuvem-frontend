@@ -1,7 +1,3 @@
-/**
- * Sidebar-related types
- */
-
 export interface SidebarItemConfig {
   translationKey: keyof {
     dashboard: string;
