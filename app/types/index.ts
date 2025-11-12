@@ -4,6 +4,8 @@ export { AreaType, LocationType } from "./location";
 export type { Property, PropertyFormData } from "./property";
 export type { Employee, EmployeeFormData } from "./employee";
 export type { ServiceProvider, ServiceProviderFormData } from "./service-provider";
+export type { Supplier, SupplierFormData } from "./supplier";
+export type { Buyer, BuyerFormData } from "./buyer";
 export type { UserRole, UserFormData, TeamUser } from "./user";
 export type { Company, CompanyFormData } from "./company";
 export type { AddressFormData, CEPData, CNPJData } from "./address";

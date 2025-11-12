@@ -22,6 +22,14 @@ export const ROUTES = {
   SERVICE_PROVIDERS_NEW: "/dashboard/prestadores-servico/novo",
   SERVICE_PROVIDERS_EDIT: "/dashboard/prestadores-servico/:serviceProviderId/editar",
   SERVICE_PROVIDERS_VIEW: "/dashboard/prestadores-servico/:serviceProviderId",
+  SUPPLIERS: "/dashboard/fornecedores",
+  SUPPLIERS_NEW: "/dashboard/fornecedores/novo",
+  SUPPLIERS_EDIT: "/dashboard/fornecedores/:supplierId/editar",
+  SUPPLIERS_VIEW: "/dashboard/fornecedores/:supplierId",
+  BUYERS: "/dashboard/compradores",
+  BUYERS_NEW: "/dashboard/compradores/novo",
+  BUYERS_EDIT: "/dashboard/compradores/:buyerId/editar",
+  BUYERS_VIEW: "/dashboard/compradores/:buyerId",
   PROFILE: "/dashboard/perfil",
   TEAM: "/dashboard/equipe",
   TEAM_NEW: "/dashboard/equipe/novo",
@@ -73,6 +81,22 @@ export function getServiceProviderViewRoute(serviceProviderId: string): string {
   return `/dashboard/prestadores-servico/${serviceProviderId}`;
 }
 
+export function getSupplierEditRoute(supplierId: string): string {
+  return `/dashboard/fornecedores/${supplierId}/editar`;
+}
+
+export function getSupplierViewRoute(supplierId: string): string {
+  return `/dashboard/fornecedores/${supplierId}`;
+}
+
+export function getBuyerEditRoute(buyerId: string): string {
+  return `/dashboard/compradores/${buyerId}/editar`;
+}
+
+export function getBuyerViewRoute(buyerId: string): string {
+  return `/dashboard/compradores/${buyerId}`;
+}
+
 export const ROUTE_NAMES = {
   HOME: "",
   LOGIN: "entrar",
@@ -97,6 +121,14 @@ export const ROUTE_NAMES = {
   SERVICE_PROVIDERS_NEW: "prestadores-servico/novo",
   SERVICE_PROVIDERS_EDIT: "prestadores-servico/:serviceProviderId/editar",
   SERVICE_PROVIDERS_VIEW: "prestadores-servico/:serviceProviderId",
+  SUPPLIERS: "fornecedores",
+  SUPPLIERS_NEW: "fornecedores/novo",
+  SUPPLIERS_EDIT: "fornecedores/:supplierId/editar",
+  SUPPLIERS_VIEW: "fornecedores/:supplierId",
+  BUYERS: "compradores",
+  BUYERS_NEW: "compradores/novo",
+  BUYERS_EDIT: "compradores/:buyerId/editar",
+  BUYERS_VIEW: "compradores/:buyerId",
   PROFILE: "perfil",
   USER_PROFILE: "perfil/usuario/:userId",
   TEAM: "equipe",
