@@ -96,7 +96,7 @@ export default function NewProperty() {
     const newErrors: Record<string, string> = {};
 
     if (!formData.code?.trim()) {
-      newErrors.code = t.profile.errors.required("Code");
+      newErrors.code = t.profile.errors.required(t.properties.table.code);
     }
     if (!formData.name?.trim()) {
       newErrors.name = t.profile.errors.required("Nome");
@@ -187,7 +187,7 @@ export default function NewProperty() {
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Input
-                label="Code"
+                label={t.properties.table.code}
                 value={formData.code}
                 onChange={(e) => handleChange("code", e.target.value)}
                 error={errors.code}

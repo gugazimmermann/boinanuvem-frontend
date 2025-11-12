@@ -10,6 +10,10 @@ export const ROUTES = {
   PROPERTIES_NEW: "/dashboard/propriedades/novo",
   PROPERTIES_EDIT: "/dashboard/propriedades/:propertyId/editar",
   PROPERTIES_VIEW: "/dashboard/propriedades/:propertyId",
+  LOCATIONS: "/dashboard/localizacoes",
+  LOCATIONS_NEW: "/dashboard/localizacoes/novo",
+  LOCATIONS_EDIT: "/dashboard/localizacoes/:locationId/editar",
+  LOCATIONS_VIEW: "/dashboard/localizacoes/:locationId",
   PROFILE: "/dashboard/perfil",
   TEAM: "/dashboard/equipe",
   TEAM_NEW: "/dashboard/equipe/novo",
@@ -32,6 +36,14 @@ export function getPropertyViewRoute(propertyId: string): string {
   return `/dashboard/propriedades/${propertyId}`;
 }
 
+export function getLocationEditRoute(locationId: string): string {
+  return `/dashboard/localizacoes/${locationId}/editar`;
+}
+
+export function getLocationViewRoute(locationId: string): string {
+  return `/dashboard/localizacoes/${locationId}`;
+}
+
 export const ROUTE_NAMES = {
   HOME: "",
   LOGIN: "entrar",
@@ -44,6 +56,10 @@ export const ROUTE_NAMES = {
   PROPERTIES_NEW: "propriedades/novo",
   PROPERTIES_EDIT: "propriedades/:propertyId/editar",
   PROPERTIES_VIEW: "propriedades/:propertyId",
+  LOCATIONS: "localizacoes",
+  LOCATIONS_NEW: "localizacoes/novo",
+  LOCATIONS_EDIT: "localizacoes/:locationId/editar",
+  LOCATIONS_VIEW: "localizacoes/:locationId",
   PROFILE: "perfil",
   USER_PROFILE: "perfil/usuario/:userId",
   TEAM: "equipe",

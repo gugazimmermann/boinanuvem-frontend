@@ -12,40 +12,53 @@ import {
   type SortDirection,
 } from "~/components/ui";
 import { useTranslation } from "~/i18n";
-import { mockProperties, deleteProperty, type Property as PropertyType } from "~/mocks/properties";
-import { getLocationsByPropertyId } from "~/mocks/locations";
-import { ROUTES, getPropertyEditRoute, getPropertyViewRoute } from "~/routes.config";
+import { mockLocations, deleteLocation, type Location as LocationType, AreaType } from "~/mocks/locations";
+import { getPropertyById } from "~/mocks/properties";
+import { ROUTES, getLocationEditRoute, getLocationViewRoute } from "~/routes.config";
+import { LocationTypeBadge } from "~/components/dashboard/utils/location-type-badge";
 
-type Property = PropertyType & Record<string, unknown>;
+const formatAreaType = (type: AreaType): string => {
+  const typeMap: Record<AreaType, string> = {
+    [AreaType.HECTARES]: "ha",
+    [AreaType.SQUARE_METERS]: "m²",
+    [AreaType.SQUARE_FEET]: "ft²",
+    [AreaType.ACRES]: "ac",
+    [AreaType.SQUARE_KILOMETERS]: "km²",
+    [AreaType.SQUARE_MILES]: "mi²",
+  };
+  return typeMap[type] || type;
+};
+
+type Location = LocationType & Record<string, unknown>;
 
 export function meta() {
   return [
-    { title: "Propriedades - Boi na Nuvem" },
+    { title: "Localizações - Boi na Nuvem" },
     {
       name: "description",
-      content: "Gerenciamento de propriedades do Boi na Nuvem",
+      content: "Gerenciamento de localizações do Boi na Nuvem",
     },
   ];
 }
 
-export default function Properties() {
+export default function Locations() {
   const t = useTranslation();
   const navigate = useNavigate();
-  const [properties, setProperties] = useState<Property[]>([...mockProperties]);
+  const [locations, setLocations] = useState<Location[]>([...mockLocations]);
   const [sortState, setSortState] = useState<{
     column: string | null;
     direction: SortDirection;
   }>({ column: "name", direction: "asc" });
 
   useEffect(() => {
-    setProperties([...mockProperties]);
+    setLocations([...mockLocations]);
   }, []);
 
   const [searchValue, setSearchValue] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [alertMessage, setAlertMessage] = useState<{ title: string; variant: "success" | "error" | "warning" | "info" } | null>(null);
   const itemsPerPage = 10;
 
@@ -56,33 +69,33 @@ export default function Properties() {
     }, 3000);
   };
 
-  const handleDeleteClick = (property: Property) => {
-    setSelectedProperty(property);
+  const handleDeleteClick = (location: Location) => {
+    setSelectedLocation(location);
     setIsDeleteModalOpen(true);
   };
 
-  const handleDeleteProperty = async () => {
-    if (!selectedProperty) return;
-    const success = deleteProperty(selectedProperty.id);
+  const handleDeleteLocation = async () => {
+    if (!selectedLocation) return;
+    const success = deleteLocation(selectedLocation.id);
     if (success) {
-      setProperties(properties.filter((p) => p.id !== selectedProperty.id));
-      showAlert(t.properties.success.deleted, "success");
+      setLocations(locations.filter((l) => l.id !== selectedLocation.id));
+      showAlert(t.locations.success.deleted, "success");
     } else {
-      showAlert(t.properties.errors.deleteFailed, "error");
+      showAlert(t.locations.errors.deleteFailed, "error");
     }
-    setSelectedProperty(null);
+    setSelectedLocation(null);
   };
 
-  const filteredData = properties.filter((property) => {
+  const filteredData = locations.filter((location) => {
+    const property = getPropertyById(location.propertyId);
     const matchesSearch =
-      property.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-      property.city.toLowerCase().includes(searchValue.toLowerCase()) ||
-      property.state.toLowerCase().includes(searchValue.toLowerCase());
+      location.name.toLowerCase().includes(searchValue.toLowerCase()) ||
+      (property?.name.toLowerCase().includes(searchValue.toLowerCase()) ?? false);
 
     const matchesFilter =
       activeFilter === "all" ||
-      (activeFilter === "active" && property.status === "active") ||
-      (activeFilter === "inactive" && property.status === "inactive");
+      (activeFilter === "active" && location.status === "active") ||
+      (activeFilter === "inactive" && location.status === "inactive");
 
     return matchesSearch && matchesFilter;
   });
@@ -92,8 +105,20 @@ export default function Properties() {
       return 0;
     }
 
-    const aValue = a[sortState.column];
-    const bValue = b[sortState.column];
+    let aValue = a[sortState.column];
+    let bValue = b[sortState.column];
+
+    // Handle area sorting (area is now an object)
+    if (sortState.column === "area") {
+      aValue = a.area.value;
+      bValue = b.area.value;
+    }
+
+    // Handle locationType sorting (it's an enum, compare as string)
+    if (sortState.column === "locationType") {
+      aValue = a.locationType;
+      bValue = b.locationType;
+    }
 
     if (aValue == null && bValue == null) return 0;
     if (aValue == null) return 1;
@@ -120,10 +145,10 @@ export default function Properties() {
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
-  const columns: TableColumn<Property>[] = [
+  const columns: TableColumn<Location>[] = [
     {
       key: "name",
-      label: t.properties.table.name,
+      label: t.locations.table.name,
       sortable: true,
       render: (_, row) => (
         <div>
@@ -131,50 +156,55 @@ export default function Properties() {
             {row.name}
           </h2>
           <p className="text-sm font-normal text-gray-600 dark:text-gray-400">
-            {row.city}, {row.state}
+            {row.code}
           </p>
         </div>
       ),
     },
     {
-      key: "area",
-      label: t.properties.table.area,
-      sortable: true,
-      render: (value) => (
-        <span className="text-gray-700 dark:text-gray-300">
-          {(value as number).toLocaleString("pt-BR", {
-            minimumFractionDigits: 1,
-            maximumFractionDigits: 1,
-          })} ha
-        </span>
-      ),
-    },
-    {
-      key: "pastures",
-      label: t.properties.table.locations,
+      key: "property",
+      label: t.locations.table.property,
       sortable: true,
       render: (_, row) => {
-        const locations = getLocationsByPropertyId(row.id);
+        const property = getPropertyById(row.propertyId);
         return (
-          <span className="text-gray-700 dark:text-gray-300">{locations.length}</span>
+          <span className="text-gray-700 dark:text-gray-300">
+            {property?.name || "-"}
+          </span>
         );
       },
     },
     {
-      key: "animals",
-      label: t.properties.table.animals,
+      key: "locationType",
+      label: t.locations.table.locationType,
       sortable: true,
-      render: () => (
-        <span className="text-gray-700 dark:text-gray-300">0</span>
+      render: (_, row) => (
+        <LocationTypeBadge
+          locationType={row.locationType}
+          label={t.locations.types[row.locationType as keyof typeof t.locations.types] || row.locationType}
+        />
+      ),
+    },
+    {
+      key: "area",
+      label: t.locations.table.area,
+      sortable: true,
+      render: (_, row) => (
+        <span className="text-gray-700 dark:text-gray-300">
+          {row.area.value.toLocaleString("pt-BR", {
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 1,
+          })} {formatAreaType(row.area.type)}
+        </span>
       ),
     },
     {
       key: "status",
-      label: t.properties.table.status,
+      label: t.locations.table.status,
       sortable: true,
       render: (_, row) => (
         <StatusBadge
-          label={row.status === "active" ? t.properties.table.active : t.properties.table.inactive}
+          label={row.status === "active" ? t.locations.table.active : t.locations.table.inactive}
           variant={row.status === "active" ? "success" : "default"}
         />
       ),
@@ -185,8 +215,8 @@ export default function Properties() {
       headerClassName: "relative",
       render: (_, row) => (
         <TableActionButtons
-          onView={() => navigate(getPropertyViewRoute(row.id))}
-          onEdit={() => navigate(getPropertyEditRoute(row.id))}
+          onView={() => navigate(getLocationViewRoute(row.id))}
+          onEdit={() => navigate(getLocationEditRoute(row.id))}
           onDelete={() => handleDeleteClick(row)}
         />
       ),
@@ -195,7 +225,7 @@ export default function Properties() {
 
   const headerActions: TableAction[] = [
     {
-      label: t.properties.addProperty,
+      label: t.locations.addLocation,
       variant: "primary",
       leftIcon: (
         <svg
@@ -213,25 +243,25 @@ export default function Properties() {
           />
         </svg>
       ),
-      onClick: () => navigate(ROUTES.PROPERTIES_NEW),
+      onClick: () => navigate(ROUTES.LOCATIONS_NEW),
     },
   ];
 
   const filters: TableFilter[] = [
     {
-      label: t.properties.filters.all,
+      label: t.locations.filters.all,
       value: "all",
       active: activeFilter === "all",
       onClick: () => setActiveFilter("all"),
     },
     {
-      label: t.properties.filters.active,
+      label: t.locations.filters.active,
       value: "active",
       active: activeFilter === "active",
       onClick: () => setActiveFilter("active"),
     },
     {
-      label: t.properties.filters.inactive,
+      label: t.locations.filters.inactive,
       value: "inactive",
       active: activeFilter === "inactive",
       onClick: () => setActiveFilter("inactive"),
@@ -245,21 +275,21 @@ export default function Properties() {
 
   return (
     <div>
-      <Table<Property>
+      <Table<Location>
       columns={columns}
       data={paginatedData}
       header={{
-        title: t.properties.title,
+        title: t.locations.title,
         badge: {
-          label: t.properties.badge.properties(filteredData.length),
+          label: t.locations.badge.locations(filteredData.length),
           variant: "primary",
         },
-        description: t.properties.description,
+        description: t.locations.description,
         actions: headerActions,
       }}
       filters={filters}
       search={{
-        placeholder: t.properties.searchPlaceholder,
+        placeholder: t.locations.searchPlaceholder,
         value: searchValue,
         onChange: setSearchValue,
       }}
@@ -272,17 +302,17 @@ export default function Properties() {
       sortState={sortState}
       onSort={handleSort}
       emptyState={{
-        title: t.properties.emptyState.title,
+        title: t.locations.emptyState.title,
         description: searchValue
-          ? t.properties.emptyState.descriptionWithSearch(searchValue)
-          : t.properties.emptyState.descriptionWithoutSearch,
+          ? t.locations.emptyState.descriptionWithSearch(searchValue)
+          : t.locations.emptyState.descriptionWithoutSearch,
         onClearSearch: () => {
           setSearchValue("");
           setActiveFilter("all");
         },
         clearSearchLabel: t.common.clearSearch,
-        onAddNew: () => navigate(ROUTES.PROPERTIES_NEW),
-        addNewLabel: t.properties.addProperty,
+        onAddNew: () => navigate(ROUTES.LOCATIONS_NEW),
+        addNewLabel: t.locations.addLocation,
       }}
     />
 
@@ -299,13 +329,13 @@ export default function Properties() {
         isOpen={isDeleteModalOpen}
         onClose={() => {
           setIsDeleteModalOpen(false);
-          setSelectedProperty(null);
+          setSelectedLocation(null);
         }}
-        onConfirm={handleDeleteProperty}
-        title={t.properties.deleteModal.title}
-        message={t.properties.deleteModal.message(selectedProperty?.name || "")}
-        confirmLabel={t.properties.deleteModal.confirm}
-        cancelLabel={t.properties.deleteModal.cancel}
+        onConfirm={handleDeleteLocation}
+        title={t.locations.deleteModal.title}
+        message={t.locations.deleteModal.message(selectedLocation?.name || "")}
+        confirmLabel={t.locations.deleteModal.confirm}
+        cancelLabel={t.locations.deleteModal.cancel}
         variant="danger"
       />
     </div>

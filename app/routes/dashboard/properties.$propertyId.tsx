@@ -1,11 +1,26 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router";
-import { Button, StatusBadge } from "~/components/ui";
+import { Button, StatusBadge, Table, type TableColumn, type SortDirection } from "~/components/ui";
 import { PropertyMap } from "~/components/ui/property-map";
 import { useTranslation } from "~/i18n";
-import { ROUTES, getPropertyEditRoute } from "~/routes.config";
+import { ROUTES, getPropertyEditRoute, getLocationViewRoute, getLocationEditRoute } from "~/routes.config";
 import { getPropertyById } from "~/mocks/properties";
+import { getLocationsByPropertyId, type Location, AreaType } from "~/mocks/locations";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
+import { LocationTypeBadge } from "~/components/dashboard/utils/location-type-badge";
+import { TableActionButtons } from "~/components/ui/table/table-helpers";
+
+const formatAreaType = (type: AreaType): string => {
+  const typeMap: Record<AreaType, string> = {
+    [AreaType.HECTARES]: "ha",
+    [AreaType.SQUARE_METERS]: "m²",
+    [AreaType.SQUARE_FEET]: "ft²",
+    [AreaType.ACRES]: "ac",
+    [AreaType.SQUARE_KILOMETERS]: "km²",
+    [AreaType.SQUARE_MILES]: "mi²",
+  };
+  return typeMap[type] || type;
+};
 
 export function meta() {
   return [
@@ -22,7 +37,11 @@ export default function PropertyDetails() {
   const navigate = useNavigate();
   const t = useTranslation();
   const property = getPropertyById(propertyId);
-  const [activeTab, setActiveTab] = useState<"information" | "info" | "activities">("information");
+  const [activeTab, setActiveTab] = useState<"information" | "info" | "locations" | "activities">("information");
+  const [sortState, setSortState] = useState<{
+    column: string | null;
+    direction: SortDirection;
+  }>({ column: "name", direction: "asc" });
 
   if (!property) {
     return (
@@ -63,7 +82,7 @@ export default function PropertyDetails() {
             />
           </div>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Code: {property.code} • {property.city}, {property.state}
+            {t.properties.table.code}: {property.code} • {property.city}, {property.state}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -131,6 +150,20 @@ export default function PropertyDetails() {
             style={activeTab === "info" ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary } : undefined}
           >
             {t.properties.details.tabs.info}
+          </button>
+          <button
+            onClick={() => setActiveTab("locations")}
+            className={`
+              py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
+              ${
+                activeTab === "locations"
+                  ? "dark:text-blue-400"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+              }
+            `}
+            style={activeTab === "locations" ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary } : undefined}
+          >
+            {t.properties.details.tabs.locations}
           </button>
           <button
             onClick={() => setActiveTab("activities")}
@@ -232,7 +265,7 @@ export default function PropertyDetails() {
               </h2>
               <div className="space-y-4">
                 <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Code</p>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{t.properties.table.code}</p>
                   <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">{property.code}</p>
                 </div>
                 <div>
@@ -312,6 +345,138 @@ export default function PropertyDetails() {
           )}
         </div>
       )}
+
+      {activeTab === "locations" && property && (() => {
+        const locations = getLocationsByPropertyId(property.id);
+        
+        const sortedLocations = [...locations].sort((a, b) => {
+          if (!sortState.column || !sortState.direction) {
+            return 0;
+          }
+
+          let aValue = a[sortState.column as keyof Location];
+          let bValue = b[sortState.column as keyof Location];
+
+          // Handle area sorting (area is now an object)
+          if (sortState.column === "area") {
+            aValue = a.area.value as any;
+            bValue = b.area.value as any;
+          }
+
+          // Handle locationType sorting (it's an enum, compare as string)
+          if (sortState.column === "locationType") {
+            aValue = a.locationType as any;
+            bValue = b.locationType as any;
+          }
+
+          if (aValue == null && bValue == null) return 0;
+          if (aValue == null) return 1;
+          if (bValue == null) return -1;
+
+          let comparison = 0;
+          if (typeof aValue === "string" && typeof bValue === "string") {
+            comparison = aValue.localeCompare(bValue, "pt-BR", {
+              sensitivity: "base",
+            });
+          } else if (typeof aValue === "number" && typeof bValue === "number") {
+            comparison = aValue - bValue;
+          } else {
+            comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
+          }
+
+          return sortState.direction === "asc" ? comparison : -comparison;
+        });
+
+        const columns: TableColumn<Location>[] = [
+          {
+            key: "name",
+            label: t.locations.table.name,
+            sortable: true,
+            render: (_, row) => (
+              <div>
+                <h2 className="font-medium text-gray-800 dark:text-gray-200">
+                  {row.name}
+                </h2>
+                <p className="text-sm font-normal text-gray-600 dark:text-gray-400">
+                  {row.code}
+                </p>
+              </div>
+            ),
+          },
+          {
+            key: "locationType",
+            label: t.locations.table.locationType,
+            sortable: true,
+            render: (_, row) => (
+              <LocationTypeBadge
+                locationType={row.locationType}
+                label={t.locations.types[row.locationType as keyof typeof t.locations.types] || row.locationType}
+              />
+            ),
+          },
+          {
+            key: "area",
+            label: t.locations.table.area,
+            sortable: true,
+            render: (_, row) => (
+              <span className="text-gray-700 dark:text-gray-300">
+                {row.area.value.toLocaleString("pt-BR", {
+                  minimumFractionDigits: 1,
+                  maximumFractionDigits: 1,
+                })} {formatAreaType(row.area.type)}
+              </span>
+            ),
+          },
+          {
+            key: "status",
+            label: t.locations.table.status,
+            sortable: true,
+            render: (_, row) => (
+              <StatusBadge
+                label={row.status === "active" ? t.locations.table.active : t.locations.table.inactive}
+                variant={row.status === "active" ? "success" : "default"}
+              />
+            ),
+          },
+          {
+            key: "actions",
+            label: "",
+            headerClassName: "relative",
+            render: (_, row) => (
+              <TableActionButtons
+                onView={() => navigate(getLocationViewRoute(row.id))}
+              />
+            ),
+          },
+        ];
+
+        return (
+          <div className="space-y-6">
+            <Table<Location>
+              columns={columns}
+              data={sortedLocations}
+              header={{
+                title: t.locations.title,
+                badge: {
+                  label: t.locations.badge.locations(locations.length),
+                  variant: "primary",
+                },
+                description: t.locations.description,
+              }}
+              sortState={sortState}
+              onSort={(column, direction) => {
+                setSortState({ column, direction });
+              }}
+              emptyState={{
+                title: t.locations.emptyState.title,
+                description: t.locations.emptyState.description,
+                onAddNew: () => navigate(ROUTES.LOCATIONS_NEW),
+                addNewLabel: t.locations.addLocation,
+              }}
+            />
+          </div>
+        );
+      })()}
 
       {activeTab === "activities" && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
