@@ -80,14 +80,6 @@ export function UserDetailsModal({ isOpen, onClose, user }: UserDetailsModalProp
                 <div className="space-y-2">
                   <div>
                     <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {t.team.table.role}:
-                    </span>
-                    <p className="text-sm text-gray-900 dark:text-gray-100">
-                      {t.team.roles[user.role]}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
                       {t.team.table.status}:
                     </span>
                     <p className="text-sm text-gray-900 dark:text-gray-100">

@@ -17,11 +17,16 @@ export const ROUTES = {
   PROFILE: "/dashboard/perfil",
   TEAM: "/dashboard/equipe",
   TEAM_NEW: "/dashboard/equipe/novo",
+  TEAM_EDIT: "/dashboard/equipe/:userId/editar",
   TEAM_PERMISSIONS: "/dashboard/equipe/:userId/permissoes",
 } as const;
 
 export function getUserProfileRoute(userId: string): string {
   return `/dashboard/perfil/usuario/${userId}`;
+}
+
+export function getTeamEditRoute(userId: string): string {
+  return `/dashboard/equipe/${userId}/editar`;
 }
 
 export function getTeamPermissionsRoute(userId: string): string {
@@ -64,6 +69,7 @@ export const ROUTE_NAMES = {
   USER_PROFILE: "perfil/usuario/:userId",
   TEAM: "equipe",
   TEAM_NEW: "equipe/novo",
+  TEAM_EDIT: "equipe/:userId/editar",
   TEAM_PERMISSIONS: "equipe/:userId/permissoes",
 } as const;
 

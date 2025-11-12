@@ -9,8 +9,8 @@ import {
 } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { UserFormModal, DeleteUserModal, type UserFormData } from "~/components/dashboard/team";
-import { getUserProfileRoute, ROUTES } from "~/routes.config";
-import { mockUsers, updateUser as updateMockUser } from "~/mocks/users";
+import { getUserProfileRoute, ROUTES, getTeamEditRoute } from "~/routes.config";
+import { mockUsers } from "~/mocks/users";
 
 import type { TeamUser } from "~/types";
 
@@ -33,7 +33,6 @@ export default function Team() {
   const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<TeamUser | null>(null);
   const [alertMessage, setAlertMessage] = useState<{
@@ -62,8 +61,7 @@ export default function Team() {
     const searchLower = searchValue.toLowerCase();
     return (
       user.name.toLowerCase().includes(searchLower) ||
-      user.email.toLowerCase().includes(searchLower) ||
-      t.team.roles[user.role].toLowerCase().includes(searchLower)
+      user.email.toLowerCase().includes(searchLower)
     );
   });
 
@@ -107,20 +105,6 @@ export default function Team() {
     showAlert(t.team.success.added, "success");
   };
 
-  const handleEditUser = async (data: UserFormData) => {
-    if (!selectedUser) return;
-    updateMockUser(selectedUser.id, data);
-    setUsers(
-      users.map((user) =>
-        user.id === selectedUser.id
-          ? { ...user, ...data, password: undefined, confirmPassword: undefined }
-          : user
-      )
-    );
-    showAlert(t.team.success.updated, "success");
-    setSelectedUser(null);
-  };
-
   const handleDeleteUser = async () => {
     if (!selectedUser) return;
     setUsers(users.filter((user) => user.id !== selectedUser.id));
@@ -133,8 +117,7 @@ export default function Team() {
   };
 
   const handleEditClick = (user: TeamUser) => {
-    setSelectedUser(user);
-    setIsEditModalOpen(true);
+    navigate(getTeamEditRoute(user.id));
   };
 
   const handleDeleteClick = (user: TeamUser) => {
@@ -157,15 +140,6 @@ export default function Team() {
       label: t.team.table.email,
       render: (value) => (
         <span className="text-gray-700 dark:text-gray-300">{value as string}</span>
-      ),
-    },
-    {
-      key: "role",
-      label: t.team.table.role,
-      render: (value) => (
-        <span className="text-gray-700 dark:text-gray-300">
-          {t.team.roles[value as keyof typeof t.team.roles]}
-        </span>
       ),
     },
     {
@@ -263,17 +237,6 @@ export default function Team() {
         }}
         onSubmit={handleAddUser}
         isEditing={false}
-      />
-
-      <UserFormModal
-        isOpen={isEditModalOpen}
-        onClose={() => {
-          setIsEditModalOpen(false);
-          setSelectedUser(null);
-        }}
-        onSubmit={handleEditUser}
-        initialData={selectedUser}
-        isEditing={true}
       />
 
       <DeleteUserModal

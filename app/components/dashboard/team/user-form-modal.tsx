@@ -27,7 +27,6 @@ export function UserFormModal({
     name: "",
     email: "",
     phone: "",
-    role: "user",
     password: "",
     confirmPassword: "",
   });
@@ -42,7 +41,6 @@ export function UserFormModal({
           name: initialData.name || "",
           email: initialData.email || "",
           phone: initialData.phone || "",
-          role: initialData.role || "user",
           password: "",
           confirmPassword: "",
         });
@@ -52,7 +50,6 @@ export function UserFormModal({
           name: "",
           email: "",
           phone: "",
-          role: "user",
           password: "",
           confirmPassword: "",
         });
@@ -171,25 +168,6 @@ export function UserFormModal({
                     disabled={isSubmitting}
                     placeholder="(00) 00000-0000"
                   />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {t.team.addModal.fields.role}
-                  </label>
-                  <select
-                    value={formData.role}
-                    onChange={(e) => handleChange("role", e.target.value)}
-                    disabled={isSubmitting}
-                    className="block w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <option value="user">{t.team.roles.user}</option>
-                    <option value="manager">{t.team.roles.manager}</option>
-                    <option value="admin">{t.team.roles.admin}</option>
-                  </select>
-                  {errors.role && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.role}</p>
-                  )}
                 </div>
 
                 {isEditing && (

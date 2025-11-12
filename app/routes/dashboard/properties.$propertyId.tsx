@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router";
-import { Button, StatusBadge, Table, type TableColumn, type SortDirection } from "~/components/ui";
+import { Button, StatusBadge, Table, type TableColumn, type SortDirection, PasturePlanningGraph } from "~/components/ui";
 import { PropertyMap } from "~/components/ui/property-map";
 import { useTranslation } from "~/i18n";
 import { ROUTES, getPropertyEditRoute, getLocationViewRoute } from "~/routes.config";
@@ -283,6 +283,53 @@ export default function PropertyDetails() {
               </div>
             </div>
           </div>
+
+          {property.pasturePlanning && property.pasturePlanning.length > 0 && (
+            <PasturePlanningGraph data={property.pasturePlanning} />
+          )}
+
+          {property.breedingMonths && property.breedingMonths.length > 0 && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
+                {t.properties.details.pasturePlanning.breedingSeason.title}
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {(() => {
+                  const monthOrder = [
+                    "January",
+                    "February",
+                    "March",
+                    "April",
+                    "May",
+                    "June",
+                    "July",
+                    "August",
+                    "September",
+                    "October",
+                    "November",
+                    "December",
+                  ];
+                  const sortedMonths = [...property.breedingMonths].sort(
+                    (a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b)
+                  );
+                  return sortedMonths.map((month) => {
+                    const monthTranslation =
+                      t.properties.details.pasturePlanning.breedingSeason.months[
+                        month as keyof typeof t.properties.details.pasturePlanning.breedingSeason.months
+                      ] || month;
+                    return (
+                      <span
+                        key={month}
+                        className="px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-md text-sm font-medium"
+                      >
+                        {monthTranslation}
+                      </span>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

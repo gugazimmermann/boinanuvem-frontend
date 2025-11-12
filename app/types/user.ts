@@ -9,7 +9,7 @@ export interface UserFormData {
   cpf?: string;
   email: string;
   phone: string;
-  role: UserRole;
+  role?: UserRole;
   street?: string;
   number?: string;
   complement?: string;

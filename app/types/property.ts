@@ -4,6 +4,14 @@
 
 import type { Area } from "./location";
 
+export interface PasturePlanningMonth {
+  month: string;
+  min: number;
+  max: number;
+  precipitation: number;
+  classification: "Poor" | "Medium" | "Good" | "Excellent";
+}
+
 export interface Property extends Record<string, unknown> {
   id: string;
   code: string;
@@ -21,6 +29,8 @@ export interface Property extends Record<string, unknown> {
   zipCode: string;
   latitude?: number;
   longitude?: number;
+  pasturePlanning?: PasturePlanningMonth[];
+  breedingMonths?: string[];
 }
 
 export interface PropertyFormData {
