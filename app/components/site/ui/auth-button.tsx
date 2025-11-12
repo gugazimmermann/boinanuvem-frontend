@@ -1,4 +1,9 @@
-import { forwardRef, type ButtonHTMLAttributes, type AnchorHTMLAttributes, type ReactNode } from "react";
+import {
+  forwardRef,
+  type ButtonHTMLAttributes,
+  type AnchorHTMLAttributes,
+  type ReactNode,
+} from "react";
 
 type ButtonVariant = "primary" | "secondary" | "outline";
 type ButtonSize = "sm" | "md" | "lg";
@@ -11,11 +16,15 @@ interface BaseButtonProps {
   fullWidth?: boolean;
 }
 
-interface ButtonAsButtonProps extends BaseButtonProps, Omit<ButtonHTMLAttributes<HTMLButtonElement>, "className" | "children"> {
+interface ButtonAsButtonProps
+  extends BaseButtonProps,
+    Omit<ButtonHTMLAttributes<HTMLButtonElement>, "className" | "children"> {
   href?: never;
 }
 
-interface ButtonAsLinkProps extends BaseButtonProps, Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "className" | "children"> {
+interface ButtonAsLinkProps
+  extends BaseButtonProps,
+    Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "className" | "children"> {
   href: string;
 }
 
@@ -38,18 +47,8 @@ const baseStyles = [
 ].join(" ");
 
 const variantStyles: Record<ButtonVariant, string> = {
-  primary: [
-    "bg-blue-500",
-    "text-white",
-    "hover:bg-blue-400",
-    "focus:ring-blue-300",
-  ].join(" "),
-  secondary: [
-    "bg-gray-500",
-    "text-white",
-    "hover:bg-gray-400",
-    "focus:ring-gray-300",
-  ].join(" "),
+  primary: ["bg-blue-500", "text-white", "hover:bg-blue-400", "focus:ring-blue-300"].join(" "),
+  secondary: ["bg-gray-500", "text-white", "hover:bg-gray-400", "focus:ring-gray-300"].join(" "),
   outline: [
     "border-2",
     "border-blue-500",
@@ -80,7 +79,7 @@ export const AuthButton = forwardRef<HTMLButtonElement | HTMLAnchorElement, Butt
     ref
   ) => {
     const widthStyle = fullWidth ? "w-full" : "";
-    
+
     const combinedClassName = [
       baseStyles,
       variantStyles[variant],
@@ -119,4 +118,3 @@ export const AuthButton = forwardRef<HTMLButtonElement | HTMLAnchorElement, Butt
 );
 
 AuthButton.displayName = "AuthButton";
-

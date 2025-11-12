@@ -3,7 +3,9 @@ import { useNavigate, useParams } from "react-router";
 import { Input, Button, Alert } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { ROUTES } from "~/routes.config";
-import { getLocationById, updateLocation, type LocationFormData, AreaType, LocationType } from "~/mocks/locations";
+import { getLocationById, updateLocation } from "~/mocks/locations";
+import type { LocationFormData } from "~/types";
+import { AreaType, LocationType } from "~/types";
 import { mockProperties, getPropertyById } from "~/mocks/properties";
 
 export function meta() {
@@ -56,9 +58,15 @@ export default function EditLocation() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [alertMessage, setAlertMessage] = useState<{ title: string; variant: "success" | "error" | "warning" | "info" } | null>(null);
+  const [alertMessage, setAlertMessage] = useState<{
+    title: string;
+    variant: "success" | "error" | "warning" | "info";
+  } | null>(null);
 
-  const showAlert = (title: string, variant: "success" | "error" | "warning" | "info" = "success") => {
+  const showAlert = (
+    title: string,
+    variant: "success" | "error" | "warning" | "info" = "success"
+  ) => {
     setAlertMessage({ title, variant });
     setTimeout(() => {
       setAlertMessage(null);
@@ -151,11 +159,7 @@ export default function EditLocation() {
       <div className="space-y-6">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
           <p className="text-gray-600 dark:text-gray-400">{t.locations.emptyState.title}</p>
-          <Button
-            variant="outline"
-            onClick={() => navigate(ROUTES.LOCATIONS)}
-            className="mt-4"
-          >
+          <Button variant="outline" onClick={() => navigate(ROUTES.LOCATIONS)} className="mt-4">
             {t.team.new.back}
           </Button>
         </div>
@@ -167,10 +171,7 @@ export default function EditLocation() {
     <div className="space-y-6">
       {alertMessage && (
         <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-          <Alert
-            title={alertMessage.title}
-            variant={alertMessage.variant}
-          />
+          <Alert title={alertMessage.title} variant={alertMessage.variant} />
         </div>
       )}
 
@@ -260,7 +261,9 @@ export default function EditLocation() {
                 <option value={LocationType.PADDOCK}>{t.locations.types.paddock}</option>
                 <option value={LocationType.FEEDLOT}>{t.locations.types.feedlot}</option>
                 <option value={LocationType.SEMI_FEEDLOT}>{t.locations.types.semi_feedlot}</option>
-                <option value={LocationType.MILKING_PARLOR}>{t.locations.types.milking_parlor}</option>
+                <option value={LocationType.MILKING_PARLOR}>
+                  {t.locations.types.milking_parlor}
+                </option>
                 <option value={LocationType.WAREHOUSE}>{t.locations.types.warehouse}</option>
                 <option value={LocationType.GARAGE}>{t.locations.types.garage}</option>
                 <option value={LocationType.OFFICE}>{t.locations.types.office}</option>
@@ -285,9 +288,9 @@ export default function EditLocation() {
                 required
               />
               <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t.locations.areaType} <span className="text-red-500">*</span>
-              </label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {t.locations.areaType} <span className="text-red-500">*</span>
+                </label>
                 <select
                   value={formData.areaType}
                   onChange={(e) => handleChange("areaType", e.target.value as AreaType)}
@@ -297,15 +300,19 @@ export default function EditLocation() {
                   }`}
                 >
                   <option value={AreaType.HECTARES}>{t.locations.areaTypes.hectares}</option>
-                  <option value={AreaType.SQUARE_METERS}>{t.locations.areaTypes.square_meters}</option>
+                  <option value={AreaType.SQUARE_METERS}>
+                    {t.locations.areaTypes.square_meters}
+                  </option>
                   <option value={AreaType.SQUARE_FEET}>{t.locations.areaTypes.square_feet}</option>
                   <option value={AreaType.ACRES}>{t.locations.areaTypes.acres}</option>
-                  <option value={AreaType.SQUARE_KILOMETERS}>{t.locations.areaTypes.square_kilometers}</option>
-                  <option value={AreaType.SQUARE_MILES}>{t.locations.areaTypes.square_miles}</option>
+                  <option value={AreaType.SQUARE_KILOMETERS}>
+                    {t.locations.areaTypes.square_kilometers}
+                  </option>
+                  <option value={AreaType.SQUARE_MILES}>
+                    {t.locations.areaTypes.square_miles}
+                  </option>
                 </select>
-                {errors.areaType && (
-                  <p className="mt-1 text-sm text-red-500">{errors.areaType}</p>
-                )}
+                {errors.areaType && <p className="mt-1 text-sm text-red-500">{errors.areaType}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -342,4 +349,3 @@ export default function EditLocation() {
     </div>
   );
 }
-

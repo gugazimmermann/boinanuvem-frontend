@@ -12,7 +12,9 @@ import {
   type SortDirection,
 } from "~/components/ui";
 import { useTranslation } from "~/i18n";
-import { mockLocations, deleteLocation, type Location as LocationType, AreaType } from "~/mocks/locations";
+import { mockLocations, deleteLocation } from "~/mocks/locations";
+import type { Location } from "~/types";
+import { AreaType } from "~/types";
 import { getPropertyById } from "~/mocks/properties";
 import { ROUTES, getLocationEditRoute, getLocationViewRoute } from "~/routes.config";
 import { LocationTypeBadge } from "~/components/dashboard/utils/location-type-badge";
@@ -28,8 +30,6 @@ const formatAreaType = (type: AreaType): string => {
   };
   return typeMap[type] || type;
 };
-
-type Location = LocationType & Record<string, unknown>;
 
 export function meta() {
   return [
@@ -59,10 +59,16 @@ export default function Locations() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
-  const [alertMessage, setAlertMessage] = useState<{ title: string; variant: "success" | "error" | "warning" | "info" } | null>(null);
+  const [alertMessage, setAlertMessage] = useState<{
+    title: string;
+    variant: "success" | "error" | "warning" | "info";
+  } | null>(null);
   const itemsPerPage = 10;
 
-  const showAlert = (title: string, variant: "success" | "error" | "warning" | "info" = "success") => {
+  const showAlert = (
+    title: string,
+    variant: "success" | "error" | "warning" | "info" = "success"
+  ) => {
     setAlertMessage({ title, variant });
     setTimeout(() => {
       setAlertMessage(null);
@@ -152,12 +158,8 @@ export default function Locations() {
       sortable: true,
       render: (_, row) => (
         <div>
-          <h2 className="font-medium text-gray-800 dark:text-gray-200">
-            {row.name}
-          </h2>
-          <p className="text-sm font-normal text-gray-600 dark:text-gray-400">
-            {row.code}
-          </p>
+          <h2 className="font-medium text-gray-800 dark:text-gray-200">{row.name}</h2>
+          <p className="text-sm font-normal text-gray-600 dark:text-gray-400">{row.code}</p>
         </div>
       ),
     },
@@ -167,11 +169,7 @@ export default function Locations() {
       sortable: true,
       render: (_, row) => {
         const property = getPropertyById(row.propertyId);
-        return (
-          <span className="text-gray-700 dark:text-gray-300">
-            {property?.name || "-"}
-          </span>
-        );
+        return <span className="text-gray-700 dark:text-gray-300">{property?.name || "-"}</span>;
       },
     },
     {
@@ -181,7 +179,10 @@ export default function Locations() {
       render: (_, row) => (
         <LocationTypeBadge
           locationType={row.locationType}
-          label={t.locations.types[row.locationType as keyof typeof t.locations.types] || row.locationType}
+          label={
+            t.locations.types[row.locationType as keyof typeof t.locations.types] ||
+            row.locationType
+          }
         />
       ),
     },
@@ -194,7 +195,8 @@ export default function Locations() {
           {row.area.value.toLocaleString("pt-BR", {
             minimumFractionDigits: 1,
             maximumFractionDigits: 1,
-          })} {formatAreaType(row.area.type)}
+          })}{" "}
+          {formatAreaType(row.area.type)}
         </span>
       ),
     },
@@ -276,52 +278,49 @@ export default function Locations() {
   return (
     <div>
       <Table<Location>
-      columns={columns}
-      data={paginatedData}
-      header={{
-        title: t.locations.title,
-        badge: {
-          label: t.locations.badge.locations(filteredData.length),
-          variant: "primary",
-        },
-        description: t.locations.description,
-        actions: headerActions,
-      }}
-      filters={filters}
-      search={{
-        placeholder: t.locations.searchPlaceholder,
-        value: searchValue,
-        onChange: setSearchValue,
-      }}
-      pagination={{
-        currentPage,
-        totalPages: totalPages || 1,
-        onPageChange: setCurrentPage,
-        showInfo: false,
-      }}
-      sortState={sortState}
-      onSort={handleSort}
-      emptyState={{
-        title: t.locations.emptyState.title,
-        description: searchValue
-          ? t.locations.emptyState.descriptionWithSearch(searchValue)
-          : t.locations.emptyState.descriptionWithoutSearch,
-        onClearSearch: () => {
-          setSearchValue("");
-          setActiveFilter("all");
-        },
-        clearSearchLabel: t.common.clearSearch,
-        onAddNew: () => navigate(ROUTES.LOCATIONS_NEW),
-        addNewLabel: t.locations.addLocation,
-      }}
-    />
+        columns={columns}
+        data={paginatedData}
+        header={{
+          title: t.locations.title,
+          badge: {
+            label: t.locations.badge.locations(filteredData.length),
+            variant: "primary",
+          },
+          description: t.locations.description,
+          actions: headerActions,
+        }}
+        filters={filters}
+        search={{
+          placeholder: t.locations.searchPlaceholder,
+          value: searchValue,
+          onChange: setSearchValue,
+        }}
+        pagination={{
+          currentPage,
+          totalPages: totalPages || 1,
+          onPageChange: setCurrentPage,
+          showInfo: false,
+        }}
+        sortState={sortState}
+        onSort={handleSort}
+        emptyState={{
+          title: t.locations.emptyState.title,
+          description: searchValue
+            ? t.locations.emptyState.descriptionWithSearch(searchValue)
+            : t.locations.emptyState.descriptionWithoutSearch,
+          onClearSearch: () => {
+            setSearchValue("");
+            setActiveFilter("all");
+          },
+          clearSearchLabel: t.common.clearSearch,
+          onAddNew: () => navigate(ROUTES.LOCATIONS_NEW),
+          addNewLabel: t.locations.addLocation,
+        }}
+      />
 
       {alertMessage && (
         <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-          <Alert
-            title={alertMessage.title}
-            variant={alertMessage.variant}
-          />
+          <Alert title={alertMessage.title} variant={alertMessage.variant} />
         </div>
       )}
 
@@ -341,4 +340,3 @@ export default function Locations() {
     </div>
   );
 }
-

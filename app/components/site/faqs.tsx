@@ -22,7 +22,8 @@ export const FAQs = memo(function FAQs() {
             Perguntas <span style={{ color: COLORS.primary }}>Frequentes</span>
           </Heading>
           <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-            Tire suas dúvidas sobre o Boi na Nuvem. Encontre respostas para as principais perguntas sobre nosso sistema de gestão para fazendas de gado de corte.
+            Tire suas dúvidas sobre o Boi na Nuvem. Encontre respostas para as principais perguntas
+            sobre nosso sistema de gestão para fazendas de gado de corte.
           </p>
           <div className="hidden lg:block flex items-center justify-center">
             <img
@@ -41,9 +42,7 @@ export const FAQs = memo(function FAQs() {
                 className="w-full flex justify-between items-center py-4 text-left hover:opacity-80 transition cursor-pointer"
               >
                 <span className="font-semibold text-gray-800">{faq.question}</span>
-                <span className="text-xl text-gray-500 ml-4">
-                  {openFaq === index ? "−" : "+"}
-                </span>
+                <span className="text-xl text-gray-500 ml-4">{openFaq === index ? "−" : "+"}</span>
               </button>
               {openFaq === index && (
                 <div className="pb-4 text-gray-600 leading-relaxed">{faq.answer}</div>

@@ -5,7 +5,14 @@ import { AddressForm } from "./address-form";
 import { ActivityLog, type ActivityLogEntry } from "./activity-log";
 import { useCNPJLookup } from "~/components/site/hooks/use-cnpj-lookup";
 import { mapCNPJDataToCompanyForm } from "~/components/site/utils/cnpj-utils";
-import { maskCNPJ, unmaskCNPJ, maskPhone, unmaskPhone, maskCEP, unmaskCEP } from "~/components/site/utils/masks";
+import {
+  maskCNPJ,
+  unmaskCNPJ,
+  maskPhone,
+  unmaskPhone,
+  maskCEP,
+  unmaskCEP,
+} from "~/components/site/utils/masks";
 import { useTranslation } from "~/i18n";
 import { DASHBOARD_COLORS } from "../utils/colors";
 import type { CompanyFormData } from "~/components/site/utils/cnpj-utils";
@@ -47,28 +54,59 @@ const getMockCompanyData = (): CompanyFormData => {
 
 const generateCompanyLogs = (companyId: string): ActivityLogEntry[] => {
   const companyUsers = mockUsers.filter((user) => user.companyId === companyId);
-  
+
   if (companyUsers.length === 0) {
     return [];
   }
-  
+
   const users = companyUsers.map((user) => user.name);
   const actions = ["CREATE", "UPDATE", "DELETE", "VIEW", "EXPORT", "IMPORT", "ARCHIVE", "RESTORE"];
-  const resourceTypes = ["Property", "Animal", "Pasture", "Report", "Vaccination", "Treatment", "Birth", "Weight", "User", "Settings"];
-  
-  const properties = ["Fazenda São João", "Fazenda Santa Maria", "Fazenda Boa Vista", "Fazenda Esperança", "Fazenda Verde"];
+  const resourceTypes = [
+    "Property",
+    "Animal",
+    "Pasture",
+    "Report",
+    "Vaccination",
+    "Treatment",
+    "Birth",
+    "Weight",
+    "User",
+    "Settings",
+  ];
+
+  const properties = [
+    "Fazenda São João",
+    "Fazenda Santa Maria",
+    "Fazenda Boa Vista",
+    "Fazenda Esperança",
+    "Fazenda Verde",
+  ];
   const animals = Array.from({ length: 50 }, (_, i) => `#${String(1000 + i).padStart(4, "0")}`);
-  const pastures = ["Campo 1", "Campo 2", "Campo 3", "Campo Norte", "Campo Sul", "Campo Leste", "Campo Oeste"];
-  const reports = ["Monthly Summary", "Annual Report", "Health Report", "Production Report", "Financial Report"];
-  
+  const pastures = [
+    "Campo 1",
+    "Campo 2",
+    "Campo 3",
+    "Campo Norte",
+    "Campo Sul",
+    "Campo Leste",
+    "Campo Oeste",
+  ];
+  const reports = [
+    "Monthly Summary",
+    "Annual Report",
+    "Health Report",
+    "Production Report",
+    "Financial Report",
+  ];
+
   const logs: ActivityLogEntry[] = [];
   const now = Date.now();
-  
+
   for (let i = 0; i < 136; i++) {
     const action = actions[Math.floor(Math.random() * actions.length)];
     const resourceType = resourceTypes[Math.floor(Math.random() * resourceTypes.length)];
     const user = users[Math.floor(Math.random() * users.length)];
-    
+
     let resource = "";
     switch (resourceType) {
       case "Property":
@@ -102,12 +140,14 @@ const generateCompanyLogs = (companyId: string): ActivityLogEntry[] => {
         resource = "Settings: Company Configuration";
         break;
     }
-    
+
     const daysAgo = Math.floor(Math.random() * 90);
     const hoursAgo = Math.floor(Math.random() * 24);
     const minutesAgo = Math.floor(Math.random() * 60);
-    const timestamp = new Date(now - (daysAgo * 24 * 60 * 60 * 1000) - (hoursAgo * 60 * 60 * 1000) - (minutesAgo * 60 * 1000)).toISOString();
-    
+    const timestamp = new Date(
+      now - daysAgo * 24 * 60 * 60 * 1000 - hoursAgo * 60 * 60 * 1000 - minutesAgo * 60 * 1000
+    ).toISOString();
+
     logs.push({
       id: String(i + 1),
       user,
@@ -116,7 +156,7 @@ const generateCompanyLogs = (companyId: string): ActivityLogEntry[] => {
       timestamp,
     });
   }
-  
+
   return logs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 };
 
@@ -132,14 +172,17 @@ export function CompanyProfile() {
   const [isSaving, setIsSaving] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState<"data" | "logs">("data");
 
-  const handleCNPJSuccess = useCallback((cnpjData: Parameters<typeof mapCNPJDataToCompanyForm>[0]) => {
-    if (isEditing) {
-      setData((prev) => {
-        const mappedData = mapCNPJDataToCompanyForm(cnpjData, prev);
-        return { ...mappedData, cnpj: prev.cnpj };
-      });
-    }
-  }, [isEditing]);
+  const handleCNPJSuccess = useCallback(
+    (cnpjData: Parameters<typeof mapCNPJDataToCompanyForm>[0]) => {
+      if (isEditing) {
+        setData((prev) => {
+          const mappedData = mapCNPJDataToCompanyForm(cnpjData, prev);
+          return { ...mappedData, cnpj: prev.cnpj };
+        });
+      }
+    },
+    [isEditing]
+  );
 
   const { loading: cnpjLoading } = useCNPJLookup(unmaskCNPJ(data.cnpj), {
     debounceMs: 800,
@@ -219,7 +262,7 @@ export function CompanyProfile() {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       setIsEditing(false);
       alert(t.profile.success.saved);
-    } catch (error) {
+    } catch {
       alert(t.profile.errors.saveFailed);
     } finally {
       setIsSaving(false);
@@ -246,10 +289,14 @@ export function CompanyProfile() {
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
               }
             `}
-            style={activeSubTab === "data" ? { 
-              backgroundColor: `${DASHBOARD_COLORS.primaryLight}40`, 
-              color: DASHBOARD_COLORS.primaryDark 
-            } : undefined}
+            style={
+              activeSubTab === "data"
+                ? {
+                    backgroundColor: `${DASHBOARD_COLORS.primaryLight}40`,
+                    color: DASHBOARD_COLORS.primaryDark,
+                  }
+                : undefined
+            }
           >
             {t.profile.company.subTabs.data}
           </button>
@@ -263,10 +310,14 @@ export function CompanyProfile() {
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
               }
             `}
-            style={activeSubTab === "logs" ? { 
-              backgroundColor: `${DASHBOARD_COLORS.primaryLight}40`, 
-              color: DASHBOARD_COLORS.primaryDark 
-            } : undefined}
+            style={
+              activeSubTab === "logs"
+                ? {
+                    backgroundColor: `${DASHBOARD_COLORS.primaryLight}40`,
+                    color: DASHBOARD_COLORS.primaryDark,
+                  }
+                : undefined
+            }
           >
             {t.profile.company.subTabs.logs}
           </button>
@@ -286,64 +337,64 @@ export function CompanyProfile() {
             )}
           </div>
 
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <Input
-              label={t.profile.company.fields.cnpj}
-              value={data.cnpj}
-              onChange={(e) => handleChange("cnpj", maskCNPJ(e.target.value))}
-              error={errors.cnpj}
-              disabled={!isEditing || cnpjLoading}
-              placeholder="00.000.000/0000-00"
-              maxLength={18}
-            />
-            <Input
-              label={t.profile.company.fields.companyName}
-              value={data.companyName}
-              onChange={(e) => handleChange("companyName", e.target.value)}
-              error={errors.companyName}
-              disabled={!isEditing || cnpjLoading}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <Input
-              label={t.profile.company.fields.email}
-              type="email"
-              value={data.email}
-              onChange={(e) => handleChange("email", e.target.value)}
-              error={errors.email}
-              disabled={!isEditing}
-            />
-            <Input
-              label={t.profile.company.fields.phone}
-              value={data.phone}
-              onChange={(e) => handleChange("phone", maskPhone(e.target.value))}
-              error={errors.phone}
-              disabled={!isEditing}
-              placeholder="(00) 00000-0000"
-            />
-          </div>
-
-          <AddressForm
-            data={data}
-            errors={errors}
-            onChange={handleChange}
-            disabled={!isEditing}
-          />
-
-          {isEditing && (
-            <div className="flex justify-end gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-              <Button onClick={handleCancel} variant="outline" disabled={isSaving}>
-                {t.profile.company.cancel}
-              </Button>
-              <Button onClick={handleSave} variant="primary" disabled={isSaving}>
-                {isSaving ? t.common.loading : t.profile.company.save}
-              </Button>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <Input
+                label={t.profile.company.fields.cnpj}
+                value={data.cnpj}
+                onChange={(e) => handleChange("cnpj", maskCNPJ(e.target.value))}
+                error={errors.cnpj}
+                disabled={!isEditing || cnpjLoading}
+                placeholder="00.000.000/0000-00"
+                maxLength={18}
+              />
+              <Input
+                label={t.profile.company.fields.companyName}
+                value={data.companyName}
+                onChange={(e) => handleChange("companyName", e.target.value)}
+                error={errors.companyName}
+                disabled={!isEditing || cnpjLoading}
+              />
             </div>
-          )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <Input
+                label={t.profile.company.fields.email}
+                type="email"
+                value={data.email}
+                onChange={(e) => handleChange("email", e.target.value)}
+                error={errors.email}
+                disabled={!isEditing}
+              />
+              <Input
+                label={t.profile.company.fields.phone}
+                value={data.phone}
+                onChange={(e) => handleChange("phone", maskPhone(e.target.value))}
+                error={errors.phone}
+                disabled={!isEditing}
+                placeholder="(00) 00000-0000"
+              />
+            </div>
+
+            <AddressForm
+              data={data}
+              errors={errors}
+              onChange={handleChange}
+              disabled={!isEditing}
+            />
+
+            {isEditing && (
+              <div className="flex justify-end gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                <Button onClick={handleCancel} variant="outline" disabled={isSaving}>
+                  {t.profile.company.cancel}
+                </Button>
+                <Button onClick={handleSave} variant="primary" disabled={isSaving}>
+                  {isSaving ? t.common.loading : t.profile.company.save}
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
       )}
 
       {activeSubTab === "logs" && (
@@ -354,4 +405,3 @@ export function CompanyProfile() {
     </div>
   );
 }
-

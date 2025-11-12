@@ -1,4 +1,4 @@
-import { LocationType } from "~/mocks/locations";
+import { LocationType } from "~/types";
 import { getLocationTypeColors } from "./location-type-colors";
 
 interface LocationTypeBadgeProps {
@@ -37,4 +37,3 @@ export function LocationTypeBadge({ locationType, label, className = "" }: Locat
     </>
   );
 }
-

@@ -50,31 +50,26 @@ const getInitials = (name: string): string => {
 const getMainUser = () => {
   const company = mockCompanies[0];
   if (!company) return null;
-  
+
   const mainUser = mockUsers.find(
     (user) => user.companyId === company.id && user.mainUser === true
   );
-  
+
   return mainUser || null;
 };
 
-export function UserDropdown({
-  name,
-  email,
-  initial,
-  menuItems,
-}: UserDropdownProps) {
+export function UserDropdown({ name, email, initial, menuItems }: UserDropdownProps) {
   const t = useTranslation();
   const mainUser = useMemo(() => getMainUser(), []);
-  
+
   const displayName = name || mainUser?.name || "User";
   const displayEmail = email || mainUser?.email || "user@example.com";
   const displayInitial = initial || getInitials(displayName);
-  
+
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  
-  const items = menuItems || createMenuItems(t);
+
+  const items = menuItems || createMenuItems(t as TranslationKey);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -118,4 +113,3 @@ export function UserDropdown({
     </div>
   );
 }
-

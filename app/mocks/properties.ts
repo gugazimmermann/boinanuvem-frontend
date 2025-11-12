@@ -1,21 +1,6 @@
-export interface Property {
-  id: string;
-  code: string;
-  name: string;
-  area: number;
-  status: "active" | "inactive";
-  createdAt: string;
-  companyId: string;
-  street: string;
-  number: string;
-  complement: string;
-  neighborhood: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  latitude?: number;
-  longitude?: number;
-}
+import type { Property, PropertyFormData } from "~/types";
+
+export type { Property, PropertyFormData };
 
 export const mockProperties: Property[] = [
   {
@@ -51,8 +36,8 @@ export const mockProperties: Property[] = [
     city: "São João do Itaperiú",
     state: "SC",
     zipCode: "88395000",
-    latitude: -26.560000000000000,
-    longitude: -48.759000000000000,
+    latitude: -26.56,
+    longitude: -48.759,
   },
   {
     id: "550e8400-e29b-41d4-a716-446655440012",
@@ -69,8 +54,8 @@ export const mockProperties: Property[] = [
     city: "São João do Itaperiú",
     state: "SC",
     zipCode: "88395000",
-    latitude: -26.561000000000000,
-    longitude: -48.760000000000000,
+    latitude: -26.561,
+    longitude: -48.76,
   },
 ];
 
@@ -83,31 +68,15 @@ export function getPropertiesByCompanyId(companyId: string): Property[] {
   return mockProperties.filter((property) => property.companyId === companyId);
 }
 
-export interface PropertyFormData {
-  code: string;
-  name: string;
-  area: number;
-  status: "active" | "inactive";
-  companyId: string;
-  street: string;
-  number: string;
-  complement: string;
-  neighborhood: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  latitude?: number;
-  longitude?: number;
-}
-
 export function addProperty(data: PropertyFormData): Property {
-  const lastId = mockProperties.length > 0 
-    ? mockProperties[mockProperties.length - 1].id 
-    : "550e8400-e29b-41d4-a716-446655440009";
+  const lastId =
+    mockProperties.length > 0
+      ? mockProperties[mockProperties.length - 1].id
+      : "550e8400-e29b-41d4-a716-446655440009";
   const lastPart = lastId.split("-").pop() || "446655440009";
   const lastNumber = parseInt(lastPart, 10);
   const nextNumber = (lastNumber + 1).toString().padStart(12, "0");
-  
+
   const newProperty: Property = {
     ...data,
     id: `550e8400-e29b-41d4-a716-${nextNumber}`,
@@ -137,4 +106,3 @@ export function updateProperty(propertyId: string, data: Partial<PropertyFormDat
   }
   return false;
 }
-

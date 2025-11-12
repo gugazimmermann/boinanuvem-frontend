@@ -9,7 +9,13 @@ import type { UserPermissions, PermissionAction, ResourcePermissions } from "~/t
 import { defaultPermissions } from "~/types/permissions";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
 
-type PermissionResource = "property" | "location" | "employee" | "serviceProvider" | "supplier" | "buyer";
+type PermissionResource =
+  | "property"
+  | "location"
+  | "employee"
+  | "serviceProvider"
+  | "supplier"
+  | "buyer";
 
 interface ResourcePermissionSectionProps {
   resource: PermissionResource;
@@ -43,16 +49,16 @@ function ResourcePermissionSection({
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-medium text-gray-900 dark:text-gray-100">{resourceLabel}</h3>
         <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
-            <input
-              ref={checkboxRef}
-              type="checkbox"
-              checked={allSelected}
-              onChange={(e) => onSelectAll(e.target.checked)}
-              className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:bg-gray-700"
-              style={{
-                accentColor: DASHBOARD_COLORS.primary,
-              }}
-            />
+          <input
+            ref={checkboxRef}
+            type="checkbox"
+            checked={allSelected}
+            onChange={(e) => onSelectAll(e.target.checked)}
+            className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:bg-gray-700"
+            style={{
+              accentColor: DASHBOARD_COLORS.primary,
+            }}
+          />
           <span>{t.team.permissions.selectAll}</span>
         </label>
       </div>
@@ -95,21 +101,28 @@ export default function TeamPermissions() {
   const [user, setUser] = useState<TeamUser | null>(null);
   const [permissions, setPermissions] = useState<UserPermissions>(defaultPermissions);
   const [isSaving, setIsSaving] = useState(false);
-  const [alertMessage, setAlertMessage] = useState<{ title: string; variant: "success" | "error" | "warning" | "info" } | null>(null);
+  const [alertMessage, setAlertMessage] = useState<{
+    title: string;
+    variant: "success" | "error" | "warning" | "info";
+  } | null>(null);
 
-  const showAlert = useCallback((title: string, variant: "success" | "error" | "warning" | "info" = "success") => {
-    setAlertMessage({ title, variant });
-    setTimeout(() => {
-      setAlertMessage(null);
-    }, 3000);
-  }, []);
+  const showAlert = useCallback(
+    (title: string, variant: "success" | "error" | "warning" | "info" = "success") => {
+      setAlertMessage({ title, variant });
+      setTimeout(() => {
+        setAlertMessage(null);
+      }, 3000);
+    },
+    []
+  );
 
   useEffect(() => {
     if (userId) {
       const foundUser = getUserById(userId);
       if (foundUser) {
         setUser(foundUser);
-        setPermissions(foundUser.permissions || defaultPermissions);
+        const userPermissions = foundUser.permissions as UserPermissions | undefined;
+        setPermissions(userPermissions || defaultPermissions);
       } else {
         showAlert(t.team.permissions.userNotFound, "error");
         setTimeout(() => {
@@ -117,7 +130,7 @@ export default function TeamPermissions() {
         }, 2000);
       }
     }
-  }, [userId, navigate, showAlert]);
+  }, [userId, navigate, showAlert, t.team.permissions.userNotFound]);
 
   const handlePermissionChange = (
     resource: PermissionResource,
@@ -174,10 +187,7 @@ export default function TeamPermissions() {
       <div className="space-y-6">
         {alertMessage && (
           <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-            <Alert
-              title={alertMessage.title}
-              variant={alertMessage.variant}
-            />
+            <Alert title={alertMessage.title} variant={alertMessage.variant} />
           </div>
         )}
         <div className="flex items-center justify-center min-h-[400px]">
@@ -187,17 +197,20 @@ export default function TeamPermissions() {
     );
   }
 
-  const resources: PermissionResource[] = ["property", "location", "employee", "serviceProvider", "supplier", "buyer"];
-  const actions: PermissionAction[] = ["view", "add", "edit", "remove"];
+  const resources: PermissionResource[] = [
+    "property",
+    "location",
+    "employee",
+    "serviceProvider",
+    "supplier",
+    "buyer",
+  ];
 
   return (
     <div className="space-y-6">
       {alertMessage && (
         <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-          <Alert
-            title={alertMessage.title}
-            variant={alertMessage.variant}
-          />
+          <Alert title={alertMessage.title} variant={alertMessage.variant} />
         </div>
       )}
 
@@ -210,11 +223,7 @@ export default function TeamPermissions() {
             {t.team.permissions.descriptionFor(user.name)}
           </p>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => navigate(ROUTES.TEAM)}
-          disabled={isSaving}
-        >
+        <Button variant="outline" onClick={() => navigate(ROUTES.TEAM)} disabled={isSaving}>
           {t.team.new.back}
         </Button>
       </div>
@@ -232,7 +241,9 @@ export default function TeamPermissions() {
                   resource={resource}
                   resourceLabel={t.team.permissions.resources[resource]}
                   permissions={permissions.registration[resource]}
-                  onPermissionChange={(action, value) => handlePermissionChange(resource, action, value)}
+                  onPermissionChange={(action, value) =>
+                    handlePermissionChange(resource, action, value)
+                  }
                   onSelectAll={(value) => handleSelectAll(resource, value)}
                 />
               ))}
@@ -248,12 +259,7 @@ export default function TeamPermissions() {
             >
               {t.team.addModal.cancel}
             </Button>
-            <Button
-              type="button"
-              variant="primary"
-              onClick={handleSave}
-              disabled={isSaving}
-            >
+            <Button type="button" variant="primary" onClick={handleSave} disabled={isSaving}>
               {isSaving ? t.common.loading : t.team.permissions.savePermissions}
             </Button>
           </div>

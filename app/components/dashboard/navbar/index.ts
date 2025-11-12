@@ -7,4 +7,3 @@ export { UserInfo } from "./user-info";
 export { ThemeToggle } from "./theme-toggle";
 export { ThemeToggleMenuItem } from "./theme-toggle-menu-item";
 export { LanguageSelectorMenuItem } from "./language-selector-menu-item";
-

@@ -1,12 +1,6 @@
-export interface GeocodeResult {
-  lat: string;
-  lon: string;
-  display_name: string;
-}
+import type { GeocodeResult, GeocodeError } from "~/types";
 
-export interface GeocodeError {
-  error: string;
-}
+export type { GeocodeResult, GeocodeError };
 
 export function buildAddressString(address: {
   street: string;
@@ -30,17 +24,15 @@ export function buildAddressString(address: {
   return parts.join(", ");
 }
 
-export async function geocodeAddress(
-  address: {
-    street: string;
-    number: string;
-    complement?: string;
-    neighborhood: string;
-    city: string;
-    state: string;
-    zipCode: string;
-  }
-): Promise<GeocodeResult | GeocodeError> {
+export async function geocodeAddress(address: {
+  street: string;
+  number: string;
+  complement?: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  zipCode: string;
+}): Promise<GeocodeResult | GeocodeError> {
   if (!address.street || !address.city || !address.state) {
     return { error: "Incomplete address" };
   }
@@ -127,4 +119,3 @@ export async function geocodeAddress(
     };
   }
 }
-

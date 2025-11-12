@@ -3,23 +3,9 @@ import { Input, Button } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { maskPhone } from "~/components/site/utils/masks";
 import { DASHBOARD_COLORS } from "../utils/colors";
+import type { UserFormData } from "~/types";
 
-export interface UserFormData {
-  name: string;
-  cpf?: string;
-  email: string;
-  phone: string;
-  role: "admin" | "manager" | "user";
-  street?: string;
-  number?: string;
-  complement?: string;
-  neighborhood?: string;
-  city?: string;
-  state?: string;
-  zipCode?: string;
-  password?: string;
-  confirmPassword?: string;
-}
+export type { UserFormData };
 
 interface UserFormModalProps {
   isOpen: boolean;
@@ -151,9 +137,7 @@ export function UserFormModal({
               {isEditing ? t.team.editModal.title : t.team.addModal.title}
             </h3>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {isEditing
-                ? t.team.editModal.description
-                : t.team.addModal.description}
+              {isEditing ? t.team.editModal.description : t.team.addModal.description}
             </p>
           </div>
 
@@ -276,8 +260,8 @@ export function UserFormModal({
                 {isSubmitting
                   ? t.common.loading
                   : isEditing
-                  ? t.team.editModal.save
-                  : t.team.addModal.add}
+                    ? t.team.editModal.save
+                    : t.team.addModal.add}
               </Button>
               <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
                 {isEditing ? t.team.editModal.cancel : t.team.addModal.cancel}

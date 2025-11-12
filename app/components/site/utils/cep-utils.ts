@@ -1,15 +1,7 @@
-import type { CEPData } from "../hooks/use-cep-lookup";
+import type { CEPData, AddressFormData } from "~/types";
 import { maskCEP } from "./masks";
 
-export interface AddressFormData {
-  zipCode: string;
-  street: string;
-  number: string;
-  complement: string;
-  neighborhood: string;
-  city: string;
-  state: string;
-}
+export type { AddressFormData };
 
 export function mapCEPDataToAddressForm(
   data: CEPData,
@@ -25,4 +17,3 @@ export function mapCEPDataToAddressForm(
     complement: existingData?.complement || "",
   };
 }
-

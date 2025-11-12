@@ -145,16 +145,14 @@ export const BLOG_POSTS = [
   {
     category: "Produtividade",
     categoryColor: COLORS.primary,
-    title:
-      "5 dicas para aumentar a produtividade na sua fazenda de gado de corte",
+    title: "5 dicas para aumentar a produtividade na sua fazenda de gado de corte",
     date: "3 dias atrás",
     readTime: "6 min de leitura",
   },
   {
     category: "Tendências",
     categoryColor: "oklch(55% 0.15 200)",
-    title:
-      "O futuro da pecuária: tecnologia e inovação na gestão de fazendas",
+    title: "O futuro da pecuária: tecnologia e inovação na gestão de fazendas",
     date: "3 dias atrás",
     readTime: "6 min de leitura",
   },
@@ -174,14 +172,7 @@ export const FOOTER_SECTIONS = [
   },
   {
     title: "Sobre Nós",
-    links: [
-      "Quem Somos",
-      "Nossa História",
-      "Equipe",
-      "Trabalhe Conosco",
-      "Imprensa",
-      "Contato",
-    ],
+    links: ["Quem Somos", "Nossa História", "Equipe", "Trabalhe Conosco", "Imprensa", "Contato"],
   },
   {
     title: "Recursos",
@@ -205,4 +196,3 @@ export const FOOTER_SECTIONS = [
 ] as const;
 
 export const TRUSTED_BRANDS = ["CNN", "GitHub", "Google", "PayPal", "Vimeo"] as const;
-

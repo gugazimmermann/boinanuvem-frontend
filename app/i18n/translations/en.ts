@@ -82,7 +82,8 @@ export const en = {
     },
     deleteModal: {
       title: "Confirm Deletion",
-      message: (name: string) => `Are you sure you want to delete property "${name}"? This action cannot be undone.`,
+      message: (name: string) =>
+        `Are you sure you want to delete property "${name}"? This action cannot be undone.`,
       cancel: "Cancel",
       confirm: "Delete",
     },
@@ -198,7 +199,8 @@ export const en = {
     },
     deleteModal: {
       title: "Confirm Deletion",
-      message: (name: string) => `Are you sure you want to delete the location "${name}"? This action cannot be undone.`,
+      message: (name: string) =>
+        `Are you sure you want to delete the location "${name}"? This action cannot be undone.`,
       cancel: "Cancel",
       confirm: "Delete",
     },
@@ -392,7 +394,8 @@ export const en = {
     },
     deleteModal: {
       title: "Confirm Deletion",
-      message: (name: string) => `Are you sure you want to delete user "${name}"? This action cannot be undone.`,
+      message: (name: string) =>
+        `Are you sure you want to delete user "${name}"? This action cannot be undone.`,
       cancel: "Cancel",
       confirm: "Delete",
     },
@@ -503,4 +506,3 @@ export const en = {
     },
   },
 } as const;
-

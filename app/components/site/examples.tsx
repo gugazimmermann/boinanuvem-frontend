@@ -24,7 +24,8 @@ export function Examples() {
           Saiba Mais Sobre Nós
         </span>
         <Heading level={2} className="mb-6" customColor="white">
-          Boi na Nuvem é uma Plataforma Completa e Poderosa para Gestão de Fazendas de Gado de Corte.
+          Boi na Nuvem é uma Plataforma Completa e Poderosa para Gestão de Fazendas de Gado de
+          Corte.
         </Heading>
         <ul className="space-y-2" style={{ color: COLORS.textLight }}>
           {FEATURES_LIST.map((feature, index) => (

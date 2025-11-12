@@ -1,5 +1,4 @@
-import type { TeamUser } from "~/routes/dashboard/team";
-import type { UserFormData } from "~/components/dashboard/team/user-form-modal";
+import type { TeamUser, UserFormData } from "~/types";
 import { mockCompanies } from "./companies";
 import type { UserPermissions } from "~/types/permissions";
 
@@ -24,6 +23,7 @@ export const mockUsers: TeamUser[] = [
     zipCode: "88303030",
     mainUser: true,
     companyId: "550e8400-e29b-41d4-a716-446655440000",
+    createdAt: "2024-01-01",
     lastAccess: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
   },
   {
@@ -44,6 +44,7 @@ export const mockUsers: TeamUser[] = [
     zipCode: "01310-100",
     mainUser: false,
     companyId: "550e8400-e29b-41d4-a716-446655440000",
+    createdAt: "2024-01-15",
     lastAccess: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
   },
   {
@@ -64,6 +65,7 @@ export const mockUsers: TeamUser[] = [
     zipCode: "01305-000",
     mainUser: false,
     companyId: "550e8400-e29b-41d4-a716-446655440000",
+    createdAt: "2024-02-01",
     lastAccess: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
   },
   {
@@ -84,6 +86,7 @@ export const mockUsers: TeamUser[] = [
     zipCode: "05615-190",
     mainUser: false,
     companyId: "550e8400-e29b-41d4-a716-446655440000",
+    createdAt: "2024-02-15",
     lastAccess: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
   },
   {
@@ -104,6 +107,7 @@ export const mockUsers: TeamUser[] = [
     zipCode: "05435-000",
     mainUser: false,
     companyId: "550e8400-e29b-41d4-a716-446655440000",
+    createdAt: "2024-03-01",
   },
 ];
 
@@ -146,9 +150,9 @@ export function addUser(data: UserFormData & { password: string }): TeamUser {
     status: "pending",
     mainUser: false,
     companyId: company?.id || "",
+    createdAt: new Date().toISOString().split("T")[0],
     password: DEFAULT_PASSWORD_HASH,
   };
   mockUsers.push(newUser);
   return newUser;
 }
-

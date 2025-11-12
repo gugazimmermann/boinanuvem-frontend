@@ -10,4 +10,3 @@ export { CTA } from "./cta";
 export { Blog } from "./blog";
 export { Footer } from "./footer";
 export { ScrollToTop } from "./scroll-to-top";
-

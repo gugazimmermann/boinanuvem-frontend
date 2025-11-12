@@ -15,8 +15,6 @@ import {
   unmaskCEP,
   geocodeAddress,
   buildAddressString,
-  type GeocodeResult,
-  type GeocodeError,
 } from "../components/site/utils";
 
 export function meta() {
@@ -70,13 +68,14 @@ export default function Register() {
     });
   }, []);
 
-  const { data: cnpjData, loading: cnpjLoading, error: cnpjError } = useCNPJLookup(
-    unmaskCNPJ(companyData.cnpj),
-    {
-      debounceMs: 800,
-      onSuccess: handleCNPJSuccess,
-    }
-  );
+  const {
+    data: _cnpjData,
+    loading: cnpjLoading,
+    error: cnpjError,
+  } = useCNPJLookup(unmaskCNPJ(companyData.cnpj), {
+    debounceMs: 800,
+    onSuccess: handleCNPJSuccess,
+  });
 
   const handleCompanyZipCodeSuccess = useCallback((data: CEPData) => {
     setCompanyData((prev) => {
@@ -86,7 +85,7 @@ export default function Register() {
   }, []);
 
   const {
-    data: companyZipCodeData,
+    data: _companyZipCodeData,
     loading: companyZipCodeLoading,
     error: companyZipCodeError,
   } = useCEPLookup(unmaskCEP(companyData.zipCode), {
@@ -102,7 +101,7 @@ export default function Register() {
   }, []);
 
   const {
-    data: userZipCodeData,
+    data: _userZipCodeData,
     loading: userZipCodeLoading,
     error: userZipCodeError,
   } = useCEPLookup(unmaskCEP(userData.zipCode), {
@@ -112,7 +111,7 @@ export default function Register() {
 
   const handleCompanyDataChange = (field: keyof typeof companyData, value: string) => {
     let processedValue = value;
-    
+
     if (field === "cnpj") {
       processedValue = maskCNPJ(value);
     } else if (field === "phone") {
@@ -120,7 +119,7 @@ export default function Register() {
     } else if (field === "zipCode") {
       processedValue = maskCEP(value);
     }
-    
+
     setCompanyData((prev) => ({ ...prev, [field]: processedValue }));
     if (companyErrors[field]) {
       setCompanyErrors((prev) => {
@@ -147,7 +146,7 @@ export default function Register() {
 
     requiredFields.forEach((field) => {
       let value = companyData[field];
-      
+
       if (field === "cnpj") {
         value = unmaskCNPJ(value);
       } else if (field === "phone") {
@@ -155,7 +154,7 @@ export default function Register() {
       } else if (field === "zipCode") {
         value = unmaskCEP(value);
       }
-      
+
       if (!value || value.trim() === "") {
         const fieldLabels: Record<string, string> = {
           cnpj: "CNPJ",
@@ -282,23 +281,15 @@ export default function Register() {
             <div className="flex items-center">
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  step >= 1
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-200 text-gray-500"
+                  step >= 1 ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-500"
                 }`}
               >
                 1
               </div>
-              <div
-                className={`w-16 h-1 mx-2 ${
-                  step >= 2 ? "bg-blue-500" : "bg-gray-200"
-                }`}
-              />
+              <div className={`w-16 h-1 mx-2 ${step >= 2 ? "bg-blue-500" : "bg-gray-200"}`} />
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  step >= 2
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-200 text-gray-500"
+                  step >= 2 ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-500"
                 }`}
               >
                 2
@@ -311,9 +302,7 @@ export default function Register() {
           </h3>
 
           <p className="mt-1 text-center text-gray-500">
-            {step === 1
-              ? "Preencha os dados da sua empresa"
-              : "Preencha seus dados pessoais"}
+            {step === 1 ? "Preencha os dados da sua empresa" : "Preencha seus dados pessoais"}
           </p>
 
           <form
@@ -330,9 +319,7 @@ export default function Register() {
             {step === 1 ? (
               <div className="space-y-4">
                 {cnpjLoading && (
-                  <div className="text-sm text-blue-500 text-center">
-                    Searching CNPJ data...
-                  </div>
+                  <div className="text-sm text-blue-500 text-center">Searching CNPJ data...</div>
                 )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -500,7 +487,9 @@ export default function Register() {
                       aria-label="CPF"
                       className="mt-0"
                       value={userData.cpf}
-                      onChange={(e) => setUserData((prev) => ({ ...prev, cpf: maskCPF(e.target.value) }))}
+                      onChange={(e) =>
+                        setUserData((prev) => ({ ...prev, cpf: maskCPF(e.target.value) }))
+                      }
                     />
                   </div>
                 </div>
@@ -577,7 +566,9 @@ export default function Register() {
                       aria-label="Complemento"
                       className="mt-0"
                       value={userData.complement}
-                      onChange={(e) => setUserData((prev) => ({ ...prev, complement: e.target.value }))}
+                      onChange={(e) =>
+                        setUserData((prev) => ({ ...prev, complement: e.target.value }))
+                      }
                     />
                   </div>
                 </div>
@@ -590,7 +581,9 @@ export default function Register() {
                       aria-label="Bairro"
                       className="mt-0"
                       value={userData.neighborhood}
-                      onChange={(e) => setUserData((prev) => ({ ...prev, neighborhood: e.target.value }))}
+                      onChange={(e) =>
+                        setUserData((prev) => ({ ...prev, neighborhood: e.target.value }))
+                      }
                     />
                   </div>
                   <div>
@@ -623,7 +616,9 @@ export default function Register() {
                       aria-label="Senha"
                       className="mt-0"
                       value={userData.password}
-                      onChange={(e) => setUserData((prev) => ({ ...prev, password: e.target.value }))}
+                      onChange={(e) =>
+                        setUserData((prev) => ({ ...prev, password: e.target.value }))
+                      }
                       showPasswordToggle
                     />
                   </div>
@@ -634,7 +629,9 @@ export default function Register() {
                       aria-label="Repita a Senha"
                       className="mt-0"
                       value={userData.confirmPassword}
-                      onChange={(e) => setUserData((prev) => ({ ...prev, confirmPassword: e.target.value }))}
+                      onChange={(e) =>
+                        setUserData((prev) => ({ ...prev, confirmPassword: e.target.value }))
+                      }
                       showPasswordToggle
                     />
                   </div>
@@ -644,23 +641,13 @@ export default function Register() {
 
             <div className="flex items-center justify-between mt-6">
               {step === 2 && (
-                <AuthButton
-                  type="button"
-                  variant="outline"
-                  size="md"
-                  onClick={() => setStep(1)}
-                >
+                <AuthButton type="button" variant="outline" size="md" onClick={() => setStep(1)}>
                   Voltar
                 </AuthButton>
               )}
               <div className={step === 1 ? "ml-auto" : "ml-auto"}>
                 {step === 1 ? (
-                  <AuthButton
-                    type="button"
-                    variant="primary"
-                    size="md"
-                    onClick={handleNextStep}
-                  >
+                  <AuthButton type="button" variant="primary" size="md" onClick={handleNextStep}>
                     Próximo
                   </AuthButton>
                 ) : (
@@ -679,9 +666,7 @@ export default function Register() {
         </div>
 
         <div className="flex items-center justify-center py-4 text-center bg-gray-50">
-          <span className="text-sm text-gray-600">
-            Já tem uma conta?{" "}
-          </span>
+          <span className="text-sm text-gray-600">Já tem uma conta? </span>
 
           <a
             href={ROUTES.LOGIN}
@@ -694,4 +679,3 @@ export default function Register() {
     </AuthLayout>
   );
 }
-

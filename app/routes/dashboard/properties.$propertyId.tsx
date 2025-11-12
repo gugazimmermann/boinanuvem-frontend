@@ -3,9 +3,11 @@ import { useParams, useNavigate } from "react-router";
 import { Button, StatusBadge, Table, type TableColumn, type SortDirection } from "~/components/ui";
 import { PropertyMap } from "~/components/ui/property-map";
 import { useTranslation } from "~/i18n";
-import { ROUTES, getPropertyEditRoute, getLocationViewRoute, getLocationEditRoute } from "~/routes.config";
+import { ROUTES, getPropertyEditRoute, getLocationViewRoute } from "~/routes.config";
 import { getPropertyById } from "~/mocks/properties";
-import { getLocationsByPropertyId, type Location, AreaType } from "~/mocks/locations";
+import { getLocationsByPropertyId } from "~/mocks/locations";
+import type { Location } from "~/types";
+import { AreaType } from "~/types";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
 import { LocationTypeBadge } from "~/components/dashboard/utils/location-type-badge";
 import { TableActionButtons } from "~/components/ui/table/table-helpers";
@@ -37,7 +39,9 @@ export default function PropertyDetails() {
   const navigate = useNavigate();
   const t = useTranslation();
   const property = getPropertyById(propertyId);
-  const [activeTab, setActiveTab] = useState<"information" | "info" | "locations" | "activities">("information");
+  const [activeTab, setActiveTab] = useState<"information" | "info" | "locations" | "activities">(
+    "information"
+  );
   const [sortState, setSortState] = useState<{
     column: string | null;
     direction: SortDirection;
@@ -48,10 +52,7 @@ export default function PropertyDetails() {
       <div className="space-y-6">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
           <p className="text-gray-600 dark:text-gray-400 mb-4">{t.properties.emptyState.title}</p>
-          <Button
-            variant="outline"
-            onClick={() => navigate(ROUTES.PROPERTIES)}
-          >
+          <Button variant="outline" onClick={() => navigate(ROUTES.PROPERTIES)}>
             {t.team.new.back}
           </Button>
         </div>
@@ -73,11 +74,13 @@ export default function PropertyDetails() {
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {property.name}
-            </h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{property.name}</h1>
             <StatusBadge
-              label={property.status === "active" ? t.properties.table.active : t.properties.table.inactive}
+              label={
+                property.status === "active"
+                  ? t.properties.table.active
+                  : t.properties.table.inactive
+              }
               variant={property.status === "active" ? "success" : "default"}
             />
           </div>
@@ -133,7 +136,11 @@ export default function PropertyDetails() {
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
               }
             `}
-            style={activeTab === "information" ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary } : undefined}
+            style={
+              activeTab === "information"
+                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
+                : undefined
+            }
           >
             {t.properties.details.tabs.information}
           </button>
@@ -147,7 +154,11 @@ export default function PropertyDetails() {
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
               }
             `}
-            style={activeTab === "info" ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary } : undefined}
+            style={
+              activeTab === "info"
+                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
+                : undefined
+            }
           >
             {t.properties.details.tabs.info}
           </button>
@@ -161,7 +172,11 @@ export default function PropertyDetails() {
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
               }
             `}
-            style={activeTab === "locations" ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary } : undefined}
+            style={
+              activeTab === "locations"
+                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
+                : undefined
+            }
           >
             {t.properties.details.tabs.locations}
           </button>
@@ -175,7 +190,11 @@ export default function PropertyDetails() {
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
               }
             `}
-            style={activeTab === "activities" ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary } : undefined}
+            style={
+              activeTab === "activities"
+                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
+                : undefined
+            }
           >
             {t.properties.details.tabs.activities}
           </button>
@@ -188,12 +207,15 @@ export default function PropertyDetails() {
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{t.properties.table.area}</p>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {t.properties.table.area}
+                  </p>
                   <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
                     {property.area.toLocaleString("pt-BR", {
                       minimumFractionDigits: 1,
                       maximumFractionDigits: 1,
-                    })} ha
+                    })}{" "}
+                    ha
                   </p>
                 </div>
                 <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
@@ -205,7 +227,9 @@ export default function PropertyDetails() {
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{t.properties.table.locations}</p>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {t.properties.table.locations}
+                  </p>
                   <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">0</p>
                 </div>
                 <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
@@ -217,10 +241,12 @@ export default function PropertyDetails() {
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{t.properties.table.animals}</p>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {t.properties.table.animals}
+                  </p>
                   <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">0</p>
                 </div>
-                <div 
+                <div
                   className="w-10 h-10 dark:bg-blue-900/30 rounded-lg flex items-center justify-center"
                   style={{ backgroundColor: `${DASHBOARD_COLORS.primaryLight}40` }}
                 >
@@ -232,7 +258,9 @@ export default function PropertyDetails() {
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{t.properties.table.uas}</p>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {t.properties.table.uas}
+                  </p>
                   <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">0</p>
                 </div>
                 <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
@@ -244,7 +272,9 @@ export default function PropertyDetails() {
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{t.properties.table.stockingRate}</p>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {t.properties.table.stockingRate}
+                  </p>
                   <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">0</p>
                 </div>
                 <div className="w-10 h-10 bg-teal-100 dark:bg-teal-900/30 rounded-lg flex items-center justify-center">
@@ -265,25 +295,36 @@ export default function PropertyDetails() {
               </h2>
               <div className="space-y-4">
                 <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{t.properties.table.code}</p>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {t.properties.table.code}
+                  </p>
                   <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">{property.code}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{t.properties.table.name}</p>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {t.properties.table.name}
+                  </p>
                   <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">{property.name}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{t.properties.table.area}</p>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {t.properties.table.area}
+                  </p>
                   <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
                     {property.area.toLocaleString("pt-BR", {
                       minimumFractionDigits: 1,
                       maximumFractionDigits: 1,
-                    })} hectares
+                    })}{" "}
+                    hectares
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{t.properties.details.createdAt}</p>
-                  <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">{formatDate(property.createdAt)}</p>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {t.properties.details.createdAt}
+                  </p>
+                  <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
+                    {formatDate(property.createdAt)}
+                  </p>
                 </div>
               </div>
             </div>
@@ -294,34 +335,53 @@ export default function PropertyDetails() {
               </h2>
               <div className="space-y-4">
                 <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{t.profile.company.fields.street}</p>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {t.profile.company.fields.street}
+                  </p>
                   <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
-                    {property.street}{property.number ? `, ${property.number}` : ""}
+                    {property.street}
+                    {property.number ? `, ${property.number}` : ""}
                   </p>
                 </div>
                 {property.complement && (
                   <div>
-                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{t.profile.company.fields.complement}</p>
-                    <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">{property.complement}</p>
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                      {t.profile.company.fields.complement}
+                    </p>
+                    <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
+                      {property.complement}
+                    </p>
                   </div>
                 )}
                 <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{t.profile.company.fields.neighborhood}</p>
-                  <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">{property.neighborhood}</p>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {t.profile.company.fields.neighborhood}
+                  </p>
+                  <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
+                    {property.neighborhood}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{t.properties.details.cityState}</p>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {t.properties.details.cityState}
+                  </p>
                   <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
                     {property.city}, {property.state}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{t.profile.company.fields.zipCode}</p>
-                  <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">{property.zipCode}</p>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {t.profile.company.fields.zipCode}
+                  </p>
+                  <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
+                    {property.zipCode}
+                  </p>
                 </div>
                 {property.latitude && property.longitude && (
                   <div>
-                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{t.properties.details.coordinates}</p>
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                      {t.properties.details.coordinates}
+                    </p>
                     <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
                       {property.latitude.toFixed(6)}, {property.longitude.toFixed(6)}
                     </p>
@@ -346,137 +406,139 @@ export default function PropertyDetails() {
         </div>
       )}
 
-      {activeTab === "locations" && property && (() => {
-        const locations = getLocationsByPropertyId(property.id);
-        
-        const sortedLocations = [...locations].sort((a, b) => {
-          if (!sortState.column || !sortState.direction) {
-            return 0;
-          }
+      {activeTab === "locations" &&
+        property &&
+        (() => {
+          const locations = getLocationsByPropertyId(property.id);
 
-          let aValue = a[sortState.column as keyof Location];
-          let bValue = b[sortState.column as keyof Location];
+          const sortedLocations = [...locations].sort((a, b) => {
+            if (!sortState.column || !sortState.direction) {
+              return 0;
+            }
 
-          // Handle area sorting (area is now an object)
-          if (sortState.column === "area") {
-            aValue = a.area.value as any;
-            bValue = b.area.value as any;
-          }
+            let aValue = a[sortState.column as keyof Location];
+            let bValue = b[sortState.column as keyof Location];
 
-          // Handle locationType sorting (it's an enum, compare as string)
-          if (sortState.column === "locationType") {
-            aValue = a.locationType as any;
-            bValue = b.locationType as any;
-          }
+            // Handle area sorting (area is now an object)
+            if (sortState.column === "area") {
+              aValue = a.area.value;
+              bValue = b.area.value;
+            }
 
-          if (aValue == null && bValue == null) return 0;
-          if (aValue == null) return 1;
-          if (bValue == null) return -1;
+            // Handle locationType sorting (it's an enum, compare as string)
+            if (sortState.column === "locationType") {
+              aValue = a.locationType;
+              bValue = b.locationType;
+            }
 
-          let comparison = 0;
-          if (typeof aValue === "string" && typeof bValue === "string") {
-            comparison = aValue.localeCompare(bValue, "pt-BR", {
-              sensitivity: "base",
-            });
-          } else if (typeof aValue === "number" && typeof bValue === "number") {
-            comparison = aValue - bValue;
-          } else {
-            comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
-          }
+            if (aValue == null && bValue == null) return 0;
+            if (aValue == null) return 1;
+            if (bValue == null) return -1;
 
-          return sortState.direction === "asc" ? comparison : -comparison;
-        });
+            let comparison = 0;
+            if (typeof aValue === "string" && typeof bValue === "string") {
+              comparison = aValue.localeCompare(bValue, "pt-BR", {
+                sensitivity: "base",
+              });
+            } else if (typeof aValue === "number" && typeof bValue === "number") {
+              comparison = aValue - bValue;
+            } else {
+              comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
+            }
 
-        const columns: TableColumn<Location>[] = [
-          {
-            key: "name",
-            label: t.locations.table.name,
-            sortable: true,
-            render: (_, row) => (
-              <div>
-                <h2 className="font-medium text-gray-800 dark:text-gray-200">
-                  {row.name}
-                </h2>
-                <p className="text-sm font-normal text-gray-600 dark:text-gray-400">
-                  {row.code}
-                </p>
-              </div>
-            ),
-          },
-          {
-            key: "locationType",
-            label: t.locations.table.locationType,
-            sortable: true,
-            render: (_, row) => (
-              <LocationTypeBadge
-                locationType={row.locationType}
-                label={t.locations.types[row.locationType as keyof typeof t.locations.types] || row.locationType}
+            return sortState.direction === "asc" ? comparison : -comparison;
+          });
+
+          const columns: TableColumn<Location>[] = [
+            {
+              key: "name",
+              label: t.locations.table.name,
+              sortable: true,
+              render: (_, row) => (
+                <div>
+                  <h2 className="font-medium text-gray-800 dark:text-gray-200">{row.name}</h2>
+                  <p className="text-sm font-normal text-gray-600 dark:text-gray-400">{row.code}</p>
+                </div>
+              ),
+            },
+            {
+              key: "locationType",
+              label: t.locations.table.locationType,
+              sortable: true,
+              render: (_, row) => (
+                <LocationTypeBadge
+                  locationType={row.locationType}
+                  label={
+                    t.locations.types[row.locationType as keyof typeof t.locations.types] ||
+                    row.locationType
+                  }
+                />
+              ),
+            },
+            {
+              key: "area",
+              label: t.locations.table.area,
+              sortable: true,
+              render: (_, row) => (
+                <span className="text-gray-700 dark:text-gray-300">
+                  {row.area.value.toLocaleString("pt-BR", {
+                    minimumFractionDigits: 1,
+                    maximumFractionDigits: 1,
+                  })}{" "}
+                  {formatAreaType(row.area.type)}
+                </span>
+              ),
+            },
+            {
+              key: "status",
+              label: t.locations.table.status,
+              sortable: true,
+              render: (_, row) => (
+                <StatusBadge
+                  label={
+                    row.status === "active" ? t.locations.table.active : t.locations.table.inactive
+                  }
+                  variant={row.status === "active" ? "success" : "default"}
+                />
+              ),
+            },
+            {
+              key: "actions",
+              label: "",
+              headerClassName: "relative",
+              render: (_, row) => (
+                <TableActionButtons onView={() => navigate(getLocationViewRoute(row.id))} />
+              ),
+            },
+          ];
+
+          return (
+            <div className="space-y-6">
+              <Table<Location>
+                columns={columns}
+                data={sortedLocations}
+                header={{
+                  title: t.locations.title,
+                  badge: {
+                    label: t.locations.badge.locations(locations.length),
+                    variant: "primary",
+                  },
+                  description: t.locations.description,
+                }}
+                sortState={sortState}
+                onSort={(column, direction) => {
+                  setSortState({ column, direction });
+                }}
+                emptyState={{
+                  title: t.locations.emptyState.title,
+                  description: t.locations.emptyState.descriptionWithoutSearch,
+                  onAddNew: () => navigate(ROUTES.LOCATIONS_NEW),
+                  addNewLabel: t.locations.addLocation,
+                }}
               />
-            ),
-          },
-          {
-            key: "area",
-            label: t.locations.table.area,
-            sortable: true,
-            render: (_, row) => (
-              <span className="text-gray-700 dark:text-gray-300">
-                {row.area.value.toLocaleString("pt-BR", {
-                  minimumFractionDigits: 1,
-                  maximumFractionDigits: 1,
-                })} {formatAreaType(row.area.type)}
-              </span>
-            ),
-          },
-          {
-            key: "status",
-            label: t.locations.table.status,
-            sortable: true,
-            render: (_, row) => (
-              <StatusBadge
-                label={row.status === "active" ? t.locations.table.active : t.locations.table.inactive}
-                variant={row.status === "active" ? "success" : "default"}
-              />
-            ),
-          },
-          {
-            key: "actions",
-            label: "",
-            headerClassName: "relative",
-            render: (_, row) => (
-              <TableActionButtons
-                onView={() => navigate(getLocationViewRoute(row.id))}
-              />
-            ),
-          },
-        ];
-
-        return (
-          <div className="space-y-6">
-            <Table<Location>
-              columns={columns}
-              data={sortedLocations}
-              header={{
-                title: t.locations.title,
-                badge: {
-                  label: t.locations.badge.locations(locations.length),
-                  variant: "primary",
-                },
-                description: t.locations.description,
-              }}
-              sortState={sortState}
-              onSort={(column, direction) => {
-                setSortState({ column, direction });
-              }}
-              emptyState={{
-                title: t.locations.emptyState.title,
-                description: t.locations.emptyState.description,
-                onAddNew: () => navigate(ROUTES.LOCATIONS_NEW),
-                addNewLabel: t.locations.addLocation,
-              }}
-            />
-          </div>
-        );
-      })()}
+            </div>
+          );
+        })()}
 
       {activeTab === "activities" && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
@@ -485,7 +547,7 @@ export default function PropertyDetails() {
           </h2>
           <div className="space-y-3">
             <div className="flex items-center space-x-3 pb-3 border-b border-gray-200 dark:border-gray-700">
-              <div 
+              <div
                 className="w-8 h-8 dark:bg-blue-900/30 rounded-full flex items-center justify-center"
                 style={{ backgroundColor: `${DASHBOARD_COLORS.primaryLight}40` }}
               >
@@ -506,10 +568,15 @@ export default function PropertyDetails() {
               </div>
               <div className="flex-1">
                 <p className="text-xs font-medium text-gray-900 dark:text-gray-100">
-                  {property.status === "active" ? t.properties.details.activityActivated : t.properties.details.activityDeactivated}
+                  {property.status === "active"
+                    ? t.properties.details.activityActivated
+                    : t.properties.details.activityDeactivated}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {t.properties.details.statusLabel}: {property.status === "active" ? t.properties.table.active : t.properties.table.inactive}
+                  {t.properties.details.statusLabel}:{" "}
+                  {property.status === "active"
+                    ? t.properties.table.active
+                    : t.properties.table.inactive}
                 </p>
               </div>
             </div>
@@ -519,4 +586,3 @@ export default function PropertyDetails() {
     </div>
   );
 }
-

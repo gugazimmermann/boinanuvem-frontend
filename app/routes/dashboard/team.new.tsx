@@ -22,7 +22,9 @@ export function meta() {
 export default function NewTeamMember() {
   const t = useTranslation();
   const navigate = useNavigate();
-  const [formData, setFormData] = useState<UserFormData & { password: string; confirmPassword: string }>({
+  const [formData, setFormData] = useState<
+    UserFormData & { password: string; confirmPassword: string }
+  >({
     name: "",
     cpf: "",
     email: "",
@@ -40,7 +42,10 @@ export default function NewTeamMember() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [alertMessage, setAlertMessage] = useState<{ title: string; variant: "success" | "error" | "warning" | "info" } | null>(null);
+  const [alertMessage, setAlertMessage] = useState<{
+    title: string;
+    variant: "success" | "error" | "warning" | "info";
+  } | null>(null);
 
   const handleZipCodeSuccess = useCallback((data: CEPData) => {
     setFormData((prev) => {
@@ -49,15 +54,18 @@ export default function NewTeamMember() {
     });
   }, []);
 
-  const {
-    loading: zipCodeLoading,
-    error: zipCodeError,
-  } = useCEPLookup(unmaskCEP(formData.zipCode || ""), {
-    debounceMs: 800,
-    onSuccess: handleZipCodeSuccess,
-  });
+  const { loading: zipCodeLoading, error: zipCodeError } = useCEPLookup(
+    unmaskCEP(formData.zipCode || ""),
+    {
+      debounceMs: 800,
+      onSuccess: handleZipCodeSuccess,
+    }
+  );
 
-  const showAlert = (title: string, variant: "success" | "error" | "warning" | "info" = "success") => {
+  const showAlert = (
+    title: string,
+    variant: "success" | "error" | "warning" | "info" = "success"
+  ) => {
     setAlertMessage({ title, variant });
     setTimeout(() => {
       setAlertMessage(null);
@@ -158,10 +166,7 @@ export default function NewTeamMember() {
     <div className="space-y-6">
       {alertMessage && (
         <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-          <Alert
-            title={alertMessage.title}
-            variant={alertMessage.variant}
-          />
+          <Alert title={alertMessage.title} variant={alertMessage.variant} />
         </div>
       )}
 
@@ -170,15 +175,9 @@ export default function NewTeamMember() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
             {t.team.addModal.title}
           </h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {t.team.new.description}
-          </p>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{t.team.new.description}</p>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => navigate(ROUTES.TEAM)}
-          disabled={isSubmitting}
-        >
+        <Button variant="outline" onClick={() => navigate(ROUTES.TEAM)} disabled={isSubmitting}>
           {t.team.new.back}
         </Button>
       </div>
@@ -236,7 +235,9 @@ export default function NewTeamMember() {
                   maxLength={10}
                 />
                 {zipCodeLoading && (
-                  <p className="mt-1 text-xs text-blue-500 dark:text-blue-400">{t.team.new.searchingAddress}</p>
+                  <p className="mt-1 text-xs text-blue-500 dark:text-blue-400">
+                    {t.team.new.searchingAddress}
+                  </p>
                 )}
               </div>
               <Input
@@ -331,4 +332,3 @@ export default function NewTeamMember() {
     </div>
   );
 }
-

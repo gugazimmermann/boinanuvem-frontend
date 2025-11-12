@@ -1,42 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import type { CEPData, UseCEPLookupOptions, UseCEPLookupReturn } from "~/types";
 
-export interface CEPData {
-  cep: string;
-  state: string;
-  city: string;
-  neighborhood: string;
-  street: string;
-  service: string;
-  location: {
-    type: string;
-    coordinates: Record<string, unknown>;
-  };
-}
+export type { CEPData, UseCEPLookupOptions, UseCEPLookupReturn };
 
-export interface UseCEPLookupOptions {
-  debounceMs?: number;
-  onSuccess?: (data: CEPData) => void;
-  onError?: (error: Error) => void;
-  enabled?: boolean;
-}
-
-export interface UseCEPLookupReturn {
-  data: CEPData | null;
-  loading: boolean;
-  error: string | null;
-  fetchCEP: (cep: string) => Promise<void>;
-}
-
-export function useCEPLookup(
-  cep: string,
-  options: UseCEPLookupOptions = {}
-): UseCEPLookupReturn {
-  const {
-    debounceMs = 800,
-    onSuccess,
-    onError,
-    enabled = true,
-  } = options;
+export function useCEPLookup(cep: string, options: UseCEPLookupOptions = {}): UseCEPLookupReturn {
+  const { debounceMs = 800, onSuccess, onError, enabled = true } = options;
 
   const [data, setData] = useState<CEPData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -73,9 +41,7 @@ export function useCEPLookup(
       setError(null);
 
       try {
-        const response = await fetch(
-          `https://brasilapi.com.br/api/cep/v2/${cleanCEP}`
-        );
+        const response = await fetch(`https://brasilapi.com.br/api/cep/v2/${cleanCEP}`);
 
         if (!response.ok) {
           throw new Error("CEP not found");
@@ -86,8 +52,7 @@ export function useCEPLookup(
         lastFetchedCEP.current = cleanCEP;
         onSuccessRef.current?.(cepData);
       } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "CEP not found or invalid";
+        const errorMessage = err instanceof Error ? err.message : "CEP not found or invalid";
         setError(errorMessage);
         setData(null);
         lastFetchedCEP.current = "";
@@ -124,4 +89,3 @@ export function useCEPLookup(
     fetchCEP,
   };
 }
-

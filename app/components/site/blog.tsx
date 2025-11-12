@@ -2,11 +2,7 @@ import { Section, Heading, Button, Badge } from "./ui";
 import { BLOG_POSTS, COLORS } from "./constants";
 import { ROUTES } from "../../routes.config";
 
-const BLOG_IMAGES = [
-  "/images/bull.png",
-  "/images/grassland.png",
-  "/images/farm.png",
-] as const;
+const BLOG_IMAGES = ["/images/bull.png", "/images/grassland.png", "/images/farm.png"] as const;
 
 export function Blog() {
   return (
@@ -36,7 +32,10 @@ export function Blog() {
             key={index}
             className="bg-white p-6 rounded-2xl border border-gray-200 hover:shadow-lg transition"
           >
-            <div className="mb-4 rounded-lg overflow-hidden bg-gray-100" style={{ aspectRatio: "16/9" }}>
+            <div
+              className="mb-4 rounded-lg overflow-hidden bg-gray-100"
+              style={{ aspectRatio: "16/9" }}
+            >
               <img
                 src={BLOG_IMAGES[index] || BLOG_IMAGES[0]}
                 alt={post.title}

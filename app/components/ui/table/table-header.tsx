@@ -9,19 +9,12 @@ const badgeVariants = {
   danger: "text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30",
 };
 
-export function TableHeader({
-  title,
-  badge,
-  description,
-  actions = [],
-}: TableHeaderProps) {
+export function TableHeader({ title, badge, description, actions = [] }: TableHeaderProps) {
   return (
     <div className="sm:flex sm:items-center sm:justify-between">
       <div>
         <div className="flex items-center gap-x-3">
-          <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200">
-            {title}
-          </h2>
+          <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200">{title}</h2>
           {badge && (
             <span
               className={`px-3 py-1 text-xs rounded-full ${
@@ -33,9 +26,7 @@ export function TableHeader({
           )}
         </div>
         {description && (
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {description}
-          </p>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{description}</p>
         )}
       </div>
 
@@ -59,4 +50,3 @@ export function TableHeader({
     </div>
   );
 }
-

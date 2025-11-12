@@ -2,7 +2,7 @@ import type { Route } from "./+types/help";
 import { useState, useMemo } from "react";
 import { useTranslation } from "~/i18n";
 
-export function meta({}: Route.MetaArgs) {
+export function meta(_args: Route.MetaArgs) {
   // Note: meta functions run at build time, so translations aren't available here
   // These are static and will be the same for all languages
   return [
@@ -23,46 +23,52 @@ export default function Help() {
     setOpenFaq((prev) => (prev === faqId ? null : faqId));
   };
 
-  const faqCategories = useMemo(() => [
-    { id: "general", label: t.help.categories.general },
-    { id: "trust", label: t.help.categories.trust },
-    { id: "services", label: t.help.categories.services },
-    { id: "billing", label: t.help.categories.billing },
-    { id: "cleaning", label: t.help.categories.cleaning },
-  ], [t]);
+  const faqCategories = useMemo(
+    () => [
+      { id: "general", label: t.help.categories.general },
+      { id: "trust", label: t.help.categories.trust },
+      { id: "services", label: t.help.categories.services },
+      { id: "billing", label: t.help.categories.billing },
+      { id: "cleaning", label: t.help.categories.cleaning },
+    ],
+    [t]
+  );
 
-  const faqItems = useMemo(() => [
-    {
-      id: "payment",
-      category: "billing",
-      question: t.help.faqs.payment.question,
-      answer: t.help.faqs.payment.answer,
-    },
-    {
-      id: "first-consultation",
-      category: "general",
-      question: t.help.faqs.firstConsultation.question,
-      answer: t.help.faqs.firstConsultation.answer,
-    },
-    {
-      id: "opening-hours",
-      category: "general",
-      question: t.help.faqs.openingHours.question,
-      answer: t.help.faqs.openingHours.answer,
-    },
-    {
-      id: "referral",
-      category: "services",
-      question: t.help.faqs.referral.question,
-      answer: t.help.faqs.referral.answer,
-    },
-    {
-      id: "insurance",
-      category: "billing",
-      question: t.help.faqs.insurance.question,
-      answer: t.help.faqs.insurance.answer,
-    },
-  ], [t]);
+  const faqItems = useMemo(
+    () => [
+      {
+        id: "payment",
+        category: "billing",
+        question: t.help.faqs.payment.question,
+        answer: t.help.faqs.payment.answer,
+      },
+      {
+        id: "first-consultation",
+        category: "general",
+        question: t.help.faqs.firstConsultation.question,
+        answer: t.help.faqs.firstConsultation.answer,
+      },
+      {
+        id: "opening-hours",
+        category: "general",
+        question: t.help.faqs.openingHours.question,
+        answer: t.help.faqs.openingHours.answer,
+      },
+      {
+        id: "referral",
+        category: "services",
+        question: t.help.faqs.referral.question,
+        answer: t.help.faqs.referral.answer,
+      },
+      {
+        id: "insurance",
+        category: "billing",
+        question: t.help.faqs.insurance.question,
+        answer: t.help.faqs.insurance.answer,
+      },
+    ],
+    [t]
+  );
 
   const filteredFaqs =
     selectedCategory === null
@@ -148,18 +154,14 @@ export default function Help() {
                     </svg>
                   )}
 
-                  <h1 className="mx-4 text-xl text-gray-700 dark:text-white">
-                    {faq.question}
-                  </h1>
+                  <h1 className="mx-4 text-xl text-gray-700 dark:text-white">{faq.question}</h1>
                 </button>
 
                 {openFaq === faq.id && (
                   <div className="flex mt-8 md:mx-10">
                     <span className="border border-blue-500 dark:border-blue-400"></span>
 
-                    <p className="max-w-3xl px-4 text-gray-500 dark:text-gray-300">
-                      {faq.answer}
-                    </p>
+                    <p className="max-w-3xl px-4 text-gray-500 dark:text-gray-300">{faq.answer}</p>
                   </div>
                 )}
 
@@ -174,4 +176,3 @@ export default function Help() {
     </section>
   );
 }
-

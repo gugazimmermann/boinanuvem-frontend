@@ -8,4 +8,3 @@ export const DASHBOARD_COLORS = {
   primaryLight: COLORS.secondaryLight,
   secondaryLight: COLORS.primaryLight,
 } as const;
-

@@ -51,7 +51,9 @@ export function ProgressBar({
   const percentage = Math.min(Math.max((value / max) * 100, 0), 100);
 
   return (
-    <div className={`w-48 h-1.5 bg-blue-200 dark:bg-blue-900/30 overflow-hidden rounded-full ${className}`}>
+    <div
+      className={`w-48 h-1.5 bg-blue-200 dark:bg-blue-900/30 overflow-hidden rounded-full ${className}`}
+    >
       <div
         className={`bg-blue-500 dark:bg-blue-600 h-1.5 transition-all duration-300 ${barClassName}`}
         style={{ width: `${percentage}%` }}
@@ -72,11 +74,7 @@ const avatarSizes = {
   lg: "w-8 h-8",
 };
 
-export function UserAvatars({
-  users,
-  maxVisible = 4,
-  size = "md",
-}: UserAvatarsProps) {
+export function UserAvatars({ users, maxVisible = 4, size = "md" }: UserAvatarsProps) {
   const visibleUsers = users.slice(0, maxVisible);
   const remainingCount = Math.max(0, users.length - maxVisible);
   const sizeClass = avatarSizes[size];
@@ -86,13 +84,18 @@ export function UserAvatars({
       {visibleUsers.map((user, index) => (
         <img
           key={index}
-          src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`}
+          src={
+            user.avatar ||
+            `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`
+          }
           alt={user.name}
           className={`object-cover ${sizeClass} -mx-1 border-2 border-white dark:border-gray-800 rounded-full shrink-0`}
         />
       ))}
       {remainingCount > 0 && (
-        <div className={`flex items-center justify-center ${sizeClass} -mx-1 text-xs text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 border-2 border-white dark:border-gray-800 rounded-full`}>
+        <div
+          className={`flex items-center justify-center ${sizeClass} -mx-1 text-xs text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 border-2 border-white dark:border-gray-800 rounded-full`}
+        >
           +{remainingCount}
         </div>
       )}
@@ -228,4 +231,3 @@ export function TableActionButtons({
     </div>
   );
 }
-

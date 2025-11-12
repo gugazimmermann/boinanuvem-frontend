@@ -28,11 +28,7 @@ const baseInputStyles = [
   "transition-colors",
 ].join(" ");
 
-const errorInputStyles = [
-  "border-red-400",
-  "focus:border-red-400",
-  "focus:ring-red-300",
-].join(" ");
+const errorInputStyles = ["border-red-400", "focus:border-red-400", "focus:ring-red-300"].join(" ");
 
 export const AuthInput = forwardRef<HTMLInputElement, InputProps>(
   (
@@ -75,10 +71,7 @@ export const AuthInput = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className={className}>
         {label && (
-          <label
-            htmlFor={inputId}
-            className="block text-sm text-gray-500"
-          >
+          <label htmlFor={inputId} className="block text-sm text-gray-500">
             {label}
           </label>
         )}
@@ -146,11 +139,7 @@ export const AuthInput = forwardRef<HTMLInputElement, InputProps>(
         {displayText && (
           <p
             id={helperId}
-            className={`mt-3 text-xs ${
-              hasError
-                ? "text-red-500"
-                : "text-gray-400"
-            }`}
+            className={`mt-3 text-xs ${hasError ? "text-red-500" : "text-gray-400"}`}
           >
             {displayText}
           </p>
@@ -161,4 +150,3 @@ export const AuthInput = forwardRef<HTMLInputElement, InputProps>(
 );
 
 AuthInput.displayName = "AuthInput";
-

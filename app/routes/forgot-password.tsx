@@ -27,9 +27,7 @@ export default function ForgotPassword() {
             </div>
           </div>
 
-          <h3 className="mt-3 text-xl font-medium text-center text-gray-600">
-            Esqueceu a senha?
-          </h3>
+          <h3 className="mt-3 text-xl font-medium text-center text-gray-600">Esqueceu a senha?</h3>
 
           <p className="mt-1 text-center text-gray-500">
             Digite seu email para receber um código de recuperação
@@ -37,21 +35,11 @@ export default function ForgotPassword() {
 
           <form className="mt-6">
             <div className="w-full">
-              <AuthInput
-                type="email"
-                placeholder="Email"
-                aria-label="Email"
-                className="mt-0"
-              />
+              <AuthInput type="email" placeholder="Email" aria-label="Email" className="mt-0" />
             </div>
 
             <div className="mt-6">
-              <AuthButton
-                type="submit"
-                variant="primary"
-                size="md"
-                fullWidth
-              >
+              <AuthButton type="submit" variant="primary" size="md" fullWidth>
                 Enviar Código
               </AuthButton>
             </div>
@@ -59,9 +47,7 @@ export default function ForgotPassword() {
         </div>
 
         <div className="flex items-center justify-center py-4 text-center bg-gray-50">
-          <span className="text-sm text-gray-600">
-            Lembrou sua senha?{" "}
-          </span>
+          <span className="text-sm text-gray-600">Lembrou sua senha? </span>
 
           <a
             href={ROUTES.LOGIN}
@@ -74,4 +60,3 @@ export default function ForgotPassword() {
     </AuthLayout>
   );
 }
-

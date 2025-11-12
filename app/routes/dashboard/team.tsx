@@ -1,21 +1,20 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { Table, TableActionButtons, type TableColumn, type TableAction, Alert } from "~/components/ui";
+import {
+  Table,
+  TableActionButtons,
+  type TableColumn,
+  type TableAction,
+  Alert,
+} from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { UserFormModal, DeleteUserModal, type UserFormData } from "~/components/dashboard/team";
 import { getUserProfileRoute, ROUTES } from "~/routes.config";
 import { mockUsers, updateUser as updateMockUser } from "~/mocks/users";
 
-import type { UserPermissions } from "~/types/permissions";
+import type { TeamUser } from "~/types";
 
-export interface TeamUser extends UserFormData, Record<string, unknown> {
-  id: string;
-  status: "active" | "inactive" | "pending";
-  lastAccess?: string;
-  mainUser?: boolean;
-  companyId?: string;
-  permissions?: UserPermissions;
-}
+export type { TeamUser };
 
 export function meta() {
   return [
@@ -37,7 +36,10 @@ export default function Team() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<TeamUser | null>(null);
-  const [alertMessage, setAlertMessage] = useState<{ title: string; variant: "success" | "error" | "warning" | "info" } | null>(null);
+  const [alertMessage, setAlertMessage] = useState<{
+    title: string;
+    variant: "success" | "error" | "warning" | "info";
+  } | null>(null);
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -84,7 +86,10 @@ export default function Team() {
     }).format(date);
   };
 
-  const showAlert = (title: string, variant: "success" | "error" | "warning" | "info" = "success") => {
+  const showAlert = (
+    title: string,
+    variant: "success" | "error" | "warning" | "info" = "success"
+  ) => {
     setAlertMessage({ title, variant });
     setTimeout(() => {
       setAlertMessage(null);
@@ -96,6 +101,7 @@ export default function Team() {
       ...data,
       id: String(users.length + 1),
       status: "pending",
+      createdAt: new Date().toISOString().split("T")[0],
     };
     setUsers([...users, newUser]);
     showAlert(t.team.success.added, "success");
@@ -173,9 +179,7 @@ export default function Team() {
           pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
         };
         return (
-          <span
-            className={`px-2 py-1 text-xs font-semibold rounded-full ${statusColors[status]}`}
-          >
+          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${statusColors[status]}`}>
             {t.team.status[status]}
           </span>
         );
@@ -210,12 +214,7 @@ export default function Team() {
       variant: "primary",
       leftIcon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M12 4v16m8-8H4"
-          />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
         </svg>
       ),
       onClick: () => navigate(ROUTES.TEAM_NEW),
@@ -226,10 +225,7 @@ export default function Team() {
     <div>
       {alertMessage && (
         <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-          <Alert
-            title={alertMessage.title}
-            variant={alertMessage.variant}
-          />
+          <Alert title={alertMessage.title} variant={alertMessage.variant} />
         </div>
       )}
       <Table<TeamUser>
@@ -292,4 +288,3 @@ export default function Team() {
     </div>
   );
 }
-

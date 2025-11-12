@@ -1,46 +1,8 @@
-export enum AreaType {
-  HECTARES = "hectares",
-  SQUARE_METERS = "square_meters",
-  SQUARE_FEET = "square_feet",
-  ACRES = "acres",
-  SQUARE_KILOMETERS = "square_kilometers",
-  SQUARE_MILES = "square_miles",
-}
+import type { Area, Location, LocationFormData } from "~/types";
+import { AreaType, LocationType } from "~/types";
 
-export enum LocationType {
-  PASTURE = "pasture",
-  BARN = "barn",
-  STORAGE = "storage",
-  CORRAL = "corral",
-  SILO = "silo",
-  FIELD = "field",
-  PADDOCK = "paddock",
-  FEEDLOT = "feedlot",
-  SEMI_FEEDLOT = "semi_feedlot",
-  MILKING_PARLOR = "milking_parlor",
-  WAREHOUSE = "warehouse",
-  GARAGE = "garage",
-  OFFICE = "office",
-  RESIDENCE = "residence",
-  OTHER = "other",
-}
-
-export interface Area {
-  value: number;
-  type: AreaType;
-}
-
-export interface Location {
-  id: string;
-  code: string;
-  name: string;
-  locationType: LocationType;
-  area: Area;
-  status: "active" | "inactive";
-  createdAt: string;
-  companyId: string;
-  propertyId: string;
-}
+export { AreaType, LocationType };
+export type { Area, Location, LocationFormData };
 
 export const mockLocations: Location[] = [
   // Fazenda do Juca - 12 locations
@@ -325,24 +287,15 @@ export function getLocationsByCompanyId(companyId: string): Location[] {
   return mockLocations.filter((location) => location.companyId === companyId);
 }
 
-export interface LocationFormData {
-  code: string;
-  name: string;
-  locationType: LocationType;
-  area: Area;
-  status: "active" | "inactive";
-  companyId: string;
-  propertyId: string;
-}
-
 export function addLocation(data: LocationFormData): Location {
-  const lastId = mockLocations.length > 0 
-    ? mockLocations[mockLocations.length - 1].id 
-    : "660e8400-e29b-41d4-a716-446655440009";
+  const lastId =
+    mockLocations.length > 0
+      ? mockLocations[mockLocations.length - 1].id
+      : "660e8400-e29b-41d4-a716-446655440009";
   const lastPart = lastId.split("-").pop() || "446655440009";
   const lastNumber = parseInt(lastPart, 10);
   const nextNumber = (lastNumber + 1).toString().padStart(12, "0");
-  
+
   const newLocation: Location = {
     ...data,
     id: `660e8400-e29b-41d4-a716-${nextNumber}`,
@@ -372,4 +325,3 @@ export function updateLocation(locationId: string, data: Partial<LocationFormDat
   }
   return false;
 }
-

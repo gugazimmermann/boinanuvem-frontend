@@ -21,4 +21,3 @@ export type {
   TableEmptyState as TableEmptyStateType,
   SortDirection,
 } from "./types";
-

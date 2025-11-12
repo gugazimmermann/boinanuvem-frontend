@@ -7,10 +7,20 @@ interface PropertyMapProps {
   className?: string;
 }
 
-export function PropertyMap({ latitude, longitude, propertyName, className = "" }: PropertyMapProps) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type LeafletMap = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type LeafletMarker = any;
+
+export function PropertyMap({
+  latitude,
+  longitude,
+  propertyName,
+  className = "",
+}: PropertyMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const markerRef = useRef<any>(null);
+  const mapInstanceRef = useRef<LeafletMap | null>(null);
+  const markerRef = useRef<LeafletMarker | null>(null);
   const [isClient, setIsClient] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,7 +31,6 @@ export function PropertyMap({ latitude, longitude, propertyName, className = "" 
   useEffect(() => {
     if (!isClient || !mapRef.current) return;
 
-    let cleanup: (() => void) | undefined;
     let mounted = true;
 
     // Dynamically import Leaflet only on client side
@@ -30,23 +39,31 @@ export function PropertyMap({ latitude, longitude, propertyName, className = "" 
         if (!mounted || !mapRef.current) return;
 
         // Fix for default marker icon issue
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         delete (L.default as any).Icon.Default.prototype._getIconUrl;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (L.default as any).Icon.Default.mergeOptions({
-          iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
+          iconRetinaUrl:
+            "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
           iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
-          shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+          shadowUrl:
+            "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
         });
 
         if (!mapInstanceRef.current) {
-          mapInstanceRef.current = L.default.map(mapRef.current!).setView([latitude, longitude], 15);
+          mapInstanceRef.current = L.default
+            .map(mapRef.current!)
+            .setView([latitude, longitude], 15);
 
-          L.default.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            maxZoom: 19,
-          }).addTo(mapInstanceRef.current);
-
-          markerRef.current = L.default.marker([latitude, longitude])
+          L.default
+            .tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+              attribution:
+                '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+              maxZoom: 19,
+            })
             .addTo(mapInstanceRef.current);
+
+          markerRef.current = L.default.marker([latitude, longitude]).addTo(mapInstanceRef.current);
         } else {
           mapInstanceRef.current.setView([latitude, longitude], 15);
           if (markerRef.current) {
@@ -58,14 +75,16 @@ export function PropertyMap({ latitude, longitude, propertyName, className = "" 
       })
       .catch((err) => {
         console.error("Failed to load Leaflet:", err);
-        setError("Mapa não disponível. Por favor, instale as dependências executando 'npm install'.");
+        setError(
+          "Mapa não disponível. Por favor, instale as dependências executando 'npm install'."
+        );
       });
 
     import("leaflet/dist/leaflet.css").catch(() => {
       // CSS import failure is not critical
     });
 
-    cleanup = () => {
+    const cleanup = () => {
       mounted = false;
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
@@ -105,4 +124,3 @@ export function PropertyMap({ latitude, longitude, propertyName, className = "" 
     />
   );
 }
-

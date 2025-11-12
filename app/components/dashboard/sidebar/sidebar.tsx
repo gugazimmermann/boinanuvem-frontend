@@ -4,7 +4,7 @@ import { useTranslation } from "~/i18n";
 
 export function Sidebar() {
   const t = useTranslation();
-  
+
   const translatedItems = SIDEBAR_ITEMS.map((item) => ({
     ...item,
     label: t.sidebar[item.translationKey],
@@ -15,16 +15,10 @@ export function Sidebar() {
       <div className="p-2">
         <nav className="space-y-1">
           {translatedItems.map((item) => (
-            <SidebarItem
-              key={item.path}
-              label={item.label}
-              path={item.path}
-              icon={item.icon}
-            />
+            <SidebarItem key={item.path} label={item.label} path={item.path} icon={item.icon} />
           ))}
         </nav>
       </div>
     </aside>
   );
 }
-

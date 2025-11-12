@@ -117,4 +117,3 @@ export function ActionsDropdown({ user, onView, onEdit, onDelete }: ActionsDropd
     </div>
   );
 }
-

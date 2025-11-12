@@ -1,12 +1,8 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import type { LanguageInfo } from "~/types";
+import type { Language } from "~/types";
 
-export type Language = "pt" | "en" | "es";
-
-interface LanguageInfo {
-  code: Language;
-  name: string;
-  flag: string;
-}
+export type { Language };
 
 export const LANGUAGES: Record<Language, LanguageInfo> = {
   pt: {
@@ -39,7 +35,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("language") as Language | null;
       if (stored && LANGUAGES[stored]) return stored;
-      
+
       const browserLang = navigator.language.split("-")[0] as Language;
       if (browserLang && LANGUAGES[browserLang]) {
         return browserLang;
@@ -73,4 +69,3 @@ export function useLanguage() {
   }
   return context;
 }
-

@@ -1,10 +1,6 @@
-import type { CompanyFormData } from "~/components/site/utils/cnpj-utils";
+import type { Company, CompanyFormData } from "~/types";
 
-export interface Company extends CompanyFormData {
-  id: string;
-  latitude?: number;
-  longitude?: number;
-}
+export type { Company, CompanyFormData };
 
 export const mockCompanies: Company[] = [
   {
@@ -20,6 +16,7 @@ export const mockCompanies: Company[] = [
     city: "São João do Itaperiú",
     state: "SC",
     zipCode: "88395000",
+    createdAt: "2024-01-01",
     latitude: -26.559317100277863,
     longitude: -48.75873810994559,
   },
@@ -37,4 +34,3 @@ export function updateCompany(cnpj: string, data: Partial<Company>): void {
     };
   }
 }
-

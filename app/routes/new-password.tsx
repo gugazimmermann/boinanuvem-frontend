@@ -27,9 +27,7 @@ export default function NewPassword() {
             </div>
           </div>
 
-          <h3 className="mt-3 text-xl font-medium text-center text-gray-600">
-            Nova Senha
-          </h3>
+          <h3 className="mt-3 text-xl font-medium text-center text-gray-600">Nova Senha</h3>
 
           <p className="mt-1 text-center text-gray-500">
             Digite o código recebido e sua nova senha
@@ -66,12 +64,7 @@ export default function NewPassword() {
             </div>
 
             <div className="mt-6">
-              <AuthButton
-                type="submit"
-                variant="primary"
-                size="md"
-                fullWidth
-              >
+              <AuthButton type="submit" variant="primary" size="md" fullWidth>
                 Redefinir Senha
               </AuthButton>
             </div>
@@ -79,9 +72,7 @@ export default function NewPassword() {
         </div>
 
         <div className="flex items-center justify-center py-4 text-center bg-gray-50">
-          <span className="text-sm text-gray-600">
-            Não recebeu o código?{" "}
-          </span>
+          <span className="text-sm text-gray-600">Não recebeu o código? </span>
 
           <a
             href={ROUTES.FORGOT_PASSWORD}
@@ -94,4 +85,3 @@ export default function NewPassword() {
     </AuthLayout>
   );
 }
-

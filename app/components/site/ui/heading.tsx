@@ -34,21 +34,19 @@ export function Heading({
   highlight,
   highlightColor = COLORS.primary,
 }: HeadingProps) {
-  const Tag = `h${level}` as keyof JSX.IntrinsicElements;
+  type HeadingTag = "h1" | "h2" | "h3" | "h4";
+  const Tag = `h${level}` as HeadingTag;
   const textColor = customColor || colorMap[color];
-  
-  const content = highlight && typeof children === "string" ? (
-    children.split(highlight).map((part, index, array) => (
-      <span key={index}>
-        {part}
-        {index < array.length - 1 && (
-          <span style={{ color: highlightColor }}>{highlight}</span>
-        )}
-      </span>
-    ))
-  ) : (
-    children
-  );
+
+  const content =
+    highlight && typeof children === "string"
+      ? children.split(highlight).map((part, index, array) => (
+          <span key={index}>
+            {part}
+            {index < array.length - 1 && <span style={{ color: highlightColor }}>{highlight}</span>}
+          </span>
+        ))
+      : children;
 
   return (
     <Tag
@@ -59,4 +57,3 @@ export function Heading({
     </Tag>
   );
 }
-

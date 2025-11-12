@@ -82,7 +82,8 @@ export const pt = {
     },
     deleteModal: {
       title: "Confirmar Exclusão",
-      message: (name: string) => `Tem certeza que deseja excluir a propriedade "${name}"? Esta ação não pode ser desfeita.`,
+      message: (name: string) =>
+        `Tem certeza que deseja excluir a propriedade "${name}"? Esta ação não pode ser desfeita.`,
       cancel: "Cancelar",
       confirm: "Excluir",
     },
@@ -198,7 +199,8 @@ export const pt = {
     },
     deleteModal: {
       title: "Confirmar Exclusão",
-      message: (name: string) => `Tem certeza que deseja excluir a localização "${name}"? Esta ação não pode ser desfeita.`,
+      message: (name: string) =>
+        `Tem certeza que deseja excluir a localização "${name}"? Esta ação não pode ser desfeita.`,
       cancel: "Cancelar",
       confirm: "Excluir",
     },
@@ -392,7 +394,8 @@ export const pt = {
     },
     deleteModal: {
       title: "Confirmar Exclusão",
-      message: (name: string) => `Tem certeza que deseja excluir o usuário "${name}"? Esta ação não pode ser desfeita.`,
+      message: (name: string) =>
+        `Tem certeza que deseja excluir o usuário "${name}"? Esta ação não pode ser desfeita.`,
       cancel: "Cancelar",
       confirm: "Excluir",
     },
@@ -503,4 +506,3 @@ export const pt = {
     },
   },
 } as const;
-

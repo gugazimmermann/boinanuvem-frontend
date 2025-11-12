@@ -6,7 +6,11 @@ import type { UserFormData } from "./user-form-modal";
 interface UserDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  user: UserFormData & { id: string; status: "active" | "inactive" | "pending"; lastAccess?: string };
+  user: UserFormData & {
+    id: string;
+    status: "active" | "inactive" | "pending";
+    lastAccess?: string;
+  };
 }
 
 export function UserDetailsModal({ isOpen, onClose, user }: UserDetailsModalProps) {
@@ -47,16 +51,24 @@ export function UserDetailsModal({ isOpen, onClose, user }: UserDetailsModalProp
                 </h4>
                 <div className="space-y-2">
                   <div>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{t.team.table.name}:</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {t.team.table.name}:
+                    </span>
                     <p className="text-sm text-gray-900 dark:text-gray-100">{user.name}</p>
                   </div>
                   <div>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{t.team.table.email}:</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {t.team.table.email}:
+                    </span>
                     <p className="text-sm text-gray-900 dark:text-gray-100">{user.email}</p>
                   </div>
                   <div>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{t.team.addModal.fields.phone}:</span>
-                    <p className="text-sm text-gray-900 dark:text-gray-100">{maskPhone(user.phone)}</p>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {t.team.addModal.fields.phone}:
+                    </span>
+                    <p className="text-sm text-gray-900 dark:text-gray-100">
+                      {maskPhone(user.phone)}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -67,16 +79,28 @@ export function UserDetailsModal({ isOpen, onClose, user }: UserDetailsModalProp
                 </h4>
                 <div className="space-y-2">
                   <div>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{t.team.table.role}:</span>
-                    <p className="text-sm text-gray-900 dark:text-gray-100">{t.team.roles[user.role]}</p>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {t.team.table.role}:
+                    </span>
+                    <p className="text-sm text-gray-900 dark:text-gray-100">
+                      {t.team.roles[user.role]}
+                    </p>
                   </div>
                   <div>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{t.team.table.status}:</span>
-                    <p className="text-sm text-gray-900 dark:text-gray-100">{t.team.status[user.status]}</p>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {t.team.table.status}:
+                    </span>
+                    <p className="text-sm text-gray-900 dark:text-gray-100">
+                      {t.team.status[user.status]}
+                    </p>
                   </div>
                   <div>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{t.team.table.lastAccess}:</span>
-                    <p className="text-sm text-gray-900 dark:text-gray-100">{formatDate(user.lastAccess)}</p>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {t.team.table.lastAccess}:
+                    </span>
+                    <p className="text-sm text-gray-900 dark:text-gray-100">
+                      {formatDate(user.lastAccess)}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -93,4 +117,3 @@ export function UserDetailsModal({ isOpen, onClose, user }: UserDetailsModalProp
     </div>
   );
 }
-

@@ -9,7 +9,7 @@ export function TablePagination({
   currentPage,
   totalPages,
   onPageChange,
-  showInfo = true,
+  showInfo: _showInfo = true,
   slim = false,
 }: TablePaginationProps) {
   const handlePrevious = () => {
@@ -64,11 +64,11 @@ export function TablePagination({
       }
       pages.push(totalPages - 2, totalPages - 1, totalPages);
     }
-    
+
     const seen = new Set<number | "ellipsis">();
     const cleaned: (number | "ellipsis")[] = [];
     let lastWasEllipsis = false;
-    
+
     for (const page of pages) {
       if (page === "ellipsis") {
         if (!lastWasEllipsis) {
@@ -167,4 +167,3 @@ export function TablePagination({
     </div>
   );
 }
-

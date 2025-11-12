@@ -1,4 +1,9 @@
-import { forwardRef, type ButtonHTMLAttributes, type AnchorHTMLAttributes, type ReactNode } from "react";
+import {
+  forwardRef,
+  type ButtonHTMLAttributes,
+  type AnchorHTMLAttributes,
+  type ReactNode,
+} from "react";
 import { DASHBOARD_COLORS } from "../dashboard/utils/colors";
 
 type ButtonVariant = "primary" | "secondary" | "outline" | "ghost";
@@ -14,11 +19,15 @@ interface BaseButtonProps {
   rightIcon?: ReactNode;
 }
 
-interface ButtonAsButtonProps extends BaseButtonProps, Omit<ButtonHTMLAttributes<HTMLButtonElement>, "className" | "children"> {
+interface ButtonAsButtonProps
+  extends BaseButtonProps,
+    Omit<ButtonHTMLAttributes<HTMLButtonElement>, "className" | "children"> {
   href?: never;
 }
 
-interface ButtonAsLinkProps extends BaseButtonProps, Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "className" | "children"> {
+interface ButtonAsLinkProps
+  extends BaseButtonProps,
+    Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "className" | "children"> {
   href: string;
 }
 
@@ -43,29 +52,17 @@ const baseStyles = [
 ].join(" ");
 
 const getVariantStyles = (variant: ButtonVariant) => {
-  const base = [
-    "text-white",
-  ].join(" ");
-  
+  const base = ["text-white"].join(" ");
+
   switch (variant) {
     case "primary":
       return base;
     case "secondary":
-      return [
-        "bg-gray-600",
-        "text-white",
-        "hover:bg-gray-500",
-        "focus:ring-gray-300",
-      ].join(" ");
+      return ["bg-gray-600", "text-white", "hover:bg-gray-500", "focus:ring-gray-300"].join(" ");
     case "outline":
-      return [
-        "border-2",
-        "bg-transparent",
-      ].join(" ");
+      return ["border-2", "bg-transparent"].join(" ");
     case "ghost":
-      return [
-        "bg-transparent",
-      ].join(" ");
+      return ["bg-transparent"].join(" ");
     default:
       return base;
   }
@@ -133,7 +130,7 @@ export const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonPr
     const sizeConfig = sizeStyles[size];
     const widthStyle = fullWidth ? "w-full justify-center" : "";
     const variantStyle = getVariantStyle(variant);
-    
+
     const combinedClassName = [
       baseStyles,
       getVariantStyles(variant),
@@ -209,4 +206,3 @@ export const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonPr
 );
 
 Button.displayName = "Button";
-

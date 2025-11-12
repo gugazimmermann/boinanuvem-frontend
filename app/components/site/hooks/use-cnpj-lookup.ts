@@ -1,43 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import type { CNPJData, UseCNPJLookupOptions, UseCNPJLookupReturn } from "~/types";
 
-export interface CNPJData {
-  cnpj: string;
-  razao_social: string;
-  email: string | null;
-  ddd_telefone_1: string;
-  logradouro: string;
-  numero: string;
-  complemento: string;
-  bairro: string;
-  municipio: string;
-  uf: string;
-  cep: string;
-}
-
-export interface UseCNPJLookupOptions {
-  debounceMs?: number;
-  onSuccess?: (data: CNPJData) => void;
-  onError?: (error: Error) => void;
-  enabled?: boolean;
-}
-
-export interface UseCNPJLookupReturn {
-  data: CNPJData | null;
-  loading: boolean;
-  error: string | null;
-  fetchCNPJ: (cnpj: string) => Promise<void>;
-}
+export type { CNPJData, UseCNPJLookupOptions, UseCNPJLookupReturn };
 
 export function useCNPJLookup(
   cnpj: string,
   options: UseCNPJLookupOptions = {}
 ): UseCNPJLookupReturn {
-  const {
-    debounceMs = 800,
-    onSuccess,
-    onError,
-    enabled = true,
-  } = options;
+  const { debounceMs = 800, onSuccess, onError, enabled = true } = options;
 
   const [data, setData] = useState<CNPJData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -74,9 +44,7 @@ export function useCNPJLookup(
       setError(null);
 
       try {
-        const response = await fetch(
-          `https://brasilapi.com.br/api/cnpj/v1/${cleanCNPJ}`
-        );
+        const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCNPJ}`);
 
         if (!response.ok) {
           throw new Error("CNPJ not found");
@@ -87,8 +55,7 @@ export function useCNPJLookup(
         lastFetchedCNPJ.current = cleanCNPJ;
         onSuccessRef.current?.(cnpjData);
       } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "CNPJ not found or invalid";
+        const errorMessage = err instanceof Error ? err.message : "CNPJ not found or invalid";
         setError(errorMessage);
         setData(null);
         lastFetchedCNPJ.current = "";
@@ -125,4 +92,3 @@ export function useCNPJLookup(
     fetchCNPJ,
   };
 }
-

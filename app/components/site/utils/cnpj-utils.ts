@@ -1,5 +1,8 @@
-import type { CNPJData } from "../hooks/use-cnpj-lookup";
+import type { CNPJData } from "~/types";
+import type { CompanyFormData } from "~/types";
 import { maskPhone, maskCEP, maskCNPJ } from "./masks";
+
+export type { CompanyFormData };
 
 export function formatCNPJ(value: string): string {
   return value.replace(/\D/g, "");
@@ -8,20 +11,6 @@ export function formatCNPJ(value: string): string {
 export function formatPhone(fullPhone: string): string {
   if (!fullPhone) return "";
   return maskPhone(fullPhone);
-}
-
-export interface CompanyFormData {
-  cnpj: string;
-  companyName: string;
-  email: string;
-  phone: string;
-  street: string;
-  number: string;
-  complement: string;
-  neighborhood: string;
-  city: string;
-  state: string;
-  zipCode: string;
 }
 
 export function mapCNPJDataToCompanyForm(
@@ -42,4 +31,3 @@ export function mapCNPJDataToCompanyForm(
     zipCode: data.cep ? maskCEP(data.cep) : "",
   };
 }
-

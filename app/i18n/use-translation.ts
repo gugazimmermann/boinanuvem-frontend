@@ -5,4 +5,3 @@ export function useTranslation() {
   const { language } = useLanguage();
   return translations[language];
 }
-

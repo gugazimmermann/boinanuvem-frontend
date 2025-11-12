@@ -1,19 +1,7 @@
 import { ROUTES } from "../../../routes.config";
+import type { SidebarItemConfig } from "~/types";
 
-export interface SidebarItemConfig {
-  translationKey: keyof {
-    dashboard: string;
-    properties: string;
-    locations: string;
-    animals: string;
-    pastures: string;
-    reports: string;
-    settings: string;
-    team: string;
-  };
-  path: string;
-  icon?: string;
-}
+export type { SidebarItemConfig };
 
 export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
   { translationKey: "dashboard", path: ROUTES.DASHBOARD, icon: "📊" },
@@ -25,4 +13,3 @@ export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
   { translationKey: "team", path: ROUTES.TEAM, icon: "👥" },
   { translationKey: "settings", path: "#", icon: "⚙️" },
 ];
-

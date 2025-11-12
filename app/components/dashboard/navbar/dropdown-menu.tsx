@@ -14,4 +14,3 @@ export function DropdownMenu({ isOpen, children }: DropdownMenuProps) {
     </div>
   );
 }
-

@@ -16,7 +16,9 @@ export function Hero() {
             Gerencie sua fazenda de gado de corte com tecnologia de ponta.
           </Heading>
           <p className="text-xl mb-8 text-gray-600 leading-relaxed">
-            Sistema completo de gestão para propriedades, pastos, animais, pesos, nascimentos e muito mais. Transforme a administração da sua fazenda com ferramentas intuitivas e poderosas.
+            Sistema completo de gestão para propriedades, pastos, animais, pesos, nascimentos e
+            muito mais. Transforme a administração da sua fazenda com ferramentas intuitivas e
+            poderosas.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
             <Button href={ROUTES.LOGIN} size="lg" variant="primary">

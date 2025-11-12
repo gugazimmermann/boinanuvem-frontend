@@ -17,7 +17,7 @@ export function Table<T extends Record<string, unknown>>({
   sortState,
   onSort,
   emptyState,
-  emptyMessage,
+  emptyMessage: _emptyMessage,
   className = "",
   rowClassName = "",
   loading = false,
@@ -45,7 +45,7 @@ export function Table<T extends Record<string, unknown>>({
     onSort(columnKey, newDirection);
   };
 
-  const getColumnValue = (column: typeof columns[0], row: T, index: number): ReactNode => {
+  const getColumnValue = (column: (typeof columns)[0], row: T, index: number): ReactNode => {
     if (column.render) {
       return column.render((row as Record<string, unknown>)[column.key], row, index);
     }
@@ -68,12 +68,12 @@ export function Table<T extends Record<string, unknown>>({
                       header.badge.variant === "primary"
                         ? "text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30"
                         : header.badge.variant === "secondary"
-                        ? "text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700"
-                        : header.badge.variant === "success"
-                        ? "text-emerald-500 dark:text-emerald-400 bg-emerald-100/60 dark:bg-emerald-900/30"
-                        : header.badge.variant === "warning"
-                        ? "text-yellow-600 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/30"
-                        : "text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30"
+                          ? "text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700"
+                          : header.badge.variant === "success"
+                            ? "text-emerald-500 dark:text-emerald-400 bg-emerald-100/60 dark:bg-emerald-900/30"
+                            : header.badge.variant === "warning"
+                              ? "text-yellow-600 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/30"
+                              : "text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30"
                     }`}
                   >
                     {header.badge.label}
@@ -152,7 +152,9 @@ export function Table<T extends Record<string, unknown>>({
           title={emptyState?.title}
           description={emptyState?.description}
           searchQuery={search?.value}
-          onClearSearch={emptyState?.onClearSearch || (search?.value ? () => search.onChange("") : undefined)}
+          onClearSearch={
+            emptyState?.onClearSearch || (search?.value ? () => search.onChange("") : undefined)
+          }
           clearSearchLabel={emptyState?.clearSearchLabel}
           onAddNew={emptyState?.onAddNew}
           addNewLabel={emptyState?.addNewLabel}
@@ -161,7 +163,9 @@ export function Table<T extends Record<string, unknown>>({
       ) : (
         <div className={`flex flex-col ${slim ? "mt-3" : "mt-4"}`}>
           <div className="-mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
-            <div className={`inline-block min-w-full ${slim ? "py-1" : "py-2"} align-middle px-4 sm:px-6 lg:px-8`}>
+            <div
+              className={`inline-block min-w-full ${slim ? "py-1" : "py-2"} align-middle px-4 sm:px-6 lg:px-8`}
+            >
               <div className="overflow-hidden border border-gray-200 dark:border-gray-700 md:rounded-lg">
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                   <thead className="bg-gray-50 dark:bg-gray-800">
@@ -193,10 +197,7 @@ export function Table<T extends Record<string, unknown>>({
                   </thead>
                   <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                     {data.map((row, index) => (
-                      <tr
-                        key={index}
-                        className={getRowClassName(row, index)}
-                      >
+                      <tr key={index} className={getRowClassName(row, index)}>
                         {columns.map((column) => {
                           const value = getColumnValue(column, row, index);
                           return (
@@ -222,4 +223,3 @@ export function Table<T extends Record<string, unknown>>({
     </section>
   );
 }
-

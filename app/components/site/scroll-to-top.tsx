@@ -1,4 +1,3 @@
-import { Button } from "./ui";
 import { COLORS } from "./constants";
 
 export function ScrollToTop() {

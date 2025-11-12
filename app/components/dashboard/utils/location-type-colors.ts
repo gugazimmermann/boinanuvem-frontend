@@ -1,4 +1,4 @@
-import { LocationType } from "~/mocks/locations";
+import { LocationType } from "~/types";
 
 /**
  * Color mapping for each location type.

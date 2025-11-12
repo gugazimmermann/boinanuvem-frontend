@@ -35,22 +35,13 @@ export default function Login() {
             </div>
           </div>
 
-          <h3 className="mt-3 text-xl font-medium text-center text-gray-600">
-            Bem-vindo de volta
-          </h3>
+          <h3 className="mt-3 text-xl font-medium text-center text-gray-600">Bem-vindo de volta</h3>
 
-          <p className="mt-1 text-center text-gray-500">
-            Faça login ou crie uma conta
-          </p>
+          <p className="mt-1 text-center text-gray-500">Faça login ou crie uma conta</p>
 
           <form className="mt-6" onSubmit={handleSubmit}>
             <div className="w-full">
-              <AuthInput
-                type="email"
-                placeholder="Email"
-                aria-label="Email"
-                className="mt-0"
-              />
+              <AuthInput type="email" placeholder="Email" aria-label="Email" className="mt-0" />
             </div>
 
             <div className="w-full mt-4">
@@ -71,11 +62,7 @@ export default function Login() {
                 Esqueceu a senha?
               </a>
 
-              <AuthButton
-                type="submit"
-                variant="primary"
-                size="md"
-              >
+              <AuthButton type="submit" variant="primary" size="md">
                 Entrar
               </AuthButton>
             </div>
@@ -83,9 +70,7 @@ export default function Login() {
         </div>
 
         <div className="flex items-center justify-center py-4 text-center bg-gray-50">
-          <span className="text-sm text-gray-600">
-            Não tem uma conta?{" "}
-          </span>
+          <span className="text-sm text-gray-600">Não tem uma conta? </span>
 
           <a
             href={ROUTES.REGISTER}
@@ -98,4 +83,3 @@ export default function Login() {
     </AuthLayout>
   );
 }
-

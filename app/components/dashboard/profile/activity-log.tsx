@@ -2,22 +2,21 @@ import { useState, useEffect } from "react";
 import { Table, type TableColumn } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { DASHBOARD_COLORS } from "../utils/colors";
+import type { ActivityLogEntry } from "~/types";
 
-export interface ActivityLogEntry {
-  id: string;
-  user?: string;
-  action: string;
-  resource: string;
-  timestamp: string;
-}
+export type { ActivityLogEntry };
 
 interface ActivityLogProps {
   logs: ActivityLogEntry[];
   showUser?: boolean;
-  emptyMessage?: string;
+  emptyMessage?: string; // Reserved for future use
 }
 
-export function ActivityLog({ logs, showUser = false, emptyMessage }: ActivityLogProps) {
+export function ActivityLog({
+  logs,
+  showUser = false,
+  emptyMessage: _emptyMessage,
+}: ActivityLogProps) {
   const t = useTranslation();
   const [currentPage, setCurrentPage] = useState(1);
   const [searchValue, setSearchValue] = useState("");
@@ -34,6 +33,7 @@ export function ActivityLog({ logs, showUser = false, emptyMessage }: ActivityLo
     }).format(date);
   };
 
+  // Reset to first page when search changes
   useEffect(() => {
     setCurrentPage(1);
   }, [searchValue]);
@@ -67,7 +67,7 @@ export function ActivityLog({ logs, showUser = false, emptyMessage }: ActivityLo
           {
             key: "user",
             label: t.profile.company.logs.columns.user,
-            render: (value) => (
+            render: (value: unknown) => (
               <span className="font-medium text-gray-800 dark:text-gray-200">
                 {(value as string) || "-"}
               </span>
@@ -101,14 +101,13 @@ export function ActivityLog({ logs, showUser = false, emptyMessage }: ActivityLo
       key: "timestamp",
       label: t.profile.company.logs.columns.timestamp,
       render: (value) => (
-        <span className="text-gray-500 dark:text-gray-400">
-          {formatDate(value as string)}
-        </span>
+        <span className="text-gray-500 dark:text-gray-400">{formatDate(value as string)}</span>
       ),
     },
   ];
 
-  const message = emptyMessage || (showUser ? t.profile.company.logs.empty : t.profile.user.logs.empty);
+  const message =
+    _emptyMessage || (showUser ? t.profile.company.logs.empty : t.profile.user.logs.empty);
 
   return (
     <Table<ActivityLogEntry>
@@ -116,11 +115,13 @@ export function ActivityLog({ logs, showUser = false, emptyMessage }: ActivityLo
       data={paginatedData}
       header={{
         title: showUser ? t.profile.company.logs.title : t.profile.user.logs.title,
-        description: showUser ? t.profile.company.logs.description : t.profile.user.logs.description,
+        description: showUser
+          ? t.profile.company.logs.description
+          : t.profile.user.logs.description,
       }}
       search={{
-        placeholder: showUser 
-          ? t.profile.company.logs.searchPlaceholder 
+        placeholder: showUser
+          ? t.profile.company.logs.searchPlaceholder
           : t.profile.user.logs.searchPlaceholder,
         value: searchValue,
         onChange: setSearchValue,
@@ -142,4 +143,3 @@ export function ActivityLog({ logs, showUser = false, emptyMessage }: ActivityLo
     />
   );
 }
-

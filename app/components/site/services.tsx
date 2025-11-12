@@ -6,9 +6,12 @@ import { useAutoRotate } from "./hooks";
 export const Services = memo(function Services() {
   const [activeTab, setActiveTab] = useAutoRotate({ itemsCount: SERVICES.length });
 
-  const handleTabClick = useCallback((index: number) => {
-    setActiveTab(index);
-  }, [setActiveTab]);
+  const handleTabClick = useCallback(
+    (index: number) => {
+      setActiveTab(index);
+    },
+    [setActiveTab]
+  );
 
   return (
     <Section
@@ -72,7 +75,8 @@ export const Services = memo(function Services() {
             Por que <span style={{ color: COLORS.primary }}>Escolher</span> o Boi na Nuvem
           </Heading>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-            Tecnologia de ponta, integração completa, ferramentas poderosas e suporte excepcional. Transforme a gestão da sua fazenda com soluções digitais modernas.
+            Tecnologia de ponta, integração completa, ferramentas poderosas e suporte excepcional.
+            Transforme a gestão da sua fazenda com soluções digitais modernas.
           </p>
         </div>
 

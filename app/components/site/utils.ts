@@ -12,7 +12,7 @@ export function useSmoothScroll() {
   const handleClick = (e: MouseEvent) => {
     const target = e.target as HTMLElement;
     const anchor = target.closest<HTMLAnchorElement>('a[href^="#"]');
-    
+
     if (anchor) {
       const href = anchor.getAttribute("href");
       if (href && href !== "#" && href.startsWith("#")) {
@@ -45,10 +45,7 @@ export {
   createMaskHandler,
 } from "./utils/masks";
 
-export {
-  mapCEPDataToAddressForm,
-  type AddressFormData,
-} from "./utils/cep-utils";
+export { mapCEPDataToAddressForm, type AddressFormData } from "./utils/cep-utils";
 
 export {
   geocodeAddress,
@@ -56,4 +53,3 @@ export {
   type GeocodeResult,
   type GeocodeError,
 } from "./utils/geocoding";
-

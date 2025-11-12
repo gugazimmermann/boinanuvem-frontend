@@ -12,11 +12,10 @@ import {
   type SortDirection,
 } from "~/components/ui";
 import { useTranslation } from "~/i18n";
-import { mockProperties, deleteProperty, type Property as PropertyType } from "~/mocks/properties";
+import { mockProperties, deleteProperty } from "~/mocks/properties";
+import type { Property } from "~/types";
 import { getLocationsByPropertyId } from "~/mocks/locations";
 import { ROUTES, getPropertyEditRoute, getPropertyViewRoute } from "~/routes.config";
-
-type Property = PropertyType & Record<string, unknown>;
 
 export function meta() {
   return [
@@ -46,10 +45,16 @@ export default function Properties() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
-  const [alertMessage, setAlertMessage] = useState<{ title: string; variant: "success" | "error" | "warning" | "info" } | null>(null);
+  const [alertMessage, setAlertMessage] = useState<{
+    title: string;
+    variant: "success" | "error" | "warning" | "info";
+  } | null>(null);
   const itemsPerPage = 10;
 
-  const showAlert = (title: string, variant: "success" | "error" | "warning" | "info" = "success") => {
+  const showAlert = (
+    title: string,
+    variant: "success" | "error" | "warning" | "info" = "success"
+  ) => {
     setAlertMessage({ title, variant });
     setTimeout(() => {
       setAlertMessage(null);
@@ -127,9 +132,7 @@ export default function Properties() {
       sortable: true,
       render: (_, row) => (
         <div>
-          <h2 className="font-medium text-gray-800 dark:text-gray-200">
-            {row.name}
-          </h2>
+          <h2 className="font-medium text-gray-800 dark:text-gray-200">{row.name}</h2>
           <p className="text-sm font-normal text-gray-600 dark:text-gray-400">
             {row.city}, {row.state}
           </p>
@@ -145,7 +148,8 @@ export default function Properties() {
           {(value as number).toLocaleString("pt-BR", {
             minimumFractionDigits: 1,
             maximumFractionDigits: 1,
-          })} ha
+          })}{" "}
+          ha
         </span>
       ),
     },
@@ -155,18 +159,14 @@ export default function Properties() {
       sortable: true,
       render: (_, row) => {
         const locations = getLocationsByPropertyId(row.id);
-        return (
-          <span className="text-gray-700 dark:text-gray-300">{locations.length}</span>
-        );
+        return <span className="text-gray-700 dark:text-gray-300">{locations.length}</span>;
       },
     },
     {
       key: "animals",
       label: t.properties.table.animals,
       sortable: true,
-      render: () => (
-        <span className="text-gray-700 dark:text-gray-300">0</span>
-      ),
+      render: () => <span className="text-gray-700 dark:text-gray-300">0</span>,
     },
     {
       key: "status",
@@ -246,52 +246,49 @@ export default function Properties() {
   return (
     <div>
       <Table<Property>
-      columns={columns}
-      data={paginatedData}
-      header={{
-        title: t.properties.title,
-        badge: {
-          label: t.properties.badge.properties(filteredData.length),
-          variant: "primary",
-        },
-        description: t.properties.description,
-        actions: headerActions,
-      }}
-      filters={filters}
-      search={{
-        placeholder: t.properties.searchPlaceholder,
-        value: searchValue,
-        onChange: setSearchValue,
-      }}
-      pagination={{
-        currentPage,
-        totalPages: totalPages || 1,
-        onPageChange: setCurrentPage,
-        showInfo: false,
-      }}
-      sortState={sortState}
-      onSort={handleSort}
-      emptyState={{
-        title: t.properties.emptyState.title,
-        description: searchValue
-          ? t.properties.emptyState.descriptionWithSearch(searchValue)
-          : t.properties.emptyState.descriptionWithoutSearch,
-        onClearSearch: () => {
-          setSearchValue("");
-          setActiveFilter("all");
-        },
-        clearSearchLabel: t.common.clearSearch,
-        onAddNew: () => navigate(ROUTES.PROPERTIES_NEW),
-        addNewLabel: t.properties.addProperty,
-      }}
-    />
+        columns={columns}
+        data={paginatedData}
+        header={{
+          title: t.properties.title,
+          badge: {
+            label: t.properties.badge.properties(filteredData.length),
+            variant: "primary",
+          },
+          description: t.properties.description,
+          actions: headerActions,
+        }}
+        filters={filters}
+        search={{
+          placeholder: t.properties.searchPlaceholder,
+          value: searchValue,
+          onChange: setSearchValue,
+        }}
+        pagination={{
+          currentPage,
+          totalPages: totalPages || 1,
+          onPageChange: setCurrentPage,
+          showInfo: false,
+        }}
+        sortState={sortState}
+        onSort={handleSort}
+        emptyState={{
+          title: t.properties.emptyState.title,
+          description: searchValue
+            ? t.properties.emptyState.descriptionWithSearch(searchValue)
+            : t.properties.emptyState.descriptionWithoutSearch,
+          onClearSearch: () => {
+            setSearchValue("");
+            setActiveFilter("all");
+          },
+          clearSearchLabel: t.common.clearSearch,
+          onAddNew: () => navigate(ROUTES.PROPERTIES_NEW),
+          addNewLabel: t.properties.addProperty,
+        }}
+      />
 
       {alertMessage && (
         <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-          <Alert
-            title={alertMessage.title}
-            variant={alertMessage.variant}
-          />
+          <Alert title={alertMessage.title} variant={alertMessage.variant} />
         </div>
       )}
 
@@ -311,4 +308,3 @@ export default function Properties() {
     </div>
   );
 }
-

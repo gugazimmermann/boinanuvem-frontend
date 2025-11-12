@@ -67,8 +67,9 @@ export const ROUTE_NAMES = {
   TEAM_PERMISSIONS: "equipe/:userId/permissoes",
 } as const;
 
-export type RoutePath = (typeof ROUTES)[keyof typeof ROUTES];
-export type RouteName = (typeof ROUTE_NAMES)[keyof typeof ROUTE_NAMES];
+import type { RoutePath, RouteName } from "~/types";
+
+export type { RoutePath, RouteName };
 
 export function getRoute(route: keyof typeof ROUTES): RoutePath {
   return ROUTES[route];

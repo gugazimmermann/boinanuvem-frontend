@@ -33,10 +33,5 @@ export function DropdownMenuItem({ href, onClick, children }: DropdownMenuItemPr
     );
   }
 
-  return (
-    <div className={className}>
-      {children}
-    </div>
-  );
+  return <div className={className}>{children}</div>;
 }
-

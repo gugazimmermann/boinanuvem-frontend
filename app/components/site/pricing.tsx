@@ -15,7 +15,8 @@ export const Pricing = memo(function Pricing() {
     >
       <div className="text-center mb-12">
         <Heading level={2} color="secondary" className="mb-4">
-          Planos que <span style={{ color: COLORS.primary }}>cabem no seu bolso</span> sem comprometer qualidade
+          Planos que <span style={{ color: COLORS.primary }}>cabem no seu bolso</span> sem
+          comprometer qualidade
         </Heading>
         <p className="text-xl text-gray-600 leading-relaxed">
           Opções flexíveis de preços para diferentes tamanhos de propriedade
@@ -108,7 +109,8 @@ export const Pricing = memo(function Pricing() {
                         <span className="mr-2" style={{ color: COLORS.primary }}>
                           ✓
                         </span>
-                        <strong style={{ color: COLORS.textDark }}>{firstWord}</strong> {rest.join(" ")}
+                        <strong style={{ color: COLORS.textDark }}>{firstWord}</strong>{" "}
+                        {rest.join(" ")}
                       </li>
                     );
                   })}

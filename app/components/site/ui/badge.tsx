@@ -16,4 +16,3 @@ export function Badge({ children, color, className = "" }: BadgeProps) {
     </span>
   );
 }
-

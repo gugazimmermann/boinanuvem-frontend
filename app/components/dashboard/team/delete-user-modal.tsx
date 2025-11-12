@@ -8,12 +8,7 @@ interface DeleteUserModalProps {
   userName: string;
 }
 
-export function DeleteUserModal({
-  isOpen,
-  onClose,
-  onConfirm,
-  userName,
-}: DeleteUserModalProps) {
+export function DeleteUserModal({ isOpen, onClose, onConfirm, userName }: DeleteUserModalProps) {
   const t = useTranslation();
 
   return (
@@ -29,4 +24,3 @@ export function DeleteUserModal({
     />
   );
 }
-

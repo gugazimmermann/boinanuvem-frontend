@@ -1,4 +1,3 @@
-import { Section, Heading } from "./ui";
 import { FOOTER_SECTIONS } from "./constants";
 
 export function Footer() {
@@ -8,9 +7,7 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
           {FOOTER_SECTIONS.map((section, index) => (
             <div key={index}>
-              <h4 className="font-bold text-sm uppercase mb-4 text-black">
-                {section.title}
-              </h4>
+              <h4 className="font-bold text-sm uppercase mb-4 text-black">{section.title}</h4>
               <ul className="space-y-2">
                 {section.links.map((link, idx) => (
                   <li key={idx}>

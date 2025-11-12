@@ -17,7 +17,9 @@ export function CTA() {
           Transforme a gestão da sua fazenda com tecnologia de ponta.
         </Heading>
         <p className="text-xl mb-8 leading-relaxed" style={{ color: COLORS.textMedium }}>
-          Experimente a melhor solução de gestão para fazendas de gado de corte. Sistema completo, intuitivo e poderoso, desenvolvido especialmente para otimizar a administração da sua propriedade e aumentar a produtividade do seu rebanho.
+          Experimente a melhor solução de gestão para fazendas de gado de corte. Sistema completo,
+          intuitivo e poderoso, desenvolvido especialmente para otimizar a administração da sua
+          propriedade e aumentar a produtividade do seu rebanho.
         </p>
         <Button href="#" size="lg" variant="primary">
           Começar Agora

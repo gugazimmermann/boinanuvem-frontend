@@ -17,4 +17,3 @@ export function useAutoRotate({ itemsCount, interval = 5000 }: UseAutoRotateOpti
 
   return [activeIndex, setActiveIndex] as const;
 }
-

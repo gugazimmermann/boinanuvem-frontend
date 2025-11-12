@@ -4,7 +4,6 @@ import {
   Hero,
   TrustedBy,
   Services,
-  WhyChooseUs,
   Examples,
   Pricing,
   FAQs,
@@ -14,7 +13,7 @@ import {
   ScrollToTop,
 } from "../components/site";
 
-export function meta({}: Route.MetaArgs) {
+export function meta(_args: Route.MetaArgs) {
   return [
     { title: "Boi na Nuvem" },
     {

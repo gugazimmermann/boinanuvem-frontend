@@ -21,7 +21,9 @@ export default function UserProfileView() {
   const navigate = useNavigate();
   const t = useTranslation();
 
-  const handleSave = async (data: AddressFormData & { name: string; email: string; phone: string }) => {
+  const handleSave = async (
+    data: AddressFormData & { name: string; email: string; phone: string }
+  ) => {
     if (!userId) return;
     updateUser(userId, {
       name: data.name,
@@ -59,4 +61,3 @@ export default function UserProfileView() {
     </div>
   );
 }
-

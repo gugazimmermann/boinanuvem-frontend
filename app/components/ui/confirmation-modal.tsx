@@ -1,18 +1,8 @@
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { Button } from "./button";
+import type { ConfirmationModalProps } from "~/types";
 
-export interface ConfirmationModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: () => Promise<void> | void;
-  title: string;
-  message: string | ReactNode;
-  confirmLabel?: string;
-  cancelLabel?: string;
-  variant?: "danger" | "warning" | "info";
-  icon?: ReactNode;
-  isLoading?: boolean;
-}
+export type { ConfirmationModalProps };
 
 export function ConfirmationModal({
   isOpen,
@@ -149,4 +139,3 @@ export function ConfirmationModal({
     </div>
   );
 }
-

@@ -82,7 +82,8 @@ export const es = {
     },
     deleteModal: {
       title: "Confirmar Eliminación",
-      message: (name: string) => `¿Estás seguro de que deseas eliminar la propiedad "${name}"? Esta acción no se puede deshacer.`,
+      message: (name: string) =>
+        `¿Estás seguro de que deseas eliminar la propiedad "${name}"? Esta acción no se puede deshacer.`,
       cancel: "Cancelar",
       confirm: "Eliminar",
     },
@@ -198,7 +199,8 @@ export const es = {
     },
     deleteModal: {
       title: "Confirmar Eliminación",
-      message: (name: string) => `¿Está seguro de que desea eliminar la ubicación "${name}"? Esta acción no se puede deshacer.`,
+      message: (name: string) =>
+        `¿Está seguro de que desea eliminar la ubicación "${name}"? Esta acción no se puede deshacer.`,
       cancel: "Cancelar",
       confirm: "Eliminar",
     },
@@ -391,7 +393,8 @@ export const es = {
     },
     deleteModal: {
       title: "Confirmar Eliminación",
-      message: (name: string) => `¿Estás seguro de que deseas eliminar al usuario "${name}"? Esta acción no se puede deshacer.`,
+      message: (name: string) =>
+        `¿Estás seguro de que deseas eliminar al usuario "${name}"? Esta acción no se puede deshacer.`,
       cancel: "Cancelar",
       confirm: "Eliminar",
     },
@@ -502,4 +505,3 @@ export const es = {
     },
   },
 } as const;
-

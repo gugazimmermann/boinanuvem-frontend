@@ -1,4 +1,9 @@
-import { forwardRef, type ButtonHTMLAttributes, type AnchorHTMLAttributes, type ReactNode } from "react";
+import {
+  forwardRef,
+  type ButtonHTMLAttributes,
+  type AnchorHTMLAttributes,
+  type ReactNode,
+} from "react";
 import { COLORS } from "../constants";
 
 type ButtonVariant = "primary" | "secondary" | "outline";
@@ -12,11 +17,15 @@ interface BaseButtonProps {
   fullWidth?: boolean;
 }
 
-interface ButtonAsButtonProps extends BaseButtonProps, Omit<ButtonHTMLAttributes<HTMLButtonElement>, "className" | "children"> {
+interface ButtonAsButtonProps
+  extends BaseButtonProps,
+    Omit<ButtonHTMLAttributes<HTMLButtonElement>, "className" | "children"> {
   href?: never;
 }
 
-interface ButtonAsLinkProps extends BaseButtonProps, Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "className" | "children"> {
+interface ButtonAsLinkProps
+  extends BaseButtonProps,
+    Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "className" | "children"> {
   href: string;
 }
 
@@ -49,19 +58,20 @@ export const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonPr
   ) => {
     const baseStyles = "rounded-full transition font-medium text-center cursor-pointer";
     const displayStyle = fullWidth ? "block w-full" : "inline-block";
-    
+
     const variantColorStyle =
       variant === "primary"
         ? { backgroundColor: COLORS.primary }
         : variant === "secondary"
-        ? { backgroundColor: COLORS.secondary }
-        : {
-            borderColor: COLORS.secondary,
-            color: COLORS.secondary,
-            backgroundColor: COLORS.bgLightTertiary,
-          };
+          ? { backgroundColor: COLORS.secondary }
+          : {
+              borderColor: COLORS.secondary,
+              color: COLORS.secondary,
+              backgroundColor: COLORS.bgLightTertiary,
+            };
 
-    const combinedClassName = `${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${displayStyle} ${className}`.trim();
+    const combinedClassName =
+      `${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${displayStyle} ${className}`.trim();
 
     if (href) {
       const { href: _, ...anchorProps } = props as ButtonAsLinkProps;
