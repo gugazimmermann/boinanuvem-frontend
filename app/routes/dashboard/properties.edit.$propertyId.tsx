@@ -5,7 +5,7 @@ import { useTranslation } from "~/i18n";
 import { maskCEP, unmaskCEP } from "~/components/site/utils/masks";
 import { useCEPLookup, type CEPData } from "~/components/site/hooks";
 import { mapCEPDataToAddressForm } from "~/components/site/utils";
-import { ROUTES } from "~/routes.config";
+import { ROUTES, getPropertyViewRoute } from "~/routes.config";
 import { getPropertyById, updateProperty } from "~/mocks/properties";
 import type { PropertyFormData } from "~/types";
 
@@ -212,7 +212,7 @@ export default function EditProperty() {
         </div>
         <Button
           variant="outline"
-          onClick={() => navigate(ROUTES.PROPERTIES)}
+          onClick={() => propertyId && navigate(getPropertyViewRoute(propertyId))}
           disabled={isSubmitting}
         >
           {t.team.new.back}
@@ -348,7 +348,7 @@ export default function EditProperty() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate(ROUTES.PROPERTIES)}
+              onClick={() => propertyId && navigate(getPropertyViewRoute(propertyId))}
               disabled={isSubmitting}
             >
               {t.profile.company.cancel}

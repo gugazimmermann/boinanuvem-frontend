@@ -22,6 +22,7 @@ export function Table<T extends Record<string, unknown>>({
   rowClassName = "",
   loading = false,
   slim = false,
+  onRowClick,
 }: TableProps<T>) {
   const getRowClassName = (row: T, index: number): string => {
     if (typeof rowClassName === "function") {
@@ -197,7 +198,11 @@ export function Table<T extends Record<string, unknown>>({
                   </thead>
                   <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                     {data.map((row, index) => (
-                      <tr key={index} className={getRowClassName(row, index)}>
+                      <tr
+                        key={index}
+                        className={`${getRowClassName(row, index)} ${onRowClick ? "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" : ""}`}
+                        onClick={() => onRowClick?.(row, index)}
+                      >
                         {columns.map((column) => {
                           const value = getColumnValue(column, row, index);
                           return (

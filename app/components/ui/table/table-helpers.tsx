@@ -185,7 +185,10 @@ export function TableActionButtons({
         <button
           type="button"
           className="text-gray-700 dark:text-gray-300 transition-colors duration-200 hover:text-yellow-500 dark:hover:text-yellow-400 focus:outline-none cursor-pointer"
-          onClick={onEdit}
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit();
+          }}
           aria-label="Edit"
         >
           <svg
@@ -209,7 +212,10 @@ export function TableActionButtons({
         <button
           type="button"
           className="text-gray-700 dark:text-gray-300 transition-colors duration-200 hover:text-red-500 dark:hover:text-red-400 focus:outline-none cursor-pointer"
-          onClick={onDelete}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
           aria-label="Delete"
         >
           <svg

@@ -35,6 +35,7 @@ export const en = {
     stats: {
       totalAnimals: "Total Animals",
       properties: "Properties",
+      locations: "Locations",
       pastures: "Pastures",
       births: "Births",
     },

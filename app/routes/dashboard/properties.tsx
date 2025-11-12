@@ -185,7 +185,6 @@ export default function Properties() {
       headerClassName: "relative",
       render: (_, row) => (
         <TableActionButtons
-          onView={() => navigate(getPropertyViewRoute(row.id))}
           onEdit={() => navigate(getPropertyEditRoute(row.id))}
           onDelete={() => handleDeleteClick(row)}
         />
@@ -271,6 +270,7 @@ export default function Properties() {
         }}
         sortState={sortState}
         onSort={handleSort}
+        onRowClick={(row) => navigate(getPropertyViewRoute(row.id))}
         emptyState={{
           title: t.properties.emptyState.title,
           description: searchValue

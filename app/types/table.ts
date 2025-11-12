@@ -80,4 +80,5 @@ export interface TableProps<T = unknown> {
   rowClassName?: string | ((row: T, index: number) => string);
   loading?: boolean;
   slim?: boolean;
+  onRowClick?: (row: T, index: number) => void;
 }

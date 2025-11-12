@@ -1,5 +1,7 @@
 import { useTranslation } from "~/i18n";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
+import { mockProperties } from "~/mocks/properties";
+import { mockLocations } from "~/mocks/locations";
 
 export function meta() {
   return [
@@ -13,6 +15,9 @@ export function meta() {
 
 export default function Dashboard() {
   const t = useTranslation();
+  
+  const totalProperties = mockProperties.length;
+  const totalLocations = mockLocations.length;
 
   return (
     <div>
@@ -44,7 +49,7 @@ export default function Dashboard() {
               <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
                 {t.dashboard.stats.properties}
               </p>
-              <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">5</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">{totalProperties}</p>
             </div>
             <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
               <span className="text-lg">🏡</span>
@@ -56,12 +61,12 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                {t.dashboard.stats.pastures}
+                {t.dashboard.stats.locations}
               </p>
-              <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">12</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">{totalLocations}</p>
             </div>
             <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
-              <span className="text-lg">🌾</span>
+              <span className="text-lg">📍</span>
             </div>
           </div>
         </div>

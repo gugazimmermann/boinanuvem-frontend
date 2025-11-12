@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
 import { Input, Button, Alert } from "~/components/ui";
 import { useTranslation } from "~/i18n";
-import { ROUTES } from "~/routes.config";
+import { ROUTES, getLocationViewRoute } from "~/routes.config";
 import { getLocationById, updateLocation } from "~/mocks/locations";
 import type { LocationFormData } from "~/types";
 import { AreaType, LocationType } from "~/types";
@@ -186,7 +186,7 @@ export default function EditLocation() {
         </div>
         <Button
           variant="outline"
-          onClick={() => navigate(ROUTES.LOCATIONS)}
+          onClick={() => locationId && navigate(getLocationViewRoute(locationId))}
           disabled={isSubmitting}
         >
           {t.team.new.back}
@@ -335,7 +335,7 @@ export default function EditLocation() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate(ROUTES.LOCATIONS)}
+              onClick={() => locationId && navigate(getLocationViewRoute(locationId))}
               disabled={isSubmitting}
             >
               {t.profile.company.cancel}

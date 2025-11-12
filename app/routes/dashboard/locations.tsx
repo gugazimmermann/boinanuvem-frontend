@@ -217,7 +217,6 @@ export default function Locations() {
       headerClassName: "relative",
       render: (_, row) => (
         <TableActionButtons
-          onView={() => navigate(getLocationViewRoute(row.id))}
           onEdit={() => navigate(getLocationEditRoute(row.id))}
           onDelete={() => handleDeleteClick(row)}
         />
@@ -303,6 +302,7 @@ export default function Locations() {
         }}
         sortState={sortState}
         onSort={handleSort}
+        onRowClick={(row) => navigate(getLocationViewRoute(row.id))}
         emptyState={{
           title: t.locations.emptyState.title,
           description: searchValue
