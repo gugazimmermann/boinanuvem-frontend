@@ -8,6 +8,7 @@ export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
   { translationKey: "properties", path: ROUTES.PROPERTIES, icon: "🏡" },
   { translationKey: "locations", path: ROUTES.LOCATIONS, icon: "🌾" },
   { translationKey: "employees", path: ROUTES.EMPLOYEES, icon: "👷" },
+  { translationKey: "serviceProviders", path: ROUTES.SERVICE_PROVIDERS, icon: "🔧" },
   { translationKey: "animals", path: "#", icon: "🐄" },
   { translationKey: "pastures", path: "#", icon: "🌾" },
   { translationKey: "reports", path: "#", icon: "📈" },

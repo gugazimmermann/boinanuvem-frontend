@@ -18,6 +18,10 @@ export const ROUTES = {
   EMPLOYEES_NEW: "/dashboard/funcionarios/novo",
   EMPLOYEES_EDIT: "/dashboard/funcionarios/:employeeId/editar",
   EMPLOYEES_VIEW: "/dashboard/funcionarios/:employeeId",
+  SERVICE_PROVIDERS: "/dashboard/prestadores-servico",
+  SERVICE_PROVIDERS_NEW: "/dashboard/prestadores-servico/novo",
+  SERVICE_PROVIDERS_EDIT: "/dashboard/prestadores-servico/:serviceProviderId/editar",
+  SERVICE_PROVIDERS_VIEW: "/dashboard/prestadores-servico/:serviceProviderId",
   PROFILE: "/dashboard/perfil",
   TEAM: "/dashboard/equipe",
   TEAM_NEW: "/dashboard/equipe/novo",
@@ -61,6 +65,14 @@ export function getEmployeeViewRoute(employeeId: string): string {
   return `/dashboard/funcionarios/${employeeId}`;
 }
 
+export function getServiceProviderEditRoute(serviceProviderId: string): string {
+  return `/dashboard/prestadores-servico/${serviceProviderId}/editar`;
+}
+
+export function getServiceProviderViewRoute(serviceProviderId: string): string {
+  return `/dashboard/prestadores-servico/${serviceProviderId}`;
+}
+
 export const ROUTE_NAMES = {
   HOME: "",
   LOGIN: "entrar",
@@ -81,6 +93,10 @@ export const ROUTE_NAMES = {
   EMPLOYEES_NEW: "funcionarios/novo",
   EMPLOYEES_EDIT: "funcionarios/:employeeId/editar",
   EMPLOYEES_VIEW: "funcionarios/:employeeId",
+  SERVICE_PROVIDERS: "prestadores-servico",
+  SERVICE_PROVIDERS_NEW: "prestadores-servico/novo",
+  SERVICE_PROVIDERS_EDIT: "prestadores-servico/:serviceProviderId/editar",
+  SERVICE_PROVIDERS_VIEW: "prestadores-servico/:serviceProviderId",
   PROFILE: "perfil",
   USER_PROFILE: "perfil/usuario/:userId",
   TEAM: "equipe",
