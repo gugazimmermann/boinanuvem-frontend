@@ -146,7 +146,7 @@ export default function EditBuyer() {
       newErrors.name = t.profile.errors.required(t.buyers.edit.nameLabel);
     }
     if (!formData.propertyIds || formData.propertyIds.length === 0) {
-      newErrors.propertyIds = t.buyers.edit.propertiesRequired;
+      newErrors.propertyIds = t.buyers.edit.propertyRequired;
     }
 
     setErrors(newErrors);
@@ -299,7 +299,7 @@ export default function EditBuyer() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t.buyers.edit.propertiesLabel} <span className="text-red-500">*</span>
+                {t.buyers.edit.propertyLabel} <span className="text-red-500">*</span>
               </label>
               <select
                 multiple
@@ -326,7 +326,6 @@ export default function EditBuyer() {
                 <p className="mt-1 text-sm text-red-500">{errors.propertyIds}</p>
               )}
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                {t.buyers.edit.propertiesHint}
               </p>
             </div>
 

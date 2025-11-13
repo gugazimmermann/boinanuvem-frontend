@@ -4,4 +4,5 @@ export { Input } from "./input";
 export { Select } from "./select";
 export { ConfirmationModal, type ConfirmationModalProps } from "./confirmation-modal";
 export { PasturePlanningGraph } from "./pasture-planning-graph";
+export { Tooltip } from "./tooltip";
 export * from "./table";

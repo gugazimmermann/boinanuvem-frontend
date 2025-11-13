@@ -146,7 +146,7 @@ export default function EditServiceProvider() {
       newErrors.name = t.profile.errors.required(t.serviceProviders.edit.nameLabel);
     }
     if (!formData.propertyIds || formData.propertyIds.length === 0) {
-      newErrors.propertyIds = t.serviceProviders.edit.propertiesRequired;
+      newErrors.propertyIds = t.serviceProviders.edit.propertyRequired;
     }
 
     setErrors(newErrors);
@@ -305,7 +305,7 @@ export default function EditServiceProvider() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t.serviceProviders.edit.propertiesLabel} <span className="text-red-500">*</span>
+                {t.serviceProviders.edit.propertyLabel} <span className="text-red-500">*</span>
               </label>
               <select
                 multiple
@@ -332,7 +332,6 @@ export default function EditServiceProvider() {
                 <p className="mt-1 text-sm text-red-500">{errors.propertyIds}</p>
               )}
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                {t.serviceProviders.edit.propertiesHint}
               </p>
             </div>
 

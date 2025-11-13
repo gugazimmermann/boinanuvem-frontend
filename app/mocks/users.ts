@@ -23,7 +23,7 @@ export const mockUsers: TeamUser[] = [
     zipCode: "88303030",
     mainUser: true,
     companyId: "550e8400-e29b-41d4-a716-446655440000",
-    createdAt: "2024-01-01",
+    createdAt: "2025-01-01",
     lastAccess: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
   },
   {
@@ -44,7 +44,7 @@ export const mockUsers: TeamUser[] = [
     zipCode: "01310-100",
     mainUser: false,
     companyId: "550e8400-e29b-41d4-a716-446655440000",
-    createdAt: "2024-01-15",
+    createdAt: "2025-01-15",
     lastAccess: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
   },
   {
@@ -65,7 +65,7 @@ export const mockUsers: TeamUser[] = [
     zipCode: "01305-000",
     mainUser: false,
     companyId: "550e8400-e29b-41d4-a716-446655440000",
-    createdAt: "2024-02-01",
+    createdAt: "2025-02-01",
     lastAccess: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
   },
   {
@@ -86,7 +86,7 @@ export const mockUsers: TeamUser[] = [
     zipCode: "05615-190",
     mainUser: false,
     companyId: "550e8400-e29b-41d4-a716-446655440000",
-    createdAt: "2024-02-15",
+    createdAt: "2025-02-15",
     lastAccess: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
   },
   {
@@ -107,7 +107,7 @@ export const mockUsers: TeamUser[] = [
     zipCode: "05435-000",
     mainUser: false,
     companyId: "550e8400-e29b-41d4-a716-446655440000",
-    createdAt: "2024-03-01",
+    createdAt: "2025-03-01",
   },
 ];
 

@@ -125,7 +125,7 @@ export default function NewSupplier() {
       newErrors.name = t.profile.errors.required(t.suppliers.new.nameLabel);
     }
     if (!formData.propertyIds || formData.propertyIds.length === 0) {
-      newErrors.propertyIds = t.suppliers.new.propertiesRequired;
+      newErrors.propertyIds = t.suppliers.new.propertyRequired;
     }
 
     setErrors(newErrors);
@@ -262,7 +262,7 @@ export default function NewSupplier() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t.suppliers.new.propertiesLabel} <span className="text-red-500">*</span>
+                {t.suppliers.new.propertyLabel} <span className="text-red-500">*</span>
               </label>
               <select
                 multiple
@@ -289,7 +289,6 @@ export default function NewSupplier() {
                 <p className="mt-1 text-sm text-red-500">{errors.propertyIds}</p>
               )}
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                {t.suppliers.new.propertiesHint}
               </p>
             </div>
 

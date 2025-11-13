@@ -146,7 +146,7 @@ export default function EditSupplier() {
       newErrors.name = t.profile.errors.required(t.suppliers.edit.nameLabel);
     }
     if (!formData.propertyIds || formData.propertyIds.length === 0) {
-      newErrors.propertyIds = t.suppliers.edit.propertiesRequired;
+      newErrors.propertyIds = t.suppliers.edit.propertyRequired;
     }
 
     setErrors(newErrors);
@@ -299,7 +299,7 @@ export default function EditSupplier() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t.suppliers.edit.propertiesLabel} <span className="text-red-500">*</span>
+                {t.suppliers.edit.propertyLabel} <span className="text-red-500">*</span>
               </label>
               <select
                 multiple
@@ -326,7 +326,6 @@ export default function EditSupplier() {
                 <p className="mt-1 text-sm text-red-500">{errors.propertyIds}</p>
               )}
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                {t.suppliers.edit.propertiesHint}
               </p>
             </div>
 

@@ -30,6 +30,10 @@ export const ROUTES = {
   BUYERS_NEW: "/dashboard/compradores/novo",
   BUYERS_EDIT: "/dashboard/compradores/:buyerId/editar",
   BUYERS_VIEW: "/dashboard/compradores/:buyerId",
+  ANIMALS: "/dashboard/animais",
+  ANIMALS_NEW: "/dashboard/animais/novo",
+  ANIMALS_EDIT: "/dashboard/animais/:animalId/editar",
+  ANIMALS_VIEW: "/dashboard/animais/:animalId",
   MOVEMENTS_NEW: "/dashboard/propriedades/:propertyId/movimentacoes/novo",
   MOVEMENTS_VIEW: "/dashboard/movimentacoes/:movementId",
   PROFILE: "/dashboard/perfil",
@@ -99,6 +103,14 @@ export function getBuyerViewRoute(buyerId: string): string {
   return `/dashboard/compradores/${buyerId}`;
 }
 
+export function getAnimalEditRoute(animalId: string): string {
+  return `/dashboard/animais/${animalId}/editar`;
+}
+
+export function getAnimalViewRoute(animalId: string): string {
+  return `/dashboard/animais/${animalId}`;
+}
+
 export function getMovementViewRoute(movementId: string): string {
   return `/dashboard/movimentacoes/${movementId}`;
 }
@@ -139,6 +151,10 @@ export const ROUTE_NAMES = {
   BUYERS_NEW: "compradores/novo",
   BUYERS_EDIT: "compradores/:buyerId/editar",
   BUYERS_VIEW: "compradores/:buyerId",
+  ANIMALS: "animais",
+  ANIMALS_NEW: "animais/novo",
+  ANIMALS_EDIT: "animais/:animalId/editar",
+  ANIMALS_VIEW: "animais/:animalId",
   MOVEMENTS_NEW: "propriedades/:propertyId/movimentacoes/novo",
   MOVEMENTS_VIEW: "movimentacoes/:movementId",
   PROFILE: "perfil",

@@ -16,7 +16,7 @@ export const mockCompanies: Company[] = [
     city: "São João do Itaperiú",
     state: "SC",
     zipCode: "88395000",
-    createdAt: "2024-01-01",
+    createdAt: "2025-01-01",
     latitude: -26.559317100277863,
     longitude: -48.75873810994559,
   },

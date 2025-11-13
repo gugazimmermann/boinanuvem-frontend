@@ -16,7 +16,7 @@ export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
       { translationKey: "serviceProviders", path: ROUTES.SERVICE_PROVIDERS, icon: "🔧" },
       { translationKey: "suppliers", path: ROUTES.SUPPLIERS, icon: "🚚" },
       { translationKey: "buyers", path: ROUTES.BUYERS, icon: "🛒" },
-      { translationKey: "animals", path: "#", icon: "🐄" },
+      { translationKey: "animals", path: ROUTES.ANIMALS, icon: "🐄" },
     ],
   },
   { translationKey: "pastures", path: "#", icon: "🌾" },
