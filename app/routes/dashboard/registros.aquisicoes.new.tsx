@@ -6,6 +6,7 @@ import { ROUTES } from "~/routes.config";
 import { addAcquisition } from "~/mocks/acquisitions";
 import { addAnimal } from "~/mocks/animals";
 import { addWeighing } from "~/mocks/weighings";
+import { getBirthByAnimalId, calculatePurity } from "~/mocks/births";
 import type { AcquisitionFormData, AnimalFormData, WeighingFormData } from "~/types";
 import { AnimalBreed } from "~/types";
 import { mockCompanies } from "~/mocks/companies";
@@ -34,6 +35,42 @@ export default function NewAcquisition() {
   const today = new Date().toISOString().split("T")[0];
 
   const [sellerSearch, setSellerSearch] = useState("");
+  const [motherSearch, setMotherSearch] = useState("");
+  const [fatherSearch, setFatherSearch] = useState("");
+
+  const animals = useMemo(() => getAnimalsByCompanyId(companyId), [companyId]);
+  const femaleAnimals = useMemo(() => {
+    return animals.filter((animal) => {
+      const birth = getBirthByAnimalId(animal.id);
+      return birth?.gender === "female";
+    });
+  }, [animals]);
+  const maleAnimals = useMemo(() => {
+    return animals.filter((animal) => {
+      const birth = getBirthByAnimalId(animal.id);
+      return birth?.gender === "male";
+    });
+  }, [animals]);
+
+  const filteredFemaleAnimals = useMemo(() => {
+    if (!motherSearch.trim()) return femaleAnimals;
+    const searchLower = motherSearch.toLowerCase();
+    return femaleAnimals.filter(
+      (animal) =>
+        animal.code.toLowerCase().includes(searchLower) ||
+        animal.registrationNumber.toLowerCase().includes(searchLower)
+    );
+  }, [femaleAnimals, motherSearch]);
+
+  const filteredMaleAnimals = useMemo(() => {
+    if (!fatherSearch.trim()) return maleAnimals;
+    const searchLower = fatherSearch.toLowerCase();
+    return maleAnimals.filter(
+      (animal) =>
+        animal.code.toLowerCase().includes(searchLower) ||
+        animal.registrationNumber.toLowerCase().includes(searchLower)
+    );
+  }, [maleAnimals, fatherSearch]);
 
   const sellers = useMemo(() => {
     return mockBuyers.filter((buyer) => buyer.companyId === companyId && buyer.status === "active");
@@ -61,6 +98,12 @@ export default function NewAcquisition() {
     sellerId: string;
     price: string;
     observation: string;
+    birthDate: string;
+    motherId: string;
+    fatherId: string;
+    motherRegistrationNumber: string;
+    fatherRegistrationNumber: string;
+    birthObservation: string;
     weighingDate: string;
     weight: string;
     employeeIds: string[];
@@ -76,6 +119,12 @@ export default function NewAcquisition() {
     sellerId: "",
     price: "",
     observation: "",
+    birthDate: "",
+    motherId: "",
+    fatherId: "",
+    motherRegistrationNumber: "",
+    fatherRegistrationNumber: "",
+    birthObservation: "",
     weighingDate: today,
     weight: "",
     employeeIds: [],
@@ -175,6 +224,16 @@ export default function NewAcquisition() {
       };
       const newAnimal = addAnimal(animalData);
 
+      // Calculate purity if birth data is provided
+      let purity = undefined;
+      if (formData.motherId || formData.fatherId || formData.motherRegistrationNumber || formData.fatherRegistrationNumber) {
+        const motherBirth = formData.motherId ? getBirthByAnimalId(formData.motherId) : undefined;
+        const fatherBirth = formData.fatherId ? getBirthByAnimalId(formData.fatherId) : undefined;
+        const motherBreed = motherBirth?.breed;
+        const fatherBreed = fatherBirth?.breed;
+        purity = calculatePurity(motherBirth, fatherBirth, motherBreed, fatherBreed);
+      }
+
       const acquisitionData: AcquisitionFormData = {
         animalId: newAnimal.id,
         acquisitionDate: formData.acquisitionDate,
@@ -183,6 +242,13 @@ export default function NewAcquisition() {
         sellerId: formData.sellerId || undefined,
         price: formData.price ? parseFloat(formData.price) : undefined,
         observation: formData.observation || undefined,
+        birthDate: formData.birthDate || undefined,
+        motherId: formData.motherId || undefined,
+        fatherId: formData.fatherId || undefined,
+        motherRegistrationNumber: formData.motherRegistrationNumber || undefined,
+        fatherRegistrationNumber: formData.fatherRegistrationNumber || undefined,
+        purity,
+        birthObservation: formData.birthObservation || undefined,
         companyId,
       };
       addAcquisition(acquisitionData);
@@ -372,6 +438,122 @@ export default function NewAcquisition() {
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200"
                   placeholder={t.acquisitions.new.observationPlaceholder}
+                />
+              </div>
+            </div>
+
+            <div className="border-b border-gray-200 dark:border-gray-700 pb-4">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                {t.acquisitions.new.birthInfoTitle}
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label={t.acquisitions.new.birthDateLabel}
+                  type="date"
+                  value={formData.birthDate}
+                  onChange={(e) => handleChange("birthDate", e.target.value)}
+                  error={errors.birthDate}
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div className="space-y-2">
+                  <Input
+                    label={t.acquisitions.new.motherFromPropertyLabel}
+                    value={motherSearch}
+                    onChange={(e) => setMotherSearch(e.target.value)}
+                    placeholder={t.births.new.searchPlaceholder}
+                    disabled={isSubmitting}
+                  />
+                  <Select
+                    value={formData.motherId}
+                    onChange={(e) => {
+                      handleChange("motherId", e.target.value);
+                      if (e.target.value) {
+                        handleChange("motherRegistrationNumber", "");
+                      }
+                    }}
+                    error={errors.motherId}
+                    disabled={isSubmitting}
+                    options={[
+                      { value: "", label: "-" },
+                      ...filteredFemaleAnimals.map((animal) => ({
+                        value: animal.id,
+                        label: `${animal.code} | ${animal.registrationNumber}`,
+                      })),
+                    ]}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Input
+                    label={t.acquisitions.new.fatherFromPropertyLabel}
+                    value={fatherSearch}
+                    onChange={(e) => setFatherSearch(e.target.value)}
+                    placeholder={t.births.new.searchPlaceholder}
+                    disabled={isSubmitting}
+                  />
+                  <Select
+                    value={formData.fatherId}
+                    onChange={(e) => {
+                      handleChange("fatherId", e.target.value);
+                      if (e.target.value) {
+                        handleChange("fatherRegistrationNumber", "");
+                      }
+                    }}
+                    error={errors.fatherId}
+                    disabled={isSubmitting}
+                    options={[
+                      { value: "", label: "-" },
+                      ...filteredMaleAnimals.map((animal) => ({
+                        value: animal.id,
+                        label: `${animal.code} | ${animal.registrationNumber}`,
+                      })),
+                    ]}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <Input
+                  label={t.acquisitions.new.motherRegistrationNumberLabel}
+                  value={formData.motherRegistrationNumber}
+                  onChange={(e) => {
+                    handleChange("motherRegistrationNumber", e.target.value);
+                    if (e.target.value) {
+                      handleChange("motherId", "");
+                    }
+                  }}
+                  error={errors.motherRegistrationNumber}
+                  disabled={isSubmitting}
+                  placeholder={t.acquisitions.new.motherRegistrationNumberPlaceholder}
+                />
+                <Input
+                  label={t.acquisitions.new.fatherRegistrationNumberLabel}
+                  value={formData.fatherRegistrationNumber}
+                  onChange={(e) => {
+                    handleChange("fatherRegistrationNumber", e.target.value);
+                    if (e.target.value) {
+                      handleChange("fatherId", "");
+                    }
+                  }}
+                  error={errors.fatherRegistrationNumber}
+                  disabled={isSubmitting}
+                  placeholder={t.acquisitions.new.fatherRegistrationNumberPlaceholder}
+                />
+              </div>
+
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {t.acquisitions.new.birthObservationLabel}
+                </label>
+                <textarea
+                  value={formData.birthObservation}
+                  onChange={(e) => handleChange("birthObservation", e.target.value)}
+                  disabled={isSubmitting}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200"
+                  placeholder={t.acquisitions.new.birthObservationPlaceholder}
                 />
               </div>
             </div>

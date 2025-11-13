@@ -1,4 +1,5 @@
 import { AnimalBreed } from "./animal";
+import { BirthPurity } from "./birth";
 
 export interface Acquisition extends Record<string, unknown> {
   id: string;
@@ -9,6 +10,14 @@ export interface Acquisition extends Record<string, unknown> {
   sellerId?: string;
   price?: number;
   observation?: string;
+  // Birth data
+  birthDate?: string;
+  motherId?: string;
+  fatherId?: string;
+  motherRegistrationNumber?: string;
+  fatherRegistrationNumber?: string;
+  purity?: BirthPurity;
+  birthObservation?: string;
   createdAt: string;
   companyId: string;
 }
@@ -21,6 +30,14 @@ export interface AcquisitionFormData {
   sellerId?: string;
   price?: number;
   observation?: string;
+  // Birth data
+  birthDate?: string;
+  motherId?: string;
+  fatherId?: string;
+  motherRegistrationNumber?: string;
+  fatherRegistrationNumber?: string;
+  purity?: BirthPurity;
+  birthObservation?: string;
   companyId: string;
 }
 
