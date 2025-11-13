@@ -29,7 +29,14 @@ import { getServiceProvidersByPropertyId, getServiceProviderById } from "~/mocks
 import { getSuppliersByPropertyId } from "~/mocks/suppliers";
 import { getBuyersByPropertyId } from "~/mocks/buyers";
 import { getLocationMovementsByPropertyId } from "~/mocks/location-movements";
-import type { Location, Employee, ServiceProvider, Supplier, Buyer, LocationMovement } from "~/types";
+import type {
+  Location,
+  Employee,
+  ServiceProvider,
+  Supplier,
+  Buyer,
+  LocationMovement,
+} from "~/types";
 import { AreaType } from "~/types";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
 import { LocationTypeBadge } from "~/components/dashboard/utils/location-type-badge";
@@ -75,7 +82,13 @@ export default function PropertyDetails() {
     tabParam === "activities" ||
     tabParam === "movements"
       ? tabParam
-      : "information") as "information" | "info" | "locations" | "cadastros" | "activities" | "movements"
+      : "information") as
+      | "information"
+      | "info"
+      | "locations"
+      | "cadastros"
+      | "activities"
+      | "movements"
   );
 
   const [cadastrosSubTab, setCadastrosSubTab] = useState<
@@ -97,7 +110,13 @@ export default function PropertyDetails() {
 
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (tab === "info" || tab === "locations" || tab === "cadastros" || tab === "activities" || tab === "movements") {
+    if (
+      tab === "info" ||
+      tab === "locations" ||
+      tab === "cadastros" ||
+      tab === "activities" ||
+      tab === "movements"
+    ) {
       setActiveTab(tab);
     } else if (!tab) {
       setActiveTab("information");
@@ -352,7 +371,9 @@ export default function PropertyDetails() {
                   <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
                     {t.properties.table.locations}
                   </p>
-                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">{locationsCount}</p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                    {locationsCount}
+                  </p>
                 </div>
                 <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
                   <span className="text-lg">📍</span>
@@ -1319,9 +1340,10 @@ export default function PropertyDetails() {
 
             const searchLower = searchValue.toLowerCase();
 
-            const typeText = t.properties.details.movements.types[
-              movement.type as keyof typeof t.properties.details.movements.types
-            ] || movement.type;
+            const typeText =
+              t.properties.details.movements.types[
+                movement.type as keyof typeof t.properties.details.movements.types
+              ] || movement.type;
             if (typeText.toLowerCase().includes(searchLower)) return true;
 
             const dateText = formatDate(movement.date);
@@ -1330,7 +1352,9 @@ export default function PropertyDetails() {
             const locationNames = movement.locationIds
               .map((id) => {
                 const location = getLocationById(id);
-                return location ? `${location.name} ${location.code}`.toLowerCase() : id.toLowerCase();
+                return location
+                  ? `${location.name} ${location.code}`.toLowerCase()
+                  : id.toLowerCase();
               })
               .join(" ");
             if (locationNames.includes(searchLower)) return true;
@@ -1434,9 +1458,7 @@ export default function PropertyDetails() {
                   })
                   .join(", ");
                 return (
-                  <span className="text-gray-700 dark:text-gray-300">
-                    {locationNames || "-"}
-                  </span>
+                  <span className="text-gray-700 dark:text-gray-300">{locationNames || "-"}</span>
                 );
               },
             },
@@ -1543,8 +1565,9 @@ export default function PropertyDetails() {
                 emptyState={{
                   title: t.properties.details.movements.emptyState.title,
                   description: searchValue
-                    ? t.properties.details.movements.emptyState.descriptionWithSearch?.(searchValue) ||
-                      t.properties.details.movements.emptyState.description
+                    ? t.properties.details.movements.emptyState.descriptionWithSearch?.(
+                        searchValue
+                      ) || t.properties.details.movements.emptyState.description
                     : t.properties.details.movements.emptyState.description,
                   onClearSearch: searchValue
                     ? () => {

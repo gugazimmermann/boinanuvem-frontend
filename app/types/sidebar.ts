@@ -1,6 +1,21 @@
+export interface SidebarSubItemConfig {
+  translationKey: keyof {
+    properties: string;
+    locations: string;
+    employees: string;
+    serviceProviders: string;
+    suppliers: string;
+    buyers: string;
+    animals: string;
+  };
+  path: string;
+  icon?: string;
+}
+
 export interface SidebarItemConfig {
   translationKey: keyof {
     dashboard: string;
+    cadastros: string;
     properties: string;
     locations: string;
     employees: string;
@@ -15,4 +30,5 @@ export interface SidebarItemConfig {
   };
   path: string;
   icon?: string;
+  subItems?: SidebarSubItemConfig[];
 }

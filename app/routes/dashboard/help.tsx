@@ -75,7 +75,7 @@ export default function Help() {
 
   return (
     <section className="bg-white dark:bg-gray-900">
-      <div className="container px-6 py-12 mx-auto">
+      <div className="container px-6 py-12 mx-auto max-w-7xl">
         <h1 className="text-2xl font-semibold text-center text-gray-800 lg:text-3xl dark:text-white">
           {t.help.heading}
         </h1>

@@ -134,7 +134,11 @@ export function PasturePlanningGraph({ data }: PasturePlanningGraphProps) {
                 color: textColor,
               }}
               labelStyle={{ color: textColor, fontWeight: "bold" }}
-              formatter={(value: number | string, name: string, props: { payload?: { classification?: string } }) => {
+              formatter={(
+                value: number | string,
+                name: string,
+                props: { payload?: { classification?: string } }
+              ) => {
                 if (
                   name === t.properties.details.pasturePlanning.forage ||
                   name === "classificationHeight"

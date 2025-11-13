@@ -1,8 +1,21 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router";
-import { Button, StatusBadge, Table, type TableColumn, type TableAction, type SortDirection } from "~/components/ui";
+import {
+  Button,
+  StatusBadge,
+  Table,
+  type TableColumn,
+  type TableAction,
+  type SortDirection,
+} from "~/components/ui";
 import { useTranslation } from "~/i18n";
-import { ROUTES, getEmployeeEditRoute, getPropertyViewRoute, getMovementViewRoute, getMovementNewRoute } from "~/routes.config";
+import {
+  ROUTES,
+  getEmployeeEditRoute,
+  getPropertyViewRoute,
+  getMovementViewRoute,
+  getMovementNewRoute,
+} from "~/routes.config";
 import { getEmployeeById } from "~/mocks/employees";
 import { getPropertyById } from "~/mocks/properties";
 import { getLocationMovementsByEmployeeId } from "~/mocks/location-movements";
@@ -30,9 +43,10 @@ export default function EmployeeDetails() {
 
   const tabParam = searchParams.get("tab");
   const [activeTab, setActiveTab] = useState<"info" | "activities" | "movements">(
-    (tabParam === "activities" || tabParam === "movements"
-      ? tabParam
-      : "info") as "info" | "activities" | "movements"
+    (tabParam === "activities" || tabParam === "movements" ? tabParam : "info") as
+      | "info"
+      | "activities"
+      | "movements"
   );
 
   const [sortState, setSortState] = useState<{
@@ -409,9 +423,10 @@ export default function EmployeeDetails() {
 
             const searchLower = searchValue.toLowerCase();
 
-            const typeText = t.properties.details.movements.types[
-              movement.type as keyof typeof t.properties.details.movements.types
-            ] || movement.type;
+            const typeText =
+              t.properties.details.movements.types[
+                movement.type as keyof typeof t.properties.details.movements.types
+              ] || movement.type;
             if (typeText.toLowerCase().includes(searchLower)) return true;
 
             const dateText = formatDate(movement.date);
@@ -420,7 +435,9 @@ export default function EmployeeDetails() {
             const locationNames = movement.locationIds
               .map((id: string) => {
                 const location = getLocationById(id);
-                return location ? `${location.name} ${location.code}`.toLowerCase() : id.toLowerCase();
+                return location
+                  ? `${location.name} ${location.code}`.toLowerCase()
+                  : id.toLowerCase();
               })
               .join(" ");
             if (locationNames.includes(searchLower)) return true;
@@ -524,9 +541,7 @@ export default function EmployeeDetails() {
                   })
                   .join(", ");
                 return (
-                  <span className="text-gray-700 dark:text-gray-300">
-                    {locationNames || "-"}
-                  </span>
+                  <span className="text-gray-700 dark:text-gray-300">{locationNames || "-"}</span>
                 );
               },
             },
@@ -571,30 +586,36 @@ export default function EmployeeDetails() {
             },
           ];
 
-          const firstPropertyId = employee.propertyIds && employee.propertyIds.length > 0 ? employee.propertyIds[0] : null;
-          const headerActions: TableAction[] = firstPropertyId ? [
-            {
-              label: t.properties.details.movements.add,
-              variant: "primary",
-              leftIcon: (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                  className="w-5 h-5"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              ),
-              onClick: () => navigate(`${getMovementNewRoute(firstPropertyId)}?employeeId=${employee.id}`),
-            },
-          ] : [];
+          const firstPropertyId =
+            employee.propertyIds && employee.propertyIds.length > 0
+              ? employee.propertyIds[0]
+              : null;
+          const headerActions: TableAction[] = firstPropertyId
+            ? [
+                {
+                  label: t.properties.details.movements.add,
+                  variant: "primary",
+                  leftIcon: (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                      className="w-5 h-5"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                  ),
+                  onClick: () =>
+                    navigate(`${getMovementNewRoute(firstPropertyId)}?employeeId=${employee.id}`),
+                },
+              ]
+            : [];
 
           return (
             <div className="space-y-6">
@@ -634,8 +655,9 @@ export default function EmployeeDetails() {
                 emptyState={{
                   title: t.properties.details.movements.emptyState.title,
                   description: searchValue
-                    ? t.properties.details.movements.emptyState.descriptionWithSearch?.(searchValue) ||
-                      t.properties.details.movements.emptyState.description
+                    ? t.properties.details.movements.emptyState.descriptionWithSearch?.(
+                        searchValue
+                      ) || t.properties.details.movements.emptyState.description
                     : t.properties.details.movements.emptyState.description,
                   onClearSearch: searchValue
                     ? () => {
@@ -645,7 +667,9 @@ export default function EmployeeDetails() {
                     : undefined,
                   clearSearchLabel: searchValue ? t.common.clearSearch : undefined,
                 }}
-                onRowClick={(row) => navigate(`${getMovementViewRoute(row.id)}?fromEmployee=${employee.id}`)}
+                onRowClick={(row) =>
+                  navigate(`${getMovementViewRoute(row.id)}?fromEmployee=${employee.id}`)
+                }
               />
             </div>
           );

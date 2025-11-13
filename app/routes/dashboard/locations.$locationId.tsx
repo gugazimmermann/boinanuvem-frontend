@@ -9,7 +9,12 @@ import {
   type SortDirection,
 } from "~/components/ui";
 import { useTranslation } from "~/i18n";
-import { ROUTES, getLocationEditRoute, getMovementViewRoute, getMovementNewRoute } from "~/routes.config";
+import {
+  ROUTES,
+  getLocationEditRoute,
+  getMovementViewRoute,
+  getMovementNewRoute,
+} from "~/routes.config";
 import { getLocationById } from "~/mocks/locations";
 import { AreaType } from "~/types";
 import { getPropertyById } from "~/mocks/properties";
@@ -434,9 +439,10 @@ export default function LocationDetails() {
 
             const searchLower = searchValue.toLowerCase();
 
-            const typeText = t.properties.details.movements.types[
-              movement.type as keyof typeof t.properties.details.movements.types
-            ] || movement.type;
+            const typeText =
+              t.properties.details.movements.types[
+                movement.type as keyof typeof t.properties.details.movements.types
+              ] || movement.type;
             if (typeText.toLowerCase().includes(searchLower)) return true;
 
             const dateText = formatDate(movement.date);
@@ -549,9 +555,7 @@ export default function LocationDetails() {
                   })
                   .join(", ");
                 return (
-                  <span className="text-gray-700 dark:text-gray-300">
-                    {locationNames || "-"}
-                  </span>
+                  <span className="text-gray-700 dark:text-gray-300">{locationNames || "-"}</span>
                 );
               },
             },
@@ -616,7 +620,8 @@ export default function LocationDetails() {
                   />
                 </svg>
               ),
-              onClick: () => navigate(`${getMovementNewRoute(property.id)}?locationId=${location.id}`),
+              onClick: () =>
+                navigate(`${getMovementNewRoute(property.id)}?locationId=${location.id}`),
             },
           ];
 
@@ -658,8 +663,9 @@ export default function LocationDetails() {
                 emptyState={{
                   title: t.properties.details.movements.emptyState.title,
                   description: searchValue
-                    ? t.properties.details.movements.emptyState.descriptionWithSearch?.(searchValue) ||
-                      t.properties.details.movements.emptyState.description
+                    ? t.properties.details.movements.emptyState.descriptionWithSearch?.(
+                        searchValue
+                      ) || t.properties.details.movements.emptyState.description
                     : t.properties.details.movements.emptyState.description,
                   onClearSearch: searchValue
                     ? () => {
@@ -669,7 +675,9 @@ export default function LocationDetails() {
                     : undefined,
                   clearSearchLabel: searchValue ? t.common.clearSearch : undefined,
                 }}
-                onRowClick={(row) => navigate(`${getMovementViewRoute(row.id)}?fromLocation=${location.id}`)}
+                onRowClick={(row) =>
+                  navigate(`${getMovementViewRoute(row.id)}?fromLocation=${location.id}`)
+                }
               />
             </div>
           );

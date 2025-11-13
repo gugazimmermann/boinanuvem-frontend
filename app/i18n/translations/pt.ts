@@ -10,6 +10,7 @@ export const pt = {
 
   sidebar: {
     dashboard: "Dashboard",
+    cadastros: "Cadastros",
     properties: "Propriedades",
     locations: "Localizações",
     employees: "Funcionários",

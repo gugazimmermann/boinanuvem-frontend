@@ -1,8 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router";
 import { Button, Input, Alert } from "~/components/ui";
 import { useTranslation } from "~/i18n";
-import { getPropertyViewRoute, getLocationViewRoute, getEmployeeViewRoute, getServiceProviderViewRoute } from "~/routes.config";
+import {
+  getPropertyViewRoute,
+  getLocationViewRoute,
+  getEmployeeViewRoute,
+  getServiceProviderViewRoute,
+} from "~/routes.config";
 import { getPropertyById } from "~/mocks/properties";
 import { getLocationsByPropertyId, getLocationById } from "~/mocks/locations";
 import { getEmployeesByPropertyId, getEmployeeById } from "~/mocks/employees";
@@ -30,53 +35,6 @@ export default function NewMovement() {
   const employeeIdParam = searchParams.get("employeeId");
   const serviceProviderIdParam = searchParams.get("serviceProviderId");
 
-  if (!property) {
-    return (
-      <div className="space-y-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
-            {t.properties.emptyState.title}
-          </p>
-          <Button variant="outline" onClick={() => navigate("/dashboard/propriedades")}>
-            {t.team.new.back}
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  const allLocations = getLocationsByPropertyId(property.id);
-  
-  // Sort locations: if locationIdParam exists and is valid, put it first
-  const locationExists = locationIdParam && allLocations.some((loc) => loc.id === locationIdParam);
-  const sortedLocations = locationExists && locationIdParam
-    ? [
-        ...allLocations.filter((loc) => loc.id === locationIdParam),
-        ...allLocations.filter((loc) => loc.id !== locationIdParam),
-      ]
-    : allLocations;
-
-  const allEmployees = getEmployeesByPropertyId(property.id);
-  const allServiceProviders = getServiceProvidersByPropertyId(property.id);
-
-  // Sort employees: if employeeIdParam exists and is valid, put it first
-  const employeeExists = employeeIdParam && allEmployees.some((emp) => emp.id === employeeIdParam);
-  const sortedEmployees = employeeExists && employeeIdParam
-    ? [
-        ...allEmployees.filter((emp) => emp.id === employeeIdParam),
-        ...allEmployees.filter((emp) => emp.id !== employeeIdParam),
-      ]
-    : allEmployees;
-
-  // Sort service providers: if serviceProviderIdParam exists and is valid, put it first
-  const serviceProviderExists = serviceProviderIdParam && allServiceProviders.some((prov) => prov.id === serviceProviderIdParam);
-  const sortedServiceProviders = serviceProviderExists && serviceProviderIdParam
-    ? [
-        ...allServiceProviders.filter((prov) => prov.id === serviceProviderIdParam),
-        ...allServiceProviders.filter((prov) => prov.id !== serviceProviderIdParam),
-      ]
-    : allServiceProviders;
-
   const [formData, setFormData] = useState<{
     type: LocationMovementType;
     date: string;
@@ -86,9 +44,9 @@ export default function NewMovement() {
   }>({
     type: LocationMovementType.OTHER,
     date: new Date().toISOString().split("T")[0],
-    locationIds: locationExists && locationIdParam ? [locationIdParam] : [],
-    employeeIds: employeeExists && employeeIdParam ? [employeeIdParam] : [],
-    serviceProviderIds: serviceProviderExists && serviceProviderIdParam ? [serviceProviderIdParam] : [],
+    locationIds: [],
+    employeeIds: [],
+    serviceProviderIds: [],
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -97,6 +55,79 @@ export default function NewMovement() {
     title: string;
     variant: "success" | "error" | "warning" | "info";
   } | null>(null);
+
+  useEffect(() => {
+    if (property) {
+      const allLocations = getLocationsByPropertyId(property.id);
+      const allEmployees = getEmployeesByPropertyId(property.id);
+      const allServiceProviders = getServiceProvidersByPropertyId(property.id);
+
+      const locationExists =
+        locationIdParam && allLocations.some((loc) => loc.id === locationIdParam);
+      const employeeExists =
+        employeeIdParam && allEmployees.some((emp) => emp.id === employeeIdParam);
+      const serviceProviderExists =
+        serviceProviderIdParam &&
+        allServiceProviders.some((prov) => prov.id === serviceProviderIdParam);
+
+      setFormData((prev) => ({
+        ...prev,
+        locationIds: locationExists && locationIdParam ? [locationIdParam] : prev.locationIds,
+        employeeIds: employeeExists && employeeIdParam ? [employeeIdParam] : prev.employeeIds,
+        serviceProviderIds:
+          serviceProviderExists && serviceProviderIdParam
+            ? [serviceProviderIdParam]
+            : prev.serviceProviderIds,
+      }));
+    }
+  }, [property, locationIdParam, employeeIdParam, serviceProviderIdParam]);
+
+  if (!property) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+          <p className="text-gray-600 dark:text-gray-400 mb-4">{t.properties.emptyState.title}</p>
+          <Button variant="outline" onClick={() => navigate("/dashboard/propriedades")}>
+            {t.team.new.back}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const allLocations = getLocationsByPropertyId(property.id);
+
+  const locationExists = locationIdParam && allLocations.some((loc) => loc.id === locationIdParam);
+  const sortedLocations =
+    locationExists && locationIdParam
+      ? [
+          ...allLocations.filter((loc) => loc.id === locationIdParam),
+          ...allLocations.filter((loc) => loc.id !== locationIdParam),
+        ]
+      : allLocations;
+
+  const allEmployees = getEmployeesByPropertyId(property.id);
+  const allServiceProviders = getServiceProvidersByPropertyId(property.id);
+
+  const employeeExists = employeeIdParam && allEmployees.some((emp) => emp.id === employeeIdParam);
+  const sortedEmployees =
+    employeeExists && employeeIdParam
+      ? [
+          ...allEmployees.filter((emp) => emp.id === employeeIdParam),
+          ...allEmployees.filter((emp) => emp.id !== employeeIdParam),
+        ]
+      : allEmployees;
+
+  const serviceProviderExists =
+    serviceProviderIdParam &&
+    allServiceProviders.some((prov) => prov.id === serviceProviderIdParam);
+  const sortedServiceProviders =
+    serviceProviderExists && serviceProviderIdParam
+      ? [
+          ...allServiceProviders.filter((prov) => prov.id === serviceProviderIdParam),
+          ...allServiceProviders.filter((prov) => prov.id !== serviceProviderIdParam),
+        ]
+      : allServiceProviders;
 
   const showAlert = (
     title: string,
@@ -149,7 +180,9 @@ export default function NewMovement() {
       newErrors.date = t.profile.errors.required(t.properties.details.movements.table.date);
     }
     if (formData.locationIds.length === 0) {
-      newErrors.locationIds = t.profile.errors.required(t.properties.details.movements.table.locations);
+      newErrors.locationIds = t.profile.errors.required(
+        t.properties.details.movements.table.locations
+      );
     }
     if (formData.employeeIds.length === 0 && formData.serviceProviderIds.length === 0) {
       newErrors.responsible = t.properties.details.movements.errors.noResponsible;
@@ -197,7 +230,10 @@ export default function NewMovement() {
 
   const movementTypeOptions = Object.values(LocationMovementType).map((type) => ({
     value: type,
-    label: t.properties.details.movements.types[type as keyof typeof t.properties.details.movements.types] || type,
+    label:
+      t.properties.details.movements.types[
+        type as keyof typeof t.properties.details.movements.types
+      ] || type,
   }));
 
   return (
@@ -284,7 +320,8 @@ export default function NewMovement() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {t.properties.details.movements.table.locations} <span className="text-red-500">*</span>
+              {t.properties.details.movements.table.locations}{" "}
+              <span className="text-red-500">*</span>
             </label>
             <div className="border border-gray-300 dark:border-gray-600 rounded-md p-4 max-h-48 overflow-y-auto">
               {sortedLocations.length === 0 ? (
@@ -313,7 +350,9 @@ export default function NewMovement() {
                 </div>
               )}
             </div>
-            {errors.locationIds && <p className="mt-1 text-sm text-red-500">{errors.locationIds}</p>}
+            {errors.locationIds && (
+              <p className="mt-1 text-sm text-red-500">{errors.locationIds}</p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -328,24 +367,24 @@ export default function NewMovement() {
                   </p>
                 ) : (
                   <div className="space-y-2">
-                  {sortedEmployees.map((employee) => (
-                    <label
-                      key={employee.id}
-                      className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={formData.employeeIds.includes(employee.id)}
-                        onChange={() => toggleSelection("employeeIds", employee.id)}
-                        disabled={isSubmitting}
-                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-                      />
-                      <span className="text-sm text-gray-900 dark:text-gray-100">
-                        {employee.name}
-                      </span>
-                    </label>
-                  ))}
-                </div>
+                    {sortedEmployees.map((employee) => (
+                      <label
+                        key={employee.id}
+                        className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.employeeIds.includes(employee.id)}
+                          onChange={() => toggleSelection("employeeIds", employee.id)}
+                          disabled={isSubmitting}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+                        />
+                        <span className="text-sm text-gray-900 dark:text-gray-100">
+                          {employee.name}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
@@ -361,24 +400,24 @@ export default function NewMovement() {
                   </p>
                 ) : (
                   <div className="space-y-2">
-                  {sortedServiceProviders.map((provider) => (
-                    <label
-                      key={provider.id}
-                      className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={formData.serviceProviderIds.includes(provider.id)}
-                        onChange={() => toggleSelection("serviceProviderIds", provider.id)}
-                        disabled={isSubmitting}
-                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-                      />
-                      <span className="text-sm text-gray-900 dark:text-gray-100">
-                        {provider.name}
-                      </span>
-                    </label>
-                  ))}
-                </div>
+                    {sortedServiceProviders.map((provider) => (
+                      <label
+                        key={provider.id}
+                        className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.serviceProviderIds.includes(provider.id)}
+                          onChange={() => toggleSelection("serviceProviderIds", provider.id)}
+                          disabled={isSubmitting}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+                        />
+                        <span className="text-sm text-gray-900 dark:text-gray-100">
+                          {provider.name}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
@@ -409,4 +448,3 @@ export default function NewMovement() {
     </div>
   );
 }
-

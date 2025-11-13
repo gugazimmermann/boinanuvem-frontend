@@ -10,6 +10,7 @@ export const en = {
 
   sidebar: {
     dashboard: "Dashboard",
+    cadastros: "Registrations",
     properties: "Properties",
     locations: "Locations",
     employees: "Employees",

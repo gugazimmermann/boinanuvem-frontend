@@ -8,6 +8,10 @@ export function Sidebar() {
   const translatedItems = SIDEBAR_ITEMS.map((item) => ({
     ...item,
     label: t.sidebar[item.translationKey],
+    subItems: item.subItems?.map((subItem) => ({
+      ...subItem,
+      label: t.sidebar[subItem.translationKey],
+    })),
   }));
 
   return (
@@ -15,7 +19,13 @@ export function Sidebar() {
       <div className="p-2">
         <nav className="space-y-1">
           {translatedItems.map((item) => (
-            <SidebarItem key={item.path} label={item.label} path={item.path} icon={item.icon} />
+            <SidebarItem
+              key={item.path}
+              label={item.label}
+              path={item.path}
+              icon={item.icon}
+              subItems={item.subItems}
+            />
           ))}
         </nav>
       </div>

@@ -34,7 +34,7 @@ export function Section({
       className={`${paddingStyles[padding]} ${className}`}
       style={Object.keys(sectionStyle).length > 0 ? sectionStyle : undefined}
     >
-      <div className="container mx-auto px-4">{children}</div>
+      <div className="container mx-auto px-4 max-w-7xl">{children}</div>
     </section>
   );
 }

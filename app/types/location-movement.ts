@@ -56,4 +56,3 @@ export interface LocationMovementFormData {
   type: LocationMovementType;
   date: string;
 }
-

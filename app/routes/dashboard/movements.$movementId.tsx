@@ -1,7 +1,13 @@
 import { useParams, useNavigate, useSearchParams } from "react-router";
 import { Button } from "~/components/ui";
 import { useTranslation } from "~/i18n";
-import { ROUTES, getMovementViewRoute, getPropertyViewRoute, getLocationViewRoute, getEmployeeViewRoute, getServiceProviderViewRoute } from "~/routes.config";
+import {
+  ROUTES,
+  getPropertyViewRoute,
+  getLocationViewRoute,
+  getEmployeeViewRoute,
+  getServiceProviderViewRoute,
+} from "~/routes.config";
 import { getEmployeeById as getEmployeeByIdForCheck } from "~/mocks/employees";
 import { getServiceProviderById as getServiceProviderByIdForCheck } from "~/mocks/service-providers";
 import { getLocationMovementById } from "~/mocks/location-movements";
@@ -9,7 +15,6 @@ import { getPropertyById } from "~/mocks/properties";
 import { getLocationById } from "~/mocks/locations";
 import { getEmployeeById } from "~/mocks/employees";
 import { getServiceProviderById } from "~/mocks/service-providers";
-import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
 
 export function meta() {
   return [
@@ -68,9 +73,10 @@ export default function MovementDetails() {
     }).format(date);
   };
 
-  const movementTypeLabel = t.properties.details.movements.types[
-    movement.type as keyof typeof t.properties.details.movements.types
-  ] || movement.type;
+  const movementTypeLabel =
+    t.properties.details.movements.types[
+      movement.type as keyof typeof t.properties.details.movements.types
+    ] || movement.type;
 
   return (
     <div className="space-y-6">
@@ -91,7 +97,10 @@ export default function MovementDetails() {
                 navigate(`${getLocationViewRoute(fromLocationId)}?tab=movements`);
               } else if (fromEmployeeId && getEmployeeByIdForCheck(fromEmployeeId)) {
                 navigate(getEmployeeViewRoute(fromEmployeeId));
-              } else if (fromServiceProviderId && getServiceProviderByIdForCheck(fromServiceProviderId)) {
+              } else if (
+                fromServiceProviderId &&
+                getServiceProviderByIdForCheck(fromServiceProviderId)
+              ) {
                 navigate(getServiceProviderViewRoute(fromServiceProviderId));
               } else if (property) {
                 navigate(`${getPropertyViewRoute(property.id)}?tab=movements`);
@@ -131,7 +140,9 @@ export default function MovementDetails() {
               <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
                 {t.properties.details.movements.table.date}
               </p>
-              <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">{formatDate(movement.date)}</p>
+              <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
+                {formatDate(movement.date)}
+              </p>
             </div>
             {property && (
               <div>
@@ -196,7 +207,9 @@ export default function MovementDetails() {
                 <div
                   key={employee.id}
                   className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
-                  onClick={() => navigate(`${getEmployeeViewRoute(employee.id)}?fromMovement=${movement.id}`)}
+                  onClick={() =>
+                    navigate(`${getEmployeeViewRoute(employee.id)}?fromMovement=${movement.id}`)
+                  }
                 >
                   <div>
                     <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
@@ -225,7 +238,11 @@ export default function MovementDetails() {
                 <div
                   key={provider.id}
                   className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
-                  onClick={() => navigate(`${getServiceProviderViewRoute(provider.id)}?fromMovement=${movement.id}`)}
+                  onClick={() =>
+                    navigate(
+                      `${getServiceProviderViewRoute(provider.id)}?fromMovement=${movement.id}`
+                    )
+                  }
                 >
                   <div>
                     <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
@@ -257,4 +274,3 @@ export default function MovementDetails() {
     </div>
   );
 }
-
