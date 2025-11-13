@@ -1045,6 +1045,35 @@ export const en = {
     },
   },
 
+  acquisitions: {
+    new: {
+      title: "Register Acquisition",
+      description: "Fill in the animal and acquisition data",
+      addButton: "Register Acquisition",
+      animalInfoTitle: "Animal Data",
+      acquisitionInfoTitle: "Acquisition Data",
+      weighingInfoTitle: "First Weighing",
+      acquisitionDateLabel: "Acquisition Date",
+      breedLabel: "Breed",
+      genderLabel: "Gender",
+      sellerLabel: "Seller",
+      priceLabel: "Price (R$)",
+      searchPlaceholder: "Search by code, name, CNPJ or CPF",
+      weighingDateLabel: "Weighing Date",
+      weightLabel: "Weight (kg)",
+      employeesLabel: "Employees",
+      serviceProvidersLabel: "Service Providers",
+      noEmployees: "No employees available",
+      noServiceProviders: "No service providers available",
+      weighingObservationLabel: "Weighing Observation",
+      weighingObservationPlaceholder: "Observations about the weighing (optional)",
+      observationLabel: "Observation",
+      observationPlaceholder: "Observations about the acquisition (optional)",
+      success: "Acquisition registered successfully!",
+      error: "Error registering acquisition. Please try again.",
+    },
+  },
+
   profile: {
     title: "Profile",
     meta: {

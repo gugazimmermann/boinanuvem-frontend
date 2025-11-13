@@ -11,6 +11,7 @@ export { AnimalBreed } from "./animal";
 export type { Weighing, WeighingFormData } from "./weighing";
 export type { Birth, BirthFormData } from "./birth";
 export { BirthPurity } from "./birth";
+export type { Acquisition, AcquisitionFormData } from "./acquisition";
 export type { UserRole, UserFormData, TeamUser } from "./user";
 export type { Company, CompanyFormData } from "./company";
 export type { AddressFormData, CEPData, CNPJData } from "./address";

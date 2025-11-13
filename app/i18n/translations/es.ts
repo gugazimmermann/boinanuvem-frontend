@@ -1045,6 +1045,35 @@ export const es = {
     },
   },
 
+  acquisitions: {
+    new: {
+      title: "Registrar Adquisición",
+      description: "Complete los datos del animal y de la adquisición",
+      addButton: "Registrar Adquisición",
+      animalInfoTitle: "Datos del Animal",
+      acquisitionInfoTitle: "Datos de la Adquisición",
+      weighingInfoTitle: "Primer Pesaje",
+      acquisitionDateLabel: "Fecha de Adquisición",
+      breedLabel: "Raza",
+      genderLabel: "Sexo",
+      sellerLabel: "Vendedor",
+      priceLabel: "Precio (R$)",
+      searchPlaceholder: "Buscar por código, nombre, CNPJ o CPF",
+      weighingDateLabel: "Fecha del Pesaje",
+      weightLabel: "Peso (kg)",
+      employeesLabel: "Empleados",
+      serviceProvidersLabel: "Proveedores de Servicio",
+      noEmployees: "No hay empleados disponibles",
+      noServiceProviders: "No hay proveedores de servicio disponibles",
+      weighingObservationLabel: "Observación del Pesaje",
+      weighingObservationPlaceholder: "Observaciones sobre el pesaje (opcional)",
+      observationLabel: "Observación",
+      observationPlaceholder: "Observaciones sobre la adquisición (opcional)",
+      success: "¡Adquisición registrada con éxito!",
+      error: "Error al registrar adquisición. Intente nuevamente.",
+    },
+  },
+
   profile: {
     title: "Perfil",
     meta: {
