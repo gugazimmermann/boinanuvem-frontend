@@ -9,6 +9,7 @@ export interface SidebarSubItemConfig {
     animals: string;
     births: string;
     acquisitions: string;
+    weighings: string;
   };
   path: string;
   icon?: string;
@@ -26,6 +27,9 @@ export interface SidebarItemConfig {
     buyers: string;
     animals: string;
     registros: string;
+    births: string;
+    acquisitions: string;
+    weighings: string;
     pastures: string;
     reports: string;
     settings: string;

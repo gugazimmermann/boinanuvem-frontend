@@ -7,6 +7,7 @@ import {
   StatusBadge,
   TableActionButtons,
   ConfirmationModal,
+  AnimalRegistrationModal,
   Alert,
   Tooltip,
   type TableColumn,
@@ -49,6 +50,7 @@ export default function Animals() {
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isAnimalRegistrationModalOpen, setIsAnimalRegistrationModalOpen] = useState(false);
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
   const [alertMessage, setAlertMessage] = useState<{
     title: string;
@@ -393,7 +395,7 @@ export default function Animals() {
           />
         </svg>
       ),
-      onClick: () => navigate(ROUTES.ANIMALS_NEW),
+      onClick: () => setIsAnimalRegistrationModalOpen(true),
     },
   ];
 
@@ -462,7 +464,7 @@ export default function Animals() {
             setActiveFilter("all");
           },
           clearSearchLabel: t.common.clearSearch,
-          onAddNew: () => navigate(ROUTES.ANIMALS_NEW),
+          onAddNew: () => setIsAnimalRegistrationModalOpen(true),
           addNewLabel: t.animals.addAnimal,
         }}
       />
@@ -485,6 +487,13 @@ export default function Animals() {
         confirmLabel={t.animals.deleteModal.confirm}
         cancelLabel={t.animals.deleteModal.cancel}
         variant="danger"
+      />
+
+      <AnimalRegistrationModal
+        isOpen={isAnimalRegistrationModalOpen}
+        onClose={() => setIsAnimalRegistrationModalOpen(false)}
+        onSelectBirth={() => navigate(ROUTES.BIRTHS_NEW)}
+        onSelectAcquisition={() => navigate(ROUTES.ACQUISITIONS_NEW)}
       />
     </div>
   );

@@ -869,6 +869,10 @@ export const en = {
       },
     },
     addAnimal: "Add Animal",
+    registrationModal: {
+      title: "Add Animal",
+      description: "Choose how you want to register the animal:",
+    },
     searchPlaceholder: "Search animals...",
     filters: {
       all: "All",
@@ -1108,6 +1112,34 @@ export const en = {
       observationPlaceholder: "Observations about the acquisition (optional)",
       success: "Acquisition registered successfully!",
       error: "Error registering acquisition. Please try again.",
+    },
+  },
+
+  weighings: {
+    new: {
+      title: "Register Weighing",
+      description: "Fill in the weighing data",
+      addButton: "Register Weighing",
+      weighingInfoTitle: "Weighing Data",
+      animalLabel: "Animal",
+      searchPlaceholder: "Search by code or registration",
+      noAnimals: "No animals available",
+      dateLabel: "Weighing Date",
+      weightLabel: "Weight (kg)",
+      employeesLabel: "Employees",
+      serviceProvidersLabel: "Service Providers",
+      noEmployees: "No employees available",
+      noServiceProviders: "No service providers available",
+      observationLabel: "Observation",
+      observationPlaceholder: "Observations about the weighing (optional)",
+      success: "Weighing registered successfully!",
+      error: "Error registering weighing. Please try again.",
+      errors: {
+        animalRequired: "Select an animal",
+        dateRequired: "Weighing date is required",
+        weightRequired: "Weight is required",
+        weightInvalid: "Weight must be a number greater than zero",
+      },
     },
   },
 

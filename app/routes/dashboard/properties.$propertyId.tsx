@@ -8,6 +8,7 @@ import {
   Table,
   TableActionButtons,
   ConfirmationModal,
+  AnimalRegistrationModal,
   Alert,
   type TableColumn,
   type TableAction,
@@ -132,6 +133,7 @@ export default function PropertyDetails() {
   }>({ column: "code", direction: "asc" });
   const [isDeleteAnimalModalOpen, setIsDeleteAnimalModalOpen] = useState(false);
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
+  const [isAnimalRegistrationModalOpen, setIsAnimalRegistrationModalOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState<{
     title: string;
     variant: "success" | "error" | "warning" | "info";
@@ -1133,7 +1135,7 @@ export default function PropertyDetails() {
                   />
                 </svg>
               ),
-              onClick: () => navigate(ROUTES.ANIMALS_NEW),
+              onClick: () => setIsAnimalRegistrationModalOpen(true),
             },
           ];
 
@@ -1215,7 +1217,7 @@ export default function PropertyDetails() {
                     setAnimalsCurrentPage(1);
                   },
                   clearSearchLabel: t.common.clearSearch,
-                  onAddNew: () => navigate(ROUTES.ANIMALS_NEW),
+                  onAddNew: () => setIsAnimalRegistrationModalOpen(true),
                   addNewLabel: t.animals.addAnimal,
                 }}
               />
@@ -1238,6 +1240,13 @@ export default function PropertyDetails() {
                 confirmLabel={t.animals.deleteModal.confirm}
                 cancelLabel={t.animals.deleteModal.cancel}
                 variant="danger"
+              />
+
+              <AnimalRegistrationModal
+                isOpen={isAnimalRegistrationModalOpen}
+                onClose={() => setIsAnimalRegistrationModalOpen(false)}
+                onSelectBirth={() => navigate(ROUTES.BIRTHS_NEW)}
+                onSelectAcquisition={() => navigate(ROUTES.ACQUISITIONS_NEW)}
               />
             </div>
           );

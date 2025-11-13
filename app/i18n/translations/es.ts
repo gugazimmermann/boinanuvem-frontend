@@ -26,6 +26,7 @@ export const es = {
     registros: "Registros",
     births: "Nacimiento",
     acquisitions: "Adquisición",
+    weighings: "Pesaje",
     pastures: "Pastos",
     reports: "Informes",
     settings: "Configuración",
@@ -869,6 +870,10 @@ export const es = {
       },
     },
     addAnimal: "Agregar Animal",
+    registrationModal: {
+      title: "Agregar Animal",
+      description: "Elija cómo desea registrar el animal:",
+    },
     searchPlaceholder: "Buscar animales...",
     filters: {
       all: "Todos",
@@ -1108,6 +1113,34 @@ export const es = {
       observationPlaceholder: "Observaciones sobre la adquisición (opcional)",
       success: "¡Adquisición registrada con éxito!",
       error: "Error al registrar adquisición. Intente nuevamente.",
+    },
+  },
+
+  weighings: {
+    new: {
+      title: "Registrar Pesaje",
+      description: "Complete los datos del pesaje",
+      addButton: "Registrar Pesaje",
+      weighingInfoTitle: "Datos del Pesaje",
+      animalLabel: "Animal",
+      searchPlaceholder: "Buscar por código o registro",
+      noAnimals: "No hay animales disponibles",
+      dateLabel: "Fecha del Pesaje",
+      weightLabel: "Peso (kg)",
+      employeesLabel: "Empleados",
+      serviceProvidersLabel: "Proveedores de Servicios",
+      noEmployees: "No hay empleados disponibles",
+      noServiceProviders: "No hay proveedores de servicios disponibles",
+      observationLabel: "Observación",
+      observationPlaceholder: "Observaciones sobre el pesaje (opcional)",
+      success: "Pesaje registrado con éxito!",
+      error: "Error al registrar pesaje. Intente nuevamente.",
+      errors: {
+        animalRequired: "Seleccione un animal",
+        dateRequired: "La fecha del pesaje es obligatoria",
+        weightRequired: "El peso es obligatorio",
+        weightInvalid: "El peso debe ser un número mayor que cero",
+      },
     },
   },
 

@@ -48,6 +48,7 @@ export default [
     route(ROUTE_NAMES.BIRTHS_NEW, "routes/dashboard/registros.nascimentos.new.tsx"),
     route(ROUTE_NAMES.ACQUISITIONS, "routes/dashboard/registros.aquisicoes.tsx"),
     route(ROUTE_NAMES.ACQUISITIONS_NEW, "routes/dashboard/registros.aquisicoes.new.tsx"),
+    route(ROUTE_NAMES.WEIGHINGS_NEW, "routes/dashboard/registros.pesagens.new.tsx"),
     route(ROUTE_NAMES.MOVEMENTS_VIEW, "routes/dashboard/movements.$movementId.tsx"),
     route(ROUTE_NAMES.PROFILE, "routes/dashboard/profile.tsx"),
     route(ROUTE_NAMES.USER_PROFILE, "routes/dashboard/profile.usuario.$userId.tsx"),
