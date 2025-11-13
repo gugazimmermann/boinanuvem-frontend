@@ -1,4 +1,5 @@
 import { forwardRef, useId, useState, type InputHTMLAttributes } from "react";
+import { maskDate, dateToISO, isoToDate } from "~/components/site/utils/masks";
 
 interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "className"> {
   label?: string;
@@ -42,6 +43,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       id,
       type = "text",
       showPasswordToggle = false,
+      value,
+      onChange,
       ...inputProps
     },
     ref
@@ -53,8 +56,16 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     const helperId = displayText ? `${inputId}-helper` : undefined;
     const isPasswordType = type === "password";
     const shouldShowToggle = isPasswordType && showPasswordToggle;
+    const isDateType = type === "date";
     const [showPassword, setShowPassword] = useState(false);
-    const inputType = shouldShowToggle && showPassword ? "text" : type;
+    const inputType = shouldShowToggle && showPassword ? "text" : isDateType ? "text" : type;
+
+    const displayValue =
+      isDateType && value && typeof value === "string"
+        ? value.includes("-") && value.length === 10
+          ? isoToDate(value)
+          : value
+        : value;
 
     const inputStyles = [
       baseInputStyles,
@@ -68,6 +79,20 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     const togglePasswordVisibility = () => {
       setShowPassword((prev) => !prev);
     };
+
+    const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const masked = maskDate(e.target.value);
+      if (onChange) {
+        const isoValue = masked.length === 10 ? dateToISO(masked) : masked;
+        const syntheticEvent = {
+          ...e,
+          target: { ...e.target, value: isoValue },
+        } as React.ChangeEvent<HTMLInputElement>;
+        onChange(syntheticEvent);
+      }
+    };
+
+    const handleChange = isDateType && onChange ? handleDateChange : onChange;
 
     return (
       <div className={className}>
@@ -85,6 +110,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             className={inputStyles}
             aria-invalid={hasError}
             aria-describedby={helperId}
+            value={displayValue}
+            onChange={handleChange}
+            placeholder={isDateType ? "dd/MM/yyyy" : inputProps.placeholder}
+            maxLength={isDateType ? 10 : inputProps.maxLength}
             {...inputProps}
           />
 

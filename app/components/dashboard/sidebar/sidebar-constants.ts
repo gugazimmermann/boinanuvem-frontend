@@ -19,6 +19,15 @@ export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
       { translationKey: "animals", path: ROUTES.ANIMALS, icon: "🐄" },
     ],
   },
+  {
+    translationKey: "registros",
+    path: "#",
+    icon: "📝",
+    subItems: [
+      { translationKey: "births", path: ROUTES.BIRTHS_NEW, icon: "👶" },
+      { translationKey: "acquisitions", path: ROUTES.ACQUISITIONS, icon: "🛒" },
+    ],
+  },
   { translationKey: "pastures", path: "#", icon: "🌾" },
   { translationKey: "reports", path: "#", icon: "📈" },
   { translationKey: "team", path: ROUTES.TEAM, icon: "👥" },

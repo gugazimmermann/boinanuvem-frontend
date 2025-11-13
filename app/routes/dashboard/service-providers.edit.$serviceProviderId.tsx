@@ -331,8 +331,7 @@ export default function EditServiceProvider() {
               {errors.propertyIds && (
                 <p className="mt-1 text-sm text-red-500">{errors.propertyIds}</p>
               )}
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              </p>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400"></p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

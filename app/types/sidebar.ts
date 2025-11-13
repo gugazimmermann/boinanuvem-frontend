@@ -7,6 +7,8 @@ export interface SidebarSubItemConfig {
     suppliers: string;
     buyers: string;
     animals: string;
+    births: string;
+    acquisitions: string;
   };
   path: string;
   icon?: string;
@@ -23,6 +25,7 @@ export interface SidebarItemConfig {
     suppliers: string;
     buyers: string;
     animals: string;
+    registros: string;
     pastures: string;
     reports: string;
     settings: string;
