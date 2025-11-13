@@ -155,7 +155,7 @@ export default function NewTeamMember() {
       }, 1500);
     } catch (error) {
       console.error("Error adding user:", error);
-      showAlert(t.team.errors.addFailed || "Erro ao adicionar usuário", "error");
+      showAlert(t.team.errors.addFailed, "error");
     } finally {
       setIsSubmitting(false);
     }

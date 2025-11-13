@@ -30,6 +30,8 @@ export const ROUTES = {
   BUYERS_NEW: "/dashboard/compradores/novo",
   BUYERS_EDIT: "/dashboard/compradores/:buyerId/editar",
   BUYERS_VIEW: "/dashboard/compradores/:buyerId",
+  MOVEMENTS_NEW: "/dashboard/propriedades/:propertyId/movimentacoes/novo",
+  MOVEMENTS_VIEW: "/dashboard/movimentacoes/:movementId",
   PROFILE: "/dashboard/perfil",
   TEAM: "/dashboard/equipe",
   TEAM_NEW: "/dashboard/equipe/novo",
@@ -97,6 +99,14 @@ export function getBuyerViewRoute(buyerId: string): string {
   return `/dashboard/compradores/${buyerId}`;
 }
 
+export function getMovementViewRoute(movementId: string): string {
+  return `/dashboard/movimentacoes/${movementId}`;
+}
+
+export function getMovementNewRoute(propertyId: string): string {
+  return `/dashboard/propriedades/${propertyId}/movimentacoes/novo`;
+}
+
 export const ROUTE_NAMES = {
   HOME: "",
   LOGIN: "entrar",
@@ -129,6 +139,8 @@ export const ROUTE_NAMES = {
   BUYERS_NEW: "compradores/novo",
   BUYERS_EDIT: "compradores/:buyerId/editar",
   BUYERS_VIEW: "compradores/:buyerId",
+  MOVEMENTS_NEW: "propriedades/:propertyId/movimentacoes/novo",
+  MOVEMENTS_VIEW: "movimentacoes/:movementId",
   PROFILE: "perfil",
   USER_PROFILE: "perfil/usuario/:userId",
   TEAM: "equipe",

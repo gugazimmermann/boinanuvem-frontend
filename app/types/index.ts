@@ -31,3 +31,5 @@ export type { RoutePath, RouteName } from "./routes";
 export type { ConfirmationModalProps } from "./ui";
 export type { GeocodeResult, GeocodeError } from "./geocoding";
 export type { PermissionAction, ResourcePermissions, UserPermissions } from "./permissions";
+export type { LocationMovement, LocationMovementFormData } from "./location-movement";
+export { LocationMovementType } from "./location-movement";

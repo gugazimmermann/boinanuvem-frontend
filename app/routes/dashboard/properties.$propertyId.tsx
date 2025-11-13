@@ -5,6 +5,7 @@ import {
   StatusBadge,
   Table,
   type TableColumn,
+  type TableAction,
   type SortDirection,
   PasturePlanningGraph,
 } from "~/components/ui";
@@ -18,14 +19,17 @@ import {
   getServiceProviderViewRoute,
   getSupplierViewRoute,
   getBuyerViewRoute,
+  getMovementViewRoute,
+  getMovementNewRoute,
 } from "~/routes.config";
 import { getPropertyById } from "~/mocks/properties";
-import { getLocationsByPropertyId } from "~/mocks/locations";
-import { getEmployeesByPropertyId } from "~/mocks/employees";
-import { getServiceProvidersByPropertyId } from "~/mocks/service-providers";
+import { getLocationsByPropertyId, getLocationById } from "~/mocks/locations";
+import { getEmployeesByPropertyId, getEmployeeById } from "~/mocks/employees";
+import { getServiceProvidersByPropertyId, getServiceProviderById } from "~/mocks/service-providers";
 import { getSuppliersByPropertyId } from "~/mocks/suppliers";
 import { getBuyersByPropertyId } from "~/mocks/buyers";
-import type { Location, Employee, ServiceProvider, Supplier, Buyer } from "~/types";
+import { getLocationMovementsByPropertyId } from "~/mocks/location-movements";
+import type { Location, Employee, ServiceProvider, Supplier, Buyer, LocationMovement } from "~/types";
 import { AreaType } from "~/types";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
 import { LocationTypeBadge } from "~/components/dashboard/utils/location-type-badge";
@@ -63,14 +67,15 @@ export default function PropertyDetails() {
   const subTabParam = searchParams.get("subTab");
 
   const [activeTab, setActiveTab] = useState<
-    "information" | "info" | "locations" | "cadastros" | "activities"
+    "information" | "info" | "locations" | "cadastros" | "activities" | "movements"
   >(
     (tabParam === "info" ||
     tabParam === "locations" ||
     tabParam === "cadastros" ||
-    tabParam === "activities"
+    tabParam === "activities" ||
+    tabParam === "movements"
       ? tabParam
-      : "information") as "information" | "info" | "locations" | "cadastros" | "activities"
+      : "information") as "information" | "info" | "locations" | "cadastros" | "activities" | "movements"
   );
 
   const [cadastrosSubTab, setCadastrosSubTab] = useState<
@@ -84,11 +89,15 @@ export default function PropertyDetails() {
   const [sortState, setSortState] = useState<{
     column: string | null;
     direction: SortDirection;
-  }>({ column: "name", direction: "asc" });
+  }>({ column: "date", direction: "desc" });
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  const [searchValue, setSearchValue] = useState("");
 
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (tab === "info" || tab === "locations" || tab === "cadastros" || tab === "activities") {
+    if (tab === "info" || tab === "locations" || tab === "cadastros" || tab === "activities" || tab === "movements") {
       setActiveTab(tab);
     } else if (!tab) {
       setActiveTab("information");
@@ -114,6 +123,9 @@ export default function PropertyDetails() {
       </div>
     );
   }
+
+  const locations = getLocationsByPropertyId(property.id);
+  const locationsCount = locations.length;
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -225,6 +237,27 @@ export default function PropertyDetails() {
           </button>
           <button
             onClick={() => {
+              setActiveTab("movements");
+              setSearchParams({ tab: "movements" });
+            }}
+            className={`
+              py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
+              ${
+                activeTab === "movements"
+                  ? "dark:text-blue-400"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+              }
+            `}
+            style={
+              activeTab === "movements"
+                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
+                : undefined
+            }
+          >
+            {t.properties.details.tabs.movements}
+          </button>
+          <button
+            onClick={() => {
               setActiveTab("locations");
               setSearchParams({ tab: "locations" });
             }}
@@ -319,10 +352,10 @@ export default function PropertyDetails() {
                   <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
                     {t.properties.table.locations}
                   </p>
-                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">0</p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">{locationsCount}</p>
                 </div>
                 <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
-                  <span className="text-lg">🌾</span>
+                  <span className="text-lg">📍</span>
                 </div>
               </div>
             </div>
@@ -1275,6 +1308,257 @@ export default function PropertyDetails() {
           </div>
         </div>
       )}
+
+      {activeTab === "movements" &&
+        property &&
+        (() => {
+          const movements = getLocationMovementsByPropertyId(property.id);
+
+          const filteredMovements = movements.filter((movement) => {
+            if (!searchValue) return true;
+
+            const searchLower = searchValue.toLowerCase();
+
+            const typeText = t.properties.details.movements.types[
+              movement.type as keyof typeof t.properties.details.movements.types
+            ] || movement.type;
+            if (typeText.toLowerCase().includes(searchLower)) return true;
+
+            const dateText = formatDate(movement.date);
+            if (dateText.toLowerCase().includes(searchLower)) return true;
+
+            const locationNames = movement.locationIds
+              .map((id) => {
+                const location = getLocationById(id);
+                return location ? `${location.name} ${location.code}`.toLowerCase() : id.toLowerCase();
+              })
+              .join(" ");
+            if (locationNames.includes(searchLower)) return true;
+
+            const employeeNames = movement.employeeIds
+              .map((id) => {
+                const employee = getEmployeeById(id);
+                return employee ? employee.name.toLowerCase() : "";
+              })
+              .filter((name) => name !== "")
+              .join(" ");
+            if (employeeNames.includes(searchLower)) return true;
+
+            const providerNames = movement.serviceProviderIds
+              .map((id) => {
+                const provider = getServiceProviderById(id);
+                return provider ? provider.name.toLowerCase() : "";
+              })
+              .filter((name) => name !== "")
+              .join(" ");
+            if (providerNames.includes(searchLower)) return true;
+
+            return false;
+          });
+
+          const sortedMovements = [...filteredMovements].sort((a, b) => {
+            if (!sortState.column || !sortState.direction) {
+              return 0;
+            }
+
+            let aValue: string | number | undefined;
+            let bValue: string | number | undefined;
+
+            if (sortState.column === "date") {
+              aValue = new Date(a.date).getTime();
+              bValue = new Date(b.date).getTime();
+            } else if (sortState.column === "locations") {
+              const aLocationNames = a.locationIds
+                .map((id) => {
+                  const location = getLocationById(id);
+                  return location ? `${location.name} (${location.code})` : id;
+                })
+                .sort()
+                .join(", ");
+              const bLocationNames = b.locationIds
+                .map((id) => {
+                  const location = getLocationById(id);
+                  return location ? `${location.name} (${location.code})` : id;
+                })
+                .sort()
+                .join(", ");
+              aValue = aLocationNames;
+              bValue = bLocationNames;
+            } else {
+              aValue = a[sortState.column as keyof LocationMovement] as string | number | undefined;
+              bValue = b[sortState.column as keyof LocationMovement] as string | number | undefined;
+            }
+
+            if (aValue == null && bValue == null) return 0;
+            if (aValue == null) return 1;
+            if (bValue == null) return -1;
+
+            let comparison = 0;
+            if (typeof aValue === "string" && typeof bValue === "string") {
+              comparison = aValue.localeCompare(bValue, "pt-BR", {
+                sensitivity: "base",
+              });
+            } else if (typeof aValue === "number" && typeof bValue === "number") {
+              comparison = aValue - bValue;
+            } else {
+              comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
+            }
+
+            return sortState.direction === "asc" ? comparison : -comparison;
+          });
+
+          const totalPages = Math.ceil(sortedMovements.length / itemsPerPage);
+          const paginatedMovements = sortedMovements.slice(
+            (currentPage - 1) * itemsPerPage,
+            currentPage * itemsPerPage
+          );
+
+          const columns: TableColumn<LocationMovement>[] = [
+            {
+              key: "date",
+              label: t.properties.details.movements.table.date,
+              sortable: true,
+              render: (_, row) => (
+                <span className="text-gray-700 dark:text-gray-300">{formatDate(row.date)}</span>
+              ),
+            },
+            {
+              key: "locations",
+              label: t.properties.details.movements.table.locations,
+              sortable: true,
+              render: (_, row) => {
+                const locationNames = row.locationIds
+                  .map((id) => {
+                    const location = getLocationById(id);
+                    return location ? `${location.name} (${location.code})` : id;
+                  })
+                  .join(", ");
+                return (
+                  <span className="text-gray-700 dark:text-gray-300">
+                    {locationNames || "-"}
+                  </span>
+                );
+              },
+            },
+            {
+              key: "type",
+              label: t.properties.details.movements.table.type,
+              sortable: true,
+              render: (_, row) => (
+                <span className="text-gray-700 dark:text-gray-300">
+                  {t.properties.details.movements.types[
+                    row.type as keyof typeof t.properties.details.movements.types
+                  ] || row.type}
+                </span>
+              ),
+            },
+            {
+              key: "responsible",
+              label: t.properties.details.movements.table.responsible,
+              sortable: false,
+              render: (_, row) => {
+                const employeeNames = row.employeeIds
+                  .map((id) => {
+                    const employee = getEmployeeById(id);
+                    return employee ? employee.name : null;
+                  })
+                  .filter((name): name is string => name !== null);
+
+                const providerNames = row.serviceProviderIds
+                  .map((id) => {
+                    const provider = getServiceProviderById(id);
+                    return provider ? provider.name : null;
+                  })
+                  .filter((name): name is string => name !== null);
+
+                const allResponsibles = [...employeeNames, ...providerNames];
+                return (
+                  <span className="text-gray-700 dark:text-gray-300">
+                    {allResponsibles.length > 0 ? allResponsibles.join(", ") : "-"}
+                  </span>
+                );
+              },
+            },
+          ];
+
+          const headerActions: TableAction[] = [
+            {
+              label: t.properties.details.movements.add,
+              variant: "primary",
+              leftIcon: (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="w-5 h-5"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              ),
+              onClick: () => navigate(getMovementNewRoute(property.id)),
+            },
+          ];
+
+          return (
+            <div className="space-y-6">
+              <Table<LocationMovement & Record<string, unknown>>
+                columns={columns}
+                data={paginatedMovements as (LocationMovement & Record<string, unknown>)[]}
+                header={{
+                  title: t.properties.details.movements.title,
+                  badge: {
+                    label: `${filteredMovements.length} ${filteredMovements.length !== 1 ? t.properties.details.movements.movements : t.properties.details.movements.movement}`,
+                    variant: "primary",
+                  },
+                  description: t.properties.details.movements.description,
+                  actions: headerActions,
+                }}
+                search={{
+                  placeholder: t.properties.details.movements.searchPlaceholder,
+                  value: searchValue,
+                  onChange: (value) => {
+                    setSearchValue(value);
+                    setCurrentPage(1);
+                  },
+                }}
+                pagination={{
+                  currentPage,
+                  totalPages: totalPages || 1,
+                  onPageChange: (page) => {
+                    setCurrentPage(page);
+                  },
+                  showInfo: false,
+                }}
+                sortState={sortState}
+                onSort={(column, direction) => {
+                  setSortState({ column, direction });
+                  setCurrentPage(1);
+                }}
+                emptyState={{
+                  title: t.properties.details.movements.emptyState.title,
+                  description: searchValue
+                    ? t.properties.details.movements.emptyState.descriptionWithSearch?.(searchValue) ||
+                      t.properties.details.movements.emptyState.description
+                    : t.properties.details.movements.emptyState.description,
+                  onClearSearch: searchValue
+                    ? () => {
+                        setSearchValue("");
+                        setCurrentPage(1);
+                      }
+                    : undefined,
+                  clearSearchLabel: searchValue ? t.common.clearSearch : undefined,
+                }}
+                onRowClick={(row) => navigate(getMovementViewRoute(row.id))}
+              />
+            </div>
+          );
+        })()}
     </div>
   );
 }

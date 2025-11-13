@@ -187,7 +187,7 @@ export default function EditTeamMember() {
       }, 1500);
     } catch (error) {
       console.error("Error updating user:", error);
-      showAlert(t.team.errors.updateFailed || "Erro ao atualizar usuário", "error");
+      showAlert(t.team.errors.updateFailed, "error");
     } finally {
       setIsSubmitting(false);
     }
