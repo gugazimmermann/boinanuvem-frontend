@@ -7,41 +7,37 @@ const FAZENDA_DO_JUCA = "550e8400-e29b-41d4-a716-446655440010";
 const SITIO_LIMOEIRO = "550e8400-e29b-41d4-a716-446655440011";
 const CHACARA_DO_JUCA = "550e8400-e29b-41d4-a716-446655440012";
 
-// Helper function to generate animal ID
 function generateAnimalId(index: number): string {
   const base = 446655440100 + index;
   return `bb0e8400-e29b-41d4-a716-${base.toString().padStart(12, "0")}`;
 }
 
-// Helper function to generate registration number
 function generateRegistrationNumber(propertyCode: string, index: number): string {
-  const year = 2020 + (index % 5); // Spread across 5 years
+  const year = 2020 + (index % 5);
   const num = (index % 1000) + 1;
   return `BR-${year}-${propertyCode}${num.toString().padStart(4, "0")}`;
 }
 
-// Generate animals for Fazenda do Juca (60 animals)
 const fazendaAnimals: Animal[] = [];
-for (let i = 0; i < 60; i++) {
+for (let i = 0; i < 150; i++) {
   fazendaAnimals.push({
     id: generateAnimalId(i),
     code: `FJ${(i + 1).toString().padStart(3, "0")}`,
     registrationNumber: generateRegistrationNumber("FJ", i),
-    status: i < 55 ? "active" : "inactive", // Most are active
-    createdAt: `202${Math.floor(i / 20)}-${String((i % 12) + 1).padStart(2, "0")}-${String((i % 28) + 1).padStart(2, "0")}`,
+    status: i < 140 ? "active" : "inactive",
+    createdAt: `202${Math.floor(i / 50)}-${String((i % 12) + 1).padStart(2, "0")}-${String((i % 28) + 1).padStart(2, "0")}`,
     companyId: COMPANY_ID,
     propertyId: FAZENDA_DO_JUCA,
     ...(i % 4 === 0 && {
-      acquisitionDate: `202${Math.floor(i / 20)}-${String((i % 12) + 1).padStart(2, "0")}-${String((i % 28) + 1).padStart(2, "0")}`,
+      acquisitionDate: `202${Math.floor(i / 50)}-${String((i % 12) + 1).padStart(2, "0")}-${String((i % 28) + 1).padStart(2, "0")}`,
     }),
   });
 }
 
-// Generate animals for Chácara do Juca (40 animals)
 const chacaraAnimals: Animal[] = [];
 for (let i = 0; i < 40; i++) {
   chacaraAnimals.push({
-    id: generateAnimalId(60 + i),
+    id: generateAnimalId(150 + i),
     code: `CJ${(i + 1).toString().padStart(3, "0")}`,
     registrationNumber: generateRegistrationNumber("CJ", i),
     status: i < 38 ? "active" : "inactive",
@@ -54,11 +50,10 @@ for (let i = 0; i < 40; i++) {
   });
 }
 
-// Generate animals for Sítio Limoeiro (20 animals)
 const sitioAnimals: Animal[] = [];
 for (let i = 0; i < 20; i++) {
   sitioAnimals.push({
-    id: generateAnimalId(100 + i),
+    id: generateAnimalId(190 + i),
     code: `SL${(i + 1).toString().padStart(3, "0")}`,
     registrationNumber: generateRegistrationNumber("SL", i),
     status: i < 18 ? "active" : "inactive",

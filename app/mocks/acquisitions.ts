@@ -7,20 +7,17 @@ export type { Acquisition, AcquisitionFormData };
 
 const COMPANY_ID = "550e8400-e29b-41d4-a716-446655440000";
 
-// Helper function to generate acquisition ID
 function generateAcquisitionId(index: number): string {
   const base = 446655440100 + index;
   return `ac0e8400-e29b-41d4-a716-${base.toString().padStart(12, "0")}`;
 }
 
-// Suppliers IDs
 const suppliers = [
   "990e8400-e29b-41d4-a716-446655440010",
   "990e8400-e29b-41d4-a716-446655440011",
   "990e8400-e29b-41d4-a716-446655440012",
 ];
 
-// Breeds distribution
 const breeds = [
   AnimalBreed.NELORE,
   AnimalBreed.ANGUS,
@@ -32,25 +29,20 @@ const breeds = [
   AnimalBreed.SIMENTAL,
 ];
 
-// Generate acquisitions for animals that have acquisitionDate
 const acquisitions: Acquisition[] = [];
 
-// Get animals with acquisitionDate
 const animalsWithAcquisition = mockAnimals.filter((a) => a.acquisitionDate);
 
 animalsWithAcquisition.forEach((animal, index) => {
   const birth = getBirthByAnimalId(animal.id);
   
-  // If animal already has a birth record, skip (it was born, not acquired)
   if (birth) return;
   
-  // Generate acquisition data
   const breed = breeds[index % breeds.length];
   const gender = index % 2 === 0 ? "male" : "female";
   const sellerId = suppliers[index % suppliers.length];
-  const price = 2000 + (index % 20) * 500; // Prices between 2000 and 12000
+  const price = 2000 + (index % 20) * 500;
   
-  // Some acquisitions have birth data (mother/father info)
   let motherId: string | undefined;
   let fatherId: string | undefined;
   let motherRegistrationNumber: string | undefined;
@@ -58,9 +50,7 @@ animalsWithAcquisition.forEach((animal, index) => {
   let birthDate: string | undefined;
   let purity: BirthPurity | undefined;
   
-  // 30% of acquisitions have parent information
   if (index % 3 === 0) {
-    // Find a random animal from the same property to use as parent
     const samePropertyAnimals = mockAnimals.filter((a) => a.propertyId === animal.propertyId);
     if (samePropertyAnimals.length > 0) {
       const parentIndex = index % samePropertyAnimals.length;
@@ -70,14 +60,12 @@ animalsWithAcquisition.forEach((animal, index) => {
         motherRegistrationNumber = samePropertyAnimals[parentIndex]?.registrationNumber;
         fatherRegistrationNumber = samePropertyAnimals[parentIndex + 1]?.registrationNumber;
         
-        // Calculate birth date (usually 2-3 years before acquisition)
         const acquisitionDate = new Date(animal.acquisitionDate!);
         const birthYear = acquisitionDate.getFullYear() - 2 - (index % 2);
         const birthMonth = String((index % 12) + 1).padStart(2, "0");
         const birthDay = String((index % 28) + 1).padStart(2, "0");
         birthDate = `${birthYear}-${birthMonth}-${birthDay}`;
         
-        // Determine purity based on parents
         const motherBirth = motherId ? getBirthByAnimalId(motherId) : undefined;
         const fatherBirth = fatherId ? getBirthByAnimalId(fatherId) : undefined;
         

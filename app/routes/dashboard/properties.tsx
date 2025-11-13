@@ -16,6 +16,7 @@ import { mockProperties, deleteProperty } from "~/mocks/properties";
 import type { Property } from "~/types";
 import { AreaType } from "~/types";
 import { getLocationsByPropertyId } from "~/mocks/locations";
+import { getAnimalsByPropertyId } from "~/mocks/animals";
 import { ROUTES, getPropertyEditRoute, getPropertyViewRoute } from "~/routes.config";
 
 const formatAreaType = (type: AreaType): string => {
@@ -116,6 +117,12 @@ export default function Properties() {
     if (sortState.column === "area") {
       aValue = a.area.value;
       bValue = b.area.value;
+    } else if (sortState.column === "animals") {
+      aValue = getAnimalsByPropertyId(a.id).length;
+      bValue = getAnimalsByPropertyId(b.id).length;
+    } else if (sortState.column === "pastures") {
+      aValue = getLocationsByPropertyId(a.id).length;
+      bValue = getLocationsByPropertyId(b.id).length;
     }
 
     if (aValue == null && bValue == null) return 0;
@@ -192,7 +199,10 @@ export default function Properties() {
       key: "animals",
       label: t.properties.table.animals,
       sortable: true,
-      render: () => <span className="text-gray-700 dark:text-gray-300">0</span>,
+      render: (_, row) => {
+        const animals = getAnimalsByPropertyId(row.id);
+        return <span className="text-gray-700 dark:text-gray-300">{animals.length}</span>;
+      },
     },
     {
       key: "status",

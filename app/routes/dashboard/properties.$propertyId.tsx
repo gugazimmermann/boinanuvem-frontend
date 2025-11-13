@@ -1,13 +1,20 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router";
+import { differenceInMonths, differenceInDays, format } from "date-fns";
+import { ptBR } from "date-fns/locale/pt-BR";
 import {
   Button,
   StatusBadge,
   Table,
+  TableActionButtons,
+  ConfirmationModal,
+  Alert,
   type TableColumn,
   type TableAction,
+  type TableFilter,
   type SortDirection,
   PasturePlanningGraph,
+  Tooltip,
 } from "~/components/ui";
 import { PropertyMap } from "~/components/ui/property-map";
 import { useTranslation } from "~/i18n";
@@ -29,6 +36,10 @@ import { getServiceProvidersByPropertyId, getServiceProviderById } from "~/mocks
 import { getSuppliersByPropertyId } from "~/mocks/suppliers";
 import { getBuyersByPropertyId } from "~/mocks/buyers";
 import { getLocationMovementsByPropertyId } from "~/mocks/location-movements";
+import { getAnimalsByPropertyId, deleteAnimal } from "~/mocks/animals";
+import { getBirthByAnimalId } from "~/mocks/births";
+import { getWeighingsByAnimalId } from "~/mocks/weighings";
+import { getAnimalViewRoute, getAnimalEditRoute } from "~/routes.config";
 import type {
   Location,
   Employee,
@@ -36,6 +47,7 @@ import type {
   Supplier,
   Buyer,
   LocationMovement,
+  Animal,
 } from "~/types";
 import { AreaType } from "~/types";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
@@ -74,9 +86,10 @@ export default function PropertyDetails() {
   const subTabParam = searchParams.get("subTab");
 
   const [activeTab, setActiveTab] = useState<
-    "information" | "info" | "locations" | "cadastros" | "activities" | "movements"
+    "information" | "info" | "animals" | "locations" | "cadastros" | "activities" | "movements"
   >(
     (tabParam === "info" ||
+    tabParam === "animals" ||
     tabParam === "locations" ||
     tabParam === "cadastros" ||
     tabParam === "activities" ||
@@ -85,6 +98,7 @@ export default function PropertyDetails() {
       : "information") as
       | "information"
       | "info"
+      | "animals"
       | "locations"
       | "cadastros"
       | "activities"
@@ -108,10 +122,26 @@ export default function PropertyDetails() {
   const itemsPerPage = 10;
   const [searchValue, setSearchValue] = useState("");
 
+  // States for animals tab
+  const [animalsSearchValue, setAnimalsSearchValue] = useState("");
+  const [animalsActiveFilter, setAnimalsActiveFilter] = useState<string>("all");
+  const [animalsCurrentPage, setAnimalsCurrentPage] = useState(1);
+  const [animalsSortState, setAnimalsSortState] = useState<{
+    column: string | null;
+    direction: SortDirection;
+  }>({ column: "code", direction: "asc" });
+  const [isDeleteAnimalModalOpen, setIsDeleteAnimalModalOpen] = useState(false);
+  const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
+  const [alertMessage, setAlertMessage] = useState<{
+    title: string;
+    variant: "success" | "error" | "warning" | "info";
+  } | null>(null);
+
   useEffect(() => {
     const tab = searchParams.get("tab");
     if (
       tab === "info" ||
+      tab === "animals" ||
       tab === "locations" ||
       tab === "cadastros" ||
       tab === "activities" ||
@@ -145,6 +175,78 @@ export default function PropertyDetails() {
 
   const locations = getLocationsByPropertyId(property.id);
   const locationsCount = locations.length;
+  const allPropertyAnimals = getAnimalsByPropertyId(property.id);
+  const animalsCount = allPropertyAnimals.length;
+
+  // Calculate total weight from last weighing of each animal
+  const calculateTotalWeight = () => {
+    let totalWeight = 0;
+    allPropertyAnimals.forEach((animal) => {
+      const weighings = getWeighingsByAnimalId(animal.id);
+      if (weighings.length > 0) {
+        const lastWeighing = weighings.sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+        )[0];
+        totalWeight += lastWeighing.weight;
+      }
+    });
+    return totalWeight;
+  };
+
+  // Calculate Animal Units (UA): total weight / 450
+  const totalWeight = calculateTotalWeight();
+  const animalUnits = totalWeight > 0 ? totalWeight / 450 : 0;
+
+  // Convert area to hectares
+  const convertToHectares = (value: number, type: AreaType): number => {
+    switch (type) {
+      case AreaType.HECTARES:
+        return value;
+      case AreaType.SQUARE_METERS:
+        return value / 10000; // 1 hectare = 10,000 m²
+      case AreaType.SQUARE_FEET:
+        return value / 107639; // 1 hectare = 107,639 ft²
+      case AreaType.ACRES:
+        return value * 0.404686; // 1 acre = 0.404686 hectares
+      case AreaType.SQUARE_KILOMETERS:
+        return value * 100; // 1 km² = 100 hectares
+      case AreaType.SQUARE_MILES:
+        return value * 258.999; // 1 mi² = 258.999 hectares
+      default:
+        return value;
+    }
+  };
+
+  // Calculate Stocking Rate: UA's / Hectares
+  const areaInHectares = convertToHectares(property.area.value, property.area.type);
+  const stockingRate = areaInHectares > 0 && animalUnits > 0 ? animalUnits / areaInHectares : 0;
+
+  const showAlert = (
+    title: string,
+    variant: "success" | "error" | "warning" | "info" = "success"
+  ) => {
+    setAlertMessage({ title, variant });
+    setTimeout(() => {
+      setAlertMessage(null);
+    }, 3000);
+  };
+
+  const handleDeleteAnimalClick = (animal: Animal) => {
+    setSelectedAnimal(animal);
+    setIsDeleteAnimalModalOpen(true);
+  };
+
+  const handleDeleteAnimal = async () => {
+    if (!selectedAnimal) return;
+    const success = deleteAnimal(selectedAnimal.id);
+    if (success) {
+      showAlert(t.animals.success.deleted, "success");
+    } else {
+      showAlert(t.animals.errors.deleteFailed, "error");
+    }
+    setIsDeleteAnimalModalOpen(false);
+    setSelectedAnimal(null);
+  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -253,6 +355,27 @@ export default function PropertyDetails() {
             }
           >
             {t.properties.details.tabs.info}
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab("animals");
+              setSearchParams({ tab: "animals" });
+            }}
+            className={`
+              py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
+              ${
+                activeTab === "animals"
+                  ? "dark:text-blue-400"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+              }
+            `}
+            style={
+              activeTab === "animals"
+                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
+                : undefined
+            }
+          >
+            {t.properties.details.tabs.animals}
           </button>
           <button
             onClick={() => {
@@ -387,7 +510,9 @@ export default function PropertyDetails() {
                   <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
                     {t.properties.table.animals}
                   </p>
-                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">0</p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                    {animalsCount}
+                  </p>
                 </div>
                 <div
                   className="w-10 h-10 dark:bg-blue-900/30 rounded-lg flex items-center justify-center"
@@ -404,7 +529,12 @@ export default function PropertyDetails() {
                   <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
                     {t.properties.table.uas}
                   </p>
-                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">0</p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                    {animalUnits.toLocaleString("pt-BR", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </p>
                 </div>
                 <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
                   <span className="text-lg">📊</span>
@@ -418,7 +548,12 @@ export default function PropertyDetails() {
                   <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
                     {t.properties.table.stockingRate}
                   </p>
-                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">0</p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                    {stockingRate.toLocaleString("pt-BR", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </p>
                 </div>
                 <div className="w-10 h-10 bg-teal-100 dark:bg-teal-900/30 rounded-lg flex items-center justify-center">
                   <span className="text-lg">📈</span>
@@ -595,6 +730,518 @@ export default function PropertyDetails() {
           )}
         </div>
       )}
+
+      {activeTab === "animals" &&
+        property &&
+        (() => {
+          const allAnimals = getAnimalsByPropertyId(property.id);
+
+          const filteredAnimals = allAnimals.filter((animal) => {
+            const birth = getBirthByAnimalId(animal.id);
+            const breedMatch = birth?.breed
+              ? birth.breed.toLowerCase().includes(animalsSearchValue.toLowerCase())
+              : false;
+            const matchesSearch =
+              animal.registrationNumber.toLowerCase().includes(animalsSearchValue.toLowerCase()) ||
+              animal.code.toLowerCase().includes(animalsSearchValue.toLowerCase()) ||
+              breedMatch;
+
+            const matchesFilter =
+              animalsActiveFilter === "all" ||
+              (animalsActiveFilter === "active" && animal.status === "active") ||
+              (animalsActiveFilter === "inactive" && animal.status === "inactive");
+
+            return matchesSearch && matchesFilter;
+          });
+
+          const sortedAnimals = [...filteredAnimals].sort((a, b) => {
+            if (!animalsSortState.column || !animalsSortState.direction) {
+              return 0;
+            }
+
+            let aValue: string | number | undefined;
+            let bValue: string | number | undefined;
+
+            if (animalsSortState.column === "code") {
+              aValue = a.code;
+              bValue = b.code;
+            } else if (animalsSortState.column === "registrationNumber") {
+              aValue = a.registrationNumber;
+              bValue = b.registrationNumber;
+            } else if (animalsSortState.column === "breed") {
+              const aBirth = getBirthByAnimalId(a.id);
+              const bBirth = getBirthByAnimalId(b.id);
+              aValue = aBirth?.breed || "";
+              bValue = bBirth?.breed || "";
+            } else if (animalsSortState.column === "purity") {
+              const aBirth = getBirthByAnimalId(a.id);
+              const bBirth = getBirthByAnimalId(b.id);
+              aValue = aBirth?.purity || "";
+              bValue = bBirth?.purity || "";
+            } else if (animalsSortState.column === "gender") {
+              const aBirth = getBirthByAnimalId(a.id);
+              const bBirth = getBirthByAnimalId(b.id);
+              aValue = aBirth?.gender || "";
+              bValue = bBirth?.gender || "";
+            } else if (animalsSortState.column === "birthDate") {
+              const aBirth = getBirthByAnimalId(a.id);
+              const bBirth = getBirthByAnimalId(b.id);
+              aValue = aBirth?.birthDate
+                ? new Date(aBirth.birthDate).getTime()
+                : 0;
+              bValue = bBirth?.birthDate
+                ? new Date(bBirth.birthDate).getTime()
+                : 0;
+            } else if (animalsSortState.column === "acquisitionDate") {
+              aValue = a.acquisitionDate ? new Date(a.acquisitionDate).getTime() : 0;
+              bValue = b.acquisitionDate ? new Date(b.acquisitionDate).getTime() : 0;
+            } else if (animalsSortState.column === "weight") {
+              const aWeighings = getWeighingsByAnimalId(a.id);
+              const bWeighings = getWeighingsByAnimalId(b.id);
+              const aLastWeighing = aWeighings.sort(
+                (x, y) => new Date(y.date).getTime() - new Date(x.date).getTime()
+              )[0];
+              const bLastWeighing = bWeighings.sort(
+                (x, y) => new Date(y.date).getTime() - new Date(x.date).getTime()
+              )[0];
+              aValue = aLastWeighing?.weight || 0;
+              bValue = bLastWeighing?.weight || 0;
+            } else if (animalsSortState.column === "weightInArrobas") {
+              const aWeighings = getWeighingsByAnimalId(a.id);
+              const bWeighings = getWeighingsByAnimalId(b.id);
+              const aLastWeighing = aWeighings.sort(
+                (x, y) => new Date(y.date).getTime() - new Date(x.date).getTime()
+              )[0];
+              const bLastWeighing = bWeighings.sort(
+                (x, y) => new Date(y.date).getTime() - new Date(x.date).getTime()
+              )[0];
+              aValue = aLastWeighing ? aLastWeighing.weight / 30 : 0;
+              bValue = bLastWeighing ? bLastWeighing.weight / 30 : 0;
+            } else if (animalsSortState.column === "lastWeighingDate") {
+              const aWeighings = getWeighingsByAnimalId(a.id);
+              const bWeighings = getWeighingsByAnimalId(b.id);
+              const aLastWeighing = aWeighings.sort(
+                (x, y) => new Date(y.date).getTime() - new Date(x.date).getTime()
+              )[0];
+              const bLastWeighing = bWeighings.sort(
+                (x, y) => new Date(y.date).getTime() - new Date(x.date).getTime()
+              )[0];
+              aValue = aLastWeighing ? new Date(aLastWeighing.date).getTime() : 0;
+              bValue = bLastWeighing ? new Date(bLastWeighing.date).getTime() : 0;
+            } else if (animalsSortState.column === "gmd") {
+              const aWeighings = getWeighingsByAnimalId(a.id);
+              const bWeighings = getWeighingsByAnimalId(b.id);
+              const aSorted = aWeighings.sort(
+                (x, y) => new Date(y.date).getTime() - new Date(x.date).getTime()
+              );
+              const bSorted = bWeighings.sort(
+                (x, y) => new Date(y.date).getTime() - new Date(x.date).getTime()
+              );
+              if (aSorted.length >= 2) {
+                const weightDiff = aSorted[0].weight - aSorted[1].weight;
+                const daysDiff = differenceInDays(
+                  new Date(aSorted[0].date),
+                  new Date(aSorted[1].date)
+                );
+                aValue = daysDiff > 0 ? weightDiff / daysDiff : 0;
+              } else {
+                aValue = 0;
+              }
+              if (bSorted.length >= 2) {
+                const weightDiff = bSorted[0].weight - bSorted[1].weight;
+                const daysDiff = differenceInDays(
+                  new Date(bSorted[0].date),
+                  new Date(bSorted[1].date)
+                );
+                bValue = daysDiff > 0 ? weightDiff / daysDiff : 0;
+              } else {
+                bValue = 0;
+              }
+            } else {
+              aValue = a[animalsSortState.column as keyof Animal] as string | number | undefined;
+              bValue = b[animalsSortState.column as keyof Animal] as string | number | undefined;
+            }
+
+            if (aValue == null && bValue == null) return 0;
+            if (aValue == null) return 1;
+            if (bValue == null) return -1;
+
+            let comparison = 0;
+            if (typeof aValue === "string" && typeof bValue === "string") {
+              comparison = aValue.localeCompare(bValue, "pt-BR", {
+                sensitivity: "base",
+              });
+            } else if (typeof aValue === "number" && typeof bValue === "number") {
+              comparison = aValue - bValue;
+            } else {
+              comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
+            }
+
+            return animalsSortState.direction === "asc" ? comparison : -comparison;
+          });
+
+          const totalPages = Math.ceil(sortedAnimals.length / itemsPerPage);
+          const paginatedAnimals = sortedAnimals.slice(
+            (animalsCurrentPage - 1) * itemsPerPage,
+            animalsCurrentPage * itemsPerPage
+          );
+
+          const columns: TableColumn<Animal>[] = [
+            {
+              key: "code",
+              label: t.animals.table.registration,
+              sortable: true,
+              render: (_, row) => (
+                <div>
+                  <h2 className="font-medium text-gray-800 dark:text-gray-200">{row.code}</h2>
+                  <p className="text-sm font-normal text-gray-600 dark:text-gray-400">
+                    {row.registrationNumber}
+                  </p>
+                </div>
+              ),
+            },
+            {
+              key: "breed",
+              label: t.animals.table.breed,
+              sortable: true,
+              render: (_, row) => {
+                const birth = getBirthByAnimalId(row.id);
+                if (!birth || !birth.breed) {
+                  return <span className="text-gray-700 dark:text-gray-300">-</span>;
+                }
+                return (
+                  <span className="text-gray-700 dark:text-gray-300">
+                    {t.animals.breeds[birth.breed] || birth.breed}
+                  </span>
+                );
+              },
+            },
+            {
+              key: "purity",
+              label: t.animals.table.purity,
+              sortable: true,
+              render: (_, row) => {
+                const birth = getBirthByAnimalId(row.id);
+                if (!birth || !birth.purity) {
+                  return <span className="text-gray-700 dark:text-gray-300">-</span>;
+                }
+                return (
+                  <span className="text-gray-700 dark:text-gray-300">{t.animals.purity[birth.purity]}</span>
+                );
+              },
+            },
+            {
+              key: "gender",
+              label: t.animals.table.gender,
+              sortable: true,
+              render: (_, row) => {
+                const birth = getBirthByAnimalId(row.id);
+                if (!birth || !birth.gender) {
+                  return <span className="text-gray-700 dark:text-gray-300">-</span>;
+                }
+                return (
+                  <span className="text-gray-700 dark:text-gray-300">
+                    {birth.gender ? t.animals.gender[birth.gender] : "-"}
+                  </span>
+                );
+              },
+            },
+            {
+              key: "birthDate",
+              label: t.animals.table.birthDate,
+              sortable: true,
+              render: (_, row) => {
+                const birth = getBirthByAnimalId(row.id);
+                if (!birth || !birth.birthDate) {
+                  return <span className="text-gray-700 dark:text-gray-300">-</span>;
+                }
+
+                const birthDate = new Date(birth.birthDate);
+                const today = new Date();
+                const months = differenceInMonths(today, birthDate);
+                const formattedDate = format(birthDate, "dd/MM/yyyy", { locale: ptBR });
+
+                return (
+                  <Tooltip content={formattedDate}>
+                    <span className="text-gray-700 dark:text-gray-300 border-b border-dotted border-gray-400 dark:border-gray-500 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
+                      {months} {months === 1 ? t.common.month : t.common.months}
+                    </span>
+                  </Tooltip>
+                );
+              },
+            },
+            {
+              key: "acquisitionDate",
+              label: t.animals.table.acquisitionDate,
+              sortable: true,
+              render: (_, row) => {
+                if (!row.acquisitionDate) {
+                  return <span className="text-gray-700 dark:text-gray-300">-</span>;
+                }
+
+                const acquisitionDate = new Date(row.acquisitionDate);
+                const today = new Date();
+                const months = differenceInMonths(today, acquisitionDate);
+                const formattedDate = format(acquisitionDate, "dd/MM/yyyy", { locale: ptBR });
+
+                return (
+                  <Tooltip content={formattedDate}>
+                    <span className="text-gray-700 dark:text-gray-300 border-b border-dotted border-gray-400 dark:border-gray-500 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
+                      {months} {months === 1 ? t.common.month : t.common.months}
+                    </span>
+                  </Tooltip>
+                );
+              },
+            },
+            {
+              key: "weight",
+              label: t.animals.table.weight,
+              sortable: true,
+              render: (_, row) => {
+                const weighings = getWeighingsByAnimalId(row.id);
+                const lastWeighing = weighings.sort(
+                  (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+                )[0];
+                return (
+                  <span className="text-gray-700 dark:text-gray-300">
+                    {lastWeighing ? `${lastWeighing.weight}` : "-"}
+                  </span>
+                );
+              },
+            },
+            {
+              key: "weightInArrobas",
+              label: t.animals.table.weightInArrobas,
+              sortable: true,
+              render: (_, row) => {
+                const weighings = getWeighingsByAnimalId(row.id);
+                const lastWeighing = weighings.sort(
+                  (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+                )[0];
+                const weightInArrobas = lastWeighing ? (lastWeighing.weight / 30).toFixed(2) : null;
+                return (
+                  <span className="text-gray-700 dark:text-gray-300">
+                    {weightInArrobas ? `${weightInArrobas}` : "-"}
+                  </span>
+                );
+              },
+            },
+            {
+              key: "lastWeighingDate",
+              label: t.animals.table.lastWeighingDate,
+              sortable: true,
+              render: (_, row) => {
+                const weighings = getWeighingsByAnimalId(row.id);
+                const lastWeighing = weighings.sort(
+                  (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+                )[0];
+                if (!lastWeighing) return <span className="text-gray-700 dark:text-gray-300">-</span>;
+
+                const formattedDate = format(new Date(lastWeighing.date), "dd/MM/yyyy", { locale: ptBR });
+                const today = new Date();
+                const weighingDate = new Date(lastWeighing.date);
+                const daysAgo = differenceInDays(today, weighingDate);
+                const tooltipText = t.common.daysAgo(daysAgo);
+
+                return (
+                  <Tooltip content={tooltipText}>
+                    <span className="text-gray-700 dark:text-gray-300 border-b border-dotted border-gray-400 dark:border-gray-500 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
+                      {formattedDate}
+                    </span>
+                  </Tooltip>
+                );
+              },
+            },
+            {
+              key: "gmd",
+              label: (
+                <Tooltip content={t.common.dailyAverageGain}>
+                  <span className="border-b border-dotted border-gray-400 dark:border-gray-500 hover:border-blue-500 dark:hover:border-blue-400 transition-colors cursor-help">
+                    {t.animals.table.gmd}
+                  </span>
+                </Tooltip>
+              ),
+              sortable: true,
+              render: (_, row) => {
+                const weighings = getWeighingsByAnimalId(row.id);
+                const sortedWeighings = weighings.sort(
+                  (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+                );
+
+                if (sortedWeighings.length < 2) {
+                  return <span className="text-gray-700 dark:text-gray-300">-</span>;
+                }
+
+                const lastWeighing = sortedWeighings[0];
+                const previousWeighing = sortedWeighings[1];
+
+                const weightDifference = lastWeighing.weight - previousWeighing.weight;
+                const daysDifference = differenceInDays(
+                  new Date(lastWeighing.date),
+                  new Date(previousWeighing.date)
+                );
+
+                if (daysDifference === 0) {
+                  return <span className="text-gray-700 dark:text-gray-300">-</span>;
+                }
+
+                const gpd = (weightDifference / daysDifference).toFixed(2);
+                return <span className="text-gray-700 dark:text-gray-300">{gpd}</span>;
+              },
+            },
+            {
+              key: "status",
+              label: t.animals.table.status,
+              sortable: true,
+              render: (_, row) => (
+                <StatusBadge
+                  label={row.status === "active" ? t.animals.table.active : t.animals.table.inactive}
+                  variant={row.status === "active" ? "success" : "default"}
+                />
+              ),
+            },
+            {
+              key: "actions",
+              label: "",
+              headerClassName: "relative",
+              render: (_, row) => (
+                <TableActionButtons
+                  onEdit={() => navigate(getAnimalEditRoute(row.id))}
+                  onDelete={() => handleDeleteAnimalClick(row)}
+                />
+              ),
+            },
+          ];
+
+          const headerActions: TableAction[] = [
+            {
+              label: t.animals.addAnimal,
+              variant: "primary",
+              leftIcon: (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="w-5 h-5"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              ),
+              onClick: () => navigate(ROUTES.ANIMALS_NEW),
+            },
+          ];
+
+          const filters: TableFilter[] = [
+            {
+              label: t.animals.filters.all,
+              value: "all",
+              active: animalsActiveFilter === "all",
+              onClick: () => {
+                setAnimalsActiveFilter("all");
+                setAnimalsCurrentPage(1);
+              },
+            },
+            {
+              label: t.animals.filters.active,
+              value: "active",
+              active: animalsActiveFilter === "active",
+              onClick: () => {
+                setAnimalsActiveFilter("active");
+                setAnimalsCurrentPage(1);
+              },
+            },
+            {
+              label: t.animals.filters.inactive,
+              value: "inactive",
+              active: animalsActiveFilter === "inactive",
+              onClick: () => {
+                setAnimalsActiveFilter("inactive");
+                setAnimalsCurrentPage(1);
+              },
+            },
+          ];
+
+          const handleSort = (column: string, direction: SortDirection) => {
+            setAnimalsSortState({ column, direction });
+            setAnimalsCurrentPage(1);
+          };
+
+          return (
+            <div className="space-y-6">
+              <Table<Animal>
+                columns={columns}
+                data={paginatedAnimals}
+                header={{
+                  title: t.animals.title,
+                  badge: {
+                    label: t.animals.badge.animals(filteredAnimals.length),
+                    variant: "primary",
+                  },
+                  description: t.animals.description,
+                  actions: headerActions,
+                }}
+                filters={filters}
+                search={{
+                  placeholder: t.animals.searchPlaceholder,
+                  value: animalsSearchValue,
+                  onChange: (value) => {
+                    setAnimalsSearchValue(value);
+                    setAnimalsCurrentPage(1);
+                  },
+                }}
+                pagination={{
+                  currentPage: animalsCurrentPage,
+                  totalPages: totalPages || 1,
+                  onPageChange: setAnimalsCurrentPage,
+                  showInfo: false,
+                }}
+                sortState={animalsSortState}
+                onSort={handleSort}
+                onRowClick={(row) => navigate(getAnimalViewRoute(row.id))}
+                emptyState={{
+                  title: t.animals.emptyState.title,
+                  description: animalsSearchValue
+                    ? t.animals.emptyState.descriptionWithSearch(animalsSearchValue)
+                    : t.animals.emptyState.descriptionWithoutSearch,
+                  onClearSearch: () => {
+                    setAnimalsSearchValue("");
+                    setAnimalsActiveFilter("all");
+                    setAnimalsCurrentPage(1);
+                  },
+                  clearSearchLabel: t.common.clearSearch,
+                  onAddNew: () => navigate(ROUTES.ANIMALS_NEW),
+                  addNewLabel: t.animals.addAnimal,
+                }}
+              />
+
+              {alertMessage && (
+                <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
+                  <Alert title={alertMessage.title} variant={alertMessage.variant} />
+                </div>
+              )}
+
+              <ConfirmationModal
+                isOpen={isDeleteAnimalModalOpen}
+                onClose={() => {
+                  setIsDeleteAnimalModalOpen(false);
+                  setSelectedAnimal(null);
+                }}
+                onConfirm={handleDeleteAnimal}
+                title={t.animals.deleteModal.title}
+                message={t.animals.deleteModal.message(selectedAnimal?.registrationNumber || "")}
+                confirmLabel={t.animals.deleteModal.confirm}
+                cancelLabel={t.animals.deleteModal.cancel}
+                variant="danger"
+              />
+            </div>
+          );
+        })()}
 
       {activeTab === "locations" &&
         property &&

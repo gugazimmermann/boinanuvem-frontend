@@ -212,7 +212,7 @@ export default function Animals() {
         return (
           <Tooltip content={formattedDate}>
             <span className="text-gray-700 dark:text-gray-300 border-b border-dotted border-gray-400 dark:border-gray-500 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
-              {months} {months === 1 ? "mês" : "meses"}
+              {months} {months === 1 ? t.common.month : t.common.months}
             </span>
           </Tooltip>
         );
@@ -235,7 +235,7 @@ export default function Animals() {
         return (
           <Tooltip content={formattedDate}>
             <span className="text-gray-700 dark:text-gray-300 border-b border-dotted border-gray-400 dark:border-gray-500 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
-              {months} {months === 1 ? "mês" : "meses"}
+              {months} {months === 1 ? t.common.month : t.common.months}
             </span>
           </Tooltip>
         );
@@ -304,7 +304,7 @@ export default function Animals() {
     {
       key: "gmd",
       label: (
-        <Tooltip content="Ganho Médio Diário">
+        <Tooltip content={t.common.dailyAverageGain}>
           <span className="border-b border-dotted border-gray-400 dark:border-gray-500 hover:border-blue-500 dark:hover:border-blue-400 transition-colors cursor-help">
             {t.animals.table.gmd}
           </span>

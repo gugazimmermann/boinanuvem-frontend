@@ -7,13 +7,11 @@ export { BirthPurity };
 
 const COMPANY_ID = "550e8400-e29b-41d4-a716-446655440000";
 
-// Helper function to generate birth ID
 function generateBirthId(index: number): string {
   const base = 446655440100 + index;
   return `bi0e8400-e29b-41d4-a716-${base.toString().padStart(12, "0")}`;
 }
 
-// Breeds distribution
 const breeds = [
   AnimalBreed.NELORE,
   AnimalBreed.ANGUS,
@@ -25,22 +23,13 @@ const breeds = [
   AnimalBreed.SIMENTAL,
 ];
 
-// Generate births with realistic genealogy
 const births: Birth[] = [];
 
-// Get animals by property
 const fazendaAnimals = mockAnimals.filter((a) => a.code.startsWith("FJ"));
 const chacaraAnimals = mockAnimals.filter((a) => a.code.startsWith("CJ"));
 const sitioAnimals = mockAnimals.filter((a) => a.code.startsWith("SL"));
 
-// Helper to get animal by index in a property
-function getAnimalByIndex(animals: typeof mockAnimals, index: number) {
-  return animals[index];
-}
-
-// Generate births for Fazenda do Juca (60 animals)
-// First 10 are founders (PO, no parents)
-for (let i = 0; i < 10; i++) {
+for (let i = 0; i < 15; i++) {
   const animal = fazendaAnimals[i];
   if (!animal) continue;
   
@@ -59,13 +48,12 @@ for (let i = 0; i < 10; i++) {
   });
 }
 
-// Next 20 have parents (F1, F2)
-for (let i = 10; i < 30; i++) {
+for (let i = 15; i < 55; i++) {
   const animal = fazendaAnimals[i];
   if (!animal) continue;
   
-  const mother = fazendaAnimals[i % 10]; // Use founders as parents
-  const father = fazendaAnimals[(i + 5) % 10];
+  const mother = fazendaAnimals[i % 15];
+  const father = fazendaAnimals[(i + 7) % 15];
   const motherBirth = births.find((b) => b.animalId === mother.id);
   const fatherBirth = births.find((b) => b.animalId === father.id);
   
@@ -92,12 +80,11 @@ for (let i = 10; i < 30; i++) {
   });
 }
 
-// Next 20 have grandparents (F2, F3, F4)
-for (let i = 30; i < 50; i++) {
+for (let i = 55; i < 105; i++) {
   const animal = fazendaAnimals[i];
   if (!animal) continue;
   
-  const parentIndex = 10 + (i % 20); // Use animals from previous generation
+  const parentIndex = 15 + (i % 40);
   const mother = fazendaAnimals[parentIndex];
   const father = fazendaAnimals[parentIndex + 1];
   
@@ -136,12 +123,11 @@ for (let i = 30; i < 50; i++) {
   });
 }
 
-// Last 10 have deep genealogy (F3, F4, F5)
-for (let i = 50; i < 60; i++) {
+for (let i = 105; i < 135; i++) {
   const animal = fazendaAnimals[i];
   if (!animal) continue;
   
-  const parentIndex = 30 + (i % 20); // Use animals from previous generation
+  const parentIndex = 55 + (i % 50);
   const mother = fazendaAnimals[parentIndex];
   const father = fazendaAnimals[parentIndex + 1];
   
@@ -180,14 +166,55 @@ for (let i = 50; i < 60; i++) {
   });
 }
 
-// Generate births for Chácara do Juca (40 animals)
-// First 8 are founders
+for (let i = 135; i < 150; i++) {
+  const animal = fazendaAnimals[i];
+  if (!animal) continue;
+  
+  const parentIndex = 105 + (i % 30);
+  const mother = fazendaAnimals[parentIndex];
+  const father = fazendaAnimals[parentIndex + 1];
+  
+  if (!mother || !father) continue;
+  
+  const motherBirth = births.find((b) => b.animalId === mother.id);
+  const fatherBirth = births.find((b) => b.animalId === father.id);
+  
+  let purity = BirthPurity.F4;
+  if (motherBirth && fatherBirth) {
+    if (motherBirth.purity === BirthPurity.F3 && fatherBirth.purity === BirthPurity.F3) {
+      purity = BirthPurity.F4;
+    } else if (motherBirth.purity === BirthPurity.PO && fatherBirth.purity === BirthPurity.F4) {
+      purity = BirthPurity.F5;
+    } else if (motherBirth.purity === BirthPurity.F4 && fatherBirth.purity === BirthPurity.F4) {
+      purity = BirthPurity.F5;
+    } else if (motherBirth.purity === BirthPurity.PO && fatherBirth.purity === BirthPurity.F5) {
+      purity = BirthPurity.PC;
+    } else if (motherBirth.purity === BirthPurity.F5 && fatherBirth.purity === BirthPurity.F5) {
+      purity = BirthPurity.PC;
+    }
+  }
+  
+  births.push({
+    id: generateBirthId(i),
+    animalId: animal.id,
+    birthDate: animal.createdAt,
+    breed: fatherBirth?.breed || motherBirth?.breed || breeds[i % breeds.length],
+    gender: i % 2 === 0 ? "male" : "female",
+    motherId: mother.id,
+    fatherId: father.id,
+    purity,
+    observation: "Nascimento com genealogia muito profunda registrada",
+    createdAt: animal.createdAt,
+    companyId: COMPANY_ID,
+  });
+}
+
 for (let i = 0; i < 8; i++) {
   const animal = chacaraAnimals[i];
   if (!animal) continue;
   
   births.push({
-    id: generateBirthId(60 + i),
+    id: generateBirthId(150 + i),
     animalId: animal.id,
     birthDate: animal.createdAt,
     breed: breeds[(i + 2) % breeds.length],
@@ -201,7 +228,6 @@ for (let i = 0; i < 8; i++) {
   });
 }
 
-// Next 15 have parents
 for (let i = 8; i < 23; i++) {
   const animal = chacaraAnimals[i];
   if (!animal) continue;
@@ -220,7 +246,7 @@ for (let i = 8; i < 23; i++) {
       : BirthPurity.F2;
   
   births.push({
-    id: generateBirthId(60 + i),
+    id: generateBirthId(150 + i),
     animalId: animal.id,
     birthDate: animal.createdAt,
     breed: fatherBirth?.breed || breeds[i % breeds.length],
@@ -234,7 +260,6 @@ for (let i = 8; i < 23; i++) {
   });
 }
 
-// Next 12 have grandparents
 for (let i = 23; i < 35; i++) {
   const animal = chacaraAnimals[i];
   if (!animal) continue;
@@ -264,7 +289,7 @@ for (let i = 23; i < 35; i++) {
   }
   
   births.push({
-    id: generateBirthId(60 + i),
+    id: generateBirthId(150 + i),
     animalId: animal.id,
     birthDate: animal.createdAt,
     breed: fatherBirth?.breed || motherBirth?.breed || breeds[i % breeds.length],
@@ -278,7 +303,6 @@ for (let i = 23; i < 35; i++) {
   });
 }
 
-// Last 5 have deep genealogy
 for (let i = 35; i < 40; i++) {
   const animal = chacaraAnimals[i];
   if (!animal) continue;
@@ -306,7 +330,7 @@ for (let i = 35; i < 40; i++) {
   }
   
   births.push({
-    id: generateBirthId(60 + i),
+    id: generateBirthId(150 + i),
     animalId: animal.id,
     birthDate: animal.createdAt,
     breed: fatherBirth?.breed || motherBirth?.breed || breeds[i % breeds.length],
@@ -320,14 +344,12 @@ for (let i = 35; i < 40; i++) {
   });
 }
 
-// Generate births for Sítio Limoeiro (20 animals)
-// First 5 are founders
 for (let i = 0; i < 5; i++) {
   const animal = sitioAnimals[i];
   if (!animal) continue;
   
   births.push({
-    id: generateBirthId(100 + i),
+    id: generateBirthId(190 + i),
     animalId: animal.id,
     birthDate: animal.createdAt,
     breed: breeds[(i + 4) % breeds.length],
@@ -341,7 +363,6 @@ for (let i = 0; i < 5; i++) {
   });
 }
 
-// Next 10 have parents
 for (let i = 5; i < 15; i++) {
   const animal = sitioAnimals[i];
   if (!animal) continue;
@@ -360,7 +381,7 @@ for (let i = 5; i < 15; i++) {
       : BirthPurity.F2;
   
   births.push({
-    id: generateBirthId(100 + i),
+    id: generateBirthId(190 + i),
     animalId: animal.id,
     birthDate: animal.createdAt,
     breed: fatherBirth?.breed || breeds[i % breeds.length],
@@ -374,7 +395,6 @@ for (let i = 5; i < 15; i++) {
   });
 }
 
-// Last 5 have grandparents
 for (let i = 15; i < 20; i++) {
   const animal = sitioAnimals[i];
   if (!animal) continue;
@@ -404,7 +424,7 @@ for (let i = 15; i < 20; i++) {
   }
   
   births.push({
-    id: generateBirthId(100 + i),
+    id: generateBirthId(190 + i),
     animalId: animal.id,
     birthDate: animal.createdAt,
     breed: fatherBirth?.breed || motherBirth?.breed || breeds[i % breeds.length],
