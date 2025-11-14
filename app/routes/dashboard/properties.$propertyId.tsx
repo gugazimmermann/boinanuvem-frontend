@@ -217,6 +217,7 @@ export default function PropertyDetails() {
 
   const areaInHectares = convertToHectares(property.area.value, property.area.type);
   const stockingRate = areaInHectares > 0 && animalUnits > 0 ? animalUnits / areaInHectares : 0;
+  const density = areaInHectares > 0 && animalsCount > 0 ? animalsCount / areaInHectares : 0;
 
   const showAlert = (
     title: string,
@@ -551,9 +552,34 @@ export default function PropertyDetails() {
                       maximumFractionDigits: 2,
                     })}
                   </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {t.dashboard.stats.uaPerHa}
+                  </p>
                 </div>
                 <div className="w-10 h-10 bg-teal-100 dark:bg-teal-900/30 rounded-lg flex items-center justify-center">
                   <span className="text-lg">📈</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {t.dashboard.stats.density}
+                  </p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                    {density.toLocaleString("pt-BR", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {t.dashboard.stats.animalsPerHa}
+                  </p>
+                </div>
+                <div className="w-10 h-10 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg flex items-center justify-center">
+                  <span className="text-lg">📊</span>
                 </div>
               </div>
             </div>
