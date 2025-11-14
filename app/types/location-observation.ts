@@ -13,4 +13,3 @@ export interface LocationObservationFormData {
   observation: string;
   fileIds?: string[];
 }
-

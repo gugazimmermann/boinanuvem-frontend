@@ -35,14 +35,19 @@ export default function ObservationDetails() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const t = useTranslation();
-  
+
   const locationObservation = getLocationObservationById(observationId);
   const employeeObservation = getEmployeeObservationById(observationId);
   const serviceProviderObservation = getServiceProviderObservationById(observationId);
   const supplierObservation = getSupplierObservationById(observationId);
   const buyerObservation = getBuyerObservationById(observationId);
-  const observation = locationObservation || employeeObservation || serviceProviderObservation || supplierObservation || buyerObservation;
-  
+  const observation =
+    locationObservation ||
+    employeeObservation ||
+    serviceProviderObservation ||
+    supplierObservation ||
+    buyerObservation;
+
   const fromLocationId = searchParams.get("fromLocation");
   const fromEmployeeId = searchParams.get("fromEmployee");
   const fromServiceProviderId = searchParams.get("fromServiceProvider");
@@ -64,10 +69,18 @@ export default function ObservationDetails() {
     );
   }
 
-  const location = locationObservation ? getLocationById(locationObservation.locationId) : undefined;
-  const employee = employeeObservation ? getEmployeeById(employeeObservation.employeeId) : undefined;
-  const serviceProvider = serviceProviderObservation ? getServiceProviderById(serviceProviderObservation.serviceProviderId) : undefined;
-  const supplier = supplierObservation ? getSupplierById(supplierObservation.supplierId) : undefined;
+  const location = locationObservation
+    ? getLocationById(locationObservation.locationId)
+    : undefined;
+  const employee = employeeObservation
+    ? getEmployeeById(employeeObservation.employeeId)
+    : undefined;
+  const serviceProvider = serviceProviderObservation
+    ? getServiceProviderById(serviceProviderObservation.serviceProviderId)
+    : undefined;
+  const supplier = supplierObservation
+    ? getSupplierById(supplierObservation.supplierId)
+    : undefined;
   const buyer = buyerObservation ? getBuyerById(buyerObservation.buyerId) : undefined;
 
   const formatDateTime = (dateString: string) => {
@@ -141,7 +154,8 @@ export default function ObservationDetails() {
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
             {t.locations.table.name}
           </h2>
-          <div className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
+          <div
+            className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
             onClick={() => navigate(`${getLocationViewRoute(location.id)}?tab=observations`)}
           >
             <div>
@@ -158,12 +172,7 @@ export default function ObservationDetails() {
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5l7 7-7 7"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </div>
         </div>
@@ -174,7 +183,8 @@ export default function ObservationDetails() {
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
             {t.employees.table.name}
           </h2>
-          <div className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
+          <div
+            className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
             onClick={() => navigate(`${getEmployeeViewRoute(employee.id)}?tab=observations`)}
           >
             <div>
@@ -191,12 +201,7 @@ export default function ObservationDetails() {
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5l7 7-7 7"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </div>
         </div>
@@ -207,8 +212,11 @@ export default function ObservationDetails() {
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
             {t.serviceProviders.table.name}
           </h2>
-          <div className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
-            onClick={() => navigate(`${getServiceProviderViewRoute(serviceProvider.id)}?tab=observations`)}
+          <div
+            className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
+            onClick={() =>
+              navigate(`${getServiceProviderViewRoute(serviceProvider.id)}?tab=observations`)
+            }
           >
             <div>
               <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
@@ -224,12 +232,7 @@ export default function ObservationDetails() {
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5l7 7-7 7"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </div>
         </div>
@@ -240,7 +243,8 @@ export default function ObservationDetails() {
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
             {t.suppliers.table.name}
           </h2>
-          <div className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
+          <div
+            className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
             onClick={() => navigate(`${getSupplierViewRoute(supplier.id)}?tab=observations`)}
           >
             <div>
@@ -257,12 +261,7 @@ export default function ObservationDetails() {
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5l7 7-7 7"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </div>
         </div>
@@ -273,13 +272,12 @@ export default function ObservationDetails() {
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
             {t.buyers.table.name}
           </h2>
-          <div className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
+          <div
+            className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
             onClick={() => navigate(`${getBuyerViewRoute(buyer.id)}?tab=observations`)}
           >
             <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                {buyer.name}
-              </p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{buyer.name}</p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 {t.buyers.table.code}: {buyer.code}
               </p>
@@ -290,12 +288,7 @@ export default function ObservationDetails() {
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5l7 7-7 7"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </div>
         </div>
@@ -345,12 +338,7 @@ export default function ObservationDetails() {
                   rel="noopener noreferrer"
                   className="ml-3 flex-shrink-0 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 flex items-center space-x-1"
                 >
-                  <svg
-                    className="h-5 w-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -368,4 +356,3 @@ export default function ObservationDetails() {
     </div>
   );
 }
-

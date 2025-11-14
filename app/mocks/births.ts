@@ -32,7 +32,7 @@ const sitioAnimals = mockAnimals.filter((a) => a.code.startsWith("SL"));
 for (let i = 0; i < 15; i++) {
   const animal = fazendaAnimals[i];
   if (!animal) continue;
-  
+
   births.push({
     id: generateBirthId(i),
     animalId: animal.id,
@@ -51,20 +51,21 @@ for (let i = 0; i < 15; i++) {
 for (let i = 15; i < 55; i++) {
   const animal = fazendaAnimals[i];
   if (!animal) continue;
-  
+
   const mother = fazendaAnimals[i % 15];
   const father = fazendaAnimals[(i + 7) % 15];
   const motherBirth = births.find((b) => b.animalId === mother.id);
   const fatherBirth = births.find((b) => b.animalId === father.id);
-  
-  const purity = 
-    motherBirth?.purity === BirthPurity.PO && fatherBirth?.purity === BirthPurity.PO && 
+
+  const purity =
+    motherBirth?.purity === BirthPurity.PO &&
+    fatherBirth?.purity === BirthPurity.PO &&
     motherBirth?.breed === fatherBirth?.breed
       ? BirthPurity.PO
       : motherBirth?.purity === BirthPurity.PO && fatherBirth?.purity === BirthPurity.PO
-      ? BirthPurity.F1
-      : BirthPurity.F2;
-  
+        ? BirthPurity.F1
+        : BirthPurity.F2;
+
   births.push({
     id: generateBirthId(i),
     animalId: animal.id,
@@ -83,16 +84,16 @@ for (let i = 15; i < 55; i++) {
 for (let i = 55; i < 105; i++) {
   const animal = fazendaAnimals[i];
   if (!animal) continue;
-  
+
   const parentIndex = 15 + (i % 40);
   const mother = fazendaAnimals[parentIndex];
   const father = fazendaAnimals[parentIndex + 1];
-  
+
   if (!mother || !father) continue;
-  
+
   const motherBirth = births.find((b) => b.animalId === mother.id);
   const fatherBirth = births.find((b) => b.animalId === father.id);
-  
+
   let purity = BirthPurity.F2;
   if (motherBirth && fatherBirth) {
     if (motherBirth.purity === BirthPurity.PO && fatherBirth.purity === BirthPurity.F1) {
@@ -107,7 +108,7 @@ for (let i = 55; i < 105; i++) {
       purity = BirthPurity.F4;
     }
   }
-  
+
   births.push({
     id: generateBirthId(i),
     animalId: animal.id,
@@ -126,16 +127,16 @@ for (let i = 55; i < 105; i++) {
 for (let i = 105; i < 135; i++) {
   const animal = fazendaAnimals[i];
   if (!animal) continue;
-  
+
   const parentIndex = 55 + (i % 50);
   const mother = fazendaAnimals[parentIndex];
   const father = fazendaAnimals[parentIndex + 1];
-  
+
   if (!mother || !father) continue;
-  
+
   const motherBirth = births.find((b) => b.animalId === mother.id);
   const fatherBirth = births.find((b) => b.animalId === father.id);
-  
+
   let purity = BirthPurity.F3;
   if (motherBirth && fatherBirth) {
     if (motherBirth.purity === BirthPurity.F2 && fatherBirth.purity === BirthPurity.F2) {
@@ -150,7 +151,7 @@ for (let i = 105; i < 135; i++) {
       purity = BirthPurity.F5;
     }
   }
-  
+
   births.push({
     id: generateBirthId(i),
     animalId: animal.id,
@@ -169,16 +170,16 @@ for (let i = 105; i < 135; i++) {
 for (let i = 135; i < 150; i++) {
   const animal = fazendaAnimals[i];
   if (!animal) continue;
-  
+
   const parentIndex = 105 + (i % 30);
   const mother = fazendaAnimals[parentIndex];
   const father = fazendaAnimals[parentIndex + 1];
-  
+
   if (!mother || !father) continue;
-  
+
   const motherBirth = births.find((b) => b.animalId === mother.id);
   const fatherBirth = births.find((b) => b.animalId === father.id);
-  
+
   let purity = BirthPurity.F4;
   if (motherBirth && fatherBirth) {
     if (motherBirth.purity === BirthPurity.F3 && fatherBirth.purity === BirthPurity.F3) {
@@ -193,7 +194,7 @@ for (let i = 135; i < 150; i++) {
       purity = BirthPurity.PC;
     }
   }
-  
+
   births.push({
     id: generateBirthId(i),
     animalId: animal.id,
@@ -212,7 +213,7 @@ for (let i = 135; i < 150; i++) {
 for (let i = 0; i < 8; i++) {
   const animal = chacaraAnimals[i];
   if (!animal) continue;
-  
+
   births.push({
     id: generateBirthId(150 + i),
     animalId: animal.id,
@@ -231,20 +232,21 @@ for (let i = 0; i < 8; i++) {
 for (let i = 8; i < 23; i++) {
   const animal = chacaraAnimals[i];
   if (!animal) continue;
-  
+
   const mother = chacaraAnimals[i % 8];
   const father = chacaraAnimals[(i + 3) % 8];
   const motherBirth = births.find((b) => b.animalId === mother.id);
   const fatherBirth = births.find((b) => b.animalId === father.id);
-  
-  const purity = 
-    motherBirth?.purity === BirthPurity.PO && fatherBirth?.purity === BirthPurity.PO && 
+
+  const purity =
+    motherBirth?.purity === BirthPurity.PO &&
+    fatherBirth?.purity === BirthPurity.PO &&
     motherBirth?.breed === fatherBirth?.breed
       ? BirthPurity.PO
       : motherBirth?.purity === BirthPurity.PO && fatherBirth?.purity === BirthPurity.PO
-      ? BirthPurity.F1
-      : BirthPurity.F2;
-  
+        ? BirthPurity.F1
+        : BirthPurity.F2;
+
   births.push({
     id: generateBirthId(150 + i),
     animalId: animal.id,
@@ -263,16 +265,16 @@ for (let i = 8; i < 23; i++) {
 for (let i = 23; i < 35; i++) {
   const animal = chacaraAnimals[i];
   if (!animal) continue;
-  
+
   const parentIndex = 8 + (i % 15);
   const mother = chacaraAnimals[parentIndex];
   const father = chacaraAnimals[parentIndex + 1];
-  
+
   if (!mother || !father) continue;
-  
+
   const motherBirth = births.find((b) => b.animalId === mother.id);
   const fatherBirth = births.find((b) => b.animalId === father.id);
-  
+
   let purity = BirthPurity.F2;
   if (motherBirth && fatherBirth) {
     if (motherBirth.purity === BirthPurity.PO && fatherBirth.purity === BirthPurity.F1) {
@@ -287,7 +289,7 @@ for (let i = 23; i < 35; i++) {
       purity = BirthPurity.F4;
     }
   }
-  
+
   births.push({
     id: generateBirthId(150 + i),
     animalId: animal.id,
@@ -306,16 +308,16 @@ for (let i = 23; i < 35; i++) {
 for (let i = 35; i < 40; i++) {
   const animal = chacaraAnimals[i];
   if (!animal) continue;
-  
+
   const parentIndex = 23 + (i % 12);
   const mother = chacaraAnimals[parentIndex];
   const father = chacaraAnimals[parentIndex + 1];
-  
+
   if (!mother || !father) continue;
-  
+
   const motherBirth = births.find((b) => b.animalId === mother.id);
   const fatherBirth = births.find((b) => b.animalId === father.id);
-  
+
   let purity = BirthPurity.F3;
   if (motherBirth && fatherBirth) {
     if (motherBirth.purity === BirthPurity.F2 && fatherBirth.purity === BirthPurity.F2) {
@@ -328,7 +330,7 @@ for (let i = 35; i < 40; i++) {
       purity = BirthPurity.F5;
     }
   }
-  
+
   births.push({
     id: generateBirthId(150 + i),
     animalId: animal.id,
@@ -347,7 +349,7 @@ for (let i = 35; i < 40; i++) {
 for (let i = 0; i < 5; i++) {
   const animal = sitioAnimals[i];
   if (!animal) continue;
-  
+
   births.push({
     id: generateBirthId(190 + i),
     animalId: animal.id,
@@ -366,20 +368,21 @@ for (let i = 0; i < 5; i++) {
 for (let i = 5; i < 15; i++) {
   const animal = sitioAnimals[i];
   if (!animal) continue;
-  
+
   const mother = sitioAnimals[i % 5];
   const father = sitioAnimals[(i + 2) % 5];
   const motherBirth = births.find((b) => b.animalId === mother.id);
   const fatherBirth = births.find((b) => b.animalId === father.id);
-  
-  const purity = 
-    motherBirth?.purity === BirthPurity.PO && fatherBirth?.purity === BirthPurity.PO && 
+
+  const purity =
+    motherBirth?.purity === BirthPurity.PO &&
+    fatherBirth?.purity === BirthPurity.PO &&
     motherBirth?.breed === fatherBirth?.breed
       ? BirthPurity.PO
       : motherBirth?.purity === BirthPurity.PO && fatherBirth?.purity === BirthPurity.PO
-      ? BirthPurity.F1
-      : BirthPurity.F2;
-  
+        ? BirthPurity.F1
+        : BirthPurity.F2;
+
   births.push({
     id: generateBirthId(190 + i),
     animalId: animal.id,
@@ -398,16 +401,16 @@ for (let i = 5; i < 15; i++) {
 for (let i = 15; i < 20; i++) {
   const animal = sitioAnimals[i];
   if (!animal) continue;
-  
+
   const parentIndex = 5 + (i % 10);
   const mother = sitioAnimals[parentIndex];
   const father = sitioAnimals[parentIndex + 1];
-  
+
   if (!mother || !father) continue;
-  
+
   const motherBirth = births.find((b) => b.animalId === mother.id);
   const fatherBirth = births.find((b) => b.animalId === father.id);
-  
+
   let purity = BirthPurity.F2;
   if (motherBirth && fatherBirth) {
     if (motherBirth.purity === BirthPurity.PO && fatherBirth.purity === BirthPurity.F1) {
@@ -422,7 +425,7 @@ for (let i = 15; i < 20; i++) {
       purity = BirthPurity.F4;
     }
   }
-  
+
   births.push({
     id: generateBirthId(190 + i),
     animalId: animal.id,

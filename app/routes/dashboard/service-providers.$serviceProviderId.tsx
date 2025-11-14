@@ -140,9 +140,7 @@ export default function ServiceProviderDetails() {
 
     setIsSubmittingObservation(true);
     try {
-      const fileIds = observationFiles.map(
-        (_, index) => `file-sp-obs-${Date.now()}-${index}`
-      );
+      const fileIds = observationFiles.map((_, index) => `file-sp-obs-${Date.now()}-${index}`);
 
       addServiceProviderObservation({
         serviceProviderId: serviceProvider.id,
@@ -722,10 +720,7 @@ export default function ServiceProviderDetails() {
                     ? `${row.observation.substring(0, 50)}...`
                     : row.observation;
                 return (
-                  <span
-                    className="text-gray-700 dark:text-gray-300"
-                    title={row.observation}
-                  >
+                  <span className="text-gray-700 dark:text-gray-300" title={row.observation}>
                     {truncated}
                   </span>
                 );
@@ -887,8 +882,14 @@ export default function ServiceProviderDetails() {
               aValue = a.observation;
               bValue = b.observation;
             } else {
-              aValue = a[sortState.column as keyof ServiceProviderObservation] as string | number | undefined;
-              bValue = b[sortState.column as keyof ServiceProviderObservation] as string | number | undefined;
+              aValue = a[sortState.column as keyof ServiceProviderObservation] as
+                | string
+                | number
+                | undefined;
+              bValue = b[sortState.column as keyof ServiceProviderObservation] as
+                | string
+                | number
+                | undefined;
             }
 
             if (aValue == null && bValue == null) return 0;
@@ -936,10 +937,7 @@ export default function ServiceProviderDetails() {
                     ? `${row.observation.substring(0, 100)}...`
                     : row.observation;
                 return (
-                  <span
-                    className="text-gray-700 dark:text-gray-300"
-                    title={row.observation}
-                  >
+                  <span className="text-gray-700 dark:text-gray-300" title={row.observation}>
                     {truncated}
                   </span>
                 );
@@ -1041,7 +1039,8 @@ export default function ServiceProviderDetails() {
                   <form onSubmit={handleSubmitObservation} className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        {t.serviceProviders.details.observation || "Observação"} <span className="text-red-500">*</span>
+                        {t.serviceProviders.details.observation || "Observação"}{" "}
+                        <span className="text-red-500">*</span>
                       </label>
                       <textarea
                         value={observationText}
@@ -1049,7 +1048,10 @@ export default function ServiceProviderDetails() {
                         disabled={isSubmittingObservation}
                         rows={4}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200 resize-none"
-                        placeholder={t.serviceProviders.details.observationPlaceholder || "Digite sua observação sobre este prestador de serviço..."}
+                        placeholder={
+                          t.serviceProviders.details.observationPlaceholder ||
+                          "Digite sua observação sobre este prestador de serviço..."
+                        }
                         required
                       />
                     </div>
@@ -1060,7 +1062,10 @@ export default function ServiceProviderDetails() {
                       onChange={setObservationFiles}
                       disabled={isSubmittingObservation}
                       multiple={true}
-                      helperText={t.serviceProviders.details.filesHelper || "Você pode fazer upload de múltiplos arquivos"}
+                      helperText={
+                        t.serviceProviders.details.filesHelper ||
+                        "Você pode fazer upload de múltiplos arquivos"
+                      }
                     />
 
                     <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -1087,18 +1092,24 @@ export default function ServiceProviderDetails() {
               {!showObservationForm && (
                 <Table<ServiceProviderObservation & Record<string, unknown>>
                   columns={columns}
-                  data={paginatedObservations as (ServiceProviderObservation & Record<string, unknown>)[]}
+                  data={
+                    paginatedObservations as (ServiceProviderObservation &
+                      Record<string, unknown>)[]
+                  }
                   header={{
                     title: t.serviceProviders.details.tabs.observations || "Observações",
                     badge: {
                       label: `${filteredObservations.length} ${filteredObservations.length !== 1 ? t.serviceProviders.details.tabs.observations : t.serviceProviders.details.observation}`,
                       variant: "primary",
                     },
-                    description: t.serviceProviders.details.observationsDescription || "Gerencie as observações deste prestador de serviço",
+                    description:
+                      t.serviceProviders.details.observationsDescription ||
+                      "Gerencie as observações deste prestador de serviço",
                     actions: headerActions,
                   }}
                   search={{
-                    placeholder: t.serviceProviders.details.searchObservations || "Buscar observações...",
+                    placeholder:
+                      t.serviceProviders.details.searchObservations || "Buscar observações...",
                     value: searchValue,
                     onChange: (value) => {
                       setSearchValue(value);
@@ -1119,12 +1130,15 @@ export default function ServiceProviderDetails() {
                     setCurrentPage(1);
                   }}
                   emptyState={{
-                    title: t.serviceProviders.details.noObservations || "Nenhuma observação registrada",
+                    title:
+                      t.serviceProviders.details.noObservations || "Nenhuma observação registrada",
                     description: searchValue
-                      ? (typeof t.serviceProviders.details.noObservationsWithSearch === "function" 
-                          ? t.serviceProviders.details.noObservationsWithSearch(searchValue)
-                          : t.serviceProviders.details.noObservationsWithSearch || `Nenhuma observação encontrada para "${searchValue}"`)
-                      : t.serviceProviders.details.noObservationsDescription || "Adicione sua primeira observação sobre este prestador de serviço.",
+                      ? typeof t.serviceProviders.details.noObservationsWithSearch === "function"
+                        ? t.serviceProviders.details.noObservationsWithSearch(searchValue)
+                        : t.serviceProviders.details.noObservationsWithSearch ||
+                          `Nenhuma observação encontrada para "${searchValue}"`
+                      : t.serviceProviders.details.noObservationsDescription ||
+                        "Adicione sua primeira observação sobre este prestador de serviço.",
                     onClearSearch: searchValue
                       ? () => {
                           setSearchValue("");
@@ -1133,10 +1147,13 @@ export default function ServiceProviderDetails() {
                       : undefined,
                     clearSearchLabel: searchValue ? t.common.clearSearch : undefined,
                     onAddNew: () => setShowObservationForm(true),
-                    addNewLabel: t.serviceProviders.details.addObservation || "Adicionar Observação",
+                    addNewLabel:
+                      t.serviceProviders.details.addObservation || "Adicionar Observação",
                   }}
                   onRowClick={(row) =>
-                    navigate(`${getObservationViewRoute(row.id)}?fromServiceProvider=${serviceProvider.id}`)
+                    navigate(
+                      `${getObservationViewRoute(row.id)}?fromServiceProvider=${serviceProvider.id}`
+                    )
                   }
                 />
               )}

@@ -138,9 +138,7 @@ export default function EmployeeDetails() {
 
     setIsSubmittingObservation(true);
     try {
-      const fileIds = observationFiles.map(
-        (_, index) => `file-emp-obs-${Date.now()}-${index}`
-      );
+      const fileIds = observationFiles.map((_, index) => `file-emp-obs-${Date.now()}-${index}`);
 
       addEmployeeObservation({
         employeeId: employee.id,
@@ -700,10 +698,7 @@ export default function EmployeeDetails() {
                     ? `${row.observation.substring(0, 50)}...`
                     : row.observation;
                 return (
-                  <span
-                    className="text-gray-700 dark:text-gray-300"
-                    title={row.observation}
-                  >
+                  <span className="text-gray-700 dark:text-gray-300" title={row.observation}>
                     {truncated}
                   </span>
                 );
@@ -861,8 +856,14 @@ export default function EmployeeDetails() {
               aValue = a.observation;
               bValue = b.observation;
             } else {
-              aValue = a[sortState.column as keyof EmployeeObservation] as string | number | undefined;
-              bValue = b[sortState.column as keyof EmployeeObservation] as string | number | undefined;
+              aValue = a[sortState.column as keyof EmployeeObservation] as
+                | string
+                | number
+                | undefined;
+              bValue = b[sortState.column as keyof EmployeeObservation] as
+                | string
+                | number
+                | undefined;
             }
 
             if (aValue == null && bValue == null) return 0;
@@ -910,10 +911,7 @@ export default function EmployeeDetails() {
                     ? `${row.observation.substring(0, 100)}...`
                     : row.observation;
                 return (
-                  <span
-                    className="text-gray-700 dark:text-gray-300"
-                    title={row.observation}
-                  >
+                  <span className="text-gray-700 dark:text-gray-300" title={row.observation}>
                     {truncated}
                   </span>
                 );
@@ -1015,7 +1013,8 @@ export default function EmployeeDetails() {
                   <form onSubmit={handleSubmitObservation} className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        {t.employees.details.observation || "Observação"} <span className="text-red-500">*</span>
+                        {t.employees.details.observation || "Observação"}{" "}
+                        <span className="text-red-500">*</span>
                       </label>
                       <textarea
                         value={observationText}
@@ -1023,7 +1022,10 @@ export default function EmployeeDetails() {
                         disabled={isSubmittingObservation}
                         rows={4}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200 resize-none"
-                        placeholder={t.employees.details.observationPlaceholder || "Digite sua observação sobre este funcionário..."}
+                        placeholder={
+                          t.employees.details.observationPlaceholder ||
+                          "Digite sua observação sobre este funcionário..."
+                        }
                         required
                       />
                     </div>
@@ -1034,7 +1036,10 @@ export default function EmployeeDetails() {
                       onChange={setObservationFiles}
                       disabled={isSubmittingObservation}
                       multiple={true}
-                      helperText={t.employees.details.filesHelper || "Você pode fazer upload de múltiplos arquivos"}
+                      helperText={
+                        t.employees.details.filesHelper ||
+                        "Você pode fazer upload de múltiplos arquivos"
+                      }
                     />
 
                     <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -1060,59 +1065,63 @@ export default function EmployeeDetails() {
 
               {!showObservationForm && (
                 <Table<EmployeeObservation & Record<string, unknown>>
-                columns={columns}
-                data={paginatedObservations as (EmployeeObservation & Record<string, unknown>)[]}
-                header={{
-                  title: t.employees.details.tabs.observations || "Observações",
-                  badge: {
-                    label: `${filteredObservations.length} ${filteredObservations.length !== 1 ? t.employees.details.tabs.observations : t.employees.details.observation}`,
-                    variant: "primary",
-                  },
-                  description: t.employees.details.observationsDescription || "Gerencie as observações deste funcionário",
-                  actions: headerActions,
-                }}
-                search={{
-                  placeholder: t.employees.details.searchObservations || "Buscar observações...",
-                  value: searchValue,
-                  onChange: (value) => {
-                    setSearchValue(value);
+                  columns={columns}
+                  data={paginatedObservations as (EmployeeObservation & Record<string, unknown>)[]}
+                  header={{
+                    title: t.employees.details.tabs.observations || "Observações",
+                    badge: {
+                      label: `${filteredObservations.length} ${filteredObservations.length !== 1 ? t.employees.details.tabs.observations : t.employees.details.observation}`,
+                      variant: "primary",
+                    },
+                    description:
+                      t.employees.details.observationsDescription ||
+                      "Gerencie as observações deste funcionário",
+                    actions: headerActions,
+                  }}
+                  search={{
+                    placeholder: t.employees.details.searchObservations || "Buscar observações...",
+                    value: searchValue,
+                    onChange: (value) => {
+                      setSearchValue(value);
+                      setCurrentPage(1);
+                    },
+                  }}
+                  pagination={{
+                    currentPage,
+                    totalPages: totalPages || 1,
+                    onPageChange: (page) => {
+                      setCurrentPage(page);
+                    },
+                    showInfo: false,
+                  }}
+                  sortState={sortState}
+                  onSort={(column, direction) => {
+                    setSortState({ column, direction });
                     setCurrentPage(1);
-                  },
-                }}
-                pagination={{
-                  currentPage,
-                  totalPages: totalPages || 1,
-                  onPageChange: (page) => {
-                    setCurrentPage(page);
-                  },
-                  showInfo: false,
-                }}
-                sortState={sortState}
-                onSort={(column, direction) => {
-                  setSortState({ column, direction });
-                  setCurrentPage(1);
-                }}
-                emptyState={{
-                  title: t.employees.details.noObservations || "Nenhuma observação registrada",
-                  description: searchValue
-                    ? (typeof t.employees.details.noObservationsWithSearch === "function" 
+                  }}
+                  emptyState={{
+                    title: t.employees.details.noObservations || "Nenhuma observação registrada",
+                    description: searchValue
+                      ? typeof t.employees.details.noObservationsWithSearch === "function"
                         ? t.employees.details.noObservationsWithSearch(searchValue)
-                        : t.employees.details.noObservationsWithSearch || `Nenhuma observação encontrada para "${searchValue}"`)
-                    : t.employees.details.noObservationsDescription || "Adicione sua primeira observação sobre este funcionário.",
-                  onClearSearch: searchValue
-                    ? () => {
-                        setSearchValue("");
-                        setCurrentPage(1);
-                      }
-                    : undefined,
-                  clearSearchLabel: searchValue ? t.common.clearSearch : undefined,
-                  onAddNew: () => setShowObservationForm(true),
-                  addNewLabel: t.employees.details.addObservation || "Adicionar Observação",
-                }}
-                onRowClick={(row) =>
-                  navigate(`${getObservationViewRoute(row.id)}?fromEmployee=${employee.id}`)
-                }
-              />
+                        : t.employees.details.noObservationsWithSearch ||
+                          `Nenhuma observação encontrada para "${searchValue}"`
+                      : t.employees.details.noObservationsDescription ||
+                        "Adicione sua primeira observação sobre este funcionário.",
+                    onClearSearch: searchValue
+                      ? () => {
+                          setSearchValue("");
+                          setCurrentPage(1);
+                        }
+                      : undefined,
+                    clearSearchLabel: searchValue ? t.common.clearSearch : undefined,
+                    onAddNew: () => setShowObservationForm(true),
+                    addNewLabel: t.employees.details.addObservation || "Adicionar Observação",
+                  }}
+                  onRowClick={(row) =>
+                    navigate(`${getObservationViewRoute(row.id)}?fromEmployee=${employee.id}`)
+                  }
+                />
               )}
             </div>
           );

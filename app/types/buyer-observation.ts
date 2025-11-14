@@ -13,4 +13,3 @@ export interface BuyerObservationFormData {
   observation: string;
   fileIds?: string[];
 }
-

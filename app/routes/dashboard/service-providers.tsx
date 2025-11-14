@@ -160,9 +160,7 @@ export default function ServiceProviders() {
       label: t.serviceProviders.table.document || "Documento",
       sortable: false,
       render: (_, row) => (
-        <span className="text-gray-700 dark:text-gray-300">
-          {row.cpf || row.cnpj || "-"}
-        </span>
+        <span className="text-gray-700 dark:text-gray-300">{row.cpf || row.cnpj || "-"}</span>
       ),
     },
     {
@@ -241,7 +239,10 @@ export default function ServiceProviders() {
             : lastObservation.observation;
         return (
           <div className="space-y-1">
-            <p className="text-sm text-gray-700 dark:text-gray-300" title={lastObservation.observation}>
+            <p
+              className="text-sm text-gray-700 dark:text-gray-300"
+              title={lastObservation.observation}
+            >
               {truncated}
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400">

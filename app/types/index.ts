@@ -41,6 +41,9 @@ export type { LocationMovement, LocationMovementFormData } from "./location-move
 export { LocationMovementType } from "./location-movement";
 export type { LocationObservation, LocationObservationFormData } from "./location-observation";
 export type { EmployeeObservation, EmployeeObservationFormData } from "./employee-observation";
-export type { ServiceProviderObservation, ServiceProviderObservationFormData } from "./service-provider-observation";
+export type {
+  ServiceProviderObservation,
+  ServiceProviderObservationFormData,
+} from "./service-provider-observation";
 export type { SupplierObservation, SupplierObservationFormData } from "./supplier-observation";
 export type { BuyerObservation, BuyerObservationFormData } from "./buyer-observation";

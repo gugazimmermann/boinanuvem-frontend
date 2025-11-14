@@ -1,4 +1,7 @@
-import type { LocationObservation, LocationObservationFormData } from "~/types/location-observation";
+import type {
+  LocationObservation,
+  LocationObservationFormData,
+} from "~/types/location-observation";
 
 export type { LocationObservation, LocationObservationFormData };
 
@@ -14,7 +17,8 @@ export const mockLocationObservations: LocationObservation[] = [
   {
     id: "obs-002",
     locationId: "660e8400-e29b-41d4-a716-446655440010",
-    observation: "Verificação de cercas realizada. Nenhum dano encontrado. Manutenção preventiva agendada para próximo mês.",
+    observation:
+      "Verificação de cercas realizada. Nenhum dano encontrado. Manutenção preventiva agendada para próximo mês.",
     fileIds: ["file-obs-002-001"],
     createdAt: "2025-01-20T14:15:00Z",
     createdBy: "user-001",
@@ -22,7 +26,8 @@ export const mockLocationObservations: LocationObservation[] = [
   {
     id: "obs-003",
     locationId: "660e8400-e29b-41d4-a716-446655440010",
-    observation: "Rotação de pasto realizada com sucesso. Animais transferidos para nova área. Monitoramento da grama na área anterior iniciado.",
+    observation:
+      "Rotação de pasto realizada com sucesso. Animais transferidos para nova área. Monitoramento da grama na área anterior iniciado.",
     fileIds: ["file-obs-003-001"],
     createdAt: "2025-01-28T09:00:00Z",
     createdBy: "user-002",
@@ -30,7 +35,8 @@ export const mockLocationObservations: LocationObservation[] = [
   {
     id: "obs-004",
     locationId: "660e8400-e29b-41d4-a716-446655440011",
-    observation: "Sistema de irrigação funcionando perfeitamente. Água aplicada conforme planejado.",
+    observation:
+      "Sistema de irrigação funcionando perfeitamente. Água aplicada conforme planejado.",
     fileIds: [],
     createdAt: "2025-01-18T08:00:00Z",
     createdBy: "user-002",
@@ -38,7 +44,8 @@ export const mockLocationObservations: LocationObservation[] = [
   {
     id: "obs-005",
     locationId: "660e8400-e29b-41d4-a716-446655440011",
-    observation: "Verificação do sistema de irrigação após manutenção. Todos os aspersores funcionando corretamente. Pressão da água dentro dos parâmetros normais.",
+    observation:
+      "Verificação do sistema de irrigação após manutenção. Todos os aspersores funcionando corretamente. Pressão da água dentro dos parâmetros normais.",
     fileIds: ["file-obs-005-001", "file-obs-005-002"],
     createdAt: "2025-02-05T11:30:00Z",
     createdBy: "user-001",
@@ -46,7 +53,8 @@ export const mockLocationObservations: LocationObservation[] = [
   {
     id: "obs-006",
     locationId: "660e8400-e29b-41d4-a716-446655440011",
-    observation: "Aplicação de fertilizante realizada na área sul. Condições climáticas favoráveis para absorção.",
+    observation:
+      "Aplicação de fertilizante realizada na área sul. Condições climáticas favoráveis para absorção.",
     fileIds: ["file-obs-006-001"],
     createdAt: "2025-02-12T14:20:00Z",
     createdBy: "user-003",
@@ -62,7 +70,8 @@ export const mockLocationObservations: LocationObservation[] = [
   {
     id: "obs-008",
     locationId: "660e8400-e29b-41d4-a716-446655440012",
-    observation: "Inspeção geral da área realizada. Grama em bom estado, mas algumas áreas precisam de atenção. Planejamento de adubação para próxima semana.",
+    observation:
+      "Inspeção geral da área realizada. Grama em bom estado, mas algumas áreas precisam de atenção. Planejamento de adubação para próxima semana.",
     fileIds: [],
     createdAt: "2025-02-08T10:15:00Z",
     createdBy: "user-002",
@@ -70,7 +79,8 @@ export const mockLocationObservations: LocationObservation[] = [
   {
     id: "obs-009",
     locationId: "660e8400-e29b-41d4-a716-446655440013",
-    observation: "Análise de solo realizada. Resultados indicam necessidade de adubação complementar.",
+    observation:
+      "Análise de solo realizada. Resultados indicam necessidade de adubação complementar.",
     fileIds: ["file-obs-009-001"],
     createdAt: "2025-01-25T11:20:00Z",
     createdBy: "user-003",
@@ -78,7 +88,8 @@ export const mockLocationObservations: LocationObservation[] = [
   {
     id: "obs-010",
     locationId: "660e8400-e29b-41d4-a716-446655440013",
-    observation: "Adubação complementar aplicada conforme recomendação da análise de solo. Espera-se melhoria na qualidade do pasto nas próximas semanas.",
+    observation:
+      "Adubação complementar aplicada conforme recomendação da análise de solo. Espera-se melhoria na qualidade do pasto nas próximas semanas.",
     fileIds: ["file-obs-010-001"],
     createdAt: "2025-02-10T08:30:00Z",
     createdBy: "user-001",
@@ -86,7 +97,8 @@ export const mockLocationObservations: LocationObservation[] = [
   {
     id: "obs-011",
     locationId: "660e8400-e29b-41d4-a716-446655440014",
-    observation: "Confinamento em operação normal. Animais apresentando bom desenvolvimento. Ração sendo fornecida conforme planejado.",
+    observation:
+      "Confinamento em operação normal. Animais apresentando bom desenvolvimento. Ração sendo fornecida conforme planejado.",
     fileIds: [],
     createdAt: "2025-02-15T07:00:00Z",
     createdBy: "user-001",
@@ -94,7 +106,8 @@ export const mockLocationObservations: LocationObservation[] = [
   {
     id: "obs-012",
     locationId: "660e8400-e29b-41d4-a716-446655440014",
-    observation: "Limpeza e desinfecção do confinamento realizada. Área preparada para novo lote de animais.",
+    observation:
+      "Limpeza e desinfecção do confinamento realizada. Área preparada para novo lote de animais.",
     fileIds: ["file-obs-012-001", "file-obs-012-002"],
     createdAt: "2025-02-20T15:45:00Z",
     createdBy: "user-002",
@@ -102,7 +115,8 @@ export const mockLocationObservations: LocationObservation[] = [
   {
     id: "obs-013",
     locationId: "660e8400-e29b-41d4-a716-446655440014",
-    observation: "Verificação do sistema de ventilação. Todos os ventiladores funcionando corretamente. Temperatura dentro dos parâmetros ideais.",
+    observation:
+      "Verificação do sistema de ventilação. Todos os ventiladores funcionando corretamente. Temperatura dentro dos parâmetros ideais.",
     fileIds: [],
     createdAt: "2025-02-25T09:20:00Z",
     createdBy: "user-003",
@@ -110,7 +124,8 @@ export const mockLocationObservations: LocationObservation[] = [
   {
     id: "obs-014",
     locationId: "660e8400-e29b-41d4-a716-446655440015",
-    observation: "Semi-confinamento operando normalmente. Animais com acesso ao pasto e suplementação adequada.",
+    observation:
+      "Semi-confinamento operando normalmente. Animais com acesso ao pasto e suplementação adequada.",
     fileIds: ["file-obs-014-001"],
     createdAt: "2025-02-18T11:00:00Z",
     createdBy: "user-001",
@@ -118,7 +133,8 @@ export const mockLocationObservations: LocationObservation[] = [
   {
     id: "obs-015",
     locationId: "660e8400-e29b-41d4-a716-446655440016",
-    observation: "Curral de manejo limpo e organizado. Equipamentos verificados e em bom estado de conservação.",
+    observation:
+      "Curral de manejo limpo e organizado. Equipamentos verificados e em bom estado de conservação.",
     fileIds: [],
     createdAt: "2025-02-12T13:30:00Z",
     createdBy: "user-002",
@@ -126,7 +142,8 @@ export const mockLocationObservations: LocationObservation[] = [
   {
     id: "obs-016",
     locationId: "660e8400-e29b-41d4-a716-446655440016",
-    observation: "Manutenção preventiva realizada nos equipamentos do curral. Substituição de algumas peças desgastadas.",
+    observation:
+      "Manutenção preventiva realizada nos equipamentos do curral. Substituição de algumas peças desgastadas.",
     fileIds: ["file-obs-016-001"],
     createdAt: "2025-02-22T10:15:00Z",
     createdBy: "user-001",
@@ -134,7 +151,8 @@ export const mockLocationObservations: LocationObservation[] = [
   {
     id: "obs-017",
     locationId: "660e8400-e29b-41d4-a716-446655440017",
-    observation: "Silo de milho verificado. Capacidade atual: 75%. Qualidade do grão armazenado excelente.",
+    observation:
+      "Silo de milho verificado. Capacidade atual: 75%. Qualidade do grão armazenado excelente.",
     fileIds: ["file-obs-017-001"],
     createdAt: "2025-02-16T08:45:00Z",
     createdBy: "user-003",
@@ -142,7 +160,8 @@ export const mockLocationObservations: LocationObservation[] = [
   {
     id: "obs-018",
     locationId: "660e8400-e29b-41d4-a716-446655440017",
-    observation: "Carregamento de novo lote de milho no silo. Grãos secos e em perfeito estado. Umidade dentro dos parâmetros ideais.",
+    observation:
+      "Carregamento de novo lote de milho no silo. Grãos secos e em perfeito estado. Umidade dentro dos parâmetros ideais.",
     fileIds: ["file-obs-018-001", "file-obs-018-002"],
     createdAt: "2025-02-28T14:00:00Z",
     createdBy: "user-001",
@@ -158,7 +177,8 @@ export const mockLocationObservations: LocationObservation[] = [
   {
     id: "obs-020",
     locationId: "660e8400-e29b-41d4-a716-446655440019",
-    observation: "Armazém de ração organizado. Estoque atualizado e rotulado corretamente. Controle de pragas realizado.",
+    observation:
+      "Armazém de ração organizado. Estoque atualizado e rotulado corretamente. Controle de pragas realizado.",
     fileIds: ["file-obs-020-001"],
     createdAt: "2025-02-24T11:20:00Z",
     createdBy: "user-001",
@@ -166,7 +186,8 @@ export const mockLocationObservations: LocationObservation[] = [
   {
     id: "obs-021",
     locationId: "660e8400-e29b-41d4-a716-446655440020",
-    observation: "Sala de ordenha limpa e desinfetada. Equipamentos verificados e funcionando perfeitamente.",
+    observation:
+      "Sala de ordenha limpa e desinfetada. Equipamentos verificados e funcionando perfeitamente.",
     fileIds: ["file-obs-021-001"],
     createdAt: "2025-03-02T06:00:00Z",
     createdBy: "user-002",
@@ -174,7 +195,8 @@ export const mockLocationObservations: LocationObservation[] = [
   {
     id: "obs-022",
     locationId: "660e8400-e29b-41d4-a716-446655440020",
-    observation: "Manutenção preventiva nos equipamentos de ordenha. Substituição de mangueiras e verificação do sistema de refrigeração.",
+    observation:
+      "Manutenção preventiva nos equipamentos de ordenha. Substituição de mangueiras e verificação do sistema de refrigeração.",
     fileIds: ["file-obs-022-001", "file-obs-022-002"],
     createdAt: "2025-03-08T13:45:00Z",
     createdBy: "user-003",
@@ -182,7 +204,8 @@ export const mockLocationObservations: LocationObservation[] = [
   {
     id: "obs-023",
     locationId: "660e8400-e29b-41d4-a716-446655440022",
-    observation: "Pasto Central apresentando bom desenvolvimento da grama. Área bem aproveitada pelos animais.",
+    observation:
+      "Pasto Central apresentando bom desenvolvimento da grama. Área bem aproveitada pelos animais.",
     fileIds: [],
     createdAt: "2025-02-25T10:00:00Z",
     createdBy: "user-001",
@@ -190,7 +213,8 @@ export const mockLocationObservations: LocationObservation[] = [
   {
     id: "obs-024",
     locationId: "660e8400-e29b-41d4-a716-446655440022",
-    observation: "Aplicação de calcário realizada conforme recomendação técnica. Espera-se melhoria no pH do solo.",
+    observation:
+      "Aplicação de calcário realizada conforme recomendação técnica. Espera-se melhoria no pH do solo.",
     fileIds: ["file-obs-024-001"],
     createdAt: "2025-03-05T14:30:00Z",
     createdBy: "user-002",
@@ -198,7 +222,8 @@ export const mockLocationObservations: LocationObservation[] = [
   {
     id: "obs-025",
     locationId: "660e8400-e29b-41d4-a716-446655440023",
-    observation: "Pasto Superior com boa cobertura vegetal. Área monitorada regularmente para garantir qualidade.",
+    observation:
+      "Pasto Superior com boa cobertura vegetal. Área monitorada regularmente para garantir qualidade.",
     fileIds: [],
     createdAt: "2025-02-28T08:15:00Z",
     createdBy: "user-001",
@@ -206,7 +231,8 @@ export const mockLocationObservations: LocationObservation[] = [
   {
     id: "obs-026",
     locationId: "660e8400-e29b-41d4-a716-446655440024",
-    observation: "Piquete 1 em rotação. Animais transferidos para área de descanso. Grama se recuperando bem.",
+    observation:
+      "Piquete 1 em rotação. Animais transferidos para área de descanso. Grama se recuperando bem.",
     fileIds: ["file-obs-026-001"],
     createdAt: "2025-03-01T09:00:00Z",
     createdBy: "user-002",
@@ -214,7 +240,8 @@ export const mockLocationObservations: LocationObservation[] = [
   {
     id: "obs-027",
     locationId: "660e8400-e29b-41d4-a716-446655440025",
-    observation: "Piquete 2 com boa disponibilidade de forragem. Animais com acesso adequado à água e sombra.",
+    observation:
+      "Piquete 2 com boa disponibilidade de forragem. Animais com acesso adequado à água e sombra.",
     fileIds: [],
     createdAt: "2025-03-03T11:30:00Z",
     createdBy: "user-001",
@@ -222,7 +249,8 @@ export const mockLocationObservations: LocationObservation[] = [
   {
     id: "obs-028",
     locationId: "660e8400-e29b-41d4-a716-446655440026",
-    observation: "Campo de Aves preparado para nova semeadura. Solo preparado e adubado adequadamente.",
+    observation:
+      "Campo de Aves preparado para nova semeadura. Solo preparado e adubado adequadamente.",
     fileIds: ["file-obs-028-001"],
     createdAt: "2025-03-06T07:45:00Z",
     createdBy: "user-003",
@@ -238,7 +266,8 @@ export const mockLocationObservations: LocationObservation[] = [
   {
     id: "obs-030",
     locationId: "660e8400-e29b-41d4-a716-446655440028",
-    observation: "Armazém verificado. Estoque organizado e inventário atualizado. Nenhuma irregularidade encontrada.",
+    observation:
+      "Armazém verificado. Estoque organizado e inventário atualizado. Nenhuma irregularidade encontrada.",
     fileIds: ["file-obs-030-001"],
     createdAt: "2025-03-12T10:20:00Z",
     createdBy: "user-002",
@@ -246,7 +275,8 @@ export const mockLocationObservations: LocationObservation[] = [
   {
     id: "obs-031",
     locationId: "660e8400-e29b-41d4-a716-446655440030",
-    observation: "Pasto Principal com excelente qualidade de grama. Animais apresentando bom ganho de peso.",
+    observation:
+      "Pasto Principal com excelente qualidade de grama. Animais apresentando bom ganho de peso.",
     fileIds: [],
     createdAt: "2025-03-15T08:00:00Z",
     createdBy: "user-001",
@@ -254,7 +284,8 @@ export const mockLocationObservations: LocationObservation[] = [
   {
     id: "obs-032",
     locationId: "660e8400-e29b-41d4-a716-446655440030",
-    observation: "Verificação de cercas no Pasto Principal. Alguns pontos necessitam de reparo preventivo.",
+    observation:
+      "Verificação de cercas no Pasto Principal. Alguns pontos necessitam de reparo preventivo.",
     fileIds: ["file-obs-032-001", "file-obs-032-002"],
     createdAt: "2025-03-18T14:15:00Z",
     createdBy: "user-002",
@@ -270,7 +301,8 @@ export const mockLocationObservations: LocationObservation[] = [
   {
     id: "obs-034",
     locationId: "660e8400-e29b-41d4-a716-446655440031",
-    observation: "Aplicação de herbicida seletivo realizada no Pasto Secundário. Controle de plantas daninhas em andamento.",
+    observation:
+      "Aplicação de herbicida seletivo realizada no Pasto Secundário. Controle de plantas daninhas em andamento.",
     fileIds: ["file-obs-034-001"],
     createdAt: "2025-03-20T11:45:00Z",
     createdBy: "user-003",
@@ -278,7 +310,8 @@ export const mockLocationObservations: LocationObservation[] = [
   {
     id: "obs-035",
     locationId: "660e8400-e29b-41d4-a716-446655440032",
-    observation: "Campo de Cultivo preparado para plantio. Solo analisado e corrigido conforme necessário.",
+    observation:
+      "Campo de Cultivo preparado para plantio. Solo analisado e corrigido conforme necessário.",
     fileIds: ["file-obs-035-001", "file-obs-035-002"],
     createdAt: "2025-03-16T07:20:00Z",
     createdBy: "user-001",
@@ -286,7 +319,8 @@ export const mockLocationObservations: LocationObservation[] = [
   {
     id: "obs-036",
     locationId: "660e8400-e29b-41d4-a716-446655440032",
-    observation: "Plantio realizado no Campo de Cultivo. Sementes de alta qualidade utilizadas. Condições climáticas favoráveis.",
+    observation:
+      "Plantio realizado no Campo de Cultivo. Sementes de alta qualidade utilizadas. Condições climáticas favoráveis.",
     fileIds: ["file-obs-036-001"],
     createdAt: "2025-03-22T13:00:00Z",
     createdBy: "user-002",
@@ -294,7 +328,8 @@ export const mockLocationObservations: LocationObservation[] = [
   {
     id: "obs-037",
     locationId: "660e8400-e29b-41d4-a716-446655440033",
-    observation: "Garagem verificada. Equipamentos e veículos organizados. Nenhum problema identificado.",
+    observation:
+      "Garagem verificada. Equipamentos e veículos organizados. Nenhum problema identificado.",
     fileIds: [],
     createdAt: "2025-03-19T10:00:00Z",
     createdBy: "user-001",
@@ -302,16 +337,15 @@ export const mockLocationObservations: LocationObservation[] = [
   {
     id: "obs-038",
     locationId: "660e8400-e29b-41d4-a716-446655440033",
-    observation: "Manutenção preventiva realizada na garagem. Limpeza completa e organização dos equipamentos.",
+    observation:
+      "Manutenção preventiva realizada na garagem. Limpeza completa e organização dos equipamentos.",
     fileIds: ["file-obs-038-001"],
     createdAt: "2025-03-25T15:30:00Z",
     createdBy: "user-002",
   },
 ];
 
-export function getLocationObservationsByLocationId(
-  locationId: string
-): LocationObservation[] {
+export function getLocationObservationsByLocationId(locationId: string): LocationObservation[] {
   return mockLocationObservations.filter((obs) => obs.locationId === locationId);
 }
 
@@ -322,9 +356,7 @@ export function getLocationObservationById(
   return mockLocationObservations.find((obs) => obs.id === observationId);
 }
 
-export function addLocationObservation(
-  data: LocationObservationFormData
-): LocationObservation {
+export function addLocationObservation(data: LocationObservationFormData): LocationObservation {
   const newObservation: LocationObservation = {
     ...data,
     id: `obs-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -359,4 +391,3 @@ export function updateLocationObservation(
   }
   return false;
 }
-

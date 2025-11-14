@@ -442,11 +442,12 @@ export default function NewMovement() {
               disabled={isSubmitting}
               rows={4}
               className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200 resize-none ${
-                errors.observation
-                  ? "border-red-500"
-                  : "border-gray-300 dark:border-gray-600"
+                errors.observation ? "border-red-500" : "border-gray-300 dark:border-gray-600"
               }`}
-              placeholder={t.properties.details.movements.observationPlaceholder || "Adicione observações sobre esta movimentação..."}
+              placeholder={
+                t.properties.details.movements.observationPlaceholder ||
+                "Adicione observações sobre esta movimentação..."
+              }
             />
             {errors.observation && (
               <p className="mt-1 text-sm text-red-500">{errors.observation}</p>
@@ -459,7 +460,10 @@ export default function NewMovement() {
             onChange={setFiles}
             disabled={isSubmitting}
             multiple={true}
-            helperText={t.properties.details.movements.filesHelper || "Você pode fazer upload de múltiplos arquivos"}
+            helperText={
+              t.properties.details.movements.filesHelper ||
+              "Você pode fazer upload de múltiplos arquivos"
+            }
           />
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">

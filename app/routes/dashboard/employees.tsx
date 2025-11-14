@@ -233,7 +233,10 @@ export default function Employees() {
             : lastObservation.observation;
         return (
           <div className="space-y-1">
-            <p className="text-sm text-gray-700 dark:text-gray-300" title={lastObservation.observation}>
+            <p
+              className="text-sm text-gray-700 dark:text-gray-300"
+              title={lastObservation.observation}
+            >
               {truncated}
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400">

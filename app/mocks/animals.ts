@@ -66,11 +66,7 @@ for (let i = 0; i < 20; i++) {
   });
 }
 
-export const mockAnimals: Animal[] = [
-  ...fazendaAnimals,
-  ...chacaraAnimals,
-  ...sitioAnimals,
-];
+export const mockAnimals: Animal[] = [...fazendaAnimals, ...chacaraAnimals, ...sitioAnimals];
 
 export function getAnimalById(animalId: string | undefined): Animal | undefined {
   if (!animalId) return undefined;

@@ -13,4 +13,3 @@ export interface ServiceProviderObservationFormData {
   observation: string;
   fileIds?: string[];
 }
-

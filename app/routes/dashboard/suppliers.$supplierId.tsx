@@ -133,9 +133,7 @@ export default function SupplierDetails() {
 
     setIsSubmittingObservation(true);
     try {
-      const fileIds = observationFiles.map(
-        (_, index) => `file-sup-obs-${Date.now()}-${index}`
-      );
+      const fileIds = observationFiles.map((_, index) => `file-sup-obs-${Date.now()}-${index}`);
 
       addSupplierObservation({
         supplierId: supplier.id,
@@ -518,8 +516,14 @@ export default function SupplierDetails() {
               aValue = a.observation;
               bValue = b.observation;
             } else {
-              aValue = a[sortState.column as keyof SupplierObservation] as string | number | undefined;
-              bValue = b[sortState.column as keyof SupplierObservation] as string | number | undefined;
+              aValue = a[sortState.column as keyof SupplierObservation] as
+                | string
+                | number
+                | undefined;
+              bValue = b[sortState.column as keyof SupplierObservation] as
+                | string
+                | number
+                | undefined;
             }
 
             if (aValue == null && bValue == null) return 0;
@@ -567,10 +571,7 @@ export default function SupplierDetails() {
                     ? `${row.observation.substring(0, 100)}...`
                     : row.observation;
                 return (
-                  <span
-                    className="text-gray-700 dark:text-gray-300"
-                    title={row.observation}
-                  >
+                  <span className="text-gray-700 dark:text-gray-300" title={row.observation}>
                     {truncated}
                   </span>
                 );
@@ -672,7 +673,8 @@ export default function SupplierDetails() {
                   <form onSubmit={handleSubmitObservation} className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        {t.suppliers.details.observation || "Observação"} <span className="text-red-500">*</span>
+                        {t.suppliers.details.observation || "Observação"}{" "}
+                        <span className="text-red-500">*</span>
                       </label>
                       <textarea
                         value={observationText}
@@ -680,7 +682,10 @@ export default function SupplierDetails() {
                         disabled={isSubmittingObservation}
                         rows={4}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200 resize-none"
-                        placeholder={t.suppliers.details.observationPlaceholder || "Digite sua observação sobre este fornecedor..."}
+                        placeholder={
+                          t.suppliers.details.observationPlaceholder ||
+                          "Digite sua observação sobre este fornecedor..."
+                        }
                         required
                       />
                     </div>
@@ -691,7 +696,10 @@ export default function SupplierDetails() {
                       onChange={setObservationFiles}
                       disabled={isSubmittingObservation}
                       multiple={true}
-                      helperText={t.suppliers.details.filesHelper || "Você pode fazer upload de múltiplos arquivos"}
+                      helperText={
+                        t.suppliers.details.filesHelper ||
+                        "Você pode fazer upload de múltiplos arquivos"
+                      }
                     />
 
                     <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -725,7 +733,9 @@ export default function SupplierDetails() {
                       label: `${filteredObservations.length} ${filteredObservations.length !== 1 ? t.suppliers.details.tabs.observations : t.suppliers.details.observation}`,
                       variant: "primary",
                     },
-                    description: t.suppliers.details.observationsDescription || "Gerencie as observações deste fornecedor",
+                    description:
+                      t.suppliers.details.observationsDescription ||
+                      "Gerencie as observações deste fornecedor",
                     actions: headerActions,
                   }}
                   search={{
@@ -752,10 +762,12 @@ export default function SupplierDetails() {
                   emptyState={{
                     title: t.suppliers.details.noObservations || "Nenhuma observação registrada",
                     description: searchValue
-                      ? (typeof t.suppliers.details.noObservationsWithSearch === "function" 
-                          ? t.suppliers.details.noObservationsWithSearch(searchValue)
-                          : t.suppliers.details.noObservationsWithSearch || `Nenhuma observação encontrada para "${searchValue}"`)
-                      : t.suppliers.details.noObservationsDescription || "Adicione sua primeira observação sobre este fornecedor.",
+                      ? typeof t.suppliers.details.noObservationsWithSearch === "function"
+                        ? t.suppliers.details.noObservationsWithSearch(searchValue)
+                        : t.suppliers.details.noObservationsWithSearch ||
+                          `Nenhuma observação encontrada para "${searchValue}"`
+                      : t.suppliers.details.noObservationsDescription ||
+                        "Adicione sua primeira observação sobre este fornecedor.",
                     onClearSearch: searchValue
                       ? () => {
                           setSearchValue("");

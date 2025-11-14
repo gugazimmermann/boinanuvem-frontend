@@ -13,4 +13,3 @@ export interface EmployeeObservationFormData {
   observation: string;
   fileIds?: string[];
 }
-

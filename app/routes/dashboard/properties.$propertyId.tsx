@@ -783,12 +783,8 @@ export default function PropertyDetails() {
             } else if (animalsSortState.column === "birthDate") {
               const aBirth = getBirthByAnimalId(a.id);
               const bBirth = getBirthByAnimalId(b.id);
-              aValue = aBirth?.birthDate
-                ? new Date(aBirth.birthDate).getTime()
-                : 0;
-              bValue = bBirth?.birthDate
-                ? new Date(bBirth.birthDate).getTime()
-                : 0;
+              aValue = aBirth?.birthDate ? new Date(aBirth.birthDate).getTime() : 0;
+              bValue = bBirth?.birthDate ? new Date(bBirth.birthDate).getTime() : 0;
             } else if (animalsSortState.column === "acquisitionDate") {
               aValue = a.acquisitionDate ? new Date(a.acquisitionDate).getTime() : 0;
               bValue = b.acquisitionDate ? new Date(b.acquisitionDate).getTime() : 0;
@@ -923,7 +919,9 @@ export default function PropertyDetails() {
                   return <span className="text-gray-700 dark:text-gray-300">-</span>;
                 }
                 return (
-                  <span className="text-gray-700 dark:text-gray-300">{t.animals.purity[birth.purity]}</span>
+                  <span className="text-gray-700 dark:text-gray-300">
+                    {t.animals.purity[birth.purity]}
+                  </span>
                 );
               },
             },
@@ -1032,9 +1030,12 @@ export default function PropertyDetails() {
                 const lastWeighing = weighings.sort(
                   (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
                 )[0];
-                if (!lastWeighing) return <span className="text-gray-700 dark:text-gray-300">-</span>;
+                if (!lastWeighing)
+                  return <span className="text-gray-700 dark:text-gray-300">-</span>;
 
-                const formattedDate = format(new Date(lastWeighing.date), "dd/MM/yyyy", { locale: ptBR });
+                const formattedDate = format(new Date(lastWeighing.date), "dd/MM/yyyy", {
+                  locale: ptBR,
+                });
                 const today = new Date();
                 const weighingDate = new Date(lastWeighing.date);
                 const daysAgo = differenceInDays(today, weighingDate);
@@ -1092,7 +1093,9 @@ export default function PropertyDetails() {
               sortable: true,
               render: (_, row) => (
                 <StatusBadge
-                  label={row.status === "active" ? t.animals.table.active : t.animals.table.inactive}
+                  label={
+                    row.status === "active" ? t.animals.table.active : t.animals.table.inactive
+                  }
                   variant={row.status === "active" ? "success" : "default"}
                 />
               ),
@@ -2165,10 +2168,7 @@ export default function PropertyDetails() {
                     ? `${row.observation.substring(0, 50)}...`
                     : row.observation;
                 return (
-                  <span
-                    className="text-gray-700 dark:text-gray-300"
-                    title={row.observation}
-                  >
+                  <span className="text-gray-700 dark:text-gray-300" title={row.observation}>
                     {truncated}
                   </span>
                 );

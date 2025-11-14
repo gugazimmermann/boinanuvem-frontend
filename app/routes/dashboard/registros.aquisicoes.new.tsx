@@ -195,7 +195,9 @@ export default function NewAcquisition() {
       newErrors.propertyId = t.animals.new.propertyRequired;
     }
     if (!formData.acquisitionDate?.trim()) {
-      newErrors.acquisitionDate = t.profile.errors.required(t.acquisitions.new.acquisitionDateLabel);
+      newErrors.acquisitionDate = t.profile.errors.required(
+        t.acquisitions.new.acquisitionDateLabel
+      );
     }
     if (!formData.breed?.trim()) {
       newErrors.breed = t.profile.errors.required(t.acquisitions.new.breedLabel);
@@ -225,7 +227,12 @@ export default function NewAcquisition() {
       const newAnimal = addAnimal(animalData);
 
       let purity = undefined;
-      if (formData.motherId || formData.fatherId || formData.motherRegistrationNumber || formData.fatherRegistrationNumber) {
+      if (
+        formData.motherId ||
+        formData.fatherId ||
+        formData.motherRegistrationNumber ||
+        formData.fatherRegistrationNumber
+      ) {
         const motherBirth = formData.motherId ? getBirthByAnimalId(formData.motherId) : undefined;
         const fatherBirth = formData.fatherId ? getBirthByAnimalId(formData.fatherId) : undefined;
         const motherBreed = motherBirth?.breed;
@@ -684,4 +691,3 @@ export default function NewAcquisition() {
     </div>
   );
 }
-

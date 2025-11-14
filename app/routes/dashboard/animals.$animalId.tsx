@@ -1,18 +1,15 @@
 import { useState } from "react";
-import type { Translation } from "~/i18n";
 import { useParams, useNavigate } from "react-router";
 import { differenceInMonths, differenceInDays, format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
-import {
-  Button,
-  StatusBadge,
-  Tooltip,
-  Table,
-  type TableColumn,
-  type SortDirection,
-} from "~/components/ui";
+import { Button, StatusBadge, Table, type TableColumn, type SortDirection } from "~/components/ui";
 import { useTranslation } from "~/i18n";
-import { ROUTES, getAnimalEditRoute, getPropertyViewRoute, getAnimalViewRoute } from "~/routes.config";
+import {
+  ROUTES,
+  getAnimalEditRoute,
+  getPropertyViewRoute,
+  getAnimalViewRoute,
+} from "~/routes.config";
 import { getAnimalById } from "~/mocks/animals";
 import { getPropertyById } from "~/mocks/properties";
 import { getBirthByAnimalId } from "~/mocks/births";
@@ -35,7 +32,7 @@ function GenealogyTreeComponent({
   navigate,
 }: {
   node: GenealogyNodeType;
-  t: Translation;
+  t: ReturnType<typeof useTranslation>;
   navigate: (path: string) => void;
 }) {
   const getAnimalViewRoute = (id: string) => `/dashboard/animais/${id}`;
@@ -47,17 +44,17 @@ function GenealogyTreeComponent({
       node.level === 0
         ? t.animals.details.currentAnimal
         : isMother === true
-        ? t.animals.details.mother
-        : isMother === false
-        ? t.animals.details.father
-        : "";
+          ? t.animals.details.mother
+          : isMother === false
+            ? t.animals.details.father
+            : "";
 
     const bgColor =
       node.level === 0
         ? "bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 border-blue-200 dark:border-blue-700/50"
         : isMother === true
-        ? "bg-gradient-to-br from-pink-50 to-pink-100/50 dark:from-pink-900/20 dark:to-pink-800/10 border-pink-200 dark:border-pink-700/50"
-        : "bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-900/20 dark:to-green-800/10 border-green-200 dark:border-green-700/50";
+          ? "bg-gradient-to-br from-pink-50 to-pink-100/50 dark:from-pink-900/20 dark:to-pink-800/10 border-pink-200 dark:border-pink-700/50"
+          : "bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-900/20 dark:to-green-800/10 border-green-200 dark:border-green-700/50";
 
     return (
       <div className="flex flex-col items-center">
@@ -90,7 +87,7 @@ function GenealogyTreeComponent({
             )}
             {node.birth?.breed && (
               <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
-                {t.animals.breeds[node.birth.breed]}
+                {t.animals.breeds[node.birth.breed as keyof typeof t.animals.breeds]}
               </p>
             )}
           </div>
@@ -118,9 +115,7 @@ function GenealogyTreeComponent({
 
   return (
     <div className="flex justify-center py-4 w-full">
-      <div className="flex flex-col items-center min-w-max">
-        {renderNode(node)}
-      </div>
+      <div className="flex flex-col items-center min-w-max">{renderNode(node)}</div>
     </div>
   );
 }
@@ -140,7 +135,9 @@ export default function AnimalDetails() {
   const navigate = useNavigate();
   const t = useTranslation();
   const animal = getAnimalById(animalId);
-  const [activeTab, setActiveTab] = useState<"dashboard" | "info" | "weighings" | "genealogy" | "activities">("dashboard");
+  const [activeTab, setActiveTab] = useState<
+    "dashboard" | "info" | "weighings" | "genealogy" | "activities"
+  >("dashboard");
   const [weighingsCurrentPage, setWeighingsCurrentPage] = useState(1);
   const [weighingsSortState, setWeighingsSortState] = useState<{
     column: string | null;
@@ -207,7 +204,6 @@ export default function AnimalDetails() {
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
   const lastWeighing = sortedWeighings[0];
-  const previousWeighing = sortedWeighings[1];
 
   const formatDate = (dateString: string | undefined) => {
     if (!dateString) return "-";
@@ -626,10 +622,7 @@ export default function AnimalDetails() {
                       {t.animals.details.purity}
                     </p>
                     <div className="flex items-center gap-2">
-                      <StatusBadge
-                        label={t.animals.purity[birth.purity]}
-                        variant="primary"
-                      />
+                      <StatusBadge label={t.animals.purity[birth.purity]} variant="default" />
                       {birth.breed && (
                         <span className="text-xs text-gray-600 dark:text-gray-400">
                           ({t.animals.breeds[birth.breed]})
@@ -663,7 +656,7 @@ export default function AnimalDetails() {
                                 </span>
                                 <StatusBadge
                                   label={t.animals.purity[motherBirth.purity]}
-                                  variant="primary"
+                                  variant="default"
                                 />
                                 {motherBirth.breed && (
                                   <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -705,7 +698,7 @@ export default function AnimalDetails() {
                                 </span>
                                 <StatusBadge
                                   label={t.animals.purity[fatherBirth.purity]}
-                                  variant="primary"
+                                  variant="default"
                                 />
                                 {fatherBirth.breed && (
                                   <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -722,11 +715,15 @@ export default function AnimalDetails() {
                     </div>
                   </div>
                 )}
-                {!birth?.purity && !birth?.motherId && !birth?.fatherId && !acquisition?.motherId && !acquisition?.fatherId && (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {t.animals.details.noGenealogy}
-                  </p>
-                )}
+                {!birth?.purity &&
+                  !birth?.motherId &&
+                  !birth?.fatherId &&
+                  !acquisition?.motherId &&
+                  !acquisition?.fatherId && (
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {t.animals.details.noGenealogy}
+                    </p>
+                  )}
                 {birth?.observation && (
                   <div>
                     <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -743,162 +740,158 @@ export default function AnimalDetails() {
         </div>
       )}
 
-      {activeTab === "weighings" && weighings.length > 0 && (() => {
-        const sortedWeighingsForTable = [...weighingsWithCalculations].sort((a, b) => {
-          const { column, direction } = weighingsSortState;
+      {activeTab === "weighings" &&
+        weighings.length > 0 &&
+        (() => {
+          const sortedWeighingsForTable = [...weighingsWithCalculations].sort((a, b) => {
+            const { column, direction } = weighingsSortState;
 
-          if (!column) {
-            return new Date(b.date).getTime() - new Date(a.date).getTime();
-          }
-
-          let comparison = 0;
-          switch (column) {
-            case "date":
-              comparison =
-                new Date(a.date).getTime() - new Date(b.date).getTime();
-              break;
-            case "weight":
-              comparison = a.weight - b.weight;
-              break;
-            case "weightDiff":
-              comparison =
-                (a.weightDiff ?? 0) - (b.weightDiff ?? 0);
-              break;
-            case "periodGMD":
-              comparison =
-                parseFloat(a.periodGMD ?? "0") - parseFloat(b.periodGMD ?? "0");
-              break;
-            default:
+            if (!column) {
               return new Date(b.date).getTime() - new Date(a.date).getTime();
-          }
+            }
 
-          return direction === "asc" ? comparison : -comparison;
-        });
+            let comparison = 0;
+            switch (column) {
+              case "date":
+                comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
+                break;
+              case "weight":
+                comparison = a.weight - b.weight;
+                break;
+              case "weightDiff":
+                comparison = (a.weightDiff ?? 0) - (b.weightDiff ?? 0);
+                break;
+              case "periodGMD":
+                comparison = parseFloat(a.periodGMD ?? "0") - parseFloat(b.periodGMD ?? "0");
+                break;
+              default:
+                return new Date(b.date).getTime() - new Date(a.date).getTime();
+            }
 
-        const filteredWeighings = sortedWeighingsForTable.filter(
-          (w) => w !== null && w !== undefined && w.id !== undefined
-        );
-        const totalPages = Math.ceil(filteredWeighings.length / itemsPerPage);
-        const startIndex = (weighingsCurrentPage - 1) * itemsPerPage;
-        const paginatedWeighings = filteredWeighings.slice(
-          startIndex,
-          startIndex + itemsPerPage
-        );
+            return direction === "asc" ? comparison : -comparison;
+          });
 
-        const columns: TableColumn<WeighingWithCalculations>[] = [
-          {
-            key: "date",
-            label: t.animals.details.date,
-            sortable: true,
-            render: (_value, weighing) => {
-              if (!weighing) return <span className="text-sm text-gray-400">-</span>;
-              return (
-                <span className="text-sm text-gray-900 dark:text-gray-100">
-                  {formatDate(weighing.date)}
-                </span>
-              );
-            },
-          },
-          {
-            key: "weight",
-            label: t.animals.table.weight,
-            sortable: true,
-            render: (_value, weighing) => {
-              if (!weighing) return <span className="text-sm text-gray-400">-</span>;
-              return (
-                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {weighing.weight} kg
-                </span>
-              );
-            },
-          },
-          {
-            key: "weightDiff",
-            label: t.animals.details.variation,
-            sortable: true,
-            render: (_value, weighing) => {
-              if (!weighing) return <span className="text-sm text-gray-400">-</span>;
-              const weightDiff = weighing.weightDiff;
-              if (weightDiff === null || weightDiff === undefined || isNaN(weightDiff)) {
-                return <span className="text-sm text-gray-400">-</span>;
-              }
-              return (
-                <span
-                  className={`text-sm font-medium ${
-                    weightDiff >= 0
-                      ? "text-green-600 dark:text-green-400"
-                      : "text-red-600 dark:text-red-400"
-                  }`}
-                >
-                  {weightDiff >= 0 ? "+" : ""}
-                  {weightDiff.toFixed(1)} kg
-                </span>
-              );
-            },
-          },
-          {
-            key: "periodGMD",
-            label: t.animals.table.gmd,
-            sortable: true,
-            render: (_value, weighing) => {
-              if (!weighing) return <span className="text-sm text-gray-400">-</span>;
-              const periodGMD = weighing.periodGMD;
-              if (!periodGMD || periodGMD === null || periodGMD === undefined) {
-                return <span className="text-sm text-gray-400">-</span>;
-              }
-              return (
-                <span className="text-sm text-gray-900 dark:text-gray-100">
-                  {periodGMD} kg/dia
-                </span>
-              );
-            },
-          },
-          {
-            key: "observation",
-            label: t.animals.details.observation,
-            sortable: false,
-            render: (_value, weighing) => {
-              if (!weighing) return <span className="text-sm text-gray-400">-</span>;
-              return (
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  {weighing.observation || "-"}
-                </span>
-              );
-            },
-          },
-        ];
+          const filteredWeighings = sortedWeighingsForTable.filter(
+            (w) => w !== null && w !== undefined && w.id !== undefined
+          );
+          const totalPages = Math.ceil(filteredWeighings.length / itemsPerPage);
+          const startIndex = (weighingsCurrentPage - 1) * itemsPerPage;
+          const paginatedWeighings = filteredWeighings.slice(startIndex, startIndex + itemsPerPage);
 
-        return (
-          <div className="space-y-6">
-            <Table<WeighingWithCalculations>
-              columns={columns}
-              data={paginatedWeighings}
-              header={{
-                title: t.animals.details.weighingHistory,
-                badge: {
-                  label: t.animals.details.weighings(filteredWeighings.length),
-                  variant: "primary",
-                },
-              }}
-              pagination={{
-                currentPage: weighingsCurrentPage,
-                totalPages: totalPages || 1,
-                onPageChange: setWeighingsCurrentPage,
-                showInfo: false,
-              }}
-              sortState={weighingsSortState}
-              onSort={(column, direction) => {
-                setWeighingsSortState({ column, direction });
-                setWeighingsCurrentPage(1);
-              }}
-              emptyState={{
-                title: t.animals.details.noWeighings,
-                description: "",
-              }}
-            />
-          </div>
-        );
-      })()}
+          const columns: TableColumn<WeighingWithCalculations>[] = [
+            {
+              key: "date",
+              label: t.animals.details.date,
+              sortable: true,
+              render: (_value, weighing) => {
+                if (!weighing) return <span className="text-sm text-gray-400">-</span>;
+                return (
+                  <span className="text-sm text-gray-900 dark:text-gray-100">
+                    {formatDate(weighing.date)}
+                  </span>
+                );
+              },
+            },
+            {
+              key: "weight",
+              label: t.animals.table.weight,
+              sortable: true,
+              render: (_value, weighing) => {
+                if (!weighing) return <span className="text-sm text-gray-400">-</span>;
+                return (
+                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    {weighing.weight} kg
+                  </span>
+                );
+              },
+            },
+            {
+              key: "weightDiff",
+              label: t.animals.details.variation,
+              sortable: true,
+              render: (_value, weighing) => {
+                if (!weighing) return <span className="text-sm text-gray-400">-</span>;
+                const weightDiff = weighing.weightDiff;
+                if (weightDiff === null || weightDiff === undefined || isNaN(weightDiff)) {
+                  return <span className="text-sm text-gray-400">-</span>;
+                }
+                return (
+                  <span
+                    className={`text-sm font-medium ${
+                      weightDiff >= 0
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-red-600 dark:text-red-400"
+                    }`}
+                  >
+                    {weightDiff >= 0 ? "+" : ""}
+                    {weightDiff.toFixed(1)} kg
+                  </span>
+                );
+              },
+            },
+            {
+              key: "periodGMD",
+              label: t.animals.table.gmd,
+              sortable: true,
+              render: (_value, weighing) => {
+                if (!weighing) return <span className="text-sm text-gray-400">-</span>;
+                const periodGMD = weighing.periodGMD;
+                if (!periodGMD || periodGMD === null || periodGMD === undefined) {
+                  return <span className="text-sm text-gray-400">-</span>;
+                }
+                return (
+                  <span className="text-sm text-gray-900 dark:text-gray-100">
+                    {periodGMD} kg/dia
+                  </span>
+                );
+              },
+            },
+            {
+              key: "observation",
+              label: t.animals.details.observation,
+              sortable: false,
+              render: (_value, weighing) => {
+                if (!weighing) return <span className="text-sm text-gray-400">-</span>;
+                return (
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    {weighing.observation || "-"}
+                  </span>
+                );
+              },
+            },
+          ];
+
+          return (
+            <div className="space-y-6">
+              <Table<WeighingWithCalculations>
+                columns={columns}
+                data={paginatedWeighings}
+                header={{
+                  title: t.animals.details.weighingHistory,
+                  badge: {
+                    label: t.animals.details.weighings(filteredWeighings.length),
+                    variant: "primary",
+                  },
+                }}
+                pagination={{
+                  currentPage: weighingsCurrentPage,
+                  totalPages: totalPages || 1,
+                  onPageChange: setWeighingsCurrentPage,
+                  showInfo: false,
+                }}
+                sortState={weighingsSortState}
+                onSort={(column, direction) => {
+                  setWeighingsSortState({ column, direction });
+                  setWeighingsCurrentPage(1);
+                }}
+                emptyState={{
+                  title: t.animals.details.noWeighings,
+                  description: "",
+                }}
+              />
+            </div>
+          );
+        })()}
 
       {activeTab === "weighings" && weighings.length === 0 && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
@@ -920,10 +913,7 @@ export default function AnimalDetails() {
                   <span className="text-xs text-gray-500 dark:text-gray-400">
                     {t.animals.details.purity}:
                   </span>
-                  <StatusBadge
-                    label={t.animals.purity[birth.purity]}
-                    variant="primary"
-                  />
+                  <StatusBadge label={t.animals.purity[birth.purity]} variant="default" />
                   {birth.breed && (
                     <span className="text-xs text-gray-500 dark:text-gray-400">
                       • {t.animals.breeds[birth.breed]}

@@ -20,10 +20,7 @@ import {
 import { getBuyerById } from "~/mocks/buyers";
 import { getPropertyById } from "~/mocks/properties";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
-import {
-  getBuyerObservationsByBuyerId,
-  addBuyerObservation,
-} from "~/mocks/buyer-observations";
+import { getBuyerObservationsByBuyerId, addBuyerObservation } from "~/mocks/buyer-observations";
 import type { BuyerObservation } from "~/types/buyer-observation";
 
 export function meta() {
@@ -133,9 +130,7 @@ export default function BuyerDetails() {
 
     setIsSubmittingObservation(true);
     try {
-      const fileIds = observationFiles.map(
-        (_, index) => `file-buy-obs-${Date.now()}-${index}`
-      );
+      const fileIds = observationFiles.map((_, index) => `file-buy-obs-${Date.now()}-${index}`);
 
       addBuyerObservation({
         buyerId: buyer.id,
@@ -559,10 +554,7 @@ export default function BuyerDetails() {
                     ? `${row.observation.substring(0, 100)}...`
                     : row.observation;
                 return (
-                  <span
-                    className="text-gray-700 dark:text-gray-300"
-                    title={row.observation}
-                  >
+                  <span className="text-gray-700 dark:text-gray-300" title={row.observation}>
                     {truncated}
                   </span>
                 );
@@ -664,7 +656,8 @@ export default function BuyerDetails() {
                   <form onSubmit={handleSubmitObservation} className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        {t.buyers.details.observation || "Observação"} <span className="text-red-500">*</span>
+                        {t.buyers.details.observation || "Observação"}{" "}
+                        <span className="text-red-500">*</span>
                       </label>
                       <textarea
                         value={observationText}
@@ -672,7 +665,10 @@ export default function BuyerDetails() {
                         disabled={isSubmittingObservation}
                         rows={4}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200 resize-none"
-                        placeholder={t.buyers.details.observationPlaceholder || "Digite sua observação sobre este comprador..."}
+                        placeholder={
+                          t.buyers.details.observationPlaceholder ||
+                          "Digite sua observação sobre este comprador..."
+                        }
                         required
                       />
                     </div>
@@ -683,7 +679,10 @@ export default function BuyerDetails() {
                       onChange={setObservationFiles}
                       disabled={isSubmittingObservation}
                       multiple={true}
-                      helperText={t.buyers.details.filesHelper || "Você pode fazer upload de múltiplos arquivos"}
+                      helperText={
+                        t.buyers.details.filesHelper ||
+                        "Você pode fazer upload de múltiplos arquivos"
+                      }
                     />
 
                     <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -717,7 +716,9 @@ export default function BuyerDetails() {
                       label: `${filteredObservations.length} ${filteredObservations.length !== 1 ? t.buyers.details.tabs.observations : t.buyers.details.observation}`,
                       variant: "primary",
                     },
-                    description: t.buyers.details.observationsDescription || "Gerencie as observações deste comprador",
+                    description:
+                      t.buyers.details.observationsDescription ||
+                      "Gerencie as observações deste comprador",
                     actions: headerActions,
                   }}
                   search={{
@@ -744,10 +745,12 @@ export default function BuyerDetails() {
                   emptyState={{
                     title: t.buyers.details.noObservations || "Nenhuma observação registrada",
                     description: searchValue
-                      ? (typeof t.buyers.details.noObservationsWithSearch === "function" 
-                          ? t.buyers.details.noObservationsWithSearch(searchValue)
-                          : t.buyers.details.noObservationsWithSearch || `Nenhuma observação encontrada para "${searchValue}"`)
-                      : t.buyers.details.noObservationsDescription || "Adicione sua primeira observação sobre este comprador.",
+                      ? typeof t.buyers.details.noObservationsWithSearch === "function"
+                        ? t.buyers.details.noObservationsWithSearch(searchValue)
+                        : t.buyers.details.noObservationsWithSearch ||
+                          `Nenhuma observação encontrada para "${searchValue}"`
+                      : t.buyers.details.noObservationsDescription ||
+                        "Adicione sua primeira observação sobre este comprador.",
                     onClearSearch: searchValue
                       ? () => {
                           setSearchValue("");

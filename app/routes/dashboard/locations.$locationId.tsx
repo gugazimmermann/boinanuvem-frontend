@@ -68,9 +68,9 @@ export default function LocationDetails() {
     "information" | "info" | "activities" | "movements" | "observations"
   >(
     (tabParam === "info" ||
-      tabParam === "activities" ||
-      tabParam === "movements" ||
-      tabParam === "observations"
+    tabParam === "activities" ||
+    tabParam === "movements" ||
+    tabParam === "observations"
       ? tabParam
       : "information") as "information" | "info" | "activities" | "movements" | "observations"
   );
@@ -155,9 +155,7 @@ export default function LocationDetails() {
 
     setIsSubmittingObservation(true);
     try {
-      const fileIds = observationFiles.map(
-        (_, index) => `file-obs-${Date.now()}-${index}`
-      );
+      const fileIds = observationFiles.map((_, index) => `file-obs-${Date.now()}-${index}`);
 
       addLocationObservation({
         locationId: location.id,
@@ -187,7 +185,6 @@ export default function LocationDetails() {
       setIsSubmittingObservation(false);
     }
   };
-
 
   return (
     <div className="space-y-6">
@@ -567,8 +564,14 @@ export default function LocationDetails() {
               aValue = a.observation;
               bValue = b.observation;
             } else {
-              aValue = a[sortState.column as keyof LocationObservation] as string | number | undefined;
-              bValue = b[sortState.column as keyof LocationObservation] as string | number | undefined;
+              aValue = a[sortState.column as keyof LocationObservation] as
+                | string
+                | number
+                | undefined;
+              bValue = b[sortState.column as keyof LocationObservation] as
+                | string
+                | number
+                | undefined;
             }
 
             if (aValue == null && bValue == null) return 0;
@@ -616,10 +619,7 @@ export default function LocationDetails() {
                     ? `${row.observation.substring(0, 100)}...`
                     : row.observation;
                 return (
-                  <span
-                    className="text-gray-700 dark:text-gray-300"
-                    title={row.observation}
-                  >
+                  <span className="text-gray-700 dark:text-gray-300" title={row.observation}>
                     {truncated}
                   </span>
                 );
@@ -721,7 +721,8 @@ export default function LocationDetails() {
                   <form onSubmit={handleSubmitObservation} className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        {t.locations.details.observation || "Observação"} <span className="text-red-500">*</span>
+                        {t.locations.details.observation || "Observação"}{" "}
+                        <span className="text-red-500">*</span>
                       </label>
                       <textarea
                         value={observationText}
@@ -729,7 +730,10 @@ export default function LocationDetails() {
                         disabled={isSubmittingObservation}
                         rows={4}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200 resize-none"
-                        placeholder={t.locations.details.observationPlaceholder || "Digite sua observação sobre esta localização..."}
+                        placeholder={
+                          t.locations.details.observationPlaceholder ||
+                          "Digite sua observação sobre esta localização..."
+                        }
                         required
                       />
                     </div>
@@ -740,7 +744,10 @@ export default function LocationDetails() {
                       onChange={setObservationFiles}
                       disabled={isSubmittingObservation}
                       multiple={true}
-                      helperText={t.locations.details.filesHelper || "Você pode fazer upload de múltiplos arquivos"}
+                      helperText={
+                        t.locations.details.filesHelper ||
+                        "Você pode fazer upload de múltiplos arquivos"
+                      }
                     />
 
                     <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -766,59 +773,63 @@ export default function LocationDetails() {
 
               {!showObservationForm && (
                 <Table<LocationObservation & Record<string, unknown>>
-                columns={columns}
-                data={paginatedObservations as (LocationObservation & Record<string, unknown>)[]}
-                header={{
-                  title: t.locations.details.tabs.observations || "Observações",
-                  badge: {
-                    label: `${filteredObservations.length} ${filteredObservations.length !== 1 ? t.locations.details.tabs.observations : t.locations.details.observation}`,
-                    variant: "primary",
-                  },
-                  description: t.locations.details.observationsDescription || "Gerencie as observações desta localização",
-                  actions: headerActions,
-                }}
-                search={{
-                  placeholder: t.locations.details.searchObservations || "Buscar observações...",
-                  value: searchValue,
-                  onChange: (value) => {
-                    setSearchValue(value);
+                  columns={columns}
+                  data={paginatedObservations as (LocationObservation & Record<string, unknown>)[]}
+                  header={{
+                    title: t.locations.details.tabs.observations || "Observações",
+                    badge: {
+                      label: `${filteredObservations.length} ${filteredObservations.length !== 1 ? t.locations.details.tabs.observations : t.locations.details.observation}`,
+                      variant: "primary",
+                    },
+                    description:
+                      t.locations.details.observationsDescription ||
+                      "Gerencie as observações desta localização",
+                    actions: headerActions,
+                  }}
+                  search={{
+                    placeholder: t.locations.details.searchObservations || "Buscar observações...",
+                    value: searchValue,
+                    onChange: (value) => {
+                      setSearchValue(value);
+                      setCurrentPage(1);
+                    },
+                  }}
+                  pagination={{
+                    currentPage,
+                    totalPages: totalPages || 1,
+                    onPageChange: (page) => {
+                      setCurrentPage(page);
+                    },
+                    showInfo: false,
+                  }}
+                  sortState={sortState}
+                  onSort={(column, direction) => {
+                    setSortState({ column, direction });
                     setCurrentPage(1);
-                  },
-                }}
-                pagination={{
-                  currentPage,
-                  totalPages: totalPages || 1,
-                  onPageChange: (page) => {
-                    setCurrentPage(page);
-                  },
-                  showInfo: false,
-                }}
-                sortState={sortState}
-                onSort={(column, direction) => {
-                  setSortState({ column, direction });
-                  setCurrentPage(1);
-                }}
-                emptyState={{
-                  title: t.locations.details.noObservations || "Nenhuma observação registrada",
-                  description: searchValue
-                    ? (typeof t.locations.details.noObservationsWithSearch === "function" 
+                  }}
+                  emptyState={{
+                    title: t.locations.details.noObservations || "Nenhuma observação registrada",
+                    description: searchValue
+                      ? typeof t.locations.details.noObservationsWithSearch === "function"
                         ? t.locations.details.noObservationsWithSearch(searchValue)
-                        : t.locations.details.noObservationsWithSearch || `Nenhuma observação encontrada para "${searchValue}"`)
-                    : t.locations.details.noObservationsDescription || "Adicione sua primeira observação sobre esta localização.",
-                  onClearSearch: searchValue
-                    ? () => {
-                        setSearchValue("");
-                        setCurrentPage(1);
-                      }
-                    : undefined,
-                  clearSearchLabel: searchValue ? t.common.clearSearch : undefined,
-                  onAddNew: () => setShowObservationForm(true),
-                  addNewLabel: t.locations.details.addObservation || "Adicionar Observação",
-                }}
-                onRowClick={(row) =>
-                  navigate(`${getObservationViewRoute(row.id)}?fromLocation=${location.id}`)
-                }
-              />
+                        : t.locations.details.noObservationsWithSearch ||
+                          `Nenhuma observação encontrada para "${searchValue}"`
+                      : t.locations.details.noObservationsDescription ||
+                        "Adicione sua primeira observação sobre esta localização.",
+                    onClearSearch: searchValue
+                      ? () => {
+                          setSearchValue("");
+                          setCurrentPage(1);
+                        }
+                      : undefined,
+                    clearSearchLabel: searchValue ? t.common.clearSearch : undefined,
+                    onAddNew: () => setShowObservationForm(true),
+                    addNewLabel: t.locations.details.addObservation || "Adicionar Observação",
+                  }}
+                  onRowClick={(row) =>
+                    navigate(`${getObservationViewRoute(row.id)}?fromLocation=${location.id}`)
+                  }
+                />
               )}
             </div>
           );
@@ -1007,10 +1018,7 @@ export default function LocationDetails() {
                     ? `${row.observation.substring(0, 50)}...`
                     : row.observation;
                 return (
-                  <span
-                    className="text-gray-700 dark:text-gray-300"
-                    title={row.observation}
-                  >
+                  <span className="text-gray-700 dark:text-gray-300" title={row.observation}>
                     {truncated}
                   </span>
                 );

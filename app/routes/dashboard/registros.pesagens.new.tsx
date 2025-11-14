@@ -31,7 +31,10 @@ export default function NewWeighing() {
   const [animalSearch, setAnimalSearch] = useState("");
 
   const animals = useMemo(() => getAnimalsByCompanyId(companyId), [companyId]);
-  const employees = useMemo(() => mockEmployees.filter((e) => e.companyId === companyId), [companyId]);
+  const employees = useMemo(
+    () => mockEmployees.filter((e) => e.companyId === companyId),
+    [companyId]
+  );
   const serviceProviders = useMemo(
     () => mockServiceProviders.filter((sp) => sp.companyId === companyId),
     [companyId]
@@ -205,9 +208,7 @@ export default function NewWeighing() {
                         <label
                           key={animal.id}
                           className={`flex items-center space-x-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded ${
-                            formData.animalId === animal.id
-                              ? "bg-blue-50 dark:bg-blue-900/20"
-                              : ""
+                            formData.animalId === animal.id ? "bg-blue-50 dark:bg-blue-900/20" : ""
                           }`}
                         >
                           <input
@@ -361,4 +362,3 @@ export default function NewWeighing() {
     </div>
   );
 }
-

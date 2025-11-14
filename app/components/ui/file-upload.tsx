@@ -1,4 +1,4 @@
-import { useId, useState, useRef, type ChangeEvent } from "react";
+import { useId, useRef, type ChangeEvent } from "react";
 
 interface FileUploadProps {
   label?: string;
@@ -56,13 +56,16 @@ export function FileUpload({
     const k = 1024;
     const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + " " + sizes[i];
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
   };
 
   return (
     <div className={className}>
       {label && (
-        <label htmlFor={inputId} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <label
+          htmlFor={inputId}
+          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+        >
           {label}
         </label>
       )}
@@ -157,12 +160,7 @@ export function FileUpload({
                     className="ml-3 flex-shrink-0 text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 focus:outline-none"
                     aria-label={`Remove ${file.name}`}
                   >
-                    <svg
-                      className="h-5 w-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -189,4 +187,3 @@ export function FileUpload({
     </div>
   );
 }
-

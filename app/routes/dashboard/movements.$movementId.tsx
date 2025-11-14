@@ -288,7 +288,7 @@ export default function MovementDetails() {
               {t.properties.details.movements.files || "Anexos"}
             </h2>
             <div className="space-y-2">
-              {movement.fileIds.map((fileId, index) => (
+              {movement.fileIds.map((fileId) => (
                 <div
                   key={fileId}
                   className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600"
@@ -323,12 +323,7 @@ export default function MovementDetails() {
                     className="ml-3 flex-shrink-0 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 focus:outline-none"
                     aria-label={`Download ${fileId}`}
                   >
-                    <svg
-                      className="h-5 w-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"

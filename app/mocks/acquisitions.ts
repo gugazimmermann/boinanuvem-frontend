@@ -35,21 +35,21 @@ const animalsWithAcquisition = mockAnimals.filter((a) => a.acquisitionDate);
 
 animalsWithAcquisition.forEach((animal, index) => {
   const birth = getBirthByAnimalId(animal.id);
-  
+
   if (birth) return;
-  
+
   const breed = breeds[index % breeds.length];
   const gender = index % 2 === 0 ? "male" : "female";
   const sellerId = suppliers[index % suppliers.length];
   const price = 2000 + (index % 20) * 500;
-  
+
   let motherId: string | undefined;
   let fatherId: string | undefined;
   let motherRegistrationNumber: string | undefined;
   let fatherRegistrationNumber: string | undefined;
   let birthDate: string | undefined;
   let purity: BirthPurity | undefined;
-  
+
   if (index % 3 === 0) {
     const samePropertyAnimals = mockAnimals.filter((a) => a.propertyId === animal.propertyId);
     if (samePropertyAnimals.length > 0) {
@@ -59,21 +59,27 @@ animalsWithAcquisition.forEach((animal, index) => {
         fatherId = samePropertyAnimals[parentIndex + 1]?.id;
         motherRegistrationNumber = samePropertyAnimals[parentIndex]?.registrationNumber;
         fatherRegistrationNumber = samePropertyAnimals[parentIndex + 1]?.registrationNumber;
-        
+
         const acquisitionDate = new Date(animal.acquisitionDate!);
         const birthYear = acquisitionDate.getFullYear() - 2 - (index % 2);
         const birthMonth = String((index % 12) + 1).padStart(2, "0");
         const birthDay = String((index % 28) + 1).padStart(2, "0");
         birthDate = `${birthYear}-${birthMonth}-${birthDay}`;
-        
+
         const motherBirth = motherId ? getBirthByAnimalId(motherId) : undefined;
         const fatherBirth = fatherId ? getBirthByAnimalId(fatherId) : undefined;
-        
+
         if (motherBirth && fatherBirth) {
-          if (motherBirth.purity === BirthPurity.PO && fatherBirth.purity === BirthPurity.PO && 
-              motherBirth.breed === fatherBirth.breed) {
+          if (
+            motherBirth.purity === BirthPurity.PO &&
+            fatherBirth.purity === BirthPurity.PO &&
+            motherBirth.breed === fatherBirth.breed
+          ) {
             purity = BirthPurity.PO;
-          } else if (motherBirth.purity === BirthPurity.PO && fatherBirth.purity === BirthPurity.PO) {
+          } else if (
+            motherBirth.purity === BirthPurity.PO &&
+            fatherBirth.purity === BirthPurity.PO
+          ) {
             purity = BirthPurity.F1;
           } else {
             purity = BirthPurity.F2;
@@ -86,7 +92,7 @@ animalsWithAcquisition.forEach((animal, index) => {
       }
     }
   }
-  
+
   acquisitions.push({
     id: generateAcquisitionId(index),
     animalId: animal.id,
@@ -95,7 +101,7 @@ animalsWithAcquisition.forEach((animal, index) => {
     gender,
     sellerId,
     price,
-    observation: purity 
+    observation: purity
       ? "Aquisição com genealogia parcial registrada"
       : "Aquisição de animal para o rebanho",
     birthDate,

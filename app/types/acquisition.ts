@@ -38,4 +38,3 @@ export interface AcquisitionFormData {
   birthObservation?: string;
   companyId: string;
 }
-
