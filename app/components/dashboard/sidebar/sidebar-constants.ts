@@ -6,7 +6,7 @@ export type { SidebarItemConfig };
 export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
   { translationKey: "dashboard", path: ROUTES.DASHBOARD, icon: "📊" },
   {
-    translationKey: "cadastros",
+    translationKey: "registrations",
     path: "#",
     icon: "📋",
     subItems: [
@@ -20,7 +20,7 @@ export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
     ],
   },
   {
-    translationKey: "registros",
+    translationKey: "records",
     path: "#",
     icon: "📝",
     subItems: [

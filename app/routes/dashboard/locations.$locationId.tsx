@@ -93,7 +93,6 @@ export default function LocationDetails() {
     }
   }, [searchParams]);
 
-  // Observations state
   const [showObservationForm, setShowObservationForm] = useState(false);
   const [observationText, setObservationText] = useState("");
   const [observationFiles, setObservationFiles] = useState<File[]>([]);
@@ -147,7 +146,7 @@ export default function LocationDetails() {
     e.preventDefault();
     if (!observationText.trim()) {
       setObservationAlert({
-        title: "Por favor, insira uma observação",
+        title: t.locations.details.observationRequired,
         variant: "error",
       });
       setTimeout(() => setObservationAlert(null), 3000);
@@ -156,8 +155,6 @@ export default function LocationDetails() {
 
     setIsSubmittingObservation(true);
     try {
-      // TODO: Upload files and get file IDs from the server
-      // For now, we'll generate mock file IDs
       const fileIds = observationFiles.map(
         (_, index) => `file-obs-${Date.now()}-${index}`
       );
@@ -168,23 +165,21 @@ export default function LocationDetails() {
         fileIds: fileIds.length > 0 ? fileIds : undefined,
       });
 
-      // Refresh observations list
       setObservations(getLocationObservationsByLocationId(location.id));
 
       setObservationAlert({
-        title: "Observação adicionada com sucesso!",
+        title: t.locations.details.observationAdded,
         variant: "success",
       });
       setTimeout(() => setObservationAlert(null), 3000);
 
-      // Reset form
       setObservationText("");
       setObservationFiles([]);
       setShowObservationForm(false);
     } catch (error) {
       console.error("Error adding observation:", error);
       setObservationAlert({
-        title: "Erro ao adicionar observação",
+        title: t.locations.details.observationError,
         variant: "error",
       });
       setTimeout(() => setObservationAlert(null), 3000);
@@ -776,7 +771,7 @@ export default function LocationDetails() {
                 header={{
                   title: t.locations.details.tabs.observations || "Observações",
                   badge: {
-                    label: `${filteredObservations.length} ${filteredObservations.length !== 1 ? "observações" : "observação"}`,
+                    label: `${filteredObservations.length} ${filteredObservations.length !== 1 ? t.locations.details.tabs.observations : t.locations.details.observation}`,
                     variant: "primary",
                   },
                   description: t.locations.details.observationsDescription || "Gerencie as observações desta localização",
@@ -806,7 +801,9 @@ export default function LocationDetails() {
                 emptyState={{
                   title: t.locations.details.noObservations || "Nenhuma observação registrada",
                   description: searchValue
-                    ? t.locations.details.noObservationsWithSearch || `Nenhuma observação encontrada para "${searchValue}"`
+                    ? (typeof t.locations.details.noObservationsWithSearch === "function" 
+                        ? t.locations.details.noObservationsWithSearch(searchValue)
+                        : t.locations.details.noObservationsWithSearch || `Nenhuma observação encontrada para "${searchValue}"`)
                     : t.locations.details.noObservationsDescription || "Adicione sua primeira observação sobre esta localização.",
                   onClearSearch: searchValue
                     ? () => {

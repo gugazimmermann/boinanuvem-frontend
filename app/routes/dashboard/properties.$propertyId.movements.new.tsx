@@ -202,8 +202,6 @@ export default function NewMovement() {
 
     setIsSubmitting(true);
     try {
-      // TODO: Upload files and get file IDs from the server
-      // For now, we'll generate mock file IDs
       const fileIds = files.map((_, index) => `file-${Date.now()}-${index}`);
 
       const movementData = {

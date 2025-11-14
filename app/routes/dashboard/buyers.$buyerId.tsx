@@ -69,7 +69,6 @@ export default function BuyerDetails() {
     }
   }, [searchParams]);
 
-  // Observations state
   const [showObservationForm, setShowObservationForm] = useState(false);
   const [observationText, setObservationText] = useState("");
   const [observationFiles, setObservationFiles] = useState<File[]>([]);
@@ -125,7 +124,7 @@ export default function BuyerDetails() {
 
     if (!observationText.trim()) {
       setObservationAlert({
-        title: "Por favor, preencha a observação",
+        title: t.buyers.details.observationRequired,
         variant: "error",
       });
       setTimeout(() => setObservationAlert(null), 3000);
@@ -134,8 +133,6 @@ export default function BuyerDetails() {
 
     setIsSubmittingObservation(true);
     try {
-      // TODO: Upload files and get file IDs from the server
-      // For now, we'll generate mock file IDs
       const fileIds = observationFiles.map(
         (_, index) => `file-buy-obs-${Date.now()}-${index}`
       );
@@ -146,23 +143,21 @@ export default function BuyerDetails() {
         fileIds: fileIds.length > 0 ? fileIds : undefined,
       });
 
-      // Refresh observations list
       setObservations(getBuyerObservationsByBuyerId(buyer.id));
 
       setObservationAlert({
-        title: "Observação adicionada com sucesso!",
+        title: t.buyers.details.observationAdded,
         variant: "success",
       });
       setTimeout(() => setObservationAlert(null), 3000);
 
-      // Reset form
       setObservationText("");
       setObservationFiles([]);
       setShowObservationForm(false);
     } catch (error) {
       console.error("Error adding observation:", error);
       setObservationAlert({
-        title: "Erro ao adicionar observação",
+        title: t.buyers.details.observationError,
         variant: "error",
       });
       setTimeout(() => setObservationAlert(null), 3000);
@@ -719,7 +714,7 @@ export default function BuyerDetails() {
                   header={{
                     title: t.buyers.details.tabs.observations || "Observações",
                     badge: {
-                      label: `${filteredObservations.length} ${filteredObservations.length !== 1 ? "observações" : "observação"}`,
+                      label: `${filteredObservations.length} ${filteredObservations.length !== 1 ? t.buyers.details.tabs.observations : t.buyers.details.observation}`,
                       variant: "primary",
                     },
                     description: t.buyers.details.observationsDescription || "Gerencie as observações deste comprador",
@@ -749,7 +744,9 @@ export default function BuyerDetails() {
                   emptyState={{
                     title: t.buyers.details.noObservations || "Nenhuma observação registrada",
                     description: searchValue
-                      ? t.buyers.details.noObservationsWithSearch || `Nenhuma observação encontrada para "${searchValue}"`
+                      ? (typeof t.buyers.details.noObservationsWithSearch === "function" 
+                          ? t.buyers.details.noObservationsWithSearch(searchValue)
+                          : t.buyers.details.noObservationsWithSearch || `Nenhuma observação encontrada para "${searchValue}"`)
                       : t.buyers.details.noObservationsDescription || "Adicione sua primeira observação sobre este comprador.",
                     onClearSearch: searchValue
                       ? () => {

@@ -87,12 +87,12 @@ export default function PropertyDetails() {
   const subTabParam = searchParams.get("subTab");
 
   const [activeTab, setActiveTab] = useState<
-    "information" | "info" | "animals" | "locations" | "cadastros" | "activities" | "movements"
+    "information" | "info" | "animals" | "locations" | "registrations" | "activities" | "movements"
   >(
     (tabParam === "info" ||
     tabParam === "animals" ||
     tabParam === "locations" ||
-    tabParam === "cadastros" ||
+    tabParam === "registrations" ||
     tabParam === "activities" ||
     tabParam === "movements"
       ? tabParam
@@ -101,12 +101,12 @@ export default function PropertyDetails() {
       | "info"
       | "animals"
       | "locations"
-      | "cadastros"
+      | "registrations"
       | "activities"
       | "movements"
   );
 
-  const [cadastrosSubTab, setCadastrosSubTab] = useState<
+  const [registrationsSubTab, setRegistrationsSubTab] = useState<
     "employees" | "serviceProviders" | "suppliers" | "buyers"
   >(
     (subTabParam === "serviceProviders" || subTabParam === "suppliers" || subTabParam === "buyers"
@@ -123,7 +123,6 @@ export default function PropertyDetails() {
   const itemsPerPage = 10;
   const [searchValue, setSearchValue] = useState("");
 
-  // States for animals tab
   const [animalsSearchValue, setAnimalsSearchValue] = useState("");
   const [animalsActiveFilter, setAnimalsActiveFilter] = useState<string>("all");
   const [animalsCurrentPage, setAnimalsCurrentPage] = useState(1);
@@ -145,7 +144,7 @@ export default function PropertyDetails() {
       tab === "info" ||
       tab === "animals" ||
       tab === "locations" ||
-      tab === "cadastros" ||
+      tab === "registrations" ||
       tab === "activities" ||
       tab === "movements"
     ) {
@@ -156,9 +155,9 @@ export default function PropertyDetails() {
 
     const subTab = searchParams.get("subTab");
     if (subTab === "serviceProviders" || subTab === "suppliers" || subTab === "buyers") {
-      setCadastrosSubTab(subTab);
-    } else if (subTab === "employees" || (activeTab === "cadastros" && !subTab)) {
-      setCadastrosSubTab("employees");
+      setRegistrationsSubTab(subTab);
+    } else if (subTab === "employees" || (activeTab === "registrations" && !subTab)) {
+      setRegistrationsSubTab("employees");
     }
   }, [searchParams, activeTab]);
 
@@ -180,7 +179,6 @@ export default function PropertyDetails() {
   const allPropertyAnimals = getAnimalsByPropertyId(property.id);
   const animalsCount = allPropertyAnimals.length;
 
-  // Calculate total weight from last weighing of each animal
   const calculateTotalWeight = () => {
     let totalWeight = 0;
     allPropertyAnimals.forEach((animal) => {
@@ -195,31 +193,28 @@ export default function PropertyDetails() {
     return totalWeight;
   };
 
-  // Calculate Animal Units (UA): total weight / 450
   const totalWeight = calculateTotalWeight();
   const animalUnits = totalWeight > 0 ? totalWeight / 450 : 0;
 
-  // Convert area to hectares
   const convertToHectares = (value: number, type: AreaType): number => {
     switch (type) {
       case AreaType.HECTARES:
         return value;
       case AreaType.SQUARE_METERS:
-        return value / 10000; // 1 hectare = 10,000 m²
+        return value / 10000;
       case AreaType.SQUARE_FEET:
-        return value / 107639; // 1 hectare = 107,639 ft²
+        return value / 107639;
       case AreaType.ACRES:
-        return value * 0.404686; // 1 acre = 0.404686 hectares
+        return value * 0.404686;
       case AreaType.SQUARE_KILOMETERS:
-        return value * 100; // 1 km² = 100 hectares
+        return value * 100;
       case AreaType.SQUARE_MILES:
-        return value * 258.999; // 1 mi² = 258.999 hectares
+        return value * 258.999;
       default:
         return value;
     }
   };
 
-  // Calculate Stocking Rate: UA's / Hectares
   const areaInHectares = convertToHectares(property.area.value, property.area.type);
   const stockingRate = areaInHectares > 0 && animalUnits > 0 ? animalUnits / areaInHectares : 0;
 
@@ -423,25 +418,25 @@ export default function PropertyDetails() {
           </button>
           <button
             onClick={() => {
-              setActiveTab("cadastros");
-              setCadastrosSubTab("employees");
-              setSearchParams({ tab: "cadastros", subTab: "employees" });
+              setActiveTab("registrations");
+              setRegistrationsSubTab("employees");
+              setSearchParams({ tab: "registrations", subTab: "employees" });
             }}
             className={`
               py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
               ${
-                activeTab === "cadastros"
+                activeTab === "registrations"
                   ? "dark:text-blue-400"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
               }
             `}
             style={
-              activeTab === "cadastros"
+              activeTab === "registrations"
                 ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
                 : undefined
             }
           >
-            {t.properties.details.tabs.cadastros}
+            {t.properties.details.tabs.registrations}
           </button>
           <button
             onClick={() => {
@@ -1377,25 +1372,25 @@ export default function PropertyDetails() {
           );
         })()}
 
-      {activeTab === "cadastros" && property && (
+      {activeTab === "registrations" && property && (
         <div className="space-y-6">
           <div className="mb-4">
             <nav className="flex space-x-3" aria-label="Sub Tabs">
               <button
                 onClick={() => {
-                  setCadastrosSubTab("employees");
-                  setSearchParams({ tab: "cadastros", subTab: "employees" });
+                  setRegistrationsSubTab("employees");
+                  setSearchParams({ tab: "registrations", subTab: "employees" });
                 }}
                 className={`
                   px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer
                   ${
-                    cadastrosSubTab === "employees"
+                    registrationsSubTab === "employees"
                       ? "shadow-sm"
                       : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
                   }
                 `}
                 style={
-                  cadastrosSubTab === "employees"
+                  registrationsSubTab === "employees"
                     ? {
                         backgroundColor: `${DASHBOARD_COLORS.primaryLight}40`,
                         color: DASHBOARD_COLORS.primaryDark,
@@ -1407,19 +1402,19 @@ export default function PropertyDetails() {
               </button>
               <button
                 onClick={() => {
-                  setCadastrosSubTab("serviceProviders");
-                  setSearchParams({ tab: "cadastros", subTab: "serviceProviders" });
+                  setRegistrationsSubTab("serviceProviders");
+                  setSearchParams({ tab: "registrations", subTab: "serviceProviders" });
                 }}
                 className={`
                   px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer
                   ${
-                    cadastrosSubTab === "serviceProviders"
+                    registrationsSubTab === "serviceProviders"
                       ? "shadow-sm"
                       : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
                   }
                 `}
                 style={
-                  cadastrosSubTab === "serviceProviders"
+                  registrationsSubTab === "serviceProviders"
                     ? {
                         backgroundColor: `${DASHBOARD_COLORS.primaryLight}40`,
                         color: DASHBOARD_COLORS.primaryDark,
@@ -1431,19 +1426,19 @@ export default function PropertyDetails() {
               </button>
               <button
                 onClick={() => {
-                  setCadastrosSubTab("suppliers");
-                  setSearchParams({ tab: "cadastros", subTab: "suppliers" });
+                  setRegistrationsSubTab("suppliers");
+                  setSearchParams({ tab: "registrations", subTab: "suppliers" });
                 }}
                 className={`
                   px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer
                   ${
-                    cadastrosSubTab === "suppliers"
+                    registrationsSubTab === "suppliers"
                       ? "shadow-sm"
                       : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
                   }
                 `}
                 style={
-                  cadastrosSubTab === "suppliers"
+                  registrationsSubTab === "suppliers"
                     ? {
                         backgroundColor: `${DASHBOARD_COLORS.primaryLight}40`,
                         color: DASHBOARD_COLORS.primaryDark,
@@ -1455,19 +1450,19 @@ export default function PropertyDetails() {
               </button>
               <button
                 onClick={() => {
-                  setCadastrosSubTab("buyers");
-                  setSearchParams({ tab: "cadastros", subTab: "buyers" });
+                  setRegistrationsSubTab("buyers");
+                  setSearchParams({ tab: "registrations", subTab: "buyers" });
                 }}
                 className={`
                   px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer
                   ${
-                    cadastrosSubTab === "buyers"
+                    registrationsSubTab === "buyers"
                       ? "shadow-sm"
                       : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
                   }
                 `}
                 style={
-                  cadastrosSubTab === "buyers"
+                  registrationsSubTab === "buyers"
                     ? {
                         backgroundColor: `${DASHBOARD_COLORS.primaryLight}40`,
                         color: DASHBOARD_COLORS.primaryDark,
@@ -1480,7 +1475,7 @@ export default function PropertyDetails() {
             </nav>
           </div>
 
-          {cadastrosSubTab === "employees" &&
+          {registrationsSubTab === "employees" &&
             (() => {
               const employees = getEmployeesByPropertyId(property.id);
 
@@ -1594,7 +1589,7 @@ export default function PropertyDetails() {
               );
             })()}
 
-          {cadastrosSubTab === "serviceProviders" &&
+          {registrationsSubTab === "serviceProviders" &&
             (() => {
               const serviceProviders = getServiceProvidersByPropertyId(property.id);
 
@@ -1710,7 +1705,7 @@ export default function PropertyDetails() {
               );
             })()}
 
-          {cadastrosSubTab === "suppliers" &&
+          {registrationsSubTab === "suppliers" &&
             (() => {
               const suppliers = getSuppliersByPropertyId(property.id);
 
@@ -1826,7 +1821,7 @@ export default function PropertyDetails() {
               );
             })()}
 
-          {cadastrosSubTab === "buyers" &&
+          {registrationsSubTab === "buyers" &&
             (() => {
               const buyers = getBuyersByPropertyId(property.id);
 

@@ -69,7 +69,6 @@ export default function SupplierDetails() {
     }
   }, [searchParams]);
 
-  // Observations state
   const [showObservationForm, setShowObservationForm] = useState(false);
   const [observationText, setObservationText] = useState("");
   const [observationFiles, setObservationFiles] = useState<File[]>([]);
@@ -125,7 +124,7 @@ export default function SupplierDetails() {
 
     if (!observationText.trim()) {
       setObservationAlert({
-        title: "Por favor, preencha a observação",
+        title: t.suppliers.details.observationRequired,
         variant: "error",
       });
       setTimeout(() => setObservationAlert(null), 3000);
@@ -134,8 +133,6 @@ export default function SupplierDetails() {
 
     setIsSubmittingObservation(true);
     try {
-      // TODO: Upload files and get file IDs from the server
-      // For now, we'll generate mock file IDs
       const fileIds = observationFiles.map(
         (_, index) => `file-sup-obs-${Date.now()}-${index}`
       );
@@ -146,23 +143,21 @@ export default function SupplierDetails() {
         fileIds: fileIds.length > 0 ? fileIds : undefined,
       });
 
-      // Refresh observations list
       setObservations(getSupplierObservationsBySupplierId(supplier.id));
 
       setObservationAlert({
-        title: "Observação adicionada com sucesso!",
+        title: t.suppliers.details.observationAdded,
         variant: "success",
       });
       setTimeout(() => setObservationAlert(null), 3000);
 
-      // Reset form
       setObservationText("");
       setObservationFiles([]);
       setShowObservationForm(false);
     } catch (error) {
       console.error("Error adding observation:", error);
       setObservationAlert({
-        title: "Erro ao adicionar observação",
+        title: t.suppliers.details.observationError,
         variant: "error",
       });
       setTimeout(() => setObservationAlert(null), 3000);
@@ -727,7 +722,7 @@ export default function SupplierDetails() {
                   header={{
                     title: t.suppliers.details.tabs.observations || "Observações",
                     badge: {
-                      label: `${filteredObservations.length} ${filteredObservations.length !== 1 ? "observações" : "observação"}`,
+                      label: `${filteredObservations.length} ${filteredObservations.length !== 1 ? t.suppliers.details.tabs.observations : t.suppliers.details.observation}`,
                       variant: "primary",
                     },
                     description: t.suppliers.details.observationsDescription || "Gerencie as observações deste fornecedor",
@@ -757,7 +752,9 @@ export default function SupplierDetails() {
                   emptyState={{
                     title: t.suppliers.details.noObservations || "Nenhuma observação registrada",
                     description: searchValue
-                      ? t.suppliers.details.noObservationsWithSearch || `Nenhuma observação encontrada para "${searchValue}"`
+                      ? (typeof t.suppliers.details.noObservationsWithSearch === "function" 
+                          ? t.suppliers.details.noObservationsWithSearch(searchValue)
+                          : t.suppliers.details.noObservationsWithSearch || `Nenhuma observação encontrada para "${searchValue}"`)
                       : t.suppliers.details.noObservationsDescription || "Adicione sua primeira observação sobre este fornecedor.",
                     onClearSearch: searchValue
                       ? () => {

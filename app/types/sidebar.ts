@@ -18,7 +18,7 @@ export interface SidebarSubItemConfig {
 export interface SidebarItemConfig {
   translationKey: keyof {
     dashboard: string;
-    cadastros: string;
+    registrations: string;
     properties: string;
     locations: string;
     employees: string;
@@ -26,7 +26,7 @@ export interface SidebarItemConfig {
     suppliers: string;
     buyers: string;
     animals: string;
-    registros: string;
+    records: string;
     births: string;
     acquisitions: string;
     weighings: string;

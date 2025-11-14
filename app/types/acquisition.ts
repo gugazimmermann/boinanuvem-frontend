@@ -10,7 +10,6 @@ export interface Acquisition extends Record<string, unknown> {
   sellerId?: string;
   price?: number;
   observation?: string;
-  // Birth data
   birthDate?: string;
   motherId?: string;
   fatherId?: string;
@@ -30,7 +29,6 @@ export interface AcquisitionFormData {
   sellerId?: string;
   price?: number;
   observation?: string;
-  // Birth data
   birthDate?: string;
   motherId?: string;
   fatherId?: string;

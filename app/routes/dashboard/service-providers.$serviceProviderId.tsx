@@ -74,7 +74,6 @@ export default function ServiceProviderDetails() {
     }
   }, [searchParams]);
 
-  // Observations state
   const [showObservationForm, setShowObservationForm] = useState(false);
   const [observationText, setObservationText] = useState("");
   const [observationFiles, setObservationFiles] = useState<File[]>([]);
@@ -132,7 +131,7 @@ export default function ServiceProviderDetails() {
 
     if (!observationText.trim()) {
       setObservationAlert({
-        title: "Por favor, preencha a observação",
+        title: t.serviceProviders.details.observationRequired,
         variant: "error",
       });
       setTimeout(() => setObservationAlert(null), 3000);
@@ -141,8 +140,6 @@ export default function ServiceProviderDetails() {
 
     setIsSubmittingObservation(true);
     try {
-      // TODO: Upload files and get file IDs from the server
-      // For now, we'll generate mock file IDs
       const fileIds = observationFiles.map(
         (_, index) => `file-sp-obs-${Date.now()}-${index}`
       );
@@ -153,23 +150,21 @@ export default function ServiceProviderDetails() {
         fileIds: fileIds.length > 0 ? fileIds : undefined,
       });
 
-      // Refresh observations list
       setObservations(getServiceProviderObservationsByServiceProviderId(serviceProvider.id));
 
       setObservationAlert({
-        title: "Observação adicionada com sucesso!",
+        title: t.serviceProviders.details.observationAdded,
         variant: "success",
       });
       setTimeout(() => setObservationAlert(null), 3000);
 
-      // Reset form
       setObservationText("");
       setObservationFiles([]);
       setShowObservationForm(false);
     } catch (error) {
       console.error("Error adding observation:", error);
       setObservationAlert({
-        title: "Erro ao adicionar observação",
+        title: t.serviceProviders.details.observationError,
         variant: "error",
       });
       setTimeout(() => setObservationAlert(null), 3000);
@@ -1096,7 +1091,7 @@ export default function ServiceProviderDetails() {
                   header={{
                     title: t.serviceProviders.details.tabs.observations || "Observações",
                     badge: {
-                      label: `${filteredObservations.length} ${filteredObservations.length !== 1 ? "observações" : "observação"}`,
+                      label: `${filteredObservations.length} ${filteredObservations.length !== 1 ? t.serviceProviders.details.tabs.observations : t.serviceProviders.details.observation}`,
                       variant: "primary",
                     },
                     description: t.serviceProviders.details.observationsDescription || "Gerencie as observações deste prestador de serviço",
@@ -1126,7 +1121,9 @@ export default function ServiceProviderDetails() {
                   emptyState={{
                     title: t.serviceProviders.details.noObservations || "Nenhuma observação registrada",
                     description: searchValue
-                      ? t.serviceProviders.details.noObservationsWithSearch || `Nenhuma observação encontrada para "${searchValue}"`
+                      ? (typeof t.serviceProviders.details.noObservationsWithSearch === "function" 
+                          ? t.serviceProviders.details.noObservationsWithSearch(searchValue)
+                          : t.serviceProviders.details.noObservationsWithSearch || `Nenhuma observação encontrada para "${searchValue}"`)
                       : t.serviceProviders.details.noObservationsDescription || "Adicione sua primeira observação sobre este prestador de serviço.",
                     onClearSearch: searchValue
                       ? () => {

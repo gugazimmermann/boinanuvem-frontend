@@ -74,7 +74,6 @@ export default function EmployeeDetails() {
     }
   }, [searchParams]);
 
-  // Observations state
   const [showObservationForm, setShowObservationForm] = useState(false);
   const [observationText, setObservationText] = useState("");
   const [observationFiles, setObservationFiles] = useState<File[]>([]);
@@ -130,7 +129,7 @@ export default function EmployeeDetails() {
 
     if (!observationText.trim()) {
       setObservationAlert({
-        title: "Por favor, preencha a observação",
+        title: t.employees.details.observationRequired,
         variant: "error",
       });
       setTimeout(() => setObservationAlert(null), 3000);
@@ -139,8 +138,6 @@ export default function EmployeeDetails() {
 
     setIsSubmittingObservation(true);
     try {
-      // TODO: Upload files and get file IDs from the server
-      // For now, we'll generate mock file IDs
       const fileIds = observationFiles.map(
         (_, index) => `file-emp-obs-${Date.now()}-${index}`
       );
@@ -151,23 +148,21 @@ export default function EmployeeDetails() {
         fileIds: fileIds.length > 0 ? fileIds : undefined,
       });
 
-      // Refresh observations list
       setObservations(getEmployeeObservationsByEmployeeId(employee.id));
 
       setObservationAlert({
-        title: "Observação adicionada com sucesso!",
+        title: t.employees.details.observationAdded,
         variant: "success",
       });
       setTimeout(() => setObservationAlert(null), 3000);
 
-      // Reset form
       setObservationText("");
       setObservationFiles([]);
       setShowObservationForm(false);
     } catch (error) {
       console.error("Error adding observation:", error);
       setObservationAlert({
-        title: "Erro ao adicionar observação",
+        title: t.employees.details.observationError,
         variant: "error",
       });
       setTimeout(() => setObservationAlert(null), 3000);
@@ -1070,7 +1065,7 @@ export default function EmployeeDetails() {
                 header={{
                   title: t.employees.details.tabs.observations || "Observações",
                   badge: {
-                    label: `${filteredObservations.length} ${filteredObservations.length !== 1 ? "observações" : "observação"}`,
+                    label: `${filteredObservations.length} ${filteredObservations.length !== 1 ? t.employees.details.tabs.observations : t.employees.details.observation}`,
                     variant: "primary",
                   },
                   description: t.employees.details.observationsDescription || "Gerencie as observações deste funcionário",
@@ -1100,7 +1095,9 @@ export default function EmployeeDetails() {
                 emptyState={{
                   title: t.employees.details.noObservations || "Nenhuma observação registrada",
                   description: searchValue
-                    ? t.employees.details.noObservationsWithSearch || `Nenhuma observação encontrada para "${searchValue}"`
+                    ? (typeof t.employees.details.noObservationsWithSearch === "function" 
+                        ? t.employees.details.noObservationsWithSearch(searchValue)
+                        : t.employees.details.noObservationsWithSearch || `Nenhuma observação encontrada para "${searchValue}"`)
                     : t.employees.details.noObservationsDescription || "Adicione sua primeira observação sobre este funcionário.",
                   onClearSearch: searchValue
                     ? () => {

@@ -36,7 +36,6 @@ export default function ObservationDetails() {
   const [searchParams] = useSearchParams();
   const t = useTranslation();
   
-  // Try to get observation from location, employee, service provider, supplier, and buyer observations
   const locationObservation = getLocationObservationById(observationId);
   const employeeObservation = getEmployeeObservationById(observationId);
   const serviceProviderObservation = getServiceProviderObservationById(observationId);
@@ -55,7 +54,7 @@ export default function ObservationDetails() {
       <div className="space-y-6">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
           <p className="text-gray-600 dark:text-gray-400 mb-4">
-            {t.locations.details.noObservations || "Observação não encontrada"}
+            {t.locations.details.observationNotFound}
           </p>
           <Button variant="outline" onClick={() => navigate(ROUTES.LOCATIONS)}>
             {t.team.new.back}

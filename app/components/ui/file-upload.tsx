@@ -37,7 +37,6 @@ export function FileUpload({
     if (onChange) {
       onChange(multiple ? [...files, ...selectedFiles] : selectedFiles);
     }
-    // Reset input to allow selecting the same file again
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }

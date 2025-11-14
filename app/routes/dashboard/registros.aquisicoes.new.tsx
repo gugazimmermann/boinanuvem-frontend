@@ -224,7 +224,6 @@ export default function NewAcquisition() {
       };
       const newAnimal = addAnimal(animalData);
 
-      // Calculate purity if birth data is provided
       let purity = undefined;
       if (formData.motherId || formData.fatherId || formData.motherRegistrationNumber || formData.fatherRegistrationNumber) {
         const motherBirth = formData.motherId ? getBirthByAnimalId(formData.motherId) : undefined;
