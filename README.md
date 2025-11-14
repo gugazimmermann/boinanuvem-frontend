@@ -2,6 +2,10 @@
 
 A modern, full-stack React application built with React Router v7, featuring a comprehensive dashboard for livestock management, team collaboration, and property management.
 
+## Pre-commit Hooks
+
+This project uses Husky to run pre-commit checks including typecheck, lint, format, and tests.
+
 ## 🚀 Features
 
 ### Core Features

@@ -1,0 +1,17 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running typecheck..."
+npm run typecheck || exit 1
+
+echo "🧹 Running linter..."
+npm run lint || exit 1
+
+echo "💅 Fixing code formatting..."
+npm run format || exit 1
+git add -A
+
+echo "🧪 Running tests..."
+npm run test:run || exit 1
+
+echo "✅ All pre-commit checks passed!"
