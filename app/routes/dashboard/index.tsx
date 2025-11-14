@@ -2,6 +2,8 @@ import { useTranslation } from "~/i18n";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
 import { mockProperties } from "~/mocks/properties";
 import { mockLocations } from "~/mocks/locations";
+import { mockCompanies } from "~/mocks/companies";
+import { getAnimalsByCompanyId } from "~/mocks/animals";
 
 export function meta() {
   return [
@@ -16,6 +18,10 @@ export function meta() {
 export default function Dashboard() {
   const t = useTranslation();
 
+  const company = mockCompanies[0];
+  const companyId = company?.id || "";
+  const animals = getAnimalsByCompanyId(companyId);
+  const totalAnimals = animals.length;
   const totalProperties = mockProperties.length;
   const totalLocations = mockLocations.length;
 
@@ -32,7 +38,9 @@ export default function Dashboard() {
               <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
                 {t.dashboard.stats.totalAnimals}
               </p>
-              <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">1,234</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                {totalAnimals.toLocaleString()}
+              </p>
             </div>
             <div
               className="w-10 h-10 dark:bg-blue-900/30 rounded-lg flex items-center justify-center"
