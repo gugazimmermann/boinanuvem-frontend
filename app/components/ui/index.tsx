@@ -6,4 +6,5 @@ export { ConfirmationModal, type ConfirmationModalProps } from "./confirmation-m
 export { AnimalRegistrationModal } from "./animal-registration-modal";
 export { PasturePlanningGraph } from "./pasture-planning-graph";
 export { Tooltip } from "./tooltip";
+export { FileUpload } from "./file-upload";
 export * from "./table";

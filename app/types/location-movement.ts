@@ -43,6 +43,8 @@ export interface LocationMovement {
   serviceProviderIds: string[];
   type: LocationMovementType;
   date: string;
+  observation?: string;
+  fileIds?: string[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -55,4 +57,6 @@ export interface LocationMovementFormData {
   serviceProviderIds: string[];
   type: LocationMovementType;
   date: string;
+  observation?: string;
+  fileIds?: string[];
 }

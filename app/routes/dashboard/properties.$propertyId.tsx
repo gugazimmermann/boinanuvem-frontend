@@ -2119,18 +2119,6 @@ export default function PropertyDetails() {
               },
             },
             {
-              key: "type",
-              label: t.properties.details.movements.table.type,
-              sortable: true,
-              render: (_, row) => (
-                <span className="text-gray-700 dark:text-gray-300">
-                  {t.properties.details.movements.types[
-                    row.type as keyof typeof t.properties.details.movements.types
-                  ] || row.type}
-                </span>
-              ),
-            },
-            {
               key: "responsible",
               label: t.properties.details.movements.table.responsible,
               sortable: false,
@@ -2154,6 +2142,70 @@ export default function PropertyDetails() {
                   <span className="text-gray-700 dark:text-gray-300">
                     {allResponsibles.length > 0 ? allResponsibles.join(", ") : "-"}
                   </span>
+                );
+              },
+            },
+            {
+              key: "type",
+              label: t.properties.details.movements.table.type,
+              sortable: true,
+              render: (_, row) => (
+                <span className="text-gray-700 dark:text-gray-300">
+                  {t.properties.details.movements.types[
+                    row.type as keyof typeof t.properties.details.movements.types
+                  ] || row.type}
+                </span>
+              ),
+            },
+            {
+              key: "observation",
+              label: t.properties.details.movements.observation || "Observação",
+              sortable: false,
+              render: (_, row) => {
+                if (!row.observation) {
+                  return <span className="text-gray-400 dark:text-gray-500">-</span>;
+                }
+                const truncated =
+                  row.observation.length > 50
+                    ? `${row.observation.substring(0, 50)}...`
+                    : row.observation;
+                return (
+                  <span
+                    className="text-gray-700 dark:text-gray-300"
+                    title={row.observation}
+                  >
+                    {truncated}
+                  </span>
+                );
+              },
+            },
+            {
+              key: "files",
+              label: t.properties.details.movements.files || "Anexos",
+              sortable: false,
+              render: (_, row) => {
+                if (!row.fileIds || row.fileIds.length === 0) {
+                  return <span className="text-gray-400 dark:text-gray-500">-</span>;
+                }
+                return (
+                  <div className="flex items-center space-x-1">
+                    <svg
+                      className="h-4 w-4 text-gray-500 dark:text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      {row.fileIds.length}
+                    </span>
+                  </div>
                 );
               },
             },

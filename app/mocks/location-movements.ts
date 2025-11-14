@@ -14,6 +14,8 @@ export const mockLocationMovements: LocationMovement[] = [
     serviceProviderIds: [],
     type: LocationMovementType.FERTILIZATION,
     date: "2025-01-05",
+    observation: "Aplicação de fertilizante NPK na área norte do pasto. Condições climáticas favoráveis.",
+    fileIds: ["file-20250105-001", "file-20250105-002"],
     createdAt: "2025-01-05T08:30:00Z",
   },
   {
@@ -25,6 +27,8 @@ export const mockLocationMovements: LocationMovement[] = [
     serviceProviderIds: ["880e8400-e29b-41d4-a716-446655440010"],
     type: LocationMovementType.VETERINARY_SERVICE,
     date: "2025-01-10",
+    observation: "Visita veterinária para vacinação e check-up geral do rebanho. Todos os animais em bom estado de saúde.",
+    fileIds: ["file-20250110-001"],
     createdAt: "2025-01-10T09:15:00Z",
   },
   {
@@ -139,6 +143,8 @@ export const mockLocationMovements: LocationMovement[] = [
     serviceProviderIds: [],
     type: LocationMovementType.WEIGHING,
     date: "2025-02-20",
+    observation: "Pesagem mensal do rebanho. Média de ganho de peso dentro do esperado.",
+    fileIds: ["file-20250220-001", "file-20250220-002", "file-20250220-003"],
     createdAt: "2025-02-20T09:30:00Z",
   },
   {
@@ -732,6 +738,8 @@ export const mockLocationMovements: LocationMovement[] = [
     serviceProviderIds: ["880e8400-e29b-41d4-a716-446655440012"],
     type: LocationMovementType.SECURITY_CHECK,
     date: "2025-01-12",
+    observation: "Verificação de segurança realizada em todas as áreas. Nenhuma irregularidade encontrada. Sistema de monitoramento funcionando corretamente.",
+    fileIds: ["file-20250112-001"],
     createdAt: "2025-01-12T16:00:00Z",
   },
   {
@@ -746,6 +754,8 @@ export const mockLocationMovements: LocationMovement[] = [
     ],
     type: LocationMovementType.SEEDING,
     date: "2025-01-15",
+    observation: "Semeadura realizada com sucesso. Utilizado semente de alta qualidade. Condições climáticas ideais para germinação.",
+    fileIds: ["file-20250115-001", "file-20250115-002"],
     createdAt: "2025-01-15T07:00:00Z",
   },
   {
@@ -757,6 +767,8 @@ export const mockLocationMovements: LocationMovement[] = [
     serviceProviderIds: [],
     type: LocationMovementType.HARVESTING,
     date: "2025-01-18",
+    observation: "Colheita realizada com sucesso. Produtividade acima da média. Produtos armazenados adequadamente.",
+    fileIds: ["file-20250118-001"],
     createdAt: "2025-01-18T09:30:00Z",
   },
   {
@@ -768,6 +780,8 @@ export const mockLocationMovements: LocationMovement[] = [
     serviceProviderIds: ["880e8400-e29b-41d4-a716-446655440011"],
     type: LocationMovementType.WATERING,
     date: "2025-01-21",
+    observation: "Sistema de irrigação funcionando normalmente. Água aplicada conforme planejado.",
+    fileIds: [],
     createdAt: "2025-01-21T06:00:00Z",
   },
   {
@@ -782,6 +796,8 @@ export const mockLocationMovements: LocationMovement[] = [
     ],
     type: LocationMovementType.FENCE_REPAIR,
     date: "2025-01-24",
+    observation: "Reparo de cerca concluído. Seção danificada substituída. Fotos do antes e depois anexadas.",
+    fileIds: ["file-20250124-001", "file-20250124-002", "file-20250124-003"],
     createdAt: "2025-01-24T10:15:00Z",
   },
   {
@@ -793,6 +809,8 @@ export const mockLocationMovements: LocationMovement[] = [
     serviceProviderIds: [],
     type: LocationMovementType.GATE_MAINTENANCE,
     date: "2025-01-27",
+    observation: "Manutenção preventiva realizada na porteira. Lubrificação e ajustes feitos. Funcionamento normal.",
+    fileIds: ["file-20250127-001"],
     createdAt: "2025-01-27T11:00:00Z",
   },
   {
@@ -804,6 +822,8 @@ export const mockLocationMovements: LocationMovement[] = [
     serviceProviderIds: ["880e8400-e29b-41d4-a716-446655440010"],
     type: LocationMovementType.WELL_MAINTENANCE,
     date: "2025-01-30",
+    observation: "Manutenção do poço realizada. Bomba verificada e limpeza realizada. Qualidade da água testada e aprovada.",
+    fileIds: ["file-20250130-001", "file-20250130-002"],
     createdAt: "2025-01-30T08:45:00Z",
   },
   {
@@ -818,6 +838,8 @@ export const mockLocationMovements: LocationMovement[] = [
     ],
     type: LocationMovementType.SILO_LOADING,
     date: "2025-02-02",
+    observation: "Carregamento do silo concluído. Quantidade total: 50 toneladas. Grãos em perfeito estado de conservação.",
+    fileIds: ["file-20250202-001"],
     createdAt: "2025-02-02T13:30:00Z",
   },
   {
@@ -829,6 +851,8 @@ export const mockLocationMovements: LocationMovement[] = [
     serviceProviderIds: [],
     type: LocationMovementType.SILO_UNLOADING,
     date: "2025-02-05",
+    observation: "Descarregamento realizado para distribuição. 30 toneladas removidas. Silo limpo após operação.",
+    fileIds: ["file-20250205-001", "file-20250205-002"],
     createdAt: "2025-02-05T14:00:00Z",
   },
   {
@@ -844,6 +868,8 @@ export const mockLocationMovements: LocationMovement[] = [
     ],
     type: LocationMovementType.WASTE_REMOVAL,
     date: "2025-02-08",
+    observation: "Remoção de resíduos realizada conforme protocolo ambiental. Material encaminhado para destinação adequada. Certificado de destinação anexado.",
+    fileIds: ["file-20250208-001", "file-20250208-002", "file-20250208-003", "file-20250208-004"],
     createdAt: "2025-02-08T14:00:00Z",
   },
 ];

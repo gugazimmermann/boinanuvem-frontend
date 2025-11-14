@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router";
-import { Button, Input, Alert } from "~/components/ui";
+import { Button, Input, Alert, FileUpload } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import {
   getPropertyViewRoute,
@@ -41,13 +41,17 @@ export default function NewMovement() {
     locationIds: string[];
     employeeIds: string[];
     serviceProviderIds: string[];
+    observation: string;
   }>({
     type: LocationMovementType.OTHER,
     date: new Date().toISOString().split("T")[0],
     locationIds: [],
     employeeIds: [],
     serviceProviderIds: [],
+    observation: "",
   });
+
+  const [files, setFiles] = useState<File[]>([]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -198,6 +202,10 @@ export default function NewMovement() {
 
     setIsSubmitting(true);
     try {
+      // TODO: Upload files and get file IDs from the server
+      // For now, we'll generate mock file IDs
+      const fileIds = files.map((_, index) => `file-${Date.now()}-${index}`);
+
       const movementData = {
         companyId: property.companyId,
         propertyId: property.id,
@@ -206,6 +214,8 @@ export default function NewMovement() {
         serviceProviderIds: formData.serviceProviderIds,
         type: formData.type,
         date: formData.date,
+        observation: formData.observation.trim() || undefined,
+        fileIds: fileIds.length > 0 ? fileIds : undefined,
       };
       addLocationMovement(movementData);
       showAlert(t.properties.details.movements.success, "success");
@@ -423,6 +433,36 @@ export default function NewMovement() {
             </div>
           </div>
           {errors.responsible && <p className="text-sm text-red-500">{errors.responsible}</p>}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {t.properties.details.movements.observation || "Observação"}
+            </label>
+            <textarea
+              value={formData.observation}
+              onChange={(e) => handleChange("observation", e.target.value)}
+              disabled={isSubmitting}
+              rows={4}
+              className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200 resize-none ${
+                errors.observation
+                  ? "border-red-500"
+                  : "border-gray-300 dark:border-gray-600"
+              }`}
+              placeholder={t.properties.details.movements.observationPlaceholder || "Adicione observações sobre esta movimentação..."}
+            />
+            {errors.observation && (
+              <p className="mt-1 text-sm text-red-500">{errors.observation}</p>
+            )}
+          </div>
+
+          <FileUpload
+            label={t.properties.details.movements.files || "Anexos"}
+            files={files}
+            onChange={setFiles}
+            disabled={isSubmitting}
+            multiple={true}
+            helperText={t.properties.details.movements.filesHelper || "Você pode fazer upload de múltiplos arquivos"}
+          />
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
             <Button
