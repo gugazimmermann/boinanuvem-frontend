@@ -81,6 +81,10 @@ The application will be available at `http://localhost:5173`.
 - `npm run lint:fix` - Run ESLint and automatically fix issues
 - `npm run format` - Format code using Prettier
 - `npm run format:check` - Check code formatting without making changes
+- `npm test` - Run tests in watch mode
+- `npm run test:ui` - Run tests with Vitest UI
+- `npm run test:coverage` - Run tests and generate coverage report
+- `npm run test:watch` - Run tests in watch mode
 
 ## 🏗️ Project Structure
 
@@ -116,9 +120,11 @@ boinanuvem-frontend/
 │   ├── client/            # Client-side assets
 │   └── server/            # Server-side code
 ├── Dockerfile             # Docker configuration
-├── vite.config.ts         # Vite configuration
+├── vite.config.ts         # Vite configuration (includes Vitest config)
 ├── react-router.config.ts # React Router configuration
 ├── tsconfig.json          # TypeScript configuration
+├── vitest.d.ts            # Vitest type declarations
+├── vitest.setup.ts        # Vitest setup file
 └── eslint.config.js       # ESLint configuration
 ```
 
@@ -201,6 +207,71 @@ Make sure to configure the following environment variables for production:
 - Any API endpoints or service URLs your application requires
 - Additional environment-specific configuration as needed
 
+## 🧪 Testing
+
+The project uses **Vitest** for unit and integration testing with **React Testing Library** for component testing.
+
+### Running Tests
+
+Run all tests:
+```bash
+npm test
+```
+
+Run tests with UI (interactive mode):
+```bash
+npm run test:ui
+```
+
+Run tests and generate coverage report:
+```bash
+npm run test:coverage
+```
+
+Run tests in watch mode:
+```bash
+npm run test:watch
+```
+
+### Test Coverage
+
+The project maintains comprehensive test coverage with **73 test files** and **642 passing tests** covering:
+- **Components**: UI components, dashboard components, and site components
+- **Hooks**: Custom React hooks (CEP lookup, CNPJ lookup, auto-rotate, smooth scroll)
+- **Contexts**: Theme and language contexts
+- **Utilities**: Helper functions and utilities
+- **Types**: Type definitions and validations
+
+Coverage reports are generated in the `coverage/` directory and can be viewed by opening `coverage/index.html` in a browser.
+
+### Test Structure
+
+Tests are located alongside their source files in `__tests__` directories:
+```
+app/
+├── components/
+│   ├── ui/
+│   │   └── __tests__/     # UI component tests
+│   ├── dashboard/
+│   │   └── __tests__/     # Dashboard component tests
+│   └── site/
+│       └── __tests__/     # Site component tests
+├── contexts/
+│   └── __tests__/         # Context tests
+├── hooks/
+│   └── __tests__/         # Hook tests
+└── utils/
+    └── __tests__/         # Utility tests
+```
+
+### Testing Tools
+
+- **Vitest** - Fast unit test framework
+- **React Testing Library** - Component testing utilities
+- **@testing-library/jest-dom** - Custom DOM matchers
+- **@testing-library/user-event** - User interaction simulation
+- **jsdom** - DOM implementation for Node.js testing environment
+
 ## 🧪 Code Quality
 
 ### Type Checking
@@ -257,6 +328,15 @@ npm run format:check
 - **Recharts** - Chart and graph library for data visualization
 - **Leaflet** - Interactive maps for property and location visualization
 - **date-fns** - Date utility library
+
+### Testing
+- **Vitest** - Fast unit test framework
+- **React Testing Library** - Component testing utilities
+- **@testing-library/jest-dom** - Custom DOM matchers
+- **@testing-library/user-event** - User interaction simulation
+- **jsdom** - DOM implementation for Node.js testing
+- **@vitest/coverage-v8** - Code coverage reporting
+- **@vitest/ui** - Interactive test UI
 
 ### Development Tools
 - **ESLint** - Code linting and quality checks

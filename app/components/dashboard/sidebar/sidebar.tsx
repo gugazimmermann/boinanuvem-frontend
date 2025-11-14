@@ -20,7 +20,7 @@ export function Sidebar() {
         <nav className="space-y-1">
           {translatedItems.map((item) => (
             <SidebarItem
-              key={item.path}
+              key={item.translationKey}
               label={item.label}
               path={item.path}
               icon={item.icon}
