@@ -16,6 +16,17 @@ import { mockEmployees, deleteEmployee } from "~/mocks/employees";
 import type { Employee } from "~/types";
 import { getPropertyById } from "~/mocks/properties";
 import { ROUTES, getEmployeeEditRoute, getEmployeeViewRoute } from "~/routes.config";
+import { getLocationMovementsByEmployeeId } from "~/mocks/location-movements";
+import { getEmployeeObservationsByEmployeeId } from "~/mocks/employee-observations";
+
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
+};
 
 export function meta() {
   return [
@@ -175,6 +186,60 @@ export default function Employees() {
           <span className="text-gray-700 dark:text-gray-300">
             {properties.length > 0 ? properties.join(", ") : "-"}
           </span>
+        );
+      },
+    },
+    {
+      key: "lastMovement",
+      label: t.employees.table.lastMovement || "Última Movimentação",
+      sortable: false,
+      render: (_, row) => {
+        const movements = getLocationMovementsByEmployeeId(row.id);
+        if (movements.length === 0) {
+          return <span className="text-gray-400 dark:text-gray-500">-</span>;
+        }
+        const lastMovement = movements.sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+        )[0];
+        const movementTypeLabel =
+          t.properties.details.movements.types[
+            lastMovement.type as keyof typeof t.properties.details.movements.types
+          ] || lastMovement.type;
+        return (
+          <div className="space-y-1">
+            <p className="text-sm text-gray-700 dark:text-gray-300">{movementTypeLabel}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {formatDate(lastMovement.date)}
+            </p>
+          </div>
+        );
+      },
+    },
+    {
+      key: "lastObservation",
+      label: t.employees.table.lastObservation || "Última Observação",
+      sortable: false,
+      render: (_, row) => {
+        const observations = getEmployeeObservationsByEmployeeId(row.id);
+        if (observations.length === 0) {
+          return <span className="text-gray-400 dark:text-gray-500">-</span>;
+        }
+        const lastObservation = observations.sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )[0];
+        const truncated =
+          lastObservation.observation.length > 60
+            ? `${lastObservation.observation.substring(0, 60)}...`
+            : lastObservation.observation;
+        return (
+          <div className="space-y-1">
+            <p className="text-sm text-gray-700 dark:text-gray-300" title={lastObservation.observation}>
+              {truncated}
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {formatDate(lastObservation.createdAt)}
+            </p>
+          </div>
         );
       },
     },

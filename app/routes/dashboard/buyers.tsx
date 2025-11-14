@@ -16,6 +16,16 @@ import { mockBuyers, deleteBuyer } from "~/mocks/buyers";
 import type { Buyer } from "~/types";
 import { getPropertyById } from "~/mocks/properties";
 import { ROUTES, getBuyerEditRoute, getBuyerViewRoute } from "~/routes.config";
+import { getBuyerObservationsByBuyerId } from "~/mocks/buyer-observations";
+
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
+};
 
 export function meta() {
   return [
@@ -141,19 +151,13 @@ export default function Buyers() {
       ),
     },
     {
-      key: "cpf",
-      label: t.buyers.table.cpf,
-      sortable: true,
+      key: "document",
+      label: t.buyers.table.document || "Documento",
+      sortable: false,
       render: (_, row) => (
-        <span className="text-gray-700 dark:text-gray-300">{row.cpf || "-"}</span>
-      ),
-    },
-    {
-      key: "cnpj",
-      label: t.buyers.table.cnpj,
-      sortable: true,
-      render: (_, row) => (
-        <span className="text-gray-700 dark:text-gray-300">{row.cnpj || "-"}</span>
+        <span className="text-gray-700 dark:text-gray-300">
+          {row.cpf || row.cnpj || "-"}
+        </span>
       ),
     },
     {
@@ -185,6 +189,34 @@ export default function Buyers() {
           <span className="text-gray-700 dark:text-gray-300">
             {properties.length > 0 ? properties.join(", ") : "-"}
           </span>
+        );
+      },
+    },
+    {
+      key: "lastObservation",
+      label: t.buyers.table.lastObservation || "Última Observação",
+      sortable: false,
+      render: (_, row) => {
+        const observations = getBuyerObservationsByBuyerId(row.id);
+        if (observations.length === 0) {
+          return <span className="text-gray-400 dark:text-gray-500">-</span>;
+        }
+        const lastObservation = observations.sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )[0];
+        const truncated =
+          lastObservation.observation.length > 60
+            ? `${lastObservation.observation.substring(0, 60)}...`
+            : lastObservation.observation;
+        return (
+          <div className="space-y-1">
+            <p className="text-sm text-gray-700 dark:text-gray-300" title={lastObservation.observation}>
+              {truncated}
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {formatDate(lastObservation.createdAt)}
+            </p>
+          </div>
         );
       },
     },

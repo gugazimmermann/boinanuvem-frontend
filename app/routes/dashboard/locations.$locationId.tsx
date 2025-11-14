@@ -7,6 +7,8 @@ import {
   type TableColumn,
   type TableAction,
   type SortDirection,
+  FileUpload,
+  Alert,
 } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import {
@@ -14,6 +16,7 @@ import {
   getLocationEditRoute,
   getMovementViewRoute,
   getMovementNewRoute,
+  getObservationViewRoute,
 } from "~/routes.config";
 import { getLocationById } from "~/mocks/locations";
 import { AreaType } from "~/types";
@@ -24,6 +27,11 @@ import { getServiceProviderById } from "~/mocks/service-providers";
 import type { LocationMovement } from "~/types";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
 import { LocationTypeBadge } from "~/components/dashboard/utils/location-type-badge";
+import {
+  getLocationObservationsByLocationId,
+  addLocationObservation,
+} from "~/mocks/location-observations";
+import type { LocationObservation } from "~/types/location-observation";
 
 const formatAreaType = (type: AreaType): string => {
   const typeMap: Record<AreaType, string> = {
@@ -56,10 +64,15 @@ export default function LocationDetails() {
   const property = location ? getPropertyById(location.propertyId) : undefined;
 
   const tabParam = searchParams.get("tab");
-  const [activeTab, setActiveTab] = useState<"information" | "info" | "activities" | "movements">(
-    (tabParam === "info" || tabParam === "activities" || tabParam === "movements"
+  const [activeTab, setActiveTab] = useState<
+    "information" | "info" | "activities" | "movements" | "observations"
+  >(
+    (tabParam === "info" ||
+      tabParam === "activities" ||
+      tabParam === "movements" ||
+      tabParam === "observations"
       ? tabParam
-      : "information") as "information" | "info" | "activities" | "movements"
+      : "information") as "information" | "info" | "activities" | "movements" | "observations"
   );
 
   const [sortState, setSortState] = useState<{
@@ -73,12 +86,29 @@ export default function LocationDetails() {
 
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (tab === "info" || tab === "activities" || tab === "movements") {
+    if (tab === "info" || tab === "activities" || tab === "movements" || tab === "observations") {
       setActiveTab(tab);
     } else if (!tab) {
       setActiveTab("information");
     }
   }, [searchParams]);
+
+  // Observations state
+  const [showObservationForm, setShowObservationForm] = useState(false);
+  const [observationText, setObservationText] = useState("");
+  const [observationFiles, setObservationFiles] = useState<File[]>([]);
+  const [isSubmittingObservation, setIsSubmittingObservation] = useState(false);
+  const [observationAlert, setObservationAlert] = useState<{
+    title: string;
+    variant: "success" | "error" | "warning" | "info";
+  } | null>(null);
+  const [observations, setObservations] = useState<LocationObservation[]>([]);
+
+  useEffect(() => {
+    if (location) {
+      setObservations(getLocationObservationsByLocationId(location.id));
+    }
+  }, [location]);
 
   if (!location) {
     return (
@@ -101,6 +131,68 @@ export default function LocationDetails() {
       year: "numeric",
     }).format(date);
   };
+
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date);
+  };
+
+  const handleSubmitObservation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!observationText.trim()) {
+      setObservationAlert({
+        title: "Por favor, insira uma observação",
+        variant: "error",
+      });
+      setTimeout(() => setObservationAlert(null), 3000);
+      return;
+    }
+
+    setIsSubmittingObservation(true);
+    try {
+      // TODO: Upload files and get file IDs from the server
+      // For now, we'll generate mock file IDs
+      const fileIds = observationFiles.map(
+        (_, index) => `file-obs-${Date.now()}-${index}`
+      );
+
+      addLocationObservation({
+        locationId: location.id,
+        observation: observationText.trim(),
+        fileIds: fileIds.length > 0 ? fileIds : undefined,
+      });
+
+      // Refresh observations list
+      setObservations(getLocationObservationsByLocationId(location.id));
+
+      setObservationAlert({
+        title: "Observação adicionada com sucesso!",
+        variant: "success",
+      });
+      setTimeout(() => setObservationAlert(null), 3000);
+
+      // Reset form
+      setObservationText("");
+      setObservationFiles([]);
+      setShowObservationForm(false);
+    } catch (error) {
+      console.error("Error adding observation:", error);
+      setObservationAlert({
+        title: "Erro ao adicionar observação",
+        variant: "error",
+      });
+      setTimeout(() => setObservationAlert(null), 3000);
+    } finally {
+      setIsSubmittingObservation(false);
+    }
+  };
+
 
   return (
     <div className="space-y-6">
@@ -219,6 +311,27 @@ export default function LocationDetails() {
             }
           >
             {t.properties.details.movements.title}
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab("observations");
+              setSearchParams({ tab: "observations" });
+            }}
+            className={`
+              py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
+              ${
+                activeTab === "observations"
+                  ? "dark:text-blue-400"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+              }
+            `}
+            style={
+              activeTab === "observations"
+                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
+                : undefined
+            }
+          >
+            {t.locations.details.tabs.observations || "Observações"}
           </button>
           <button
             onClick={() => {
@@ -427,6 +540,292 @@ export default function LocationDetails() {
           </div>
         </div>
       )}
+
+      {activeTab === "observations" &&
+        location &&
+        (() => {
+          const filteredObservations = observations.filter((observation) => {
+            if (!searchValue) return true;
+
+            const searchLower = searchValue.toLowerCase();
+
+            if (observation.observation.toLowerCase().includes(searchLower)) return true;
+
+            const dateText = formatDateTime(observation.createdAt);
+            if (dateText.toLowerCase().includes(searchLower)) return true;
+
+            return false;
+          });
+
+          const sortedObservations = [...filteredObservations].sort((a, b) => {
+            if (!sortState.column || !sortState.direction) {
+              return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            }
+
+            let aValue: string | number | undefined;
+            let bValue: string | number | undefined;
+
+            if (sortState.column === "date") {
+              aValue = new Date(a.createdAt).getTime();
+              bValue = new Date(b.createdAt).getTime();
+            } else if (sortState.column === "observation") {
+              aValue = a.observation;
+              bValue = b.observation;
+            } else {
+              aValue = a[sortState.column as keyof LocationObservation] as string | number | undefined;
+              bValue = b[sortState.column as keyof LocationObservation] as string | number | undefined;
+            }
+
+            if (aValue == null && bValue == null) return 0;
+            if (aValue == null) return 1;
+            if (bValue == null) return -1;
+
+            let comparison = 0;
+            if (typeof aValue === "string" && typeof bValue === "string") {
+              comparison = aValue.localeCompare(bValue, "pt-BR", {
+                sensitivity: "base",
+              });
+            } else if (typeof aValue === "number" && typeof bValue === "number") {
+              comparison = aValue - bValue;
+            } else {
+              comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
+            }
+
+            return sortState.direction === "asc" ? comparison : -comparison;
+          });
+
+          const totalPages = Math.ceil(sortedObservations.length / itemsPerPage);
+          const paginatedObservations = sortedObservations.slice(
+            (currentPage - 1) * itemsPerPage,
+            currentPage * itemsPerPage
+          );
+
+          const columns: TableColumn<LocationObservation>[] = [
+            {
+              key: "date",
+              label: t.locations.details.observationDate || "Data",
+              sortable: true,
+              render: (_, row) => (
+                <span className="text-gray-700 dark:text-gray-300">
+                  {formatDateTime(row.createdAt)}
+                </span>
+              ),
+            },
+            {
+              key: "observation",
+              label: t.locations.details.observation || "Observação",
+              sortable: true,
+              render: (_, row) => {
+                const truncated =
+                  row.observation.length > 100
+                    ? `${row.observation.substring(0, 100)}...`
+                    : row.observation;
+                return (
+                  <span
+                    className="text-gray-700 dark:text-gray-300"
+                    title={row.observation}
+                  >
+                    {truncated}
+                  </span>
+                );
+              },
+            },
+            {
+              key: "files",
+              label: t.locations.details.files || "Anexos",
+              sortable: false,
+              render: (_, row) => {
+                if (!row.fileIds || row.fileIds.length === 0) {
+                  return <span className="text-gray-400 dark:text-gray-500">-</span>;
+                }
+                return (
+                  <div className="flex items-center space-x-1">
+                    <svg
+                      className="h-4 w-4 text-gray-500 dark:text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      {row.fileIds.length}
+                    </span>
+                  </div>
+                );
+              },
+            },
+          ];
+
+          const headerActions: TableAction[] = [
+            {
+              label: t.locations.details.addObservation || "Adicionar Observação",
+              variant: "primary",
+              leftIcon: (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="w-5 h-5"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              ),
+              onClick: () => setShowObservationForm(true),
+            },
+          ];
+
+          return (
+            <div className="space-y-6">
+              {observationAlert && (
+                <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
+                  <Alert title={observationAlert.title} variant={observationAlert.variant} />
+                </div>
+              )}
+
+              {showObservationForm && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100">
+                      {t.locations.details.newObservation || "Nova Observação"}
+                    </h3>
+                    <button
+                      onClick={() => {
+                        setShowObservationForm(false);
+                        setObservationText("");
+                        setObservationFiles([]);
+                      }}
+                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    >
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                  <form onSubmit={handleSubmitObservation} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {t.locations.details.observation || "Observação"} <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        value={observationText}
+                        onChange={(e) => setObservationText(e.target.value)}
+                        disabled={isSubmittingObservation}
+                        rows={4}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200 resize-none"
+                        placeholder={t.locations.details.observationPlaceholder || "Digite sua observação sobre esta localização..."}
+                        required
+                      />
+                    </div>
+
+                    <FileUpload
+                      label={t.locations.details.files || "Anexos"}
+                      files={observationFiles}
+                      onChange={setObservationFiles}
+                      disabled={isSubmittingObservation}
+                      multiple={true}
+                      helperText={t.locations.details.filesHelper || "Você pode fazer upload de múltiplos arquivos"}
+                    />
+
+                    <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setShowObservationForm(false);
+                          setObservationText("");
+                          setObservationFiles([]);
+                        }}
+                        disabled={isSubmittingObservation}
+                      >
+                        {t.common.cancel}
+                      </Button>
+                      <Button type="submit" disabled={isSubmittingObservation}>
+                        {t.common.save}
+                      </Button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {!showObservationForm && (
+                <Table<LocationObservation & Record<string, unknown>>
+                columns={columns}
+                data={paginatedObservations as (LocationObservation & Record<string, unknown>)[]}
+                header={{
+                  title: t.locations.details.tabs.observations || "Observações",
+                  badge: {
+                    label: `${filteredObservations.length} ${filteredObservations.length !== 1 ? "observações" : "observação"}`,
+                    variant: "primary",
+                  },
+                  description: t.locations.details.observationsDescription || "Gerencie as observações desta localização",
+                  actions: headerActions,
+                }}
+                search={{
+                  placeholder: t.locations.details.searchObservations || "Buscar observações...",
+                  value: searchValue,
+                  onChange: (value) => {
+                    setSearchValue(value);
+                    setCurrentPage(1);
+                  },
+                }}
+                pagination={{
+                  currentPage,
+                  totalPages: totalPages || 1,
+                  onPageChange: (page) => {
+                    setCurrentPage(page);
+                  },
+                  showInfo: false,
+                }}
+                sortState={sortState}
+                onSort={(column, direction) => {
+                  setSortState({ column, direction });
+                  setCurrentPage(1);
+                }}
+                emptyState={{
+                  title: t.locations.details.noObservations || "Nenhuma observação registrada",
+                  description: searchValue
+                    ? t.locations.details.noObservationsWithSearch || `Nenhuma observação encontrada para "${searchValue}"`
+                    : t.locations.details.noObservationsDescription || "Adicione sua primeira observação sobre esta localização.",
+                  onClearSearch: searchValue
+                    ? () => {
+                        setSearchValue("");
+                        setCurrentPage(1);
+                      }
+                    : undefined,
+                  clearSearchLabel: searchValue ? t.common.clearSearch : undefined,
+                  onAddNew: () => setShowObservationForm(true),
+                  addNewLabel: t.locations.details.addObservation || "Adicionar Observação",
+                }}
+                onRowClick={(row) =>
+                  navigate(`${getObservationViewRoute(row.id)}?fromLocation=${location.id}`)
+                }
+              />
+              )}
+            </div>
+          );
+        })()}
 
       {activeTab === "movements" &&
         location &&
