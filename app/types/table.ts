@@ -77,4 +77,12 @@ export interface TableProps<T = unknown> {
   loading?: boolean;
   slim?: boolean;
   onRowClick?: (row: T, index: number) => void;
+  selectable?: {
+    selectedRows: Set<string | number>;
+    onSelectionChange: (selectedRows: Set<string | number>) => void;
+    getRowId: (row: T) => string | number;
+    allData?: T[]; // All filtered data for select all functionality (not just current page)
+  };
+  selectedCountLabel?: ReactNode;
+  selectedActionButton?: ReactNode;
 }

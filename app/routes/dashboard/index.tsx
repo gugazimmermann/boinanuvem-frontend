@@ -30,7 +30,6 @@ export default function Dashboard() {
   const births = getBirthsByCompanyId(companyId);
   const totalBirths = births.length;
 
-  // Calculate total weight across all animals
   const calculateTotalWeight = () => {
     let totalWeight = 0;
     animals.forEach((animal) => {
@@ -48,7 +47,6 @@ export default function Dashboard() {
   const totalWeight = calculateTotalWeight();
   const animalUnits = totalWeight > 0 ? totalWeight / 450 : 0;
 
-  // Convert area to hectares
   const convertToHectares = (value: number, type: AreaType): number => {
     switch (type) {
       case AreaType.HECTARES:
@@ -68,16 +66,13 @@ export default function Dashboard() {
     }
   };
 
-  // Calculate total area in hectares
   const totalAreaInHectares = mockProperties.reduce((sum, property) => {
     return sum + convertToHectares(property.area.value, property.area.type);
   }, 0);
 
-  // Calculate stocking rate (UA per hectare)
   const stockingRate =
     totalAreaInHectares > 0 && animalUnits > 0 ? animalUnits / totalAreaInHectares : 0;
 
-  // Calculate active animals
   const activeAnimals = animals.filter((animal) => animal.status === "active").length;
 
   return (

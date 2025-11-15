@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import React from "react";
 import type { TableProps, SortDirection } from "./types";
 import { TableHeader } from "./table-header";
 import { TableFilters } from "./table-filters";
@@ -23,6 +24,9 @@ export function Table<T extends Record<string, unknown>>({
   loading = false,
   slim = false,
   onRowClick,
+  selectable,
+  selectedCountLabel,
+  selectedActionButton,
 }: TableProps<T>) {
   const getRowClassName = (row: T, index: number): string => {
     if (typeof rowClassName === "function") {
@@ -30,6 +34,46 @@ export function Table<T extends Record<string, unknown>>({
     }
     return rowClassName;
   };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (!selectable) return;
+    const newSelection = new Set<string | number>();
+    if (checked) {
+      const dataToSelect = selectable.allData || data;
+      dataToSelect.forEach((row) => {
+        newSelection.add(selectable.getRowId(row));
+      });
+    }
+    selectable.onSelectionChange(newSelection);
+  };
+
+  const handleRowSelect = (
+    row: T,
+    checked: boolean,
+    event: React.ChangeEvent<HTMLInputElement> | React.MouseEvent
+  ) => {
+    if (!selectable) return;
+    if ("stopPropagation" in event) {
+      event.stopPropagation();
+    }
+    const newSelection = new Set(selectable.selectedRows);
+    const rowId = selectable.getRowId(row);
+    if (checked) {
+      newSelection.add(rowId);
+    } else {
+      newSelection.delete(rowId);
+    }
+    selectable.onSelectionChange(newSelection);
+  };
+
+  const selectableData = selectable?.allData || data;
+  const allSelected =
+    selectable &&
+    selectableData.length > 0 &&
+    selectableData.every((row) => selectable.selectedRows.has(selectable.getRowId(row)));
+  const someSelected = selectable
+    ? selectableData.some((row) => selectable.selectedRows.has(selectable.getRowId(row)))
+    : false;
 
   const handleSort = (columnKey: string) => {
     if (!onSort || !sortState) return;
@@ -133,14 +177,23 @@ export function Table<T extends Record<string, unknown>>({
           </div>
           {filters && filters.length > 0 && (
             <div className="mt-3">
-              <TableFilters filters={filters} />
+              <TableFilters
+                filters={filters}
+                selectedCountLabel={selectedCountLabel}
+                selectedActionButton={selectedActionButton}
+              />
             </div>
           )}
         </>
       ) : (
         <>
           {header && <TableHeader {...header} />}
-          <TableFilters filters={filters} search={search} />
+          <TableFilters
+            filters={filters}
+            search={search}
+            selectedCountLabel={selectedCountLabel}
+            selectedActionButton={selectedActionButton}
+          />
         </>
       )}
 
@@ -171,6 +224,27 @@ export function Table<T extends Record<string, unknown>>({
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                   <thead className="bg-gray-50 dark:bg-gray-800">
                     <tr>
+                      {selectable && (
+                        <th
+                          scope="col"
+                          className={`${slim ? "py-2 px-3 text-xs" : "py-3.5 px-4 text-sm"} font-normal text-left rtl:text-right text-gray-500 dark:text-gray-400`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={allSelected || false}
+                            ref={(input) => {
+                              if (input) {
+                                input.indeterminate = someSelected && !allSelected;
+                              }
+                            }}
+                            onChange={(e) => handleSelectAll(e.target.checked)}
+                            className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:bg-gray-700"
+                            style={{
+                              accentColor: "#2563eb",
+                            }}
+                          />
+                        </th>
+                      )}
                       {columns.map((column) => (
                         <th
                           key={column.key}
@@ -197,25 +271,46 @@ export function Table<T extends Record<string, unknown>>({
                     </tr>
                   </thead>
                   <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    {data.map((row, index) => (
-                      <tr
-                        key={index}
-                        className={`${getRowClassName(row, index)} ${onRowClick ? "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" : ""}`}
-                        onClick={() => onRowClick?.(row, index)}
-                      >
-                        {columns.map((column) => {
-                          const value = getColumnValue(column, row, index);
-                          return (
+                    {data.map((row, index) => {
+                      const rowId = selectable ? selectable.getRowId(row) : null;
+                      const isSelected =
+                        selectable && rowId !== null ? selectable.selectedRows.has(rowId) : false;
+                      return (
+                        <tr
+                          key={index}
+                          className={`${getRowClassName(row, index)} ${onRowClick ? "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" : ""} ${isSelected ? "bg-blue-50 dark:bg-blue-900/20" : ""}`}
+                          onClick={() => onRowClick?.(row, index)}
+                        >
+                          {selectable && (
                             <td
-                              key={column.key}
-                              className={`${slim ? "px-3 py-2 text-xs" : "px-4 py-4 text-sm"} whitespace-nowrap ${column.className || ""}`}
+                              className={`${slim ? "px-3 py-2 text-xs" : "px-4 py-4 text-sm"} whitespace-nowrap`}
+                              onClick={(e) => e.stopPropagation()}
                             >
-                              {value}
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={(e) => handleRowSelect(row, e.target.checked, e)}
+                                className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:bg-gray-700"
+                                style={{
+                                  accentColor: "#2563eb",
+                                }}
+                              />
                             </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
+                          )}
+                          {columns.map((column) => {
+                            const value = getColumnValue(column, row, index);
+                            return (
+                              <td
+                                key={column.key}
+                                className={`${slim ? "px-3 py-2 text-xs" : "px-4 py-4 text-sm"} whitespace-nowrap ${column.className || ""}`}
+                              >
+                                {value}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

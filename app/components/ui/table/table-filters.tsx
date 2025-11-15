@@ -1,4 +1,5 @@
 import type { TableFilter } from "./types";
+import type { ReactNode } from "react";
 
 interface TableFiltersProps {
   filters?: TableFilter[];
@@ -7,35 +8,48 @@ interface TableFiltersProps {
     value: string;
     onChange: (value: string) => void;
   };
+  selectedCountLabel?: ReactNode;
+  selectedActionButton?: ReactNode;
 }
 
-export function TableFilters({ filters = [], search }: TableFiltersProps) {
+export function TableFilters({
+  filters = [],
+  search,
+  selectedCountLabel,
+  selectedActionButton,
+}: TableFiltersProps) {
   const hasFilters = filters.length > 0;
   const hasSearch = Boolean(search);
 
-  if (!hasFilters && !hasSearch) {
+  if (!hasFilters && !hasSearch && !selectedCountLabel && !selectedActionButton) {
     return null;
   }
 
   return (
     <div className="mt-4 md:flex md:items-center md:justify-between">
-      {hasFilters && (
-        <div className="inline-flex overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 divide-x divide-gray-200 dark:divide-gray-700 rounded-lg rtl:flex-row-reverse">
-          {filters.map((filter) => (
-            <button
-              key={filter.value}
-              onClick={filter.onClick}
-              className={`px-5 py-2 text-xs font-medium transition-colors duration-200 sm:text-sm cursor-pointer ${
-                filter.active
-                  ? "text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700"
-                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-              }`}
-            >
-              {filter.label}
-            </button>
-          ))}
-        </div>
-      )}
+      <div className="flex items-center gap-3">
+        {hasFilters && (
+          <div className="inline-flex overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 divide-x divide-gray-200 dark:divide-gray-700 rounded-lg rtl:flex-row-reverse">
+            {filters.map((filter) => (
+              <button
+                key={filter.value}
+                onClick={filter.onClick}
+                className={`px-5 py-2 text-xs font-medium transition-colors duration-200 sm:text-sm cursor-pointer ${
+                  filter.active
+                    ? "text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700"
+                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                }`}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
+        )}
+        {selectedCountLabel && (
+          <div className="text-sm text-gray-600 dark:text-gray-400">{selectedCountLabel}</div>
+        )}
+        {selectedActionButton}
+      </div>
 
       {hasSearch && (
         <div className="relative flex items-center mt-4 md:mt-0">

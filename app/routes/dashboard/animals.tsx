@@ -21,7 +21,13 @@ import type { Animal } from "~/types";
 import { getPropertyById } from "~/mocks/properties";
 import { getWeighingsByAnimalId } from "~/mocks/weighings";
 import { getBirthByAnimalId } from "~/mocks/births";
-import { ROUTES, getAnimalEditRoute, getAnimalViewRoute } from "~/routes.config";
+import {
+  ROUTES,
+  getAnimalEditRoute,
+  getAnimalViewRoute,
+  getAnimalMovementNewRoute,
+} from "~/routes.config";
+import { Button } from "~/components/ui";
 
 export function meta() {
   return [
@@ -52,6 +58,7 @@ export default function Animals() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isAnimalRegistrationModalOpen, setIsAnimalRegistrationModalOpen] = useState(false);
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
+  const [selectedAnimals, setSelectedAnimals] = useState<Set<string>>(new Set());
   const [alertMessage, setAlertMessage] = useState<{
     title: string;
     variant: "success" | "error" | "warning" | "info";
@@ -425,6 +432,9 @@ export default function Animals() {
     setCurrentPage(1);
   };
 
+  const selectedCount = selectedAnimals.size;
+  const selectedAnimalIds = Array.from(selectedAnimals);
+
   return (
     <div>
       <Table<Animal>
@@ -440,6 +450,37 @@ export default function Animals() {
           actions: headerActions,
         }}
         filters={filters}
+        selectedCountLabel={selectedCount > 0 ? t.animals.badge.selected(selectedCount) : undefined}
+        selectedActionButton={
+          selectedCount > 0 ? (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                const route = getAnimalMovementNewRoute(selectedAnimalIds);
+                navigate(route.pathname, { state: route.state });
+              }}
+              leftIcon={
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="w-5 h-5"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"
+                  />
+                </svg>
+              }
+            >
+              {t.animals.movement.addButton}
+            </Button>
+          ) : undefined
+        }
         search={{
           placeholder: t.animals.searchPlaceholder,
           value: searchValue,
@@ -454,6 +495,20 @@ export default function Animals() {
         sortState={sortState}
         onSort={handleSort}
         onRowClick={(row) => navigate(getAnimalViewRoute(row.id))}
+        selectable={{
+          selectedRows: selectedAnimals,
+          onSelectionChange: (newSelection) => {
+            const stringSet = new Set<string>();
+            newSelection.forEach((id) => {
+              if (typeof id === "string") {
+                stringSet.add(id);
+              }
+            });
+            setSelectedAnimals(stringSet);
+          },
+          getRowId: (row) => row.id,
+          allData: filteredData,
+        }}
         emptyState={{
           title: t.animals.emptyState.title,
           description: searchValue

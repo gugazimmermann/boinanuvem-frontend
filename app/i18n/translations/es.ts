@@ -248,6 +248,7 @@ export const es = {
           electrical_maintenance: "Mantenimiento Eléctrico",
           building_repair: "Reparación de Construcción",
           other: "Otro",
+          animal_movement: "Movimiento de Animal",
         },
         emptyState: {
           title: "No se encontraron movimientos",
@@ -1048,6 +1049,8 @@ export const es = {
     },
     badge: {
       animals: (count: number) => `${count} animal${count !== 1 ? "es" : ""}`,
+      selected: (count: number) =>
+        `${count} animal${count === 1 ? "" : "es"} seleccionado${count !== 1 ? "s" : ""}`,
     },
     emptyState: {
       title: "No se encontraron animales",
@@ -1070,6 +1073,22 @@ export const es = {
     errors: {
       deleteFailed: "Error al eliminar animal. Intente nuevamente.",
       updateFailed: "Error al actualizar animal. Intente nuevamente.",
+    },
+    movement: {
+      title: "Agregar Movimiento",
+      description: (count: number) =>
+        `Mover ${count} ${count === 1 ? "animal" : "animales"} entre propiedades y ubicaciones`,
+      selectedAnimals: "Animales Seleccionados",
+      propertyLabel: "Propiedad",
+      locationLabel: "Ubicación",
+      noLocation: "Sin ubicación",
+      noAnimalsSelected:
+        "No se seleccionaron animales. Seleccione animales de la lista para moverlos.",
+      save: "Guardar Movimiento",
+      success: (successCount: number, totalCount: number) =>
+        `${successCount} de ${totalCount} ${totalCount === 1 ? "animal actualizado" : "animales actualizados"} con éxito!`,
+      error: "Error al actualizar animales. Intente nuevamente.",
+      addButton: "Agregar Movimiento",
     },
     new: {
       title: "Agregar Animal",

@@ -44,6 +44,7 @@ export default [
     route(ROUTE_NAMES.ANIMALS_NEW, "routes/dashboard/animals.new.tsx"),
     route(ROUTE_NAMES.ANIMALS_EDIT, "routes/dashboard/animals.edit.$animalId.tsx"),
     route(ROUTE_NAMES.ANIMALS_VIEW, "routes/dashboard/animals.$animalId.tsx"),
+    route(ROUTE_NAMES.ANIMALS_MOVEMENT_NEW, "routes/dashboard/animals.movement.new.tsx"),
     route(ROUTE_NAMES.BIRTHS, "routes/dashboard/registros.nascimentos.tsx"),
     route(ROUTE_NAMES.BIRTHS_NEW, "routes/dashboard/registros.nascimentos.new.tsx"),
     route(ROUTE_NAMES.ACQUISITIONS, "routes/dashboard/registros.aquisicoes.tsx"),

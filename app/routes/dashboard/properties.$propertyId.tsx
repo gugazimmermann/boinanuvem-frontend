@@ -37,10 +37,11 @@ import { getServiceProvidersByPropertyId, getServiceProviderById } from "~/mocks
 import { getSuppliersByPropertyId } from "~/mocks/suppliers";
 import { getBuyersByPropertyId } from "~/mocks/buyers";
 import { getLocationMovementsByPropertyId } from "~/mocks/location-movements";
-import { getAnimalsByPropertyId, deleteAnimal } from "~/mocks/animals";
+import { getAnimalMovementsByPropertyId } from "~/mocks/animal-movements";
+import { getAnimalsByPropertyId, deleteAnimal, getAnimalById } from "~/mocks/animals";
 import { getBirthByAnimalId } from "~/mocks/births";
 import { getWeighingsByAnimalId } from "~/mocks/weighings";
-import { getAnimalViewRoute, getAnimalEditRoute } from "~/routes.config";
+import { getAnimalViewRoute, getAnimalEditRoute, getAnimalMovementNewRoute } from "~/routes.config";
 import type {
   Location,
   Employee,
@@ -48,6 +49,7 @@ import type {
   Supplier,
   Buyer,
   LocationMovement,
+  AnimalMovement,
   Animal,
 } from "~/types";
 import { AreaType } from "~/types";
@@ -132,6 +134,7 @@ export default function PropertyDetails() {
   }>({ column: "code", direction: "asc" });
   const [isDeleteAnimalModalOpen, setIsDeleteAnimalModalOpen] = useState(false);
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
+  const [selectedAnimals, setSelectedAnimals] = useState<Set<string>>(new Set());
   const [isAnimalRegistrationModalOpen, setIsAnimalRegistrationModalOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState<{
     title: string;
@@ -1198,6 +1201,9 @@ export default function PropertyDetails() {
             setAnimalsCurrentPage(1);
           };
 
+          const selectedCount = selectedAnimals.size;
+          const selectedAnimalIds = Array.from(selectedAnimals);
+
           return (
             <div className="space-y-6">
               <Table<Animal>
@@ -1213,6 +1219,39 @@ export default function PropertyDetails() {
                   actions: headerActions,
                 }}
                 filters={filters}
+                selectedCountLabel={
+                  selectedCount > 0 ? t.animals.badge.selected(selectedCount) : undefined
+                }
+                selectedActionButton={
+                  selectedCount > 0 ? (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => {
+                        const route = getAnimalMovementNewRoute(selectedAnimalIds);
+                        navigate(route.pathname, { state: route.state });
+                      }}
+                      leftIcon={
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={1.5}
+                          stroke="currentColor"
+                          className="w-5 h-5"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"
+                          />
+                        </svg>
+                      }
+                    >
+                      {t.animals.movement.addButton}
+                    </Button>
+                  ) : undefined
+                }
                 search={{
                   placeholder: t.animals.searchPlaceholder,
                   value: animalsSearchValue,
@@ -1230,6 +1269,20 @@ export default function PropertyDetails() {
                 sortState={animalsSortState}
                 onSort={handleSort}
                 onRowClick={(row) => navigate(getAnimalViewRoute(row.id))}
+                selectable={{
+                  selectedRows: selectedAnimals,
+                  onSelectionChange: (newSelection) => {
+                    const stringSet = new Set<string>();
+                    newSelection.forEach((id) => {
+                      if (typeof id === "string") {
+                        stringSet.add(id);
+                      }
+                    });
+                    setSelectedAnimals(stringSet);
+                  },
+                  getRowId: (row) => row.id,
+                  allData: filteredAnimals,
+                }}
                 emptyState={{
                   title: t.animals.emptyState.title,
                   description: animalsSearchValue
@@ -2013,23 +2066,48 @@ export default function PropertyDetails() {
       {activeTab === "movements" &&
         property &&
         (() => {
-          const movements = getLocationMovementsByPropertyId(property.id);
+          const locationMovements = getLocationMovementsByPropertyId(property.id);
+          const animalMovements = getAnimalMovementsByPropertyId(property.id);
+
+          type UnifiedMovement =
+            | (LocationMovement & { movementType: "location" } & Record<string, unknown>)
+            | (AnimalMovement & { movementType: "animal" } & Record<string, unknown>);
+
+          const movements: UnifiedMovement[] = [
+            ...locationMovements.map((m) => ({ ...m, movementType: "location" as const })),
+            ...animalMovements.map((m) => ({ ...m, movementType: "animal" as const })),
+          ];
 
           const filteredMovements = movements.filter((movement) => {
             if (!searchValue) return true;
 
             const searchLower = searchValue.toLowerCase();
 
-            const typeText =
-              t.properties.details.movements.types[
-                movement.type as keyof typeof t.properties.details.movements.types
-              ] || movement.type;
-            if (typeText.toLowerCase().includes(searchLower)) return true;
+            if (movement.movementType === "location") {
+              const typeText =
+                t.properties.details.movements.types[
+                  (movement as LocationMovement)
+                    .type as keyof typeof t.properties.details.movements.types
+                ] || (movement as LocationMovement).type;
+              if (typeText.toLowerCase().includes(searchLower)) return true;
+            } else {
+              const animalMovementText =
+                t.properties.details.movements.types.animal_movement.toLowerCase();
+              if (
+                animalMovementText.includes(searchLower) ||
+                "animal".toLowerCase().includes(searchLower)
+              )
+                return true;
+            }
 
             const dateText = formatDate(movement.date);
             if (dateText.toLowerCase().includes(searchLower)) return true;
 
-            const locationNames = movement.locationIds
+            const locationIds =
+              movement.movementType === "location"
+                ? (movement as LocationMovement).locationIds
+                : [(movement as AnimalMovement).locationId];
+            const locationNames = locationIds
               .map((id) => {
                 const location = getLocationById(id);
                 return location
@@ -2038,6 +2116,17 @@ export default function PropertyDetails() {
               })
               .join(" ");
             if (locationNames.includes(searchLower)) return true;
+
+            if (movement.movementType === "animal") {
+              const animalNames = (movement as AnimalMovement).animalIds
+                .map((id) => {
+                  const animal = getAnimalById(id);
+                  return animal ? `${animal.code} ${animal.registrationNumber}`.toLowerCase() : "";
+                })
+                .filter((name) => name !== "")
+                .join(" ");
+              if (animalNames.includes(searchLower)) return true;
+            }
 
             const employeeNames = movement.employeeIds
               .map((id) => {
@@ -2062,7 +2151,7 @@ export default function PropertyDetails() {
 
           const sortedMovements = [...filteredMovements].sort((a, b) => {
             if (!sortState.column || !sortState.direction) {
-              return 0;
+              return new Date(b.date).getTime() - new Date(a.date).getTime();
             }
 
             let aValue: string | number | undefined;
@@ -2072,14 +2161,22 @@ export default function PropertyDetails() {
               aValue = new Date(a.date).getTime();
               bValue = new Date(b.date).getTime();
             } else if (sortState.column === "locations") {
-              const aLocationNames = a.locationIds
+              const aLocationIds =
+                a.movementType === "location"
+                  ? (a as LocationMovement).locationIds
+                  : [(a as AnimalMovement).locationId];
+              const bLocationIds =
+                b.movementType === "location"
+                  ? (b as LocationMovement).locationIds
+                  : [(b as AnimalMovement).locationId];
+              const aLocationNames = aLocationIds
                 .map((id) => {
                   const location = getLocationById(id);
                   return location ? `${location.name} (${location.code})` : id;
                 })
                 .sort()
                 .join(", ");
-              const bLocationNames = b.locationIds
+              const bLocationNames = bLocationIds
                 .map((id) => {
                   const location = getLocationById(id);
                   return location ? `${location.name} (${location.code})` : id;
@@ -2088,9 +2185,40 @@ export default function PropertyDetails() {
                 .join(", ");
               aValue = aLocationNames;
               bValue = bLocationNames;
+            } else if (sortState.column === "type") {
+              if (a.movementType === "location") {
+                aValue = (a as LocationMovement).type;
+              } else {
+                aValue = "animal";
+              }
+              if (b.movementType === "location") {
+                bValue = (b as LocationMovement).type;
+              } else {
+                bValue = "animal";
+              }
             } else {
-              aValue = a[sortState.column as keyof LocationMovement] as string | number | undefined;
-              bValue = b[sortState.column as keyof LocationMovement] as string | number | undefined;
+              if (a.movementType === "location") {
+                aValue = (a as LocationMovement)[sortState.column as keyof LocationMovement] as
+                  | string
+                  | number
+                  | undefined;
+              } else {
+                aValue = (a as AnimalMovement)[sortState.column as keyof AnimalMovement] as
+                  | string
+                  | number
+                  | undefined;
+              }
+              if (b.movementType === "location") {
+                bValue = (b as LocationMovement)[sortState.column as keyof LocationMovement] as
+                  | string
+                  | number
+                  | undefined;
+              } else {
+                bValue = (b as AnimalMovement)[sortState.column as keyof AnimalMovement] as
+                  | string
+                  | number
+                  | undefined;
+              }
             }
 
             if (aValue == null && bValue == null) return 0;
@@ -2117,7 +2245,7 @@ export default function PropertyDetails() {
             currentPage * itemsPerPage
           );
 
-          const columns: TableColumn<LocationMovement>[] = [
+          const columns: TableColumn<UnifiedMovement>[] = [
             {
               key: "date",
               label: t.properties.details.movements.table.date,
@@ -2127,11 +2255,38 @@ export default function PropertyDetails() {
               ),
             },
             {
+              key: "type",
+              label: t.properties.details.movements.table.type,
+              sortable: true,
+              render: (_, row) => {
+                if (row.movementType === "location") {
+                  return (
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {t.properties.details.movements.types[
+                        (row as LocationMovement)
+                          .type as keyof typeof t.properties.details.movements.types
+                      ] || (row as LocationMovement).type}
+                    </span>
+                  );
+                } else {
+                  return (
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {t.properties.details.movements.types.animal_movement}
+                    </span>
+                  );
+                }
+              },
+            },
+            {
               key: "locations",
               label: t.properties.details.movements.table.locations,
               sortable: true,
               render: (_, row) => {
-                const locationNames = row.locationIds
+                const locationIds =
+                  row.movementType === "location"
+                    ? (row as LocationMovement).locationIds
+                    : [(row as AnimalMovement).locationId];
+                const locationNames = locationIds
                   .map((id) => {
                     const location = getLocationById(id);
                     return location ? `${location.name} (${location.code})` : id;
@@ -2140,6 +2295,18 @@ export default function PropertyDetails() {
                 return (
                   <span className="text-gray-700 dark:text-gray-300">{locationNames || "-"}</span>
                 );
+              },
+            },
+            {
+              key: "animals",
+              label: "Animais",
+              sortable: false,
+              render: (_, row) => {
+                if (row.movementType === "animal") {
+                  const count = (row as AnimalMovement).animalIds.length;
+                  return <span className="text-gray-700 dark:text-gray-300">{count}</span>;
+                }
+                return <span className="text-gray-400 dark:text-gray-500">-</span>;
               },
             },
             {
@@ -2170,31 +2337,21 @@ export default function PropertyDetails() {
               },
             },
             {
-              key: "type",
-              label: t.properties.details.movements.table.type,
-              sortable: true,
-              render: (_, row) => (
-                <span className="text-gray-700 dark:text-gray-300">
-                  {t.properties.details.movements.types[
-                    row.type as keyof typeof t.properties.details.movements.types
-                  ] || row.type}
-                </span>
-              ),
-            },
-            {
               key: "observation",
               label: t.properties.details.movements.observation || "Observação",
               sortable: false,
               render: (_, row) => {
-                if (!row.observation) {
+                const observation =
+                  row.movementType === "location"
+                    ? (row as LocationMovement).observation
+                    : (row as AnimalMovement).observation;
+                if (!observation) {
                   return <span className="text-gray-400 dark:text-gray-500">-</span>;
                 }
                 const truncated =
-                  row.observation.length > 50
-                    ? `${row.observation.substring(0, 50)}...`
-                    : row.observation;
+                  observation.length > 50 ? `${observation.substring(0, 50)}...` : observation;
                 return (
-                  <span className="text-gray-700 dark:text-gray-300" title={row.observation}>
+                  <span className="text-gray-700 dark:text-gray-300" title={observation}>
                     {truncated}
                   </span>
                 );
@@ -2205,7 +2362,11 @@ export default function PropertyDetails() {
               label: t.properties.details.movements.files || "Anexos",
               sortable: false,
               render: (_, row) => {
-                if (!row.fileIds || row.fileIds.length === 0) {
+                const fileIds =
+                  row.movementType === "location"
+                    ? (row as LocationMovement).fileIds
+                    : (row as AnimalMovement).fileIds;
+                if (!fileIds || fileIds.length === 0) {
                   return <span className="text-gray-400 dark:text-gray-500">-</span>;
                 }
                 return (
@@ -2224,7 +2385,7 @@ export default function PropertyDetails() {
                       />
                     </svg>
                     <span className="text-sm text-gray-700 dark:text-gray-300">
-                      {row.fileIds.length}
+                      {fileIds.length}
                     </span>
                   </div>
                 );
@@ -2258,9 +2419,9 @@ export default function PropertyDetails() {
 
           return (
             <div className="space-y-6">
-              <Table<LocationMovement & Record<string, unknown>>
+              <Table<UnifiedMovement>
                 columns={columns}
-                data={paginatedMovements as (LocationMovement & Record<string, unknown>)[]}
+                data={paginatedMovements}
                 header={{
                   title: t.properties.details.movements.title,
                   badge: {
@@ -2306,7 +2467,9 @@ export default function PropertyDetails() {
                     : undefined,
                   clearSearchLabel: searchValue ? t.common.clearSearch : undefined,
                 }}
-                onRowClick={(row) => navigate(getMovementViewRoute(row.id))}
+                onRowClick={(row) => {
+                  navigate(`${getMovementViewRoute(row.id)}?fromProperty=${property.id}`);
+                }}
               />
             </div>
           );

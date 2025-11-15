@@ -247,6 +247,7 @@ export const pt = {
           electrical_maintenance: "Manutenção Elétrica",
           building_repair: "Reparo de Construção",
           other: "Outro",
+          animal_movement: "Movimentação de Animal",
         },
         emptyState: {
           title: "Nenhuma movimentação encontrada",
@@ -1049,6 +1050,8 @@ export const pt = {
     },
     badge: {
       animals: (count: number) => `${count} ${count !== 1 ? "animais" : "animal"}`,
+      selected: (count: number) =>
+        `${count} ${count === 1 ? "animal selecionado" : "animais selecionados"}`,
     },
     emptyState: {
       title: "Nenhum animal encontrado",
@@ -1071,6 +1074,22 @@ export const pt = {
     errors: {
       deleteFailed: "Erro ao excluir animal. Tente novamente.",
       updateFailed: "Erro ao atualizar animal. Tente novamente.",
+    },
+    movement: {
+      title: "Adicionar Movimentação",
+      description: (count: number) =>
+        `Mover ${count} ${count === 1 ? "animal" : "animais"} entre propriedades e localizações`,
+      selectedAnimals: "Animais Selecionados",
+      propertyLabel: "Propriedade",
+      locationLabel: "Localização",
+      noLocation: "Sem localização",
+      noAnimalsSelected:
+        "Nenhum animal selecionado. Selecione animais na lista para movimentá-los.",
+      save: "Salvar Movimentação",
+      success: (successCount: number, totalCount: number) =>
+        `${successCount} de ${totalCount} ${totalCount === 1 ? "animal atualizado" : "animais atualizados"} com sucesso!`,
+      error: "Erro ao atualizar animais. Tente novamente.",
+      addButton: "Adicionar Movimentação",
     },
     new: {
       title: "Adicionar Animal",

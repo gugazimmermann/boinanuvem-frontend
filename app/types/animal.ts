@@ -30,13 +30,6 @@ export interface Animal extends Record<string, unknown> {
   createdAt: string;
   companyId: string;
   propertyId: string;
-  street?: string;
-  number?: string;
-  complement?: string;
-  neighborhood?: string;
-  city?: string;
-  state?: string;
-  zipCode?: string;
 }
 
 export interface AnimalFormData {
@@ -46,11 +39,4 @@ export interface AnimalFormData {
   status: "active" | "inactive";
   companyId: string;
   propertyId: string;
-  street?: string;
-  number?: string;
-  complement?: string;
-  neighborhood?: string;
-  city?: string;
-  state?: string;
-  zipCode?: string;
 }

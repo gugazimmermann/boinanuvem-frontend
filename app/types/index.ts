@@ -8,6 +8,7 @@ export type { Supplier, SupplierFormData } from "./supplier";
 export type { Buyer, BuyerFormData } from "./buyer";
 export type { Animal, AnimalFormData } from "./animal";
 export { AnimalBreed } from "./animal";
+export type { AnimalMovement } from "./animal-movement";
 export type { Weighing, WeighingFormData } from "./weighing";
 export type { Birth, BirthFormData } from "./birth";
 export { BirthPurity } from "./birth";

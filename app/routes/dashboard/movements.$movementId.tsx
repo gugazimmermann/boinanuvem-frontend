@@ -1,5 +1,7 @@
 import { useParams, useNavigate, useSearchParams } from "react-router";
-import { Button } from "~/components/ui";
+import { differenceInMonths, differenceInDays, format } from "date-fns";
+import { ptBR } from "date-fns/locale/pt-BR";
+import { Button, Table, Tooltip, StatusBadge, type TableColumn } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import {
   ROUTES,
@@ -7,14 +9,22 @@ import {
   getLocationViewRoute,
   getEmployeeViewRoute,
   getServiceProviderViewRoute,
+  getAnimalViewRoute,
 } from "~/routes.config";
 import { getEmployeeById as getEmployeeByIdForCheck } from "~/mocks/employees";
 import { getServiceProviderById as getServiceProviderByIdForCheck } from "~/mocks/service-providers";
 import { getLocationMovementById } from "~/mocks/location-movements";
+import { getAnimalMovementById } from "~/mocks/animal-movements";
 import { getPropertyById } from "~/mocks/properties";
 import { getLocationById } from "~/mocks/locations";
 import { getEmployeeById } from "~/mocks/employees";
 import { getServiceProviderById } from "~/mocks/service-providers";
+import { getAnimalById } from "~/mocks/animals";
+import { getBirthByAnimalId } from "~/mocks/births";
+import { getWeighingsByAnimalId } from "~/mocks/weighings";
+import type { LocationMovement } from "~/types/location-movement";
+import type { AnimalMovement } from "~/types/animal-movement";
+import type { Animal } from "~/types";
 
 export function meta() {
   return [
@@ -31,10 +41,15 @@ export default function MovementDetails() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const t = useTranslation();
-  const movement = getLocationMovementById(movementId);
+  const locationMovement = movementId ? getLocationMovementById(movementId) : undefined;
+  const animalMovement = movementId ? getAnimalMovementById(movementId) : undefined;
+  const movement = locationMovement || animalMovement;
+  const isLocationMovement = !!locationMovement;
+  const isAnimalMovement = !!animalMovement;
   const fromLocationId = searchParams.get("fromLocation");
   const fromEmployeeId = searchParams.get("fromEmployee");
   const fromServiceProviderId = searchParams.get("fromServiceProvider");
+  const fromPropertyId = searchParams.get("fromProperty");
 
   if (!movement) {
     return (
@@ -52,15 +67,27 @@ export default function MovementDetails() {
   }
 
   const property = getPropertyById(movement.propertyId);
-  const locations = movement.locationIds
-    .map((id) => getLocationById(id))
-    .filter((loc): loc is NonNullable<typeof loc> => loc !== undefined);
+  const locations = isLocationMovement
+    ? (movement as LocationMovement).locationIds
+        .map((id) => getLocationById(id))
+        .filter((loc): loc is NonNullable<typeof loc> => loc !== undefined)
+    : isAnimalMovement
+      ? (() => {
+          const location = getLocationById((movement as AnimalMovement).locationId);
+          return location ? [location] : [];
+        })()
+      : [];
   const employees = movement.employeeIds
     .map((id) => getEmployeeById(id))
     .filter((emp): emp is NonNullable<typeof emp> => emp !== undefined);
   const serviceProviders = movement.serviceProviderIds
     .map((id) => getServiceProviderById(id))
     .filter((prov): prov is NonNullable<typeof prov> => prov !== undefined);
+  const animals = isAnimalMovement
+    ? (movement as AnimalMovement).animalIds
+        .map((id) => getAnimalById(id))
+        .filter((animal): animal is NonNullable<typeof animal> => animal !== undefined)
+    : [];
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -73,10 +100,11 @@ export default function MovementDetails() {
     }).format(date);
   };
 
-  const movementTypeLabel =
-    t.properties.details.movements.types[
-      movement.type as keyof typeof t.properties.details.movements.types
-    ] || movement.type;
+  const movementTypeLabel = isLocationMovement
+    ? t.properties.details.movements.types[
+        (movement as LocationMovement).type as keyof typeof t.properties.details.movements.types
+      ] || (movement as LocationMovement).type
+    : t.properties.details.movements.types.animal_movement;
 
   return (
     <div className="space-y-6">
@@ -102,6 +130,8 @@ export default function MovementDetails() {
                 getServiceProviderByIdForCheck(fromServiceProviderId)
               ) {
                 navigate(getServiceProviderViewRoute(fromServiceProviderId));
+              } else if (fromPropertyId && getPropertyById(fromPropertyId)) {
+                navigate(`${getPropertyViewRoute(fromPropertyId)}?tab=movements`);
               } else if (property) {
                 navigate(`${getPropertyViewRoute(property.id)}?tab=movements`);
               } else {
@@ -338,6 +368,252 @@ export default function MovementDetails() {
           </div>
         )}
       </div>
+
+      {isAnimalMovement && animals.length > 0 && (
+        <div className="w-full">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
+            {t.animals.title || "Animais"} ({animals.length})
+          </h2>
+          {(() => {
+            const columns: TableColumn<Animal>[] = [
+              {
+                key: "code",
+                label: t.animals.table.registration,
+                sortable: true,
+                render: (_, row) => (
+                  <div>
+                    <h2 className="font-medium text-gray-800 dark:text-gray-200">{row.code}</h2>
+                    <p className="text-sm font-normal text-gray-600 dark:text-gray-400">
+                      {row.registrationNumber}
+                    </p>
+                  </div>
+                ),
+              },
+              {
+                key: "breed",
+                label: t.animals.table.breed,
+                sortable: true,
+                render: (_, row) => {
+                  const birth = getBirthByAnimalId(row.id);
+                  if (!birth || !birth.breed) {
+                    return <span className="text-gray-700 dark:text-gray-300">-</span>;
+                  }
+                  return (
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {t.animals.breeds[birth.breed] || birth.breed}
+                    </span>
+                  );
+                },
+              },
+              {
+                key: "purity",
+                label: t.animals.table.purity,
+                sortable: true,
+                render: (_, row) => {
+                  const birth = getBirthByAnimalId(row.id);
+                  if (!birth || !birth.purity) {
+                    return <span className="text-gray-700 dark:text-gray-300">-</span>;
+                  }
+                  return (
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {t.animals.purity[birth.purity]}
+                    </span>
+                  );
+                },
+              },
+              {
+                key: "gender",
+                label: t.animals.table.gender,
+                sortable: true,
+                render: (_, row) => {
+                  const birth = getBirthByAnimalId(row.id);
+                  if (!birth || !birth.gender) {
+                    return <span className="text-gray-700 dark:text-gray-300">-</span>;
+                  }
+                  return (
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {birth.gender ? t.animals.gender[birth.gender] : "-"}
+                    </span>
+                  );
+                },
+              },
+              {
+                key: "birthDate",
+                label: t.animals.table.birthDate,
+                sortable: true,
+                render: (_, row) => {
+                  const birth = getBirthByAnimalId(row.id);
+                  if (!birth || !birth.birthDate) {
+                    return <span className="text-gray-700 dark:text-gray-300">-</span>;
+                  }
+
+                  const birthDate = new Date(birth.birthDate);
+                  const today = new Date();
+                  const months = differenceInMonths(today, birthDate);
+                  const formattedDate = format(birthDate, "dd/MM/yyyy", { locale: ptBR });
+
+                  return (
+                    <Tooltip content={formattedDate}>
+                      <span className="text-gray-700 dark:text-gray-300 border-b border-dotted border-gray-400 dark:border-gray-500 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
+                        {months} {months === 1 ? t.common.month : t.common.months}
+                      </span>
+                    </Tooltip>
+                  );
+                },
+              },
+              {
+                key: "acquisitionDate",
+                label: t.animals.table.acquisitionDate,
+                sortable: true,
+                render: (_, row) => {
+                  if (!row.acquisitionDate) {
+                    return <span className="text-gray-700 dark:text-gray-300">-</span>;
+                  }
+
+                  const acquisitionDate = new Date(row.acquisitionDate);
+                  const today = new Date();
+                  const months = differenceInMonths(today, acquisitionDate);
+                  const formattedDate = format(acquisitionDate, "dd/MM/yyyy", { locale: ptBR });
+
+                  return (
+                    <Tooltip content={formattedDate}>
+                      <span className="text-gray-700 dark:text-gray-300 border-b border-dotted border-gray-400 dark:border-gray-500 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
+                        {months} {months === 1 ? t.common.month : t.common.months}
+                      </span>
+                    </Tooltip>
+                  );
+                },
+              },
+              {
+                key: "weight",
+                label: t.animals.table.weight,
+                sortable: true,
+                render: (_, row) => {
+                  const weighings = getWeighingsByAnimalId(row.id);
+                  const lastWeighing = weighings.sort(
+                    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+                  )[0];
+                  return (
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {lastWeighing ? `${lastWeighing.weight}` : "-"}
+                    </span>
+                  );
+                },
+              },
+              {
+                key: "weightInArrobas",
+                label: t.animals.table.weightInArrobas,
+                sortable: true,
+                render: (_, row) => {
+                  const weighings = getWeighingsByAnimalId(row.id);
+                  const lastWeighing = weighings.sort(
+                    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+                  )[0];
+                  const weightInArrobas = lastWeighing
+                    ? (lastWeighing.weight / 30).toFixed(2)
+                    : null;
+                  return (
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {weightInArrobas ? `${weightInArrobas}` : "-"}
+                    </span>
+                  );
+                },
+              },
+              {
+                key: "lastWeighingDate",
+                label: t.animals.table.lastWeighingDate,
+                sortable: true,
+                render: (_, row) => {
+                  const weighings = getWeighingsByAnimalId(row.id);
+                  const lastWeighing = weighings.sort(
+                    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+                  )[0];
+                  if (!lastWeighing)
+                    return <span className="text-gray-700 dark:text-gray-300">-</span>;
+
+                  const formattedDate = format(new Date(lastWeighing.date), "dd/MM/yyyy", {
+                    locale: ptBR,
+                  });
+                  const today = new Date();
+                  const weighingDate = new Date(lastWeighing.date);
+                  const daysAgo = differenceInDays(today, weighingDate);
+                  const tooltipText = t.common.daysAgo(daysAgo);
+
+                  return (
+                    <Tooltip content={tooltipText}>
+                      <span className="text-gray-700 dark:text-gray-300 border-b border-dotted border-gray-400 dark:border-gray-500 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
+                        {formattedDate}
+                      </span>
+                    </Tooltip>
+                  );
+                },
+              },
+              {
+                key: "gmd",
+                label: (
+                  <Tooltip content={t.common.dailyAverageGain}>
+                    <span className="border-b border-dotted border-gray-400 dark:border-gray-500 hover:border-blue-500 dark:hover:border-blue-400 transition-colors cursor-help">
+                      {t.animals.table.gmd}
+                    </span>
+                  </Tooltip>
+                ),
+                sortable: true,
+                render: (_, row) => {
+                  const weighings = getWeighingsByAnimalId(row.id);
+                  const sortedWeighings = weighings.sort(
+                    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+                  );
+
+                  if (sortedWeighings.length < 2) {
+                    return <span className="text-gray-700 dark:text-gray-300">-</span>;
+                  }
+
+                  const lastWeighing = sortedWeighings[0];
+                  const previousWeighing = sortedWeighings[1];
+
+                  const weightDifference = lastWeighing.weight - previousWeighing.weight;
+                  const daysDifference = differenceInDays(
+                    new Date(lastWeighing.date),
+                    new Date(previousWeighing.date)
+                  );
+
+                  if (daysDifference === 0) {
+                    return <span className="text-gray-700 dark:text-gray-300">-</span>;
+                  }
+
+                  const gpd = (weightDifference / daysDifference).toFixed(2);
+                  return <span className="text-gray-700 dark:text-gray-300">{gpd}</span>;
+                },
+              },
+              {
+                key: "status",
+                label: t.animals.table.status,
+                sortable: true,
+                render: (_, row) => (
+                  <StatusBadge
+                    label={
+                      row.status === "active" ? t.animals.table.active : t.animals.table.inactive
+                    }
+                    variant={row.status === "active" ? "success" : "default"}
+                  />
+                ),
+              },
+            ];
+
+            return (
+              <Table
+                data={animals}
+                columns={columns}
+                onRowClick={(row) => navigate(getAnimalViewRoute(row.id))}
+                emptyState={{
+                  title: t.animals.emptyState.title,
+                  description: t.animals.emptyState.descriptionWithoutSearch,
+                }}
+              />
+            );
+          })()}
+        </div>
+      )}
     </div>
   );
 }

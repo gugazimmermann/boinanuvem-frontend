@@ -21,7 +21,8 @@ This project uses Husky to run pre-commit checks including typecheck, lint, form
 - **Birth Records**: Track and manage animal births
 - **Acquisitions**: Record and manage animal acquisitions
 - **Weighings**: Track animal weight measurements over time
-- **Location Movements**: Monitor animal movements between locations
+- **Animal Movements**: Track animal movements between properties and locations with responsible parties, observations, and file attachments
+- **Location Movements**: Monitor location-based movements and activities
 
 ### Property & Location Management
 - **Properties**: Manage multiple properties with detailed information
@@ -88,6 +89,7 @@ The application will be available at `http://localhost:5173`.
 - `npm test` - Run tests in watch mode
 - `npm run test:ui` - Run tests with Vitest UI
 - `npm run test:coverage` - Run tests and generate coverage report
+- `npm run test:run` - Run tests once (CI mode)
 - `npm run test:watch` - Run tests in watch mode
 
 ## 🏗️ Project Structure
@@ -109,10 +111,13 @@ boinanuvem-frontend/
 │   │   └── ui/             # Base UI components (tables, modals, inputs, etc.)
 │   ├── contexts/           # React contexts (theme, language)
 │   ├── i18n/               # Internationalization
+│   │   ├── __tests__/     # i18n translation tests
 │   │   └── translations/   # Translation files (pt, en, es)
 │   ├── mocks/              # Mock data for development
+│   │   └── __tests__/     # Mock data function tests
 │   ├── routes/             # Route components
 │   │   ├── dashboard/      # Dashboard route components
+│   │   │   └── __tests__/ # Route component tests
 │   │   └── *.tsx          # Public routes (home, login, register, etc.)
 │   ├── types/              # TypeScript type definitions
 │   ├── utils/              # Utility functions
@@ -140,6 +145,17 @@ The application supports multiple languages:
 - Spanish (es)
 
 Language files are located in `app/i18n/translations/`. The language context provides translation hooks throughout the application.
+
+### Translation Coverage
+
+All user-facing strings are internationalized, including:
+- Animal movement types and labels
+- Form labels and placeholders
+- Error messages and notifications
+- Table headers and filters
+- Button labels and actions
+
+The application uses a comprehensive translation system with type-safe translation keys and fallback support.
 
 ## 🎨 Theming
 
@@ -239,12 +255,15 @@ npm run test:watch
 
 ### Test Coverage
 
-The project maintains comprehensive test coverage with **73 test files** and **642 passing tests** covering:
+The project maintains comprehensive test coverage with **76+ test files** and **667+ passing tests** covering:
 - **Components**: UI components, dashboard components, and site components
 - **Hooks**: Custom React hooks (CEP lookup, CNPJ lookup, auto-rotate, smooth scroll)
 - **Contexts**: Theme and language contexts
 - **Utilities**: Helper functions and utilities
 - **Types**: Type definitions and validations
+- **i18n**: Translation keys and internationalization
+- **Mocks**: Mock data functions and data management
+- **Routes**: Route components and navigation
 
 Coverage reports are generated in the `coverage/` directory and can be viewed by opening `coverage/index.html` in a browser.
 
@@ -286,7 +305,14 @@ Run TypeScript type checking:
 npm run typecheck
 ```
 
-This command generates React Router types and runs the TypeScript compiler.
+This command generates React Router types and runs the TypeScript compiler. The project maintains strict TypeScript configuration with full type safety across all components, utilities, and mock data functions.
+
+### Type Safety Features
+
+- **Strict Mode**: Full TypeScript strict mode enabled
+- **Type Inference**: Comprehensive type inference for better developer experience
+- **Generic Components**: Reusable generic components with proper type constraints
+- **Mock Data Types**: Fully typed mock data with proper interfaces
 
 ### Linting
 
@@ -301,6 +327,8 @@ Automatically fix linting issues:
 ```bash
 npm run lint:fix
 ```
+
+The project uses ESLint with TypeScript-specific rules, React hooks rules, and accessibility checks. All code follows consistent linting standards with zero warnings in production code.
 
 ### Code Formatting
 
@@ -320,9 +348,16 @@ npm run format:check
 
 ### Core Framework
 - **React Router v7** - Full-stack React framework with SSR support
-- **React 19** - UI library
+- **React 19** - UI library with latest features
 - **TypeScript 5.9** - Type safety and developer experience
 - **Vite 7** - Build tool and dev server
+
+### Key Features
+- **Server-Side Rendering (SSR)** - Optimized for SEO and performance
+- **Type Safety** - Full TypeScript coverage with strict mode
+- **Internationalization** - Multi-language support (pt, en, es)
+- **Accessibility** - WCAG compliant components and interactions
+- **Responsive Design** - Mobile-first approach with Tailwind CSS
 
 ### Styling & UI
 - **Tailwind CSS v4** - Utility-first CSS framework

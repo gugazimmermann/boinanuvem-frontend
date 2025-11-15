@@ -45,6 +45,7 @@ export const ROUTES = {
   WEIGHINGS_NEW: "/dashboard/registros/pesagens/novo",
   MOVEMENTS_NEW: "/dashboard/propriedades/:propertyId/movimentacoes/novo",
   MOVEMENTS_VIEW: "/dashboard/movimentacoes/:movementId",
+  ANIMALS_MOVEMENT_NEW: "/dashboard/animais/movimentacao/novo",
   OBSERVATIONS_VIEW: "/dashboard/observacoes/:observationId",
   PROFILE: "/dashboard/perfil",
   TEAM: "/dashboard/equipe",
@@ -129,6 +130,13 @@ export function getMovementNewRoute(propertyId: string): string {
   return `/dashboard/propriedades/${propertyId}/movimentacoes/novo`;
 }
 
+export function getAnimalMovementNewRoute(animalIds: string[]): { pathname: string; state: { animalIds: string[] } } {
+  return {
+    pathname: ROUTES.ANIMALS_MOVEMENT_NEW,
+    state: { animalIds },
+  };
+}
+
 export function getObservationViewRoute(observationId: string): string {
   return `/dashboard/observacoes/${observationId}`;
 }
@@ -180,6 +188,7 @@ export const ROUTE_NAMES = {
   WEIGHINGS_NEW: "registros/pesagens/novo",
   MOVEMENTS_NEW: "propriedades/:propertyId/movimentacoes/novo",
   MOVEMENTS_VIEW: "movimentacoes/:movementId",
+  ANIMALS_MOVEMENT_NEW: "animais/movimentacao/novo",
   OBSERVATIONS_VIEW: "observacoes/:observationId",
   PROFILE: "perfil",
   USER_PROFILE: "perfil/usuario/:userId",
