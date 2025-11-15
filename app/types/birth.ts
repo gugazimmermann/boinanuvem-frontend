@@ -1,11 +1,11 @@
 export enum BirthPurity {
-  PO = "po", // Puro de Origem
-  PC = "pc", // Puro por Cruza (~96,875% ou mais)
-  F1 = "f1", // Primeira Geração Cruzada
-  F2 = "f2", // Segunda Geração
-  F3 = "f3", // Terceira Geração
-  F4 = "f4", // Quarta Geração
-  F5 = "f5", // Quinta Geração
+  PO = "po",
+  PC = "pc",
+  F1 = "f1",
+  F2 = "f2",
+  F3 = "f3",
+  F4 = "f4",
+  F5 = "f5",
 }
 
 import { AnimalBreed } from "./animal";

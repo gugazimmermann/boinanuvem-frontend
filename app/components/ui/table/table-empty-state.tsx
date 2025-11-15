@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Button } from "../button";
+import { useTranslation } from "~/i18n/use-translation";
 
 interface TableEmptyStateProps {
   title?: string;
@@ -13,20 +14,24 @@ interface TableEmptyStateProps {
 }
 
 export function TableEmptyState({
-  title = "No vendors found",
+  title,
   description,
   searchQuery,
   onClearSearch,
-  clearSearchLabel = "Clear Search",
+  clearSearchLabel,
   onAddNew,
-  addNewLabel = "Add vendor",
+  addNewLabel,
   icon,
 }: TableEmptyStateProps) {
-  const defaultDescription = searchQuery
-    ? `Your search "${searchQuery}" did not match any vendors. Please try again or create add a new vendor.`
-    : "No data available. Please try again or create add a new vendor.";
-
-  const displayDescription = description || defaultDescription;
+  const t = useTranslation();
+  const defaultTitle = title || "No vendors found";
+  const defaultClearSearchLabel = clearSearchLabel || t.common.clearSearch;
+  const defaultAddNewLabel = addNewLabel || "Add vendor";
+  const displayDescription =
+    description ||
+    (searchQuery
+      ? `Your search "${searchQuery}" did not match any vendors. Please try again or create add a new vendor.`
+      : "No data available. Please try again or create add a new vendor.");
 
   const defaultIcon = (
     <svg
@@ -51,7 +56,7 @@ export function TableEmptyState({
         <div className="p-3 mx-auto text-blue-500 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 rounded-full">
           {icon || defaultIcon}
         </div>
-        <h1 className="mt-3 text-lg text-gray-800 dark:text-gray-200">{title}</h1>
+        <h1 className="mt-3 text-lg text-gray-800 dark:text-gray-200">{defaultTitle}</h1>
         <p className="mt-2 text-gray-500 dark:text-gray-400">{displayDescription}</p>
         {(onClearSearch || onAddNew) && (
           <div className="flex items-center mt-4 sm:mx-auto gap-x-3">
@@ -62,7 +67,7 @@ export function TableEmptyState({
                 onClick={onClearSearch}
                 className="w-1/2 sm:w-auto"
               >
-                {clearSearchLabel}
+                {defaultClearSearchLabel}
               </Button>
             )}
             {onAddNew && (
@@ -88,7 +93,7 @@ export function TableEmptyState({
                 }
                 className="w-1/2 sm:w-auto"
               >
-                {addNewLabel}
+                {defaultAddNewLabel}
               </Button>
             )}
           </div>

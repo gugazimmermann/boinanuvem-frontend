@@ -1,7 +1,3 @@
-/**
- * Address-related types
- */
-
 export interface AddressFormData {
   zipCode: string;
   street: string;

@@ -81,7 +81,7 @@ describe("geocoding", () => {
       };
 
       const result = await geocodeAddress(address);
-      expect(result).toEqual({ error: "Incomplete address" });
+      expect(result).toEqual({ error: "INCOMPLETE_ADDRESS" });
     });
 
     it("should return error when street is missing", async () => {
@@ -95,7 +95,7 @@ describe("geocoding", () => {
       };
 
       const result = await geocodeAddress(address);
-      expect(result).toEqual({ error: "Incomplete address" });
+      expect(result).toEqual({ error: "INCOMPLETE_ADDRESS" });
     });
 
     it("should return error when city is missing", async () => {
@@ -109,7 +109,7 @@ describe("geocoding", () => {
       };
 
       const result = await geocodeAddress(address);
-      expect(result).toEqual({ error: "Incomplete address" });
+      expect(result).toEqual({ error: "INCOMPLETE_ADDRESS" });
     });
 
     it("should return error when state is missing", async () => {
@@ -123,7 +123,7 @@ describe("geocoding", () => {
       };
 
       const result = await geocodeAddress(address);
-      expect(result).toEqual({ error: "Incomplete address" });
+      expect(result).toEqual({ error: "INCOMPLETE_ADDRESS" });
     });
 
     it("should geocode address successfully", async () => {
@@ -171,7 +171,7 @@ describe("geocoding", () => {
       };
 
       const result = await geocodeAddress(address);
-      expect(result).toEqual({ error: "Network error" });
+      expect(result).toEqual({ error: "UNKNOWN_ERROR:Network error" });
     });
 
     it("should handle non-ok response", async () => {
@@ -190,7 +190,7 @@ describe("geocoding", () => {
       };
 
       const result = await geocodeAddress(address);
-      expect(result).toEqual({ error: "Request error: Not Found" });
+      expect(result).toEqual({ error: "REQUEST_ERROR:Not Found" });
     });
 
     it("should try simplified address when first attempt fails", async () => {
@@ -256,7 +256,7 @@ describe("geocoding", () => {
       };
 
       const result = await geocodeAddress(address);
-      expect(result).toEqual({ error: "Address not found" });
+      expect(result).toEqual({ error: "ADDRESS_NOT_FOUND" });
     });
   });
 });

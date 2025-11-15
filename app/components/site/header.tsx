@@ -3,8 +3,10 @@ import { NAV_LINKS, COLORS } from "./constants";
 import { Button } from "./ui";
 import { useSmoothScroll } from "./hooks";
 import { ROUTES } from "../../routes.config";
+import { useTranslation } from "~/i18n/use-translation";
 
 export const Header = memo(function Header() {
+  const t = useTranslation();
   useSmoothScroll();
 
   return (
@@ -36,7 +38,7 @@ export const Header = memo(function Header() {
             <Button href={ROUTES.LOGIN} size="sm" variant="primary">
               Começar
             </Button>
-            <button className="md:hidden cursor-pointer" aria-label="Toggle menu">
+            <button className="md:hidden cursor-pointer" aria-label={t.common.toggleMenu}>
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"

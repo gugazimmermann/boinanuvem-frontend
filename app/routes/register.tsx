@@ -17,6 +17,7 @@ import {
   buildAddressString,
 } from "../components/site/utils";
 import { BRAZILIAN_STATES } from "../utils/brazilian-states";
+import { useTranslation } from "../i18n/use-translation";
 
 export function meta() {
   return [
@@ -29,6 +30,7 @@ export function meta() {
 }
 
 export default function Register() {
+  const t = useTranslation();
   const [step, setStep] = useState<1 | 2>(1);
   const [companyErrors, setCompanyErrors] = useState<Record<string, string>>({});
 
@@ -242,12 +244,27 @@ export default function Register() {
       zipCode: userData.zipCode,
     });
 
+    const translateError = (error: string): string => {
+      if (error === "INCOMPLETE_ADDRESS") return t.common.incompleteAddress;
+      if (error === "ADDRESS_NOT_FOUND") return t.common.addressNotFound;
+      if (error.startsWith("REQUEST_ERROR:")) {
+        const statusText = error.replace("REQUEST_ERROR:", "");
+        return `${t.common.requestError}: ${statusText}`;
+      }
+      if (error.startsWith("UNKNOWN_ERROR:")) {
+        const errorMessage = error.replace("UNKNOWN_ERROR:", "");
+        return `${t.common.unknownError}: ${errorMessage}`;
+      }
+      if (error === "UNKNOWN_ERROR") return t.common.unknownError;
+      return error;
+    };
+
     let message = "=== Address Coordinates ===\n\n";
 
     message += "📍 Company Address:\n";
     message += `${companyAddress}\n\n`;
     if ("error" in companyGeocode) {
-      message += `❌ Error: ${companyGeocode.error}\n\n`;
+      message += `❌ Error: ${translateError(companyGeocode.error)}\n\n`;
     } else {
       message += `✅ Latitude: ${companyGeocode.lat}\n`;
       message += `✅ Longitude: ${companyGeocode.lon}\n\n`;
@@ -256,7 +273,7 @@ export default function Register() {
     message += "👤 User Address:\n";
     message += `${userAddress}\n\n`;
     if ("error" in userGeocode) {
-      message += `❌ Error: ${userGeocode.error}\n`;
+      message += `❌ Error: ${translateError(userGeocode.error)}\n`;
     } else {
       message += `✅ Latitude: ${userGeocode.lat}\n`;
       message += `✅ Longitude: ${userGeocode.lon}\n`;

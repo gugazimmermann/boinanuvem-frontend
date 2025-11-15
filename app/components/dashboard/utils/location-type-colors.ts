@@ -1,10 +1,5 @@
 import { LocationType } from "~/types";
 
-/**
- * Color mapping for each location type.
- * Each type has a unique color to ensure visual distinction.
- * Colors are defined as [textColor, backgroundColor] for light mode and [textColor, backgroundColor] for dark mode.
- */
 export const LOCATION_TYPE_COLORS: Record<
   LocationType,
   {
@@ -74,11 +69,6 @@ export const LOCATION_TYPE_COLORS: Record<
   },
 };
 
-/**
- * Gets the color configuration for a given location type.
- * @param locationType - The location type
- * @returns The color configuration for light and dark modes
- */
 export function getLocationTypeColors(locationType: LocationType) {
   return LOCATION_TYPE_COLORS[locationType] || LOCATION_TYPE_COLORS[LocationType.OTHER];
 }

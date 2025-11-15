@@ -1,7 +1,3 @@
-/**
- * Geocoding-related types
- */
-
 export interface GeocodeResult {
   lat: string;
   lon: string;

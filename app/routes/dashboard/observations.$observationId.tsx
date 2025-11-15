@@ -8,17 +8,20 @@ import {
   getServiceProviderViewRoute,
   getSupplierViewRoute,
   getBuyerViewRoute,
+  getAnimalViewRoute,
 } from "~/routes.config";
 import { getLocationObservationById } from "~/mocks/location-observations";
 import { getEmployeeObservationById } from "~/mocks/employee-observations";
 import { getServiceProviderObservationById } from "~/mocks/service-provider-observations";
 import { getSupplierObservationById } from "~/mocks/supplier-observations";
 import { getBuyerObservationById } from "~/mocks/buyer-observations";
+import { getAnimalObservationById } from "~/mocks/animal-observations";
 import { getLocationById } from "~/mocks/locations";
 import { getEmployeeById } from "~/mocks/employees";
 import { getServiceProviderById } from "~/mocks/service-providers";
 import { getSupplierById } from "~/mocks/suppliers";
 import { getBuyerById } from "~/mocks/buyers";
+import { getAnimalById } from "~/mocks/animals";
 
 export function meta() {
   return [
@@ -41,18 +44,21 @@ export default function ObservationDetails() {
   const serviceProviderObservation = getServiceProviderObservationById(observationId);
   const supplierObservation = getSupplierObservationById(observationId);
   const buyerObservation = getBuyerObservationById(observationId);
+  const animalObservation = getAnimalObservationById(observationId);
   const observation =
     locationObservation ||
     employeeObservation ||
     serviceProviderObservation ||
     supplierObservation ||
-    buyerObservation;
+    buyerObservation ||
+    animalObservation;
 
   const fromLocationId = searchParams.get("fromLocation");
   const fromEmployeeId = searchParams.get("fromEmployee");
   const fromServiceProviderId = searchParams.get("fromServiceProvider");
   const fromSupplierId = searchParams.get("fromSupplier");
   const fromBuyerId = searchParams.get("fromBuyer");
+  const fromAnimalId = searchParams.get("fromAnimal");
 
   if (!observation) {
     return (
@@ -82,6 +88,7 @@ export default function ObservationDetails() {
     ? getSupplierById(supplierObservation.supplierId)
     : undefined;
   const buyer = buyerObservation ? getBuyerById(buyerObservation.buyerId) : undefined;
+  const animal = animalObservation ? getAnimalById(animalObservation.animalId) : undefined;
 
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -119,6 +126,8 @@ export default function ObservationDetails() {
                 navigate(`${getSupplierViewRoute(fromSupplierId)}?tab=observations`);
               } else if (fromBuyerId && getBuyerById(fromBuyerId)) {
                 navigate(`${getBuyerViewRoute(fromBuyerId)}?tab=observations`);
+              } else if (fromAnimalId && getAnimalById(fromAnimalId)) {
+                navigate(`${getAnimalViewRoute(fromAnimalId)}?tab=observations`);
               } else if (location) {
                 navigate(`${getLocationViewRoute(location.id)}?tab=observations`);
               } else if (employee) {
@@ -129,6 +138,8 @@ export default function ObservationDetails() {
                 navigate(`${getSupplierViewRoute(supplier.id)}?tab=observations`);
               } else if (buyer) {
                 navigate(`${getBuyerViewRoute(buyer.id)}?tab=observations`);
+              } else if (animal) {
+                navigate(`${getAnimalViewRoute(animal.id)}?tab=observations`);
               } else {
                 navigate(ROUTES.LOCATIONS);
               }
@@ -280,6 +291,33 @@ export default function ObservationDetails() {
               <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{buyer.name}</p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 {t.buyers.table.code}: {buyer.code}
+              </p>
+            </div>
+            <svg
+              className="w-4 h-4 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+        </div>
+      )}
+
+      {animal && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
+            {t.animals.table.code}
+          </h2>
+          <div
+            className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
+            onClick={() => navigate(`${getAnimalViewRoute(animal.id)}?tab=observations`)}
+          >
+            <div>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{animal.code}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {t.animals.table.registration}: {animal.registrationNumber}
               </p>
             </div>
             <svg

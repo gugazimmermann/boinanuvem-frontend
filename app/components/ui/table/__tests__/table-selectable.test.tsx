@@ -124,7 +124,6 @@ describe("Table Selectable", () => {
 
     expect(onSelectionChange).toHaveBeenCalled();
     const callArg = onSelectionChange.mock.calls[0][0];
-    // Should select all items from allData, not just current page
     expect(callArg.size).toBe(5);
   });
 
@@ -132,7 +131,6 @@ describe("Table Selectable", () => {
     const user = userEvent.setup();
     const selectedRows = new Set<string>();
     const onSelectionChange = vi.fn((newSelection: Set<string | number>) => {
-      // Simulate the conversion we do in the actual code
       const stringSet = new Set<string>();
       newSelection.forEach((id) => {
         if (typeof id === "string") {
@@ -183,7 +181,6 @@ describe("Table Selectable", () => {
     const checkboxes = screen.getAllByRole("checkbox");
     const selectAllCheckbox = checkboxes[0] as HTMLInputElement;
 
-    // Checkbox should be in indeterminate state
     expect(selectAllCheckbox.indeterminate).toBe(true);
   });
 });

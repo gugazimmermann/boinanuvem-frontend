@@ -7,10 +7,6 @@ interface LocationTypeBadgeProps {
   className?: string;
 }
 
-/**
- * Badge component for displaying location types with unique colors.
- * Each location type has a distinct color to ensure visual distinction.
- */
 export function LocationTypeBadge({ locationType, label, className = "" }: LocationTypeBadgeProps) {
   const colors = getLocationTypeColors(locationType);
 

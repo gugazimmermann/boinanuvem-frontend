@@ -1,7 +1,3 @@
-/**
- * Company-related types
- */
-
 export interface CompanyFormData {
   cnpj: string;
   companyName: string;

@@ -41,6 +41,7 @@ export type { PermissionAction, ResourcePermissions, UserPermissions } from "./p
 export type { LocationMovement, LocationMovementFormData } from "./location-movement";
 export { LocationMovementType } from "./location-movement";
 export type { LocationObservation, LocationObservationFormData } from "./location-observation";
+export type { AnimalObservation, AnimalObservationFormData } from "./animal-observation";
 export type { EmployeeObservation, EmployeeObservationFormData } from "./employee-observation";
 export type {
   ServiceProviderObservation,

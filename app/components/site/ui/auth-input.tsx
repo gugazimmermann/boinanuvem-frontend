@@ -1,4 +1,5 @@
 import { forwardRef, useId, useState, type InputHTMLAttributes } from "react";
+import { useTranslation } from "~/i18n/use-translation";
 
 interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "className"> {
   label?: string;
@@ -45,6 +46,7 @@ export const AuthInput = forwardRef<HTMLInputElement, InputProps>(
     },
     ref
   ) => {
+    const t = useTranslation();
     const generatedId = useId();
     const inputId = id || generatedId;
     const hasError = Boolean(error);
@@ -92,7 +94,7 @@ export const AuthInput = forwardRef<HTMLInputElement, InputProps>(
               type="button"
               onClick={togglePasswordVisibility}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none transition-colors cursor-pointer"
-              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-label={showPassword ? t.common.hidePassword : t.common.showPassword}
               tabIndex={-1}
             >
               {showPassword ? (

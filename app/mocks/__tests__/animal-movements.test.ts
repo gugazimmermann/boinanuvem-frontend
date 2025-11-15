@@ -14,7 +14,7 @@ import type { AnimalMovement } from "~/types/animal-movement";
 
 describe("Animal Movements Mock Functions", () => {
   beforeEach(() => {
-    // Reset mock data if needed
+    vi.clearAllMocks();
   });
 
   describe("getAnimalMovementById", () => {
@@ -130,7 +130,7 @@ describe("Animal Movements Mock Functions", () => {
 
   describe("addAnimalMovement", () => {
     it("should add a new animal movement", () => {
-      const initialCount = mockAnimalMovements.length;
+      const _initialCount = mockAnimalMovements.length;
       const newMovement: Omit<AnimalMovement, "id" | "createdAt"> = {
         date: "2024-01-01",
         companyId: "550e8400-e29b-41d4-a716-446655440000",

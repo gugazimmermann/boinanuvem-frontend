@@ -1,4 +1,5 @@
 import { useId, useRef, type ChangeEvent } from "react";
+import { useTranslation } from "~/i18n/use-translation";
 
 interface FileUploadProps {
   label?: string;
@@ -25,6 +26,7 @@ export function FileUpload({
   onChange,
   onRemove,
 }: FileUploadProps) {
+  const t = useTranslation();
   const generatedId = useId();
   const inputId = `file-upload-${generatedId}`;
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -108,13 +110,13 @@ export function FileUpload({
             </svg>
             <div className="mt-4 flex text-sm leading-6 text-gray-600 dark:text-gray-400">
               <span className="relative cursor-pointer rounded-md font-semibold text-blue-600 dark:text-blue-400 focus-within:outline-none focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2">
-                {multiple ? "Upload files" : "Upload a file"}
+                {multiple ? t.common.uploadFiles : t.common.uploadFile}
               </span>
-              <p className="pl-1">or drag and drop</p>
+              <p className="pl-1">{t.common.dragAndDrop}</p>
             </div>
             {accept && (
               <p className="text-xs leading-5 text-gray-600 dark:text-gray-400 mt-2">
-                Accepted: {accept}
+                {t.common.accepted} {accept}
               </p>
             )}
           </div>
@@ -158,7 +160,7 @@ export function FileUpload({
                       handleRemove(index);
                     }}
                     className="ml-3 flex-shrink-0 text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 focus:outline-none"
-                    aria-label={`Remove ${file.name}`}
+                    aria-label={`${t.common.remove} ${file.name}`}
                   >
                     <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path

@@ -53,7 +53,6 @@ describe("MovementDetails", () => {
       const router = createRouter(animalMovement.id);
       render(<RouterProvider router={router} />);
 
-      // Should display the translated animal movement type
       expect(
         screen.getByText(/Movimentação de Animal|Animal Movement|Movimiento de Animal/i)
       ).toBeInTheDocument();
@@ -69,7 +68,6 @@ describe("MovementDetails", () => {
       const router = createRouter(locationMovement.id);
       render(<RouterProvider router={router} />);
 
-      // Should display the translated location movement type
       expect(screen.getByText(new RegExp(locationMovement.type, "i"))).toBeInTheDocument();
     }
   });
@@ -81,7 +79,6 @@ describe("MovementDetails", () => {
     const router = createRouter("undefined-id");
     render(<RouterProvider router={router} />);
 
-    // Should show not found message
     expect(
       screen.getByText(/Nenhuma movimentação encontrada|No movements found/i)
     ).toBeInTheDocument();
@@ -96,7 +93,6 @@ describe("MovementDetails", () => {
       const router = createRouter(animalMovement.id);
       render(<RouterProvider router={router} />);
 
-      // Should display observation section with i18n label
       expect(screen.getByText(/Observação|Observation|Observación/i)).toBeInTheDocument();
     }
   });
@@ -110,7 +106,6 @@ describe("MovementDetails", () => {
       const router = createRouter(animalMovement.id);
       render(<RouterProvider router={router} />);
 
-      // Should display files section with i18n label
       expect(screen.getByText(/Anexos|Attachments|Archivos/i)).toBeInTheDocument();
     }
   });

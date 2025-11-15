@@ -66,7 +66,23 @@ for (let i = 0; i < 20; i++) {
   });
 }
 
-export const mockAnimals: Animal[] = [...fazendaAnimals, ...chacaraAnimals, ...sitioAnimals];
+const animalWithObservations: Animal = {
+  id: "660e8400-e29b-41d4-a716-446655440001",
+  code: "FJ001",
+  registrationNumber: "BR-2020-FJ0001",
+  status: "active",
+  createdAt: "2020-01-15",
+  companyId: COMPANY_ID,
+  propertyId: FAZENDA_DO_JUCA,
+  acquisitionDate: "2020-01-15",
+};
+
+export const mockAnimals: Animal[] = [
+  animalWithObservations,
+  ...fazendaAnimals,
+  ...chacaraAnimals,
+  ...sitioAnimals,
+];
 
 export function getAnimalById(animalId: string | undefined): Animal | undefined {
   if (!animalId) return undefined;

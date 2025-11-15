@@ -12,6 +12,18 @@ export const es = {
     daysAgo: (days: number) =>
       days === 0 ? "Hoy" : days === 1 ? "Hace 1 día" : `Hace ${days} días`,
     dailyAverageGain: "Ganancia Media Diaria",
+    uploadFiles: "Subir archivos",
+    uploadFile: "Subir un archivo",
+    dragAndDrop: "o arrastra y suelta",
+    accepted: "Aceptado:",
+    remove: "Eliminar",
+    showPassword: "Mostrar contraseña",
+    hidePassword: "Ocultar contraseña",
+    toggleMenu: "Alternar menú",
+    incompleteAddress: "Dirección incompleta",
+    unknownError: "Error desconocido",
+    addressNotFound: "Dirección no encontrada",
+    requestError: "Error en la solicitud",
   },
 
   sidebar: {
@@ -1158,7 +1170,24 @@ export const es = {
         weighings: "Pesajes",
         genealogy: "Genealogía",
         activities: "Actividades",
+        observations: "Observaciones",
       },
+      addObservation: "Agregar Observación",
+      newObservation: "Nueva Observación",
+      observationPlaceholder: "Ingrese su observación sobre este animal...",
+      observationDate: "Fecha de la Observación",
+      observationsDescription: "Gestione las observaciones de este animal",
+      searchObservations: "Buscar observaciones...",
+      noObservations: "No se registraron observaciones",
+      noObservationsWithSearch: (search: string) =>
+        `No se encontraron observaciones para "${search}"`,
+      noObservationsDescription: "Agregue su primera observación sobre este animal.",
+      observationRequired: "Por favor, ingrese una observación",
+      observationAdded: "¡Observación agregada con éxito!",
+      observationError: "Error al agregar observación",
+      observationNotFound: "Observación no encontrada",
+      files: "Anexos",
+      filesHelper: "Puede cargar múltiples archivos",
     },
     observations: {
       birth: {

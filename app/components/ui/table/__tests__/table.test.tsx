@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Table } from "../table";
 import type { TableColumn, SortDirection } from "../types";
+import { LanguageProvider } from "~/contexts/language-context";
 
 interface TestData extends Record<string, unknown> {
   id: number;
@@ -37,7 +38,11 @@ describe("Table", () => {
   });
 
   it("should render empty state when data is empty", () => {
-    render(<Table columns={columns} data={[]} />);
+    render(
+      <LanguageProvider>
+        <Table columns={columns} data={[]} />
+      </LanguageProvider>
+    );
     expect(screen.getByText(/No vendors found/i)).toBeInTheDocument();
   });
 

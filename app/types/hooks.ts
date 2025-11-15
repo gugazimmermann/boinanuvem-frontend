@@ -1,7 +1,3 @@
-/**
- * Custom hooks-related types
- */
-
 import type { CEPData, CNPJData } from "./address";
 
 export interface UseCEPLookupOptions {

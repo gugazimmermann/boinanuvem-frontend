@@ -34,7 +34,7 @@ export async function geocodeAddress(address: {
   zipCode: string;
 }): Promise<GeocodeResult | GeocodeError> {
   if (!address.street || !address.city || !address.state) {
-    return { error: "Incomplete address" };
+    return { error: "INCOMPLETE_ADDRESS" };
   }
 
   try {
@@ -62,7 +62,7 @@ export async function geocodeAddress(address: {
     });
 
     if (!response.ok) {
-      return { error: `Request error: ${response.statusText}` };
+      return { error: `REQUEST_ERROR:${response.statusText}` };
     }
 
     let data = await response.json();
@@ -79,7 +79,7 @@ export async function geocodeAddress(address: {
       });
 
       if (!response.ok) {
-        return { error: `Erro na requisição: ${response.statusText}` };
+        return { error: `REQUEST_ERROR:${response.statusText}` };
       }
 
       data = await response.json();
@@ -97,14 +97,14 @@ export async function geocodeAddress(address: {
       });
 
       if (!response.ok) {
-        return { error: `Erro na requisição: ${response.statusText}` };
+        return { error: `REQUEST_ERROR:${response.statusText}` };
       }
 
       data = await response.json();
     }
 
     if (!data || data.length === 0) {
-      return { error: "Address not found" };
+      return { error: "ADDRESS_NOT_FOUND" };
     }
 
     const result = data[0];
@@ -115,7 +115,7 @@ export async function geocodeAddress(address: {
     };
   } catch (error) {
     return {
-      error: error instanceof Error ? error.message : "Unknown error",
+      error: error instanceof Error ? `UNKNOWN_ERROR:${error.message}` : "UNKNOWN_ERROR",
     };
   }
 }
