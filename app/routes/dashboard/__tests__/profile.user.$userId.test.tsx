@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
-import UserProfileView from "../profile.usuario.$userId";
+import UserProfileView from "../profile.user.$userId";
 
 const mockNavigate = vi.fn();
 

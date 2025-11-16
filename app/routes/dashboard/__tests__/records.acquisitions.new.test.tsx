@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
-import NewWeighing from "../registros.pesagens.new";
+import NewAcquisition from "../records.acquisitions.new";
 
 const mockNavigate = vi.fn();
 
@@ -15,16 +15,30 @@ vi.mock("react-router", async () => {
   };
 });
 
+vi.mock("~/mocks/acquisitions", () => ({
+  addAcquisition: vi.fn(() => ({ id: "new-acquisition" })),
+}));
+
+vi.mock("~/mocks/animals", () => ({
+  addAnimal: vi.fn(() => ({ id: "new-animal" })),
+  getAnimalsByCompanyId: vi.fn(() => []),
+}));
+
 vi.mock("~/mocks/weighings", () => ({
   addWeighing: vi.fn(() => ({ id: "new-weighing" })),
 }));
 
-vi.mock("~/mocks/animals", () => ({
-  getAnimalsByCompanyId: vi.fn(() => []),
+vi.mock("~/mocks/births", () => ({
+  getBirthByAnimalId: vi.fn(() => null),
+  calculatePurity: vi.fn(() => "F1"),
 }));
 
 vi.mock("~/mocks/companies", () => ({
   mockCompanies: [{ id: "company-1", name: "Test Company" }],
+}));
+
+vi.mock("~/mocks/properties", () => ({
+  mockProperties: [{ id: "prop-1", name: "Test Property" }],
 }));
 
 vi.mock("~/mocks/employees", () => ({
@@ -33,6 +47,10 @@ vi.mock("~/mocks/employees", () => ({
 
 vi.mock("~/mocks/service-providers", () => ({
   mockServiceProviders: [{ id: "sp-1", name: "Test SP" }],
+}));
+
+vi.mock("~/mocks/buyers", () => ({
+  mockBuyers: [{ id: "buyer-1", name: "Test Buyer" }],
 }));
 
 vi.mock("~/components/ui", () => ({
@@ -45,6 +63,20 @@ vi.mock("~/components/ui", () => ({
       onChange={onChange}
       {...props}
     />
+  ),
+  Select: ({ options, value, onChange, name, label, ...props }: any) => (
+    <select
+      data-testid={`select-${name || label || "select"}`}
+      value={value || ""}
+      onChange={onChange}
+      {...props}
+    >
+      {options?.map((opt: any) => (
+        <option key={opt.value} value={opt.value}>
+          {opt.label}
+        </option>
+      ))}
+    </select>
   ),
   Button: ({ children, onClick, type, disabled, ...props }: any) => (
     <button
@@ -62,23 +94,23 @@ vi.mock("~/components/ui", () => ({
   ),
 }));
 
-describe("NewWeighing", () => {
+describe("NewAcquisition", () => {
   const createRouter = () => {
     return createMemoryRouter(
       [
         {
-          path: "/dashboard/registros/pesagens/new",
+          path: "/dashboard/registros/aquisicoes/new",
           element: (
             <LanguageProvider>
               <ThemeProvider>
-                <NewWeighing />
+                <NewAcquisition />
               </ThemeProvider>
             </LanguageProvider>
           ),
         },
       ],
       {
-        initialEntries: ["/dashboard/registros/pesagens/new"],
+        initialEntries: ["/dashboard/registros/aquisicoes/new"],
       }
     );
   };
@@ -87,7 +119,7 @@ describe("NewWeighing", () => {
     vi.clearAllMocks();
   });
 
-  it("should render new weighing form", () => {
+  it("should render new acquisition form", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
     
@@ -133,7 +165,7 @@ describe("NewWeighing", () => {
   });
 
   it("should have correct meta function", () => {
-    expect(NewWeighing).toBeDefined();
+    expect(NewAcquisition).toBeDefined();
   });
 });
 

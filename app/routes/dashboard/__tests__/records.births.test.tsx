@@ -3,7 +3,7 @@ import { render } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
-import Acquisitions from "../registros.aquisicoes";
+import Births from "../records.births";
 import { ROUTES } from "~/routes.config";
 
 const mockNavigate = vi.fn();
@@ -16,23 +16,23 @@ vi.mock("react-router", async () => {
   };
 });
 
-describe("Acquisitions", () => {
+describe("Births", () => {
   const createRouter = () => {
     return createMemoryRouter(
       [
         {
-          path: "/dashboard/registros/aquisicoes",
+          path: "/dashboard/registros/nascimentos",
           element: (
             <LanguageProvider>
               <ThemeProvider>
-                <Acquisitions />
+                <Births />
               </ThemeProvider>
             </LanguageProvider>
           ),
         },
       ],
       {
-        initialEntries: ["/dashboard/registros/aquisicoes"],
+        initialEntries: ["/dashboard/registros/nascimentos"],
       }
     );
   };
@@ -41,18 +41,23 @@ describe("Acquisitions", () => {
     vi.clearAllMocks();
   });
 
-  it("should redirect to animals route", () => {
+  it("should navigate to animals route", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
+    
+    expect(mockNavigate).toHaveBeenCalled();
+  });
 
-    expect(mockNavigate).toHaveBeenCalledWith(ROUTES.ANIMALS, { replace: true });
+  it("should have correct meta function", () => {
+    
+    expect(Births).toBeDefined();
   });
 
   it("should navigate on mount", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
     
-    expect(mockNavigate).toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith(ROUTES.ANIMALS);
   });
 
   it("should return null", () => {

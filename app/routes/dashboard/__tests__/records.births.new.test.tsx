@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
-import NewBirth from "../registros.nascimentos.new";
+import NewBirth from "../records.births.new";
 
 const mockNavigate = vi.fn();
 
