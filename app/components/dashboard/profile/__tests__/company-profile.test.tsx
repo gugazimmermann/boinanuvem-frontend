@@ -41,15 +41,19 @@ vi.mock("~/mocks/companies", () => ({
   updateCompany: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("~/mocks/users", () => ({
-  mockUsers: [
-    {
-      id: "1",
-      name: "Test User",
-      companyId: "1",
-    },
-  ],
-}));
+vi.mock("~/mocks/users", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/users")>("~/mocks/users");
+  return {
+    ...actual,
+    mockUsers: [
+      {
+        id: "1",
+        name: "Test User",
+        companyId: "1",
+      },
+    ],
+  };
+});
 
 describe("CompanyProfile", () => {
   beforeEach(() => {

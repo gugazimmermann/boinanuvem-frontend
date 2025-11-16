@@ -1,124 +1,48 @@
 import { describe, it, expect } from "vitest";
-import {
-  mockServiceProviderObservations,
-  getServiceProviderObservationsByServiceProviderId,
-  getServiceProviderObservationById,
-  addServiceProviderObservation,
-  deleteServiceProviderObservation,
-  updateServiceProviderObservation,
-} from "../service-provider-observations";
-import type { ServiceProviderObservationFormData } from "~/types/service-provider-observation";
+import { mockServiceProviderObservations } from "../service-provider-observations";
+import type { ServiceProviderObservation } from "~/types/service-provider-observation";
 
-describe("Service Provider Observations Mock Functions", () => {
-  const SERVICE_PROVIDER_ID = "880e8400-e29b-41d4-a716-446655440010";
+describe("service-provider-observations mock", () => {
+  it("should export mockServiceProviderObservations array", () => {
+    expect(Array.isArray(mockServiceProviderObservations)).toBe(true);
+    expect(mockServiceProviderObservations.length).toBeGreaterThan(0);
+  });
 
-  describe("getServiceProviderObservationsByServiceProviderId", () => {
-    it("should return observations for a service provider", () => {
-      const observations = getServiceProviderObservationsByServiceProviderId(SERVICE_PROVIDER_ID);
-      expect(Array.isArray(observations)).toBe(true);
-      observations.forEach((obs) => {
-        expect(obs.serviceProviderId).toBe(SERVICE_PROVIDER_ID);
-      });
-    });
+  it("should have valid observation structure", () => {
+    mockServiceProviderObservations.forEach((observation: ServiceProviderObservation) => {
+      expect(observation).toHaveProperty("id");
+      expect(observation).toHaveProperty("serviceProviderId");
+      expect(observation).toHaveProperty("observation");
+      expect(observation).toHaveProperty("fileIds");
+      expect(observation).toHaveProperty("createdAt");
+      expect(observation).toHaveProperty("createdBy");
 
-    it("should return empty array for non-existent service provider", () => {
-      const observations = getServiceProviderObservationsByServiceProviderId(
-        "non-existent-provider"
-      );
-      expect(observations).toEqual([]);
+      expect(typeof observation.id).toBe("string");
+      expect(typeof observation.serviceProviderId).toBe("string");
+      expect(typeof observation.observation).toBe("string");
+      expect(Array.isArray(observation.fileIds)).toBe(true);
+      expect(typeof observation.createdAt).toBe("string");
+      expect(typeof observation.createdBy).toBe("string");
     });
   });
 
-  describe("getServiceProviderObservationById", () => {
-    it("should return observation by id", () => {
-      if (mockServiceProviderObservations.length > 0) {
-        const observation = getServiceProviderObservationById(
-          mockServiceProviderObservations[0].id
-        );
-        expect(observation).toBeDefined();
-        expect(observation?.id).toBe(mockServiceProviderObservations[0].id);
-      }
-    });
-
-    it("should return undefined for non-existent id", () => {
-      const observation = getServiceProviderObservationById("non-existent-id");
-      expect(observation).toBeUndefined();
-    });
-
-    it("should return undefined for undefined id", () => {
-      const observation = getServiceProviderObservationById(undefined);
-      expect(observation).toBeUndefined();
+  it("should have valid date format", () => {
+    mockServiceProviderObservations.forEach((observation: ServiceProviderObservation) => {
+      expect(observation.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+      expect(() => new Date(observation.createdAt)).not.toThrow();
     });
   });
 
-  describe("addServiceProviderObservation", () => {
-    it("should add a new observation", () => {
-      const initialCount = mockServiceProviderObservations.length;
-      const newObservationData: ServiceProviderObservationFormData = {
-        serviceProviderId: SERVICE_PROVIDER_ID,
-        observation: "Test observation",
-        fileIds: ["file-1"],
-        createdBy: "user-001",
-      };
-
-      const added = addServiceProviderObservation(newObservationData);
-      expect(added).toBeDefined();
-      expect(added.id).toBeDefined();
-      expect(added.createdAt).toBeDefined();
-      expect(added.updatedAt).toBeDefined();
-      expect(added.serviceProviderId).toBe(newObservationData.serviceProviderId);
-      expect(mockServiceProviderObservations.length).toBe(initialCount + 1);
+  it("should have non-empty observation text", () => {
+    mockServiceProviderObservations.forEach((observation: ServiceProviderObservation) => {
+      expect(observation.observation.trim().length).toBeGreaterThan(0);
     });
   });
 
-  describe("deleteServiceProviderObservation", () => {
-    it("should delete an observation by id", () => {
-      const newObservationData: ServiceProviderObservationFormData = {
-        serviceProviderId: SERVICE_PROVIDER_ID,
-        observation: "Delete test",
-        createdBy: "user-001",
-      };
-
-      const added = addServiceProviderObservation(newObservationData);
-      const initialCount = mockServiceProviderObservations.length;
-      const deleted = deleteServiceProviderObservation(added.id);
-
-      expect(deleted).toBe(true);
-      expect(mockServiceProviderObservations.length).toBe(initialCount - 1);
-      expect(getServiceProviderObservationById(added.id)).toBeUndefined();
-    });
-
-    it("should return false for non-existent id", () => {
-      const deleted = deleteServiceProviderObservation("non-existent-id");
-      expect(deleted).toBe(false);
-    });
-  });
-
-  describe("updateServiceProviderObservation", () => {
-    it("should update an observation", () => {
-      const newObservationData: ServiceProviderObservationFormData = {
-        serviceProviderId: SERVICE_PROVIDER_ID,
-        observation: "Update test",
-        createdBy: "user-001",
-      };
-
-      const added = addServiceProviderObservation(newObservationData);
-      const updated = updateServiceProviderObservation(added.id, {
-        observation: "Updated observation",
-      });
-
-      expect(updated).toBe(true);
-      const observation = getServiceProviderObservationById(added.id);
-      expect(observation?.observation).toBe("Updated observation");
-      expect(observation?.updatedAt).toBeDefined();
-    });
-
-    it("should return false for non-existent id", () => {
-      const updated = updateServiceProviderObservation("non-existent-id", {
-        observation: "Test",
-      });
-      expect(updated).toBe(false);
-    });
+  it("should have unique IDs", () => {
+    const ids = mockServiceProviderObservations.map((o) => o.id);
+    const uniqueIds = new Set(ids);
+    expect(uniqueIds.size).toBe(ids.length);
   });
 });
 

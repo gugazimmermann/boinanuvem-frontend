@@ -15,43 +15,100 @@ vi.mock("react-router", async () => {
   };
 });
 
-vi.mock("~/mocks/acquisitions", () => ({
+vi.mock("~/services/acquisitions.service", () => ({
   addAcquisition: vi.fn(() => ({ id: "new-acquisition" })),
 }));
 
-vi.mock("~/mocks/animals", () => ({
+vi.mock("~/mocks/animals", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/animals")>("~/mocks/animals");
+  return actual;
+});
+
+vi.mock("~/services/animals.service", () => ({
   addAnimal: vi.fn(() => ({ id: "new-animal" })),
   getAnimalsByCompanyId: vi.fn(() => []),
 }));
 
-vi.mock("~/mocks/weighings", () => ({
+vi.mock("~/services/weighings.service", () => ({
   addWeighing: vi.fn(() => ({ id: "new-weighing" })),
 }));
 
-vi.mock("~/mocks/births", () => ({
+vi.mock("~/services/births.service", () => ({
   getBirthByAnimalId: vi.fn(() => null),
   calculatePurity: vi.fn(() => "F1"),
 }));
 
-vi.mock("~/mocks/companies", () => ({
-  mockCompanies: [{ id: "company-1", name: "Test Company" }],
-}));
+vi.mock("~/mocks/companies", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/companies")>("~/mocks/companies");
+  return {
+    ...actual,
+    mockCompanies: [{ id: "company-1", name: "Test Company" }],
+  };
+});
 
-vi.mock("~/mocks/properties", () => ({
-  mockProperties: [{ id: "prop-1", name: "Test Property" }],
-}));
+vi.mock("~/mocks/properties", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/properties")>("~/mocks/properties");
+  return {
+    ...actual,
+    mockProperties: [{ id: "prop-1", name: "Test Property" }],
+  };
+});
 
-vi.mock("~/mocks/employees", () => ({
-  mockEmployees: [{ id: "emp-1", name: "Test Employee" }],
-}));
+vi.mock("~/mocks/employees", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/employees")>("~/mocks/employees");
+  return {
+    ...actual,
+    mockEmployees: [{ id: "emp-1", name: "Test Employee" }],
+  };
+});
 
-vi.mock("~/mocks/service-providers", () => ({
-  mockServiceProviders: [{ id: "sp-1", name: "Test SP" }],
-}));
+vi.mock("~/mocks/service-providers", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/service-providers")>("~/mocks/service-providers");
+  return {
+    ...actual,
+    mockServiceProviders: [{ id: "sp-1", name: "Test SP" }],
+  };
+});
 
-vi.mock("~/mocks/buyers", () => ({
-  mockBuyers: [{ id: "buyer-1", name: "Test Buyer" }],
-}));
+vi.mock("~/mocks/buyers", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/buyers")>("~/mocks/buyers");
+  return {
+    ...actual,
+    mockBuyers: [{ id: "buyer-1", name: "Test Buyer" }],
+  };
+});
+
+vi.mock("~/services/properties.service", async () => {
+  const actual = await vi.importActual<typeof import("~/services/properties.service")>("~/services/properties.service");
+  return {
+    ...actual,
+    mockProperties: [{ id: "prop-1", name: "Test Property" }],
+  };
+});
+
+vi.mock("~/services/employees.service", async () => {
+  const actual = await vi.importActual<typeof import("~/services/employees.service")>("~/services/employees.service");
+  return {
+    ...actual,
+    mockEmployees: [{ id: "emp-1", name: "Test Employee", companyId: "company-1", status: "active" as const }],
+  };
+});
+
+vi.mock("~/services/service-providers.service", async () => {
+  const actual = await vi.importActual<typeof import("~/services/service-providers.service")>("~/services/service-providers.service");
+  return {
+    ...actual,
+    mockServiceProviders: [{ id: "sp-1", name: "Test SP", companyId: "company-1", status: "active" as const }],
+  };
+});
+
+vi.mock("~/services/buyers.service", async () => {
+  const actual = await vi.importActual<typeof import("~/services/buyers.service")>("~/services/buyers.service");
+  return {
+    ...actual,
+    mockBuyers: [{ id: "buyer-1", name: "Test Buyer" }],
+  };
+});
 
 vi.mock("~/components/ui", () => ({
   Input: ({ label, placeholder, value, onChange, ...props }: any) => (

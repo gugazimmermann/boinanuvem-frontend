@@ -4,7 +4,7 @@ import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
 import TeamPermissions from "../team.permissions.$userId";
-import { getUserById, updateUserPermissions } from "~/mocks/users";
+import { getUserById, updateUserPermissions } from "~/services/users.service";
 
 const mockNavigate = vi.fn();
 
@@ -16,7 +16,7 @@ vi.mock("react-router", async () => {
   };
 });
 
-vi.mock("~/mocks/users", () => ({
+vi.mock("~/services/users.service", () => ({
   getUserById: vi.fn(),
   updateUserPermissions: vi.fn(),
 }));

@@ -4,11 +4,11 @@ import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
 import AnimalDetails from "../animals.$animalId";
-import { getAnimalById } from "~/mocks/animals";
-import { getAnimalObservationsByAnimalId, addAnimalObservation } from "~/mocks/animal-observations";
-import { getBirthByAnimalId } from "~/mocks/births";
-import { getAcquisitionByAnimalId } from "~/mocks/acquisitions";
-import { getWeighingsByAnimalId } from "~/mocks/weighings";
+import { getAnimalById } from "~/services/animals.service";
+import { getAnimalObservationsByAnimalId, addAnimalObservation } from "~/services/animal-observations.service";
+import { getBirthByAnimalId } from "~/services/births.service";
+import { getAcquisitionByAnimalId } from "~/services/acquisitions.service";
+import { getWeighingsByAnimalId } from "~/services/weighings.service";
 
 const mockNavigate = vi.fn();
 const mockSetSearchParams = vi.fn();
@@ -22,31 +22,61 @@ vi.mock("react-router", async () => {
   };
 });
 
-vi.mock("~/mocks/animals", () => ({
+vi.mock("~/mocks/animals", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/animals")>("~/mocks/animals");
+  return actual;
+});
+
+vi.mock("~/services/animals.service", () => ({
   getAnimalById: vi.fn(),
 }));
 
-vi.mock("~/mocks/properties", () => ({
+vi.mock("~/mocks/properties", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/properties")>("~/mocks/properties");
+  return actual;
+});
+
+vi.mock("~/services/properties.service", () => ({
   getPropertyById: vi.fn((id) => ({ id, name: `Property ${id}` })),
 }));
 
+vi.mock("~/mocks/births", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/births")>("~/mocks/births");
+  return actual;
+});
+
 const mockGetBirthByAnimalId = vi.fn(() => null);
-vi.mock("~/mocks/births", () => ({
+vi.mock("~/services/births.service", () => ({
   getBirthByAnimalId: () => mockGetBirthByAnimalId(),
 }));
 
+vi.mock("~/mocks/acquisitions", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/acquisitions")>("~/mocks/acquisitions");
+  return actual;
+});
+
 const mockGetAcquisitionByAnimalId = vi.fn(() => null);
-vi.mock("~/mocks/acquisitions", () => ({
+vi.mock("~/services/acquisitions.service", () => ({
   getAcquisitionByAnimalId: () => mockGetAcquisitionByAnimalId(),
 }));
 
+vi.mock("~/mocks/weighings", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/weighings")>("~/mocks/weighings");
+  return actual;
+});
+
 const mockGetWeighingsByAnimalId = vi.fn(() => []);
-vi.mock("~/mocks/weighings", () => ({
+vi.mock("~/services/weighings.service", () => ({
   getWeighingsByAnimalId: () => mockGetWeighingsByAnimalId(),
 }));
 
+vi.mock("~/mocks/animal-observations", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/animal-observations")>("~/mocks/animal-observations");
+  return actual;
+});
+
 const mockAddAnimalObservation = vi.fn();
-vi.mock("~/mocks/animal-observations", () => ({
+vi.mock("~/services/animal-observations.service", () => ({
   getAnimalObservationsByAnimalId: vi.fn(() => []),
   addAnimalObservation: (...args: any[]) => mockAddAnimalObservation(...args),
 }));

@@ -1,120 +1,48 @@
 import { describe, it, expect } from "vitest";
-import {
-  mockEmployeeObservations,
-  getEmployeeObservationsByEmployeeId,
-  getEmployeeObservationById,
-  addEmployeeObservation,
-  deleteEmployeeObservation,
-  updateEmployeeObservation,
-} from "../employee-observations";
-import type { EmployeeObservationFormData } from "~/types/employee-observation";
+import { mockEmployeeObservations } from "../employee-observations";
+import type { EmployeeObservation } from "~/types/employee-observation";
 
-describe("Employee Observations Mock Functions", () => {
-  const EMPLOYEE_ID = "770e8400-e29b-41d4-a716-446655440010";
+describe("employee-observations mock", () => {
+  it("should export mockEmployeeObservations array", () => {
+    expect(Array.isArray(mockEmployeeObservations)).toBe(true);
+    expect(mockEmployeeObservations.length).toBeGreaterThan(0);
+  });
 
-  describe("getEmployeeObservationsByEmployeeId", () => {
-    it("should return observations for an employee", () => {
-      const observations = getEmployeeObservationsByEmployeeId(EMPLOYEE_ID);
-      expect(Array.isArray(observations)).toBe(true);
-      observations.forEach((obs) => {
-        expect(obs.employeeId).toBe(EMPLOYEE_ID);
-      });
-    });
+  it("should have valid observation structure", () => {
+    mockEmployeeObservations.forEach((observation: EmployeeObservation) => {
+      expect(observation).toHaveProperty("id");
+      expect(observation).toHaveProperty("employeeId");
+      expect(observation).toHaveProperty("observation");
+      expect(observation).toHaveProperty("fileIds");
+      expect(observation).toHaveProperty("createdAt");
+      expect(observation).toHaveProperty("createdBy");
 
-    it("should return empty array for non-existent employee", () => {
-      const observations = getEmployeeObservationsByEmployeeId("non-existent-employee");
-      expect(observations).toEqual([]);
+      expect(typeof observation.id).toBe("string");
+      expect(typeof observation.employeeId).toBe("string");
+      expect(typeof observation.observation).toBe("string");
+      expect(Array.isArray(observation.fileIds)).toBe(true);
+      expect(typeof observation.createdAt).toBe("string");
+      expect(typeof observation.createdBy).toBe("string");
     });
   });
 
-  describe("getEmployeeObservationById", () => {
-    it("should return observation by id", () => {
-      if (mockEmployeeObservations.length > 0) {
-        const observation = getEmployeeObservationById(mockEmployeeObservations[0].id);
-        expect(observation).toBeDefined();
-        expect(observation?.id).toBe(mockEmployeeObservations[0].id);
-      }
-    });
-
-    it("should return undefined for non-existent id", () => {
-      const observation = getEmployeeObservationById("non-existent-id");
-      expect(observation).toBeUndefined();
-    });
-
-    it("should return undefined for undefined id", () => {
-      const observation = getEmployeeObservationById(undefined);
-      expect(observation).toBeUndefined();
+  it("should have valid date format", () => {
+    mockEmployeeObservations.forEach((observation: EmployeeObservation) => {
+      expect(observation.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+      expect(() => new Date(observation.createdAt)).not.toThrow();
     });
   });
 
-  describe("addEmployeeObservation", () => {
-    it("should add a new observation", () => {
-      const initialCount = mockEmployeeObservations.length;
-      const newObservationData: EmployeeObservationFormData = {
-        employeeId: EMPLOYEE_ID,
-        observation: "Test observation",
-        fileIds: ["file-1"],
-        createdBy: "user-001",
-      };
-
-      const added = addEmployeeObservation(newObservationData);
-      expect(added).toBeDefined();
-      expect(added.id).toBeDefined();
-      expect(added.createdAt).toBeDefined();
-      expect(added.updatedAt).toBeDefined();
-      expect(added.employeeId).toBe(newObservationData.employeeId);
-      expect(mockEmployeeObservations.length).toBe(initialCount + 1);
+  it("should have non-empty observation text", () => {
+    mockEmployeeObservations.forEach((observation: EmployeeObservation) => {
+      expect(observation.observation.trim().length).toBeGreaterThan(0);
     });
   });
 
-  describe("deleteEmployeeObservation", () => {
-    it("should delete an observation by id", () => {
-      const newObservationData: EmployeeObservationFormData = {
-        employeeId: EMPLOYEE_ID,
-        observation: "Delete test",
-        createdBy: "user-001",
-      };
-
-      const added = addEmployeeObservation(newObservationData);
-      const initialCount = mockEmployeeObservations.length;
-      const deleted = deleteEmployeeObservation(added.id);
-
-      expect(deleted).toBe(true);
-      expect(mockEmployeeObservations.length).toBe(initialCount - 1);
-      expect(getEmployeeObservationById(added.id)).toBeUndefined();
-    });
-
-    it("should return false for non-existent id", () => {
-      const deleted = deleteEmployeeObservation("non-existent-id");
-      expect(deleted).toBe(false);
-    });
-  });
-
-  describe("updateEmployeeObservation", () => {
-    it("should update an observation", () => {
-      const newObservationData: EmployeeObservationFormData = {
-        employeeId: EMPLOYEE_ID,
-        observation: "Update test",
-        createdBy: "user-001",
-      };
-
-      const added = addEmployeeObservation(newObservationData);
-      const updated = updateEmployeeObservation(added.id, {
-        observation: "Updated observation",
-      });
-
-      expect(updated).toBe(true);
-      const observation = getEmployeeObservationById(added.id);
-      expect(observation?.observation).toBe("Updated observation");
-      expect(observation?.updatedAt).toBeDefined();
-    });
-
-    it("should return false for non-existent id", () => {
-      const updated = updateEmployeeObservation("non-existent-id", {
-        observation: "Test",
-      });
-      expect(updated).toBe(false);
-    });
+  it("should have unique IDs", () => {
+    const ids = mockEmployeeObservations.map((o) => o.id);
+    const uniqueIds = new Set(ids);
+    expect(uniqueIds.size).toBe(ids.length);
   });
 });
 

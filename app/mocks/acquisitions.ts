@@ -1,16 +1,12 @@
 import type { Acquisition, AcquisitionFormData } from "~/types";
 import { AnimalBreed, BirthPurity } from "~/types";
 import { mockAnimals } from "./animals";
-import { getBirthByAnimalId } from "./births";
+import { getBirthByAnimalId } from "~/services/births.service";
+import { generateAcquisitionId } from "~/services/acquisitions.service";
 
 export type { Acquisition, AcquisitionFormData };
 
 const COMPANY_ID = "550e8400-e29b-41d4-a716-446655440000";
-
-export function generateAcquisitionId(index: number): string {
-  const base = 446655440100 + index;
-  return `ac0e8400-e29b-41d4-a716-${base.toString().padStart(12, "0")}`;
-}
 
 const suppliers = [
   "990e8400-e29b-41d4-a716-446655440010",
@@ -31,7 +27,7 @@ const breeds = [
 
 const acquisitions: Acquisition[] = [];
 
-export function initializeAcquisitions(): void {
+function initializeAcquisitions(): void {
   const animalsWithAcquisition = mockAnimals.filter((a) => a.acquisitionDate);
 
   animalsWithAcquisition.forEach((animal, index) => {
@@ -122,58 +118,4 @@ export function initializeAcquisitions(): void {
 initializeAcquisitions();
 
 export const mockAcquisitions: Acquisition[] = acquisitions;
-
-export function getAcquisitionById(acquisitionId: string | undefined): Acquisition | undefined {
-  if (!acquisitionId) return undefined;
-  return mockAcquisitions.find((acquisition) => acquisition.id === acquisitionId);
-}
-
-export function getAcquisitionByAnimalId(animalId: string): Acquisition | undefined {
-  return mockAcquisitions.find((acquisition) => acquisition.animalId === animalId);
-}
-
-export function getAcquisitionsByCompanyId(companyId: string): Acquisition[] {
-  return mockAcquisitions.filter((acquisition) => acquisition.companyId === companyId);
-}
-
-export function addAcquisition(data: AcquisitionFormData): Acquisition {
-  const lastId =
-    mockAcquisitions.length > 0
-      ? mockAcquisitions[mockAcquisitions.length - 1].id
-      : "ac0e8400-e29b-41d4-a716-446655440009";
-  const lastPart = lastId.split("-").pop() || "446655440009";
-  const lastNumber = parseInt(lastPart, 10);
-  const nextNumber = (lastNumber + 1).toString().padStart(12, "0");
-
-  const newAcquisition: Acquisition = {
-    ...data,
-    id: `ac0e8400-e29b-41d4-a716-${nextNumber}`,
-    createdAt: new Date().toISOString().split("T")[0],
-  };
-  mockAcquisitions.push(newAcquisition);
-  return newAcquisition;
-}
-
-export function deleteAcquisition(acquisitionId: string): boolean {
-  const index = mockAcquisitions.findIndex((acquisition) => acquisition.id === acquisitionId);
-  if (index !== -1) {
-    mockAcquisitions.splice(index, 1);
-    return true;
-  }
-  return false;
-}
-
-export function updateAcquisition(
-  acquisitionId: string,
-  data: Partial<AcquisitionFormData>
-): boolean {
-  const index = mockAcquisitions.findIndex((acquisition) => acquisition.id === acquisitionId);
-  if (index !== -1) {
-    mockAcquisitions[index] = {
-      ...mockAcquisitions[index],
-      ...data,
-    };
-    return true;
-  }
-  return false;
-}
+export { initializeAcquisitions };

@@ -4,7 +4,7 @@ import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
 import EditLocation from "../locations.edit.$locationId";
-import { getLocationById, updateLocation } from "~/mocks/locations";
+import { getLocationById, updateLocation } from "~/services/locations.service";
 
 const mockNavigate = vi.fn();
 
@@ -16,15 +16,31 @@ vi.mock("react-router", async () => {
   };
 });
 
-vi.mock("~/mocks/locations", () => ({
+vi.mock("~/mocks/locations", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/locations")>("~/mocks/locations");
+  return actual;
+});
+
+vi.mock("~/services/locations.service", () => ({
   getLocationById: vi.fn(),
   updateLocation: vi.fn(),
 }));
 
-vi.mock("~/mocks/properties", () => ({
-  mockProperties: [{ id: "prop-1", name: "Test Property" }],
-  getPropertyById: vi.fn((id) => ({ id, name: `Property ${id}` })),
-}));
+vi.mock("~/mocks/properties", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/properties")>("~/mocks/properties");
+  return {
+    ...actual,
+    mockProperties: [{ id: "prop-1", name: "Test Property" }],
+  };
+});
+
+vi.mock("~/services/properties.service", async () => {
+  const actual = await vi.importActual<typeof import("~/services/properties.service")>("~/services/properties.service");
+  return {
+    ...actual,
+    getPropertyById: vi.fn((id) => ({ id, name: `Property ${id}` })),
+  };
+});
 
 vi.mock("~/components/ui", () => ({
   Input: ({ label, value, onChange, error, ...props }: any) => (

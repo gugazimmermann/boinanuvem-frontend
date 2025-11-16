@@ -1,167 +1,86 @@
 import { describe, it, expect } from "vitest";
-import {
-  mockEmployees,
-  getEmployeeById,
-  getEmployeesByCompanyId,
-  getEmployeesByPropertyId,
-  addEmployee,
-  deleteEmployee,
-  updateEmployee,
-} from "../employees";
-import type { EmployeeFormData } from "~/types";
+import { mockEmployees } from "../employees";
+import type { Employee } from "~/types";
 
-describe("Employees Mock Functions", () => {
-  const COMPANY_ID = "550e8400-e29b-41d4-a716-446655440000";
-  const PROPERTY_ID = "550e8400-e29b-41d4-a716-446655440010";
+describe("employees mock", () => {
+  it("should export mockEmployees array", () => {
+    expect(Array.isArray(mockEmployees)).toBe(true);
+    expect(mockEmployees.length).toBeGreaterThan(0);
+  });
 
-  describe("getEmployeeById", () => {
-    it("should return employee by id", () => {
-      if (mockEmployees.length > 0) {
-        const employee = getEmployeeById(mockEmployees[0].id);
-        expect(employee).toBeDefined();
-        expect(employee?.id).toBe(mockEmployees[0].id);
-      }
-    });
+  it("should have valid employee structure", () => {
+    mockEmployees.forEach((employee: Employee) => {
+      expect(employee).toHaveProperty("id");
+      expect(employee).toHaveProperty("code");
+      expect(employee).toHaveProperty("name");
+      expect(employee).toHaveProperty("cpf");
+      expect(employee).toHaveProperty("email");
+      expect(employee).toHaveProperty("phone");
+      expect(employee).toHaveProperty("status");
+      expect(employee).toHaveProperty("createdAt");
+      expect(employee).toHaveProperty("companyId");
+      expect(employee).toHaveProperty("propertyIds");
+      expect(employee).toHaveProperty("street");
+      expect(employee).toHaveProperty("number");
+      expect(employee).toHaveProperty("neighborhood");
+      expect(employee).toHaveProperty("city");
+      expect(employee).toHaveProperty("state");
+      expect(employee).toHaveProperty("zipCode");
 
-    it("should return undefined for non-existent id", () => {
-      const employee = getEmployeeById("non-existent-id");
-      expect(employee).toBeUndefined();
-    });
-
-    it("should return undefined for undefined id", () => {
-      const employee = getEmployeeById(undefined);
-      expect(employee).toBeUndefined();
+      expect(typeof employee.id).toBe("string");
+      expect(typeof employee.code).toBe("string");
+      expect(typeof employee.name).toBe("string");
+      expect(typeof employee.cpf).toBe("string");
+      expect(typeof employee.email).toBe("string");
+      expect(typeof employee.phone).toBe("string");
+      expect(typeof employee.status).toBe("string");
+      expect(typeof employee.createdAt).toBe("string");
+      expect(typeof employee.companyId).toBe("string");
+      expect(Array.isArray(employee.propertyIds)).toBe(true);
+      expect(typeof employee.street).toBe("string");
+      expect(typeof employee.number).toBe("string");
+      expect(typeof employee.neighborhood).toBe("string");
+      expect(typeof employee.city).toBe("string");
+      expect(typeof employee.state).toBe("string");
+      expect(typeof employee.zipCode).toBe("string");
     });
   });
 
-  describe("getEmployeesByCompanyId", () => {
-    it("should return employees for a company", () => {
-      const employees = getEmployeesByCompanyId(COMPANY_ID);
-      expect(Array.isArray(employees)).toBe(true);
-      employees.forEach((employee) => {
-        expect(employee.companyId).toBe(COMPANY_ID);
-      });
-    });
-
-    it("should return empty array for non-existent company", () => {
-      const employees = getEmployeesByCompanyId("non-existent-company");
-      expect(employees).toEqual([]);
+  it("should have valid CPF format", () => {
+    mockEmployees.forEach((employee: Employee) => {
+      expect(employee.cpf).toMatch(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/);
     });
   });
 
-  describe("getEmployeesByPropertyId", () => {
-    it("should return employees for a property", () => {
-      const employees = getEmployeesByPropertyId(PROPERTY_ID);
-      expect(Array.isArray(employees)).toBe(true);
-      employees.forEach((employee) => {
-        expect(employee.propertyIds).toContain(PROPERTY_ID);
-      });
-    });
-
-    it("should return empty array for non-existent property", () => {
-      const employees = getEmployeesByPropertyId("non-existent-property");
-      expect(employees).toEqual([]);
+  it("should have valid email format", () => {
+    mockEmployees.forEach((employee: Employee) => {
+      expect(employee.email).toMatch(/^[^\s@]+@[^\s@]+\.[^\s@]+$/);
     });
   });
 
-  describe("addEmployee", () => {
-    it("should add a new employee", () => {
-      const initialCount = mockEmployees.length;
-      const newEmployeeData: EmployeeFormData = {
-        code: "999",
-        name: "Test Employee",
-        cpf: "123.456.789-00",
-        email: "test@example.com",
-        phone: "47999999999",
-        status: "active",
-        companyId: COMPANY_ID,
-        propertyIds: [PROPERTY_ID],
-        street: "Test Street",
-        number: "123",
-        neighborhood: "Test Neighborhood",
-        city: "Test City",
-        state: "SC",
-        zipCode: "12345678",
-      };
-
-      const added = addEmployee(newEmployeeData);
-      expect(added).toBeDefined();
-      expect(added.id).toBeDefined();
-      expect(added.createdAt).toBeDefined();
-      expect(added.code).toBe(newEmployeeData.code);
-      expect(added.name).toBe(newEmployeeData.name);
-      expect(added.companyId).toBe(newEmployeeData.companyId);
-      expect(mockEmployees.length).toBe(initialCount + 1);
+  it("should have valid status", () => {
+    mockEmployees.forEach((employee: Employee) => {
+      expect(["active", "inactive", "pending"]).toContain(employee.status);
     });
   });
 
-  describe("deleteEmployee", () => {
-    it("should delete an employee by id", () => {
-      const newEmployeeData: EmployeeFormData = {
-        code: "DELETE",
-        name: "Delete Employee",
-        cpf: "987.654.321-00",
-        email: "delete@example.com",
-        phone: "47988888888",
-        status: "active",
-        companyId: COMPANY_ID,
-        propertyIds: [PROPERTY_ID],
-        street: "Test Street",
-        number: "456",
-        neighborhood: "Test Neighborhood",
-        city: "Test City",
-        state: "SC",
-        zipCode: "12345678",
-      };
-
-      const added = addEmployee(newEmployeeData);
-      const initialCount = mockEmployees.length;
-      const deleted = deleteEmployee(added.id);
-
-      expect(deleted).toBe(true);
-      expect(mockEmployees.length).toBe(initialCount - 1);
-      expect(getEmployeeById(added.id)).toBeUndefined();
-    });
-
-    it("should return false for non-existent id", () => {
-      const deleted = deleteEmployee("non-existent-id");
-      expect(deleted).toBe(false);
+  it("should have valid date format", () => {
+    mockEmployees.forEach((employee: Employee) => {
+      expect(employee.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(() => new Date(employee.createdAt)).not.toThrow();
     });
   });
 
-  describe("updateEmployee", () => {
-    it("should update an employee", () => {
-      const newEmployeeData: EmployeeFormData = {
-        code: "UPDATE",
-        name: "Update Employee",
-        cpf: "111.222.333-44",
-        email: "update@example.com",
-        phone: "47977777777",
-        status: "active",
-        companyId: COMPANY_ID,
-        propertyIds: [PROPERTY_ID],
-        street: "Test Street",
-        number: "789",
-        neighborhood: "Test Neighborhood",
-        city: "Test City",
-        state: "SC",
-        zipCode: "12345678",
-      };
+  it("should have unique IDs", () => {
+    const ids = mockEmployees.map((e) => e.id);
+    const uniqueIds = new Set(ids);
+    expect(uniqueIds.size).toBe(ids.length);
+  });
 
-      const added = addEmployee(newEmployeeData);
-      const updated = updateEmployee(added.id, { name: "Updated Employee", status: "inactive" });
-
-      expect(updated).toBe(true);
-      const employee = getEmployeeById(added.id);
-      expect(employee?.name).toBe("Updated Employee");
-      expect(employee?.status).toBe("inactive");
-      expect(employee?.code).toBe(newEmployeeData.code);
-    });
-
-    it("should return false for non-existent id", () => {
-      const updated = updateEmployee("non-existent-id", { name: "Test" });
-      expect(updated).toBe(false);
-    });
+  it("should have unique codes", () => {
+    const codes = mockEmployees.map((e) => e.code);
+    const uniqueCodes = new Set(codes);
+    expect(uniqueCodes.size).toBe(codes.length);
   });
 });
 

@@ -3,16 +3,16 @@ import { useNavigate } from "react-router";
 import { Input, Select, Button, Alert } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { ROUTES } from "~/routes.config";
-import { addBirth, calculatePurity } from "~/mocks/births";
-import { addAnimal } from "~/mocks/animals";
-import { addWeighing } from "~/mocks/weighings";
+import { addBirth, calculatePurity } from "~/services/births.service";
+import { addAnimal } from "~/services/animals.service";
+import { addWeighing } from "~/services/weighings.service";
 import type { BirthFormData, AnimalFormData, WeighingFormData } from "~/types";
 import { mockCompanies } from "~/mocks/companies";
-import { getAnimalsByCompanyId } from "~/mocks/animals";
-import { getBirthByAnimalId } from "~/mocks/births";
-import { mockProperties } from "~/mocks/properties";
-import { mockEmployees } from "~/mocks/employees";
-import { mockServiceProviders } from "~/mocks/service-providers";
+import { getAnimalsByCompanyId } from "~/services/animals.service";
+import { getBirthByAnimalId } from "~/services/births.service";
+import { mockProperties } from "~/services/properties.service";
+import { mockEmployees } from "~/services/employees.service";
+import { mockServiceProviders } from "~/services/service-providers.service";
 
 export function meta() {
   return [

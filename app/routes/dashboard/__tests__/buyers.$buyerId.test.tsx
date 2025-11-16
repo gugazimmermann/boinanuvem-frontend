@@ -4,8 +4,8 @@ import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
 import BuyerDetails from "../buyers.$buyerId";
-import { getBuyerById } from "~/mocks/buyers";
-import { getBuyerObservationsByBuyerId, addBuyerObservation } from "~/mocks/buyer-observations";
+import { getBuyerById } from "~/services/buyers.service";
+import { getBuyerObservationsByBuyerId, addBuyerObservation } from "~/services/buyer-observations.service";
 
 const mockNavigate = vi.fn();
 const mockSetSearchParams = vi.fn();
@@ -19,15 +19,30 @@ vi.mock("react-router", async () => {
   };
 });
 
-vi.mock("~/mocks/buyers", () => ({
+vi.mock("~/mocks/buyers", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/buyers")>("~/mocks/buyers");
+  return actual;
+});
+
+vi.mock("~/services/buyers.service", () => ({
   getBuyerById: vi.fn(),
 }));
 
-vi.mock("~/mocks/properties", () => ({
+vi.mock("~/mocks/properties", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/properties")>("~/mocks/properties");
+  return actual;
+});
+
+vi.mock("~/services/properties.service", () => ({
   getPropertyById: vi.fn((id) => ({ id, name: `Property ${id}` })),
 }));
 
-vi.mock("~/mocks/buyer-observations", () => ({
+vi.mock("~/mocks/buyer-observations", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/buyer-observations")>("~/mocks/buyer-observations");
+  return actual;
+});
+
+vi.mock("~/services/buyer-observations.service", () => ({
   getBuyerObservationsByBuyerId: vi.fn(() => []),
   addBuyerObservation: vi.fn(),
 }));

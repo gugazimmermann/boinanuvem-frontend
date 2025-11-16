@@ -4,7 +4,7 @@ import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
 import EmployeeDetails from "../employees.$employeeId";
-import { getEmployeeById } from "~/mocks/employees";
+import { getEmployeeById } from "~/services/employees.service";
 
 const mockNavigate = vi.fn();
 const mockSetSearchParams = vi.fn();
@@ -18,23 +18,48 @@ vi.mock("react-router", async () => {
   };
 });
 
-vi.mock("~/mocks/employees", () => ({
+vi.mock("~/mocks/employees", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/employees")>("~/mocks/employees");
+  return actual;
+});
+
+vi.mock("~/services/employees.service", () => ({
   getEmployeeById: vi.fn(),
 }));
 
-vi.mock("~/mocks/properties", () => ({
+vi.mock("~/mocks/properties", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/properties")>("~/mocks/properties");
+  return actual;
+});
+
+vi.mock("~/services/properties.service", () => ({
   getPropertyById: vi.fn((id) => ({ id, name: `Property ${id}` })),
 }));
 
-vi.mock("~/mocks/location-movements", () => ({
+vi.mock("~/mocks/location-movements", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/location-movements")>("~/mocks/location-movements");
+  return actual;
+});
+
+vi.mock("~/services/location-movements.service", () => ({
   getLocationMovementsByEmployeeId: vi.fn(() => []),
 }));
 
-vi.mock("~/mocks/animal-movements", () => ({
+vi.mock("~/mocks/animal-movements", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/animal-movements")>("~/mocks/animal-movements");
+  return actual;
+});
+
+vi.mock("~/services/animal-movements.service", () => ({
   getAnimalMovementsByEmployeeId: vi.fn(() => []),
 }));
 
-vi.mock("~/mocks/employee-observations", () => ({
+vi.mock("~/mocks/employee-observations", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/employee-observations")>("~/mocks/employee-observations");
+  return actual;
+});
+
+vi.mock("~/services/employee-observations.service", () => ({
   getEmployeeObservationsByEmployeeId: vi.fn(() => []),
   addEmployeeObservation: vi.fn(),
 }));

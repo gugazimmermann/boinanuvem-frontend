@@ -8,11 +8,11 @@ import {
   getEmployeeViewRoute,
   getServiceProviderViewRoute,
 } from "~/routes.config";
-import { getPropertyById } from "~/mocks/properties";
-import { getLocationsByPropertyId, getLocationById } from "~/mocks/locations";
-import { getEmployeesByPropertyId, getEmployeeById } from "~/mocks/employees";
-import { getServiceProvidersByPropertyId, getServiceProviderById } from "~/mocks/service-providers";
-import { addLocationMovement } from "~/mocks/location-movements";
+import { getPropertyById } from "~/services/properties.service";
+import { getLocationsByPropertyId, getLocationById } from "~/services/locations.service";
+import { getEmployeesByPropertyId, getEmployeeById } from "~/services/employees.service";
+import { getServiceProvidersByPropertyId, getServiceProviderById } from "~/services/service-providers.service";
+import { addLocationMovement } from "~/services/location-movements.service";
 import { LocationMovementType } from "~/types";
 
 export function meta() {

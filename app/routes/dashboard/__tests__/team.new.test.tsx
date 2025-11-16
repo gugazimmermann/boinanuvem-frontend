@@ -4,7 +4,7 @@ import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
 import NewTeamMember from "../team.new";
-import { addUser } from "~/mocks/users";
+import { addUser } from "~/services/users.service";
 import { useCEPLookup } from "~/components/site/hooks";
 import { mapCEPDataToAddressForm, maskCEP, unmaskCEP, maskCPF, maskPhone } from "~/components/site/utils";
 
@@ -19,7 +19,7 @@ vi.mock("react-router", async () => {
   };
 });
 
-vi.mock("~/mocks/users", () => ({
+vi.mock("~/services/users.service", () => ({
   addUser: vi.fn(() => ({ id: "new-user" })),
 }));
 

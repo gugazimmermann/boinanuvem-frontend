@@ -1,121 +1,48 @@
 import { describe, it, expect } from "vitest";
-import {
-  mockAnimalObservations,
-  getAnimalObservationsByAnimalId,
-  getAnimalObservationById,
-  addAnimalObservation,
-  deleteAnimalObservation,
-  updateAnimalObservation,
-} from "../animal-observations";
-import type { AnimalObservationFormData } from "~/types/animal-observation";
+import { mockAnimalObservations } from "../animal-observations";
+import type { AnimalObservation } from "~/types/animal-observation";
 
-describe("Animal Observations Mock Functions", () => {
-  const ANIMAL_ID = "660e8400-e29b-41d4-a716-446655440001";
+describe("animal-observations mock", () => {
+  it("should export mockAnimalObservations array", () => {
+    expect(Array.isArray(mockAnimalObservations)).toBe(true);
+    expect(mockAnimalObservations.length).toBeGreaterThan(0);
+  });
 
-  describe("getAnimalObservationsByAnimalId", () => {
-    it("should return observations for an animal", () => {
-      const observations = getAnimalObservationsByAnimalId(ANIMAL_ID);
-      expect(Array.isArray(observations)).toBe(true);
-      observations.forEach((obs) => {
-        expect(obs.animalId).toBe(ANIMAL_ID);
-      });
-    });
+  it("should have valid observation structure", () => {
+    mockAnimalObservations.forEach((observation: AnimalObservation) => {
+      expect(observation).toHaveProperty("id");
+      expect(observation).toHaveProperty("animalId");
+      expect(observation).toHaveProperty("observation");
+      expect(observation).toHaveProperty("fileIds");
+      expect(observation).toHaveProperty("createdAt");
+      expect(observation).toHaveProperty("createdBy");
 
-    it("should return empty array for non-existent animal", () => {
-      const observations = getAnimalObservationsByAnimalId("non-existent-animal");
-      expect(observations).toEqual([]);
+      expect(typeof observation.id).toBe("string");
+      expect(typeof observation.animalId).toBe("string");
+      expect(typeof observation.observation).toBe("string");
+      expect(Array.isArray(observation.fileIds)).toBe(true);
+      expect(typeof observation.createdAt).toBe("string");
+      expect(typeof observation.createdBy).toBe("string");
     });
   });
 
-  describe("getAnimalObservationById", () => {
-    it("should return observation by id", () => {
-      if (mockAnimalObservations.length > 0) {
-        const observation = getAnimalObservationById(mockAnimalObservations[0].id);
-        expect(observation).toBeDefined();
-        expect(observation?.id).toBe(mockAnimalObservations[0].id);
-      }
-    });
-
-    it("should return undefined for non-existent id", () => {
-      const observation = getAnimalObservationById("non-existent-id");
-      expect(observation).toBeUndefined();
-    });
-
-    it("should return undefined for undefined id", () => {
-      const observation = getAnimalObservationById(undefined);
-      expect(observation).toBeUndefined();
+  it("should have valid date format", () => {
+    mockAnimalObservations.forEach((observation: AnimalObservation) => {
+      expect(observation.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+      expect(() => new Date(observation.createdAt)).not.toThrow();
     });
   });
 
-  describe("addAnimalObservation", () => {
-    it("should add a new observation", () => {
-      const initialCount = mockAnimalObservations.length;
-      const newObservationData: AnimalObservationFormData = {
-        animalId: ANIMAL_ID,
-        observation: "Test observation",
-        fileIds: ["file-1"],
-        createdBy: "user-001",
-      };
-
-      const added = addAnimalObservation(newObservationData);
-      expect(added).toBeDefined();
-      expect(added.id).toBeDefined();
-      expect(added.createdAt).toBeDefined();
-      expect(added.updatedAt).toBeDefined();
-      expect(added.animalId).toBe(newObservationData.animalId);
-      expect(added.observation).toBe(newObservationData.observation);
-      expect(mockAnimalObservations.length).toBe(initialCount + 1);
+  it("should have non-empty observation text", () => {
+    mockAnimalObservations.forEach((observation: AnimalObservation) => {
+      expect(observation.observation.trim().length).toBeGreaterThan(0);
     });
   });
 
-  describe("deleteAnimalObservation", () => {
-    it("should delete an observation by id", () => {
-      const newObservationData: AnimalObservationFormData = {
-        animalId: ANIMAL_ID,
-        observation: "Delete test",
-        createdBy: "user-001",
-      };
-
-      const added = addAnimalObservation(newObservationData);
-      const initialCount = mockAnimalObservations.length;
-      const deleted = deleteAnimalObservation(added.id);
-
-      expect(deleted).toBe(true);
-      expect(mockAnimalObservations.length).toBe(initialCount - 1);
-      expect(getAnimalObservationById(added.id)).toBeUndefined();
-    });
-
-    it("should return false for non-existent id", () => {
-      const deleted = deleteAnimalObservation("non-existent-id");
-      expect(deleted).toBe(false);
-    });
-  });
-
-  describe("updateAnimalObservation", () => {
-    it("should update an observation", () => {
-      const newObservationData: AnimalObservationFormData = {
-        animalId: ANIMAL_ID,
-        observation: "Update test",
-        createdBy: "user-001",
-      };
-
-      const added = addAnimalObservation(newObservationData);
-      const updated = updateAnimalObservation(added.id, {
-        observation: "Updated observation",
-      });
-
-      expect(updated).toBe(true);
-      const observation = getAnimalObservationById(added.id);
-      expect(observation?.observation).toBe("Updated observation");
-      expect(observation?.updatedAt).toBeDefined();
-    });
-
-    it("should return false for non-existent id", () => {
-      const updated = updateAnimalObservation("non-existent-id", {
-        observation: "Test",
-      });
-      expect(updated).toBe(false);
-    });
+  it("should have unique IDs", () => {
+    const ids = mockAnimalObservations.map((o) => o.id);
+    const uniqueIds = new Set(ids);
+    expect(uniqueIds.size).toBe(ids.length);
   });
 });
 

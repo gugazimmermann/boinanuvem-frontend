@@ -3,9 +3,9 @@ import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
 import { mockProperties } from "~/mocks/properties";
 import { mockLocations } from "~/mocks/locations";
 import { mockCompanies } from "~/mocks/companies";
-import { getAnimalsByCompanyId } from "~/mocks/animals";
-import { getBirthsByCompanyId } from "~/mocks/births";
-import { getWeighingsByAnimalId } from "~/mocks/weighings";
+import { getAnimalsByCompanyId } from "~/services/animals.service";
+import { getBirthsByCompanyId } from "~/services/births.service";
+import { getWeighingsByAnimalId } from "~/services/weighings.service";
 import { AreaType } from "~/types";
 
 export function meta() {

@@ -3,10 +3,10 @@ import { useNavigate } from "react-router";
 import { Input, Select, Button, Alert } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { ROUTES } from "~/routes.config";
-import { addAnimal } from "~/mocks/animals";
+import { addAnimal } from "~/services/animals.service";
 import type { AnimalFormData } from "~/types";
 import { mockCompanies } from "~/mocks/companies";
-import { mockProperties } from "~/mocks/properties";
+import { mockProperties } from "~/services/properties.service";
 
 export function meta() {
   return [

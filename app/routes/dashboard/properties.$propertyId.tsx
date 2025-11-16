@@ -30,17 +30,17 @@ import {
   getMovementViewRoute,
   getMovementNewRoute,
 } from "~/routes.config";
-import { getPropertyById } from "~/mocks/properties";
-import { getLocationsByPropertyId, getLocationById } from "~/mocks/locations";
-import { getEmployeesByPropertyId, getEmployeeById } from "~/mocks/employees";
-import { getServiceProvidersByPropertyId, getServiceProviderById } from "~/mocks/service-providers";
-import { getSuppliersByPropertyId } from "~/mocks/suppliers";
-import { getBuyersByPropertyId } from "~/mocks/buyers";
-import { getLocationMovementsByPropertyId } from "~/mocks/location-movements";
-import { getAnimalMovementsByPropertyId } from "~/mocks/animal-movements";
-import { getAnimalsByPropertyId, deleteAnimal, getAnimalById } from "~/mocks/animals";
-import { getBirthByAnimalId } from "~/mocks/births";
-import { getWeighingsByAnimalId } from "~/mocks/weighings";
+import { getPropertyById } from "~/services/properties.service";
+import { getLocationsByPropertyId, getLocationById } from "~/services/locations.service";
+import { getEmployeesByPropertyId, getEmployeeById } from "~/services/employees.service";
+import { getServiceProvidersByPropertyId, getServiceProviderById } from "~/services/service-providers.service";
+import { getSuppliersByPropertyId } from "~/services/suppliers.service";
+import { getBuyersByPropertyId } from "~/services/buyers.service";
+import { getLocationMovementsByPropertyId } from "~/services/location-movements.service";
+import { getAnimalMovementsByPropertyId } from "~/services/animal-movements.service";
+import { getAnimalsByPropertyId, deleteAnimal, getAnimalById } from "~/services/animals.service";
+import { getBirthByAnimalId } from "~/services/births.service";
+import { getWeighingsByAnimalId } from "~/services/weighings.service";
 import { getAnimalViewRoute, getAnimalEditRoute, getAnimalMovementNewRoute } from "~/routes.config";
 import type {
   Location,

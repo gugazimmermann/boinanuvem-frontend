@@ -17,10 +17,10 @@ import {
   getPropertyViewRoute,
   getObservationViewRoute,
 } from "~/routes.config";
-import { getBuyerById } from "~/mocks/buyers";
-import { getPropertyById } from "~/mocks/properties";
+import { getBuyerById } from "~/services/buyers.service";
+import { getPropertyById } from "~/services/properties.service";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
-import { getBuyerObservationsByBuyerId, addBuyerObservation } from "~/mocks/buyer-observations";
+import { getBuyerObservationsByBuyerId, addBuyerObservation } from "~/services/buyer-observations.service";
 import type { BuyerObservation } from "~/types/buyer-observation";
 
 export function meta() {

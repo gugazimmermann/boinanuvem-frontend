@@ -21,16 +21,3 @@ export const mockCompanies: Company[] = [
     longitude: -48.75873810994559,
   },
 ];
-
-export function updateCompany(cnpj: string, data: Partial<Company>): void {
-  const unmaskedCNPJ = cnpj.replace(/\D/g, "");
-  const companyIndex = mockCompanies.findIndex(
-    (company) => company.cnpj.replace(/\D/g, "") === unmaskedCNPJ
-  );
-  if (companyIndex !== -1) {
-    mockCompanies[companyIndex] = {
-      ...mockCompanies[companyIndex],
-      ...data,
-    };
-  }
-}

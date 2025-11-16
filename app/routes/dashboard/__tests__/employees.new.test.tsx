@@ -4,7 +4,7 @@ import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
 import NewEmployee from "../employees.new";
-import { addEmployee } from "~/mocks/employees";
+import { addEmployee } from "~/services/employees.service";
 import { useCEPLookup } from "~/components/site/hooks";
 import { mapCEPDataToAddressForm, maskCEP, unmaskCEP, maskCPF, maskPhone } from "~/components/site/utils";
 
@@ -19,17 +19,38 @@ vi.mock("react-router", async () => {
   };
 });
 
-vi.mock("~/mocks/employees", () => ({
+vi.mock("~/mocks/employees", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/employees")>("~/mocks/employees");
+  return actual;
+});
+
+vi.mock("~/services/employees.service", () => ({
   addEmployee: vi.fn(() => ({ id: "new-employee" })),
 }));
 
-vi.mock("~/mocks/companies", () => ({
-  mockCompanies: [{ id: "company-1", name: "Test Company" }],
-}));
+vi.mock("~/mocks/companies", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/companies")>("~/mocks/companies");
+  return {
+    ...actual,
+    mockCompanies: [{ id: "company-1", name: "Test Company" }],
+  };
+});
 
-vi.mock("~/mocks/properties", () => ({
-  mockProperties: [{ id: "prop-1", name: "Test Property" }],
-}));
+vi.mock("~/mocks/properties", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/properties")>("~/mocks/properties");
+  return {
+    ...actual,
+    mockProperties: [{ id: "prop-1", name: "Test Property" }],
+  };
+});
+
+vi.mock("~/services/properties.service", async () => {
+  const actual = await vi.importActual<typeof import("~/services/properties.service")>("~/services/properties.service");
+  return {
+    ...actual,
+    mockProperties: [{ id: "prop-1", name: "Test Property" }],
+  };
+});
 
 vi.mock("~/components/site/hooks", () => ({
   useCEPLookup: (...args: any[]) => mockUseCEPLookup(...args),

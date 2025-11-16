@@ -1,11 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
 import NewWeighing from "../records.weighings.new";
 
 const mockNavigate = vi.fn();
+const mockAddWeighing = vi.fn();
+const mockGetWeighingsByAnimalId = vi.fn();
+const mockGetAnimalById = vi.fn();
+const mockGetEmployeeById = vi.fn();
+const mockGetServiceProviderById = vi.fn();
 
 vi.mock("react-router", async () => {
   const actual = await vi.importActual("react-router");
@@ -15,24 +20,53 @@ vi.mock("react-router", async () => {
   };
 });
 
-vi.mock("~/mocks/weighings", () => ({
-  addWeighing: vi.fn(() => ({ id: "new-weighing" })),
+vi.mock("~/services/weighings.service", () => ({
+  addWeighing: (...args: any[]) => mockAddWeighing(...args),
+  getWeighingsByAnimalId: (...args: any[]) => mockGetWeighingsByAnimalId(...args),
 }));
 
-vi.mock("~/mocks/animals", () => ({
-  getAnimalsByCompanyId: vi.fn(() => []),
+vi.mock("~/mocks/animals", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/animals")>("~/mocks/animals");
+  return actual;
+});
+
+vi.mock("~/services/animals.service", () => ({
+  getAnimalsByCompanyId: vi.fn(() => [
+    { id: "animal-1", code: "A001", registrationNumber: "REG001", companyId: "company-1", propertyId: "prop-1", status: "active" as const, createdAt: "2024-01-01" },
+  ]),
+  getAnimalById: (...args: any[]) => mockGetAnimalById(...args),
 }));
 
-vi.mock("~/mocks/companies", () => ({
-  mockCompanies: [{ id: "company-1", name: "Test Company" }],
+vi.mock("~/mocks/companies", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/companies")>("~/mocks/companies");
+  return {
+    ...actual,
+    mockCompanies: [{ id: "company-1", name: "Test Company" }],
+  };
+});
+
+vi.mock("~/mocks/employees", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/employees")>("~/mocks/employees");
+  return {
+    ...actual,
+    mockEmployees: [{ id: "emp-1", name: "Test Employee", companyId: "company-1", status: "active" as const }],
+  };
+});
+
+vi.mock("~/services/employees.service", () => ({
+  getEmployeeById: (...args: any[]) => mockGetEmployeeById(...args),
 }));
 
-vi.mock("~/mocks/employees", () => ({
-  mockEmployees: [{ id: "emp-1", name: "Test Employee" }],
-}));
+vi.mock("~/mocks/service-providers", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/service-providers")>("~/mocks/service-providers");
+  return {
+    ...actual,
+    mockServiceProviders: [{ id: "sp-1", name: "Test SP", companyId: "company-1", status: "active" as const }],
+  };
+});
 
-vi.mock("~/mocks/service-providers", () => ({
-  mockServiceProviders: [{ id: "sp-1", name: "Test SP" }],
+vi.mock("~/services/service-providers.service", () => ({
+  getServiceProviderById: (...args: any[]) => mockGetServiceProviderById(...args),
 }));
 
 vi.mock("~/components/ui", () => ({
@@ -41,17 +75,18 @@ vi.mock("~/components/ui", () => ({
       data-testid={`input-${label || placeholder || "input"}`}
       aria-label={label}
       placeholder={placeholder}
-      value={value || ""}
+      value={value ?? ""}
       onChange={onChange}
       {...props}
     />
   ),
-  Button: ({ children, onClick, type, disabled, ...props }: any) => (
+  Button: ({ children, onClick, type, disabled, variant, ...props }: any) => (
     <button
-      data-testid="submit-button"
+      data-testid={type === "submit" ? "submit-button" : "button"}
       type={type}
       onClick={onClick}
       disabled={disabled}
+      data-variant={variant}
       {...props}
     >
       {children}
@@ -59,6 +94,51 @@ vi.mock("~/components/ui", () => ({
   ),
   Alert: ({ title, variant }: any) => (
     <div data-testid={`alert-${variant}`}>{title}</div>
+  ),
+  Table: ({ columns, data, search, pagination, emptyState, slim }: any) => (
+    <div data-testid="table" data-slim={slim}>
+      {search && (
+        <input
+          data-testid="table-search"
+          placeholder={search.placeholder}
+          value={search.value}
+          onChange={(e) => search.onChange(e.target.value)}
+        />
+      )}
+      <table>
+        <thead>
+          <tr>
+            {columns.map((col: any) => (
+              <th key={col.key}>{col.label}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {data.length === 0 ? (
+            <tr>
+              <td colSpan={columns.length}>
+                {emptyState?.title || "No data"}
+              </td>
+            </tr>
+          ) : (
+            data.map((row: any, idx: number) => (
+              <tr key={idx}>
+                {columns.map((col: any) => (
+                  <td key={col.key}>
+                    {col.render ? col.render(null, row, idx) : row[col.key]}
+                  </td>
+                ))}
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+      {pagination && (
+        <div data-testid="table-pagination">
+          Page {pagination.currentPage} of {pagination.totalPages}
+        </div>
+      )}
+    </div>
   ),
 }));
 
@@ -85,6 +165,28 @@ describe("NewWeighing", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAddWeighing.mockReturnValue({
+      id: "weighing-1",
+      animalId: "animal-1",
+      date: "2024-01-15",
+      weight: 450.5,
+      employeeIds: ["emp-1"],
+      serviceProviderIds: ["sp-1"],
+      companyId: "company-1",
+      createdAt: "2024-01-15T10:00:00Z",
+    });
+    mockGetAnimalById.mockReturnValue({
+      id: "animal-1",
+      code: "A001",
+      registrationNumber: "REG001",
+      companyId: "company-1",
+      propertyId: "prop-1",
+      status: "active",
+      createdAt: "2024-01-01",
+    });
+    mockGetWeighingsByAnimalId.mockReturnValue([]);
+    mockGetEmployeeById.mockReturnValue({ id: "emp-1", name: "Test Employee" });
+    mockGetServiceProviderById.mockReturnValue({ id: "sp-1", name: "Test SP" });
   });
 
   it("should render new weighing form", () => {
@@ -134,6 +236,224 @@ describe("NewWeighing", () => {
 
   it("should have correct meta function", () => {
     expect(NewWeighing).toBeDefined();
+  });
+
+  it("should not navigate after successful submission", async () => {
+    const router = createRouter();
+    render(<RouterProvider router={router} />);
+    
+    const animalInput = screen.getByPlaceholderText(/search by code|buscar por código/i);
+    fireEvent.change(animalInput, { target: { value: "A001" } });
+    
+    await waitFor(() => {
+      const animalRadios = screen.getAllByRole("radio");
+      if (animalRadios.length > 0) {
+        fireEvent.click(animalRadios[0]);
+      }
+    });
+    
+    const weightInput = screen.getByLabelText(/weight|peso/i);
+    fireEvent.change(weightInput, { target: { value: "450.5" } });
+    
+    const dateInput = screen.getByLabelText(/date|data/i);
+    if (dateInput) {
+      const today = new Date().toISOString().split("T")[0];
+      fireEvent.change(dateInput, { target: { value: today } });
+    }
+    
+    const submitButton = screen.getByTestId("submit-button");
+    fireEvent.click(submitButton);
+    
+    await waitFor(() => {
+      expect(mockAddWeighing).toHaveBeenCalled();
+      expect(mockNavigate).not.toHaveBeenCalledWith(expect.stringContaining("/animais"));
+    });
+  });
+
+  it("should show session weighings button after first registration", async () => {
+    const router = createRouter();
+    render(<RouterProvider router={router} />);
+    
+    const animalInput = screen.getByPlaceholderText(/search by code|buscar por código/i);
+    fireEvent.change(animalInput, { target: { value: "A001" } });
+    
+    await waitFor(() => {
+      const animalRadios = screen.getAllByRole("radio");
+      if (animalRadios.length > 0) {
+        fireEvent.click(animalRadios[0]);
+      }
+    });
+    
+    const weightInput = screen.getByLabelText(/weight|peso/i);
+    fireEvent.change(weightInput, { target: { value: "450.5" } });
+    
+    const dateInput = screen.getByLabelText(/date|data/i);
+    if (dateInput) {
+      const today = new Date().toISOString().split("T")[0];
+      fireEvent.change(dateInput, { target: { value: today } });
+    }
+    
+    const submitButton = screen.getByTestId("submit-button");
+    fireEvent.click(submitButton);
+    
+    await waitFor(() => {
+      const viewSessionButton = screen.queryByText(/Ver Pesagens da Sessão|View Session Weighings|Ver Pesajes de la Sesión/i);
+      expect(viewSessionButton).toBeInTheDocument();
+    }, { timeout: 3000 });
+  });
+
+  it("should preserve employee and service provider selections after submission", async () => {
+    const router = createRouter();
+    render(<RouterProvider router={router} />);
+    
+    const animalInput = screen.getByPlaceholderText(/search by code|buscar por código/i);
+    fireEvent.change(animalInput, { target: { value: "A001" } });
+    
+    await waitFor(() => {
+      const animalRadios = screen.getAllByRole("radio");
+      if (animalRadios.length > 0) {
+        fireEvent.click(animalRadios[0]);
+      }
+    });
+    
+    const weightInput = screen.getByLabelText(/weight|peso/i);
+    fireEvent.change(weightInput, { target: { value: "450.5" } });
+    
+    const dateInput = screen.getByLabelText(/date|data/i);
+    if (dateInput) {
+      const today = new Date().toISOString().split("T")[0];
+      fireEvent.change(dateInput, { target: { value: today } });
+    }
+    
+    const employeeCheckboxes = screen.getAllByRole("checkbox");
+    if (employeeCheckboxes.length > 0) {
+      fireEvent.click(employeeCheckboxes[0]);
+    }
+    
+    const submitButton = screen.getByTestId("submit-button");
+    fireEvent.click(submitButton);
+    
+    await waitFor(() => {
+      const employeeCheckboxesAfter = screen.getAllByRole("checkbox");
+      if (employeeCheckboxesAfter.length > 0) {
+        expect(employeeCheckboxesAfter[0]).toBeChecked();
+      }
+    }, { timeout: 3000 });
+  });
+
+  it("should open session modal when view session button is clicked", async () => {
+    const router = createRouter();
+    render(<RouterProvider router={router} />);
+    
+    const animalInput = screen.getByPlaceholderText(/search by code|buscar por código/i);
+    fireEvent.change(animalInput, { target: { value: "A001" } });
+    
+    await waitFor(() => {
+      const animalRadios = screen.getAllByRole("radio");
+      if (animalRadios.length > 0) {
+        fireEvent.click(animalRadios[0]);
+      }
+    });
+    
+    const weightInput = screen.getByLabelText(/weight|peso/i);
+    fireEvent.change(weightInput, { target: { value: "450.5" } });
+    
+    const dateInput = screen.getByLabelText(/date|data/i);
+    if (dateInput) {
+      const today = new Date().toISOString().split("T")[0];
+      fireEvent.change(dateInput, { target: { value: today } });
+    }
+    
+    const submitButton = screen.getByTestId("submit-button");
+    fireEvent.click(submitButton);
+    
+    await waitFor(() => {
+      const viewSessionButton = screen.queryByText(/Ver Pesagens da Sessão|View Session Weighings|Ver Pesajes de la Sesión/i);
+      if (viewSessionButton) {
+        fireEvent.click(viewSessionButton);
+        
+        const modal = screen.queryByTestId("table");
+        expect(modal).toBeInTheDocument();
+      }
+    }, { timeout: 3000 });
+  });
+
+  it("should display session weighings in modal table", async () => {
+    const router = createRouter();
+    render(<RouterProvider router={router} />);
+    
+    const animalInput = screen.getByPlaceholderText(/search by code|buscar por código/i);
+    fireEvent.change(animalInput, { target: { value: "A001" } });
+    
+    await waitFor(() => {
+      const animalRadios = screen.getAllByRole("radio");
+      if (animalRadios.length > 0) {
+        fireEvent.click(animalRadios[0]);
+      }
+    });
+    
+    const weightInput = screen.getByLabelText(/weight|peso/i);
+    fireEvent.change(weightInput, { target: { value: "450.5" } });
+    
+    const dateInput = screen.getByLabelText(/date|data/i);
+    if (dateInput) {
+      const today = new Date().toISOString().split("T")[0];
+      fireEvent.change(dateInput, { target: { value: today } });
+    }
+    
+    const submitButton = screen.getByTestId("submit-button");
+    fireEvent.click(submitButton);
+    
+    await waitFor(async () => {
+      const viewSessionButton = screen.queryByText(/Ver Pesagens da Sessão|View Session Weighings|Ver Pesajes de la Sesión/i);
+      if (viewSessionButton) {
+        fireEvent.click(viewSessionButton);
+        
+        await waitFor(() => {
+          const table = screen.queryByTestId("table");
+          expect(table).toBeInTheDocument();
+          expect(table).toHaveAttribute("data-slim", "true");
+        }, { timeout: 3000 });
+      }
+    }, { timeout: 3000 });
+  });
+
+  it("should reset form fields except employee and service provider selections", async () => {
+    const router = createRouter();
+    render(<RouterProvider router={router} />);
+    
+    const animalInput = screen.getByPlaceholderText(/search by code|buscar por código/i);
+    fireEvent.change(animalInput, { target: { value: "A001" } });
+    
+    await waitFor(() => {
+      const animalRadios = screen.getAllByRole("radio");
+      if (animalRadios.length > 0) {
+        fireEvent.click(animalRadios[0]);
+      }
+    });
+    
+    const weightInput = screen.getByLabelText(/weight|peso/i);
+    fireEvent.change(weightInput, { target: { value: "450.5" } });
+    expect(weightInput).toHaveValue(450.5);
+    
+    const dateInput = screen.getByLabelText(/date|data/i);
+    if (dateInput) {
+      const today = new Date().toISOString().split("T")[0];
+      fireEvent.change(dateInput, { target: { value: today } });
+    }
+    
+    const submitButton = screen.getByTestId("submit-button");
+    fireEvent.click(submitButton);
+    
+    await waitFor(() => {
+      expect(mockAddWeighing).toHaveBeenCalled();
+    }, { timeout: 3000 });
+    
+    await waitFor(() => {
+      const weightInputAfter = screen.getByLabelText(/weight|peso/i);
+      const inputValue = (weightInputAfter as HTMLInputElement).value;
+      expect(inputValue === "" || inputValue === null || inputValue === undefined || !inputValue).toBeTruthy();
+    }, { timeout: 2000 });
   });
 });
 

@@ -6,10 +6,10 @@ import { maskCEP, unmaskCEP, maskCPF, maskCNPJ, maskPhone } from "~/components/s
 import { useCEPLookup, type CEPData } from "~/components/site/hooks";
 import { mapCEPDataToAddressForm } from "~/components/site/utils";
 import { ROUTES } from "~/routes.config";
-import { addServiceProvider } from "~/mocks/service-providers";
+import { addServiceProvider } from "~/services/service-providers.service";
 import type { ServiceProviderFormData } from "~/types";
 import { mockCompanies } from "~/mocks/companies";
-import { mockProperties } from "~/mocks/properties";
+import { mockProperties } from "~/services/properties.service";
 import { BRAZILIAN_STATES } from "~/utils/brazilian-states";
 
 export function meta() {

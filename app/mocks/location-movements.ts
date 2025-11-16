@@ -1,12 +1,13 @@
 import type { LocationMovement, LocationMovementFormData } from "~/types/location-movement";
 import { LocationMovementType } from "~/types/location-movement";
+import { generateUUID } from "~/utils/uuid";
 
 export type { LocationMovement, LocationMovementFormData };
 export { LocationMovementType };
 
 export const mockLocationMovements: LocationMovement[] = [
   {
-    id: "990e8400-e29b-41d4-a716-000000000001",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440010",
     locationIds: ["660e8400-e29b-41d4-a716-446655440010"],
@@ -20,7 +21,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-01-05T08:30:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000002",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440010",
     locationIds: ["660e8400-e29b-41d4-a716-446655440010", "660e8400-e29b-41d4-a716-446655440014"],
@@ -34,7 +35,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-01-10T09:15:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000003",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440010",
     locationIds: ["660e8400-e29b-41d4-a716-446655440010", "660e8400-e29b-41d4-a716-446655440014"],
@@ -48,7 +49,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-01-15T10:00:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000004",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440010",
     locationIds: [
@@ -71,7 +72,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-01-20T11:30:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000005",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440010",
     locationIds: [
@@ -86,7 +87,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-01-25T07:00:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000006",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440010",
     locationIds: ["660e8400-e29b-41d4-a716-446655440011", "660e8400-e29b-41d4-a716-446655440012"],
@@ -97,7 +98,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-01-30T14:00:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000007",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440010",
     locationIds: [
@@ -112,7 +113,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-02-05T13:30:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000008",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440010",
     locationIds: ["660e8400-e29b-41d4-a716-446655440011", "660e8400-e29b-41d4-a716-446655440014"],
@@ -126,7 +127,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-02-10T10:15:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000009",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440010",
     locationIds: ["660e8400-e29b-41d4-a716-446655440012", "660e8400-e29b-41d4-a716-446655440014"],
@@ -137,7 +138,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-02-15T08:45:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000010",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440010",
     locationIds: ["660e8400-e29b-41d4-a716-446655440012", "660e8400-e29b-41d4-a716-446655440014"],
@@ -150,7 +151,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-02-20T09:30:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000011",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440010",
     locationIds: [
@@ -165,7 +166,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-02-25T08:20:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000012",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440010",
     locationIds: ["660e8400-e29b-41d4-a716-446655440013", "660e8400-e29b-41d4-a716-446655440014"],
@@ -179,7 +180,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-03-01T09:00:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000013",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440010",
     locationIds: [
@@ -194,7 +195,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-03-05T07:45:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000014",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440010",
     locationIds: ["660e8400-e29b-41d4-a716-446655440013"],
@@ -205,7 +206,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-03-10T10:30:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000015",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440010",
     locationIds: [
@@ -220,7 +221,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-03-15T15:00:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000016",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440010",
     locationIds: [
@@ -235,7 +236,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-03-20T16:00:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000017",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440010",
     locationIds: ["660e8400-e29b-41d4-a716-446655440014", "660e8400-e29b-41d4-a716-446655440012"],
@@ -246,7 +247,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-03-25T07:00:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000018",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440010",
     locationIds: ["660e8400-e29b-41d4-a716-446655440015"],
@@ -260,7 +261,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-03-30T09:30:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000019",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440010",
     locationIds: ["660e8400-e29b-41d4-a716-446655440015"],
@@ -271,7 +272,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-04-05T06:00:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000020",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440010",
     locationIds: ["660e8400-e29b-41d4-a716-446655440015"],
@@ -282,7 +283,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-04-10T10:15:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000021",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440010",
     locationIds: ["660e8400-e29b-41d4-a716-446655440016"],
@@ -293,7 +294,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-04-15T11:00:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000022",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440010",
     locationIds: ["660e8400-e29b-41d4-a716-446655440016"],
@@ -304,7 +305,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-04-20T08:45:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000023",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440010",
     locationIds: ["660e8400-e29b-41d4-a716-446655440017"],
@@ -315,7 +316,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-04-25T13:30:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000024",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440010",
     locationIds: ["660e8400-e29b-41d4-a716-446655440017"],
@@ -326,7 +327,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-05-01T14:00:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000025",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440010",
     locationIds: ["660e8400-e29b-41d4-a716-446655440018"],
@@ -337,7 +338,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-05-05T14:00:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000026",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440010",
     locationIds: ["660e8400-e29b-41d4-a716-446655440018"],
@@ -348,7 +349,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-05-10T09:00:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000027",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440010",
     locationIds: ["660e8400-e29b-41d4-a716-446655440018"],
@@ -362,7 +363,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-05-15T07:30:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000028",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440010",
     locationIds: ["660e8400-e29b-41d4-a716-446655440019"],
@@ -373,7 +374,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-05-20T10:00:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000029",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440010",
     locationIds: ["660e8400-e29b-41d4-a716-446655440019"],
@@ -384,7 +385,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-05-25T08:15:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000030",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440010",
     locationIds: ["660e8400-e29b-41d4-a716-446655440020"],
@@ -399,7 +400,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-05-30T11:30:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000031",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440010",
     locationIds: ["660e8400-e29b-41d4-a716-446655440020"],
@@ -410,7 +411,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-06-05T14:00:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000032",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440010",
     locationIds: ["660e8400-e29b-41d4-a716-446655440021"],
@@ -421,7 +422,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-06-10T09:45:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000033",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440011",
     locationIds: ["660e8400-e29b-41d4-a716-446655440022"],
@@ -432,7 +433,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-01-08T13:30:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000034",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440011",
     locationIds: ["660e8400-e29b-41d4-a716-446655440022"],
@@ -443,7 +444,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-01-12T07:45:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000035",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440011",
     locationIds: ["660e8400-e29b-41d4-a716-446655440022"],
@@ -457,7 +458,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-01-15T15:00:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000036",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440011",
     locationIds: ["660e8400-e29b-41d4-a716-446655440023"],
@@ -468,7 +469,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-01-18T08:20:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000037",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440011",
     locationIds: ["660e8400-e29b-41d4-a716-446655440023"],
@@ -479,7 +480,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-01-20T10:30:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000038",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440011",
     locationIds: ["660e8400-e29b-41d4-a716-446655440023"],
@@ -493,7 +494,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-01-22T09:00:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000039",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440011",
     locationIds: ["660e8400-e29b-41d4-a716-446655440024"],
@@ -504,7 +505,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-01-25T16:00:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000040",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440011",
     locationIds: ["660e8400-e29b-41d4-a716-446655440024"],
@@ -515,7 +516,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-01-28T07:00:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000041",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440011",
     locationIds: ["660e8400-e29b-41d4-a716-446655440024"],
@@ -529,7 +530,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-02-01T09:30:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000042",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440011",
     locationIds: ["660e8400-e29b-41d4-a716-446655440025"],
@@ -540,7 +541,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-02-05T06:00:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000043",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440011",
     locationIds: ["660e8400-e29b-41d4-a716-446655440025"],
@@ -551,7 +552,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-02-10T10:15:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000044",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440011",
     locationIds: ["660e8400-e29b-41d4-a716-446655440025"],
@@ -562,7 +563,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-02-15T11:00:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000045",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440011",
     locationIds: ["660e8400-e29b-41d4-a716-446655440026"],
@@ -573,7 +574,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-02-20T08:45:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000046",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440011",
     locationIds: ["660e8400-e29b-41d4-a716-446655440026"],
@@ -587,7 +588,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-02-25T13:30:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000047",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440011",
     locationIds: ["660e8400-e29b-41d4-a716-446655440027"],
@@ -598,7 +599,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-03-01T14:00:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000048",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440011",
     locationIds: ["660e8400-e29b-41d4-a716-446655440027"],
@@ -609,7 +610,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-03-05T14:00:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000049",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440011",
     locationIds: ["660e8400-e29b-41d4-a716-446655440027"],
@@ -623,7 +624,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-03-10T09:00:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000050",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440011",
     locationIds: ["660e8400-e29b-41d4-a716-446655440028"],
@@ -634,7 +635,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-03-15T07:30:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000051",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440011",
     locationIds: ["660e8400-e29b-41d4-a716-446655440028"],
@@ -648,7 +649,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-03-20T10:00:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000052",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440011",
     locationIds: ["660e8400-e29b-41d4-a716-446655440028"],
@@ -659,7 +660,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-03-25T08:15:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000053",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440011",
     locationIds: ["660e8400-e29b-41d4-a716-446655440029"],
@@ -670,7 +671,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-03-30T11:30:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000054",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440011",
     locationIds: ["660e8400-e29b-41d4-a716-446655440029"],
@@ -681,7 +682,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-04-05T14:00:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000055",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440011",
     locationIds: ["660e8400-e29b-41d4-a716-446655440029"],
@@ -696,7 +697,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-04-10T09:45:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000056",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440012",
     locationIds: ["660e8400-e29b-41d4-a716-446655440030"],
@@ -707,7 +708,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-01-03T08:20:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000057",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440012",
     locationIds: ["660e8400-e29b-41d4-a716-446655440030"],
@@ -718,7 +719,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-01-06T10:30:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000058",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440012",
     locationIds: ["660e8400-e29b-41d4-a716-446655440030"],
@@ -732,7 +733,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-01-09T09:00:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000059",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440012",
     locationIds: ["660e8400-e29b-41d4-a716-446655440031"],
@@ -746,7 +747,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-01-12T16:00:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000060",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440012",
     locationIds: ["660e8400-e29b-41d4-a716-446655440031"],
@@ -763,7 +764,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-01-15T07:00:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000061",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440012",
     locationIds: ["660e8400-e29b-41d4-a716-446655440031"],
@@ -777,7 +778,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-01-18T09:30:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000062",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440012",
     locationIds: ["660e8400-e29b-41d4-a716-446655440032"],
@@ -790,7 +791,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-01-21T06:00:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000063",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440012",
     locationIds: ["660e8400-e29b-41d4-a716-446655440032"],
@@ -807,7 +808,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-01-24T10:15:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000064",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440012",
     locationIds: ["660e8400-e29b-41d4-a716-446655440032"],
@@ -821,7 +822,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-01-27T11:00:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000065",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440012",
     locationIds: ["660e8400-e29b-41d4-a716-446655440033"],
@@ -835,7 +836,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-01-30T08:45:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000066",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440012",
     locationIds: ["660e8400-e29b-41d4-a716-446655440033"],
@@ -852,7 +853,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-02-02T13:30:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000067",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440012",
     locationIds: ["660e8400-e29b-41d4-a716-446655440033"],
@@ -866,7 +867,7 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-02-05T14:00:00Z",
   },
   {
-    id: "990e8400-e29b-41d4-a716-000000000068",
+    id: generateUUID(),
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     propertyId: "550e8400-e29b-41d4-a716-446655440012",
     locationIds: ["660e8400-e29b-41d4-a716-446655440033"],
@@ -884,82 +885,3 @@ export const mockLocationMovements: LocationMovement[] = [
     createdAt: "2025-02-08T14:00:00Z",
   },
 ];
-
-export function getLocationMovementById(
-  movementId: string | undefined
-): LocationMovement | undefined {
-  if (!movementId) return undefined;
-  return mockLocationMovements.find((movement) => movement.id === movementId);
-}
-
-export function getLocationMovementsByCompanyId(companyId: string): LocationMovement[] {
-  return mockLocationMovements.filter((movement) => movement.companyId === companyId);
-}
-
-export function getLocationMovementsByPropertyId(propertyId: string): LocationMovement[] {
-  return mockLocationMovements.filter((movement) => movement.propertyId === propertyId);
-}
-
-export function getLocationMovementsByLocationId(locationId: string): LocationMovement[] {
-  return mockLocationMovements.filter((movement) => movement.locationIds.includes(locationId));
-}
-
-export function getLocationMovementsByEmployeeId(employeeId: string): LocationMovement[] {
-  return mockLocationMovements.filter((movement) => movement.employeeIds.includes(employeeId));
-}
-
-export function getLocationMovementsByServiceProviderId(
-  serviceProviderId: string
-): LocationMovement[] {
-  return mockLocationMovements.filter((movement) =>
-    movement.serviceProviderIds.includes(serviceProviderId)
-  );
-}
-
-export function getLocationMovementsByType(type: LocationMovementType): LocationMovement[] {
-  return mockLocationMovements.filter((movement) => movement.type === type);
-}
-
-export function addLocationMovement(data: LocationMovementFormData): LocationMovement {
-  const lastId =
-    mockLocationMovements.length > 0
-      ? mockLocationMovements[mockLocationMovements.length - 1].id
-      : "990e8400-e29b-41d4-a716-446655440000";
-  const lastPart = lastId.split("-").pop() || "446655440000";
-  const lastNumber = parseInt(lastPart, 10);
-  const nextNumber = (lastNumber + 1).toString().padStart(12, "0");
-
-  const newMovement: LocationMovement = {
-    ...data,
-    id: `990e8400-e29b-41d4-a716-${nextNumber}`,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-  mockLocationMovements.push(newMovement);
-  return newMovement;
-}
-
-export function deleteLocationMovement(movementId: string): boolean {
-  const index = mockLocationMovements.findIndex((movement) => movement.id === movementId);
-  if (index !== -1) {
-    mockLocationMovements.splice(index, 1);
-    return true;
-  }
-  return false;
-}
-
-export function updateLocationMovement(
-  movementId: string,
-  data: Partial<LocationMovementFormData>
-): boolean {
-  const index = mockLocationMovements.findIndex((movement) => movement.id === movementId);
-  if (index !== -1) {
-    mockLocationMovements[index] = {
-      ...mockLocationMovements[index],
-      ...data,
-      updatedAt: new Date().toISOString(),
-    };
-    return true;
-  }
-  return false;
-}

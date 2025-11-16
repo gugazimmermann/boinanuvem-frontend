@@ -17,24 +17,41 @@ vi.mock("react-router", async () => {
   };
 });
 
-vi.mock("~/mocks/buyers", () => ({
-  mockBuyers: [
-    {
-      id: "buyer-1",
-      name: "Test Buyer",
-      code: "BYR001",
-      status: "active",
-      propertyId: "prop-1",
-    },
-  ],
+vi.mock("~/mocks/buyers", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/buyers")>("~/mocks/buyers");
+  return {
+    ...actual,
+    mockBuyers: [
+      {
+        id: "buyer-1",
+        name: "Test Buyer",
+        code: "BYR001",
+        status: "active",
+        propertyId: "prop-1",
+      },
+    ],
+  };
+});
+
+vi.mock("~/services/buyers.service", () => ({
   deleteBuyer: vi.fn(() => true),
 }));
 
-vi.mock("~/mocks/properties", () => ({
+vi.mock("~/mocks/properties", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/properties")>("~/mocks/properties");
+  return actual;
+});
+
+vi.mock("~/services/properties.service", () => ({
   getPropertyById: vi.fn(() => ({ id: "prop-1", name: "Test Property" })),
 }));
 
-vi.mock("~/mocks/buyer-observations", () => ({
+vi.mock("~/mocks/buyer-observations", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/buyer-observations")>("~/mocks/buyer-observations");
+  return actual;
+});
+
+vi.mock("~/services/buyer-observations.service", () => ({
   getBuyerObservationsByBuyerId: vi.fn(() => []),
 }));
 

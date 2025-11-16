@@ -20,12 +20,12 @@ import {
   getAnimalViewRoute,
   getObservationViewRoute,
 } from "~/routes.config";
-import { getAnimalById } from "~/mocks/animals";
-import { getPropertyById } from "~/mocks/properties";
-import { getBirthByAnimalId } from "~/mocks/births";
-import { getAcquisitionByAnimalId } from "~/mocks/acquisitions";
-import { getWeighingsByAnimalId } from "~/mocks/weighings";
-import { getAnimalObservationsByAnimalId, addAnimalObservation } from "~/mocks/animal-observations";
+import { getAnimalById } from "~/services/animals.service";
+import { getPropertyById } from "~/services/properties.service";
+import { getBirthByAnimalId } from "~/services/births.service";
+import { getAcquisitionByAnimalId } from "~/services/acquisitions.service";
+import { getWeighingsByAnimalId } from "~/services/weighings.service";
+import { getAnimalObservationsByAnimalId, addAnimalObservation } from "~/services/animal-observations.service";
 import type { AnimalObservation } from "~/types/animal-observation";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
 import type { BirthPurity } from "~/types";

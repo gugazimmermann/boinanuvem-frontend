@@ -19,15 +19,45 @@ vi.mock("react-router", async () => {
   };
 });
 
-vi.mock("~/mocks/suppliers", () => ({
+vi.mock("~/mocks/suppliers", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/suppliers")>("~/mocks/suppliers");
+  return {
+    ...actual,
+    getSupplierById: vi.fn(),
+  };
+});
+
+vi.mock("~/services/suppliers.service", () => ({
   getSupplierById: vi.fn(),
 }));
 
-vi.mock("~/mocks/properties", () => ({
-  getPropertyById: vi.fn((id) => ({ id, name: `Property ${id}` })),
-}));
+vi.mock("~/mocks/properties", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/properties")>("~/mocks/properties");
+  return {
+    ...actual,
+    mockProperties: [{ id: "prop-1", name: "Test Property" }],
+    getPropertyById: vi.fn((id) => ({ id, name: `Property ${id}` })),
+  };
+});
 
-vi.mock("~/mocks/supplier-observations", () => ({
+vi.mock("~/services/properties.service", async () => {
+  const actual = await vi.importActual<typeof import("~/services/properties.service")>("~/services/properties.service");
+  return {
+    ...actual,
+    getPropertyById: vi.fn((id) => ({ id, name: `Property ${id}` })),
+  };
+});
+
+vi.mock("~/mocks/supplier-observations", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/supplier-observations")>("~/mocks/supplier-observations");
+  return {
+    ...actual,
+    getSupplierObservationsBySupplierId: vi.fn(() => []),
+    addSupplierObservation: vi.fn(),
+  };
+});
+
+vi.mock("~/services/supplier-observations.service", () => ({
   getSupplierObservationsBySupplierId: vi.fn(() => []),
   addSupplierObservation: vi.fn(),
 }));

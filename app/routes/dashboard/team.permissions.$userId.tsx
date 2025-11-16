@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router";
 import { Button, Alert } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { ROUTES } from "~/routes.config";
-import { getUserById, updateUserPermissions } from "~/mocks/users";
+import { getUserById, updateUserPermissions } from "~/services/users.service";
 import type { TeamUser } from "~/routes/dashboard/team";
 import type { UserPermissions, PermissionAction, ResourcePermissions } from "~/types/permissions";
 import { defaultPermissions } from "~/types/permissions";

@@ -17,20 +17,32 @@ vi.mock("react-router", async () => {
   };
 });
 
-vi.mock("~/mocks/employees", () => ({
-  mockEmployees: [
-    {
-      id: "emp-1",
-      name: "Test Employee",
-      code: "EMP001",
-      status: "active",
-      propertyId: "prop-1",
-    },
-  ],
+vi.mock("~/mocks/employees", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/employees")>("~/mocks/employees");
+  return {
+    ...actual,
+    mockEmployees: [
+      {
+        id: "emp-1",
+        name: "Test Employee",
+        code: "EMP001",
+        status: "active",
+        propertyId: "prop-1",
+      },
+    ],
+  };
+});
+
+vi.mock("~/services/employees.service", () => ({
   deleteEmployee: vi.fn(() => true),
 }));
 
-vi.mock("~/mocks/properties", () => ({
+vi.mock("~/mocks/properties", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/properties")>("~/mocks/properties");
+  return actual;
+});
+
+vi.mock("~/services/properties.service", () => ({
   getPropertyById: vi.fn(() => ({ id: "prop-1", name: "Test Property" })),
 }));
 

@@ -11,7 +11,39 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
   </ThemeProvider>
 );
 
-vi.mock("~/mocks/users", () => ({
+vi.mock("~/mocks/users", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/users")>("~/mocks/users");
+  return {
+    ...actual,
+    mockUsers: [
+      {
+        id: "1",
+        name: "Test User",
+        email: "test@example.com",
+        companyId: "1",
+        mainUser: true,
+      },
+    ],
+    getUserById: vi.fn((id: string) => ({
+      id,
+      name: "Test User",
+      email: "test@example.com",
+      phone: "1234567890",
+      cpf: "12345678901",
+      street: "Test Street",
+      number: "123",
+      complement: "Apt 1",
+      neighborhood: "Test Neighborhood",
+      city: "Test City",
+      state: "SP",
+      zipCode: "12345678",
+      companyId: "1",
+      mainUser: true,
+    })),
+  };
+});
+
+vi.mock("~/services/users.service", () => ({
   getUserById: vi.fn((id: string) => ({
     id,
     name: "Test User",
@@ -29,15 +61,6 @@ vi.mock("~/mocks/users", () => ({
     mainUser: true,
   })),
   updateUser: vi.fn(),
-  mockUsers: [
-    {
-      id: "1",
-      name: "Test User",
-      email: "test@example.com",
-      companyId: "1",
-      mainUser: true,
-    },
-  ],
 }));
 
 vi.mock("~/mocks/companies", () => ({

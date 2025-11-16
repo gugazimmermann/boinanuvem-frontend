@@ -1,142 +1,142 @@
 import { describe, it, expect } from "vitest";
-import {
-  mockWeighings,
-  getWeighingById,
-  getWeighingsByAnimalId,
-  getWeighingsByCompanyId,
-  addWeighing,
-  deleteWeighing,
-  updateWeighing,
-} from "../weighings";
-import type { WeighingFormData } from "~/types";
+import { mockWeighings } from "../weighings";
+import { mockAnimals } from "../animals";
+import { mockEmployees } from "../employees";
+import { mockServiceProviders } from "../service-providers";
+import { getBirthByAnimalId } from "~/services/births.service";
+import { getAcquisitionByAnimalId } from "~/services/acquisitions.service";
+import type { Weighing } from "~/types";
 
-describe("Weighings Mock Functions", () => {
-  const COMPANY_ID = "550e8400-e29b-41d4-a716-446655440000";
-  const ANIMAL_ID = "bb0e8400-e29b-41d4-a716-446655440100";
-  const EMPLOYEE_ID = "770e8400-e29b-41d4-a716-446655440010";
+describe("weighings mock", () => {
+  it("should export mockWeighings array", () => {
+    expect(Array.isArray(mockWeighings)).toBe(true);
+    expect(mockWeighings.length).toBeGreaterThan(0);
+  });
 
-  describe("getWeighingById", () => {
-    it("should return weighing by id", () => {
-      if (mockWeighings.length > 0) {
-        const weighing = getWeighingById(mockWeighings[0].id);
-        expect(weighing).toBeDefined();
-        expect(weighing?.id).toBe(mockWeighings[0].id);
-      }
-    });
+  it("should have valid weighing structure", () => {
+    mockWeighings.forEach((weighing: Weighing) => {
+      expect(weighing).toHaveProperty("id");
+      expect(weighing).toHaveProperty("animalId");
+      expect(weighing).toHaveProperty("employeeIds");
+      expect(weighing).toHaveProperty("serviceProviderIds");
+      expect(weighing).toHaveProperty("date");
+      expect(weighing).toHaveProperty("weight");
+      expect(weighing).toHaveProperty("observation");
+      expect(weighing).toHaveProperty("createdAt");
+      expect(weighing).toHaveProperty("companyId");
 
-    it("should return undefined for non-existent id", () => {
-      const weighing = getWeighingById("non-existent-id");
-      expect(weighing).toBeUndefined();
-    });
-
-    it("should return undefined for undefined id", () => {
-      const weighing = getWeighingById(undefined);
-      expect(weighing).toBeUndefined();
+      expect(typeof weighing.id).toBe("string");
+      expect(typeof weighing.animalId).toBe("string");
+      expect(Array.isArray(weighing.employeeIds)).toBe(true);
+      expect(Array.isArray(weighing.serviceProviderIds)).toBe(true);
+      expect(typeof weighing.date).toBe("string");
+      expect(typeof weighing.weight).toBe("number");
+      expect(typeof weighing.observation).toBe("string");
+      expect(typeof weighing.createdAt).toBe("string");
+      expect(typeof weighing.companyId).toBe("string");
     });
   });
 
-  describe("getWeighingsByAnimalId", () => {
-    it("should return weighings for an animal", () => {
-      if (mockWeighings.length > 0) {
-        const animalId = mockWeighings[0].animalId;
-        const weighings = getWeighingsByAnimalId(animalId);
-        expect(Array.isArray(weighings)).toBe(true);
-        weighings.forEach((weighing) => {
-          expect(weighing.animalId).toBe(animalId);
-        });
-      }
-    });
-
-    it("should return empty array for non-existent animal", () => {
-      const weighings = getWeighingsByAnimalId("non-existent-animal");
-      expect(weighings).toEqual([]);
+  it("should have valid date format", () => {
+    mockWeighings.forEach((weighing: Weighing) => {
+      expect(weighing.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(() => new Date(weighing.date)).not.toThrow();
+      expect(weighing.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(() => new Date(weighing.createdAt)).not.toThrow();
     });
   });
 
-  describe("getWeighingsByCompanyId", () => {
-    it("should return weighings for a company", () => {
-      const weighings = getWeighingsByCompanyId(COMPANY_ID);
-      expect(Array.isArray(weighings)).toBe(true);
-      weighings.forEach((weighing) => {
-        expect(weighing.companyId).toBe(COMPANY_ID);
+  it("should have positive weight", () => {
+    mockWeighings.forEach((weighing: Weighing) => {
+      expect(weighing.weight).toBeGreaterThan(0);
+      expect(weighing.weight).toBeLessThan(2000);
+    });
+  });
+
+  it("should have at least one employee in each weighing", () => {
+    mockWeighings.forEach((weighing: Weighing) => {
+      expect(weighing.employeeIds.length).toBeGreaterThan(0);
+    });
+  });
+
+  it("should have valid animal IDs", () => {
+    const animalIds = new Set(mockAnimals.map((a) => a.id));
+    mockWeighings.forEach((weighing: Weighing) => {
+      expect(animalIds.has(weighing.animalId)).toBe(true);
+    });
+  });
+
+  it("should have valid employee IDs", () => {
+    const employeeIds = new Set(mockEmployees.map((e) => e.id));
+    mockWeighings.forEach((weighing: Weighing) => {
+      weighing.employeeIds.forEach((employeeId) => {
+        expect(employeeIds.has(employeeId)).toBe(true);
       });
     });
+  });
 
-    it("should return empty array for non-existent company", () => {
-      const weighings = getWeighingsByCompanyId("non-existent-company");
-      expect(weighings).toEqual([]);
+  it("should have valid service provider IDs when present", () => {
+    const serviceProviderIds = new Set(mockServiceProviders.map((sp) => sp.id));
+    mockWeighings.forEach((weighing: Weighing) => {
+      weighing.serviceProviderIds.forEach((serviceProviderId) => {
+        expect(serviceProviderIds.has(serviceProviderId)).toBe(true);
+      });
     });
   });
 
-  describe("addWeighing", () => {
-    it("should add a new weighing", () => {
-      const initialCount = mockWeighings.length;
-      const newWeighingData: WeighingFormData = {
-        animalId: ANIMAL_ID,
-        date: "2024-01-15",
-        weight: 350,
-        employeeIds: [EMPLOYEE_ID],
-        companyId: COMPANY_ID,
-      };
-
-      const added = addWeighing(newWeighingData);
-      expect(added).toBeDefined();
-      expect(added.id).toBeDefined();
-      expect(added.createdAt).toBeDefined();
-      expect(added.animalId).toBe(newWeighingData.animalId);
-      expect(added.date).toBe(newWeighingData.date);
-      expect(added.weight).toBe(newWeighingData.weight);
-      expect(mockWeighings.length).toBe(initialCount + 1);
+  it("should have non-empty observation", () => {
+    mockWeighings.forEach((weighing: Weighing) => {
+      expect(weighing.observation.trim().length).toBeGreaterThan(0);
     });
   });
 
-  describe("deleteWeighing", () => {
-    it("should delete a weighing by id", () => {
-      const newWeighingData: WeighingFormData = {
-        animalId: ANIMAL_ID,
-        date: "2024-01-20",
-        weight: 400,
-        employeeIds: [EMPLOYEE_ID],
-        companyId: COMPANY_ID,
-      };
+  it("should have unique IDs", () => {
+    const ids = mockWeighings.map((w) => w.id);
+    const uniqueIds = new Set(ids);
+    expect(uniqueIds.size).toBe(ids.length);
+  });
 
-      const added = addWeighing(newWeighingData);
-      const initialCount = mockWeighings.length;
-      const deleted = deleteWeighing(added.id);
-
-      expect(deleted).toBe(true);
-      expect(mockWeighings.length).toBe(initialCount - 1);
-      expect(getWeighingById(added.id)).toBeUndefined();
+  it("should have weighings sorted by date descending per animal", () => {
+    const weighingsByAnimal = new Map<string, Weighing[]>();
+    mockWeighings.forEach((weighing) => {
+      if (!weighingsByAnimal.has(weighing.animalId)) {
+        weighingsByAnimal.set(weighing.animalId, []);
+      }
+      weighingsByAnimal.get(weighing.animalId)!.push(weighing);
     });
 
-    it("should return false for non-existent id", () => {
-      const deleted = deleteWeighing("non-existent-id");
-      expect(deleted).toBe(false);
+    weighingsByAnimal.forEach((weighings) => {
+      for (let i = 0; i < weighings.length - 1; i++) {
+        const current = new Date(weighings[i].date).getTime();
+        const next = new Date(weighings[i + 1].date).getTime();
+        expect(current).toBeGreaterThanOrEqual(next);
+      }
     });
   });
 
-  describe("updateWeighing", () => {
-    it("should update a weighing", () => {
-      const newWeighingData: WeighingFormData = {
-        animalId: ANIMAL_ID,
-        date: "2024-01-25",
-        weight: 450,
-        employeeIds: [EMPLOYEE_ID],
-        companyId: COMPANY_ID,
-      };
-
-      const added = addWeighing(newWeighingData);
-      const updated = updateWeighing(added.id, { weight: 500, observation: "Updated" });
-
-      expect(updated).toBe(true);
-      const weighing = getWeighingById(added.id);
-      expect(weighing?.weight).toBe(500);
-      expect(weighing?.observation).toBe("Updated");
+  it("should have weighings with dates after animal creation", () => {
+    const animalById = new Map(mockAnimals.map((a) => [a.id, a]));
+    mockWeighings.forEach((weighing) => {
+      const animal = animalById.get(weighing.animalId);
+      if (animal) {
+        const animalDate = new Date(animal.createdAt).getTime();
+        const weighingDate = new Date(weighing.date).getTime();
+        expect(weighingDate).toBeGreaterThanOrEqual(animalDate);
+      }
     });
+  });
 
-    it("should return false for non-existent id", () => {
-      const updated = updateWeighing("non-existent-id", { weight: 600 });
-      expect(updated).toBe(false);
+  it("should have weighings with dates after birth or acquisition", () => {
+    mockWeighings.forEach((weighing) => {
+      const birth = getBirthByAnimalId(weighing.animalId);
+      const acquisition = getAcquisitionByAnimalId(weighing.animalId);
+      const referenceDate = birth?.birthDate || acquisition?.birthDate || acquisition?.acquisitionDate;
+      
+      if (referenceDate) {
+        const refDate = new Date(referenceDate).getTime();
+        const weighingDate = new Date(weighing.date).getTime();
+        expect(weighingDate).toBeGreaterThanOrEqual(refDate);
+      }
     });
   });
 });

@@ -3,6 +3,7 @@ import { mockAnimals } from "./animals";
 import { mockLocations } from "./locations";
 import { mockEmployees } from "./employees";
 import { mockServiceProviders } from "./service-providers";
+import { generateUUID } from "~/utils/uuid";
 
 export type { AnimalMovement };
 
@@ -25,9 +26,8 @@ const fazendaAnimals = mockAnimals.filter((a) => a.propertyId === FAZENDA_DO_JUC
 const sitioAnimals = mockAnimals.filter((a) => a.propertyId === SITIO_LIMOEIRO);
 const chacaraAnimals = mockAnimals.filter((a) => a.propertyId === CHACARA_DO_JUCA);
 
-function generateMovementId(index: number): string {
-  const base = 556655440100 + index;
-  return `cc0e8400-e29b-41d4-a716-${base.toString().padStart(12, "0")}`;
+function generateMovementId(_index: number): string {
+  return generateUUID();
 }
 
 function getRandomDate(startDate: Date, endDate: Date): string {
@@ -227,77 +227,3 @@ if (chacaraAnimalsForOther.length > 0) {
 mockAnimalMovements.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
 export { mockAnimalMovements };
-
-export function getAnimalMovementsByAnimalId(animalId: string): AnimalMovement[] {
-  return mockAnimalMovements.filter((movement) => movement.animalIds.includes(animalId));
-}
-
-export function getAnimalMovementsByLocationId(locationId: string): AnimalMovement[] {
-  return mockAnimalMovements.filter((movement) => movement.locationId === locationId);
-}
-
-export function getAnimalMovementsByPropertyId(propertyId: string): AnimalMovement[] {
-  return mockAnimalMovements.filter((movement) => movement.propertyId === propertyId);
-}
-
-export function getAnimalMovementsByCompanyId(companyId: string): AnimalMovement[] {
-  return mockAnimalMovements.filter((movement) => movement.companyId === companyId);
-}
-
-export function getAnimalMovementsByEmployeeId(employeeId: string): AnimalMovement[] {
-  return mockAnimalMovements.filter((movement) => movement.employeeIds.includes(employeeId));
-}
-
-export function getAnimalMovementsByServiceProviderId(serviceProviderId: string): AnimalMovement[] {
-  return mockAnimalMovements.filter((movement) =>
-    movement.serviceProviderIds.includes(serviceProviderId)
-  );
-}
-
-export function getAnimalMovementById(movementId: string): AnimalMovement | undefined {
-  return mockAnimalMovements.find((movement) => movement.id === movementId);
-}
-
-export function getAnimalsByLastMovementLocation(locationId: string): string[] {
-  const animalLastMovements = new Map<string, AnimalMovement>();
-
-  for (const movement of mockAnimalMovements) {
-    for (const animalId of movement.animalIds) {
-      const existing = animalLastMovements.get(animalId);
-      if (!existing || new Date(movement.date).getTime() > new Date(existing.date).getTime()) {
-        animalLastMovements.set(animalId, movement);
-      }
-    }
-  }
-
-  const result: string[] = [];
-  for (const [animalId, movement] of animalLastMovements.entries()) {
-    if (movement.locationId === locationId) {
-      result.push(animalId);
-    }
-  }
-
-  return result;
-}
-
-export function addAnimalMovement(data: Omit<AnimalMovement, "id" | "createdAt">): AnimalMovement {
-  const newMovement: AnimalMovement = {
-    ...data,
-    id: generateMovementId(mockAnimalMovements.length),
-    createdAt: new Date().toISOString().split("T")[0],
-    observation: data.observation?.trim() || undefined,
-    fileIds: data.fileIds && data.fileIds.length > 0 ? data.fileIds : undefined,
-  };
-  mockAnimalMovements.push(newMovement);
-  mockAnimalMovements.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  return newMovement;
-}
-
-export function deleteAnimalMovement(movementId: string): boolean {
-  const index = mockAnimalMovements.findIndex((movement) => movement.id === movementId);
-  if (index !== -1) {
-    mockAnimalMovements.splice(index, 1);
-    return true;
-  }
-  return false;
-}

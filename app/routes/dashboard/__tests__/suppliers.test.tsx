@@ -17,24 +17,41 @@ vi.mock("react-router", async () => {
   };
 });
 
-vi.mock("~/mocks/suppliers", () => ({
-  mockSuppliers: [
-    {
-      id: "sup-1",
-      name: "Test Supplier",
-      code: "SUP001",
-      status: "active",
-      propertyId: "prop-1",
-    },
-  ],
+vi.mock("~/mocks/suppliers", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/suppliers")>("~/mocks/suppliers");
+  return {
+    ...actual,
+    mockSuppliers: [
+      {
+        id: "sup-1",
+        name: "Test Supplier",
+        code: "SUP001",
+        status: "active",
+        propertyId: "prop-1",
+      },
+    ],
+  };
+});
+
+vi.mock("~/services/suppliers.service", () => ({
   deleteSupplier: vi.fn(() => true),
 }));
 
-vi.mock("~/mocks/properties", () => ({
+vi.mock("~/mocks/properties", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/properties")>("~/mocks/properties");
+  return actual;
+});
+
+vi.mock("~/services/properties.service", () => ({
   getPropertyById: vi.fn(() => ({ id: "prop-1", name: "Test Property" })),
 }));
 
-vi.mock("~/mocks/supplier-observations", () => ({
+vi.mock("~/mocks/supplier-observations", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/supplier-observations")>("~/mocks/supplier-observations");
+  return actual;
+});
+
+vi.mock("~/services/supplier-observations.service", () => ({
   getSupplierObservationsBySupplierId: vi.fn(() => []),
 }));
 

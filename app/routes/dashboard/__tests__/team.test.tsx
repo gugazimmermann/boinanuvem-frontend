@@ -16,16 +16,20 @@ vi.mock("react-router", async () => {
   };
 });
 
-vi.mock("~/mocks/users", () => ({
-  mockUsers: [
-    {
-      id: "user-1",
-      name: "Test User",
-      email: "test@example.com",
-      mainUser: false,
-    },
-  ],
-}));
+vi.mock("~/mocks/users", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/users")>("~/mocks/users");
+  return {
+    ...actual,
+    mockUsers: [
+      {
+        id: "user-1",
+        name: "Test User",
+        email: "test@example.com",
+        mainUser: false,
+      },
+    ],
+  };
+});
 
 vi.mock("~/components/ui", () => ({
   Table: ({ data, header }: any) => (

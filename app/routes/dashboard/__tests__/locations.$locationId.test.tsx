@@ -4,7 +4,7 @@ import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
 import LocationDetails from "../locations.$locationId";
-import { getLocationById } from "~/mocks/locations";
+import { getLocationById } from "~/services/locations.service";
 
 const mockNavigate = vi.fn();
 const mockSetSearchParams = vi.fn();
@@ -18,38 +18,78 @@ vi.mock("react-router", async () => {
   };
 });
 
-vi.mock("~/mocks/locations", () => ({
+vi.mock("~/mocks/locations", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/locations")>("~/mocks/locations");
+  return actual;
+});
+
+vi.mock("~/services/locations.service", () => ({
   getLocationById: vi.fn(),
 }));
 
-vi.mock("~/mocks/properties", () => ({
+vi.mock("~/mocks/properties", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/properties")>("~/mocks/properties");
+  return actual;
+});
+
+vi.mock("~/services/properties.service", () => ({
   getPropertyById: vi.fn((id) => ({ id, name: `Property ${id}` })),
 }));
 
-vi.mock("~/mocks/location-movements", () => ({
+vi.mock("~/mocks/location-movements", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/location-movements")>("~/mocks/location-movements");
+  return actual;
+});
+
+vi.mock("~/services/location-movements.service", () => ({
   getLocationMovementsByLocationId: vi.fn(() => []),
 }));
 
-vi.mock("~/mocks/animal-movements", () => ({
+vi.mock("~/mocks/animal-movements", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/animal-movements")>("~/mocks/animal-movements");
+  return actual;
+});
+
+vi.mock("~/services/animal-movements.service", () => ({
   getAnimalsByLastMovementLocation: vi.fn(() => []),
   getAnimalMovementsByLocationId: vi.fn(() => []),
 }));
 
-vi.mock("~/mocks/animals", () => ({
+vi.mock("~/mocks/animals", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/animals")>("~/mocks/animals");
+  return actual;
+});
+
+vi.mock("~/services/animals.service", () => ({
   getAnimalById: vi.fn(() => null),
   deleteAnimal: vi.fn(),
   getAnimalsByPropertyId: vi.fn(() => []),
 }));
 
-vi.mock("~/mocks/births", () => ({
+vi.mock("~/mocks/births", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/births")>("~/mocks/births");
+  return actual;
+});
+
+vi.mock("~/services/births.service", () => ({
   getBirthByAnimalId: vi.fn(() => null),
 }));
 
-vi.mock("~/mocks/weighings", () => ({
+vi.mock("~/mocks/weighings", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/weighings")>("~/mocks/weighings");
+  return actual;
+});
+
+vi.mock("~/services/weighings.service", () => ({
   getWeighingsByAnimalId: vi.fn(() => []),
 }));
 
-vi.mock("~/mocks/location-observations", () => ({
+vi.mock("~/mocks/location-observations", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/location-observations")>("~/mocks/location-observations");
+  return actual;
+});
+
+vi.mock("~/services/location-observations.service", () => ({
   getLocationObservationsByLocationId: vi.fn(() => []),
   addLocationObservation: vi.fn(),
 }));

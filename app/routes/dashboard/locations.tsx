@@ -12,14 +12,15 @@ import {
   type SortDirection,
 } from "~/components/ui";
 import { useTranslation } from "~/i18n";
-import { mockLocations, deleteLocation } from "~/mocks/locations";
+import { mockLocations } from "~/mocks/locations";
+import { deleteLocation } from "~/services/locations.service";
 import type { Location } from "~/types";
 import { AreaType } from "~/types";
-import { getPropertyById } from "~/mocks/properties";
+import { getPropertyById } from "~/services/properties.service";
 import { ROUTES, getLocationEditRoute, getLocationViewRoute } from "~/routes.config";
 import { LocationTypeBadge } from "~/components/dashboard/utils/location-type-badge";
-import { getLocationMovementsByLocationId } from "~/mocks/location-movements";
-import { getLocationObservationsByLocationId } from "~/mocks/location-observations";
+import { getLocationMovementsByLocationId } from "~/services/location-movements.service";
+import { getLocationObservationsByLocationId } from "~/services/location-observations.service";
 
 const formatAreaType = (type: AreaType): string => {
   const typeMap: Record<AreaType, string> = {

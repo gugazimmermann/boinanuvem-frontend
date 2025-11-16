@@ -6,7 +6,7 @@ import { maskCEP, unmaskCEP } from "~/components/site/utils/masks";
 import { useCEPLookup, type CEPData } from "~/components/site/hooks";
 import { mapCEPDataToAddressForm } from "~/components/site/utils";
 import { ROUTES } from "~/routes.config";
-import { addProperty } from "~/mocks/properties";
+import { addProperty } from "~/services/properties.service";
 import type { PropertyFormData } from "~/types";
 import { AreaType } from "~/types";
 import { mockCompanies } from "~/mocks/companies";

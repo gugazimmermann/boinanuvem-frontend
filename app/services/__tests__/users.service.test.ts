@@ -1,0 +1,249 @@
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import {
+  getUserById,
+  getUsersByCompanyId,
+  updateUser,
+  updateUserRole,
+  updateUserPermissions,
+  addUser,
+} from "../users.service";
+import { mockUsers } from "~/mocks/users";
+import { mockCompanies } from "~/mocks/companies";
+import type { UserFormData, UserPermissions } from "~/types";
+
+vi.mock("~/mocks/users", () => ({
+  mockUsers: [],
+}));
+
+vi.mock("~/mocks/companies", () => ({
+  mockCompanies: [
+    {
+      id: "550e8400-e29b-41d4-a716-446655440000",
+      name: "Test Company",
+      cnpj: "12345678000190",
+    },
+  ],
+}));
+
+describe("users.service", () => {
+  beforeEach(() => {
+    mockUsers.length = 0;
+    mockUsers.push(
+      {
+        id: "550e8400-e29b-41d4-a716-446655440000",
+        name: "John Doe",
+        cpf: "12345678900",
+        email: "john@example.com",
+        password: "hashed-password",
+        phone: "47999999999",
+        role: "admin",
+        status: "active",
+        street: "Main St",
+        number: "123",
+        complement: "",
+        neighborhood: "Downtown",
+        city: "City",
+        state: "SC",
+        zipCode: "88000000",
+        mainUser: true,
+        companyId: "550e8400-e29b-41d4-a716-446655440000",
+        createdAt: "2020-01-01",
+        permissions: {
+          animals: { create: true, read: true, update: true, delete: true },
+          employees: { create: true, read: true, update: true, delete: true },
+        },
+      },
+      {
+        id: "550e8400-e29b-41d4-a716-446655440001",
+        name: "Jane Smith",
+        cpf: "98765432100",
+        email: "jane@example.com",
+        password: "hashed-password",
+        phone: "47988888888",
+        role: "user",
+        status: "pending",
+        street: "Second St",
+        number: "456",
+        complement: "",
+        neighborhood: "Uptown",
+        city: "City",
+        state: "SC",
+        zipCode: "88000001",
+        mainUser: false,
+        companyId: "550e8400-e29b-41d4-a716-446655440000",
+        createdAt: "2020-01-02",
+        permissions: {
+          animals: { create: false, read: true, update: false, delete: false },
+          employees: { create: false, read: true, update: false, delete: false },
+        },
+      }
+    );
+  });
+
+  describe("getUserById", () => {
+    it("should return user when ID exists", () => {
+      const result = getUserById("550e8400-e29b-41d4-a716-446655440000");
+      expect(result).toBeDefined();
+      expect(result?.name).toBe("John Doe");
+    });
+
+    it("should return undefined when ID does not exist", () => {
+      const result = getUserById("nonexistent-id");
+      expect(result).toBeUndefined();
+    });
+
+    it("should return undefined when ID is undefined", () => {
+      const result = getUserById(undefined);
+      expect(result).toBeUndefined();
+    });
+  });
+
+  describe("getUsersByCompanyId", () => {
+    it("should return users for specific company", () => {
+      const result = getUsersByCompanyId("550e8400-e29b-41d4-a716-446655440000");
+      expect(result).toHaveLength(2);
+      expect(
+        result.every((user) => user.companyId === "550e8400-e29b-41d4-a716-446655440000")
+      ).toBe(true);
+    });
+
+    it("should return empty array when company has no users", () => {
+      const result = getUsersByCompanyId("nonexistent-company");
+      expect(result).toHaveLength(0);
+    });
+  });
+
+  describe("updateUser", () => {
+    it("should update existing user", () => {
+      const formData: UserFormData = {
+        name: "John Updated",
+        email: "john.updated@example.com",
+        phone: "47977777777",
+        cpf: "12345678900",
+        street: "New St",
+        number: "999",
+        complement: "",
+        neighborhood: "New Neighborhood",
+        city: "New City",
+        state: "PR",
+        zipCode: "99999999",
+      };
+
+      updateUser("550e8400-e29b-41d4-a716-446655440000", formData);
+
+      const updated = mockUsers.find(
+        (u) => u.id === "550e8400-e29b-41d4-a716-446655440000"
+      );
+      expect(updated?.name).toBe("John Updated");
+      expect(updated?.email).toBe("john.updated@example.com");
+      expect(updated?.password).toBeUndefined();
+      expect(updated?.confirmPassword).toBeUndefined();
+    });
+
+    it("should not update password fields", () => {
+      const formData: UserFormData = {
+        name: "John",
+        email: "john@example.com",
+        phone: "47999999999",
+        cpf: "12345678900",
+        password: "new-password",
+        confirmPassword: "new-password",
+        street: "Main St",
+        number: "123",
+        complement: "",
+        neighborhood: "Downtown",
+        city: "City",
+        state: "SC",
+        zipCode: "88000000",
+      };
+
+      updateUser("550e8400-e29b-41d4-a716-446655440000", formData);
+
+      const updated = mockUsers.find(
+        (u) => u.id === "550e8400-e29b-41d4-a716-446655440000"
+      );
+      expect(updated?.password).toBeUndefined();
+      expect(updated?.confirmPassword).toBeUndefined();
+    });
+
+    it("should not update non-existent user", () => {
+      const initialUsers = [...mockUsers];
+      updateUser("nonexistent-id", { name: "New Name" } as UserFormData);
+      expect(mockUsers).toEqual(initialUsers);
+    });
+  });
+
+  describe("updateUserRole", () => {
+    it("should update user role", () => {
+      updateUserRole("550e8400-e29b-41d4-a716-446655440001", "manager");
+
+      const updated = mockUsers.find(
+        (u) => u.id === "550e8400-e29b-41d4-a716-446655440001"
+      );
+      expect(updated?.role).toBe("manager");
+    });
+
+    it("should not update non-existent user", () => {
+      const initialUsers = [...mockUsers];
+      updateUserRole("nonexistent-id", "admin");
+      expect(mockUsers).toEqual(initialUsers);
+    });
+  });
+
+  describe("updateUserPermissions", () => {
+    it("should update user permissions", () => {
+      const newPermissions: UserPermissions = {
+        animals: { create: true, read: true, update: true, delete: true },
+        employees: { create: false, read: true, update: false, delete: false },
+      };
+
+      updateUserPermissions("550e8400-e29b-41d4-a716-446655440001", newPermissions);
+
+      const updated = mockUsers.find(
+        (u) => u.id === "550e8400-e29b-41d4-a716-446655440001"
+      );
+      expect(updated?.permissions).toEqual(newPermissions);
+    });
+
+    it("should not update non-existent user", () => {
+      const initialUsers = [...mockUsers];
+      updateUserPermissions("nonexistent-id", {
+        animals: { create: true, read: true, update: true, delete: true },
+        employees: { create: true, read: true, update: true, delete: true },
+      });
+      expect(mockUsers).toEqual(initialUsers);
+    });
+  });
+
+  describe("addUser", () => {
+    it("should add new user with default values", () => {
+      const formData: UserFormData & { password: string } = {
+        name: "New User",
+        email: "newuser@example.com",
+        phone: "47966666666",
+        cpf: "11122233344",
+        password: "password123",
+        street: "Third St",
+        number: "789",
+        complement: "",
+        neighborhood: "Suburb",
+        city: "City",
+        state: "SC",
+        zipCode: "88000002",
+      };
+
+      const initialLength = mockUsers.length;
+      const result = addUser(formData);
+
+      expect(mockUsers).toHaveLength(initialLength + 1);
+      expect(result.id).toBeDefined();
+      expect(result.name).toBe("New User");
+      expect(result.status).toBe("pending");
+      expect(result.mainUser).toBe(false);
+      expect(result.companyId).toBe("550e8400-e29b-41d4-a716-446655440000");
+      expect(result.createdAt).toBeDefined();
+      expect(result.password).toBeDefined();
+    });
+  });
+});
+

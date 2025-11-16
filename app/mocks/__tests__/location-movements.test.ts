@@ -1,220 +1,120 @@
 import { describe, it, expect } from "vitest";
-import {
-  mockLocationMovements,
-  getLocationMovementById,
-  getLocationMovementsByCompanyId,
-  getLocationMovementsByPropertyId,
-  getLocationMovementsByLocationId,
-  getLocationMovementsByEmployeeId,
-  getLocationMovementsByServiceProviderId,
-  getLocationMovementsByType,
-  addLocationMovement,
-  deleteLocationMovement,
-  updateLocationMovement,
-} from "../location-movements";
-import type { LocationMovementFormData } from "~/types";
-import { LocationMovementType } from "~/types";
+import { mockLocationMovements } from "../location-movements";
+import { mockLocations } from "../locations";
+import { mockEmployees } from "../employees";
+import { mockServiceProviders } from "../service-providers";
+import { LocationMovementType } from "~/types/location-movement";
+import type { LocationMovement } from "~/types/location-movement";
 
-describe("Location Movements Mock Functions", () => {
-  const COMPANY_ID = "550e8400-e29b-41d4-a716-446655440000";
-  const PROPERTY_ID = "550e8400-e29b-41d4-a716-446655440010";
-  const LOCATION_ID = "660e8400-e29b-41d4-a716-446655440010";
-  const EMPLOYEE_ID = "770e8400-e29b-41d4-a716-446655440010";
-  const SERVICE_PROVIDER_ID = "880e8400-e29b-41d4-a716-446655440010";
+describe("location-movements mock", () => {
+  it("should export mockLocationMovements array", () => {
+    expect(Array.isArray(mockLocationMovements)).toBe(true);
+    expect(mockLocationMovements.length).toBeGreaterThan(0);
+  });
 
-  describe("getLocationMovementById", () => {
-    it("should return location movement by id", () => {
-      if (mockLocationMovements.length > 0) {
-        const movement = getLocationMovementById(mockLocationMovements[0].id);
-        expect(movement).toBeDefined();
-        expect(movement?.id).toBe(mockLocationMovements[0].id);
-      }
-    });
+  it("should have valid movement structure", () => {
+    mockLocationMovements.forEach((movement: LocationMovement) => {
+      expect(movement).toHaveProperty("id");
+      expect(movement).toHaveProperty("companyId");
+      expect(movement).toHaveProperty("propertyId");
+      expect(movement).toHaveProperty("locationIds");
+      expect(movement).toHaveProperty("employeeIds");
+      expect(movement).toHaveProperty("serviceProviderIds");
+      expect(movement).toHaveProperty("type");
+      expect(movement).toHaveProperty("date");
+      expect(movement).toHaveProperty("createdAt");
 
-    it("should return undefined for non-existent id", () => {
-      const movement = getLocationMovementById("non-existent-id");
-      expect(movement).toBeUndefined();
-    });
-
-    it("should return undefined for undefined id", () => {
-      const movement = getLocationMovementById(undefined);
-      expect(movement).toBeUndefined();
+      expect(typeof movement.id).toBe("string");
+      expect(typeof movement.companyId).toBe("string");
+      expect(typeof movement.propertyId).toBe("string");
+      expect(Array.isArray(movement.locationIds)).toBe(true);
+      expect(Array.isArray(movement.employeeIds)).toBe(true);
+      expect(Array.isArray(movement.serviceProviderIds)).toBe(true);
+      expect(typeof movement.type).toBe("string");
+      expect(typeof movement.date).toBe("string");
+      expect(typeof movement.createdAt).toBe("string");
     });
   });
 
-  describe("getLocationMovementsByCompanyId", () => {
-    it("should return movements for a company", () => {
-      const movements = getLocationMovementsByCompanyId(COMPANY_ID);
-      expect(Array.isArray(movements)).toBe(true);
-      movements.forEach((movement) => {
-        expect(movement.companyId).toBe(COMPANY_ID);
+  it("should have valid date format", () => {
+    mockLocationMovements.forEach((movement: LocationMovement) => {
+      expect(movement.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(() => new Date(movement.date)).not.toThrow();
+      expect(movement.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+      expect(() => new Date(movement.createdAt)).not.toThrow();
+    });
+  });
+
+  it("should have at least one location in each movement", () => {
+    mockLocationMovements.forEach((movement: LocationMovement) => {
+      expect(movement.locationIds.length).toBeGreaterThan(0);
+    });
+  });
+
+  it("should have valid location IDs", () => {
+    const locationIds = new Set(mockLocations.map((l) => l.id));
+    mockLocationMovements.forEach((movement: LocationMovement) => {
+      movement.locationIds.forEach((locationId) => {
+        expect(locationIds.has(locationId)).toBe(true);
       });
     });
-
-    it("should return empty array for non-existent company", () => {
-      const movements = getLocationMovementsByCompanyId("non-existent-company");
-      expect(movements).toEqual([]);
-    });
   });
 
-  describe("getLocationMovementsByPropertyId", () => {
-    it("should return movements for a property", () => {
-      const movements = getLocationMovementsByPropertyId(PROPERTY_ID);
-      expect(Array.isArray(movements)).toBe(true);
-      movements.forEach((movement) => {
-        expect(movement.propertyId).toBe(PROPERTY_ID);
+  it("should have valid employee IDs when present", () => {
+    const employeeIds = new Set(mockEmployees.map((e) => e.id));
+    mockLocationMovements.forEach((movement: LocationMovement) => {
+      movement.employeeIds.forEach((employeeId) => {
+        expect(employeeIds.has(employeeId)).toBe(true);
       });
     });
+  });
 
-    it("should return empty array for non-existent property", () => {
-      const movements = getLocationMovementsByPropertyId("non-existent-property");
-      expect(movements).toEqual([]);
+  it("should have valid service provider IDs when present", () => {
+    const serviceProviderIds = new Set(mockServiceProviders.map((sp) => sp.id));
+    mockLocationMovements.forEach((movement: LocationMovement) => {
+      movement.serviceProviderIds.forEach((serviceProviderId) => {
+        expect(serviceProviderIds.has(serviceProviderId)).toBe(true);
+      });
     });
   });
 
-  describe("getLocationMovementsByLocationId", () => {
-    it("should return movements for a location", () => {
-      if (mockLocationMovements.length > 0) {
-        const locationId = mockLocationMovements[0].locationIds[0];
-        if (locationId) {
-          const movements = getLocationMovementsByLocationId(locationId);
-          expect(Array.isArray(movements)).toBe(true);
-          movements.forEach((movement) => {
-            expect(movement.locationIds).toContain(locationId);
-          });
-        }
-      }
-    });
-
-    it("should return empty array for non-existent location", () => {
-      const movements = getLocationMovementsByLocationId("non-existent-location");
-      expect(movements).toEqual([]);
+  it("should have valid movement type", () => {
+    const validTypes = Object.values(LocationMovementType);
+    mockLocationMovements.forEach((movement: LocationMovement) => {
+      expect(validTypes).toContain(movement.type);
     });
   });
 
-  describe("getLocationMovementsByEmployeeId", () => {
-    it("should return movements for an employee", () => {
-      if (mockLocationMovements.length > 0) {
-        const movement = mockLocationMovements.find((m) => m.employeeIds.length > 0);
-        if (movement) {
-          const employeeId = movement.employeeIds[0];
-          const movements = getLocationMovementsByEmployeeId(employeeId);
-          expect(Array.isArray(movements)).toBe(true);
-          movements.forEach((m) => {
-            expect(m.employeeIds).toContain(employeeId);
-          });
-        }
+  it("should have valid observation when present", () => {
+    mockLocationMovements.forEach((movement: LocationMovement) => {
+      if (movement.observation) {
+        expect(typeof movement.observation).toBe("string");
+        expect(movement.observation.trim().length).toBeGreaterThan(0);
       }
     });
   });
 
-  describe("getLocationMovementsByServiceProviderId", () => {
-    it("should return movements for a service provider", () => {
-      if (mockLocationMovements.length > 0) {
-        const movement = mockLocationMovements.find((m) => m.serviceProviderIds.length > 0);
-        if (movement) {
-          const serviceProviderId = movement.serviceProviderIds[0];
-          const movements = getLocationMovementsByServiceProviderId(serviceProviderId);
-          expect(Array.isArray(movements)).toBe(true);
-          movements.forEach((m) => {
-            expect(m.serviceProviderIds).toContain(serviceProviderId);
-          });
-        }
+  it("should have valid file IDs when present", () => {
+    mockLocationMovements.forEach((movement: LocationMovement) => {
+      if (movement.fileIds) {
+        expect(Array.isArray(movement.fileIds)).toBe(true);
+        movement.fileIds.forEach((fileId) => {
+          expect(typeof fileId).toBe("string");
+          expect(fileId.length).toBeGreaterThan(0);
+        });
       }
     });
   });
 
-  describe("getLocationMovementsByType", () => {
-    it("should return movements by type", () => {
-      const movements = getLocationMovementsByType(LocationMovementType.MAINTENANCE);
-      expect(Array.isArray(movements)).toBe(true);
-      movements.forEach((movement) => {
-        expect(movement.type).toBe(LocationMovementType.MAINTENANCE);
-      });
-    });
+  it("should have unique IDs", () => {
+    const ids = mockLocationMovements.map((m) => m.id);
+    const uniqueIds = new Set(ids);
+    expect(uniqueIds.size).toBe(ids.length);
   });
 
-  describe("addLocationMovement", () => {
-    it("should add a new location movement", () => {
-      const initialCount = mockLocationMovements.length;
-      const newMovementData: LocationMovementFormData = {
-        type: LocationMovementType.MAINTENANCE,
-        date: "2024-01-15",
-        companyId: COMPANY_ID,
-        propertyId: PROPERTY_ID,
-        locationIds: [LOCATION_ID],
-        employeeIds: [EMPLOYEE_ID],
-        serviceProviderIds: [],
-      };
-
-      const added = addLocationMovement(newMovementData);
-      expect(added).toBeDefined();
-      expect(added.id).toBeDefined();
-      expect(added.createdAt).toBeDefined();
-      expect(added.updatedAt).toBeDefined();
-      expect(added.type).toBe(newMovementData.type);
-      expect(added.companyId).toBe(newMovementData.companyId);
-      expect(added.propertyId).toBe(newMovementData.propertyId);
-      expect(mockLocationMovements.length).toBe(initialCount + 1);
-    });
-  });
-
-  describe("deleteLocationMovement", () => {
-    it("should delete a location movement by id", () => {
-      const newMovementData: LocationMovementFormData = {
-        type: LocationMovementType.IRRIGATION,
-        date: "2024-01-20",
-        companyId: COMPANY_ID,
-        propertyId: PROPERTY_ID,
-        locationIds: [LOCATION_ID],
-        employeeIds: [],
-        serviceProviderIds: [SERVICE_PROVIDER_ID],
-      };
-
-      const added = addLocationMovement(newMovementData);
-      const initialCount = mockLocationMovements.length;
-      const deleted = deleteLocationMovement(added.id);
-
-      expect(deleted).toBe(true);
-      expect(mockLocationMovements.length).toBe(initialCount - 1);
-      expect(getLocationMovementById(added.id)).toBeUndefined();
-    });
-
-    it("should return false for non-existent id", () => {
-      const deleted = deleteLocationMovement("non-existent-id");
-      expect(deleted).toBe(false);
-    });
-  });
-
-  describe("updateLocationMovement", () => {
-    it("should update a location movement", () => {
-      const newMovementData: LocationMovementFormData = {
-        type: LocationMovementType.FERTILIZATION,
-        date: "2024-01-25",
-        companyId: COMPANY_ID,
-        propertyId: PROPERTY_ID,
-        locationIds: [LOCATION_ID],
-        employeeIds: [EMPLOYEE_ID],
-        serviceProviderIds: [],
-      };
-
-      const added = addLocationMovement(newMovementData);
-      const updated = updateLocationMovement(added.id, {
-        observation: "Updated observation",
-      });
-
-      expect(updated).toBe(true);
-      const movement = getLocationMovementById(added.id);
-      expect(movement?.observation).toBe("Updated observation");
-      expect(movement?.updatedAt).toBeDefined();
-    });
-
-    it("should return false for non-existent id", () => {
-      const updated = updateLocationMovement("non-existent-id", {
-        observation: "Test",
-      });
-      expect(updated).toBe(false);
-    });
+  it("should have movements with different types", () => {
+    const types = new Set(mockLocationMovements.map((m) => m.type));
+    expect(types.size).toBeGreaterThan(1);
   });
 });
 

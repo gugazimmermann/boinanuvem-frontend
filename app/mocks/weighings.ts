@@ -1,7 +1,7 @@
 import type { Weighing, WeighingFormData } from "~/types";
 import { mockAnimals } from "./animals";
-import { getBirthByAnimalId } from "./births";
-import { getAcquisitionByAnimalId } from "./acquisitions";
+import { getBirthByAnimalId } from "~/services/births.service";
+import { getAcquisitionByAnimalId } from "~/services/acquisitions.service";
 
 export type { Weighing, WeighingFormData };
 
@@ -132,55 +132,3 @@ mockAnimals.forEach((animal, index) => {
 });
 
 export const mockWeighings: Weighing[] = allWeighings;
-
-export function getWeighingById(weighingId: string | undefined): Weighing | undefined {
-  if (!weighingId) return undefined;
-  return mockWeighings.find((weighing) => weighing.id === weighingId);
-}
-
-export function getWeighingsByAnimalId(animalId: string): Weighing[] {
-  return mockWeighings.filter((weighing) => weighing.animalId === animalId);
-}
-
-export function getWeighingsByCompanyId(companyId: string): Weighing[] {
-  return mockWeighings.filter((weighing) => weighing.companyId === companyId);
-}
-
-export function addWeighing(data: WeighingFormData): Weighing {
-  const lastId =
-    mockWeighings.length > 0
-      ? mockWeighings[mockWeighings.length - 1].id
-      : "ww0e8400-e29b-41d4-a716-446655440009";
-  const lastPart = lastId.split("-").pop() || "446655440009";
-  const lastNumber = parseInt(lastPart, 10);
-  const nextNumber = (lastNumber + 1).toString().padStart(12, "0");
-
-  const newWeighing: Weighing = {
-    ...data,
-    id: `ww0e8400-e29b-41d4-a716-${nextNumber}`,
-    createdAt: new Date().toISOString().split("T")[0],
-  };
-  mockWeighings.push(newWeighing);
-  return newWeighing;
-}
-
-export function deleteWeighing(weighingId: string): boolean {
-  const index = mockWeighings.findIndex((weighing) => weighing.id === weighingId);
-  if (index !== -1) {
-    mockWeighings.splice(index, 1);
-    return true;
-  }
-  return false;
-}
-
-export function updateWeighing(weighingId: string, data: Partial<WeighingFormData>): boolean {
-  const index = mockWeighings.findIndex((weighing) => weighing.id === weighingId);
-  if (index !== -1) {
-    mockWeighings[index] = {
-      ...mockWeighings[index],
-      ...data,
-    };
-    return true;
-  }
-  return false;
-}

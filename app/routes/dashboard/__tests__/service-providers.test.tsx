@@ -17,24 +17,41 @@ vi.mock("react-router", async () => {
   };
 });
 
-vi.mock("~/mocks/service-providers", () => ({
-  mockServiceProviders: [
-    {
-      id: "sp-1",
-      name: "Test Service Provider",
-      code: "SP001",
-      status: "active",
-      propertyId: "prop-1",
-    },
-  ],
+vi.mock("~/mocks/service-providers", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/service-providers")>("~/mocks/service-providers");
+  return {
+    ...actual,
+    mockServiceProviders: [
+      {
+        id: "sp-1",
+        name: "Test Service Provider",
+        code: "SP001",
+        status: "active",
+        propertyId: "prop-1",
+      },
+    ],
+  };
+});
+
+vi.mock("~/services/service-providers.service", () => ({
   deleteServiceProvider: vi.fn(() => true),
 }));
 
-vi.mock("~/mocks/properties", () => ({
+vi.mock("~/mocks/properties", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/properties")>("~/mocks/properties");
+  return actual;
+});
+
+vi.mock("~/services/properties.service", () => ({
   getPropertyById: vi.fn(() => ({ id: "prop-1", name: "Test Property" })),
 }));
 
-vi.mock("~/mocks/location-movements", () => ({
+vi.mock("~/mocks/location-movements", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/location-movements")>("~/mocks/location-movements");
+  return actual;
+});
+
+vi.mock("~/services/location-movements.service", () => ({
   getLocationMovementsByServiceProviderId: vi.fn(() => []),
 }));
 

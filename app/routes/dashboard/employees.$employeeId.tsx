@@ -19,19 +19,19 @@ import {
   getMovementNewRoute,
   getObservationViewRoute,
 } from "~/routes.config";
-import { getEmployeeById } from "~/mocks/employees";
-import { getPropertyById } from "~/mocks/properties";
-import { getLocationMovementsByEmployeeId } from "~/mocks/location-movements";
-import { getAnimalMovementsByEmployeeId } from "~/mocks/animal-movements";
-import { getLocationById } from "~/mocks/locations";
-import { getServiceProviderById } from "~/mocks/service-providers";
-import { getAnimalById } from "~/mocks/animals";
+import { getEmployeeById } from "~/services/employees.service";
+import { getPropertyById } from "~/services/properties.service";
+import { getLocationMovementsByEmployeeId } from "~/services/location-movements.service";
+import { getAnimalMovementsByEmployeeId } from "~/services/animal-movements.service";
+import { getLocationById } from "~/services/locations.service";
+import { getServiceProviderById } from "~/services/service-providers.service";
+import { getAnimalById } from "~/services/animals.service";
 import type { LocationMovement, AnimalMovement } from "~/types";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
 import {
   getEmployeeObservationsByEmployeeId,
   addEmployeeObservation,
-} from "~/mocks/employee-observations";
+} from "~/services/employee-observations.service";
 import type { EmployeeObservation } from "~/types/employee-observation";
 
 export function meta() {

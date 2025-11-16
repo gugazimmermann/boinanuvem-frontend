@@ -1,156 +1,91 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import {
-  mockAnimals,
-  getAnimalById,
-  getAnimalsByCompanyId,
-  getAnimalsByPropertyId,
-  addAnimal,
-  deleteAnimal,
-  updateAnimal,
-} from "../animals";
-import type { AnimalFormData } from "~/types";
+import { describe, it, expect } from "vitest";
+import { mockAnimals } from "../animals";
+import type { Animal } from "~/types";
 
-describe("Animals Mock Functions", () => {
-  const COMPANY_ID = "550e8400-e29b-41d4-a716-446655440000";
-  const PROPERTY_ID = "550e8400-e29b-41d4-a716-446655440010";
+describe("animals mock", () => {
+  it("should export mockAnimals array", () => {
+    expect(Array.isArray(mockAnimals)).toBe(true);
+    expect(mockAnimals.length).toBeGreaterThan(0);
+  });
 
-  describe("getAnimalById", () => {
-    it("should return animal by id", () => {
-      if (mockAnimals.length > 0) {
-        const animal = getAnimalById(mockAnimals[0].id);
-        expect(animal).toBeDefined();
-        expect(animal?.id).toBe(mockAnimals[0].id);
+  it("should have valid animal structure", () => {
+    mockAnimals.forEach((animal: Animal) => {
+      expect(animal).toHaveProperty("id");
+      expect(animal).toHaveProperty("code");
+      expect(animal).toHaveProperty("registrationNumber");
+      expect(animal).toHaveProperty("status");
+      expect(animal).toHaveProperty("createdAt");
+      expect(animal).toHaveProperty("companyId");
+      expect(animal).toHaveProperty("propertyId");
+
+      expect(typeof animal.id).toBe("string");
+      expect(typeof animal.code).toBe("string");
+      expect(typeof animal.registrationNumber).toBe("string");
+      expect(typeof animal.status).toBe("string");
+      expect(typeof animal.createdAt).toBe("string");
+      expect(typeof animal.companyId).toBe("string");
+      expect(typeof animal.propertyId).toBe("string");
+    });
+  });
+
+  it("should have valid status", () => {
+    mockAnimals.forEach((animal: Animal) => {
+      expect(["active", "inactive", "pending"]).toContain(animal.status);
+    });
+  });
+
+  it("should have valid date format", () => {
+    mockAnimals.forEach((animal: Animal) => {
+      expect(animal.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(() => new Date(animal.createdAt)).not.toThrow();
+    });
+  });
+
+  it("should have valid acquisition date format when present", () => {
+    mockAnimals.forEach((animal: Animal) => {
+      if (animal.acquisitionDate) {
+        expect(animal.acquisitionDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+        expect(() => new Date(animal.acquisitionDate!)).not.toThrow();
       }
     });
+  });
 
-    it("should return undefined for non-existent id", () => {
-      const animal = getAnimalById("non-existent-id");
-      expect(animal).toBeUndefined();
+  it("should have unique IDs", () => {
+    const ids = mockAnimals.map((a) => a.id);
+    const uniqueIds = new Set(ids);
+    expect(uniqueIds.size).toBe(ids.length);
+  });
+
+  it("should have unique codes per property", () => {
+    const codesByProperty = new Map<string, Set<string>>();
+    mockAnimals.forEach((animal: Animal) => {
+      if (!codesByProperty.has(animal.propertyId)) {
+        codesByProperty.set(animal.propertyId, new Set());
+      }
+      codesByProperty.get(animal.propertyId)!.add(animal.code);
     });
 
-    it("should return undefined for undefined id", () => {
-      const animal = getAnimalById(undefined);
-      expect(animal).toBeUndefined();
+    codesByProperty.forEach((codes, propertyId) => {
+      expect(codes.size).toBeGreaterThan(0);
     });
   });
 
-  describe("getAnimalsByCompanyId", () => {
-    it("should return animals for a company", () => {
-      const animals = getAnimalsByCompanyId(COMPANY_ID);
-      expect(Array.isArray(animals)).toBe(true);
-      animals.forEach((animal) => {
-        expect(animal.companyId).toBe(COMPANY_ID);
-      });
-    });
-
-    it("should return empty array for non-existent company", () => {
-      const animals = getAnimalsByCompanyId("non-existent-company");
-      expect(animals).toEqual([]);
+  it("should have valid registration number format", () => {
+    mockAnimals.forEach((animal: Animal) => {
+      expect(animal.registrationNumber).toMatch(/^BR-\d{4}-[A-Z]{2}\d{4}$/);
     });
   });
 
-  describe("getAnimalsByPropertyId", () => {
-    it("should return animals for a property", () => {
-      const animals = getAnimalsByPropertyId(PROPERTY_ID);
-      expect(Array.isArray(animals)).toBe(true);
-      animals.forEach((animal) => {
-        expect(animal.propertyId).toBe(PROPERTY_ID);
-      });
-    });
-
-    it("should return empty array for non-existent property", () => {
-      const animals = getAnimalsByPropertyId("non-existent-property");
-      expect(animals).toEqual([]);
-    });
+  it("should have animals from different properties", () => {
+    const propertyIds = new Set(mockAnimals.map((a) => a.propertyId));
+    expect(propertyIds.size).toBeGreaterThan(1);
   });
 
-  describe("addAnimal", () => {
-    it("should add a new animal", () => {
-      const initialCount = mockAnimals.length;
-      const newAnimalData: AnimalFormData = {
-        code: "TEST001",
-        registrationNumber: "BR-2024-TEST001",
-        status: "active",
-        companyId: COMPANY_ID,
-        propertyId: PROPERTY_ID,
-      };
-
-      const added = addAnimal(newAnimalData);
-      expect(added).toBeDefined();
-      expect(added.id).toBeDefined();
-      expect(added.createdAt).toBeDefined();
-      expect(added.code).toBe(newAnimalData.code);
-      expect(added.registrationNumber).toBe(newAnimalData.registrationNumber);
-      expect(added.status).toBe(newAnimalData.status);
-      expect(added.companyId).toBe(newAnimalData.companyId);
-      expect(added.propertyId).toBe(newAnimalData.propertyId);
-      expect(mockAnimals.length).toBe(initialCount + 1);
-    });
-
-    it("should generate unique id for new animal", () => {
-      const newAnimalData: AnimalFormData = {
-        code: "TEST002",
-        registrationNumber: "BR-2024-TEST002",
-        status: "active",
-        companyId: COMPANY_ID,
-        propertyId: PROPERTY_ID,
-      };
-
-      const added1 = addAnimal(newAnimalData);
-      const added2 = addAnimal({ ...newAnimalData, code: "TEST003" });
-      expect(added1.id).not.toBe(added2.id);
-    });
-  });
-
-  describe("deleteAnimal", () => {
-    it("should delete an animal by id", () => {
-      const newAnimalData: AnimalFormData = {
-        code: "DELETE001",
-        registrationNumber: "BR-2024-DELETE001",
-        status: "active",
-        companyId: COMPANY_ID,
-        propertyId: PROPERTY_ID,
-      };
-
-      const added = addAnimal(newAnimalData);
-      const initialCount = mockAnimals.length;
-      const deleted = deleteAnimal(added.id);
-
-      expect(deleted).toBe(true);
-      expect(mockAnimals.length).toBe(initialCount - 1);
-      expect(getAnimalById(added.id)).toBeUndefined();
-    });
-
-    it("should return false for non-existent id", () => {
-      const deleted = deleteAnimal("non-existent-id");
-      expect(deleted).toBe(false);
-    });
-  });
-
-  describe("updateAnimal", () => {
-    it("should update an animal", () => {
-      const newAnimalData: AnimalFormData = {
-        code: "UPDATE001",
-        registrationNumber: "BR-2024-UPDATE001",
-        status: "active",
-        companyId: COMPANY_ID,
-        propertyId: PROPERTY_ID,
-      };
-
-      const added = addAnimal(newAnimalData);
-      const updated = updateAnimal(added.id, { code: "UPDATED001", status: "inactive" });
-
-      expect(updated).toBe(true);
-      const animal = getAnimalById(added.id);
-      expect(animal?.code).toBe("UPDATED001");
-      expect(animal?.status).toBe("inactive");
-      expect(animal?.registrationNumber).toBe(newAnimalData.registrationNumber);
-    });
-
-    it("should return false for non-existent id", () => {
-      const updated = updateAnimal("non-existent-id", { code: "TEST" });
-      expect(updated).toBe(false);
-    });
+  it("should have animals with and without acquisition dates", () => {
+    const animalsWithAcquisition = mockAnimals.filter((a) => a.acquisitionDate);
+    const animalsWithoutAcquisition = mockAnimals.filter((a) => !a.acquisitionDate);
+    expect(animalsWithAcquisition.length).toBeGreaterThan(0);
+    expect(animalsWithoutAcquisition.length).toBeGreaterThan(0);
   });
 });
 

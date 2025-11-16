@@ -4,7 +4,7 @@ import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
 import EditServiceProvider from "../service-providers.edit.$serviceProviderId";
-import { getServiceProviderById, updateServiceProvider } from "~/mocks/service-providers";
+import { getServiceProviderById, updateServiceProvider } from "~/services/service-providers.service";
 import { useCEPLookup } from "~/components/site/hooks";
 import { mapCEPDataToAddressForm, maskCEP, unmaskCEP, maskCPF, maskCNPJ, maskPhone } from "~/components/site/utils";
 
@@ -19,18 +19,39 @@ vi.mock("react-router", async () => {
   };
 });
 
-vi.mock("~/mocks/service-providers", () => ({
+vi.mock("~/mocks/service-providers", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/service-providers")>("~/mocks/service-providers");
+  return actual;
+});
+
+vi.mock("~/services/service-providers.service", () => ({
   getServiceProviderById: vi.fn(),
   updateServiceProvider: vi.fn(),
 }));
 
-vi.mock("~/mocks/companies", () => ({
-  mockCompanies: [{ id: "company-1", name: "Test Company" }],
-}));
+vi.mock("~/mocks/companies", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/companies")>("~/mocks/companies");
+  return {
+    ...actual,
+    mockCompanies: [{ id: "company-1", name: "Test Company" }],
+  };
+});
 
-vi.mock("~/mocks/properties", () => ({
-  mockProperties: [{ id: "prop-1", name: "Test Property" }],
-}));
+vi.mock("~/mocks/properties", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/properties")>("~/mocks/properties");
+  return {
+    ...actual,
+    mockProperties: [{ id: "prop-1", name: "Test Property" }],
+  };
+});
+
+vi.mock("~/services/properties.service", async () => {
+  const actual = await vi.importActual<typeof import("~/services/properties.service")>("~/services/properties.service");
+  return {
+    ...actual,
+    mockProperties: [{ id: "prop-1", name: "Test Property" }],
+  };
+});
 
 vi.mock("~/components/site/hooks", () => ({
   useCEPLookup: (...args: any[]) => mockUseCEPLookup(...args),
@@ -139,6 +160,7 @@ describe("EditServiceProvider", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(getServiceProviderById).mockReturnValue(mockServiceProvider);
+    vi.mocked(updateServiceProvider).mockReturnValue(true);
   });
 
   it("should render edit service provider form with pre-filled data", async () => {

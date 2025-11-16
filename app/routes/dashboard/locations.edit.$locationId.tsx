@@ -3,10 +3,11 @@ import { useNavigate, useParams } from "react-router";
 import { Input, Button, Alert } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { ROUTES, getLocationViewRoute } from "~/routes.config";
-import { getLocationById, updateLocation } from "~/mocks/locations";
+import { getLocationById, updateLocation } from "~/services/locations.service";
 import type { LocationFormData } from "~/types";
 import { AreaType, LocationType } from "~/types";
-import { mockProperties, getPropertyById } from "~/mocks/properties";
+import { mockProperties } from "~/mocks/properties";
+import { getPropertyById } from "~/services/properties.service";
 
 export function meta() {
   return [

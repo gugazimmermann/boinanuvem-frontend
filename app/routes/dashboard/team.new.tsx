@@ -6,7 +6,7 @@ import { maskPhone, maskCPF, unmaskCPF, maskCEP, unmaskCEP } from "~/components/
 import { useCEPLookup, type CEPData } from "~/components/site/hooks";
 import { mapCEPDataToAddressForm } from "~/components/site/utils";
 import { ROUTES, getTeamPermissionsRoute } from "~/routes.config";
-import { addUser } from "~/mocks/users";
+import { addUser } from "~/services/users.service";
 import type { UserFormData } from "~/components/dashboard/team/user-form-modal";
 
 export function meta() {

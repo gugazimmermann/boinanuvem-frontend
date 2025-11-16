@@ -12,11 +12,12 @@ import {
   type SortDirection,
 } from "~/components/ui";
 import { useTranslation } from "~/i18n";
-import { mockProperties, deleteProperty } from "~/mocks/properties";
+import { mockProperties } from "~/mocks/properties";
+import { deleteProperty } from "~/services/properties.service";
 import type { Property } from "~/types";
 import { AreaType } from "~/types";
-import { getLocationsByPropertyId } from "~/mocks/locations";
-import { getAnimalsByPropertyId } from "~/mocks/animals";
+import { getLocationsByPropertyId } from "~/services/locations.service";
+import { getAnimalsByPropertyId } from "~/services/animals.service";
 import { ROUTES, getPropertyEditRoute, getPropertyViewRoute } from "~/routes.config";
 
 const formatAreaType = (type: AreaType): string => {

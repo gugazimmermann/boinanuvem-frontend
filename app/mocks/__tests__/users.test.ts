@@ -1,127 +1,107 @@
 import { describe, it, expect } from "vitest";
-import {
-  mockUsers,
-  getUserById,
-  updateUser,
-  updateUserRole,
-  updateUserPermissions,
-  addUser,
-} from "../users";
-import type { UserFormData } from "~/types";
-import type { UserPermissions } from "~/types/permissions";
+import { mockUsers } from "../users";
+import type { TeamUser } from "~/types";
 
-describe("Users Mock Functions", () => {
-  const COMPANY_ID = "550e8400-e29b-41d4-a716-446655440000";
+describe("users mock", () => {
+  it("should export mockUsers array", () => {
+    expect(Array.isArray(mockUsers)).toBe(true);
+    expect(mockUsers.length).toBeGreaterThan(0);
+  });
 
-  describe("getUserById", () => {
-    it("should return user by id", () => {
-      if (mockUsers.length > 0) {
-        const user = getUserById(mockUsers[0].id);
-        expect(user).toBeDefined();
-        expect(user?.id).toBe(mockUsers[0].id);
-      }
-    });
+  it("should have valid user structure", () => {
+    mockUsers.forEach((user: TeamUser) => {
+      expect(user).toHaveProperty("id");
+      expect(user).toHaveProperty("name");
+      expect(user).toHaveProperty("cpf");
+      expect(user).toHaveProperty("email");
+      expect(user).toHaveProperty("password");
+      expect(user).toHaveProperty("phone");
+      expect(user).toHaveProperty("role");
+      expect(user).toHaveProperty("status");
+      expect(user).toHaveProperty("street");
+      expect(user).toHaveProperty("number");
+      expect(user).toHaveProperty("neighborhood");
+      expect(user).toHaveProperty("city");
+      expect(user).toHaveProperty("state");
+      expect(user).toHaveProperty("zipCode");
+      expect(user).toHaveProperty("mainUser");
+      expect(user).toHaveProperty("companyId");
+      expect(user).toHaveProperty("createdAt");
 
-    it("should return undefined for non-existent id", () => {
-      const user = getUserById("non-existent-id");
-      expect(user).toBeUndefined();
-    });
-
-    it("should return undefined for undefined id", () => {
-      const user = getUserById(undefined);
-      expect(user).toBeUndefined();
+      expect(typeof user.id).toBe("string");
+      expect(typeof user.name).toBe("string");
+      expect(typeof user.cpf).toBe("string");
+      expect(typeof user.email).toBe("string");
+      expect(typeof user.password).toBe("string");
+      expect(typeof user.phone).toBe("string");
+      expect(typeof user.role).toBe("string");
+      expect(typeof user.status).toBe("string");
+      expect(typeof user.street).toBe("string");
+      expect(typeof user.number).toBe("string");
+      expect(typeof user.neighborhood).toBe("string");
+      expect(typeof user.city).toBe("string");
+      expect(typeof user.state).toBe("string");
+      expect(typeof user.zipCode).toBe("string");
+      expect(typeof user.mainUser).toBe("boolean");
+      expect(typeof user.companyId).toBe("string");
+      expect(typeof user.createdAt).toBe("string");
     });
   });
 
-  describe("updateUser", () => {
-    it("should update a user", () => {
-      if (mockUsers.length > 0) {
-        const user = mockUsers[0];
-        const updateData: UserFormData = {
-          name: "Updated Name",
-          email: "updated@example.com",
-          phone: "47999999999",
-        };
-
-        updateUser(user.id, updateData);
-        const updated = getUserById(user.id);
-        expect(updated?.name).toBe(updateData.name);
-        expect(updated?.email).toBe(updateData.email);
-        expect(updated?.phone).toBe(updateData.phone);
-      }
-    });
-
-    it("should not update password fields", () => {
-      if (mockUsers.length > 0) {
-        const user = mockUsers[0];
-        const originalPassword = user.password;
-        const updateData: UserFormData = {
-          name: "Test",
-          password: "newpassword",
-          confirmPassword: "newpassword",
-        };
-
-        updateUser(user.id, updateData);
-        const updated = getUserById(user.id);
-        expect(updated?.password).toBe(originalPassword);
-      }
+  it("should have valid CPF format", () => {
+    mockUsers.forEach((user: TeamUser) => {
+      expect(user.cpf).toMatch(/^[\d.-]+$/);
     });
   });
 
-  describe("updateUserRole", () => {
-    it("should update user role", () => {
-      if (mockUsers.length > 0) {
-        const user = mockUsers[0];
-        updateUserRole(user.id, "manager");
-        const updated = getUserById(user.id);
-        expect(updated?.role).toBe("manager");
-      }
+  it("should have valid email format", () => {
+    mockUsers.forEach((user: TeamUser) => {
+      expect(user.email).toMatch(/^[^\s@]+@[^\s@]+\.[^\s@]+$/);
     });
   });
 
-  describe("updateUserPermissions", () => {
-    it("should update user permissions", () => {
-      if (mockUsers.length > 0) {
-        const user = mockUsers[0];
-        const permissions: UserPermissions = {
-          properties: { view: true, create: false, edit: false, delete: false },
-          animals: { view: true, create: true, edit: false, delete: false },
-        };
+  it("should have valid role", () => {
+    mockUsers.forEach((user: TeamUser) => {
+      expect(["admin", "manager", "user"]).toContain(user.role);
+    });
+  });
 
-        updateUserPermissions(user.id, permissions);
-        const updated = getUserById(user.id);
-        expect(updated?.permissions).toEqual(permissions);
+  it("should have valid status", () => {
+    mockUsers.forEach((user: TeamUser) => {
+      expect(["active", "inactive", "pending"]).toContain(user.status);
+    });
+  });
+
+  it("should have valid date format", () => {
+    mockUsers.forEach((user: TeamUser) => {
+      expect(user.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(() => new Date(user.createdAt)).not.toThrow();
+    });
+  });
+
+  it("should have valid lastAccess format when present", () => {
+    mockUsers.forEach((user: TeamUser) => {
+      if (user.lastAccess) {
+        expect(typeof user.lastAccess).toBe("string");
+        expect(() => new Date(user.lastAccess!)).not.toThrow();
       }
     });
   });
 
-  describe("addUser", () => {
-    it("should add a new user", () => {
-      const initialCount = mockUsers.length;
-      const newUserData: UserFormData & { password: string } = {
-        name: "New User",
-        cpf: "123.456.789-00",
-        email: "newuser@example.com",
-        password: "password123",
-        phone: "47999999999",
-        street: "Test Street",
-        number: "123",
-        neighborhood: "Test Neighborhood",
-        city: "Test City",
-        state: "SC",
-        zipCode: "12345678",
-      };
+  it("should have unique IDs", () => {
+    const ids = mockUsers.map((u) => u.id);
+    const uniqueIds = new Set(ids);
+    expect(uniqueIds.size).toBe(ids.length);
+  });
 
-      const added = addUser(newUserData);
-      expect(added).toBeDefined();
-      expect(added.id).toBeDefined();
-      expect(added.createdAt).toBeDefined();
-      expect(added.name).toBe(newUserData.name);
-      expect(added.email).toBe(newUserData.email);
-      expect(added.status).toBe("pending");
-      expect(added.mainUser).toBe(false);
-      expect(added.password).toBeDefined();
-      expect(mockUsers.length).toBe(initialCount + 1);
+  it("should have at least one main user", () => {
+    const mainUsers = mockUsers.filter((u) => u.mainUser);
+    expect(mainUsers.length).toBeGreaterThan(0);
+  });
+
+  it("should have hashed password", () => {
+    mockUsers.forEach((user: TeamUser) => {
+      expect(user.password).toMatch(/^\$2[aby]\$/);
     });
   });
 });

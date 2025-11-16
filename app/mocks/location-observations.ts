@@ -2,12 +2,13 @@ import type {
   LocationObservation,
   LocationObservationFormData,
 } from "~/types/location-observation";
+import { generateUUID } from "~/utils/uuid";
 
 export type { LocationObservation, LocationObservationFormData };
 
 export const mockLocationObservations: LocationObservation[] = [
   {
-    id: "obs-001",
+    id: generateUUID(),
     locationId: "660e8400-e29b-41d4-a716-446655440010",
     observation: "Pasto apresentando boa qualidade de grama. Área necessita de rotação em breve.",
     fileIds: ["file-obs-001-001", "file-obs-001-002"],
@@ -15,7 +16,7 @@ export const mockLocationObservations: LocationObservation[] = [
     createdBy: "user-001",
   },
   {
-    id: "obs-002",
+    id: generateUUID(),
     locationId: "660e8400-e29b-41d4-a716-446655440010",
     observation:
       "Verificação de cercas realizada. Nenhum dano encontrado. Manutenção preventiva agendada para próximo mês.",
@@ -24,7 +25,7 @@ export const mockLocationObservations: LocationObservation[] = [
     createdBy: "user-001",
   },
   {
-    id: "obs-003",
+    id: generateUUID(),
     locationId: "660e8400-e29b-41d4-a716-446655440010",
     observation:
       "Rotação de pasto realizada com sucesso. Animais transferidos para nova área. Monitoramento da grama na área anterior iniciado.",
@@ -33,7 +34,7 @@ export const mockLocationObservations: LocationObservation[] = [
     createdBy: "user-002",
   },
   {
-    id: "obs-004",
+    id: generateUUID(),
     locationId: "660e8400-e29b-41d4-a716-446655440011",
     observation:
       "Sistema de irrigação funcionando perfeitamente. Água aplicada conforme planejado.",
@@ -42,7 +43,7 @@ export const mockLocationObservations: LocationObservation[] = [
     createdBy: "user-002",
   },
   {
-    id: "obs-005",
+    id: generateUUID(),
     locationId: "660e8400-e29b-41d4-a716-446655440011",
     observation:
       "Verificação do sistema de irrigação após manutenção. Todos os aspersores funcionando corretamente. Pressão da água dentro dos parâmetros normais.",
@@ -51,7 +52,7 @@ export const mockLocationObservations: LocationObservation[] = [
     createdBy: "user-001",
   },
   {
-    id: "obs-006",
+    id: generateUUID(),
     locationId: "660e8400-e29b-41d4-a716-446655440011",
     observation:
       "Aplicação de fertilizante realizada na área sul. Condições climáticas favoráveis para absorção.",
@@ -60,7 +61,7 @@ export const mockLocationObservations: LocationObservation[] = [
     createdBy: "user-003",
   },
   {
-    id: "obs-007",
+    id: generateUUID(),
     locationId: "660e8400-e29b-41d4-a716-446655440012",
     observation: "Reparo de cerca concluído com sucesso. Fotos do antes e depois anexadas.",
     fileIds: ["file-obs-007-001", "file-obs-007-002", "file-obs-007-003"],
@@ -68,7 +69,7 @@ export const mockLocationObservations: LocationObservation[] = [
     createdBy: "user-001",
   },
   {
-    id: "obs-008",
+    id: generateUUID(),
     locationId: "660e8400-e29b-41d4-a716-446655440012",
     observation:
       "Inspeção geral da área realizada. Grama em bom estado, mas algumas áreas precisam de atenção. Planejamento de adubação para próxima semana.",
@@ -77,7 +78,7 @@ export const mockLocationObservations: LocationObservation[] = [
     createdBy: "user-002",
   },
   {
-    id: "obs-009",
+    id: generateUUID(),
     locationId: "660e8400-e29b-41d4-a716-446655440013",
     observation:
       "Análise de solo realizada. Resultados indicam necessidade de adubação complementar.",
@@ -344,50 +345,3 @@ export const mockLocationObservations: LocationObservation[] = [
     createdBy: "user-002",
   },
 ];
-
-export function getLocationObservationsByLocationId(locationId: string): LocationObservation[] {
-  return mockLocationObservations.filter((obs) => obs.locationId === locationId);
-}
-
-export function getLocationObservationById(
-  observationId: string | undefined
-): LocationObservation | undefined {
-  if (!observationId) return undefined;
-  return mockLocationObservations.find((obs) => obs.id === observationId);
-}
-
-export function addLocationObservation(data: LocationObservationFormData): LocationObservation {
-  const newObservation: LocationObservation = {
-    ...data,
-    id: `obs-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-  mockLocationObservations.push(newObservation);
-  return newObservation;
-}
-
-export function deleteLocationObservation(observationId: string): boolean {
-  const index = mockLocationObservations.findIndex((obs) => obs.id === observationId);
-  if (index !== -1) {
-    mockLocationObservations.splice(index, 1);
-    return true;
-  }
-  return false;
-}
-
-export function updateLocationObservation(
-  observationId: string,
-  data: Partial<LocationObservationFormData>
-): boolean {
-  const index = mockLocationObservations.findIndex((obs) => obs.id === observationId);
-  if (index !== -1) {
-    mockLocationObservations[index] = {
-      ...mockLocationObservations[index],
-      ...data,
-      updatedAt: new Date().toISOString(),
-    };
-    return true;
-  }
-  return false;
-}

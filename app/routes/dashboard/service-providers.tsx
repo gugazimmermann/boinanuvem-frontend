@@ -12,12 +12,13 @@ import {
   type SortDirection,
 } from "~/components/ui";
 import { useTranslation } from "~/i18n";
-import { mockServiceProviders, deleteServiceProvider } from "~/mocks/service-providers";
+import { mockServiceProviders } from "~/mocks/service-providers";
+import { deleteServiceProvider } from "~/services/service-providers.service";
 import type { ServiceProvider } from "~/types";
-import { getPropertyById } from "~/mocks/properties";
+import { getPropertyById } from "~/services/properties.service";
 import { ROUTES, getServiceProviderEditRoute, getServiceProviderViewRoute } from "~/routes.config";
-import { getLocationMovementsByServiceProviderId } from "~/mocks/location-movements";
-import { getServiceProviderObservationsByServiceProviderId } from "~/mocks/service-provider-observations";
+import { getLocationMovementsByServiceProviderId } from "~/services/location-movements.service";
+import { getServiceProviderObservationsByServiceProviderId } from "~/services/service-provider-observations.service";
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);

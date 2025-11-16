@@ -12,12 +12,13 @@ import {
   type SortDirection,
 } from "~/components/ui";
 import { useTranslation } from "~/i18n";
-import { mockEmployees, deleteEmployee } from "~/mocks/employees";
+import { mockEmployees } from "~/mocks/employees";
+import { deleteEmployee } from "~/services/employees.service";
 import type { Employee } from "~/types";
-import { getPropertyById } from "~/mocks/properties";
+import { getPropertyById } from "~/services/properties.service";
 import { ROUTES, getEmployeeEditRoute, getEmployeeViewRoute } from "~/routes.config";
-import { getLocationMovementsByEmployeeId } from "~/mocks/location-movements";
-import { getEmployeeObservationsByEmployeeId } from "~/mocks/employee-observations";
+import { getLocationMovementsByEmployeeId } from "~/services/location-movements.service";
+import { getEmployeeObservationsByEmployeeId } from "~/services/employee-observations.service";
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);

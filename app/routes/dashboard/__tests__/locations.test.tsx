@@ -4,7 +4,8 @@ import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
 import Locations from "../locations";
-import { mockLocations, deleteLocation } from "~/mocks/locations";
+import { mockLocations } from "~/mocks/locations";
+import { deleteLocation } from "~/services/locations.service";
 import { ROUTES } from "~/routes.config";
 
 const mockNavigate = vi.fn();
@@ -17,28 +18,50 @@ vi.mock("react-router", async () => {
   };
 });
 
-vi.mock("~/mocks/locations", () => ({
-  mockLocations: [
-    {
-      id: "loc-1",
-      name: "Test Location",
-      code: "LOC001",
-      status: "active",
-      propertyId: "prop-1",
-    },
-  ],
+vi.mock("~/mocks/locations", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/locations")>("~/mocks/locations");
+  return {
+    ...actual,
+    mockLocations: [
+      {
+        id: "loc-1",
+        name: "Test Location",
+        code: "LOC001",
+        status: "active",
+        propertyId: "prop-1",
+      },
+    ],
+  };
+});
+
+vi.mock("~/services/locations.service", () => ({
   deleteLocation: vi.fn(() => true),
 }));
 
-vi.mock("~/mocks/properties", () => ({
+vi.mock("~/mocks/properties", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/properties")>("~/mocks/properties");
+  return actual;
+});
+
+vi.mock("~/services/properties.service", () => ({
   getPropertyById: vi.fn(() => ({ id: "prop-1", name: "Test Property" })),
 }));
 
-vi.mock("~/mocks/location-movements", () => ({
+vi.mock("~/mocks/location-movements", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/location-movements")>("~/mocks/location-movements");
+  return actual;
+});
+
+vi.mock("~/services/location-movements.service", () => ({
   getLocationMovementsByLocationId: vi.fn(() => []),
 }));
 
-vi.mock("~/mocks/location-observations", () => ({
+vi.mock("~/mocks/location-observations", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/location-observations")>("~/mocks/location-observations");
+  return actual;
+});
+
+vi.mock("~/services/location-observations.service", () => ({
   getLocationObservationsByLocationId: vi.fn(() => []),
 }));
 

@@ -3,18 +3,18 @@ import { useNavigate } from "react-router";
 import { Input, Select, Button, Alert } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { ROUTES } from "~/routes.config";
-import { addAcquisition } from "~/mocks/acquisitions";
-import { addAnimal } from "~/mocks/animals";
-import { addWeighing } from "~/mocks/weighings";
-import { getBirthByAnimalId, calculatePurity } from "~/mocks/births";
+import { addAcquisition } from "~/services/acquisitions.service";
+import { addAnimal } from "~/services/animals.service";
+import { addWeighing } from "~/services/weighings.service";
+import { getBirthByAnimalId, calculatePurity } from "~/services/births.service";
 import type { AcquisitionFormData, AnimalFormData, WeighingFormData } from "~/types";
 import { AnimalBreed } from "~/types";
 import { mockCompanies } from "~/mocks/companies";
-import { getAnimalsByCompanyId } from "~/mocks/animals";
-import { mockProperties } from "~/mocks/properties";
-import { mockEmployees } from "~/mocks/employees";
-import { mockServiceProviders } from "~/mocks/service-providers";
-import { mockBuyers } from "~/mocks/buyers";
+import { getAnimalsByCompanyId } from "~/services/animals.service";
+import { mockProperties } from "~/services/properties.service";
+import { mockEmployees } from "~/services/employees.service";
+import { mockServiceProviders } from "~/services/service-providers.service";
+import { mockBuyers } from "~/services/buyers.service";
 
 export function meta() {
   return [

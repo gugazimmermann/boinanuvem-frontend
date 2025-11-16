@@ -26,28 +26,28 @@ import {
   getAnimalEditRoute,
   getAnimalMovementNewRoute,
 } from "~/routes.config";
-import { getLocationById } from "~/mocks/locations";
+import { getLocationById } from "~/services/locations.service";
 import { AreaType } from "~/types";
-import { getPropertyById } from "~/mocks/properties";
-import { getLocationMovementsByLocationId } from "~/mocks/location-movements";
-import { getEmployeeById } from "~/mocks/employees";
-import { getServiceProviderById } from "~/mocks/service-providers";
+import { getPropertyById } from "~/services/properties.service";
+import { getLocationMovementsByLocationId } from "~/services/location-movements.service";
+import { getEmployeeById } from "~/services/employees.service";
+import { getServiceProviderById } from "~/services/service-providers.service";
 import type { LocationMovement, AnimalMovement, Animal } from "~/types";
 import { differenceInMonths, differenceInDays, format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import {
   getAnimalsByLastMovementLocation,
   getAnimalMovementsByLocationId,
-} from "~/mocks/animal-movements";
-import { getAnimalById, deleteAnimal } from "~/mocks/animals";
-import { getBirthByAnimalId } from "~/mocks/births";
-import { getWeighingsByAnimalId } from "~/mocks/weighings";
+} from "~/services/animal-movements.service";
+import { getAnimalById, deleteAnimal } from "~/services/animals.service";
+import { getBirthByAnimalId } from "~/services/births.service";
+import { getWeighingsByAnimalId } from "~/services/weighings.service";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
 import { LocationTypeBadge } from "~/components/dashboard/utils/location-type-badge";
 import {
   getLocationObservationsByLocationId,
   addLocationObservation,
-} from "~/mocks/location-observations";
+} from "~/services/location-observations.service";
 import type { LocationObservation } from "~/types/location-observation";
 
 const formatAreaType = (type: AreaType): string => {

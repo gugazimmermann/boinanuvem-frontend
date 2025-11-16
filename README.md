@@ -17,12 +17,19 @@ This project uses Husky to run pre-commit checks including typecheck, lint, form
 - **Type Safety**: Full TypeScript support with strict mode
 
 ### Livestock Management
-- **Animal Management**: Complete animal registration, editing, and tracking
-- **Birth Records**: Track and manage animal births
-- **Acquisitions**: Record and manage animal acquisitions
-- **Weighings**: Track animal weight measurements over time
+- **Animal Management**: Complete animal registration, editing, and tracking with comprehensive filtering and search
+- **Birth Records**: Track and manage animal births with parent relationships
+- **Acquisitions**: Record and manage animal acquisitions with pricing and supplier information
+- **Weighings**: 
+  - Track animal weight measurements over time with trend analysis
+  - **Session Weighings**: Register multiple weighings in a single session without page navigation
+  - **Session Tracking**: View all weighings registered in the current session with a comprehensive modal
+  - **Weight Analysis**: Automatic calculation of weight difference, last weight, and GMD (Daily Average Gain) for each weighing
+  - **Efficient Data Entry**: Form preserves employee and service provider selections between registrations for faster data entry
+  - **Large Dataset Support**: Paginated table with search and sorting capabilities to handle 500+ weighings efficiently
 - **Animal Movements**: Track animal movements between properties and locations with responsible parties, observations, and file attachments
 - **Location Movements**: Monitor location-based movements and activities
+- **Animal Observations**: Record detailed observations for individual animals with file attachments
 
 ### Property & Location Management
 - **Properties**: Manage multiple properties with detailed information
@@ -31,10 +38,11 @@ This project uses Husky to run pre-commit checks including typecheck, lint, form
 - **Location Observations**: Record observations for locations
 
 ### People & Business Management
-- **Employees**: Manage employee records and information
-- **Service Providers**: Track service provider relationships
-- **Suppliers**: Manage supplier information and relationships
-- **Buyers**: Track buyer information and transactions
+- **Employees**: Manage employee records and information with observation tracking
+- **Service Providers**: Track service provider relationships and observations
+- **Suppliers**: Manage supplier information and relationships with observation records
+- **Buyers**: Track buyer information and transactions with observation history
+- **Observations**: Comprehensive observation system for locations, employees, service providers, suppliers, buyers, and animals
 
 ### User & Team Management
 - **Authentication**: Complete authentication flow (login, register, password recovery)
@@ -255,7 +263,7 @@ npm run test:watch
 
 ### Test Coverage
 
-The project maintains comprehensive test coverage with **150 test files** and **1,750+ passing tests** covering:
+The project maintains comprehensive test coverage with **171 test files** covering:
 - **Components**: UI components, dashboard components, and site components
 - **Hooks**: Custom React hooks (CEP lookup, CNPJ lookup, auto-rotate, smooth scroll)
 - **Contexts**: Theme and language contexts
@@ -263,9 +271,12 @@ The project maintains comprehensive test coverage with **150 test files** and **
 - **Types**: Type definitions and validations
 - **i18n**: Translation keys and internationalization
 - **Mocks**: Mock data functions and data management
-- **Routes**: Route components and navigation
+- **Routes**: Route components and navigation, including comprehensive coverage for:
+  - Dashboard routes (movements, observations, properties, animals, etc.)
+  - Authentication flows (login, register, password recovery)
+  - Public site routes
 
-Coverage reports are generated in the `coverage/` directory and can be viewed by opening `coverage/index.html` in a browser.
+Coverage reports are generated in the `coverage/` directory and can be viewed by opening `coverage/index.html` in a browser. The project continuously improves test coverage with focus on edge cases, user interactions, and navigation flows.
 
 ### Test Structure
 
@@ -300,6 +311,9 @@ app/
 - Test files follow clean code principles with descriptive test names
 - All test files are comment-free to maintain clarity and focus on test behavior
 - Tests are self-documenting through clear naming conventions and structure
+- Comprehensive coverage of edge cases, error handling, and user interactions
+- Proper use of `act()` for state updates in React component tests
+- Mock services and hooks to isolate component behavior
 
 ## 🧪 Code Quality
 

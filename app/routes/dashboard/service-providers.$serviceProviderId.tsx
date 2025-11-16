@@ -19,19 +19,19 @@ import {
   getMovementNewRoute,
   getObservationViewRoute,
 } from "~/routes.config";
-import { getServiceProviderById } from "~/mocks/service-providers";
-import { getPropertyById } from "~/mocks/properties";
-import { getLocationMovementsByServiceProviderId } from "~/mocks/location-movements";
-import { getAnimalMovementsByServiceProviderId } from "~/mocks/animal-movements";
-import { getLocationById } from "~/mocks/locations";
-import { getEmployeeById } from "~/mocks/employees";
-import { getAnimalById } from "~/mocks/animals";
+import { getServiceProviderById } from "~/services/service-providers.service";
+import { getPropertyById } from "~/services/properties.service";
+import { getLocationMovementsByServiceProviderId } from "~/services/location-movements.service";
+import { getAnimalMovementsByServiceProviderId } from "~/services/animal-movements.service";
+import { getLocationById } from "~/services/locations.service";
+import { getEmployeeById } from "~/services/employees.service";
+import { getAnimalById } from "~/services/animals.service";
 import type { LocationMovement, AnimalMovement } from "~/types";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
 import {
   getServiceProviderObservationsByServiceProviderId,
   addServiceProviderObservation,
-} from "~/mocks/service-provider-observations";
+} from "~/services/service-provider-observations.service";
 import type { ServiceProviderObservation } from "~/types/service-provider-observation";
 
 export function meta() {

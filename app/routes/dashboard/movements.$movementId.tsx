@@ -11,17 +11,17 @@ import {
   getServiceProviderViewRoute,
   getAnimalViewRoute,
 } from "~/routes.config";
-import { getEmployeeById as getEmployeeByIdForCheck } from "~/mocks/employees";
-import { getServiceProviderById as getServiceProviderByIdForCheck } from "~/mocks/service-providers";
-import { getLocationMovementById } from "~/mocks/location-movements";
-import { getAnimalMovementById } from "~/mocks/animal-movements";
-import { getPropertyById } from "~/mocks/properties";
-import { getLocationById } from "~/mocks/locations";
-import { getEmployeeById } from "~/mocks/employees";
-import { getServiceProviderById } from "~/mocks/service-providers";
-import { getAnimalById } from "~/mocks/animals";
-import { getBirthByAnimalId } from "~/mocks/births";
-import { getWeighingsByAnimalId } from "~/mocks/weighings";
+import { getEmployeeById as getEmployeeByIdForCheck } from "~/services/employees.service";
+import { getServiceProviderById as getServiceProviderByIdForCheck } from "~/services/service-providers.service";
+import { getLocationMovementById } from "~/services/location-movements.service";
+import { getAnimalMovementById } from "~/services/animal-movements.service";
+import { getPropertyById } from "~/services/properties.service";
+import { getLocationById } from "~/services/locations.service";
+import { getEmployeeById } from "~/services/employees.service";
+import { getServiceProviderById } from "~/services/service-providers.service";
+import { getAnimalById } from "~/services/animals.service";
+import { getBirthByAnimalId } from "~/services/births.service";
+import { getWeighingsByAnimalId } from "~/services/weighings.service";
 import type { LocationMovement } from "~/types/location-movement";
 import type { AnimalMovement } from "~/types/animal-movement";
 import type { Animal } from "~/types";

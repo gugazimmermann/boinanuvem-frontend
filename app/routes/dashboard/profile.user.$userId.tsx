@@ -3,7 +3,7 @@ import { UserProfile } from "~/components/dashboard/profile";
 import { useTranslation } from "~/i18n";
 import { ROUTES } from "~/routes.config";
 import { Button } from "~/components/ui";
-import { updateUser } from "~/mocks/users";
+import { updateUser } from "~/services/users.service";
 import type { AddressFormData } from "~/components/site/utils/cep-utils";
 
 export function meta() {

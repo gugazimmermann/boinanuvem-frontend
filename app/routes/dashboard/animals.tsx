@@ -16,11 +16,12 @@ import {
   type SortDirection,
 } from "~/components/ui";
 import { useTranslation } from "~/i18n";
-import { mockAnimals, deleteAnimal } from "~/mocks/animals";
+import { mockAnimals } from "~/mocks/animals";
+import { deleteAnimal } from "~/services/animals.service";
 import type { Animal } from "~/types";
-import { getPropertyById } from "~/mocks/properties";
-import { getWeighingsByAnimalId } from "~/mocks/weighings";
-import { getBirthByAnimalId } from "~/mocks/births";
+import { getPropertyById } from "~/services/properties.service";
+import { getWeighingsByAnimalId } from "~/services/weighings.service";
+import { getBirthByAnimalId } from "~/services/births.service";
 import {
   ROUTES,
   getAnimalEditRoute,

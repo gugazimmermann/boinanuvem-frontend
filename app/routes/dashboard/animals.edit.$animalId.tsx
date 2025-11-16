@@ -3,9 +3,9 @@ import { useNavigate, useParams } from "react-router";
 import { Input, Select, Button, Alert } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { ROUTES, getAnimalViewRoute } from "~/routes.config";
-import { getAnimalById, updateAnimal } from "~/mocks/animals";
+import { getAnimalById, updateAnimal } from "~/services/animals.service";
 import type { AnimalFormData } from "~/types";
-import { mockProperties } from "~/mocks/properties";
+import { mockProperties } from "~/services/properties.service";
 
 export function meta() {
   return [

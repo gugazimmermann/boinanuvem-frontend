@@ -4,8 +4,8 @@ import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
 import ServiceProviderDetails from "../service-providers.$serviceProviderId";
-import { getServiceProviderById } from "~/mocks/service-providers";
-import { getServiceProviderObservationsByServiceProviderId } from "~/mocks/service-provider-observations";
+import { getServiceProviderById } from "~/services/service-providers.service";
+import { getServiceProviderObservationsByServiceProviderId } from "~/services/service-provider-observations.service";
 
 const mockNavigate = vi.fn();
 const mockSetSearchParams = vi.fn();
@@ -19,23 +19,48 @@ vi.mock("react-router", async () => {
   };
 });
 
-vi.mock("~/mocks/service-providers", () => ({
+vi.mock("~/mocks/service-providers", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/service-providers")>("~/mocks/service-providers");
+  return actual;
+});
+
+vi.mock("~/services/service-providers.service", () => ({
   getServiceProviderById: vi.fn(),
 }));
 
-vi.mock("~/mocks/properties", () => ({
+vi.mock("~/mocks/properties", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/properties")>("~/mocks/properties");
+  return actual;
+});
+
+vi.mock("~/services/properties.service", () => ({
   getPropertyById: vi.fn((id) => ({ id, name: `Property ${id}` })),
 }));
 
-vi.mock("~/mocks/location-movements", () => ({
+vi.mock("~/mocks/location-movements", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/location-movements")>("~/mocks/location-movements");
+  return actual;
+});
+
+vi.mock("~/services/location-movements.service", () => ({
   getLocationMovementsByServiceProviderId: vi.fn(() => []),
 }));
 
-vi.mock("~/mocks/animal-movements", () => ({
+vi.mock("~/mocks/animal-movements", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/animal-movements")>("~/mocks/animal-movements");
+  return actual;
+});
+
+vi.mock("~/services/animal-movements.service", () => ({
   getAnimalMovementsByServiceProviderId: vi.fn(() => []),
 }));
 
-vi.mock("~/mocks/service-provider-observations", () => ({
+vi.mock("~/mocks/service-provider-observations", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/service-provider-observations")>("~/mocks/service-provider-observations");
+  return actual;
+});
+
+vi.mock("~/services/service-provider-observations.service", () => ({
   getServiceProviderObservationsByServiceProviderId: vi.fn(() => []),
   addServiceProviderObservation: vi.fn(),
 }));

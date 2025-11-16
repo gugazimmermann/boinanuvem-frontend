@@ -6,9 +6,9 @@ import { ThemeProvider } from "~/contexts/theme-context";
 import Animals from "../animals";
 import { mockAnimals, deleteAnimal } from "~/mocks/animals";
 import { ROUTES } from "~/routes.config";
-import { getBirthByAnimalId } from "~/mocks/births";
-import { getWeighingsByAnimalId } from "~/mocks/weighings";
-import { getPropertyById } from "~/mocks/properties";
+import { getBirthByAnimalId } from "~/services/births.service";
+import { getWeighingsByAnimalId } from "~/services/weighings.service";
+import { getPropertyById } from "~/services/properties.service";
 
 const mockNavigate = vi.fn();
 
@@ -20,46 +20,78 @@ vi.mock("react-router", async () => {
   };
 });
 
-vi.mock("~/mocks/animals", () => ({
-  mockAnimals: [
-    {
-      id: "animal-1",
-      code: "AN001",
-      registrationNumber: "REG001",
-      status: "active",
-      propertyId: "prop-1",
-      companyId: "company-1",
-      createdAt: "2024-01-01",
-    },
-    {
-      id: "animal-2",
-      code: "AN002",
-      registrationNumber: "REG002",
-      status: "inactive",
-      propertyId: "prop-1",
-      companyId: "company-1",
-      createdAt: "2024-01-02",
-    },
-  ],
+vi.mock("~/mocks/animals", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/animals")>("~/mocks/animals");
+  return {
+    ...actual,
+    mockAnimals: [
+      {
+        id: "animal-1",
+        code: "AN001",
+        registrationNumber: "REG001",
+        status: "active",
+        propertyId: "prop-1",
+        companyId: "company-1",
+        createdAt: "2024-01-01",
+      },
+      {
+        id: "animal-2",
+        code: "AN002",
+        registrationNumber: "REG002",
+        status: "inactive",
+        propertyId: "prop-1",
+        companyId: "company-1",
+        createdAt: "2024-01-02",
+      },
+    ],
+  };
+});
+
+vi.mock("~/services/animals.service", () => ({
   deleteAnimal: vi.fn(() => true),
 }));
 
-vi.mock("~/mocks/properties", () => ({
-  getPropertyById: vi.fn(() => ({ id: "prop-1", name: "Test Property" })),
-}));
+vi.mock("~/mocks/properties", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/properties")>("~/mocks/properties");
+  return {
+    ...actual,
+    mockProperties: [{ id: "prop-1", name: "Test Property" }],
+  };
+});
 
-vi.mock("~/mocks/weighings", () => ({
+vi.mock("~/services/properties.service", async () => {
+  const actual = await vi.importActual<typeof import("~/services/properties.service")>("~/services/properties.service");
+  return {
+    ...actual,
+    getPropertyById: vi.fn(() => ({ id: "prop-1", name: "Test Property" })),
+  };
+});
+
+vi.mock("~/mocks/weighings", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/weighings")>("~/mocks/weighings");
+  return actual;
+});
+
+vi.mock("~/services/weighings.service", () => ({
   getWeighingsByAnimalId: vi.fn(() => []),
 }));
 
-const mockGetBirthByAnimalId = vi.fn(() => null);
-vi.mock("~/mocks/births", () => ({
-  getBirthByAnimalId: (...args: any[]) => mockGetBirthByAnimalId(...args),
+vi.mock("~/mocks/births", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/births")>("~/mocks/births");
+  return actual;
+});
+
+vi.mock("~/services/births.service", () => ({
+  getBirthByAnimalId: vi.fn(() => null),
 }));
 
-const mockGetWeighingsByAnimalId = vi.fn(() => []);
-vi.mock("~/mocks/weighings", () => ({
-  getWeighingsByAnimalId: (...args: any[]) => mockGetWeighingsByAnimalId(...args),
+vi.mock("~/mocks/weighings", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/weighings")>("~/mocks/weighings");
+  return actual;
+});
+
+vi.mock("~/services/weighings.service", () => ({
+  getWeighingsByAnimalId: vi.fn(() => []),
 }));
 
 vi.mock("~/components/ui", () => ({
@@ -374,7 +406,7 @@ describe("Animals", () => {
   });
 
   it("should filter animals by breed", () => {
-    mockGetBirthByAnimalId.mockReturnValueOnce({
+    vi.mocked(getBirthByAnimalId).mockReturnValueOnce({
       id: "birth-1",
       animalId: "animal-1",
       breed: "Angus",
@@ -464,7 +496,7 @@ describe("Animals", () => {
   });
 
   it("should display breed information", () => {
-    mockGetBirthByAnimalId.mockReturnValueOnce({
+    vi.mocked(getBirthByAnimalId).mockReturnValueOnce({
       id: "birth-1",
       animalId: "animal-1",
       breed: "Nelore",
@@ -480,7 +512,7 @@ describe("Animals", () => {
   });
 
   it("should display purity information", () => {
-    mockGetBirthByAnimalId.mockReturnValueOnce({
+    vi.mocked(getBirthByAnimalId).mockReturnValueOnce({
       id: "birth-1",
       animalId: "animal-1",
       purity: "F1" as const,
@@ -496,7 +528,7 @@ describe("Animals", () => {
   });
 
   it("should display gender information", () => {
-    mockGetBirthByAnimalId.mockReturnValueOnce({
+    vi.mocked(getBirthByAnimalId).mockReturnValueOnce({
       id: "birth-1",
       animalId: "animal-1",
       gender: "male" as const,
@@ -512,7 +544,7 @@ describe("Animals", () => {
   });
 
   it("should calculate and display age from birth date", () => {
-    mockGetBirthByAnimalId.mockReturnValueOnce({
+    vi.mocked(getBirthByAnimalId).mockReturnValueOnce({
       id: "birth-1",
       animalId: "animal-1",
       birthDate: "2023-01-01",
@@ -527,7 +559,7 @@ describe("Animals", () => {
   });
 
   it("should calculate and display age from acquisition date", () => {
-    mockGetBirthByAnimalId.mockReturnValueOnce(null);
+    vi.mocked(getBirthByAnimalId).mockReturnValueOnce(null);
     
     const router = createRouter();
     render(<RouterProvider router={router} />);
@@ -536,7 +568,7 @@ describe("Animals", () => {
   });
 
   it("should display weight from last weighing", () => {
-    mockGetWeighingsByAnimalId.mockReturnValueOnce([
+    vi.mocked(getWeighingsByAnimalId).mockReturnValueOnce([
       { id: "w1", animalId: "animal-1", weight: 300, date: "2024-01-01", createdAt: "2024-01-01", companyId: "company-1", employeeIds: [], serviceProviderIds: [] },
     ]);
     
@@ -547,7 +579,7 @@ describe("Animals", () => {
   });
 
   it("should display weight in arrobas", () => {
-    mockGetWeighingsByAnimalId.mockReturnValueOnce([
+    vi.mocked(getWeighingsByAnimalId).mockReturnValueOnce([
       { id: "w1", animalId: "animal-1", weight: 300, date: "2024-01-01", createdAt: "2024-01-01", companyId: "company-1", employeeIds: [], serviceProviderIds: [] },
     ]);
     
@@ -558,7 +590,7 @@ describe("Animals", () => {
   });
 
   it("should calculate and display GMD", () => {
-    mockGetWeighingsByAnimalId.mockReturnValueOnce([
+    vi.mocked(getWeighingsByAnimalId).mockReturnValueOnce([
       { id: "w1", animalId: "animal-1", weight: 100, date: "2024-01-01", createdAt: "2024-01-01", companyId: "company-1", employeeIds: [], serviceProviderIds: [] },
       { id: "w2", animalId: "animal-1", weight: 150, date: "2024-02-01", createdAt: "2024-02-01", companyId: "company-1", employeeIds: [], serviceProviderIds: [] },
     ]);
@@ -631,7 +663,7 @@ describe("Animals", () => {
   });
 
   it("should display last weighing date", () => {
-    mockGetWeighingsByAnimalId.mockReturnValueOnce([
+    vi.mocked(getWeighingsByAnimalId).mockReturnValueOnce([
       { id: "w1", animalId: "animal-1", weight: 300, date: "2024-01-15", createdAt: "2024-01-15", companyId: "company-1", employeeIds: [], serviceProviderIds: [] },
     ]);
     

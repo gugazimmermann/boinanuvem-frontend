@@ -1,170 +1,102 @@
 import { describe, it, expect } from "vitest";
-import {
-  mockServiceProviders,
-  getServiceProviderById,
-  getServiceProvidersByCompanyId,
-  getServiceProvidersByPropertyId,
-  addServiceProvider,
-  deleteServiceProvider,
-  updateServiceProvider,
-} from "../service-providers";
-import type { ServiceProviderFormData } from "~/types";
+import { mockServiceProviders } from "../service-providers";
+import type { ServiceProvider } from "~/types";
 
-describe("Service Providers Mock Functions", () => {
-  const COMPANY_ID = "550e8400-e29b-41d4-a716-446655440000";
-  const PROPERTY_ID = "550e8400-e29b-41d4-a716-446655440010";
+describe("service-providers mock", () => {
+  it("should export mockServiceProviders array", () => {
+    expect(Array.isArray(mockServiceProviders)).toBe(true);
+    expect(mockServiceProviders.length).toBeGreaterThan(0);
+  });
 
-  describe("getServiceProviderById", () => {
-    it("should return service provider by id", () => {
-      if (mockServiceProviders.length > 0) {
-        const provider = getServiceProviderById(mockServiceProviders[0].id);
-        expect(provider).toBeDefined();
-        expect(provider?.id).toBe(mockServiceProviders[0].id);
+  it("should have valid service provider structure", () => {
+    mockServiceProviders.forEach((serviceProvider: ServiceProvider) => {
+      expect(serviceProvider).toHaveProperty("id");
+      expect(serviceProvider).toHaveProperty("code");
+      expect(serviceProvider).toHaveProperty("name");
+      expect(serviceProvider).toHaveProperty("email");
+      expect(serviceProvider).toHaveProperty("phone");
+      expect(serviceProvider).toHaveProperty("status");
+      expect(serviceProvider).toHaveProperty("createdAt");
+      expect(serviceProvider).toHaveProperty("companyId");
+      expect(serviceProvider).toHaveProperty("propertyIds");
+      expect(serviceProvider).toHaveProperty("street");
+      expect(serviceProvider).toHaveProperty("number");
+      expect(serviceProvider).toHaveProperty("neighborhood");
+      expect(serviceProvider).toHaveProperty("city");
+      expect(serviceProvider).toHaveProperty("state");
+      expect(serviceProvider).toHaveProperty("zipCode");
+
+      expect(typeof serviceProvider.id).toBe("string");
+      expect(typeof serviceProvider.code).toBe("string");
+      expect(typeof serviceProvider.name).toBe("string");
+      expect(typeof serviceProvider.email).toBe("string");
+      expect(typeof serviceProvider.phone).toBe("string");
+      expect(typeof serviceProvider.status).toBe("string");
+      expect(typeof serviceProvider.createdAt).toBe("string");
+      expect(typeof serviceProvider.companyId).toBe("string");
+      expect(Array.isArray(serviceProvider.propertyIds)).toBe(true);
+      expect(typeof serviceProvider.street).toBe("string");
+      expect(typeof serviceProvider.number).toBe("string");
+      expect(typeof serviceProvider.neighborhood).toBe("string");
+      expect(typeof serviceProvider.city).toBe("string");
+      expect(typeof serviceProvider.state).toBe("string");
+      expect(typeof serviceProvider.zipCode).toBe("string");
+    });
+  });
+
+  it("should have either CNPJ or CPF", () => {
+    mockServiceProviders.forEach((serviceProvider: ServiceProvider) => {
+      const hasCnpj = "cnpj" in serviceProvider && serviceProvider.cnpj !== undefined;
+      const hasCpf = "cpf" in serviceProvider && serviceProvider.cpf !== undefined;
+      expect(hasCnpj || hasCpf).toBe(true);
+    });
+  });
+
+  it("should have valid CNPJ format when present", () => {
+    mockServiceProviders.forEach((serviceProvider: ServiceProvider) => {
+      if ("cnpj" in serviceProvider && serviceProvider.cnpj) {
+        expect(serviceProvider.cnpj).toMatch(/^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$/);
       }
     });
+  });
 
-    it("should return undefined for non-existent id", () => {
-      const provider = getServiceProviderById("non-existent-id");
-      expect(provider).toBeUndefined();
-    });
-
-    it("should return undefined for undefined id", () => {
-      const provider = getServiceProviderById(undefined);
-      expect(provider).toBeUndefined();
+  it("should have valid CPF format when present", () => {
+    mockServiceProviders.forEach((serviceProvider: ServiceProvider) => {
+      if ("cpf" in serviceProvider && serviceProvider.cpf) {
+        expect(serviceProvider.cpf).toMatch(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/);
+      }
     });
   });
 
-  describe("getServiceProvidersByCompanyId", () => {
-    it("should return service providers for a company", () => {
-      const providers = getServiceProvidersByCompanyId(COMPANY_ID);
-      expect(Array.isArray(providers)).toBe(true);
-      providers.forEach((provider) => {
-        expect(provider.companyId).toBe(COMPANY_ID);
-      });
-    });
-
-    it("should return empty array for non-existent company", () => {
-      const providers = getServiceProvidersByCompanyId("non-existent-company");
-      expect(providers).toEqual([]);
+  it("should have valid email format", () => {
+    mockServiceProviders.forEach((serviceProvider: ServiceProvider) => {
+      expect(serviceProvider.email).toMatch(/^[^\s@]+@[^\s@]+\.[^\s@]+$/);
     });
   });
 
-  describe("getServiceProvidersByPropertyId", () => {
-    it("should return service providers for a property", () => {
-      const providers = getServiceProvidersByPropertyId(PROPERTY_ID);
-      expect(Array.isArray(providers)).toBe(true);
-      providers.forEach((provider) => {
-        expect(provider.propertyIds).toContain(PROPERTY_ID);
-      });
-    });
-
-    it("should return empty array for non-existent property", () => {
-      const providers = getServiceProvidersByPropertyId("non-existent-property");
-      expect(providers).toEqual([]);
+  it("should have valid status", () => {
+    mockServiceProviders.forEach((serviceProvider: ServiceProvider) => {
+      expect(["active", "inactive", "pending"]).toContain(serviceProvider.status);
     });
   });
 
-  describe("addServiceProvider", () => {
-    it("should add a new service provider", () => {
-      const initialCount = mockServiceProviders.length;
-      const newProviderData: ServiceProviderFormData = {
-        code: "999",
-        name: "Test Provider",
-        cnpj: "12.345.678/0001-90",
-        email: "test@example.com",
-        phone: "47999999999",
-        status: "active",
-        companyId: COMPANY_ID,
-        propertyIds: [PROPERTY_ID],
-        street: "Test Street",
-        number: "123",
-        neighborhood: "Test Neighborhood",
-        city: "Test City",
-        state: "SC",
-        zipCode: "12345678",
-      };
-
-      const added = addServiceProvider(newProviderData);
-      expect(added).toBeDefined();
-      expect(added.id).toBeDefined();
-      expect(added.createdAt).toBeDefined();
-      expect(added.code).toBe(newProviderData.code);
-      expect(added.name).toBe(newProviderData.name);
-      expect(added.companyId).toBe(newProviderData.companyId);
-      expect(mockServiceProviders.length).toBe(initialCount + 1);
+  it("should have valid date format", () => {
+    mockServiceProviders.forEach((serviceProvider: ServiceProvider) => {
+      expect(serviceProvider.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(() => new Date(serviceProvider.createdAt)).not.toThrow();
     });
   });
 
-  describe("deleteServiceProvider", () => {
-    it("should delete a service provider by id", () => {
-      const newProviderData: ServiceProviderFormData = {
-        code: "DELETE",
-        name: "Delete Provider",
-        cnpj: "98.765.432/0001-10",
-        email: "delete@example.com",
-        phone: "47988888888",
-        status: "active",
-        companyId: COMPANY_ID,
-        propertyIds: [PROPERTY_ID],
-        street: "Test Street",
-        number: "456",
-        neighborhood: "Test Neighborhood",
-        city: "Test City",
-        state: "SC",
-        zipCode: "12345678",
-      };
-
-      const added = addServiceProvider(newProviderData);
-      const initialCount = mockServiceProviders.length;
-      const deleted = deleteServiceProvider(added.id);
-
-      expect(deleted).toBe(true);
-      expect(mockServiceProviders.length).toBe(initialCount - 1);
-      expect(getServiceProviderById(added.id)).toBeUndefined();
-    });
-
-    it("should return false for non-existent id", () => {
-      const deleted = deleteServiceProvider("non-existent-id");
-      expect(deleted).toBe(false);
-    });
+  it("should have unique IDs", () => {
+    const ids = mockServiceProviders.map((sp) => sp.id);
+    const uniqueIds = new Set(ids);
+    expect(uniqueIds.size).toBe(ids.length);
   });
 
-  describe("updateServiceProvider", () => {
-    it("should update a service provider", () => {
-      const newProviderData: ServiceProviderFormData = {
-        code: "UPDATE",
-        name: "Update Provider",
-        cnpj: "11.222.333/0001-44",
-        email: "update@example.com",
-        phone: "47977777777",
-        status: "active",
-        companyId: COMPANY_ID,
-        propertyIds: [PROPERTY_ID],
-        street: "Test Street",
-        number: "789",
-        neighborhood: "Test Neighborhood",
-        city: "Test City",
-        state: "SC",
-        zipCode: "12345678",
-      };
-
-      const added = addServiceProvider(newProviderData);
-      const updated = updateServiceProvider(added.id, {
-        name: "Updated Provider",
-        status: "inactive",
-      });
-
-      expect(updated).toBe(true);
-      const provider = getServiceProviderById(added.id);
-      expect(provider?.name).toBe("Updated Provider");
-      expect(provider?.status).toBe("inactive");
-      expect(provider?.code).toBe(newProviderData.code);
-    });
-
-    it("should return false for non-existent id", () => {
-      const updated = updateServiceProvider("non-existent-id", { name: "Test" });
-      expect(updated).toBe(false);
-    });
+  it("should have unique codes", () => {
+    const codes = mockServiceProviders.map((sp) => sp.code);
+    const uniqueCodes = new Set(codes);
+    expect(uniqueCodes.size).toBe(codes.length);
   });
 });
 

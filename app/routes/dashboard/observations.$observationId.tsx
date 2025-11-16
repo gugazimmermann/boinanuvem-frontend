@@ -10,18 +10,18 @@ import {
   getBuyerViewRoute,
   getAnimalViewRoute,
 } from "~/routes.config";
-import { getLocationObservationById } from "~/mocks/location-observations";
-import { getEmployeeObservationById } from "~/mocks/employee-observations";
-import { getServiceProviderObservationById } from "~/mocks/service-provider-observations";
-import { getSupplierObservationById } from "~/mocks/supplier-observations";
-import { getBuyerObservationById } from "~/mocks/buyer-observations";
-import { getAnimalObservationById } from "~/mocks/animal-observations";
-import { getLocationById } from "~/mocks/locations";
-import { getEmployeeById } from "~/mocks/employees";
-import { getServiceProviderById } from "~/mocks/service-providers";
-import { getSupplierById } from "~/mocks/suppliers";
-import { getBuyerById } from "~/mocks/buyers";
-import { getAnimalById } from "~/mocks/animals";
+import { getLocationObservationById } from "~/services/location-observations.service";
+import { getEmployeeObservationById } from "~/services/employee-observations.service";
+import { getServiceProviderObservationById } from "~/services/service-provider-observations.service";
+import { getSupplierObservationById } from "~/services/supplier-observations.service";
+import { getBuyerObservationById } from "~/services/buyer-observations.service";
+import { getAnimalObservationById } from "~/services/animal-observations.service";
+import { getLocationById } from "~/services/locations.service";
+import { getEmployeeById } from "~/services/employees.service";
+import { getServiceProviderById } from "~/services/service-providers.service";
+import { getSupplierById } from "~/services/suppliers.service";
+import { getBuyerById } from "~/services/buyers.service";
+import { getAnimalById } from "~/services/animals.service";
 
 export function meta() {
   return [

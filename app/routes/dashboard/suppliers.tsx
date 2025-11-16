@@ -12,11 +12,12 @@ import {
   type SortDirection,
 } from "~/components/ui";
 import { useTranslation } from "~/i18n";
-import { mockSuppliers, deleteSupplier } from "~/mocks/suppliers";
+import { mockSuppliers } from "~/mocks/suppliers";
+import { deleteSupplier } from "~/services/suppliers.service";
 import type { Supplier } from "~/types";
-import { getPropertyById } from "~/mocks/properties";
+import { getPropertyById } from "~/services/properties.service";
 import { ROUTES, getSupplierEditRoute, getSupplierViewRoute } from "~/routes.config";
-import { getSupplierObservationsBySupplierId } from "~/mocks/supplier-observations";
+import { getSupplierObservationsBySupplierId } from "~/services/supplier-observations.service";
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);

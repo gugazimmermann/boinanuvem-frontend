@@ -6,9 +6,9 @@ import { maskCEP, unmaskCEP, maskCPF, maskPhone } from "~/components/site/utils/
 import { useCEPLookup, type CEPData } from "~/components/site/hooks";
 import { mapCEPDataToAddressForm } from "~/components/site/utils";
 import { ROUTES, getEmployeeViewRoute } from "~/routes.config";
-import { getEmployeeById, updateEmployee } from "~/mocks/employees";
+import { getEmployeeById, updateEmployee } from "~/services/employees.service";
 import type { EmployeeFormData } from "~/types";
-import { mockProperties } from "~/mocks/properties";
+import { mockProperties } from "~/services/properties.service";
 import { BRAZILIAN_STATES } from "~/utils/brazilian-states";
 
 export function meta() {

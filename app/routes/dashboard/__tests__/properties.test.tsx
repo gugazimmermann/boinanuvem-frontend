@@ -19,26 +19,43 @@ vi.mock("react-router", async () => {
   };
 });
 
-vi.mock("~/mocks/properties", () => ({
-  mockProperties: [
-    {
-      id: "prop-1",
-      name: "Test Property",
-      code: "001",
-      city: "São Paulo",
-      state: "SP",
-      status: "active",
-      area: { value: 100, type: "hectares" },
-    },
-  ],
+vi.mock("~/mocks/properties", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/properties")>("~/mocks/properties");
+  return {
+    ...actual,
+    mockProperties: [
+      {
+        id: "prop-1",
+        name: "Test Property",
+        code: "001",
+        city: "São Paulo",
+        state: "SP",
+        status: "active",
+        area: { value: 100, type: "hectares" },
+      },
+    ],
+  };
+});
+
+vi.mock("~/services/properties.service", () => ({
   deleteProperty: vi.fn(() => true),
 }));
 
-vi.mock("~/mocks/locations", () => ({
+vi.mock("~/mocks/locations", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/locations")>("~/mocks/locations");
+  return actual;
+});
+
+vi.mock("~/services/locations.service", () => ({
   getLocationsByPropertyId: vi.fn(() => []),
 }));
 
-vi.mock("~/mocks/animals", () => ({
+vi.mock("~/mocks/animals", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/animals")>("~/mocks/animals");
+  return actual;
+});
+
+vi.mock("~/services/animals.service", () => ({
   getAnimalsByPropertyId: vi.fn(() => []),
 }));
 
