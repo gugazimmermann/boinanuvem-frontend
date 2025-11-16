@@ -59,7 +59,7 @@ describe("Table Selectable", () => {
     );
 
     const checkboxes = screen.getAllByRole("checkbox");
-    const firstRowCheckbox = checkboxes[1]; // First data row (skip header checkbox)
+    const firstRowCheckbox = checkboxes[1]; 
 
     await user.click(firstRowCheckbox);
 
@@ -87,7 +87,7 @@ describe("Table Selectable", () => {
     );
 
     const checkboxes = screen.getAllByRole("checkbox");
-    const selectAllCheckbox = checkboxes[0]; // Header checkbox
+    const selectAllCheckbox = checkboxes[0]; 
 
     await user.click(selectAllCheckbox);
 

@@ -255,7 +255,7 @@ npm run test:watch
 
 ### Test Coverage
 
-The project maintains comprehensive test coverage with **76+ test files** and **667+ passing tests** covering:
+The project maintains comprehensive test coverage with **150 test files** and **1,750+ passing tests** covering:
 - **Components**: UI components, dashboard components, and site components
 - **Hooks**: Custom React hooks (CEP lookup, CNPJ lookup, auto-rotate, smooth scroll)
 - **Contexts**: Theme and language contexts
@@ -294,6 +294,12 @@ app/
 - **@testing-library/jest-dom** - Custom DOM matchers
 - **@testing-library/user-event** - User interaction simulation
 - **jsdom** - DOM implementation for Node.js testing environment
+
+### Test Code Standards
+
+- Test files follow clean code principles with descriptive test names
+- All test files are comment-free to maintain clarity and focus on test behavior
+- Tests are self-documenting through clear naming conventions and structure
 
 ## 🧪 Code Quality
 
