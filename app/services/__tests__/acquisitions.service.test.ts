@@ -23,14 +23,14 @@ describe("acquisitions.service", () => {
         id: "ac0e8400-e29b-41d4-a716-446655440100",
         animalId: "animal-1",
         companyId: "company-1",
-        date: "2020-01-01",
+        acquisitionDate: "2020-01-01",
         createdAt: "2020-01-01",
       },
       {
         id: "ac0e8400-e29b-41d4-a716-446655440101",
         animalId: "animal-2",
         companyId: "company-1",
-        date: "2020-01-02",
+        acquisitionDate: "2020-01-02",
         createdAt: "2020-01-02",
       }
     );
@@ -75,7 +75,7 @@ describe("acquisitions.service", () => {
       const formData: AcquisitionFormData = {
         animalId: "animal-3",
         companyId: "company-1",
-        date: "2020-03-01",
+        acquisitionDate: "2020-03-01",
       };
 
       const initialLength = mockAcquisitions.length;
@@ -89,14 +89,12 @@ describe("acquisitions.service", () => {
   describe("updateAcquisition", () => {
     it("should update existing acquisition", () => {
       const result = updateAcquisition("ac0e8400-e29b-41d4-a716-446655440100", {
-        date: "2020-01-15",
+        acquisitionDate: "2020-01-15",
       });
 
       expect(result).toBe(true);
-      const updated = mockAcquisitions.find(
-        (a) => a.id === "ac0e8400-e29b-41d4-a716-446655440100"
-      );
-      expect(updated?.date).toBe("2020-01-15");
+      const updated = mockAcquisitions.find((a) => a.id === "ac0e8400-e29b-41d4-a716-446655440100");
+      expect(updated?.acquisitionDate).toBe("2020-01-15");
     });
   });
 
@@ -123,4 +121,3 @@ describe("acquisitions.service", () => {
     });
   });
 });
-

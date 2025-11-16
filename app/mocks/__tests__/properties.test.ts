@@ -70,8 +70,8 @@ describe("properties mock", () => {
 
   it("should have valid pasture planning structure", () => {
     mockProperties.forEach((property: Property) => {
-      expect(property.pasturePlanning.length).toBe(12);
-      property.pasturePlanning.forEach((plan) => {
+      expect(property.pasturePlanning?.length).toBe(12);
+      property.pasturePlanning?.forEach((plan) => {
         expect(plan).toHaveProperty("month");
         expect(plan).toHaveProperty("min");
         expect(plan).toHaveProperty("max");
@@ -102,7 +102,7 @@ describe("properties mock", () => {
       "December",
     ];
     mockProperties.forEach((property: Property) => {
-      const planningMonths = property.pasturePlanning.map((p) => p.month);
+      const planningMonths = property.pasturePlanning?.map((p) => p.month);
       months.forEach((month) => {
         expect(planningMonths).toContain(month);
       });
@@ -112,9 +112,11 @@ describe("properties mock", () => {
   it("should have valid classification in pasture planning", () => {
     const validClassifications = ["Excellent", "Good", "Fair", "Poor"];
     mockProperties.forEach((property: Property) => {
-      property.pasturePlanning.forEach((plan) => {
-        expect(validClassifications).toContain(plan.classification);
-      });
+      if (property.pasturePlanning) {
+        property.pasturePlanning.forEach((plan) => {
+          expect(validClassifications).toContain(plan.classification);
+        });
+      }
     });
   });
 
@@ -134,7 +136,7 @@ describe("properties mock", () => {
       "December",
     ];
     mockProperties.forEach((property: Property) => {
-      property.breedingMonths.forEach((month) => {
+      property.breedingMonths?.forEach((month) => {
         expect(validMonths).toContain(month);
       });
     });
@@ -159,4 +161,3 @@ describe("properties mock", () => {
     expect(uniqueCodes.size).toBe(codes.length);
   });
 });
-

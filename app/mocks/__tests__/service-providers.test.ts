@@ -99,4 +99,3 @@ describe("service-providers mock", () => {
     expect(uniqueCodes.size).toBe(codes.length);
   });
 });
-

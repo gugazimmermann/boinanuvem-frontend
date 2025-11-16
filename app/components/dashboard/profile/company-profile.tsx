@@ -16,7 +16,8 @@ import {
 import { useTranslation } from "~/i18n";
 import { DASHBOARD_COLORS } from "../utils/colors";
 import type { CompanyFormData } from "~/components/site/utils/cnpj-utils";
-import { mockCompanies, updateCompany } from "~/mocks/companies";
+import { mockCompanies } from "~/mocks/companies";
+import { updateCompany } from "~/services/companies.service";
 import { mockUsers } from "~/mocks/users";
 
 const getMockCompanyData = (): CompanyFormData => {

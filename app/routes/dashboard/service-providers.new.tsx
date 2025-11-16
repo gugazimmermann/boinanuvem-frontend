@@ -9,7 +9,7 @@ import { ROUTES } from "~/routes.config";
 import { addServiceProvider } from "~/services/service-providers.service";
 import type { ServiceProviderFormData } from "~/types";
 import { mockCompanies } from "~/mocks/companies";
-import { mockProperties } from "~/services/properties.service";
+import { mockProperties } from "~/mocks/properties";
 import { BRAZILIAN_STATES } from "~/utils/brazilian-states";
 
 export function meta() {
@@ -279,7 +279,8 @@ export default function NewServiceProvider() {
                   errors.propertyIds ? "border-red-500" : "border-gray-300 dark:border-gray-600"
                 }`}
               >
-                {mockProperties.map((property) => (
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {mockProperties.map((property: any) => (
                   <option key={property.id} value={property.id}>
                     {property.name}
                   </option>

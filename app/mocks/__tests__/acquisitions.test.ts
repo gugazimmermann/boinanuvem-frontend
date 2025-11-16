@@ -1,11 +1,9 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { mockAcquisitions, initializeAcquisitions } from "../acquisitions";
 import { mockAnimals } from "../animals";
 import { getBirthByAnimalId } from "~/services/births.service";
-import { generateAcquisitionId } from "~/services/acquisitions.service";
 import type { Acquisition } from "~/types";
 import { AnimalBreed, BirthPurity } from "~/types";
-
 
 describe("acquisitions mock", () => {
   it("should export mockAcquisitions array", () => {
@@ -199,7 +197,7 @@ describe("acquisitions mock", () => {
     mockAcquisitions.forEach((acquisition: Acquisition) => {
       expect(acquisition.observation).toBeDefined();
       expect(typeof acquisition.observation).toBe("string");
-      expect(acquisition.observation.length).toBeGreaterThan(0);
+      expect(acquisition.observation?.length).toBeGreaterThan(0);
     });
   });
 
@@ -234,7 +232,7 @@ describe("acquisitions mock", () => {
     const animalsWithBirths = new Set(
       animalsWithAcquisition.filter((a) => getBirthByAnimalId(a.id)).map((a) => a.id)
     );
-    
+
     mockAcquisitions.forEach((acquisition) => {
       const animal = mockAnimals.find((a) => a.id === acquisition.animalId);
       expect(animal).toBeDefined();
@@ -266,4 +264,3 @@ describe("acquisitions mock", () => {
     expect(() => initializeAcquisitions()).not.toThrow();
   });
 });
-

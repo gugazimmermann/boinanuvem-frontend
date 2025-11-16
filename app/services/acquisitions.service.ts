@@ -57,4 +57,3 @@ export function generateAcquisitionId(index: number): string {
   const base = 446655440100 + index;
   return `ac0e8400-e29b-41d4-a716-${base.toString().padStart(12, "0")}`;
 }
-

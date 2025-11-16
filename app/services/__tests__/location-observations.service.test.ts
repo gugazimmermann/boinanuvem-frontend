@@ -88,4 +88,3 @@ describe("location-observations.service", () => {
     });
   });
 });
-

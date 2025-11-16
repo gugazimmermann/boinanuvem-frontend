@@ -6,7 +6,10 @@ import { ROUTES } from "~/routes.config";
 import { mockProperties } from "~/mocks/properties";
 import { getLocationsByPropertyId } from "~/services/locations.service";
 import { getAnimalById } from "~/services/animals.service";
-import { addAnimalMovement, getAnimalMovementsByAnimalId } from "~/services/animal-movements.service";
+import {
+  addAnimalMovement,
+  getAnimalMovementsByAnimalId,
+} from "~/services/animal-movements.service";
 import { mockEmployees } from "~/mocks/employees";
 import { mockServiceProviders } from "~/mocks/service-providers";
 import { mockCompanies } from "~/mocks/companies";
@@ -309,7 +312,8 @@ export default function NewAnimalMovement() {
                 required
                 options={[
                   { value: "", label: "-" },
-                  ...mockProperties.map((property) => ({
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  ...mockProperties.map((property: any) => ({
                     value: property.id,
                     label: property.name,
                   })),

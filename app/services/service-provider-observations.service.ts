@@ -3,7 +3,7 @@ import type {
   ServiceProviderObservationFormData,
 } from "~/types/service-provider-observation";
 import { mockServiceProviderObservations } from "~/mocks/service-provider-observations";
-import { findById, findByField, updateEntity, deleteEntity } from "./base-service";
+import { findById, findByField, deleteEntity } from "./base-service";
 import { generateUUID } from "~/utils/uuid";
 
 /**
@@ -65,4 +65,3 @@ export function updateServiceProviderObservation(
   }
   return false;
 }
-

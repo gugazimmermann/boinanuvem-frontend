@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { SIDEBAR_ITEMS } from "../sidebar-constants";
 import { ROUTES } from "~/routes.config";
+import type { RoutePath } from "~/types";
 
 describe("sidebar-constants", () => {
   describe("SIDEBAR_ITEMS", () => {
@@ -24,8 +25,8 @@ describe("sidebar-constants", () => {
 
     it("should have items with valid routes or hash paths", () => {
       SIDEBAR_ITEMS.forEach((item) => {
-        
-        expect(item.path === "#" || Object.values(ROUTES).includes(item.path)).toBe(true);
+        const routeValues = Object.values(ROUTES) as RoutePath[];
+        expect(item.path === "#" || routeValues.includes(item.path as RoutePath)).toBe(true);
       });
     });
 
@@ -50,7 +51,7 @@ describe("sidebar-constants", () => {
             expect(typeof subItem.icon).toBe("string");
             expect(subItem.translationKey.length).toBeGreaterThan(0);
             expect(subItem.path.length).toBeGreaterThan(0);
-            
+
             expect(subItem.path).not.toBe("#");
           });
         }
@@ -82,4 +83,3 @@ describe("sidebar-constants", () => {
     });
   });
 });
-

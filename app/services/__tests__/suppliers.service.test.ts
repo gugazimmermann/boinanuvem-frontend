@@ -20,14 +20,18 @@ describe("suppliers.service", () => {
     mockSuppliers.push(
       {
         id: "990e8400-e29b-41d4-a716-446655440010",
+        code: "SU001",
         name: "Supplier One",
+        status: "active" as const,
         companyId: "company-1",
         propertyIds: ["property-1", "property-2"],
         createdAt: "2020-01-01",
       },
       {
         id: "990e8400-e29b-41d4-a716-446655440011",
+        code: "SU002",
         name: "Supplier Two",
+        status: "active" as const,
         companyId: "company-1",
         propertyIds: ["property-1"],
         createdAt: "2020-01-02",
@@ -60,16 +64,16 @@ describe("suppliers.service", () => {
     it("should return suppliers for specific property", () => {
       const result = getSuppliersByPropertyId("property-1");
       expect(result).toHaveLength(2);
-      expect(
-        result.every((supplier) => supplier.propertyIds?.includes("property-1"))
-      ).toBe(true);
+      expect(result.every((supplier) => supplier.propertyIds?.includes("property-1"))).toBe(true);
     });
   });
 
   describe("addSupplier", () => {
     it("should add new supplier", () => {
       const formData: SupplierFormData = {
+        code: "SU003",
         name: "New Supplier",
+        status: "active" as const,
         companyId: "company-1",
         propertyIds: ["property-1"],
       };
@@ -89,9 +93,7 @@ describe("suppliers.service", () => {
       });
 
       expect(result).toBe(true);
-      const updated = mockSuppliers.find(
-        (s) => s.id === "990e8400-e29b-41d4-a716-446655440010"
-      );
+      const updated = mockSuppliers.find((s) => s.id === "990e8400-e29b-41d4-a716-446655440010");
       expect(updated?.name).toBe("Updated Supplier");
     });
   });
@@ -106,4 +108,3 @@ describe("suppliers.service", () => {
     });
   });
 });
-

@@ -45,4 +45,3 @@ describe("animal-observations mock", () => {
     expect(uniqueIds.size).toBe(ids.length);
   });
 });
-

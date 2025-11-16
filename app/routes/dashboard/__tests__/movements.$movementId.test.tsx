@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -77,11 +78,7 @@ vi.mock("~/components/ui", () => ({
       {data && data.length > 0 ? (
         <div>
           {data.map((row: any, idx: number) => (
-            <div
-              key={idx}
-              data-testid={`table-row-${idx}`}
-              onClick={() => onRowClick?.(row)}
-            >
+            <div key={idx} data-testid={`table-row-${idx}`} onClick={() => onRowClick?.(row)}>
               {columns?.map((col: any, colIdx: number) => (
                 <div key={colIdx} data-testid={`cell-${col.key}`}>
                   {col.render ? col.render(null, row) : row[col.key]}
@@ -95,9 +92,7 @@ vi.mock("~/components/ui", () => ({
       )}
     </div>
   ),
-  Tooltip: ({ children, content }: any) => (
-    <div title={content}>{children}</div>
-  ),
+  Tooltip: ({ children, content }: any) => <div title={content}>{children}</div>,
   StatusBadge: ({ label, variant }: any) => (
     <span data-testid={`status-badge-${variant}`}>{label}</span>
   ),
@@ -202,19 +197,19 @@ describe("MovementDetails", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(getPropertyById).mockImplementation((id: string) => 
+    vi.mocked(getPropertyById).mockImplementation((id: string) =>
       id === "prop-1" ? mockProperty : undefined
     );
-    vi.mocked(getLocationById).mockImplementation((id: string) => 
+    vi.mocked(getLocationById).mockImplementation((id: string) =>
       id === "loc-1" ? mockLocation : undefined
     );
-    vi.mocked(getEmployeeById).mockImplementation((id: string) => 
+    vi.mocked(getEmployeeById).mockImplementation((id: string) =>
       id === "emp-1" ? mockEmployee : undefined
     );
-    vi.mocked(getServiceProviderById).mockImplementation((id: string) => 
+    vi.mocked(getServiceProviderById).mockImplementation((id: string) =>
       id === "sp-1" ? mockServiceProvider : undefined
     );
-    vi.mocked(getAnimalById).mockImplementation((id: string) => 
+    vi.mocked(getAnimalById).mockImplementation((id: string) =>
       id === "animal-1" ? mockAnimal : undefined
     );
     vi.mocked(getBirthByAnimalId).mockReturnValue(null);
@@ -280,7 +275,7 @@ describe("MovementDetails", () => {
   it("should display locations for location movement", () => {
     vi.mocked(getLocationMovementById).mockReturnValue(mockLocationMovement);
     vi.mocked(getAnimalMovementById).mockReturnValue(undefined);
-    vi.mocked(getLocationById).mockImplementation((id: string) => 
+    vi.mocked(getLocationById).mockImplementation((id: string) =>
       id === "loc-1" || id === "loc-2" ? { ...mockLocation, id, name: `Location ${id}` } : undefined
     );
 
@@ -304,7 +299,7 @@ describe("MovementDetails", () => {
   it("should display employees information", () => {
     vi.mocked(getAnimalMovementById).mockReturnValue(mockAnimalMovement);
     vi.mocked(getLocationMovementById).mockReturnValue(undefined);
-    vi.mocked(getEmployeeById).mockImplementation((id: string) => 
+    vi.mocked(getEmployeeById).mockImplementation((id: string) =>
       id === "emp-1" ? mockEmployee : undefined
     );
 
@@ -349,8 +344,12 @@ describe("MovementDetails", () => {
   it("should display animals table for animal movement", () => {
     vi.mocked(getAnimalMovementById).mockReturnValue(mockAnimalMovement);
     vi.mocked(getLocationMovementById).mockReturnValue(undefined);
-    vi.mocked(getAnimalById).mockImplementation((id: string) => 
-      id === "animal-1" ? mockAnimal : id === "animal-2" ? { ...mockAnimal, id: "animal-2", code: "AN002" } : undefined
+    vi.mocked(getAnimalById).mockImplementation((id: string) =>
+      id === "animal-1"
+        ? mockAnimal
+        : id === "animal-2"
+          ? { ...mockAnimal, id: "animal-2", code: "AN002" }
+          : undefined
     );
 
     const router = createRouter("movement-1");
@@ -424,7 +423,7 @@ describe("MovementDetails", () => {
   it("should handle clicking on location to navigate", () => {
     vi.mocked(getLocationMovementById).mockReturnValue(mockLocationMovement);
     vi.mocked(getAnimalMovementById).mockReturnValue(undefined);
-    vi.mocked(getLocationById).mockImplementation((id: string) => 
+    vi.mocked(getLocationById).mockImplementation((id: string) =>
       id === "loc-1" ? mockLocation : undefined
     );
 

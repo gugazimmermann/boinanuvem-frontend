@@ -190,4 +190,3 @@ export function calculatePurity(
   // Default case: F1 (first generation cross)
   return BirthPurity.F1;
 }
-

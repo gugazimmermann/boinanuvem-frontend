@@ -3,7 +3,7 @@ import type {
   LocationObservationFormData,
 } from "~/types/location-observation";
 import { mockLocationObservations } from "~/mocks/location-observations";
-import { findById, findByField, updateEntity, deleteEntity } from "./base-service";
+import { findById, findByField, deleteEntity } from "./base-service";
 import { generateUUID } from "~/utils/uuid";
 
 /**
@@ -61,4 +61,3 @@ export function updateLocationObservation(
   }
   return false;
 }
-

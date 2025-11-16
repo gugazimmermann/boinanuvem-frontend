@@ -6,9 +6,12 @@ import { maskCEP, unmaskCEP, maskCPF, maskCNPJ, maskPhone } from "~/components/s
 import { useCEPLookup, type CEPData } from "~/components/site/hooks";
 import { mapCEPDataToAddressForm } from "~/components/site/utils";
 import { ROUTES, getServiceProviderViewRoute } from "~/routes.config";
-import { getServiceProviderById, updateServiceProvider } from "~/services/service-providers.service";
+import {
+  getServiceProviderById,
+  updateServiceProvider,
+} from "~/services/service-providers.service";
 import type { ServiceProviderFormData } from "~/types";
-import { mockProperties } from "~/services/properties.service";
+import { mockProperties } from "~/mocks/properties";
 import { BRAZILIAN_STATES } from "~/utils/brazilian-states";
 
 export function meta() {
@@ -322,7 +325,8 @@ export default function EditServiceProvider() {
                   errors.propertyIds ? "border-red-500" : "border-gray-300 dark:border-gray-600"
                 }`}
               >
-                {mockProperties.map((property) => (
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {mockProperties.map((property: any) => (
                   <option key={property.id} value={property.id}>
                     {property.name}
                   </option>

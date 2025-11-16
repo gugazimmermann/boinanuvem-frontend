@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -13,9 +14,16 @@ vi.mock("~/components/site/auth-layout", () => ({
 }));
 
 vi.mock("~/components/site/ui", () => ({
-  AuthInput: ({ type, placeholder, value, onChange, error, showPasswordToggle, ...props }: any) => {
-    
-    const { fullWidth, ...domProps } = props;
+  AuthInput: ({
+    type,
+    placeholder,
+    value,
+    onChange,
+    error,
+    showPasswordToggle: _showPasswordToggle,
+    ...props
+  }: any) => {
+    const { fullWidth: _fullWidth, ...domProps } = props;
     return (
       <div>
         <input
@@ -125,8 +133,8 @@ describe("Register", () => {
       loading: false,
       error: null,
     });
-    mockMapCNPJDataToCompanyForm.mockImplementation((data) => data);
-    mockMapCEPDataToAddressForm.mockImplementation((data) => data);
+    mockMapCNPJDataToCompanyForm.mockImplementation((data: any) => data);
+    mockMapCEPDataToAddressForm.mockImplementation((data: any) => data);
     mockUnmaskCNPJ.mockImplementation((val: string) => (val || "").replace(/\D/g, ""));
     mockUnmaskCEP.mockImplementation((val: string) => (val || "").replace(/\D/g, ""));
     mockGeocodeAddress.mockResolvedValue({ lat: -23.5505, lon: -46.6333 });
@@ -271,7 +279,6 @@ describe("Register", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    
     fireEvent.change(screen.getByPlaceholderText("CNPJ"), {
       target: { value: "12345678000190" },
     });
@@ -310,7 +317,6 @@ describe("Register", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    
     fireEvent.change(screen.getByPlaceholderText("CNPJ"), {
       target: { value: "12345678000190" },
     });
@@ -352,7 +358,6 @@ describe("Register", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    
     fireEvent.change(screen.getByPlaceholderText("CNPJ"), {
       target: { value: "12345678000190" },
     });
@@ -391,7 +396,6 @@ describe("Register", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    
     fireEvent.change(screen.getByPlaceholderText("CNPJ"), {
       target: { value: "12345678000190" },
     });
@@ -439,7 +443,6 @@ describe("Register", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    
     fireEvent.change(screen.getByPlaceholderText("CNPJ"), {
       target: { value: "12345678000190" },
     });
@@ -469,12 +472,10 @@ describe("Register", () => {
     });
     fireEvent.click(screen.getByText("Próximo"));
 
-    
     await waitFor(() => {
       expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
     });
 
-    
     fireEvent.change(screen.getByPlaceholderText("Nome"), {
       target: { value: "John Doe" },
     });
@@ -514,7 +515,6 @@ describe("Register", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    
     fireEvent.change(screen.getByPlaceholderText("CNPJ"), {
       target: { value: "12345678000190" },
     });
@@ -1025,7 +1025,7 @@ describe("Register", () => {
 
     let onSuccessCallback: ((data: any) => void) | undefined;
 
-    mockUseCNPJLookup.mockImplementation((cnpj, options) => {
+    mockUseCNPJLookup.mockImplementation((cnpj: any, options: any) => {
       onSuccessCallback = options?.onSuccess;
       return {
         data: null,
@@ -1040,12 +1040,9 @@ describe("Register", () => {
     expect(onSuccessCallback).toBeDefined();
     if (onSuccessCallback) {
       act(() => {
-        onSuccessCallback(mockCNPJData);
+        onSuccessCallback?.(mockCNPJData);
       });
-      expect(mockMapCNPJDataToCompanyForm).toHaveBeenCalledWith(
-        mockCNPJData,
-        expect.any(Object)
-      );
+      expect(mockMapCNPJDataToCompanyForm).toHaveBeenCalledWith(mockCNPJData, expect.any(Object));
     }
   });
 
@@ -1067,7 +1064,7 @@ describe("Register", () => {
 
     let onSuccessCallback: ((data: any) => void) | undefined;
 
-    mockUseCEPLookup.mockImplementation((cep, options) => {
+    mockUseCEPLookup.mockImplementation((cep: any, options: any) => {
       if (cep === "12345678") {
         onSuccessCallback = options?.onSuccess;
       }
@@ -1087,7 +1084,7 @@ describe("Register", () => {
     expect(onSuccessCallback).toBeDefined();
     if (onSuccessCallback) {
       act(() => {
-        onSuccessCallback(mockCEPData);
+        onSuccessCallback?.(mockCEPData);
       });
     }
   });
@@ -1110,7 +1107,7 @@ describe("Register", () => {
 
     let userOnSuccessCallback: ((data: any) => void) | undefined;
 
-    mockUseCEPLookup.mockImplementation((cep, options) => {
+    mockUseCEPLookup.mockImplementation((cep: any, options: any) => {
       if (cep === "87654321") {
         userOnSuccessCallback = options?.onSuccess;
       }
@@ -1139,7 +1136,7 @@ describe("Register", () => {
     expect(userOnSuccessCallback).toBeDefined();
     if (userOnSuccessCallback) {
       act(() => {
-        userOnSuccessCallback(mockCEPData);
+        userOnSuccessCallback?.(mockCEPData);
       });
     }
   });
@@ -1220,7 +1217,7 @@ describe("Register", () => {
   });
 
   it("should show user CEP loading state", async () => {
-    mockUseCEPLookup.mockImplementation((cep) => {
+    mockUseCEPLookup.mockImplementation((cep: any) => {
       if (cep === "87654321") {
         return {
           data: null,
@@ -1257,7 +1254,7 @@ describe("Register", () => {
   });
 
   it("should display user CEP error", async () => {
-    mockUseCEPLookup.mockImplementation((cep) => {
+    mockUseCEPLookup.mockImplementation((cep: any) => {
       if (cep === "87654321") {
         return {
           data: null,
@@ -1332,4 +1329,3 @@ describe("Register", () => {
     }
   });
 });
-

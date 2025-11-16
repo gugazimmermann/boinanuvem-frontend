@@ -197,7 +197,8 @@ export default function NewLocation() {
                 }`}
               >
                 <option value="">{t.locations.new.selectProperty}</option>
-                {mockProperties.map((property) => (
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {mockProperties.map((property: any) => (
                   <option key={property.id} value={property.id}>
                     {property.name}
                   </option>

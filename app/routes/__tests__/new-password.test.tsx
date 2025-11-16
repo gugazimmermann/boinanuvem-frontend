@@ -13,12 +13,18 @@ vi.mock("~/components/site/auth-layout", () => ({
 }));
 
 vi.mock("~/components/site/ui", () => ({
-  AuthInput: ({ type, placeholder, showPasswordToggle, value, onChange, ...props }: any) => {
-    const { fullWidth, ...rest } = props;
-    
-    const inputProps = onChange 
-      ? { value: value || "", onChange }
-      : { defaultValue: value || "" };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  AuthInput: ({
+    type,
+    placeholder,
+    showPasswordToggle: _showPasswordToggle,
+    value,
+    onChange,
+    ...props
+  }: any) => {
+    const { fullWidth: _fullWidth, ...rest } = props;
+
+    const inputProps = onChange ? { value: value || "", onChange } : { defaultValue: value || "" };
     return (
       <input
         data-testid={`auth-input-${type || placeholder}`}
@@ -29,7 +35,8 @@ vi.mock("~/components/site/ui", () => ({
       />
     );
   },
-  AuthButton: ({ children, fullWidth, onClick, type, ...props }: any) => (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  AuthButton: ({ children, fullWidth: _fullWidth, onClick, type, ...props }: any) => (
     <button data-testid="auth-button" type={type} onClick={onClick} {...props}>
       {children}
     </button>
@@ -92,9 +99,7 @@ describe("NewPassword", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    expect(
-      screen.getByText("Digite o código recebido e sua nova senha")
-    ).toBeInTheDocument();
+    expect(screen.getByText("Digite o código recebido e sua nova senha")).toBeInTheDocument();
   });
 
   it("should render all form inputs", () => {
@@ -132,7 +137,6 @@ describe("NewPassword", () => {
 
     const submitButton = screen.getByText("Redefinir Senha");
     fireEvent.click(submitButton);
-    
   });
 
   it("should allow input changes", () => {
@@ -150,7 +154,6 @@ describe("NewPassword", () => {
     const confirmPasswordInput = screen.getByPlaceholderText("Repetir senha") as HTMLInputElement;
     expect(confirmPasswordInput).toBeInTheDocument();
     expect(confirmPasswordInput).toHaveAttribute("type", "password");
-    
   });
 
   it("should render brand name", () => {
@@ -167,4 +170,3 @@ describe("NewPassword", () => {
     expect(screen.getByText("Não recebeu o código?")).toBeInTheDocument();
   });
 });
-

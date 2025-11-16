@@ -367,7 +367,7 @@ export default function EmployeeDetails() {
                   </p>
                   <div className="mt-1 flex flex-wrap gap-2">
                     {employee.propertyIds && employee.propertyIds.length > 0 ? (
-                      employee.propertyIds.map((propertyId) => {
+                      employee.propertyIds.map((propertyId: string) => {
                         const property = getPropertyById(propertyId);
                         return property ? (
                           <span

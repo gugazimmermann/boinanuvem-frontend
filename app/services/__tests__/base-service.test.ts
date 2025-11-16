@@ -33,17 +33,13 @@ describe("base-service", () => {
     });
 
     it("should handle ID with different format", () => {
-      const data: TestEntity[] = [
-        { id: "prefix-123456789012", name: "test1", value: 1 },
-      ];
+      const data: TestEntity[] = [{ id: "prefix-123456789012", name: "test1", value: 1 }];
       const result = generateNextId(data, "prefix", "prefix-000000000000");
       expect(result).toBe("prefix-123456789013");
     });
 
     it("should pad numbers correctly", () => {
-      const data: TestEntity[] = [
-        { id: "test-000000000999", name: "test1", value: 1 },
-      ];
+      const data: TestEntity[] = [{ id: "test-000000000999", name: "test1", value: 1 }];
       const result = generateNextId(data, "test", "test-000000000000");
       expect(result).toBe("test-000000001000");
     });
@@ -243,4 +239,3 @@ describe("base-service", () => {
     });
   });
 });
-

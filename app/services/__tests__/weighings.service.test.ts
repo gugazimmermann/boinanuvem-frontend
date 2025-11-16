@@ -22,6 +22,8 @@ describe("weighings.service", () => {
         id: "ww0e8400-e29b-41d4-a716-446655440010",
         animalId: "animal-1",
         companyId: "company-1",
+        employeeIds: [],
+        serviceProviderIds: [],
         weight: 500,
         date: "2020-01-01",
         createdAt: "2020-01-01",
@@ -30,6 +32,8 @@ describe("weighings.service", () => {
         id: "ww0e8400-e29b-41d4-a716-446655440011",
         animalId: "animal-1",
         companyId: "company-1",
+        employeeIds: [],
+        serviceProviderIds: [],
         weight: 550,
         date: "2020-02-01",
         createdAt: "2020-02-01",
@@ -38,6 +42,8 @@ describe("weighings.service", () => {
         id: "ww0e8400-e29b-41d4-a716-446655440012",
         animalId: "animal-2",
         companyId: "company-2",
+        employeeIds: [],
+        serviceProviderIds: [],
         weight: 600,
         date: "2020-01-01",
         createdAt: "2020-01-01",
@@ -84,6 +90,8 @@ describe("weighings.service", () => {
       const formData: WeighingFormData = {
         animalId: "animal-3",
         companyId: "company-1",
+        employeeIds: [],
+        serviceProviderIds: [],
         weight: 450,
         date: "2020-03-01",
       };
@@ -104,9 +112,7 @@ describe("weighings.service", () => {
       });
 
       expect(result).toBe(true);
-      const updated = mockWeighings.find(
-        (w) => w.id === "ww0e8400-e29b-41d4-a716-446655440010"
-      );
+      const updated = mockWeighings.find((w) => w.id === "ww0e8400-e29b-41d4-a716-446655440010");
       expect(updated?.weight).toBe(525);
     });
   });
@@ -121,4 +127,3 @@ describe("weighings.service", () => {
     });
   });
 });
-

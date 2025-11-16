@@ -1,6 +1,4 @@
-import type { TeamUser, UserFormData } from "~/types";
-import { mockCompanies } from "./companies";
-import type { UserPermissions } from "~/types/permissions";
+import type { TeamUser } from "~/types";
 
 const DEFAULT_PASSWORD_HASH = "$2b$10$9c7eBs.MydmDkdO6SworA.ENm1i1yiT62zIzVrxJTecnU6Tl1ZhVu";
 

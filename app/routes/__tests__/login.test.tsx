@@ -23,14 +23,11 @@ vi.mock("~/components/site/auth-layout", () => ({
 }));
 
 vi.mock("~/components/site/ui", () => ({
-  AuthInput: ({ type, placeholder, showPasswordToggle, ...props }: any) => (
-    <input
-      data-testid={`auth-input-${type}`}
-      type={type}
-      placeholder={placeholder}
-      {...props}
-    />
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  AuthInput: ({ type, placeholder, showPasswordToggle: _showPasswordToggle, ...props }: any) => (
+    <input data-testid={`auth-input-${type}`} type={type} placeholder={placeholder} {...props} />
   ),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   AuthButton: ({ children, ...props }: any) => (
     <button data-testid="auth-button" {...props}>
       {children}
@@ -114,8 +111,6 @@ describe("Login", () => {
   });
 
   it("should have correct meta function", () => {
-    
     expect(Login).toBeDefined();
   });
 });
-

@@ -1,10 +1,12 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
 import Employees from "../employees";
-import { mockEmployees, deleteEmployee } from "~/mocks/employees";
+import { mockEmployees } from "~/mocks/employees";
+import { deleteEmployee } from "~/services/employees.service";
 import { ROUTES } from "~/routes.config";
 
 const mockNavigate = vi.fn();
@@ -59,11 +61,7 @@ vi.mock("~/components/ui", () => ({
     <div data-testid="table">
       {header?.title && <h2>{header.title}</h2>}
       {data?.map((row: any, idx: number) => (
-        <div
-          key={idx}
-          data-testid={`table-row-${idx}`}
-          onClick={() => onRowClick?.(row)}
-        >
+        <div key={idx} data-testid={`table-row-${idx}`} onClick={() => onRowClick?.(row)}>
           {row.name}
         </div>
       ))}
@@ -92,9 +90,7 @@ vi.mock("~/components/ui", () => ({
         </button>
       </div>
     ) : null,
-  Alert: ({ title, variant }: any) => (
-    <div data-testid={`alert-${variant}`}>{title}</div>
-  ),
+  Alert: ({ title, variant }: any) => <div data-testid={`alert-${variant}`}>{title}</div>,
 }));
 
 describe("Employees", () => {
@@ -142,10 +138,10 @@ describe("Employees", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    const addButtons = screen.queryAllByRole("button").filter((btn) =>
-      btn.textContent?.includes("Adicionar") || btn.textContent?.includes("Add")
-    );
-    
+    const addButtons = screen
+      .queryAllByRole("button")
+      .filter((btn) => btn.textContent?.includes("Adicionar") || btn.textContent?.includes("Add"));
+
     if (addButtons.length > 0) {
       fireEvent.click(addButtons[0]);
       expect(mockNavigate).toHaveBeenCalledWith(ROUTES.EMPLOYEES_NEW);
@@ -161,7 +157,7 @@ describe("Employees", () => {
     const deleteButtons = screen.queryAllByTestId("delete-button");
     if (deleteButtons.length > 0) {
       fireEvent.click(deleteButtons[0]);
-      
+
       await waitFor(() => {
         const confirmButton = screen.queryByTestId("confirm-button");
         if (confirmButton) {
@@ -175,39 +171,34 @@ describe("Employees", () => {
   });
 
   it("should have correct meta function", () => {
-    
     expect(Employees).toBeDefined();
   });
 
   it("should handle search filtering", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
-    
+
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
   it("should handle filter changes", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
-    
+
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
   it("should handle pagination", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
-    
+
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
   it("should handle sorting", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
-    
+
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
@@ -218,7 +209,7 @@ describe("Employees", () => {
     const deleteButtons = screen.queryAllByTestId("delete-button");
     if (deleteButtons.length > 0) {
       fireEvent.click(deleteButtons[0]);
-      
+
       await waitFor(() => {
         const cancelButton = screen.queryByTestId("cancel-button");
         if (cancelButton) {
@@ -232,18 +223,17 @@ describe("Employees", () => {
   it("should navigate to employee view on row click", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const rows = screen.queryAllByTestId(/table-row-/);
     if (rows.length > 0) {
       fireEvent.click(rows[0]);
-      
     }
   });
 
   it("should navigate to employee edit", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const editButtons = screen.queryAllByTestId("edit-button");
     if (editButtons.length > 0) {
       fireEvent.click(editButtons[0]);
@@ -258,12 +248,13 @@ describe("Employees", () => {
     const deleteButtons = screen.queryAllByTestId("delete-button");
     if (deleteButtons.length > 0) {
       fireEvent.click(deleteButtons[0]);
-      
+
       await waitFor(() => {
         const confirmButton = screen.queryByTestId("confirm-button");
         if (confirmButton) {
           fireEvent.click(confirmButton);
-          const alert = screen.queryByTestId("alert-success") || screen.queryByTestId("alert-error");
+          const alert =
+            screen.queryByTestId("alert-success") || screen.queryByTestId("alert-error");
           expect(alert || confirmButton).toBeTruthy();
         }
       });
@@ -274,8 +265,7 @@ describe("Employees", () => {
     vi.mocked(mockEmployees).length = 0;
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 });
-

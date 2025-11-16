@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router";
 import { differenceInMonths, differenceInDays, format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
@@ -25,7 +25,10 @@ import { getPropertyById } from "~/services/properties.service";
 import { getBirthByAnimalId } from "~/services/births.service";
 import { getAcquisitionByAnimalId } from "~/services/acquisitions.service";
 import { getWeighingsByAnimalId } from "~/services/weighings.service";
-import { getAnimalObservationsByAnimalId, addAnimalObservation } from "~/services/animal-observations.service";
+import {
+  getAnimalObservationsByAnimalId,
+  addAnimalObservation,
+} from "~/services/animal-observations.service";
 import type { AnimalObservation } from "~/types/animal-observation";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
 import type { BirthPurity } from "~/types";
@@ -178,22 +181,9 @@ export default function AnimalDetails() {
     }
   }, [animal]);
 
-  if (!animal) {
-    return (
-      <div className="space-y-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-          <p className="text-gray-600 dark:text-gray-400 mb-4">{t.animals.emptyState.title}</p>
-          <Button variant="outline" onClick={() => navigate(ROUTES.ANIMALS)}>
-            {t.team.new.back}
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  const birth = getBirthByAnimalId(animal.id);
-  const acquisition = getAcquisitionByAnimalId(animal.id);
-  const weighings = getWeighingsByAnimalId(animal.id);
+  const birth = animal ? getBirthByAnimalId(animal.id) : null;
+  const acquisition = animal ? getAcquisitionByAnimalId(animal.id) : null;
+  const weighings = useMemo(() => (animal ? getWeighingsByAnimalId(animal.id) : []), [animal]);
 
   type WeighingWithCalculations = {
     id: string;
@@ -233,10 +223,57 @@ export default function AnimalDetails() {
     }
   );
 
-  const sortedWeighings = [...weighings].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  const sortedWeighings = useMemo(
+    () => [...weighings].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    [weighings]
   );
   const lastWeighing = sortedWeighings[0];
+
+  const calculateGMD = useMemo(() => {
+    if (sortedWeighings.length < 2) return null;
+    const firstWeighing = sortedWeighings[sortedWeighings.length - 1];
+    const lastWeighing = sortedWeighings[0];
+    const weightDiff = lastWeighing.weight - firstWeighing.weight;
+    // Normalize dates to avoid timezone issues - parse as UTC dates
+    const firstDateStr = firstWeighing.date.includes("T")
+      ? firstWeighing.date.split("T")[0]
+      : firstWeighing.date;
+    const lastDateStr = lastWeighing.date.includes("T")
+      ? lastWeighing.date.split("T")[0]
+      : lastWeighing.date;
+    const firstDate = new Date(firstDateStr + "T00:00:00Z");
+    const lastDate = new Date(lastDateStr + "T00:00:00Z");
+    const daysDiff = differenceInDays(lastDate, firstDate);
+    if (daysDiff === 0) return null;
+    return (weightDiff / daysDiff).toFixed(2);
+  }, [sortedWeighings]);
+
+  const calculateAge = () => {
+    const referenceDate = birth?.birthDate || acquisition?.birthDate;
+    if (!referenceDate) return null;
+    const today = new Date();
+    const ref = new Date(referenceDate);
+    const months = differenceInMonths(today, ref);
+    return months;
+  };
+
+  const age = calculateAge();
+  const gmd = calculateGMD;
+  const currentWeight = lastWeighing?.weight || 0;
+  const weightInArrobas = currentWeight > 0 ? (currentWeight / 30).toFixed(2) : "0.00";
+
+  if (!animal) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+          <p className="text-gray-600 dark:text-gray-400 mb-4">{t.animals.emptyState.title}</p>
+          <Button variant="outline" onClick={() => navigate(ROUTES.ANIMALS)}>
+            {t.team.new.back}
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   const formatDate = (dateString: string | undefined) => {
     if (!dateString) return "-";
@@ -298,30 +335,6 @@ export default function AnimalDetails() {
       setIsSubmittingObservation(false);
     }
   };
-
-  const calculateAge = () => {
-    const referenceDate = birth?.birthDate || acquisition?.birthDate;
-    if (!referenceDate) return null;
-    const today = new Date();
-    const ref = new Date(referenceDate);
-    const months = differenceInMonths(today, ref);
-    return months;
-  };
-
-  const calculateGMD = () => {
-    if (sortedWeighings.length < 2) return null;
-    const firstWeighing = sortedWeighings[sortedWeighings.length - 1];
-    const lastWeighing = sortedWeighings[0];
-    const weightDiff = lastWeighing.weight - firstWeighing.weight;
-    const daysDiff = differenceInDays(new Date(lastWeighing.date), new Date(firstWeighing.date));
-    if (daysDiff === 0) return null;
-    return (weightDiff / daysDiff).toFixed(2);
-  };
-
-  const age = calculateAge();
-  const gmd = calculateGMD();
-  const currentWeight = lastWeighing?.weight || 0;
-  const weightInArrobas = currentWeight > 0 ? (currentWeight / 30).toFixed(2) : "0.00";
 
   const buildGenealogyTree = (
     animalId: string,

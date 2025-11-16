@@ -1,10 +1,12 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
 import ServiceProviders from "../service-providers";
-import { mockServiceProviders, deleteServiceProvider } from "~/mocks/service-providers";
+import { mockServiceProviders } from "~/mocks/service-providers";
+import { deleteServiceProvider } from "~/services/service-providers.service";
 import { ROUTES } from "~/routes.config";
 
 const mockNavigate = vi.fn();
@@ -18,7 +20,9 @@ vi.mock("react-router", async () => {
 });
 
 vi.mock("~/mocks/service-providers", async () => {
-  const actual = await vi.importActual<typeof import("~/mocks/service-providers")>("~/mocks/service-providers");
+  const actual = await vi.importActual<typeof import("~/mocks/service-providers")>(
+    "~/mocks/service-providers"
+  );
   return {
     ...actual,
     mockServiceProviders: [
@@ -47,7 +51,9 @@ vi.mock("~/services/properties.service", () => ({
 }));
 
 vi.mock("~/mocks/location-movements", async () => {
-  const actual = await vi.importActual<typeof import("~/mocks/location-movements")>("~/mocks/location-movements");
+  const actual = await vi.importActual<typeof import("~/mocks/location-movements")>(
+    "~/mocks/location-movements"
+  );
   return actual;
 });
 
@@ -64,11 +70,7 @@ vi.mock("~/components/ui", () => ({
     <div data-testid="table">
       {header?.title && <h2>{header.title}</h2>}
       {data?.map((row: any, idx: number) => (
-        <div
-          key={idx}
-          data-testid={`table-row-${idx}`}
-          onClick={() => onRowClick?.(row)}
-        >
+        <div key={idx} data-testid={`table-row-${idx}`} onClick={() => onRowClick?.(row)}>
           {row.name}
         </div>
       ))}
@@ -97,9 +99,7 @@ vi.mock("~/components/ui", () => ({
         </button>
       </div>
     ) : null,
-  Alert: ({ title, variant }: any) => (
-    <div data-testid={`alert-${variant}`}>{title}</div>
-  ),
+  Alert: ({ title, variant }: any) => <div data-testid={`alert-${variant}`}>{title}</div>,
 }));
 
 describe("ServiceProviders", () => {
@@ -147,10 +147,10 @@ describe("ServiceProviders", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    const addButtons = screen.queryAllByRole("button").filter((btn) =>
-      btn.textContent?.includes("Adicionar") || btn.textContent?.includes("Add")
-    );
-    
+    const addButtons = screen
+      .queryAllByRole("button")
+      .filter((btn) => btn.textContent?.includes("Adicionar") || btn.textContent?.includes("Add"));
+
     if (addButtons.length > 0) {
       fireEvent.click(addButtons[0]);
       expect(mockNavigate).toHaveBeenCalledWith(ROUTES.SERVICE_PROVIDERS_NEW);
@@ -166,7 +166,7 @@ describe("ServiceProviders", () => {
     const deleteButtons = screen.queryAllByTestId("delete-button");
     if (deleteButtons.length > 0) {
       fireEvent.click(deleteButtons[0]);
-      
+
       await waitFor(() => {
         const confirmButton = screen.queryByTestId("confirm-button");
         if (confirmButton) {
@@ -183,4 +183,3 @@ describe("ServiceProviders", () => {
     expect(ServiceProviders).toBeDefined();
   });
 });
-

@@ -6,7 +6,7 @@ import { ROUTES } from "~/routes.config";
 import { addAnimal } from "~/services/animals.service";
 import type { AnimalFormData } from "~/types";
 import { mockCompanies } from "~/mocks/companies";
-import { mockProperties } from "~/services/properties.service";
+import { mockProperties } from "~/mocks/properties";
 
 export function meta() {
   return [
@@ -177,7 +177,8 @@ export default function NewAnimal() {
               required
               options={[
                 { value: "", label: "-" },
-                ...mockProperties.map((property) => ({
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                ...mockProperties.map((property: any) => ({
                   value: property.id,
                   label: property.name,
                 })),

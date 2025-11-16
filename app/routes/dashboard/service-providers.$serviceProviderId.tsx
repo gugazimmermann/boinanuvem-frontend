@@ -389,7 +389,7 @@ export default function ServiceProviderDetails() {
                   </p>
                   <div className="mt-1 flex flex-wrap gap-2">
                     {serviceProvider.propertyIds && serviceProvider.propertyIds.length > 0 ? (
-                      serviceProvider.propertyIds.map((propertyId) => {
+                      serviceProvider.propertyIds.map((propertyId: string) => {
                         const property = getPropertyById(propertyId);
                         return property ? (
                           <span

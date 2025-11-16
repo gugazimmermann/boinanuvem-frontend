@@ -40,7 +40,7 @@ describe("animal-movements.service", () => {
         propertyId: "property-1",
         companyId: "company-1",
         employeeIds: ["employee-2"],
-        serviceProviderIds: undefined,
+        serviceProviderIds: [],
         date: "2020-02-01",
         createdAt: "2020-02-01",
       },
@@ -107,9 +107,7 @@ describe("animal-movements.service", () => {
     it("should return movements for specific service provider", () => {
       const result = getAnimalMovementsByServiceProviderId("provider-1");
       expect(result.length).toBeGreaterThan(0);
-      expect(
-        result.every((m) => m.serviceProviderIds?.includes("provider-1"))
-      ).toBe(true);
+      expect(result.every((m) => m.serviceProviderIds?.includes("provider-1"))).toBe(true);
     });
 
     it("should return empty array when service provider has no movements", () => {
@@ -151,7 +149,7 @@ describe("animal-movements.service", () => {
         propertyId: "property-1",
         companyId: "company-1",
         employeeIds: ["employee-1"],
-        serviceProviderIds: undefined,
+        serviceProviderIds: [],
         date: "2020-03-01",
       };
 
@@ -182,4 +180,3 @@ describe("animal-movements.service", () => {
     });
   });
 });
-

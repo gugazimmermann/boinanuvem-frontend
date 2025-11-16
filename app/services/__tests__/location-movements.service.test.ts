@@ -30,7 +30,7 @@ describe("location-movements.service", () => {
         companyId: "company-1",
         employeeIds: ["employee-1"],
         serviceProviderIds: ["provider-1"],
-        type: LocationMovementType.ENTRY,
+        type: LocationMovementType.FEED_DELIVERY,
         date: "2020-01-01",
         createdAt: "2020-01-01",
       },
@@ -40,8 +40,8 @@ describe("location-movements.service", () => {
         propertyId: "property-1",
         companyId: "company-1",
         employeeIds: ["employee-2"],
-        serviceProviderIds: undefined,
-        type: LocationMovementType.EXIT,
+        serviceProviderIds: [],
+        type: LocationMovementType.VETERINARY_SERVICE,
         date: "2020-02-01",
         createdAt: "2020-02-01",
       }
@@ -84,17 +84,15 @@ describe("location-movements.service", () => {
     it("should return movements for specific service provider", () => {
       const result = getLocationMovementsByServiceProviderId("provider-1");
       expect(result.length).toBeGreaterThan(0);
-      expect(
-        result.every((m) => m.serviceProviderIds?.includes("provider-1"))
-      ).toBe(true);
+      expect(result.every((m) => m.serviceProviderIds?.includes("provider-1"))).toBe(true);
     });
   });
 
   describe("getLocationMovementsByType", () => {
     it("should return movements of specific type", () => {
-      const result = getLocationMovementsByType(LocationMovementType.ENTRY);
+      const result = getLocationMovementsByType(LocationMovementType.FEED_DELIVERY);
       expect(result.length).toBeGreaterThan(0);
-      expect(result.every((m) => m.type === LocationMovementType.ENTRY)).toBe(true);
+      expect(result.every((m) => m.type === LocationMovementType.FEED_DELIVERY)).toBe(true);
     });
   });
 
@@ -118,8 +116,8 @@ describe("location-movements.service", () => {
         propertyId: "property-1",
         companyId: "company-1",
         employeeIds: ["employee-1"],
-        serviceProviderIds: undefined,
-        type: LocationMovementType.ENTRY,
+        serviceProviderIds: [],
+        type: LocationMovementType.FEED_DELIVERY,
         date: "2020-03-01",
       };
 
@@ -135,17 +133,17 @@ describe("location-movements.service", () => {
   describe("updateLocationMovement", () => {
     it("should update existing movement", () => {
       const result = updateLocationMovement("loc-movement-1", {
-        type: LocationMovementType.EXIT,
+        type: LocationMovementType.VETERINARY_SERVICE,
       });
 
       expect(result).toBe(true);
       const updated = mockLocationMovements.find((m) => m.id === "loc-movement-1");
-      expect(updated?.type).toBe(LocationMovementType.EXIT);
+      expect(updated?.type).toBe(LocationMovementType.VETERINARY_SERVICE);
     });
 
     it("should return false when movement does not exist", () => {
       const result = updateLocationMovement("nonexistent-id", {
-        type: LocationMovementType.ENTRY,
+        type: LocationMovementType.FEED_DELIVERY,
       });
       expect(result).toBe(false);
     });
@@ -161,4 +159,3 @@ describe("location-movements.service", () => {
     });
   });
 });
-

@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { CompanyProfile } from "../company-profile";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
-import { updateCompany } from "~/mocks/companies";
+import { updateCompany } from "~/services/companies.service";
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <ThemeProvider>
@@ -38,7 +38,10 @@ vi.mock("~/mocks/companies", () => ({
       zipCode: "12345678",
     },
   ],
-  updateCompany: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("~/services/companies.service", () => ({
+  updateCompany: vi.fn(),
 }));
 
 vi.mock("~/mocks/users", async () => {
@@ -441,7 +444,9 @@ describe("CompanyProfile", () => {
 
   it("should handle save error gracefully", async () => {
     const user = userEvent.setup();
-    vi.mocked(updateCompany).mockRejectedValueOnce(new Error("Save failed"));
+    vi.mocked(updateCompany).mockImplementationOnce(() => {
+      throw new Error("Save failed");
+    });
 
     render(<CompanyProfile />, { wrapper });
 

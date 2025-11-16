@@ -11,10 +11,10 @@ import type { AcquisitionFormData, AnimalFormData, WeighingFormData } from "~/ty
 import { AnimalBreed } from "~/types";
 import { mockCompanies } from "~/mocks/companies";
 import { getAnimalsByCompanyId } from "~/services/animals.service";
-import { mockProperties } from "~/services/properties.service";
-import { mockEmployees } from "~/services/employees.service";
-import { mockServiceProviders } from "~/services/service-providers.service";
-import { mockBuyers } from "~/services/buyers.service";
+import { mockProperties } from "~/mocks/properties";
+import { mockEmployees } from "~/mocks/employees";
+import { mockServiceProviders } from "~/mocks/service-providers";
+import { mockBuyers } from "~/mocks/buyers";
 
 export function meta() {
   return [
@@ -342,7 +342,8 @@ export default function NewAcquisition() {
                   required
                   options={[
                     { value: "", label: "-" },
-                    ...mockProperties.map((property) => ({
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    ...mockProperties.map((property: any) => ({
                       value: property.id,
                       label: property.name,
                     })),

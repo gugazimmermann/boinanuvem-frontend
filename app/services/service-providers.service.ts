@@ -1,6 +1,13 @@
 import type { ServiceProvider, ServiceProviderFormData } from "~/types";
 import { mockServiceProviders } from "~/mocks/service-providers";
-import { findById, findByField, findByFieldIncludes, createEntity, updateEntity, deleteEntity } from "./base-service";
+import {
+  findById,
+  findByField,
+  findByFieldIncludes,
+  createEntity,
+  updateEntity,
+  deleteEntity,
+} from "./base-service";
 
 const ID_PREFIX = "880e8400-e29b-41d4-a716";
 const DEFAULT_ID = "880e8400-e29b-41d4-a716-446655440009";
@@ -51,4 +58,3 @@ export function updateServiceProvider(
 export function deleteServiceProvider(serviceProviderId: string): boolean {
   return deleteEntity(mockServiceProviders, serviceProviderId);
 }
-

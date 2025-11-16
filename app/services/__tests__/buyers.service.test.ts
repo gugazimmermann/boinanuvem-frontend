@@ -20,14 +20,18 @@ describe("buyers.service", () => {
     mockBuyers.push(
       {
         id: "aa0e8400-e29b-41d4-a716-446655440010",
+        code: "BY001",
         name: "Buyer One",
+        status: "active",
         companyId: "company-1",
         propertyIds: ["property-1"],
         createdAt: "2020-01-01",
       },
       {
         id: "aa0e8400-e29b-41d4-a716-446655440011",
+        code: "BY002",
         name: "Buyer Two",
+        status: "active",
         companyId: "company-1",
         propertyIds: ["property-2"],
         createdAt: "2020-01-02",
@@ -67,7 +71,9 @@ describe("buyers.service", () => {
   describe("addBuyer", () => {
     it("should add new buyer", () => {
       const formData: BuyerFormData = {
+        code: "BY003",
         name: "New Buyer",
+        status: "active",
         companyId: "company-1",
         propertyIds: ["property-1"],
       };
@@ -87,9 +93,7 @@ describe("buyers.service", () => {
       });
 
       expect(result).toBe(true);
-      const updated = mockBuyers.find(
-        (b) => b.id === "aa0e8400-e29b-41d4-a716-446655440010"
-      );
+      const updated = mockBuyers.find((b) => b.id === "aa0e8400-e29b-41d4-a716-446655440010");
       expect(updated?.name).toBe("Updated Buyer");
     });
   });
@@ -104,4 +108,3 @@ describe("buyers.service", () => {
     });
   });
 });
-

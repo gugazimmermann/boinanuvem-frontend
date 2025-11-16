@@ -87,4 +87,3 @@ describe("supplier-observations.service", () => {
     });
   });
 });
-

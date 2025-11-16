@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -60,15 +61,21 @@ vi.mock("~/mocks/employees", async () => {
 });
 
 vi.mock("~/mocks/service-providers", async () => {
-  const actual = await vi.importActual<typeof import("~/mocks/service-providers")>("~/mocks/service-providers");
+  const actual = await vi.importActual<typeof import("~/mocks/service-providers")>(
+    "~/mocks/service-providers"
+  );
   return {
     ...actual,
-    mockServiceProviders: [{ id: "sp-1", name: "Test SP", companyId: "company-1", status: "active" as const }],
+    mockServiceProviders: [
+      { id: "sp-1", name: "Test SP", companyId: "company-1", status: "active" as const },
+    ],
   };
 });
 
 vi.mock("~/services/properties.service", async () => {
-  const actual = await vi.importActual<typeof import("~/services/properties.service")>("~/services/properties.service");
+  const actual = await vi.importActual<typeof import("~/services/properties.service")>(
+    "~/services/properties.service"
+  );
   return {
     ...actual,
     mockProperties: [{ id: "prop-1", name: "Test Property" }],
@@ -76,18 +83,26 @@ vi.mock("~/services/properties.service", async () => {
 });
 
 vi.mock("~/services/employees.service", async () => {
-  const actual = await vi.importActual<typeof import("~/services/employees.service")>("~/services/employees.service");
+  const actual = await vi.importActual<typeof import("~/services/employees.service")>(
+    "~/services/employees.service"
+  );
   return {
     ...actual,
-    mockEmployees: [{ id: "emp-1", name: "Test Employee", companyId: "company-1", status: "active" as const }],
+    mockEmployees: [
+      { id: "emp-1", name: "Test Employee", companyId: "company-1", status: "active" as const },
+    ],
   };
 });
 
 vi.mock("~/services/service-providers.service", async () => {
-  const actual = await vi.importActual<typeof import("~/services/service-providers.service")>("~/services/service-providers.service");
+  const actual = await vi.importActual<typeof import("~/services/service-providers.service")>(
+    "~/services/service-providers.service"
+  );
   return {
     ...actual,
-    mockServiceProviders: [{ id: "sp-1", name: "Test SP", companyId: "company-1", status: "active" as const }],
+    mockServiceProviders: [
+      { id: "sp-1", name: "Test SP", companyId: "company-1", status: "active" as const },
+    ],
   };
 });
 
@@ -127,9 +142,7 @@ vi.mock("~/components/ui", () => ({
       {children}
     </button>
   ),
-  Alert: ({ title, variant }: any) => (
-    <div data-testid={`alert-${variant}`}>{title}</div>
-  ),
+  Alert: ({ title, variant }: any) => <div data-testid={`alert-${variant}`}>{title}</div>,
 }));
 
 describe("NewBirth", () => {
@@ -160,7 +173,7 @@ describe("NewBirth", () => {
   it("should render new birth form", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const heading = screen.queryByRole("heading", { level: 1 });
     const buttons = screen.queryAllByRole("button");
     expect(heading || buttons.length > 0).toBeTruthy();
@@ -169,7 +182,7 @@ describe("NewBirth", () => {
   it("should handle form input changes", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const inputs = screen.queryAllByRole("textbox");
     if (inputs.length > 0) {
       fireEvent.change(inputs[0], { target: { value: "Test Value" } });
@@ -180,9 +193,14 @@ describe("NewBirth", () => {
   it("should handle form submission", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const submitButtons = screen.queryAllByTestId("submit-button");
-    const submitButton = submitButtons.find((btn) => btn.type === "submit" || btn.textContent?.includes("Salvar") || btn.textContent?.includes("Save"));
+    const submitButton = submitButtons.find(
+      (btn) =>
+        (btn as HTMLButtonElement).type === "submit" ||
+        btn.textContent?.includes("Salvar") ||
+        btn.textContent?.includes("Save")
+    ) as HTMLButtonElement | undefined;
     if (submitButton && !submitButton.disabled) {
       fireEvent.click(submitButton);
       expect(submitButton).toBeInTheDocument();
@@ -192,9 +210,14 @@ describe("NewBirth", () => {
   it("should show validation errors on invalid submission", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const submitButtons = screen.queryAllByTestId("submit-button");
-    const submitButton = submitButtons.find((btn) => btn.type === "submit" || btn.textContent?.includes("Salvar") || btn.textContent?.includes("Save"));
+    const submitButton = submitButtons.find(
+      (btn) =>
+        (btn as HTMLButtonElement).type === "submit" ||
+        btn.textContent?.includes("Salvar") ||
+        btn.textContent?.includes("Save")
+    ) as HTMLButtonElement | undefined;
     if (submitButton) {
       fireEvent.click(submitButton);
       const errors = screen.queryAllByText(/required|obrigatório/i);
@@ -206,4 +229,3 @@ describe("NewBirth", () => {
     expect(NewBirth).toBeDefined();
   });
 });
-

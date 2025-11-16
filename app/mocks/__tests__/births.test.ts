@@ -113,8 +113,8 @@ describe("births mock", () => {
 
   it("should have valid parent relationships when parents have births", () => {
     const birthByAnimalId = new Map(mockBirths.map((b) => [b.animalId, b]));
-    const animalById = new Map(mockAnimals.map((a) => [a.id, a]));
-    
+    const _animalById = new Map(mockAnimals.map((a) => [a.id, a]));
+
     mockBirths.forEach((birth: Birth) => {
       if (birth.motherId) {
         const motherBirth = birthByAnimalId.get(birth.motherId);
@@ -131,4 +131,3 @@ describe("births mock", () => {
     });
   });
 });
-

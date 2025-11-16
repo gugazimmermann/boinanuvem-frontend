@@ -34,7 +34,6 @@ describe("Help", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    
     const headings = screen.getAllByRole("heading");
     expect(headings.length).toBeGreaterThan(0);
   });
@@ -43,7 +42,6 @@ describe("Help", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    
     const headings = screen.getAllByRole("heading");
     expect(headings.length).toBeGreaterThan(0);
   });
@@ -52,14 +50,13 @@ describe("Help", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    
-    const faqButtons = screen.queryAllByRole("button").filter((btn) =>
-      btn.textContent?.includes("?")
-    );
-    
+    const faqButtons = screen
+      .queryAllByRole("button")
+      .filter((btn) => btn.textContent?.includes("?"));
+
     if (faqButtons.length > 0) {
       fireEvent.click(faqButtons[0]);
-      
+
       expect(faqButtons[0]).toBeInTheDocument();
     }
   });
@@ -68,15 +65,19 @@ describe("Help", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    
-    const categoryButtons = screen.queryAllByRole("button").filter((btn) =>
-      btn.textContent && !btn.textContent.includes("?") && !btn.textContent.includes("+") && !btn.textContent.includes("-")
-    );
-    
+    const categoryButtons = screen
+      .queryAllByRole("button")
+      .filter(
+        (btn) =>
+          btn.textContent &&
+          !btn.textContent.includes("?") &&
+          !btn.textContent.includes("+") &&
+          !btn.textContent.includes("-")
+      );
+
     if (categoryButtons.length > 1) {
-      
       fireEvent.click(categoryButtons[1]);
-      
+
       expect(categoryButtons[1]).toBeInTheDocument();
     }
   });
@@ -85,9 +86,7 @@ describe("Help", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    
     const allButton = screen.getByText(/Todos|All/i);
     expect(allButton).toBeInTheDocument();
   });
 });
-

@@ -46,4 +46,3 @@ export function updateLocation(locationId: string, data: Partial<LocationFormDat
 export function deleteLocation(locationId: string): boolean {
   return deleteEntity(mockLocations, locationId);
 }
-

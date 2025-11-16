@@ -39,4 +39,3 @@ export function updateProperty(propertyId: string, data: Partial<PropertyFormDat
 export function deleteProperty(propertyId: string): boolean {
   return deleteEntity(mockProperties, propertyId);
 }
-

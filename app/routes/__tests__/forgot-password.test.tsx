@@ -13,12 +13,11 @@ vi.mock("~/components/site/auth-layout", () => ({
 }));
 
 vi.mock("~/components/site/ui", () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   AuthInput: ({ type, placeholder, value, onChange, ...props }: any) => {
-    const { fullWidth, showPasswordToggle, ...rest } = props;
-    
-    const inputProps = onChange 
-      ? { value: value || "", onChange }
-      : { defaultValue: value || "" };
+    const { fullWidth: _fullWidth, showPasswordToggle: _showPasswordToggle, ...rest } = props;
+
+    const inputProps = onChange ? { value: value || "", onChange } : { defaultValue: value || "" };
     return (
       <input
         data-testid={`auth-input-${type}`}
@@ -29,7 +28,8 @@ vi.mock("~/components/site/ui", () => ({
       />
     );
   },
-  AuthButton: ({ children, fullWidth, onClick, type, ...props }: any) => (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  AuthButton: ({ children, fullWidth: _fullWidth, onClick, type, ...props }: any) => (
     <button data-testid="auth-button" type={type} onClick={onClick} {...props}>
       {children}
     </button>
@@ -122,7 +122,6 @@ describe("ForgotPassword", () => {
 
     const submitButton = screen.getByText("Enviar Código");
     fireEvent.click(submitButton);
-    
   });
 
   it("should allow email input", () => {
@@ -131,7 +130,7 @@ describe("ForgotPassword", () => {
 
     const emailInput = screen.getByPlaceholderText("Email") as HTMLInputElement;
     expect(emailInput).toBeInTheDocument();
-    
+
     expect(emailInput).toHaveAttribute("type", "email");
   });
 
@@ -149,4 +148,3 @@ describe("ForgotPassword", () => {
     expect(screen.getByText("Lembrou sua senha?")).toBeInTheDocument();
   });
 });
-

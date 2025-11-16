@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -5,8 +6,6 @@ import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
 import NewEmployee from "../employees.new";
 import { addEmployee } from "~/services/employees.service";
-import { useCEPLookup } from "~/components/site/hooks";
-import { mapCEPDataToAddressForm, maskCEP, unmaskCEP, maskCPF, maskPhone } from "~/components/site/utils";
 
 const mockNavigate = vi.fn();
 const mockUseCEPLookup = vi.fn(() => ({ data: null, loading: false, error: null }));
@@ -45,7 +44,9 @@ vi.mock("~/mocks/properties", async () => {
 });
 
 vi.mock("~/services/properties.service", async () => {
-  const actual = await vi.importActual<typeof import("~/services/properties.service")>("~/services/properties.service");
+  const actual = await vi.importActual<typeof import("~/services/properties.service")>(
+    "~/services/properties.service"
+  );
   return {
     ...actual,
     mockProperties: [{ id: "prop-1", name: "Test Property" }],
@@ -57,7 +58,7 @@ vi.mock("~/components/site/hooks", () => ({
 }));
 
 vi.mock("~/components/site/utils", () => ({
-  mapCEPDataToAddressForm: vi.fn((data) => ({
+  mapCEPDataToAddressForm: vi.fn((data: any) => ({
     street: data.logradouro || "",
     neighborhood: data.bairro || "",
     city: data.localidade || "",
@@ -105,9 +106,7 @@ vi.mock("~/components/ui", () => ({
       {children}
     </button>
   ),
-  Alert: ({ title, variant }: any) => (
-    <div data-testid={`alert-${variant}`}>{title}</div>
-  ),
+  Alert: ({ title, variant }: any) => <div data-testid={`alert-${variant}`}>{title}</div>,
 }));
 
 describe("NewEmployee", () => {
@@ -138,7 +137,7 @@ describe("NewEmployee", () => {
   it("should render new employee form", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const heading = screen.queryByRole("heading", { level: 1 });
     const buttons = screen.queryAllByRole("button");
     expect(heading || buttons.length > 0).toBeTruthy();
@@ -147,7 +146,7 @@ describe("NewEmployee", () => {
   it("should handle form input changes", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const inputs = screen.queryAllByRole("textbox");
     if (inputs.length > 0) {
       fireEvent.change(inputs[0], { target: { value: "Test Value" } });
@@ -158,9 +157,14 @@ describe("NewEmployee", () => {
   it("should handle form submission", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const submitButtons = screen.queryAllByTestId("submit-button");
-    const submitButton = submitButtons.find((btn) => btn.type === "submit" || btn.textContent?.includes("Salvar") || btn.textContent?.includes("Save"));
+    const submitButton = submitButtons.find(
+      (btn) =>
+        (btn as HTMLButtonElement).type === "submit" ||
+        btn.textContent?.includes("Salvar") ||
+        btn.textContent?.includes("Save")
+    ) as HTMLButtonElement | undefined;
     if (submitButton && !submitButton.disabled) {
       fireEvent.click(submitButton);
       expect(submitButton).toBeInTheDocument();
@@ -170,9 +174,14 @@ describe("NewEmployee", () => {
   it("should show validation errors on invalid submission", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const submitButtons = screen.queryAllByTestId("submit-button");
-    const submitButton = submitButtons.find((btn) => btn.type === "submit" || btn.textContent?.includes("Salvar") || btn.textContent?.includes("Save"));
+    const submitButton = submitButtons.find(
+      (btn) =>
+        (btn as HTMLButtonElement).type === "submit" ||
+        btn.textContent?.includes("Salvar") ||
+        btn.textContent?.includes("Save")
+    ) as HTMLButtonElement | undefined;
     if (submitButton) {
       fireEvent.click(submitButton);
       const errors = screen.queryAllByText(/required|obrigatório/i);
@@ -181,7 +190,6 @@ describe("NewEmployee", () => {
   });
 
   it("should have correct meta function", () => {
-    
     expect(NewEmployee).toBeDefined();
   });
 
@@ -197,10 +205,10 @@ describe("NewEmployee", () => {
       loading: false,
       error: null,
     });
-    
+
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const zipCodeInput = screen.queryByTestId("input-CEP") || screen.queryByPlaceholderText(/CEP/i);
     if (zipCodeInput) {
       fireEvent.change(zipCodeInput, { target: { value: "89000000" } });
@@ -214,10 +222,10 @@ describe("NewEmployee", () => {
       loading: true,
       error: null,
     });
-    
+
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     expect(NewEmployee).toBeDefined();
   });
 
@@ -227,17 +235,17 @@ describe("NewEmployee", () => {
       loading: false,
       error: "CEP not found",
     });
-    
+
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     expect(NewEmployee).toBeDefined();
   });
 
   it("should mask CEP input", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const zipCodeInput = screen.queryByTestId("input-CEP") || screen.queryByPlaceholderText(/CEP/i);
     if (zipCodeInput) {
       fireEvent.change(zipCodeInput, { target: { value: "89000000" } });
@@ -248,7 +256,7 @@ describe("NewEmployee", () => {
   it("should mask CPF input", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const cpfInput = screen.queryByTestId("input-CPF") || screen.queryByPlaceholderText(/CPF/i);
     if (cpfInput) {
       fireEvent.change(cpfInput, { target: { value: "12345678900" } });
@@ -259,8 +267,9 @@ describe("NewEmployee", () => {
   it("should mask phone input", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
-    const phoneInput = screen.queryByTestId("input-Phone") || screen.queryByPlaceholderText(/Telefone/i);
+
+    const phoneInput =
+      screen.queryByTestId("input-Phone") || screen.queryByPlaceholderText(/Telefone/i);
     if (phoneInput) {
       fireEvent.change(phoneInput, { target: { value: "47999999999" } });
       expect(phoneInput).toBeInTheDocument();
@@ -270,8 +279,9 @@ describe("NewEmployee", () => {
   it("should handle status selection", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
-    const statusSelect = screen.queryByTestId("select-status") || screen.queryByLabelText(/Status/i);
+
+    const statusSelect =
+      screen.queryByTestId("select-status") || screen.queryByLabelText(/Status/i);
     if (statusSelect) {
       fireEvent.change(statusSelect, { target: { value: "inactive" } });
       expect(statusSelect).toBeInTheDocument();
@@ -281,7 +291,7 @@ describe("NewEmployee", () => {
   it("should handle state selection", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const stateSelect = screen.queryByTestId("select-state") || screen.queryByLabelText(/Estado/i);
     if (stateSelect) {
       fireEvent.change(stateSelect, { target: { value: "SC" } });
@@ -292,27 +302,36 @@ describe("NewEmployee", () => {
   it("should handle successful form submission", () => {
     const router = createRouter();
     const { container } = render(<RouterProvider router={router} />);
-    
-    
+
     const inputs = screen.queryAllByRole("textbox");
     const selects = screen.queryAllByRole("combobox");
-    
-    const nameInput = screen.queryByTestId("input-Name") || inputs.find(inp => inp.getAttribute("aria-label")?.includes("Nome"));
-    const codeInput = screen.queryByTestId("input-Code") || inputs.find(inp => inp.getAttribute("aria-label")?.includes("Código"));
-    const cpfInput = screen.queryByTestId("input-CPF") || inputs.find(inp => inp.getAttribute("aria-label")?.includes("CPF"));
-    const emailInput = screen.queryByTestId("input-Email") || inputs.find(inp => inp.getAttribute("type") === "email");
-    const phoneInput = screen.queryByTestId("input-Phone") || inputs.find(inp => inp.getAttribute("aria-label")?.includes("Telefone"));
-    
+
+    const nameInput =
+      screen.queryByTestId("input-Name") ||
+      inputs.find((inp) => inp.getAttribute("aria-label")?.includes("Nome"));
+    const codeInput =
+      screen.queryByTestId("input-Code") ||
+      inputs.find((inp) => inp.getAttribute("aria-label")?.includes("Código"));
+    const cpfInput =
+      screen.queryByTestId("input-CPF") ||
+      inputs.find((inp) => inp.getAttribute("aria-label")?.includes("CPF"));
+    const emailInput =
+      screen.queryByTestId("input-Email") ||
+      inputs.find((inp) => inp.getAttribute("type") === "email");
+    const phoneInput =
+      screen.queryByTestId("input-Phone") ||
+      inputs.find((inp) => inp.getAttribute("aria-label")?.includes("Telefone"));
+
     if (nameInput) fireEvent.change(nameInput, { target: { value: "Test Employee" } });
     if (codeInput) fireEvent.change(codeInput, { target: { value: "EMP001" } });
     if (cpfInput) fireEvent.change(cpfInput, { target: { value: "12345678900" } });
     if (emailInput) fireEvent.change(emailInput, { target: { value: "test@example.com" } });
     if (phoneInput) fireEvent.change(phoneInput, { target: { value: "47999999999" } });
-    
+
     const form = container.querySelector("form");
     if (form) {
       fireEvent.submit(form);
-      
+
       expect(form).toBeInTheDocument();
     } else {
       expect(inputs.length > 0 || selects.length > 0).toBeTruthy();
@@ -323,7 +342,7 @@ describe("NewEmployee", () => {
     vi.mocked(addEmployee).mockReturnValueOnce(undefined as any);
     const router = createRouter();
     const { container } = render(<RouterProvider router={router} />);
-    
+
     const form = container.querySelector("form");
     if (form) {
       fireEvent.submit(form);
@@ -335,11 +354,17 @@ describe("NewEmployee", () => {
   it("should navigate back on cancel", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
-    const cancelButtons = screen.queryAllByRole("button").filter((btn) =>
-      btn.textContent?.includes("Cancelar") || btn.textContent?.includes("Cancel") || btn.textContent?.includes("Voltar") || btn.textContent?.includes("Back")
-    );
-    
+
+    const cancelButtons = screen
+      .queryAllByRole("button")
+      .filter(
+        (btn) =>
+          btn.textContent?.includes("Cancelar") ||
+          btn.textContent?.includes("Cancel") ||
+          btn.textContent?.includes("Voltar") ||
+          btn.textContent?.includes("Back")
+      );
+
     if (cancelButtons.length > 0) {
       fireEvent.click(cancelButtons[0]);
       expect(mockNavigate).toHaveBeenCalled();
@@ -349,8 +374,9 @@ describe("NewEmployee", () => {
   it("should validate email format", () => {
     const router = createRouter();
     const { container } = render(<RouterProvider router={router} />);
-    
-    const emailInput = screen.queryByTestId("input-Email") || screen.queryByPlaceholderText(/Email/i);
+
+    const emailInput =
+      screen.queryByTestId("input-Email") || screen.queryByPlaceholderText(/Email/i);
     if (emailInput) {
       fireEvent.change(emailInput, { target: { value: "invalid-email" } });
       const form = container.querySelector("form");
@@ -364,15 +390,19 @@ describe("NewEmployee", () => {
   it("should display alert on successful submission", () => {
     const router = createRouter();
     const { container } = render(<RouterProvider router={router} />);
-    
+
     const inputs = screen.queryAllByRole("textbox");
-    
-    const nameInput = screen.queryByTestId("input-Name") || inputs.find(inp => inp.getAttribute("aria-label")?.includes("Nome"));
-    const codeInput = screen.queryByTestId("input-Code") || inputs.find(inp => inp.getAttribute("aria-label")?.includes("Código"));
-    
+
+    const nameInput =
+      screen.queryByTestId("input-Name") ||
+      inputs.find((inp) => inp.getAttribute("aria-label")?.includes("Nome"));
+    const codeInput =
+      screen.queryByTestId("input-Code") ||
+      inputs.find((inp) => inp.getAttribute("aria-label")?.includes("Código"));
+
     if (nameInput) fireEvent.change(nameInput, { target: { value: "Test Employee" } });
     if (codeInput) fireEvent.change(codeInput, { target: { value: "EMP001" } });
-    
+
     const form = container.querySelector("form");
     if (form) {
       fireEvent.submit(form);
@@ -384,10 +414,9 @@ describe("NewEmployee", () => {
   it("should handle all form fields", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const inputs = screen.queryAllByRole("textbox");
     const selects = screen.queryAllByRole("combobox");
     expect(inputs.length > 0 || selects.length > 0).toBeTruthy();
   });
 });
-

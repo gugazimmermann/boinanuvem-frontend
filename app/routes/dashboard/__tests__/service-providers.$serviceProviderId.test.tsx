@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -20,7 +21,9 @@ vi.mock("react-router", async () => {
 });
 
 vi.mock("~/mocks/service-providers", async () => {
-  const actual = await vi.importActual<typeof import("~/mocks/service-providers")>("~/mocks/service-providers");
+  const actual = await vi.importActual<typeof import("~/mocks/service-providers")>(
+    "~/mocks/service-providers"
+  );
   return actual;
 });
 
@@ -34,11 +37,13 @@ vi.mock("~/mocks/properties", async () => {
 });
 
 vi.mock("~/services/properties.service", () => ({
-  getPropertyById: vi.fn((id) => ({ id, name: `Property ${id}` })),
+  getPropertyById: vi.fn((id: string) => ({ id, name: `Property ${id}` })),
 }));
 
 vi.mock("~/mocks/location-movements", async () => {
-  const actual = await vi.importActual<typeof import("~/mocks/location-movements")>("~/mocks/location-movements");
+  const actual = await vi.importActual<typeof import("~/mocks/location-movements")>(
+    "~/mocks/location-movements"
+  );
   return actual;
 });
 
@@ -47,7 +52,9 @@ vi.mock("~/services/location-movements.service", () => ({
 }));
 
 vi.mock("~/mocks/animal-movements", async () => {
-  const actual = await vi.importActual<typeof import("~/mocks/animal-movements")>("~/mocks/animal-movements");
+  const actual = await vi.importActual<typeof import("~/mocks/animal-movements")>(
+    "~/mocks/animal-movements"
+  );
   return actual;
 });
 
@@ -56,7 +63,9 @@ vi.mock("~/services/animal-movements.service", () => ({
 }));
 
 vi.mock("~/mocks/service-provider-observations", async () => {
-  const actual = await vi.importActual<typeof import("~/mocks/service-provider-observations")>("~/mocks/service-provider-observations");
+  const actual = await vi.importActual<typeof import("~/mocks/service-provider-observations")>(
+    "~/mocks/service-provider-observations"
+  );
   return actual;
 });
 
@@ -82,9 +91,7 @@ vi.mock("~/components/ui", () => ({
       onChange={(e) => onFilesChange?.(Array.from(e.target.files || []))}
     />
   ),
-  Alert: ({ title, variant }: any) => (
-    <div data-testid={`alert-${variant}`}>{title}</div>
-  ),
+  Alert: ({ title, variant }: any) => <div data-testid={`alert-${variant}`}>{title}</div>,
 }));
 
 describe("ServiceProviderDetails", () => {
@@ -124,7 +131,9 @@ describe("ServiceProviderDetails", () => {
         },
       ],
       {
-        initialEntries: [`/dashboard/service-providers/${serviceProviderId}${searchParams ? `?${searchParams}` : ""}`],
+        initialEntries: [
+          `/dashboard/service-providers/${serviceProviderId}${searchParams ? `?${searchParams}` : ""}`,
+        ],
       }
     );
   };
@@ -138,7 +147,7 @@ describe("ServiceProviderDetails", () => {
   it("should render service provider details", () => {
     const router = createRouter("sp-1");
     render(<RouterProvider router={router} />);
-    
+
     expect(getServiceProviderById).toHaveBeenCalledWith("sp-1");
     const table = screen.queryByTestId("table");
     const buttons = screen.queryAllByRole("button");
@@ -149,7 +158,7 @@ describe("ServiceProviderDetails", () => {
     vi.mocked(getServiceProviderById).mockReturnValue(undefined);
     const router = createRouter("invalid-id");
     render(<RouterProvider router={router} />);
-    
+
     const backButton = screen.queryByRole("button");
     expect(backButton).toBeInTheDocument();
   });
@@ -157,12 +166,13 @@ describe("ServiceProviderDetails", () => {
   it("should switch tabs", () => {
     const router = createRouter("sp-1");
     render(<RouterProvider router={router} />);
-    
-    const tabButtons = screen.queryAllByRole("button").filter((btn) =>
-      btn.textContent?.includes("Observações") || 
-      btn.textContent?.includes("Atividades")
-    );
-    
+
+    const tabButtons = screen
+      .queryAllByRole("button")
+      .filter(
+        (btn) => btn.textContent?.includes("Observações") || btn.textContent?.includes("Atividades")
+      );
+
     if (tabButtons.length > 0) {
       fireEvent.click(tabButtons[0]);
       expect(mockSetSearchParams).toHaveBeenCalled();
@@ -172,33 +182,32 @@ describe("ServiceProviderDetails", () => {
   it("should handle tab from URL params", () => {
     const router = createRouter("sp-1", "tab=observations");
     render(<RouterProvider router={router} />);
-    
+
     expect(getServiceProviderById).toHaveBeenCalledWith("sp-1");
   });
 
   it("should have correct meta function", () => {
-    
     expect(ServiceProviderDetails).toBeDefined();
   });
 
   it("should display info tab", () => {
     const router = createRouter("sp-1", "tab=info");
     render(<RouterProvider router={router} />);
-    
+
     expect(getServiceProviderById).toHaveBeenCalledWith("sp-1");
   });
 
   it("should display activities tab", () => {
     const router = createRouter("sp-1", "tab=activities");
     render(<RouterProvider router={router} />);
-    
+
     expect(getServiceProviderById).toHaveBeenCalledWith("sp-1");
   });
 
   it("should display movements tab", () => {
     const router = createRouter("sp-1", "tab=movements");
     render(<RouterProvider router={router} />);
-    
+
     expect(getServiceProviderById).toHaveBeenCalledWith("sp-1");
     const table = screen.queryByTestId("table");
     expect(table || screen.queryAllByRole("button").length > 0).toBeTruthy();
@@ -207,18 +216,18 @@ describe("ServiceProviderDetails", () => {
   it("should display observations tab", () => {
     const router = createRouter("sp-1", "tab=observations");
     render(<RouterProvider router={router} />);
-    
+
     expect(getServiceProviderById).toHaveBeenCalledWith("sp-1");
   });
 
   it("should navigate to edit service provider", () => {
     const router = createRouter("sp-1");
     render(<RouterProvider router={router} />);
-    
-    const editButtons = screen.queryAllByRole("button").filter((btn) =>
-      btn.textContent?.includes("Editar") || btn.textContent?.includes("Edit")
-    );
-    
+
+    const editButtons = screen
+      .queryAllByRole("button")
+      .filter((btn) => btn.textContent?.includes("Editar") || btn.textContent?.includes("Edit"));
+
     if (editButtons.length > 0) {
       fireEvent.click(editButtons[0]);
       expect(mockNavigate).toHaveBeenCalled();
@@ -228,28 +237,28 @@ describe("ServiceProviderDetails", () => {
   it("should handle location movements display", () => {
     const router = createRouter("sp-1", "tab=movements");
     render(<RouterProvider router={router} />);
-    
+
     expect(getServiceProviderById).toHaveBeenCalledWith("sp-1");
   });
 
   it("should handle animal movements display", () => {
     const router = createRouter("sp-1", "tab=movements");
     render(<RouterProvider router={router} />);
-    
+
     expect(getServiceProviderById).toHaveBeenCalledWith("sp-1");
   });
 
   it("should handle service provider observations", () => {
     const router = createRouter("sp-1", "tab=observations");
     render(<RouterProvider router={router} />);
-    
+
     expect(getServiceProviderObservationsByServiceProviderId).toHaveBeenCalledWith("sp-1");
   });
 
   it("should handle file upload for observations", () => {
     const router = createRouter("sp-1", "tab=observations");
     render(<RouterProvider router={router} />);
-    
+
     const fileUpload = screen.queryByTestId("file-upload");
     expect(fileUpload || screen.queryAllByRole("button").length > 0).toBeTruthy();
   });
@@ -257,14 +266,14 @@ describe("ServiceProviderDetails", () => {
   it("should handle empty location movements", () => {
     const router = createRouter("sp-1", "tab=movements");
     render(<RouterProvider router={router} />);
-    
+
     expect(getServiceProviderById).toHaveBeenCalledWith("sp-1");
   });
 
   it("should handle empty animal movements", () => {
     const router = createRouter("sp-1", "tab=movements");
     render(<RouterProvider router={router} />);
-    
+
     expect(getServiceProviderById).toHaveBeenCalledWith("sp-1");
   });
 
@@ -272,7 +281,7 @@ describe("ServiceProviderDetails", () => {
     vi.mocked(getServiceProviderObservationsByServiceProviderId).mockReturnValueOnce([]);
     const router = createRouter("sp-1", "tab=observations");
     render(<RouterProvider router={router} />);
-    
+
     expect(getServiceProviderById).toHaveBeenCalledWith("sp-1");
   });
 
@@ -284,28 +293,28 @@ describe("ServiceProviderDetails", () => {
     vi.mocked(getServiceProviderById).mockReturnValueOnce(inactiveServiceProvider);
     const router = createRouter("sp-1");
     render(<RouterProvider router={router} />);
-    
+
     expect(getServiceProviderById).toHaveBeenCalledWith("sp-1");
   });
 
   it("should handle default tab when no tab param provided", () => {
     const router = createRouter("sp-1");
     render(<RouterProvider router={router} />);
-    
+
     expect(getServiceProviderById).toHaveBeenCalledWith("sp-1");
   });
 
   it("should handle invalid tab param", () => {
     const router = createRouter("sp-1", "tab=invalid");
     render(<RouterProvider router={router} />);
-    
+
     expect(getServiceProviderById).toHaveBeenCalledWith("sp-1");
   });
 
   it("should handle service provider with properties", () => {
     const router = createRouter("sp-1");
     render(<RouterProvider router={router} />);
-    
+
     expect(getServiceProviderById).toHaveBeenCalledWith("sp-1");
   });
 
@@ -317,7 +326,7 @@ describe("ServiceProviderDetails", () => {
     vi.mocked(getServiceProviderById).mockReturnValueOnce(serviceProviderWithoutProperties);
     const router = createRouter("sp-1");
     render(<RouterProvider router={router} />);
-    
+
     expect(getServiceProviderById).toHaveBeenCalledWith("sp-1");
   });
 
@@ -325,7 +334,7 @@ describe("ServiceProviderDetails", () => {
     vi.mocked(getServiceProviderById).mockReturnValue(undefined);
     const router = createRouter("invalid-id");
     render(<RouterProvider router={router} />);
-    
+
     const backButton = screen.queryByRole("button");
     if (backButton) {
       fireEvent.click(backButton);
@@ -333,4 +342,3 @@ describe("ServiceProviderDetails", () => {
     }
   });
 });
-

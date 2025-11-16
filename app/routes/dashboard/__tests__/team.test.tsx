@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -52,9 +53,7 @@ vi.mock("~/components/ui", () => ({
       </button>
     </div>
   ),
-  Alert: ({ title, variant }: any) => (
-    <div data-testid={`alert-${variant}`}>{title}</div>
-  ),
+  Alert: ({ title, variant }: any) => <div data-testid={`alert-${variant}`}>{title}</div>,
 }));
 
 vi.mock("~/components/dashboard/team", () => ({
@@ -132,10 +131,10 @@ describe("Team", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    const addButtons = screen.queryAllByRole("button").filter((btn) =>
-      btn.textContent?.includes("Adicionar") || btn.textContent?.includes("Add")
-    );
-    
+    const addButtons = screen
+      .queryAllByRole("button")
+      .filter((btn) => btn.textContent?.includes("Adicionar") || btn.textContent?.includes("Add"));
+
     if (addButtons.length > 0) {
       fireEvent.click(addButtons[0]);
       expect(screen.getByTestId("user-form-modal")).toBeInTheDocument();
@@ -145,23 +144,20 @@ describe("Team", () => {
   });
 
   it("should have correct meta function", () => {
-    
     expect(Team).toBeDefined();
   });
 
   it("should handle search filtering", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
-    
+
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
   it("should handle pagination", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
-    
+
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
@@ -172,12 +168,12 @@ describe("Team", () => {
     const deleteButtons = screen.queryAllByTestId("delete-button");
     if (deleteButtons.length > 0) {
       fireEvent.click(deleteButtons[0]);
-      
+
       await waitFor(() => {
         const confirmButton = screen.queryByTestId("confirm-delete");
         if (confirmButton) {
           fireEvent.click(confirmButton);
-          
+
           expect(confirmButton).toBeInTheDocument();
         }
       });
@@ -193,7 +189,7 @@ describe("Team", () => {
     const deleteButtons = screen.queryAllByTestId("delete-button");
     if (deleteButtons.length > 0) {
       fireEvent.click(deleteButtons[0]);
-      
+
       await waitFor(() => {
         const cancelButton = screen.queryByTestId("cancel-delete");
         if (cancelButton) {
@@ -208,10 +204,10 @@ describe("Team", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    const addButtons = screen.queryAllByRole("button").filter((btn) =>
-      btn.textContent?.includes("Adicionar") || btn.textContent?.includes("Add")
-    );
-    
+    const addButtons = screen
+      .queryAllByRole("button")
+      .filter((btn) => btn.textContent?.includes("Adicionar") || btn.textContent?.includes("Add"));
+
     if (addButtons.length > 0) {
       fireEvent.click(addButtons[0]);
       const closeButton = screen.queryByTestId("close-modal");
@@ -226,13 +222,13 @@ describe("Team", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    const addButtons = screen.queryAllByRole("button").filter((btn) =>
-      btn.textContent?.includes("Adicionar") || btn.textContent?.includes("Add")
-    );
-    
+    const addButtons = screen
+      .queryAllByRole("button")
+      .filter((btn) => btn.textContent?.includes("Adicionar") || btn.textContent?.includes("Add"));
+
     if (addButtons.length > 0) {
       fireEvent.click(addButtons[0]);
-      
+
       await waitFor(() => {
         const submitButton = screen.queryByTestId("submit-user");
         if (submitButton) {
@@ -247,7 +243,7 @@ describe("Team", () => {
   it("should navigate to user edit", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const editButtons = screen.queryAllByTestId("edit-button");
     if (editButtons.length > 0) {
       fireEvent.click(editButtons[0]);
@@ -258,19 +254,17 @@ describe("Team", () => {
   it("should navigate to user profile", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const rows = screen.queryAllByTestId(/table-row-/);
     if (rows.length > 0) {
       fireEvent.click(rows[0]);
-      
     }
   });
 
   it("should format dates correctly", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
-    
+
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
@@ -278,15 +272,14 @@ describe("Team", () => {
     vi.mocked(mockUsers).length = 0;
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
   it("should filter out main users", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
-    
+
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
@@ -294,22 +287,22 @@ describe("Team", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    const addButtons = screen.queryAllByRole("button").filter((btn) =>
-      btn.textContent?.includes("Adicionar") || btn.textContent?.includes("Add")
-    );
-    
+    const addButtons = screen
+      .queryAllByRole("button")
+      .filter((btn) => btn.textContent?.includes("Adicionar") || btn.textContent?.includes("Add"));
+
     if (addButtons.length > 0) {
       fireEvent.click(addButtons[0]);
-      
+
       await waitFor(() => {
         const submitButton = screen.queryByTestId("submit-user");
         if (submitButton) {
           fireEvent.click(submitButton);
-          const alert = screen.queryByTestId("alert-success") || screen.queryByTestId("alert-error");
+          const alert =
+            screen.queryByTestId("alert-success") || screen.queryByTestId("alert-error");
           expect(alert || submitButton).toBeTruthy();
         }
       });
     }
   });
 });
-

@@ -81,9 +81,10 @@ describe("users mock", () => {
 
   it("should have valid lastAccess format when present", () => {
     mockUsers.forEach((user: TeamUser) => {
-      if (user.lastAccess) {
-        expect(typeof user.lastAccess).toBe("string");
-        expect(() => new Date(user.lastAccess!)).not.toThrow();
+      const lastAccess = user.lastAccess;
+      if (lastAccess && typeof lastAccess === "string") {
+        expect(typeof lastAccess).toBe("string");
+        expect(() => new Date(lastAccess)).not.toThrow();
       }
     });
   });
@@ -105,4 +106,3 @@ describe("users mock", () => {
     });
   });
 });
-

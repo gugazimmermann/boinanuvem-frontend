@@ -10,9 +10,9 @@ import type { BirthFormData, AnimalFormData, WeighingFormData } from "~/types";
 import { mockCompanies } from "~/mocks/companies";
 import { getAnimalsByCompanyId } from "~/services/animals.service";
 import { getBirthByAnimalId } from "~/services/births.service";
-import { mockProperties } from "~/services/properties.service";
-import { mockEmployees } from "~/services/employees.service";
-import { mockServiceProviders } from "~/services/service-providers.service";
+import { mockProperties } from "~/mocks/properties";
+import { mockEmployees } from "~/mocks/employees";
+import { mockServiceProviders } from "~/mocks/service-providers";
 
 export function meta() {
   return [
@@ -293,7 +293,8 @@ export default function NewBirth() {
                   required
                   options={[
                     { value: "", label: "-" },
-                    ...mockProperties.map((property) => ({
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    ...mockProperties.map((property: any) => ({
                       value: property.id,
                       label: property.name,
                     })),

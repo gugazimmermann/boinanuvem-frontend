@@ -20,7 +20,9 @@ describe("employees.service", () => {
     mockEmployees.push(
       {
         id: "770e8400-e29b-41d4-a716-446655440010",
+        code: "EM001",
         name: "Employee One",
+        status: "active",
         cpf: "11122233344",
         companyId: "company-1",
         propertyIds: ["property-1", "property-2"],
@@ -28,7 +30,9 @@ describe("employees.service", () => {
       },
       {
         id: "770e8400-e29b-41d4-a716-446655440011",
+        code: "EM002",
         name: "Employee Two",
+        status: "active",
         cpf: "22233344455",
         companyId: "company-1",
         propertyIds: ["property-1"],
@@ -36,7 +40,9 @@ describe("employees.service", () => {
       },
       {
         id: "770e8400-e29b-41d4-a716-446655440012",
+        code: "EM003",
         name: "Employee Three",
+        status: "active",
         cpf: "33344455566",
         companyId: "company-2",
         propertyIds: ["property-3"],
@@ -80,9 +86,7 @@ describe("employees.service", () => {
     it("should return employees for specific property", () => {
       const result = getEmployeesByPropertyId("property-1");
       expect(result).toHaveLength(2);
-      expect(
-        result.every((employee) => employee.propertyIds?.includes("property-1"))
-      ).toBe(true);
+      expect(result.every((employee) => employee.propertyIds?.includes("property-1"))).toBe(true);
     });
 
     it("should return empty array when property has no employees", () => {
@@ -94,7 +98,9 @@ describe("employees.service", () => {
   describe("addEmployee", () => {
     it("should add new employee with generated ID", () => {
       const formData: EmployeeFormData = {
+        code: "EM004",
         name: "New Employee",
+        status: "active",
         cpf: "44455566677",
         companyId: "company-1",
         propertyIds: ["property-1"],
@@ -117,9 +123,7 @@ describe("employees.service", () => {
       });
 
       expect(result).toBe(true);
-      const updated = mockEmployees.find(
-        (e) => e.id === "770e8400-e29b-41d4-a716-446655440010"
-      );
+      const updated = mockEmployees.find((e) => e.id === "770e8400-e29b-41d4-a716-446655440010");
       expect(updated?.name).toBe("Updated Employee");
     });
 
@@ -150,4 +154,3 @@ describe("employees.service", () => {
     });
   });
 });
-

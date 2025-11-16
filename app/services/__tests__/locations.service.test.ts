@@ -9,6 +9,7 @@ import {
 } from "../locations.service";
 import { mockLocations } from "~/mocks/locations";
 import type { LocationFormData } from "~/types";
+import { LocationType, AreaType } from "~/types/location";
 
 vi.mock("~/mocks/locations", () => ({
   mockLocations: [],
@@ -22,6 +23,9 @@ describe("locations.service", () => {
         id: "660e8400-e29b-41d4-a716-446655440010",
         name: "Location One",
         code: "L001",
+        locationType: LocationType.PASTURE,
+        area: { value: 100, type: AreaType.HECTARES },
+        status: "active" as const,
         propertyId: "property-1",
         companyId: "company-1",
         createdAt: "2020-01-01",
@@ -30,6 +34,9 @@ describe("locations.service", () => {
         id: "660e8400-e29b-41d4-a716-446655440011",
         name: "Location Two",
         code: "L002",
+        locationType: LocationType.PASTURE,
+        area: { value: 200, type: AreaType.HECTARES },
+        status: "active" as const,
         propertyId: "property-1",
         companyId: "company-1",
         createdAt: "2020-01-02",
@@ -38,6 +45,9 @@ describe("locations.service", () => {
         id: "660e8400-e29b-41d4-a716-446655440012",
         name: "Location Three",
         code: "L003",
+        locationType: LocationType.PASTURE,
+        area: { value: 300, type: AreaType.HECTARES },
+        status: "active" as const,
         propertyId: "property-2",
         companyId: "company-2",
         createdAt: "2020-01-03",
@@ -94,6 +104,9 @@ describe("locations.service", () => {
       const formData: LocationFormData = {
         name: "New Location",
         code: "L004",
+        locationType: LocationType.PASTURE,
+        area: { value: 150, type: AreaType.HECTARES },
+        status: "active" as const,
         propertyId: "property-1",
         companyId: "company-1",
       };
@@ -115,9 +128,7 @@ describe("locations.service", () => {
       });
 
       expect(result).toBe(true);
-      const updated = mockLocations.find(
-        (l) => l.id === "660e8400-e29b-41d4-a716-446655440010"
-      );
+      const updated = mockLocations.find((l) => l.id === "660e8400-e29b-41d4-a716-446655440010");
       expect(updated?.name).toBe("Updated Location");
     });
 
@@ -148,4 +159,3 @@ describe("locations.service", () => {
     });
   });
 });
-

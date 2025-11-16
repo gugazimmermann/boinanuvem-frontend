@@ -1,12 +1,12 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
 import Properties from "../properties";
-import { mockProperties, deleteProperty } from "~/mocks/properties";
-import { getLocationsByPropertyId } from "~/mocks/locations";
-import { getAnimalsByPropertyId } from "~/mocks/animals";
+import { mockProperties } from "~/mocks/properties";
+import { deleteProperty } from "~/services/properties.service";
 import { ROUTES } from "~/routes.config";
 
 const mockNavigate = vi.fn();
@@ -64,11 +64,7 @@ vi.mock("~/components/ui", () => ({
     <div data-testid="table">
       {header?.title && <h2>{header.title}</h2>}
       {data?.map((row: any, idx: number) => (
-        <div
-          key={idx}
-          data-testid={`table-row-${idx}`}
-          onClick={() => onRowClick?.(row)}
-        >
+        <div key={idx} data-testid={`table-row-${idx}`} onClick={() => onRowClick?.(row)}>
           {row.name}
         </div>
       ))}
@@ -97,9 +93,7 @@ vi.mock("~/components/ui", () => ({
         </button>
       </div>
     ) : null,
-  Alert: ({ title, variant }: any) => (
-    <div data-testid={`alert-${variant}`}>{title}</div>
-  ),
+  Alert: ({ title, variant }: any) => <div data-testid={`alert-${variant}`}>{title}</div>,
 }));
 
 describe("Properties", () => {
@@ -147,11 +141,10 @@ describe("Properties", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    
-    const addButtons = screen.queryAllByRole("button").filter((btn) =>
-      btn.textContent?.includes("Adicionar") || btn.textContent?.includes("Add")
-    );
-    
+    const addButtons = screen
+      .queryAllByRole("button")
+      .filter((btn) => btn.textContent?.includes("Adicionar") || btn.textContent?.includes("Add"));
+
     if (addButtons.length > 0) {
       fireEvent.click(addButtons[0]);
       expect(mockNavigate).toHaveBeenCalledWith(ROUTES.PROPERTIES_NEW);
@@ -167,7 +160,7 @@ describe("Properties", () => {
     const deleteButtons = screen.queryAllByTestId("delete-button");
     if (deleteButtons.length > 0) {
       fireEvent.click(deleteButtons[0]);
-      
+
       await waitFor(() => {
         const confirmButton = screen.queryByTestId("confirm-button");
         if (confirmButton) {
@@ -194,39 +187,34 @@ describe("Properties", () => {
   });
 
   it("should have correct meta function", () => {
-    
     expect(Properties).toBeDefined();
   });
 
   it("should handle search filtering", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
-    
+
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
   it("should handle filter changes", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
-    
+
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
   it("should handle pagination", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
-    
+
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
   it("should handle sorting", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
-    
+
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
@@ -237,7 +225,7 @@ describe("Properties", () => {
     const deleteButtons = screen.queryAllByTestId("delete-button");
     if (deleteButtons.length > 0) {
       fireEvent.click(deleteButtons[0]);
-      
+
       await waitFor(() => {
         const cancelButton = screen.queryByTestId("cancel-button");
         if (cancelButton) {
@@ -251,11 +239,10 @@ describe("Properties", () => {
   it("should navigate to property view on row click", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const rows = screen.queryAllByTestId(/table-row-/);
     if (rows.length > 0) {
       fireEvent.click(rows[0]);
-      
     }
   });
 
@@ -266,12 +253,13 @@ describe("Properties", () => {
     const deleteButtons = screen.queryAllByTestId("delete-button");
     if (deleteButtons.length > 0) {
       fireEvent.click(deleteButtons[0]);
-      
+
       await waitFor(() => {
         const confirmButton = screen.queryByTestId("confirm-button");
         if (confirmButton) {
           fireEvent.click(confirmButton);
-          const alert = screen.queryByTestId("alert-success") || screen.queryByTestId("alert-error");
+          const alert =
+            screen.queryByTestId("alert-success") || screen.queryByTestId("alert-error");
           expect(alert || confirmButton).toBeTruthy();
         }
       });
@@ -282,8 +270,7 @@ describe("Properties", () => {
     vi.mocked(mockProperties).length = 0;
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 });
-

@@ -8,6 +8,7 @@ import {
 } from "../properties.service";
 import { mockProperties } from "~/mocks/properties";
 import type { PropertyFormData } from "~/types";
+import { AreaType } from "~/types/location";
 
 vi.mock("~/mocks/properties", () => ({
   mockProperties: [],
@@ -21,6 +22,15 @@ describe("properties.service", () => {
         id: "550e8400-e29b-41d4-a716-446655440010",
         name: "Property One",
         code: "P001",
+        area: { value: 1000, type: AreaType.HECTARES },
+        status: "active" as const,
+        street: "Main St",
+        number: "100",
+        complement: "",
+        neighborhood: "Downtown",
+        city: "City",
+        state: "SC",
+        zipCode: "88000000",
         companyId: "company-1",
         createdAt: "2020-01-01",
       },
@@ -28,6 +38,15 @@ describe("properties.service", () => {
         id: "550e8400-e29b-41d4-a716-446655440011",
         name: "Property Two",
         code: "P002",
+        area: { value: 2000, type: AreaType.HECTARES },
+        status: "active" as const,
+        street: "Second St",
+        number: "200",
+        complement: "",
+        neighborhood: "Uptown",
+        city: "City",
+        state: "SC",
+        zipCode: "88000001",
         companyId: "company-1",
         createdAt: "2020-01-02",
       },
@@ -35,6 +54,15 @@ describe("properties.service", () => {
         id: "550e8400-e29b-41d4-a716-446655440012",
         name: "Property Three",
         code: "P003",
+        area: { value: 3000, type: AreaType.HECTARES },
+        status: "active" as const,
+        street: "Third St",
+        number: "300",
+        complement: "",
+        neighborhood: "Suburb",
+        city: "City",
+        state: "SC",
+        zipCode: "88000002",
         companyId: "company-2",
         createdAt: "2020-01-03",
       }
@@ -77,6 +105,15 @@ describe("properties.service", () => {
       const formData: PropertyFormData = {
         name: "New Property",
         code: "P004",
+        area: { value: 1500, type: AreaType.HECTARES },
+        status: "active" as const,
+        street: "New St",
+        number: "400",
+        complement: "",
+        neighborhood: "New Area",
+        city: "City",
+        state: "SC",
+        zipCode: "88000003",
         companyId: "company-1",
       };
 
@@ -97,9 +134,7 @@ describe("properties.service", () => {
       });
 
       expect(result).toBe(true);
-      const updated = mockProperties.find(
-        (p) => p.id === "550e8400-e29b-41d4-a716-446655440010"
-      );
+      const updated = mockProperties.find((p) => p.id === "550e8400-e29b-41d4-a716-446655440010");
       expect(updated?.name).toBe("Updated Property");
     });
 
@@ -130,4 +165,3 @@ describe("properties.service", () => {
     });
   });
 });
-

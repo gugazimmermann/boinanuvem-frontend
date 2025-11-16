@@ -86,7 +86,7 @@ describe("weighings mock", () => {
 
   it("should have non-empty observation", () => {
     mockWeighings.forEach((weighing: Weighing) => {
-      expect(weighing.observation.trim().length).toBeGreaterThan(0);
+      expect(weighing.observation?.trim().length).toBeGreaterThan(0);
     });
   });
 
@@ -130,8 +130,9 @@ describe("weighings mock", () => {
     mockWeighings.forEach((weighing) => {
       const birth = getBirthByAnimalId(weighing.animalId);
       const acquisition = getAcquisitionByAnimalId(weighing.animalId);
-      const referenceDate = birth?.birthDate || acquisition?.birthDate || acquisition?.acquisitionDate;
-      
+      const referenceDate =
+        birth?.birthDate || acquisition?.birthDate || acquisition?.acquisitionDate;
+
       if (referenceDate) {
         const refDate = new Date(referenceDate).getTime();
         const weighingDate = new Date(weighing.date).getTime();
@@ -140,4 +141,3 @@ describe("weighings mock", () => {
     });
   });
 });
-

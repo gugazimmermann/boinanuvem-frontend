@@ -99,4 +99,3 @@ describe("suppliers mock", () => {
     expect(uniqueCodes.size).toBe(codes.length);
   });
 });
-

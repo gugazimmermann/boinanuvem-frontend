@@ -51,16 +51,14 @@ describe("Acquisitions", () => {
   it("should navigate on mount", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     expect(mockNavigate).toHaveBeenCalled();
   });
 
   it("should return null", () => {
     const router = createRouter();
     const { container } = render(<RouterProvider router={router} />);
-    
-    
+
     expect(container).toBeTruthy();
   });
 });
-

@@ -1,6 +1,13 @@
 import type { Buyer, BuyerFormData } from "~/types";
 import { mockBuyers } from "~/mocks/buyers";
-import { findById, findByField, findByFieldIncludes, createEntity, updateEntity, deleteEntity } from "./base-service";
+import {
+  findById,
+  findByField,
+  findByFieldIncludes,
+  createEntity,
+  updateEntity,
+  deleteEntity,
+} from "./base-service";
 
 const ID_PREFIX = "aa0e8400-e29b-41d4-a716";
 const DEFAULT_ID = "aa0e8400-e29b-41d4-a716-446655440009";
@@ -46,4 +53,3 @@ export function updateBuyer(buyerId: string, data: Partial<BuyerFormData>): bool
 export function deleteBuyer(buyerId: string): boolean {
   return deleteEntity(mockBuyers, buyerId);
 }
-

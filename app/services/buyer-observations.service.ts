@@ -1,6 +1,6 @@
 import type { BuyerObservation, BuyerObservationFormData } from "~/types/buyer-observation";
 import { mockBuyerObservations } from "~/mocks/buyer-observations";
-import { findById, findByField, updateEntity, deleteEntity } from "./base-service";
+import { findById, findByField, deleteEntity } from "./base-service";
 import { generateUUID } from "~/utils/uuid";
 
 /**
@@ -58,4 +58,3 @@ export function updateBuyerObservation(
   }
   return false;
 }
-

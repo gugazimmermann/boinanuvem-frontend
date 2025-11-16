@@ -1,14 +1,12 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
 import NewMovement from "../properties.$propertyId.movements.new";
 import { getPropertyById } from "~/services/properties.service";
 import { getLocationsByPropertyId } from "~/services/locations.service";
-import { getEmployeesByPropertyId } from "~/services/employees.service";
-import { getServiceProvidersByPropertyId } from "~/services/service-providers.service";
-import { addLocationMovement } from "~/services/location-movements.service";
 
 const mockNavigate = vi.fn();
 const mockSearchParams = new URLSearchParams();
@@ -32,7 +30,9 @@ vi.mock("~/mocks/properties", async () => {
 });
 
 vi.mock("~/services/properties.service", async () => {
-  const actual = await vi.importActual<typeof import("~/services/properties.service")>("~/services/properties.service");
+  const actual = await vi.importActual<typeof import("~/services/properties.service")>(
+    "~/services/properties.service"
+  );
   return {
     ...actual,
     getPropertyById: vi.fn(),
@@ -60,7 +60,9 @@ vi.mock("~/services/employees.service", () => ({
 }));
 
 vi.mock("~/mocks/service-providers", async () => {
-  const actual = await vi.importActual<typeof import("~/mocks/service-providers")>("~/mocks/service-providers");
+  const actual = await vi.importActual<typeof import("~/mocks/service-providers")>(
+    "~/mocks/service-providers"
+  );
   return actual;
 });
 
@@ -70,7 +72,9 @@ vi.mock("~/services/service-providers.service", () => ({
 }));
 
 vi.mock("~/mocks/location-movements", async () => {
-  const actual = await vi.importActual<typeof import("~/mocks/location-movements")>("~/mocks/location-movements");
+  const actual = await vi.importActual<typeof import("~/mocks/location-movements")>(
+    "~/mocks/location-movements"
+  );
   return actual;
 });
 
@@ -119,9 +123,7 @@ vi.mock("~/components/ui", () => ({
       onChange={(e) => onFilesChange?.(Array.from(e.target.files || []))}
     />
   ),
-  Alert: ({ title, variant }: any) => (
-    <div data-testid={`alert-${variant}`}>{title}</div>
-  ),
+  Alert: ({ title, variant }: any) => <div data-testid={`alert-${variant}`}>{title}</div>,
 }));
 
 describe("NewMovement", () => {
@@ -146,7 +148,9 @@ describe("NewMovement", () => {
         },
       ],
       {
-        initialEntries: [`/dashboard/properties/${propertyId}/movements/new${searchParams ? `?${searchParams}` : ""}`],
+        initialEntries: [
+          `/dashboard/properties/${propertyId}/movements/new${searchParams ? `?${searchParams}` : ""}`,
+        ],
       }
     );
   };
@@ -162,7 +166,7 @@ describe("NewMovement", () => {
   it("should render new movement form", () => {
     const router = createRouter("property-1");
     render(<RouterProvider router={router} />);
-    
+
     const heading = screen.queryByRole("heading", { level: 1 });
     const buttons = screen.queryAllByRole("button");
     expect(heading || buttons.length > 0).toBeTruthy();
@@ -172,7 +176,7 @@ describe("NewMovement", () => {
     vi.mocked(getPropertyById).mockReturnValue(undefined);
     const router = createRouter("invalid-id");
     render(<RouterProvider router={router} />);
-    
+
     const backButton = screen.queryByRole("button");
     expect(backButton).toBeInTheDocument();
   });
@@ -180,7 +184,7 @@ describe("NewMovement", () => {
   it("should handle form input changes", () => {
     const router = createRouter("property-1");
     render(<RouterProvider router={router} />);
-    
+
     const inputs = screen.queryAllByRole("textbox");
     if (inputs.length > 0) {
       fireEvent.change(inputs[0], { target: { value: "Test observation" } });
@@ -191,9 +195,14 @@ describe("NewMovement", () => {
   it("should handle form submission", () => {
     const router = createRouter("property-1");
     render(<RouterProvider router={router} />);
-    
+
     const submitButtons = screen.queryAllByTestId("submit-button");
-    const submitButton = submitButtons.find((btn) => btn.type === "submit" || btn.textContent?.includes("Salvar") || btn.textContent?.includes("Save"));
+    const submitButton = submitButtons.find(
+      (btn) =>
+        (btn as HTMLButtonElement).type === "submit" ||
+        btn.textContent?.includes("Salvar") ||
+        btn.textContent?.includes("Save")
+    ) as HTMLButtonElement | undefined;
     if (submitButton && !submitButton.disabled) {
       fireEvent.click(submitButton);
       expect(submitButton).toBeInTheDocument();
@@ -205,10 +214,10 @@ describe("NewMovement", () => {
     vi.mocked(getLocationsByPropertyId).mockReturnValue([
       { id: "location-1", name: "Location 1", propertyId: "property-1" },
     ]);
-    
+
     const router = createRouter("property-1", "locationId=location-1");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
@@ -216,4 +225,3 @@ describe("NewMovement", () => {
     expect(NewMovement).toBeDefined();
   });
 });
-

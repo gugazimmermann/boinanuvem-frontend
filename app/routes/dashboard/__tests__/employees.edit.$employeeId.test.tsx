@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -5,8 +6,6 @@ import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
 import EditEmployee from "../employees.edit.$employeeId";
 import { getEmployeeById, updateEmployee } from "~/services/employees.service";
-import { useCEPLookup } from "~/components/site/hooks";
-import { mapCEPDataToAddressForm, maskCEP, unmaskCEP, maskCPF, maskPhone } from "~/components/site/utils";
 
 const mockNavigate = vi.fn();
 const mockUseCEPLookup = vi.fn(() => ({ data: null, loading: false, error: null }));
@@ -46,7 +45,9 @@ vi.mock("~/mocks/properties", async () => {
 });
 
 vi.mock("~/services/properties.service", async () => {
-  const actual = await vi.importActual<typeof import("~/services/properties.service")>("~/services/properties.service");
+  const actual = await vi.importActual<typeof import("~/services/properties.service")>(
+    "~/services/properties.service"
+  );
   return {
     ...actual,
     mockProperties: [{ id: "prop-1", name: "Test Property" }],
@@ -58,7 +59,7 @@ vi.mock("~/components/site/hooks", () => ({
 }));
 
 vi.mock("~/components/site/utils", () => ({
-  mapCEPDataToAddressForm: vi.fn((data) => ({
+  mapCEPDataToAddressForm: vi.fn((data: any) => ({
     street: data.logradouro || "",
     neighborhood: data.bairro || "",
     city: data.localidade || "",
@@ -112,9 +113,7 @@ vi.mock("~/components/ui", () => ({
       {children}
     </button>
   ),
-  Alert: ({ title, variant }: any) => (
-    <div data-testid={`alert-${variant}`}>{title}</div>
-  ),
+  Alert: ({ title, variant }: any) => <div data-testid={`alert-${variant}`}>{title}</div>,
 }));
 
 describe("EditEmployee", () => {
@@ -197,7 +196,12 @@ describe("EditEmployee", () => {
     });
 
     const submitButtons = screen.queryAllByTestId("submit-button");
-    const submitButton = submitButtons.find((btn) => btn.type === "submit" || btn.textContent?.includes("Salvar") || btn.textContent?.includes("Save"));
+    const submitButton = submitButtons.find(
+      (btn) =>
+        (btn as HTMLButtonElement).type === "submit" ||
+        btn.textContent?.includes("Salvar") ||
+        btn.textContent?.includes("Save")
+    ) as HTMLButtonElement | undefined;
     if (submitButton && !submitButton.disabled) {
       fireEvent.click(submitButton);
       expect(submitButton).toBeInTheDocument();
@@ -216,9 +220,14 @@ describe("EditEmployee", () => {
     if (inputs.length > 0) {
       fireEvent.change(inputs[0], { target: { value: "" } });
     }
-    
+
     const submitButtons = screen.queryAllByTestId("submit-button");
-    const submitButton = submitButtons.find((btn) => btn.type === "submit" || btn.textContent?.includes("Salvar") || btn.textContent?.includes("Save"));
+    const submitButton = submitButtons.find(
+      (btn) =>
+        (btn as HTMLButtonElement).type === "submit" ||
+        btn.textContent?.includes("Salvar") ||
+        btn.textContent?.includes("Save")
+    ) as HTMLButtonElement | undefined;
     if (submitButton) {
       fireEvent.click(submitButton);
       const errors = screen.queryAllByText(/required|obrigatório/i);
@@ -236,7 +245,6 @@ describe("EditEmployee", () => {
   });
 
   it("should have correct meta function", () => {
-    
     expect(EditEmployee).toBeDefined();
   });
 
@@ -252,7 +260,7 @@ describe("EditEmployee", () => {
       loading: false,
       error: null,
     });
-    
+
     const router = createRouter("employee-1");
     render(<RouterProvider router={router} />);
 
@@ -277,12 +285,13 @@ describe("EditEmployee", () => {
 
     const zipCodeInput = screen.queryByTestId("input-CEP") || screen.queryByPlaceholderText(/CEP/i);
     const cpfInput = screen.queryByTestId("input-CPF") || screen.queryByPlaceholderText(/CPF/i);
-    const phoneInput = screen.queryByTestId("input-Phone") || screen.queryByPlaceholderText(/Telefone/i);
-    
+    const phoneInput =
+      screen.queryByTestId("input-Phone") || screen.queryByPlaceholderText(/Telefone/i);
+
     if (zipCodeInput) fireEvent.change(zipCodeInput, { target: { value: "89000000" } });
     if (cpfInput) fireEvent.change(cpfInput, { target: { value: "12345678900" } });
     if (phoneInput) fireEvent.change(phoneInput, { target: { value: "47999999999" } });
-    
+
     expect(zipCodeInput || cpfInput || phoneInput).toBeTruthy();
   });
 
@@ -295,12 +304,16 @@ describe("EditEmployee", () => {
     });
 
     const selects = screen.queryAllByRole("combobox");
-    const statusSelect = screen.queryByTestId("select-status") || selects.find(sel => sel.getAttribute("name") === "status");
-    const stateSelect = screen.queryByTestId("select-state") || selects.find(sel => sel.getAttribute("name") === "state");
-    
+    const statusSelect =
+      screen.queryByTestId("select-status") ||
+      selects.find((sel) => sel.getAttribute("name") === "status");
+    const stateSelect =
+      screen.queryByTestId("select-state") ||
+      selects.find((sel) => sel.getAttribute("name") === "state");
+
     if (statusSelect) fireEvent.change(statusSelect, { target: { value: "inactive" } });
     if (stateSelect) fireEvent.change(stateSelect, { target: { value: "PR" } });
-    
+
     expect(selects.length >= 0).toBeTruthy();
   });
 
@@ -345,10 +358,16 @@ describe("EditEmployee", () => {
       expect(getEmployeeById).toHaveBeenCalledWith("employee-1");
     });
 
-    const cancelButtons = screen.queryAllByRole("button").filter((btn) =>
-      btn.textContent?.includes("Cancelar") || btn.textContent?.includes("Cancel") || btn.textContent?.includes("Voltar") || btn.textContent?.includes("Back")
-    );
-    
+    const cancelButtons = screen
+      .queryAllByRole("button")
+      .filter(
+        (btn) =>
+          btn.textContent?.includes("Cancelar") ||
+          btn.textContent?.includes("Cancel") ||
+          btn.textContent?.includes("Voltar") ||
+          btn.textContent?.includes("Back")
+      );
+
     if (cancelButtons.length > 0) {
       fireEvent.click(cancelButtons[0]);
       expect(mockNavigate).toHaveBeenCalled();
@@ -363,7 +382,8 @@ describe("EditEmployee", () => {
       expect(getEmployeeById).toHaveBeenCalledWith("employee-1");
     });
 
-    const emailInput = screen.queryByTestId("input-Email") || screen.queryByPlaceholderText(/Email/i);
+    const emailInput =
+      screen.queryByTestId("input-Email") || screen.queryByPlaceholderText(/Email/i);
     if (emailInput) {
       fireEvent.change(emailInput, { target: { value: "invalid-email" } });
       const form = container.querySelector("form");
@@ -416,4 +436,3 @@ describe("EditEmployee", () => {
     expect(inputs.length > 0).toBeTruthy();
   });
 });
-

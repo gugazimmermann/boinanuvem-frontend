@@ -20,7 +20,10 @@ import {
 import { getBuyerById } from "~/services/buyers.service";
 import { getPropertyById } from "~/services/properties.service";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
-import { getBuyerObservationsByBuyerId, addBuyerObservation } from "~/services/buyer-observations.service";
+import {
+  getBuyerObservationsByBuyerId,
+  addBuyerObservation,
+} from "~/services/buyer-observations.service";
 import type { BuyerObservation } from "~/types/buyer-observation";
 
 export function meta() {
@@ -338,7 +341,7 @@ export default function BuyerDetails() {
                   </p>
                   <div className="mt-1 flex flex-wrap gap-2">
                     {buyer.propertyIds && buyer.propertyIds.length > 0 ? (
-                      buyer.propertyIds.map((propertyId) => {
+                      buyer.propertyIds.map((propertyId: string) => {
                         const property = getPropertyById(propertyId);
                         return property ? (
                           <span

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -573,4 +574,3 @@ describe("ObservationDetails", () => {
     expect(ObservationDetails).toBeDefined();
   });
 });
-

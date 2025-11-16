@@ -4,7 +4,6 @@ import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
 import Dashboard from "../index";
-import { mockCompanies } from "~/mocks/companies";
 import { mockProperties } from "~/mocks/properties";
 import { mockLocations } from "~/mocks/locations";
 import { getAnimalsByCompanyId } from "~/services/animals.service";
@@ -47,7 +46,9 @@ vi.mock("~/mocks/animals", async () => {
 });
 
 vi.mock("~/services/animals.service", async () => {
-  const actual = await vi.importActual<typeof import("~/services/animals.service")>("~/services/animals.service");
+  const actual = await vi.importActual<typeof import("~/services/animals.service")>(
+    "~/services/animals.service"
+  );
   return {
     ...actual,
     getAnimalsByCompanyId: vi.fn(() => [
@@ -65,7 +66,9 @@ vi.mock("~/mocks/births", async () => {
 });
 
 vi.mock("~/services/births.service", async () => {
-  const actual = await vi.importActual<typeof import("~/services/births.service")>("~/services/births.service");
+  const actual = await vi.importActual<typeof import("~/services/births.service")>(
+    "~/services/births.service"
+  );
   return {
     ...actual,
     getBirthsByCompanyId: vi.fn(() => [{ id: "birth-1" }]),
@@ -78,7 +81,9 @@ vi.mock("~/mocks/weighings", async () => {
 });
 
 vi.mock("~/services/weighings.service", async () => {
-  const actual = await vi.importActual<typeof import("~/services/weighings.service")>("~/services/weighings.service");
+  const actual = await vi.importActual<typeof import("~/services/weighings.service")>(
+    "~/services/weighings.service"
+  );
   return {
     ...actual,
     getWeighingsByAnimalId: vi.fn(() => [
@@ -120,7 +125,6 @@ describe("Dashboard", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    
     expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
   });
 
@@ -128,7 +132,6 @@ describe("Dashboard", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    
     const headings = screen.getAllByRole("heading");
     expect(headings.length).toBeGreaterThan(0);
   });
@@ -144,7 +147,6 @@ describe("Dashboard", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    
     expect(mockProperties.length).toBeGreaterThan(0);
   });
 
@@ -152,7 +154,6 @@ describe("Dashboard", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    
     expect(mockLocations.length).toBeGreaterThan(0);
   });
 
@@ -167,13 +168,10 @@ describe("Dashboard", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    
     expect(getWeighingsByAnimalId).toHaveBeenCalled();
   });
 
   it("should have correct meta function", () => {
-    
     expect(Dashboard).toBeDefined();
   });
 });
-

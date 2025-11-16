@@ -8,7 +8,7 @@ import { mapCEPDataToAddressForm } from "~/components/site/utils";
 import { ROUTES, getEmployeeViewRoute } from "~/routes.config";
 import { getEmployeeById, updateEmployee } from "~/services/employees.service";
 import type { EmployeeFormData } from "~/types";
-import { mockProperties } from "~/services/properties.service";
+import { mockProperties } from "~/mocks/properties";
 import { BRAZILIAN_STATES } from "~/utils/brazilian-states";
 
 export function meta() {
@@ -301,7 +301,8 @@ export default function EditEmployee() {
                   errors.propertyIds ? "border-red-500" : "border-gray-300 dark:border-gray-600"
                 }`}
               >
-                {mockProperties.map((property) => (
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {mockProperties.map((property: any) => (
                   <option key={property.id} value={property.id}>
                     {property.name}
                   </option>

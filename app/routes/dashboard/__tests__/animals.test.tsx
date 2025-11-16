@@ -1,10 +1,12 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
 import Animals from "../animals";
-import { mockAnimals, deleteAnimal } from "~/mocks/animals";
+import { mockAnimals } from "~/mocks/animals";
+import { deleteAnimal } from "~/services/animals.service";
 import { ROUTES } from "~/routes.config";
 import { getBirthByAnimalId } from "~/services/births.service";
 import { getWeighingsByAnimalId } from "~/services/weighings.service";
@@ -60,7 +62,9 @@ vi.mock("~/mocks/properties", async () => {
 });
 
 vi.mock("~/services/properties.service", async () => {
-  const actual = await vi.importActual<typeof import("~/services/properties.service")>("~/services/properties.service");
+  const actual = await vi.importActual<typeof import("~/services/properties.service")>(
+    "~/services/properties.service"
+  );
   return {
     ...actual,
     getPropertyById: vi.fn(() => ({ id: "prop-1", name: "Test Property" })),
@@ -95,7 +99,17 @@ vi.mock("~/services/weighings.service", () => ({
 }));
 
 vi.mock("~/components/ui", () => ({
-  Table: ({ data, header, onRowClick, onSort, sortState, filters, search, pagination, selection }: any) => (
+  Table: ({
+    data,
+    header,
+    onRowClick,
+    onSort,
+    sortState: _sortState,
+    filters,
+    search,
+    pagination,
+    selection,
+  }: any) => (
     <div data-testid="table">
       {header?.title && <h2>{header.title}</h2>}
       {search && (
@@ -106,26 +120,23 @@ vi.mock("~/components/ui", () => ({
           onChange={(e) => search.onChange?.(e.target.value)}
         />
       )}
-      {filters && filters.map((filter: any, idx: number) => (
-        <button
-          key={idx}
-          data-testid={`filter-${filter.value}`}
-          onClick={() => filter.onClick?.()}
-        >
-          {filter.label}
-        </button>
-      ))}
+      {filters &&
+        filters.map((filter: any, idx: number) => (
+          <button
+            key={idx}
+            data-testid={`filter-${filter.value}`}
+            onClick={() => filter.onClick?.()}
+          >
+            {filter.label}
+          </button>
+        ))}
       {onSort && (
         <button data-testid="sort-button" onClick={() => onSort("code", "asc")}>
           Sort
         </button>
       )}
       {data?.map((row: any, idx: number) => (
-        <div
-          key={idx}
-          data-testid={`table-row-${idx}`}
-          onClick={() => onRowClick?.(row)}
-        >
+        <div key={idx} data-testid={`table-row-${idx}`} onClick={() => onRowClick?.(row)}>
           {row.code}
           {selection && (
             <input
@@ -139,11 +150,19 @@ vi.mock("~/components/ui", () => ({
       ))}
       {pagination && (
         <div data-testid="pagination">
-          <button data-testid="prev-page" onClick={() => pagination.onPageChange?.(pagination.currentPage - 1)}>
+          <button
+            data-testid="prev-page"
+            onClick={() => pagination.onPageChange?.(pagination.currentPage - 1)}
+          >
             Prev
           </button>
-          <span>{pagination.currentPage} / {pagination.totalPages}</span>
-          <button data-testid="next-page" onClick={() => pagination.onPageChange?.(pagination.currentPage + 1)}>
+          <span>
+            {pagination.currentPage} / {pagination.totalPages}
+          </span>
+          <button
+            data-testid="next-page"
+            onClick={() => pagination.onPageChange?.(pagination.currentPage + 1)}
+          >
             Next
           </button>
         </div>
@@ -173,15 +192,11 @@ vi.mock("~/components/ui", () => ({
         </button>
       </div>
     ) : null,
-  Alert: ({ title, variant }: any) => (
-    <div data-testid={`alert-${variant}`}>{title}</div>
-  ),
-  AnimalRegistrationModal: ({ isOpen, onClose }: any) =>
+  Alert: ({ title, variant }: any) => <div data-testid={`alert-${variant}`}>{title}</div>,
+  AnimalRegistrationModal: ({ isOpen, onClose: _onClose }: any) =>
     isOpen ? <div data-testid="animal-registration-modal">Modal</div> : null,
   Tooltip: ({ children, content }: any) => <div title={content}>{children}</div>,
-  Button: ({ children, onClick }: any) => (
-    <button onClick={onClick}>{children}</button>
-  ),
+  Button: ({ children, onClick }: any) => <button onClick={onClick}>{children}</button>,
 }));
 
 describe("Animals", () => {
@@ -229,16 +244,14 @@ describe("Animals", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    
-    const addButtons = screen.queryAllByRole("button").filter((btn) =>
-      btn.textContent?.includes("Adicionar") || btn.textContent?.includes("Add")
-    );
-    
+    const addButtons = screen
+      .queryAllByRole("button")
+      .filter((btn) => btn.textContent?.includes("Adicionar") || btn.textContent?.includes("Add"));
+
     if (addButtons.length > 0) {
       fireEvent.click(addButtons[0]);
       expect(mockNavigate).toHaveBeenCalledWith(ROUTES.ANIMALS_NEW);
     } else {
-      
       expect(screen.getByTestId("table")).toBeInTheDocument();
     }
   });
@@ -247,11 +260,10 @@ describe("Animals", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    
     const deleteButtons = screen.queryAllByTestId("delete-button");
     if (deleteButtons.length > 0) {
       fireEvent.click(deleteButtons[0]);
-      
+
       await waitFor(() => {
         const confirmButton = screen.queryByTestId("confirm-button");
         if (confirmButton) {
@@ -260,53 +272,46 @@ describe("Animals", () => {
         }
       });
     } else {
-      
       expect(screen.getByTestId("table")).toBeInTheDocument();
     }
   });
 
   it("should have correct meta function", () => {
-    
     expect(Animals).toBeDefined();
   });
 
   it("should handle search filtering", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
-    
+
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
   it("should handle filter changes", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
-    
+
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
   it("should handle pagination", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
-    
+
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
   it("should handle sorting", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
-    
+
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
   it("should handle animal selection", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
-    
+
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
@@ -317,7 +322,7 @@ describe("Animals", () => {
     const deleteButtons = screen.queryAllByTestId("delete-button");
     if (deleteButtons.length > 0) {
       fireEvent.click(deleteButtons[0]);
-      
+
       await waitFor(() => {
         const cancelButton = screen.queryByTestId("cancel-button");
         if (cancelButton) {
@@ -333,11 +338,11 @@ describe("Animals", () => {
   it("should open animal registration modal", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
-    const addButtons = screen.queryAllByRole("button").filter((btn) =>
-      btn.textContent?.includes("Adicionar") || btn.textContent?.includes("Add")
-    );
-    
+
+    const addButtons = screen
+      .queryAllByRole("button")
+      .filter((btn) => btn.textContent?.includes("Adicionar") || btn.textContent?.includes("Add"));
+
     if (addButtons.length > 0) {
       fireEvent.click(addButtons[0]);
       const modal = screen.queryByTestId("animal-registration-modal");
@@ -352,12 +357,13 @@ describe("Animals", () => {
     const deleteButtons = screen.queryAllByTestId("delete-button");
     if (deleteButtons.length > 0) {
       fireEvent.click(deleteButtons[0]);
-      
+
       await waitFor(() => {
         const confirmButton = screen.queryByTestId("confirm-button");
         if (confirmButton) {
           fireEvent.click(confirmButton);
-          const alert = screen.queryByTestId("alert-success") || screen.queryByTestId("alert-error");
+          const alert =
+            screen.queryByTestId("alert-success") || screen.queryByTestId("alert-error");
           expect(alert || confirmButton).toBeTruthy();
         }
       });
@@ -368,25 +374,24 @@ describe("Animals", () => {
     vi.mocked(mockAnimals).length = 0;
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
   it("should navigate to animal view on row click", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const rows = screen.queryAllByTestId(/table-row-/);
     if (rows.length > 0) {
       fireEvent.click(rows[0]);
-      
     }
   });
 
   it("should navigate to animal edit", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const editButtons = screen.queryAllByTestId("edit-button");
     if (editButtons.length > 0) {
       fireEvent.click(editButtons[0]);
@@ -397,7 +402,7 @@ describe("Animals", () => {
   it("should filter animals by search value", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const searchInput = screen.queryByTestId("search-input");
     if (searchInput) {
       fireEvent.change(searchInput, { target: { value: "AN001" } });
@@ -414,10 +419,10 @@ describe("Animals", () => {
       createdAt: "2024-01-01",
       companyId: "company-1",
     });
-    
+
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const searchInput = screen.queryByTestId("search-input");
     if (searchInput) {
       fireEvent.change(searchInput, { target: { value: "Angus" } });
@@ -428,7 +433,7 @@ describe("Animals", () => {
   it("should filter animals by status", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const activeFilter = screen.queryByTestId("filter-active");
     if (activeFilter) {
       fireEvent.click(activeFilter);
@@ -439,7 +444,7 @@ describe("Animals", () => {
   it("should filter animals by inactive status", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const inactiveFilter = screen.queryByTestId("filter-inactive");
     if (inactiveFilter) {
       fireEvent.click(inactiveFilter);
@@ -450,7 +455,7 @@ describe("Animals", () => {
   it("should handle pagination", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const nextPageButton = screen.queryByTestId("next-page");
     if (nextPageButton) {
       fireEvent.click(nextPageButton);
@@ -461,7 +466,7 @@ describe("Animals", () => {
   it("should handle pagination previous page", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const nextPageButton = screen.queryByTestId("next-page");
     if (nextPageButton) {
       fireEvent.click(nextPageButton);
@@ -476,7 +481,7 @@ describe("Animals", () => {
   it("should handle sorting", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const sortButton = screen.queryByTestId("sort-button");
     if (sortButton) {
       fireEvent.click(sortButton);
@@ -487,7 +492,7 @@ describe("Animals", () => {
   it("should handle animal selection", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const selectCheckbox = screen.queryByTestId("select-animal-1");
     if (selectCheckbox) {
       fireEvent.click(selectCheckbox);
@@ -504,10 +509,10 @@ describe("Animals", () => {
       createdAt: "2024-01-01",
       companyId: "company-1",
     });
-    
+
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
@@ -520,10 +525,10 @@ describe("Animals", () => {
       createdAt: "2024-01-01",
       companyId: "company-1",
     });
-    
+
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
@@ -536,10 +541,10 @@ describe("Animals", () => {
       createdAt: "2024-01-01",
       companyId: "company-1",
     });
-    
+
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
@@ -551,69 +556,113 @@ describe("Animals", () => {
       createdAt: "2023-01-01",
       companyId: "company-1",
     });
-    
+
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
   it("should calculate and display age from acquisition date", () => {
     vi.mocked(getBirthByAnimalId).mockReturnValueOnce(null);
-    
+
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
   it("should display weight from last weighing", () => {
     vi.mocked(getWeighingsByAnimalId).mockReturnValueOnce([
-      { id: "w1", animalId: "animal-1", weight: 300, date: "2024-01-01", createdAt: "2024-01-01", companyId: "company-1", employeeIds: [], serviceProviderIds: [] },
+      {
+        id: "w1",
+        animalId: "animal-1",
+        weight: 300,
+        date: "2024-01-01",
+        createdAt: "2024-01-01",
+        companyId: "company-1",
+        employeeIds: [],
+        serviceProviderIds: [],
+      },
     ]);
-    
+
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
   it("should display weight in arrobas", () => {
     vi.mocked(getWeighingsByAnimalId).mockReturnValueOnce([
-      { id: "w1", animalId: "animal-1", weight: 300, date: "2024-01-01", createdAt: "2024-01-01", companyId: "company-1", employeeIds: [], serviceProviderIds: [] },
+      {
+        id: "w1",
+        animalId: "animal-1",
+        weight: 300,
+        date: "2024-01-01",
+        createdAt: "2024-01-01",
+        companyId: "company-1",
+        employeeIds: [],
+        serviceProviderIds: [],
+      },
     ]);
-    
+
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
   it("should calculate and display GMD", () => {
     vi.mocked(getWeighingsByAnimalId).mockReturnValueOnce([
-      { id: "w1", animalId: "animal-1", weight: 100, date: "2024-01-01", createdAt: "2024-01-01", companyId: "company-1", employeeIds: [], serviceProviderIds: [] },
-      { id: "w2", animalId: "animal-1", weight: 150, date: "2024-02-01", createdAt: "2024-02-01", companyId: "company-1", employeeIds: [], serviceProviderIds: [] },
+      {
+        id: "w1",
+        animalId: "animal-1",
+        weight: 100,
+        date: "2024-01-01",
+        createdAt: "2024-01-01",
+        companyId: "company-1",
+        employeeIds: [],
+        serviceProviderIds: [],
+      },
+      {
+        id: "w2",
+        animalId: "animal-1",
+        weight: 150,
+        date: "2024-02-01",
+        createdAt: "2024-02-01",
+        companyId: "company-1",
+        employeeIds: [],
+        serviceProviderIds: [],
+      },
     ]);
-    
+
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
   it("should display property name", () => {
-    vi.mocked(getPropertyById).mockReturnValueOnce({ id: "prop-1", name: "Test Property", status: "active" as const, companyId: "company-1", city: "Test City", state: "SC", area: { value: 100, type: "hectares" as const } });
-    
+    vi.mocked(getPropertyById).mockReturnValueOnce({
+      id: "prop-1",
+      name: "Test Property",
+      status: "active" as const,
+      companyId: "company-1",
+      city: "Test City",
+      state: "SC",
+      area: { value: 100, type: "hectares" as const },
+    });
+
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
   it("should handle multiple animal selection", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const selectCheckboxes = screen.queryAllByTestId(/select-animal-/);
     if (selectCheckboxes.length > 1) {
       fireEvent.click(selectCheckboxes[0]);
@@ -625,13 +674,13 @@ describe("Animals", () => {
   it("should navigate to movement route with selected animals", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const selectCheckbox = screen.queryByTestId("select-animal-1");
     if (selectCheckbox) {
       fireEvent.click(selectCheckbox);
-      const moveButtons = screen.queryAllByRole("button").filter((btn) =>
-        btn.textContent?.includes("Mover") || btn.textContent?.includes("Move")
-      );
+      const moveButtons = screen
+        .queryAllByRole("button")
+        .filter((btn) => btn.textContent?.includes("Mover") || btn.textContent?.includes("Move"));
       if (moveButtons.length > 0) {
         fireEvent.click(moveButtons[0]);
         expect(mockNavigate).toHaveBeenCalled();
@@ -642,7 +691,7 @@ describe("Animals", () => {
   it("should handle empty search results", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const searchInput = screen.queryByTestId("search-input");
     if (searchInput) {
       fireEvent.change(searchInput, { target: { value: "NonExistent" } });
@@ -653,7 +702,7 @@ describe("Animals", () => {
   it("should handle sorting by different columns", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const sortButton = screen.queryByTestId("sort-button");
     if (sortButton) {
       fireEvent.click(sortButton);
@@ -664,19 +713,28 @@ describe("Animals", () => {
 
   it("should display last weighing date", () => {
     vi.mocked(getWeighingsByAnimalId).mockReturnValueOnce([
-      { id: "w1", animalId: "animal-1", weight: 300, date: "2024-01-15", createdAt: "2024-01-15", companyId: "company-1", employeeIds: [], serviceProviderIds: [] },
+      {
+        id: "w1",
+        animalId: "animal-1",
+        weight: 300,
+        date: "2024-01-15",
+        createdAt: "2024-01-15",
+        companyId: "company-1",
+        employeeIds: [],
+        serviceProviderIds: [],
+      },
     ]);
-    
+
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
   it("should handle all filter option", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const allFilter = screen.queryByTestId("filter-all");
     if (allFilter) {
       fireEvent.click(allFilter);
@@ -684,4 +742,3 @@ describe("Animals", () => {
     }
   });
 });
-

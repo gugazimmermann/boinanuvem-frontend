@@ -45,4 +45,3 @@ describe("location-observations mock", () => {
     expect(uniqueIds.size).toBe(ids.length);
   });
 });
-

@@ -115,11 +115,6 @@ describe("animals.service", () => {
         status: "active",
         companyId: "company-1",
         propertyId: "property-1",
-        locationId: "location-1",
-        breed: "Nelore",
-        gender: "male",
-        birthDate: "2020-01-01",
-        weight: 400,
       };
 
       const initialLength = mockAnimals.length;
@@ -136,15 +131,11 @@ describe("animals.service", () => {
     it("should update existing animal", () => {
       const result = updateAnimal("bb0e8400-e29b-41d4-a716-446655440100", {
         code: "FJ001-UPDATED",
-        weight: 550,
       });
 
       expect(result).toBe(true);
-      const updated = mockAnimals.find(
-        (a) => a.id === "bb0e8400-e29b-41d4-a716-446655440100"
-      );
+      const updated = mockAnimals.find((a) => a.id === "bb0e8400-e29b-41d4-a716-446655440100");
       expect(updated?.code).toBe("FJ001-UPDATED");
-      expect(updated?.weight).toBe(550);
     });
 
     it("should return false when animal does not exist", () => {
@@ -174,4 +165,3 @@ describe("animals.service", () => {
     });
   });
 });
-

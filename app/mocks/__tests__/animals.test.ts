@@ -65,7 +65,7 @@ describe("animals mock", () => {
       codesByProperty.get(animal.propertyId)!.add(animal.code);
     });
 
-    codesByProperty.forEach((codes, propertyId) => {
+    codesByProperty.forEach((codes, _propertyId) => {
       expect(codes.size).toBeGreaterThan(0);
     });
   });
@@ -88,4 +88,3 @@ describe("animals mock", () => {
     expect(animalsWithoutAcquisition.length).toBeGreaterThan(0);
   });
 });
-

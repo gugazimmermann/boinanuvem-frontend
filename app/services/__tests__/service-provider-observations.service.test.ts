@@ -38,9 +38,7 @@ describe("service-provider-observations.service", () => {
     it("should return observations for specific service provider", () => {
       const result = getServiceProviderObservationsByServiceProviderId("provider-1");
       expect(result).toHaveLength(2);
-      expect(
-        result.every((obs) => obs.serviceProviderId === "provider-1")
-      ).toBe(true);
+      expect(result.every((obs) => obs.serviceProviderId === "provider-1")).toBe(true);
     });
   });
 
@@ -89,4 +87,3 @@ describe("service-provider-observations.service", () => {
     });
   });
 });
-

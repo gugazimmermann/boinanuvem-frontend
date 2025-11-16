@@ -2,9 +2,7 @@ import type { TeamUser, UserFormData } from "~/types";
 import type { UserPermissions } from "~/types/permissions";
 import { mockUsers } from "~/mocks/users";
 import { mockCompanies } from "~/mocks/companies";
-import { findById, findByField, updateEntity, createEntity } from "./base-service";
-
-const ID_PREFIX = "550e8400-e29b-41d4-a716";
+import { findById, findByField } from "./base-service";
 const DEFAULT_PASSWORD_HASH = "$2b$10$9c7eBs.MydmDkdO6SworA.ENm1i1yiT62zIzVrxJTecnU6Tl1ZhVu";
 
 /**
@@ -73,4 +71,3 @@ export function addUser(data: UserFormData & { password: string }): TeamUser {
   mockUsers.push(newUser);
   return newUser;
 }
-

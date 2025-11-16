@@ -1,10 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
 import TeamPermissions from "../team.permissions.$userId";
-import { getUserById, updateUserPermissions } from "~/services/users.service";
+import { getUserById } from "~/services/users.service";
 
 const mockNavigate = vi.fn();
 
@@ -33,9 +34,7 @@ vi.mock("~/components/ui", () => ({
       {children}
     </button>
   ),
-  Alert: ({ title, variant }: any) => (
-    <div data-testid={`alert-${variant}`}>{title}</div>
-  ),
+  Alert: ({ title, variant }: any) => <div data-testid={`alert-${variant}`}>{title}</div>,
 }));
 
 describe("TeamPermissions", () => {
@@ -98,7 +97,6 @@ describe("TeamPermissions", () => {
     const router = createRouter("invalid-id");
     render(<RouterProvider router={router} />);
 
-    
     const loadingText = screen.queryByText(/loading|carregando/i);
     expect(loadingText || screen.queryAllByRole("button").length > 0).toBeTruthy();
   });
@@ -107,4 +105,3 @@ describe("TeamPermissions", () => {
     expect(TeamPermissions).toBeDefined();
   });
 });
-

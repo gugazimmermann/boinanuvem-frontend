@@ -1,11 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
 import NewAnimal from "../animals.new";
 import { addAnimal } from "~/services/animals.service";
-import { ROUTES } from "~/routes.config";
 
 const mockNavigate = vi.fn();
 
@@ -43,7 +43,9 @@ vi.mock("~/mocks/properties", async () => {
 });
 
 vi.mock("~/services/properties.service", async () => {
-  const actual = await vi.importActual<typeof import("~/services/properties.service")>("~/services/properties.service");
+  const actual = await vi.importActual<typeof import("~/services/properties.service")>(
+    "~/services/properties.service"
+  );
   return {
     ...actual,
     mockProperties: [{ id: "prop-1", name: "Test Property" }],
@@ -80,9 +82,7 @@ vi.mock("~/components/ui", () => ({
       {children}
     </button>
   ),
-  Alert: ({ title, variant }: any) => (
-    <div data-testid={`alert-${variant}`}>{title}</div>
-  ),
+  Alert: ({ title, variant }: any) => <div data-testid={`alert-${variant}`}>{title}</div>,
 }));
 
 describe("NewAnimal", () => {
@@ -122,7 +122,7 @@ describe("NewAnimal", () => {
   it("should handle form input changes", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const inputs = screen.queryAllByRole("textbox");
     if (inputs.length > 0) {
       fireEvent.change(inputs[0], { target: { value: "Test Value" } });
@@ -133,12 +133,17 @@ describe("NewAnimal", () => {
   it("should handle form submission with valid data", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const codeInput = screen.queryByTestId("input-Código");
     if (codeInput) fireEvent.change(codeInput, { target: { value: "AN001" } });
-    
+
     const submitButtons = screen.queryAllByTestId("submit-button");
-    const submitButton = submitButtons.find((btn) => btn.type === "submit" || btn.textContent?.includes("Salvar") || btn.textContent?.includes("Save"));
+    const submitButton = submitButtons.find(
+      (btn) =>
+        (btn as HTMLButtonElement).type === "submit" ||
+        btn.textContent?.includes("Salvar") ||
+        btn.textContent?.includes("Save")
+    ) as HTMLButtonElement | undefined;
     if (submitButton && !submitButton.disabled) {
       fireEvent.click(submitButton);
       expect(submitButton).toBeInTheDocument();
@@ -148,9 +153,14 @@ describe("NewAnimal", () => {
   it("should show validation errors on invalid submission", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const submitButtons = screen.queryAllByTestId("submit-button");
-    const submitButton = submitButtons.find((btn) => btn.type === "submit" || btn.textContent?.includes("Salvar") || btn.textContent?.includes("Save"));
+    const submitButton = submitButtons.find(
+      (btn) =>
+        (btn as HTMLButtonElement).type === "submit" ||
+        btn.textContent?.includes("Salvar") ||
+        btn.textContent?.includes("Save")
+    ) as HTMLButtonElement | undefined;
     if (submitButton) {
       fireEvent.click(submitButton);
       const errors = screen.queryAllByText(/required|obrigatório/i);
@@ -159,15 +169,15 @@ describe("NewAnimal", () => {
   });
 
   it("should have correct meta function", () => {
-    
     expect(NewAnimal).toBeDefined();
   });
 
   it("should handle property selection", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
-    const propertySelect = screen.queryByTestId("select-propertyId") || screen.queryByLabelText(/Propriedade/i);
+
+    const propertySelect =
+      screen.queryByTestId("select-propertyId") || screen.queryByLabelText(/Propriedade/i);
     if (propertySelect) {
       fireEvent.change(propertySelect, { target: { value: "prop-1" } });
       expect(propertySelect).toBeInTheDocument();
@@ -177,8 +187,9 @@ describe("NewAnimal", () => {
   it("should handle status selection", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
-    const statusSelect = screen.queryByTestId("select-status") || screen.queryByLabelText(/Status/i);
+
+    const statusSelect =
+      screen.queryByTestId("select-status") || screen.queryByLabelText(/Status/i);
     if (statusSelect) {
       fireEvent.change(statusSelect, { target: { value: "inactive" } });
       expect(statusSelect).toBeInTheDocument();
@@ -188,19 +199,28 @@ describe("NewAnimal", () => {
   it("should handle successful form submission", () => {
     const router = createRouter();
     const { container } = render(<RouterProvider router={router} />);
-    
-    
+
     const inputs = screen.queryAllByRole("textbox");
     const selects = screen.queryAllByRole("combobox");
-    
-    const codeInput = screen.queryByTestId("input-Código") || inputs.find(inp => inp.getAttribute("aria-label")?.includes("Código"));
-    const registrationInput = screen.queryByTestId("input-Registration") || inputs.find(inp => inp.getAttribute("aria-label")?.includes("Registro") || inp.getAttribute("placeholder")?.includes("Registro"));
-    const propertySelect = screen.queryByTestId("select-propertyId") || selects.find(sel => sel.getAttribute("name") === "propertyId");
-    
+
+    const codeInput =
+      screen.queryByTestId("input-Código") ||
+      inputs.find((inp) => inp.getAttribute("aria-label")?.includes("Código"));
+    const registrationInput =
+      screen.queryByTestId("input-Registration") ||
+      inputs.find(
+        (inp) =>
+          inp.getAttribute("aria-label")?.includes("Registro") ||
+          inp.getAttribute("placeholder")?.includes("Registro")
+      );
+    const propertySelect =
+      screen.queryByTestId("select-propertyId") ||
+      selects.find((sel) => sel.getAttribute("name") === "propertyId");
+
     if (codeInput) fireEvent.change(codeInput, { target: { value: "AN001" } });
     if (registrationInput) fireEvent.change(registrationInput, { target: { value: "REG001" } });
     if (propertySelect) fireEvent.change(propertySelect, { target: { value: "prop-1" } });
-    
+
     const form = container.querySelector("form");
     if (form) {
       fireEvent.submit(form);
@@ -218,7 +238,7 @@ describe("NewAnimal", () => {
     vi.mocked(addAnimal).mockReturnValueOnce(undefined as any);
     const router = createRouter();
     const { container } = render(<RouterProvider router={router} />);
-    
+
     const form = container.querySelector("form");
     if (form) {
       fireEvent.submit(form);
@@ -230,11 +250,17 @@ describe("NewAnimal", () => {
   it("should navigate back on cancel", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
-    const cancelButtons = screen.queryAllByRole("button").filter((btn) =>
-      btn.textContent?.includes("Cancelar") || btn.textContent?.includes("Cancel") || btn.textContent?.includes("Voltar") || btn.textContent?.includes("Back")
-    );
-    
+
+    const cancelButtons = screen
+      .queryAllByRole("button")
+      .filter(
+        (btn) =>
+          btn.textContent?.includes("Cancelar") ||
+          btn.textContent?.includes("Cancel") ||
+          btn.textContent?.includes("Voltar") ||
+          btn.textContent?.includes("Back")
+      );
+
     if (cancelButtons.length > 0) {
       fireEvent.click(cancelButtons[0]);
       expect(mockNavigate).toHaveBeenCalled();
@@ -244,8 +270,11 @@ describe("NewAnimal", () => {
   it("should handle acquisition date input", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
-    const dateInput = screen.queryByTestId("input-Date") || screen.queryByLabelText(/Data/i) || screen.queryByPlaceholderText(/Data/i);
+
+    const dateInput =
+      screen.queryByTestId("input-Date") ||
+      screen.queryByLabelText(/Data/i) ||
+      screen.queryByPlaceholderText(/Data/i);
     if (dateInput) {
       fireEvent.change(dateInput, { target: { value: "2024-01-01" } });
       expect(dateInput).toBeInTheDocument();
@@ -255,18 +284,24 @@ describe("NewAnimal", () => {
   it("should display alert on successful submission", () => {
     const router = createRouter();
     const { container } = render(<RouterProvider router={router} />);
-    
+
     const inputs = screen.queryAllByRole("textbox");
     const selects = screen.queryAllByRole("combobox");
-    
-    const codeInput = screen.queryByTestId("input-Código") || inputs.find(inp => inp.getAttribute("aria-label")?.includes("Código"));
-    const registrationInput = screen.queryByTestId("input-Registration") || inputs.find(inp => inp.getAttribute("aria-label")?.includes("Registro"));
-    const propertySelect = screen.queryByTestId("select-propertyId") || selects.find(sel => sel.getAttribute("name") === "propertyId");
-    
+
+    const codeInput =
+      screen.queryByTestId("input-Código") ||
+      inputs.find((inp) => inp.getAttribute("aria-label")?.includes("Código"));
+    const registrationInput =
+      screen.queryByTestId("input-Registration") ||
+      inputs.find((inp) => inp.getAttribute("aria-label")?.includes("Registro"));
+    const propertySelect =
+      screen.queryByTestId("select-propertyId") ||
+      selects.find((sel) => sel.getAttribute("name") === "propertyId");
+
     if (codeInput) fireEvent.change(codeInput, { target: { value: "AN001" } });
     if (registrationInput) fireEvent.change(registrationInput, { target: { value: "REG001" } });
     if (propertySelect) fireEvent.change(propertySelect, { target: { value: "prop-1" } });
-    
+
     const form = container.querySelector("form");
     if (form) {
       fireEvent.submit(form);
@@ -278,10 +313,9 @@ describe("NewAnimal", () => {
   it("should handle all form fields", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const inputs = screen.queryAllByRole("textbox");
     const selects = screen.queryAllByRole("combobox");
     expect(inputs.length > 0 || selects.length > 0).toBeTruthy();
   });
 });
-

@@ -43,10 +43,7 @@ export function generateNextId<T extends EntityWithId>(
 /**
  * Find entity by ID
  */
-export function findById<T extends EntityWithId>(
-  data: T[],
-  id: string | undefined
-): T | undefined {
+export function findById<T extends EntityWithId>(data: T[], id: string | undefined): T | undefined {
   if (!id) return undefined;
   return data.find((item) => item.id === id);
 }
@@ -128,4 +125,3 @@ export function deleteEntity<T extends EntityWithId>(data: T[], id: string): boo
   }
   return false;
 }
-

@@ -91,27 +91,25 @@ export default function NewWeighing() {
   const filteredWeighings = useMemo(() => {
     if (!sessionSearch.trim()) return sessionWeighings;
     const searchLower = sessionSearch.toLowerCase();
-    return sessionWeighings.filter(
-      (w) => {
-        const employeeNames = w.employeeIds
-          .map((id) => getEmployeeById(id)?.name)
-          .filter(Boolean)
-          .join(", ");
-        const serviceProviderNames = w.serviceProviderIds
-          .map((id) => getServiceProviderById(id)?.name)
-          .filter(Boolean)
-          .join(", ");
-        const responsible = [employeeNames, serviceProviderNames].filter(Boolean).join(", ");
-        
-        return (
-          w.animalCode.toLowerCase().includes(searchLower) ||
-          w.animalRegistrationNumber.toLowerCase().includes(searchLower) ||
-          w.weight.toString().includes(searchLower) ||
-          responsible.toLowerCase().includes(searchLower) ||
-          (w.observation && w.observation.toLowerCase().includes(searchLower))
-        );
-      }
-    );
+    return sessionWeighings.filter((w) => {
+      const employeeNames = w.employeeIds
+        .map((id) => getEmployeeById(id)?.name)
+        .filter(Boolean)
+        .join(", ");
+      const serviceProviderNames = w.serviceProviderIds
+        .map((id) => getServiceProviderById(id)?.name)
+        .filter(Boolean)
+        .join(", ");
+      const responsible = [employeeNames, serviceProviderNames].filter(Boolean).join(", ");
+
+      return (
+        w.animalCode.toLowerCase().includes(searchLower) ||
+        w.animalRegistrationNumber.toLowerCase().includes(searchLower) ||
+        w.weight.toString().includes(searchLower) ||
+        responsible.toLowerCase().includes(searchLower) ||
+        (w.observation && w.observation.toLowerCase().includes(searchLower))
+      );
+    });
   }, [sessionWeighings, sessionSearch]);
 
   const sortedWeighings = useMemo(() => {
@@ -132,89 +130,113 @@ export default function NewWeighing() {
           aValue = a.weight;
           bValue = b.weight;
           break;
-        case "lastWeight":
+        case "lastWeight": {
           const aAllWeighings = getWeighingsByAnimalId(a.animalId);
           const aSortedWeighings = [...aAllWeighings].sort(
             (w1, w2) => new Date(w2.date).getTime() - new Date(w1.date).getTime()
           );
           const aCurrentIndex = aSortedWeighings.findIndex((w) => w.id === a.id);
-          const aPreviousWeighing = aCurrentIndex >= 0 && aCurrentIndex < aSortedWeighings.length - 1
-            ? aSortedWeighings[aCurrentIndex + 1]
-            : null;
+          const aPreviousWeighing =
+            aCurrentIndex >= 0 && aCurrentIndex < aSortedWeighings.length - 1
+              ? aSortedWeighings[aCurrentIndex + 1]
+              : null;
           aValue = aPreviousWeighing ? aPreviousWeighing.weight : -1;
-          
+
           const bAllWeighings = getWeighingsByAnimalId(b.animalId);
           const bSortedWeighings = [...bAllWeighings].sort(
             (w1, w2) => new Date(w2.date).getTime() - new Date(w1.date).getTime()
           );
           const bCurrentIndex = bSortedWeighings.findIndex((w) => w.id === b.id);
-          const bPreviousWeighing = bCurrentIndex >= 0 && bCurrentIndex < bSortedWeighings.length - 1
-            ? bSortedWeighings[bCurrentIndex + 1]
-            : null;
+          const bPreviousWeighing =
+            bCurrentIndex >= 0 && bCurrentIndex < bSortedWeighings.length - 1
+              ? bSortedWeighings[bCurrentIndex + 1]
+              : null;
           bValue = bPreviousWeighing ? bPreviousWeighing.weight : -1;
           break;
-        case "diff":
+        }
+        case "diff": {
           const aAllWeighingsDiff = getWeighingsByAnimalId(a.animalId);
           const aSortedWeighingsDiff = [...aAllWeighingsDiff].sort(
             (w1, w2) => new Date(w2.date).getTime() - new Date(w1.date).getTime()
           );
           const aCurrentIndexDiff = aSortedWeighingsDiff.findIndex((w) => w.id === a.id);
-          const aPreviousWeighingDiff = aCurrentIndexDiff >= 0 && aCurrentIndexDiff < aSortedWeighingsDiff.length - 1
-            ? aSortedWeighingsDiff[aCurrentIndexDiff + 1]
-            : null;
+          const aPreviousWeighingDiff =
+            aCurrentIndexDiff >= 0 && aCurrentIndexDiff < aSortedWeighingsDiff.length - 1
+              ? aSortedWeighingsDiff[aCurrentIndexDiff + 1]
+              : null;
           aValue = aPreviousWeighingDiff ? a.weight - aPreviousWeighingDiff.weight : -999999;
-          
+
           const bAllWeighingsDiff2 = getWeighingsByAnimalId(b.animalId);
           const bSortedWeighingsDiff = [...bAllWeighingsDiff2].sort(
             (w1, w2) => new Date(w2.date).getTime() - new Date(w1.date).getTime()
           );
           const bCurrentIndexDiff = bSortedWeighingsDiff.findIndex((w) => w.id === b.id);
-          const bPreviousWeighingDiff = bCurrentIndexDiff >= 0 && bCurrentIndexDiff < bSortedWeighingsDiff.length - 1
-            ? bSortedWeighingsDiff[bCurrentIndexDiff + 1]
-            : null;
+          const bPreviousWeighingDiff =
+            bCurrentIndexDiff >= 0 && bCurrentIndexDiff < bSortedWeighingsDiff.length - 1
+              ? bSortedWeighingsDiff[bCurrentIndexDiff + 1]
+              : null;
           bValue = bPreviousWeighingDiff ? b.weight - bPreviousWeighingDiff.weight : -999999;
           break;
-        case "gmd":
+        }
+        case "gmd": {
           const aAllWeighingsGmd = getWeighingsByAnimalId(a.animalId);
           const aSortedWeighingsGmd = [...aAllWeighingsGmd].sort(
             (w1, w2) => new Date(w2.date).getTime() - new Date(w1.date).getTime()
           );
           const aCurrentIndexGmd = aSortedWeighingsGmd.findIndex((w) => w.id === a.id);
-          const aPreviousWeighingGmd = aCurrentIndexGmd >= 0 && aCurrentIndexGmd < aSortedWeighingsGmd.length - 1
-            ? aSortedWeighingsGmd[aCurrentIndexGmd + 1]
-            : null;
+          const aPreviousWeighingGmd =
+            aCurrentIndexGmd >= 0 && aCurrentIndexGmd < aSortedWeighingsGmd.length - 1
+              ? aSortedWeighingsGmd[aCurrentIndexGmd + 1]
+              : null;
           if (aPreviousWeighingGmd) {
             const aWeightDiff = a.weight - aPreviousWeighingGmd.weight;
-            const aDaysDiff = differenceInDays(new Date(a.date), new Date(aPreviousWeighingGmd.date));
+            const aDaysDiff = differenceInDays(
+              new Date(a.date),
+              new Date(aPreviousWeighingGmd.date)
+            );
             aValue = aDaysDiff > 0 ? aWeightDiff / aDaysDiff : -999999;
           } else {
             aValue = -999999;
           }
-          
+
           const bAllWeighingsGmd = getWeighingsByAnimalId(b.animalId);
           const bSortedWeighingsGmd = [...bAllWeighingsGmd].sort(
             (w1, w2) => new Date(w2.date).getTime() - new Date(w1.date).getTime()
           );
           const bCurrentIndexGmd = bSortedWeighingsGmd.findIndex((w) => w.id === b.id);
-          const bPreviousWeighingGmd = bCurrentIndexGmd >= 0 && bCurrentIndexGmd < bSortedWeighingsGmd.length - 1
-            ? bSortedWeighingsGmd[bCurrentIndexGmd + 1]
-            : null;
+          const bPreviousWeighingGmd =
+            bCurrentIndexGmd >= 0 && bCurrentIndexGmd < bSortedWeighingsGmd.length - 1
+              ? bSortedWeighingsGmd[bCurrentIndexGmd + 1]
+              : null;
           if (bPreviousWeighingGmd) {
             const bWeightDiff = b.weight - bPreviousWeighingGmd.weight;
-            const bDaysDiff = differenceInDays(new Date(b.date), new Date(bPreviousWeighingGmd.date));
+            const bDaysDiff = differenceInDays(
+              new Date(b.date),
+              new Date(bPreviousWeighingGmd.date)
+            );
             bValue = bDaysDiff > 0 ? bWeightDiff / bDaysDiff : -999999;
           } else {
             bValue = -999999;
           }
           break;
-        case "responsible":
-          const aEmployeeNames = a.employeeIds.map((id) => getEmployeeById(id)?.name || "").join(", ");
-          const aServiceProviderNames = a.serviceProviderIds.map((id) => getServiceProviderById(id)?.name || "").join(", ");
+        }
+        case "responsible": {
+          const aEmployeeNames = a.employeeIds
+            .map((id) => getEmployeeById(id)?.name || "")
+            .join(", ");
+          const aServiceProviderNames = a.serviceProviderIds
+            .map((id) => getServiceProviderById(id)?.name || "")
+            .join(", ");
           aValue = [aEmployeeNames, aServiceProviderNames].filter(Boolean).join(", ");
-          const bEmployeeNames = b.employeeIds.map((id) => getEmployeeById(id)?.name || "").join(", ");
-          const bServiceProviderNames = b.serviceProviderIds.map((id) => getServiceProviderById(id)?.name || "").join(", ");
+          const bEmployeeNames = b.employeeIds
+            .map((id) => getEmployeeById(id)?.name || "")
+            .join(", ");
+          const bServiceProviderNames = b.serviceProviderIds
+            .map((id) => getServiceProviderById(id)?.name || "")
+            .join(", ");
           bValue = [bEmployeeNames, bServiceProviderNames].filter(Boolean).join(", ");
           break;
+        }
         case "observation":
           aValue = a.observation || "";
           bValue = b.observation || "";
@@ -226,7 +248,9 @@ export default function NewWeighing() {
           ? aValue.localeCompare(bValue)
           : bValue.localeCompare(aValue);
       }
-      return sessionSortState.direction === "asc" ? (aValue as number) - (bValue as number) : (bValue as number) - (aValue as number);
+      return sessionSortState.direction === "asc"
+        ? (aValue as number) - (bValue as number)
+        : (bValue as number) - (aValue as number);
     });
     return sorted;
   }, [filteredWeighings, sessionSortState]);
@@ -235,148 +259,153 @@ export default function NewWeighing() {
   const startIndex = (sessionCurrentPage - 1) * itemsPerPage;
   const paginatedWeighings = sortedWeighings.slice(startIndex, startIndex + itemsPerPage);
 
-  const sessionTableColumns: TableColumn<typeof sessionWeighings[0]>[] = useMemo(() => [
-    {
-      key: "animal",
-      label: t.weighings.new.animalLabel || "Animal",
-      sortable: true,
-      render: (_value, weighing) => (
-        <div>
-          <div className="font-medium text-gray-900 dark:text-gray-100">{weighing.animalCode}</div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">{weighing.animalRegistrationNumber}</div>
-        </div>
-      ),
-    },
-    {
-      key: "weight",
-      label: t.weighings.new.weightLabel || "Peso (kg)",
-      sortable: true,
-      render: (_value, weighing) => (
-        <span className="font-medium text-gray-900 dark:text-gray-100">
-          {weighing.weight.toFixed(2)}
-        </span>
-      ),
-    },
-    {
-      key: "lastWeight",
-      label: t.weighings.new.lastWeight,
-      sortable: true,
-      render: (_value, weighing) => {
-        const allWeighings = getWeighingsByAnimalId(weighing.animalId);
-        const sortedWeighings = [...allWeighings].sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        );
-        const currentIndex = sortedWeighings.findIndex((w) => w.id === weighing.id);
-        const previousWeighing = currentIndex >= 0 && currentIndex < sortedWeighings.length - 1
-          ? sortedWeighings[currentIndex + 1]
-          : null;
-        
-        if (!previousWeighing) {
-          return <span className="text-gray-700 dark:text-gray-300">-</span>;
-        }
-        return (
-          <span className="text-gray-700 dark:text-gray-300">
-            {previousWeighing.weight.toFixed(2)}
+  const sessionTableColumns: TableColumn<(typeof sessionWeighings)[0]>[] = useMemo(
+    () => [
+      {
+        key: "animal",
+        label: t.weighings.new.animalLabel || "Animal",
+        sortable: true,
+        render: (_value, weighing) => (
+          <div>
+            <div className="font-medium text-gray-900 dark:text-gray-100">
+              {weighing.animalCode}
+            </div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              {weighing.animalRegistrationNumber}
+            </div>
+          </div>
+        ),
+      },
+      {
+        key: "weight",
+        label: t.weighings.new.weightLabel || "Peso (kg)",
+        sortable: true,
+        render: (_value, weighing) => (
+          <span className="font-medium text-gray-900 dark:text-gray-100">
+            {weighing.weight.toFixed(2)}
           </span>
-        );
+        ),
       },
-    },
-    {
-      key: "diff",
-      label: t.weighings.new.difference,
-      sortable: true,
-      render: (_value, weighing) => {
-        const allWeighings = getWeighingsByAnimalId(weighing.animalId);
-        const sortedWeighings = [...allWeighings].sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        );
-        const currentIndex = sortedWeighings.findIndex((w) => w.id === weighing.id);
-        const previousWeighing = currentIndex >= 0 && currentIndex < sortedWeighings.length - 1
-          ? sortedWeighings[currentIndex + 1]
-          : null;
-        
-        if (!previousWeighing) {
-          return <span className="text-gray-700 dark:text-gray-300">-</span>;
-        }
-        
-        const diff = weighing.weight - previousWeighing.weight;
-        const diffFormatted = diff >= 0 ? `+${diff.toFixed(2)}` : diff.toFixed(2);
-        const colorClass = diff >= 0 
-          ? "text-green-600 dark:text-green-400" 
-          : "text-red-600 dark:text-red-400";
-        
-        return (
-          <span className={`font-medium ${colorClass}`}>
-            {diffFormatted}
+      {
+        key: "lastWeight",
+        label: t.weighings.new.lastWeight,
+        sortable: true,
+        render: (_value, weighing) => {
+          const allWeighings = getWeighingsByAnimalId(weighing.animalId);
+          const sortedWeighings = [...allWeighings].sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+          );
+          const currentIndex = sortedWeighings.findIndex((w) => w.id === weighing.id);
+          const previousWeighing =
+            currentIndex >= 0 && currentIndex < sortedWeighings.length - 1
+              ? sortedWeighings[currentIndex + 1]
+              : null;
+
+          if (!previousWeighing) {
+            return <span className="text-gray-700 dark:text-gray-300">-</span>;
+          }
+          return (
+            <span className="text-gray-700 dark:text-gray-300">
+              {previousWeighing.weight.toFixed(2)}
+            </span>
+          );
+        },
+      },
+      {
+        key: "diff",
+        label: t.weighings.new.difference,
+        sortable: true,
+        render: (_value, weighing) => {
+          const allWeighings = getWeighingsByAnimalId(weighing.animalId);
+          const sortedWeighings = [...allWeighings].sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+          );
+          const currentIndex = sortedWeighings.findIndex((w) => w.id === weighing.id);
+          const previousWeighing =
+            currentIndex >= 0 && currentIndex < sortedWeighings.length - 1
+              ? sortedWeighings[currentIndex + 1]
+              : null;
+
+          if (!previousWeighing) {
+            return <span className="text-gray-700 dark:text-gray-300">-</span>;
+          }
+
+          const diff = weighing.weight - previousWeighing.weight;
+          const diffFormatted = diff >= 0 ? `+${diff.toFixed(2)}` : diff.toFixed(2);
+          const colorClass =
+            diff >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400";
+
+          return <span className={`font-medium ${colorClass}`}>{diffFormatted}</span>;
+        },
+      },
+      {
+        key: "gmd",
+        label: t.weighings.new.gmd,
+        sortable: true,
+        render: (_value, weighing) => {
+          const allWeighings = getWeighingsByAnimalId(weighing.animalId);
+          const sortedWeighings = [...allWeighings].sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+          );
+          const currentIndex = sortedWeighings.findIndex((w) => w.id === weighing.id);
+          const previousWeighing =
+            currentIndex >= 0 && currentIndex < sortedWeighings.length - 1
+              ? sortedWeighings[currentIndex + 1]
+              : null;
+
+          if (!previousWeighing) {
+            return <span className="text-gray-700 dark:text-gray-300">-</span>;
+          }
+
+          const weightDiff = weighing.weight - previousWeighing.weight;
+          const daysDiff = differenceInDays(
+            new Date(weighing.date),
+            new Date(previousWeighing.date)
+          );
+
+          if (daysDiff === 0) {
+            return <span className="text-gray-700 dark:text-gray-300">-</span>;
+          }
+
+          const gmd = (weightDiff / daysDiff).toFixed(2);
+          const colorClass =
+            parseFloat(gmd) >= 0
+              ? "text-green-600 dark:text-green-400"
+              : "text-red-600 dark:text-red-400";
+
+          return <span className={`font-medium ${colorClass}`}>{gmd}</span>;
+        },
+      },
+      {
+        key: "responsible",
+        label: t.weighings.new.responsible,
+        sortable: true,
+        render: (_value, weighing) => {
+          const employeeNames = weighing.employeeIds
+            .map((id) => getEmployeeById(id)?.name)
+            .filter(Boolean)
+            .join(", ");
+          const serviceProviderNames = weighing.serviceProviderIds
+            .map((id) => getServiceProviderById(id)?.name)
+            .filter(Boolean)
+            .join(", ");
+          const responsible = [employeeNames, serviceProviderNames].filter(Boolean).join(", ");
+          return <span className="text-gray-700 dark:text-gray-300">{responsible || "-"}</span>;
+        },
+      },
+      {
+        key: "observation",
+        label: t.weighings.new.observationLabel || "Observação",
+        sortable: true,
+        render: (_value, weighing) => (
+          <span className="text-gray-700 dark:text-gray-300 max-w-xs truncate block">
+            {weighing.observation || "-"}
           </span>
-        );
+        ),
       },
-    },
-    {
-      key: "gmd",
-      label: t.weighings.new.gmd,
-      sortable: true,
-      render: (_value, weighing) => {
-        const allWeighings = getWeighingsByAnimalId(weighing.animalId);
-        const sortedWeighings = [...allWeighings].sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        );
-        const currentIndex = sortedWeighings.findIndex((w) => w.id === weighing.id);
-        const previousWeighing = currentIndex >= 0 && currentIndex < sortedWeighings.length - 1
-          ? sortedWeighings[currentIndex + 1]
-          : null;
-        
-        if (!previousWeighing) {
-          return <span className="text-gray-700 dark:text-gray-300">-</span>;
-        }
-        
-        const weightDiff = weighing.weight - previousWeighing.weight;
-        const daysDiff = differenceInDays(new Date(weighing.date), new Date(previousWeighing.date));
-        
-        if (daysDiff === 0) {
-          return <span className="text-gray-700 dark:text-gray-300">-</span>;
-        }
-        
-        const gmd = (weightDiff / daysDiff).toFixed(2);
-        const colorClass = parseFloat(gmd) >= 0 
-          ? "text-green-600 dark:text-green-400" 
-          : "text-red-600 dark:text-red-400";
-        
-        return (
-          <span className={`font-medium ${colorClass}`}>
-            {gmd}
-          </span>
-        );
-      },
-    },
-    {
-      key: "responsible",
-      label: t.weighings.new.responsible,
-      sortable: true,
-      render: (_value, weighing) => {
-        const employeeNames = weighing.employeeIds
-          .map((id) => getEmployeeById(id)?.name)
-          .filter(Boolean)
-          .join(", ");
-        const serviceProviderNames = weighing.serviceProviderIds
-          .map((id) => getServiceProviderById(id)?.name)
-          .filter(Boolean)
-          .join(", ");
-        const responsible = [employeeNames, serviceProviderNames].filter(Boolean).join(", ");
-        return <span className="text-gray-700 dark:text-gray-300">{responsible || "-"}</span>;
-      },
-    },
-    {
-      key: "observation",
-      label: t.weighings.new.observationLabel || "Observação",
-      sortable: true,
-      render: (_value, weighing) => (
-        <span className="text-gray-700 dark:text-gray-300 max-w-xs truncate block">
-          {weighing.observation || "-"}
-        </span>
-      ),
-    },
-  ], [t]);
+    ],
+    [t]
+  );
 
   const showAlert = (
     title: string,
@@ -463,7 +492,7 @@ export default function NewWeighing() {
       }
 
       showAlert(t.weighings.new.success, "success");
-      
+
       setFormData((prev) => ({
         animalId: "",
         date: today,
@@ -509,7 +538,11 @@ export default function NewWeighing() {
               {t.weighings.new.viewSession} ({sessionWeighings.length})
             </Button>
           )}
-          <Button variant="outline" onClick={() => navigate(ROUTES.ANIMALS)} disabled={isSubmitting}>
+          <Button
+            variant="outline"
+            onClick={() => navigate(ROUTES.ANIMALS)}
+            disabled={isSubmitting}
+          >
             {t.common.back}
           </Button>
         </div>
@@ -744,12 +777,16 @@ export default function NewWeighing() {
                         const maxDate = new Date(Math.max(...dates));
                         const minDateStr = format(minDate, "dd/MM/yyyy", { locale: ptBR });
                         const maxDateStr = format(maxDate, "dd/MM/yyyy", { locale: ptBR });
-                        const dateDisplay = minDateStr === maxDateStr ? minDateStr : `${minDateStr} - ${maxDateStr}`;
+                        const dateDisplay =
+                          minDateStr === maxDateStr ? minDateStr : `${minDateStr} - ${maxDateStr}`;
                         return `${t.weighings.new.sessionTitle} - ${dateDisplay}`;
                       })()}
                     </h3>
                     <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                      {sessionWeighings.length} {sessionWeighings.length === 1 ? t.weighings.new.weighingRegistered : t.weighings.new.weighingsRegistered}
+                      {sessionWeighings.length}{" "}
+                      {sessionWeighings.length === 1
+                        ? t.weighings.new.weighingRegistered
+                        : t.weighings.new.weighingsRegistered}
                     </p>
                   </div>
                 </div>

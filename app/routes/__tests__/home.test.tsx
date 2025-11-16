@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -70,7 +71,7 @@ describe("Home", () => {
 
   it("should render components in correct order", () => {
     const router = createRouter();
-    const { container } = render(<RouterProvider router={router} />);
+    render(<RouterProvider router={router} />);
 
     const components = [
       "header",
@@ -107,4 +108,3 @@ describe("Home", () => {
     expect(mainDiv).toBeInTheDocument();
   });
 });
-

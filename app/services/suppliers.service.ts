@@ -1,6 +1,13 @@
 import type { Supplier, SupplierFormData } from "~/types";
 import { mockSuppliers } from "~/mocks/suppliers";
-import { findById, findByField, findByFieldIncludes, createEntity, updateEntity, deleteEntity } from "./base-service";
+import {
+  findById,
+  findByField,
+  findByFieldIncludes,
+  createEntity,
+  updateEntity,
+  deleteEntity,
+} from "./base-service";
 
 const ID_PREFIX = "990e8400-e29b-41d4-a716";
 const DEFAULT_ID = "990e8400-e29b-41d4-a716-446655440009";
@@ -46,4 +53,3 @@ export function updateSupplier(supplierId: string, data: Partial<SupplierFormDat
 export function deleteSupplier(supplierId: string): boolean {
   return deleteEntity(mockSuppliers, supplierId);
 }
-

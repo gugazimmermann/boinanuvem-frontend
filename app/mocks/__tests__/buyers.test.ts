@@ -99,4 +99,3 @@ describe("buyers mock", () => {
     expect(uniqueCodes.size).toBe(codes.length);
   });
 });
-

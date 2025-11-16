@@ -1,7 +1,7 @@
 /**
  * Services Index
  * Central export point for all services
- * 
+ *
  * This module provides a clean interface to access all data services.
  * Services abstract the data layer (mocks) and provide business logic.
  */
@@ -36,4 +36,3 @@ export * from "./employee-observations.service";
 export * from "./service-provider-observations.service";
 export * from "./supplier-observations.service";
 export * from "./buyer-observations.service";
-

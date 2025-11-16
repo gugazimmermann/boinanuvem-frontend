@@ -1,6 +1,6 @@
 import type { Company } from "~/types";
 import { mockCompanies } from "~/mocks/companies";
-import { findById, updateEntity } from "./base-service";
+import { findById } from "./base-service";
 
 /**
  * Get company by ID
@@ -14,9 +14,7 @@ export function getCompanyById(companyId: string | undefined): Company | undefin
  */
 export function getCompanyByCNPJ(cnpj: string): Company | undefined {
   const unmaskedCNPJ = cnpj.replace(/\D/g, "");
-  return mockCompanies.find(
-    (company) => company.cnpj.replace(/\D/g, "") === unmaskedCNPJ
-  );
+  return mockCompanies.find((company) => company.cnpj.replace(/\D/g, "") === unmaskedCNPJ);
 }
 
 /**
@@ -34,4 +32,3 @@ export function updateCompany(cnpj: string, data: Partial<Company>): void {
     };
   }
 }
-

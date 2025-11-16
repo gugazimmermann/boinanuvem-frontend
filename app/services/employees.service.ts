@@ -1,6 +1,13 @@
 import type { Employee, EmployeeFormData } from "~/types";
 import { mockEmployees } from "~/mocks/employees";
-import { findById, findByField, findByFieldIncludes, createEntity, updateEntity, deleteEntity } from "./base-service";
+import {
+  findById,
+  findByField,
+  findByFieldIncludes,
+  createEntity,
+  updateEntity,
+  deleteEntity,
+} from "./base-service";
 
 const ID_PREFIX = "770e8400-e29b-41d4-a716";
 const DEFAULT_ID = "770e8400-e29b-41d4-a716-446655440009";
@@ -46,4 +53,3 @@ export function updateEmployee(employeeId: string, data: Partial<EmployeeFormDat
 export function deleteEmployee(employeeId: string): boolean {
   return deleteEntity(mockEmployees, employeeId);
 }
-

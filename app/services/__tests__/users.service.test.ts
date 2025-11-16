@@ -8,7 +8,6 @@ import {
   addUser,
 } from "../users.service";
 import { mockUsers } from "~/mocks/users";
-import { mockCompanies } from "~/mocks/companies";
 import type { UserFormData, UserPermissions } from "~/types";
 
 vi.mock("~/mocks/users", () => ({
@@ -131,9 +130,7 @@ describe("users.service", () => {
 
       updateUser("550e8400-e29b-41d4-a716-446655440000", formData);
 
-      const updated = mockUsers.find(
-        (u) => u.id === "550e8400-e29b-41d4-a716-446655440000"
-      );
+      const updated = mockUsers.find((u) => u.id === "550e8400-e29b-41d4-a716-446655440000");
       expect(updated?.name).toBe("John Updated");
       expect(updated?.email).toBe("john.updated@example.com");
       expect(updated?.password).toBeUndefined();
@@ -159,9 +156,7 @@ describe("users.service", () => {
 
       updateUser("550e8400-e29b-41d4-a716-446655440000", formData);
 
-      const updated = mockUsers.find(
-        (u) => u.id === "550e8400-e29b-41d4-a716-446655440000"
-      );
+      const updated = mockUsers.find((u) => u.id === "550e8400-e29b-41d4-a716-446655440000");
       expect(updated?.password).toBeUndefined();
       expect(updated?.confirmPassword).toBeUndefined();
     });
@@ -177,9 +172,7 @@ describe("users.service", () => {
     it("should update user role", () => {
       updateUserRole("550e8400-e29b-41d4-a716-446655440001", "manager");
 
-      const updated = mockUsers.find(
-        (u) => u.id === "550e8400-e29b-41d4-a716-446655440001"
-      );
+      const updated = mockUsers.find((u) => u.id === "550e8400-e29b-41d4-a716-446655440001");
       expect(updated?.role).toBe("manager");
     });
 
@@ -193,23 +186,33 @@ describe("users.service", () => {
   describe("updateUserPermissions", () => {
     it("should update user permissions", () => {
       const newPermissions: UserPermissions = {
-        animals: { create: true, read: true, update: true, delete: true },
-        employees: { create: false, read: true, update: false, delete: false },
+        registration: {
+          property: { view: true, add: true, edit: true, remove: true },
+          location: { view: true, add: false, edit: false, remove: false },
+          employee: { view: true, add: false, edit: false, remove: false },
+          serviceProvider: { view: false, add: false, edit: false, remove: false },
+          supplier: { view: false, add: false, edit: false, remove: false },
+          buyer: { view: false, add: false, edit: false, remove: false },
+        },
       };
 
       updateUserPermissions("550e8400-e29b-41d4-a716-446655440001", newPermissions);
 
-      const updated = mockUsers.find(
-        (u) => u.id === "550e8400-e29b-41d4-a716-446655440001"
-      );
+      const updated = mockUsers.find((u) => u.id === "550e8400-e29b-41d4-a716-446655440001");
       expect(updated?.permissions).toEqual(newPermissions);
     });
 
     it("should not update non-existent user", () => {
       const initialUsers = [...mockUsers];
       updateUserPermissions("nonexistent-id", {
-        animals: { create: true, read: true, update: true, delete: true },
-        employees: { create: true, read: true, update: true, delete: true },
+        registration: {
+          property: { view: true, add: true, edit: true, remove: true },
+          location: { view: true, add: true, edit: true, remove: true },
+          employee: { view: true, add: true, edit: true, remove: true },
+          serviceProvider: { view: false, add: false, edit: false, remove: false },
+          supplier: { view: false, add: false, edit: false, remove: false },
+          buyer: { view: false, add: false, edit: false, remove: false },
+        },
       });
       expect(mockUsers).toEqual(initialUsers);
     });
@@ -246,4 +249,3 @@ describe("users.service", () => {
     });
   });
 });
-

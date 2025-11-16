@@ -44,28 +44,25 @@ describe("Births", () => {
   it("should navigate to animals route", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     expect(mockNavigate).toHaveBeenCalled();
   });
 
   it("should have correct meta function", () => {
-    
     expect(Births).toBeDefined();
   });
 
   it("should navigate on mount", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     expect(mockNavigate).toHaveBeenCalledWith(ROUTES.ANIMALS);
   });
 
   it("should return null", () => {
     const router = createRouter();
     const { container } = render(<RouterProvider router={router} />);
-    
-    
+
     expect(container).toBeTruthy();
   });
 });
-

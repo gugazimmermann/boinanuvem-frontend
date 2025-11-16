@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   getBirthById,
@@ -24,6 +25,7 @@ describe("births.service", () => {
         id: "bi0e8400-e29b-41d4-a716-446655440010",
         animalId: "animal-1",
         companyId: "company-1",
+        birthDate: "2020-01-01",
         purity: BirthPurity.PO,
         createdAt: "2020-01-01",
       },
@@ -31,6 +33,7 @@ describe("births.service", () => {
         id: "bi0e8400-e29b-41d4-a716-446655440011",
         animalId: "animal-2",
         companyId: "company-1",
+        birthDate: "2020-01-02",
         purity: BirthPurity.F1,
         createdAt: "2020-01-02",
       }
@@ -76,6 +79,7 @@ describe("births.service", () => {
       const formData: BirthFormData = {
         animalId: "animal-3",
         companyId: "company-1",
+        birthDate: "2020-03-01",
         purity: BirthPurity.PO,
       };
 
@@ -94,9 +98,7 @@ describe("births.service", () => {
       });
 
       expect(result).toBe(true);
-      const updated = mockBirths.find(
-        (b) => b.id === "bi0e8400-e29b-41d4-a716-446655440010"
-      );
+      const updated = mockBirths.find((b) => b.id === "bi0e8400-e29b-41d4-a716-446655440010");
       expect(updated?.purity).toBe(BirthPurity.F2);
     });
   });
@@ -200,4 +202,3 @@ describe("births.service", () => {
     });
   });
 });
-

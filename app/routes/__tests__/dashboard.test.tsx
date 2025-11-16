@@ -37,4 +37,3 @@ describe("DashboardLayoutRoute", () => {
     expect(screen.getByTestId("dashboard-layout")).toBeInTheDocument();
   });
 });
-

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -5,8 +6,6 @@ import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
 import EditProperty from "../properties.edit.$propertyId";
 import { getPropertyById, updateProperty } from "~/services/properties.service";
-import { useCEPLookup } from "~/components/site/hooks";
-import { mapCEPDataToAddressForm, maskCEP, unmaskCEP } from "~/components/site/utils";
 
 const mockNavigate = vi.fn();
 const mockUseCEPLookup = vi.fn(() => ({ data: null, loading: false, error: null }));
@@ -28,7 +27,9 @@ vi.mock("~/mocks/properties", async () => {
 });
 
 vi.mock("~/services/properties.service", async () => {
-  const actual = await vi.importActual<typeof import("~/services/properties.service")>("~/services/properties.service");
+  const actual = await vi.importActual<typeof import("~/services/properties.service")>(
+    "~/services/properties.service"
+  );
   return {
     ...actual,
     getPropertyById: vi.fn(),
@@ -49,7 +50,7 @@ vi.mock("~/components/site/hooks", () => ({
 }));
 
 vi.mock("~/components/site/utils", () => ({
-  mapCEPDataToAddressForm: vi.fn((data) => ({
+  mapCEPDataToAddressForm: vi.fn((data: any) => ({
     street: data.logradouro || "",
     neighborhood: data.bairro || "",
     city: data.localidade || "",
@@ -101,9 +102,7 @@ vi.mock("~/components/ui", () => ({
       {children}
     </button>
   ),
-  Alert: ({ title, variant }: any) => (
-    <div data-testid={`alert-${variant}`}>{title}</div>
-  ),
+  Alert: ({ title, variant }: any) => <div data-testid={`alert-${variant}`}>{title}</div>,
 }));
 
 describe("EditProperty", () => {
@@ -183,7 +182,12 @@ describe("EditProperty", () => {
     });
 
     const submitButtons = screen.queryAllByTestId("submit-button");
-    const submitButton = submitButtons.find((btn) => btn.type === "submit" || btn.textContent?.includes("Salvar") || btn.textContent?.includes("Save"));
+    const submitButton = submitButtons.find(
+      (btn) =>
+        (btn as HTMLButtonElement).type === "submit" ||
+        btn.textContent?.includes("Salvar") ||
+        btn.textContent?.includes("Save")
+    ) as HTMLButtonElement | undefined;
     if (submitButton && !submitButton.disabled) {
       fireEvent.click(submitButton);
       expect(submitButton).toBeInTheDocument();
@@ -202,9 +206,14 @@ describe("EditProperty", () => {
     if (inputs.length > 0) {
       fireEvent.change(inputs[0], { target: { value: "" } });
     }
-    
+
     const submitButtons = screen.queryAllByTestId("submit-button");
-    const submitButton = submitButtons.find((btn) => btn.type === "submit" || btn.textContent?.includes("Salvar") || btn.textContent?.includes("Save"));
+    const submitButton = submitButtons.find(
+      (btn) =>
+        (btn as HTMLButtonElement).type === "submit" ||
+        btn.textContent?.includes("Salvar") ||
+        btn.textContent?.includes("Save")
+    ) as HTMLButtonElement | undefined;
     if (submitButton) {
       fireEvent.click(submitButton);
       const errors = screen.queryAllByText(/required|obrigatório/i);
@@ -222,7 +231,6 @@ describe("EditProperty", () => {
   });
 
   it("should have correct meta function", () => {
-    
     expect(EditProperty).toBeDefined();
   });
 
@@ -238,7 +246,7 @@ describe("EditProperty", () => {
       loading: false,
       error: null,
     });
-    
+
     const router = createRouter("property-1");
     render(<RouterProvider router={router} />);
 
@@ -259,7 +267,7 @@ describe("EditProperty", () => {
       loading: true,
       error: null,
     });
-    
+
     const router = createRouter("property-1");
     render(<RouterProvider router={router} />);
 
@@ -276,7 +284,8 @@ describe("EditProperty", () => {
       expect(getPropertyById).toHaveBeenCalledWith("property-1");
     });
 
-    const areaTypeSelect = screen.queryByTestId("select-areaType") || screen.queryByLabelText(/Tipo de Área/i);
+    const areaTypeSelect =
+      screen.queryByTestId("select-areaType") || screen.queryByLabelText(/Tipo de Área/i);
     if (areaTypeSelect) {
       fireEvent.change(areaTypeSelect, { target: { value: "square_meters" } });
       expect(areaTypeSelect).toBeInTheDocument();
@@ -291,7 +300,8 @@ describe("EditProperty", () => {
       expect(getPropertyById).toHaveBeenCalledWith("property-1");
     });
 
-    const statusSelect = screen.queryByTestId("select-status") || screen.queryByLabelText(/Status/i);
+    const statusSelect =
+      screen.queryByTestId("select-status") || screen.queryByLabelText(/Status/i);
     if (statusSelect) {
       fireEvent.change(statusSelect, { target: { value: "inactive" } });
       expect(statusSelect).toBeInTheDocument();
@@ -354,10 +364,16 @@ describe("EditProperty", () => {
       expect(getPropertyById).toHaveBeenCalledWith("property-1");
     });
 
-    const cancelButtons = screen.queryAllByRole("button").filter((btn) =>
-      btn.textContent?.includes("Cancelar") || btn.textContent?.includes("Cancel") || btn.textContent?.includes("Voltar") || btn.textContent?.includes("Back")
-    );
-    
+    const cancelButtons = screen
+      .queryAllByRole("button")
+      .filter(
+        (btn) =>
+          btn.textContent?.includes("Cancelar") ||
+          btn.textContent?.includes("Cancel") ||
+          btn.textContent?.includes("Voltar") ||
+          btn.textContent?.includes("Back")
+      );
+
     if (cancelButtons.length > 0) {
       fireEvent.click(cancelButtons[0]);
       expect(mockNavigate).toHaveBeenCalled();
@@ -373,8 +389,8 @@ describe("EditProperty", () => {
     });
 
     const inputs = screen.queryAllByRole("textbox");
-    const areaInput = inputs.find(inp => inp.getAttribute("type") === "number");
-    
+    const areaInput = inputs.find((inp) => inp.getAttribute("type") === "number");
+
     if (areaInput) {
       fireEvent.change(areaInput, { target: { value: "-10" } });
       const form = container.querySelector("form");
@@ -427,4 +443,3 @@ describe("EditProperty", () => {
     expect(inputs.length > 0).toBeTruthy();
   });
 });
-

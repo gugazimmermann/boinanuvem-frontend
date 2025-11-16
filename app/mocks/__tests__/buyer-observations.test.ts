@@ -45,4 +45,3 @@ describe("buyer-observations mock", () => {
     expect(uniqueIds.size).toBe(ids.length);
   });
 });
-

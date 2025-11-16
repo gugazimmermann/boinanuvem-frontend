@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -35,10 +36,12 @@ vi.mock("~/mocks/properties", async () => {
 });
 
 vi.mock("~/services/properties.service", async () => {
-  const actual = await vi.importActual<typeof import("~/services/properties.service")>("~/services/properties.service");
+  const actual = await vi.importActual<typeof import("~/services/properties.service")>(
+    "~/services/properties.service"
+  );
   return {
     ...actual,
-    getPropertyById: vi.fn((id) => ({ id, name: `Property ${id}` })),
+    getPropertyById: vi.fn((id: string) => ({ id, name: `Property ${id}` })),
   };
 });
 
@@ -84,9 +87,7 @@ vi.mock("~/components/ui", () => ({
       {children}
     </button>
   ),
-  Alert: ({ title, variant }: any) => (
-    <div data-testid={`alert-${variant}`}>{title}</div>
-  ),
+  Alert: ({ title, variant }: any) => <div data-testid={`alert-${variant}`}>{title}</div>,
 }));
 
 describe("EditLocation", () => {
@@ -162,7 +163,12 @@ describe("EditLocation", () => {
     });
 
     const submitButtons = screen.queryAllByTestId("submit-button");
-    const submitButton = submitButtons.find((btn) => btn.type === "submit" || btn.textContent?.includes("Salvar") || btn.textContent?.includes("Save"));
+    const submitButton = submitButtons.find(
+      (btn) =>
+        (btn as HTMLButtonElement).type === "submit" ||
+        btn.textContent?.includes("Salvar") ||
+        btn.textContent?.includes("Save")
+    ) as HTMLButtonElement | undefined;
     if (submitButton && !submitButton.disabled) {
       fireEvent.click(submitButton);
       expect(submitButton).toBeInTheDocument();
@@ -181,9 +187,14 @@ describe("EditLocation", () => {
     if (inputs.length > 0) {
       fireEvent.change(inputs[0], { target: { value: "" } });
     }
-    
+
     const submitButtons = screen.queryAllByTestId("submit-button");
-    const submitButton = submitButtons.find((btn) => btn.type === "submit" || btn.textContent?.includes("Salvar") || btn.textContent?.includes("Save"));
+    const submitButton = submitButtons.find(
+      (btn) =>
+        (btn as HTMLButtonElement).type === "submit" ||
+        btn.textContent?.includes("Salvar") ||
+        btn.textContent?.includes("Save")
+    ) as HTMLButtonElement | undefined;
     if (submitButton) {
       fireEvent.click(submitButton);
       const errors = screen.queryAllByText(/required|obrigatório/i);
@@ -201,7 +212,6 @@ describe("EditLocation", () => {
   });
 
   it("should have correct meta function", () => {
-    
     expect(EditLocation).toBeDefined();
   });
 
@@ -213,7 +223,8 @@ describe("EditLocation", () => {
       expect(getLocationById).toHaveBeenCalledWith("location-1");
     });
 
-    const locationTypeSelect = screen.queryByTestId("select-locationType") || screen.queryByLabelText(/Tipo/i);
+    const locationTypeSelect =
+      screen.queryByTestId("select-locationType") || screen.queryByLabelText(/Tipo/i);
     if (locationTypeSelect) {
       fireEvent.change(locationTypeSelect, { target: { value: "corral" } });
       expect(locationTypeSelect).toBeInTheDocument();
@@ -228,7 +239,8 @@ describe("EditLocation", () => {
       expect(getLocationById).toHaveBeenCalledWith("location-1");
     });
 
-    const areaTypeSelect = screen.queryByTestId("select-areaType") || screen.queryByLabelText(/Tipo de Área/i);
+    const areaTypeSelect =
+      screen.queryByTestId("select-areaType") || screen.queryByLabelText(/Tipo de Área/i);
     if (areaTypeSelect) {
       fireEvent.change(areaTypeSelect, { target: { value: "square_meters" } });
       expect(areaTypeSelect).toBeInTheDocument();
@@ -243,7 +255,8 @@ describe("EditLocation", () => {
       expect(getLocationById).toHaveBeenCalledWith("location-1");
     });
 
-    const statusSelect = screen.queryByTestId("select-status") || screen.queryByLabelText(/Status/i);
+    const statusSelect =
+      screen.queryByTestId("select-status") || screen.queryByLabelText(/Status/i);
     if (statusSelect) {
       fireEvent.change(statusSelect, { target: { value: "inactive" } });
       expect(statusSelect).toBeInTheDocument();
@@ -258,7 +271,8 @@ describe("EditLocation", () => {
       expect(getLocationById).toHaveBeenCalledWith("location-1");
     });
 
-    const propertySelect = screen.queryByTestId("select-propertyId") || screen.queryByLabelText(/Propriedade/i);
+    const propertySelect =
+      screen.queryByTestId("select-propertyId") || screen.queryByLabelText(/Propriedade/i);
     if (propertySelect) {
       fireEvent.change(propertySelect, { target: { value: "prop-1" } });
       expect(propertySelect).toBeInTheDocument();
@@ -306,10 +320,16 @@ describe("EditLocation", () => {
       expect(getLocationById).toHaveBeenCalledWith("location-1");
     });
 
-    const cancelButtons = screen.queryAllByRole("button").filter((btn) =>
-      btn.textContent?.includes("Cancelar") || btn.textContent?.includes("Cancel") || btn.textContent?.includes("Voltar") || btn.textContent?.includes("Back")
-    );
-    
+    const cancelButtons = screen
+      .queryAllByRole("button")
+      .filter(
+        (btn) =>
+          btn.textContent?.includes("Cancelar") ||
+          btn.textContent?.includes("Cancel") ||
+          btn.textContent?.includes("Voltar") ||
+          btn.textContent?.includes("Back")
+      );
+
     if (cancelButtons.length > 0) {
       fireEvent.click(cancelButtons[0]);
       expect(mockNavigate).toHaveBeenCalled();
@@ -325,8 +345,8 @@ describe("EditLocation", () => {
     });
 
     const inputs = screen.queryAllByRole("textbox");
-    const areaInput = inputs.find(inp => inp.getAttribute("type") === "number");
-    
+    const areaInput = inputs.find((inp) => inp.getAttribute("type") === "number");
+
     if (areaInput) {
       fireEvent.change(areaInput, { target: { value: "-10" } });
       const form = container.querySelector("form");
@@ -379,4 +399,3 @@ describe("EditLocation", () => {
     expect(inputs.length > 0).toBeTruthy();
   });
 });
-

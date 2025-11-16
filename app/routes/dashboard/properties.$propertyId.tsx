@@ -33,7 +33,10 @@ import {
 import { getPropertyById } from "~/services/properties.service";
 import { getLocationsByPropertyId, getLocationById } from "~/services/locations.service";
 import { getEmployeesByPropertyId, getEmployeeById } from "~/services/employees.service";
-import { getServiceProvidersByPropertyId, getServiceProviderById } from "~/services/service-providers.service";
+import {
+  getServiceProvidersByPropertyId,
+  getServiceProviderById,
+} from "~/services/service-providers.service";
 import { getSuppliersByPropertyId } from "~/services/suppliers.service";
 import { getBuyersByPropertyId } from "~/services/buyers.service";
 import { getLocationMovementsByPropertyId } from "~/services/location-movements.service";

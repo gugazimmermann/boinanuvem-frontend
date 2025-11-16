@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -34,10 +35,12 @@ vi.mock("~/mocks/properties", async () => {
 });
 
 vi.mock("~/services/properties.service", async () => {
-  const actual = await vi.importActual<typeof import("~/services/properties.service")>("~/services/properties.service");
+  const actual = await vi.importActual<typeof import("~/services/properties.service")>(
+    "~/services/properties.service"
+  );
   return {
     ...actual,
-    getPropertyById: vi.fn((id) => ({ id, name: `Property ${id}` })),
+    getPropertyById: vi.fn((id: string) => ({ id, name: `Property ${id}` })),
   };
 });
 
@@ -77,9 +80,7 @@ vi.mock("~/components/ui", () => ({
       {children}
     </button>
   ),
-  Alert: ({ title, variant }: any) => (
-    <div data-testid={`alert-${variant}`}>{title}</div>
-  ),
+  Alert: ({ title, variant }: any) => <div data-testid={`alert-${variant}`}>{title}</div>,
 }));
 
 describe("NewLocation", () => {
@@ -110,7 +111,7 @@ describe("NewLocation", () => {
   it("should render new location form", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const heading = screen.queryByRole("heading", { level: 1 });
     const buttons = screen.queryAllByRole("button");
     expect(heading || buttons.length > 0).toBeTruthy();
@@ -119,7 +120,7 @@ describe("NewLocation", () => {
   it("should handle form input changes", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const inputs = screen.queryAllByRole("textbox");
     if (inputs.length > 0) {
       fireEvent.change(inputs[0], { target: { value: "Test Value" } });
@@ -130,9 +131,14 @@ describe("NewLocation", () => {
   it("should handle form submission", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const submitButtons = screen.queryAllByTestId("submit-button");
-    const submitButton = submitButtons.find((btn) => btn.type === "submit" || btn.textContent?.includes("Salvar") || btn.textContent?.includes("Save"));
+    const submitButton = submitButtons.find(
+      (btn) =>
+        (btn as HTMLButtonElement).type === "submit" ||
+        btn.textContent?.includes("Salvar") ||
+        btn.textContent?.includes("Save")
+    ) as HTMLButtonElement | undefined;
     if (submitButton && !submitButton.disabled) {
       fireEvent.click(submitButton);
       expect(submitButton).toBeInTheDocument();
@@ -142,9 +148,14 @@ describe("NewLocation", () => {
   it("should show validation errors on invalid submission", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const submitButtons = screen.queryAllByTestId("submit-button");
-    const submitButton = submitButtons.find((btn) => btn.type === "submit" || btn.textContent?.includes("Salvar") || btn.textContent?.includes("Save"));
+    const submitButton = submitButtons.find(
+      (btn) =>
+        (btn as HTMLButtonElement).type === "submit" ||
+        btn.textContent?.includes("Salvar") ||
+        btn.textContent?.includes("Save")
+    ) as HTMLButtonElement | undefined;
     if (submitButton) {
       fireEvent.click(submitButton);
       const errors = screen.queryAllByText(/required|obrigatório/i);
@@ -153,15 +164,15 @@ describe("NewLocation", () => {
   });
 
   it("should have correct meta function", () => {
-    
     expect(NewLocation).toBeDefined();
   });
 
   it("should handle location type selection", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
-    const locationTypeSelect = screen.queryByTestId("select-locationType") || screen.queryByLabelText(/Tipo/i);
+
+    const locationTypeSelect =
+      screen.queryByTestId("select-locationType") || screen.queryByLabelText(/Tipo/i);
     if (locationTypeSelect) {
       fireEvent.change(locationTypeSelect, { target: { value: "pasture" } });
       expect(locationTypeSelect).toBeInTheDocument();
@@ -171,8 +182,9 @@ describe("NewLocation", () => {
   it("should handle area type selection", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
-    const areaTypeSelect = screen.queryByTestId("select-areaType") || screen.queryByLabelText(/Tipo de Área/i);
+
+    const areaTypeSelect =
+      screen.queryByTestId("select-areaType") || screen.queryByLabelText(/Tipo de Área/i);
     if (areaTypeSelect) {
       fireEvent.change(areaTypeSelect, { target: { value: "square_meters" } });
       expect(areaTypeSelect).toBeInTheDocument();
@@ -182,8 +194,9 @@ describe("NewLocation", () => {
   it("should handle status selection", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
-    const statusSelect = screen.queryByTestId("select-status") || screen.queryByLabelText(/Status/i);
+
+    const statusSelect =
+      screen.queryByTestId("select-status") || screen.queryByLabelText(/Status/i);
     if (statusSelect) {
       fireEvent.change(statusSelect, { target: { value: "inactive" } });
       expect(statusSelect).toBeInTheDocument();
@@ -193,8 +206,9 @@ describe("NewLocation", () => {
   it("should handle property selection", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
-    const propertySelect = screen.queryByTestId("select-propertyId") || screen.queryByLabelText(/Propriedade/i);
+
+    const propertySelect =
+      screen.queryByTestId("select-propertyId") || screen.queryByLabelText(/Propriedade/i);
     if (propertySelect) {
       fireEvent.change(propertySelect, { target: { value: "prop-1" } });
       expect(propertySelect).toBeInTheDocument();
@@ -204,23 +218,30 @@ describe("NewLocation", () => {
   it("should handle successful form submission", () => {
     const router = createRouter();
     const { container } = render(<RouterProvider router={router} />);
-    
-    
+
     const inputs = screen.queryAllByRole("textbox");
     const selects = screen.queryAllByRole("combobox");
-    
-    const nameInput = screen.queryByTestId("input-Name") || inputs.find(inp => inp.getAttribute("aria-label")?.includes("Nome"));
-    const codeInput = screen.queryByTestId("input-Code") || inputs.find(inp => inp.getAttribute("aria-label")?.includes("Código"));
-    const locationTypeSelect = screen.queryByTestId("select-locationType") || selects.find(sel => sel.getAttribute("name") === "locationType");
-    const propertySelect = screen.queryByTestId("select-propertyId") || selects.find(sel => sel.getAttribute("name") === "propertyId");
-    const areaInput = inputs.find(inp => inp.getAttribute("type") === "number");
-    
+
+    const nameInput =
+      screen.queryByTestId("input-Name") ||
+      inputs.find((inp) => inp.getAttribute("aria-label")?.includes("Nome"));
+    const codeInput =
+      screen.queryByTestId("input-Code") ||
+      inputs.find((inp) => inp.getAttribute("aria-label")?.includes("Código"));
+    const locationTypeSelect =
+      screen.queryByTestId("select-locationType") ||
+      selects.find((sel) => sel.getAttribute("name") === "locationType");
+    const propertySelect =
+      screen.queryByTestId("select-propertyId") ||
+      selects.find((sel) => sel.getAttribute("name") === "propertyId");
+    const areaInput = inputs.find((inp) => inp.getAttribute("type") === "number");
+
     if (nameInput) fireEvent.change(nameInput, { target: { value: "Test Location" } });
     if (codeInput) fireEvent.change(codeInput, { target: { value: "LOC001" } });
     if (locationTypeSelect) fireEvent.change(locationTypeSelect, { target: { value: "pasture" } });
     if (propertySelect) fireEvent.change(propertySelect, { target: { value: "prop-1" } });
     if (areaInput) fireEvent.change(areaInput, { target: { value: "50" } });
-    
+
     const form = container.querySelector("form");
     if (form) {
       fireEvent.submit(form);
@@ -238,7 +259,7 @@ describe("NewLocation", () => {
     vi.mocked(addLocation).mockReturnValueOnce(undefined as any);
     const router = createRouter();
     const { container } = render(<RouterProvider router={router} />);
-    
+
     const form = container.querySelector("form");
     if (form) {
       fireEvent.submit(form);
@@ -250,11 +271,17 @@ describe("NewLocation", () => {
   it("should navigate back on cancel", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
-    const cancelButtons = screen.queryAllByRole("button").filter((btn) =>
-      btn.textContent?.includes("Cancelar") || btn.textContent?.includes("Cancel") || btn.textContent?.includes("Voltar") || btn.textContent?.includes("Back")
-    );
-    
+
+    const cancelButtons = screen
+      .queryAllByRole("button")
+      .filter(
+        (btn) =>
+          btn.textContent?.includes("Cancelar") ||
+          btn.textContent?.includes("Cancel") ||
+          btn.textContent?.includes("Voltar") ||
+          btn.textContent?.includes("Back")
+      );
+
     if (cancelButtons.length > 0) {
       fireEvent.click(cancelButtons[0]);
       expect(mockNavigate).toHaveBeenCalled();
@@ -264,10 +291,10 @@ describe("NewLocation", () => {
   it("should validate area value is positive", () => {
     const router = createRouter();
     const { container } = render(<RouterProvider router={router} />);
-    
+
     const inputs = screen.queryAllByRole("textbox");
-    const areaInput = inputs.find(inp => inp.getAttribute("type") === "number");
-    
+    const areaInput = inputs.find((inp) => inp.getAttribute("type") === "number");
+
     if (areaInput) {
       fireEvent.change(areaInput, { target: { value: "-10" } });
       const form = container.querySelector("form");
@@ -281,22 +308,30 @@ describe("NewLocation", () => {
   it("should display alert on successful submission", () => {
     const router = createRouter();
     const { container } = render(<RouterProvider router={router} />);
-    
+
     const inputs = screen.queryAllByRole("textbox");
     const selects = screen.queryAllByRole("combobox");
-    
-    const nameInput = screen.queryByTestId("input-Name") || inputs.find(inp => inp.getAttribute("aria-label")?.includes("Nome"));
-    const codeInput = screen.queryByTestId("input-Code") || inputs.find(inp => inp.getAttribute("aria-label")?.includes("Código"));
-    const locationTypeSelect = screen.queryByTestId("select-locationType") || selects.find(sel => sel.getAttribute("name") === "locationType");
-    const propertySelect = screen.queryByTestId("select-propertyId") || selects.find(sel => sel.getAttribute("name") === "propertyId");
-    const areaInput = inputs.find(inp => inp.getAttribute("type") === "number");
-    
+
+    const nameInput =
+      screen.queryByTestId("input-Name") ||
+      inputs.find((inp) => inp.getAttribute("aria-label")?.includes("Nome"));
+    const codeInput =
+      screen.queryByTestId("input-Code") ||
+      inputs.find((inp) => inp.getAttribute("aria-label")?.includes("Código"));
+    const locationTypeSelect =
+      screen.queryByTestId("select-locationType") ||
+      selects.find((sel) => sel.getAttribute("name") === "locationType");
+    const propertySelect =
+      screen.queryByTestId("select-propertyId") ||
+      selects.find((sel) => sel.getAttribute("name") === "propertyId");
+    const areaInput = inputs.find((inp) => inp.getAttribute("type") === "number");
+
     if (nameInput) fireEvent.change(nameInput, { target: { value: "Test Location" } });
     if (codeInput) fireEvent.change(codeInput, { target: { value: "LOC001" } });
     if (locationTypeSelect) fireEvent.change(locationTypeSelect, { target: { value: "pasture" } });
     if (propertySelect) fireEvent.change(propertySelect, { target: { value: "prop-1" } });
     if (areaInput) fireEvent.change(areaInput, { target: { value: "50" } });
-    
+
     const form = container.querySelector("form");
     if (form) {
       fireEvent.submit(form);
@@ -308,10 +343,9 @@ describe("NewLocation", () => {
   it("should handle all form fields", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
-    
+
     const inputs = screen.queryAllByRole("textbox");
     const selects = screen.queryAllByRole("combobox");
     expect(inputs.length > 0 || selects.length > 0).toBeTruthy();
   });
 });
-

@@ -5,7 +5,7 @@ import { useTranslation } from "~/i18n";
 import { ROUTES, getAnimalViewRoute } from "~/routes.config";
 import { getAnimalById, updateAnimal } from "~/services/animals.service";
 import type { AnimalFormData } from "~/types";
-import { mockProperties } from "~/services/properties.service";
+import { mockProperties } from "~/mocks/properties";
 
 export function meta() {
   return [
@@ -208,7 +208,8 @@ export default function EditAnimal() {
               required
               options={[
                 { value: "", label: "-" },
-                ...mockProperties.map((property) => ({
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                ...mockProperties.map((property: any) => ({
                   value: property.id,
                   label: property.name,
                 })),

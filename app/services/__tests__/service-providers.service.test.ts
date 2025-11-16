@@ -20,14 +20,18 @@ describe("service-providers.service", () => {
     mockServiceProviders.push(
       {
         id: "880e8400-e29b-41d4-a716-446655440010",
+        code: "SP001",
         name: "Service Provider One",
+        status: "active" as const,
         companyId: "company-1",
         propertyIds: ["property-1"],
         createdAt: "2020-01-01",
       },
       {
         id: "880e8400-e29b-41d4-a716-446655440011",
+        code: "SP002",
         name: "Service Provider Two",
+        status: "active" as const,
         companyId: "company-1",
         propertyIds: ["property-2"],
         createdAt: "2020-01-02",
@@ -52,9 +56,7 @@ describe("service-providers.service", () => {
     it("should return service providers for specific company", () => {
       const result = getServiceProvidersByCompanyId("company-1");
       expect(result).toHaveLength(2);
-      expect(
-        result.every((sp) => sp.companyId === "company-1")
-      ).toBe(true);
+      expect(result.every((sp) => sp.companyId === "company-1")).toBe(true);
     });
   });
 
@@ -69,7 +71,9 @@ describe("service-providers.service", () => {
   describe("addServiceProvider", () => {
     it("should add new service provider", () => {
       const formData: ServiceProviderFormData = {
+        code: "SP003",
         name: "New Service Provider",
+        status: "active" as const,
         companyId: "company-1",
         propertyIds: ["property-1"],
       };
@@ -106,4 +110,3 @@ describe("service-providers.service", () => {
     });
   });
 });
-

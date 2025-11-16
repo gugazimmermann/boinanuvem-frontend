@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -35,7 +36,9 @@ vi.mock("~/mocks/properties", async () => {
 });
 
 vi.mock("~/services/properties.service", async () => {
-  const actual = await vi.importActual<typeof import("~/services/properties.service")>("~/services/properties.service");
+  const actual = await vi.importActual<typeof import("~/services/properties.service")>(
+    "~/services/properties.service"
+  );
   return {
     ...actual,
     mockProperties: [{ id: "prop-1", name: "Test Property" }],
@@ -84,9 +87,7 @@ vi.mock("~/components/ui", () => ({
       {children}
     </button>
   ),
-  Alert: ({ title, variant }: any) => (
-    <div data-testid={`alert-${variant}`}>{title}</div>
-  ),
+  Alert: ({ title, variant }: any) => <div data-testid={`alert-${variant}`}>{title}</div>,
 }));
 
 describe("EditAnimal", () => {
@@ -162,7 +163,12 @@ describe("EditAnimal", () => {
     });
 
     const submitButtons = screen.queryAllByTestId("submit-button");
-    const submitButton = submitButtons.find((btn) => btn.type === "submit" || btn.textContent?.includes("Salvar") || btn.textContent?.includes("Save"));
+    const submitButton = submitButtons.find(
+      (btn) =>
+        (btn as HTMLButtonElement).type === "submit" ||
+        btn.textContent?.includes("Salvar") ||
+        btn.textContent?.includes("Save")
+    ) as HTMLButtonElement | undefined;
     if (submitButton && !submitButton.disabled) {
       fireEvent.click(submitButton);
       expect(submitButton).toBeInTheDocument();
@@ -181,9 +187,14 @@ describe("EditAnimal", () => {
     if (inputs.length > 0) {
       fireEvent.change(inputs[0], { target: { value: "" } });
     }
-    
+
     const submitButtons = screen.queryAllByTestId("submit-button");
-    const submitButton = submitButtons.find((btn) => btn.type === "submit" || btn.textContent?.includes("Salvar") || btn.textContent?.includes("Save"));
+    const submitButton = submitButtons.find(
+      (btn) =>
+        (btn as HTMLButtonElement).type === "submit" ||
+        btn.textContent?.includes("Salvar") ||
+        btn.textContent?.includes("Save")
+    ) as HTMLButtonElement | undefined;
     if (submitButton) {
       fireEvent.click(submitButton);
       const errors = screen.queryAllByText(/required|obrigatório/i);
@@ -201,7 +212,6 @@ describe("EditAnimal", () => {
   });
 
   it("should have correct meta function", () => {
-    
     expect(EditAnimal).toBeDefined();
   });
 
@@ -213,7 +223,8 @@ describe("EditAnimal", () => {
       expect(getAnimalById).toHaveBeenCalledWith("animal-1");
     });
 
-    const propertySelect = screen.queryByTestId("select-propertyId") || screen.queryByLabelText(/Propriedade/i);
+    const propertySelect =
+      screen.queryByTestId("select-propertyId") || screen.queryByLabelText(/Propriedade/i);
     if (propertySelect) {
       fireEvent.change(propertySelect, { target: { value: "prop-1" } });
       expect(propertySelect).toBeInTheDocument();
@@ -228,7 +239,8 @@ describe("EditAnimal", () => {
       expect(getAnimalById).toHaveBeenCalledWith("animal-1");
     });
 
-    const statusSelect = screen.queryByTestId("select-status") || screen.queryByLabelText(/Status/i);
+    const statusSelect =
+      screen.queryByTestId("select-status") || screen.queryByLabelText(/Status/i);
     if (statusSelect) {
       fireEvent.change(statusSelect, { target: { value: "inactive" } });
       expect(statusSelect).toBeInTheDocument();
@@ -276,10 +288,16 @@ describe("EditAnimal", () => {
       expect(getAnimalById).toHaveBeenCalledWith("animal-1");
     });
 
-    const cancelButtons = screen.queryAllByRole("button").filter((btn) =>
-      btn.textContent?.includes("Cancelar") || btn.textContent?.includes("Cancel") || btn.textContent?.includes("Voltar") || btn.textContent?.includes("Back")
-    );
-    
+    const cancelButtons = screen
+      .queryAllByRole("button")
+      .filter(
+        (btn) =>
+          btn.textContent?.includes("Cancelar") ||
+          btn.textContent?.includes("Cancel") ||
+          btn.textContent?.includes("Voltar") ||
+          btn.textContent?.includes("Back")
+      );
+
     if (cancelButtons.length > 0) {
       fireEvent.click(cancelButtons[0]);
       expect(mockNavigate).toHaveBeenCalled();
@@ -294,7 +312,10 @@ describe("EditAnimal", () => {
       expect(getAnimalById).toHaveBeenCalledWith("animal-1");
     });
 
-    const dateInput = screen.queryByTestId("input-Date") || screen.queryByLabelText(/Data/i) || screen.queryByPlaceholderText(/Data/i);
+    const dateInput =
+      screen.queryByTestId("input-Date") ||
+      screen.queryByLabelText(/Data/i) ||
+      screen.queryByPlaceholderText(/Data/i);
     if (dateInput) {
       fireEvent.change(dateInput, { target: { value: "2024-02-01" } });
       expect(dateInput).toBeInTheDocument();
@@ -343,4 +364,3 @@ describe("EditAnimal", () => {
     expect(inputs.length > 0).toBeTruthy();
   });
 });
-

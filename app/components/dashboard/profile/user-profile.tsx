@@ -14,7 +14,8 @@ import {
 import { useTranslation } from "~/i18n";
 import { DASHBOARD_COLORS } from "../utils/colors";
 import type { AddressFormData } from "~/components/site/utils/cep-utils";
-import { getUserById, updateUser, mockUsers } from "~/mocks/users";
+import { mockUsers } from "~/mocks/users";
+import { getUserById, updateUser } from "~/services/users.service";
 import { mockCompanies } from "~/mocks/companies";
 
 interface UserFormData extends AddressFormData {

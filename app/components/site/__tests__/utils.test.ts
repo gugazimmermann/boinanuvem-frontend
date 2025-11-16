@@ -41,7 +41,7 @@ describe("scrollToSection", () => {
     scrollToSection("test-section");
 
     expect(mockScrollTo).toHaveBeenCalledWith({
-      top: 20, 
+      top: 20,
       behavior: "smooth",
     });
   });
@@ -73,7 +73,7 @@ describe("scrollToSection", () => {
     scrollToSection("test-section", 100);
 
     expect(mockScrollTo).toHaveBeenCalledWith({
-      top: 150, 
+      top: 150,
       behavior: "smooth",
     });
   });
@@ -99,8 +99,9 @@ describe("useSmoothScroll", () => {
 
   it("should return undefined when window is undefined", () => {
     const originalWindow = global.window;
-    
-    global.window = undefined;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (global as any).window = undefined;
 
     const result = useSmoothScroll();
     expect(result).toBeUndefined();
@@ -154,7 +155,7 @@ describe("useSmoothScroll", () => {
     anchor.dispatchEvent(clickEvent);
 
     expect(mockScrollTo).toHaveBeenCalledWith({
-      top: 20, 
+      top: 20,
       behavior: "smooth",
     });
   });
@@ -289,7 +290,7 @@ describe("useSmoothScroll", () => {
     span.dispatchEvent(clickEvent);
 
     expect(mockScrollTo).toHaveBeenCalledWith({
-      top: 170, 
+      top: 170,
       behavior: "smooth",
     });
   });
@@ -303,9 +304,10 @@ describe("useSmoothScroll", () => {
     const removeEventListenerSpy = vi.spyOn(document, "removeEventListener");
 
     const cleanup = useSmoothScroll();
-    cleanup();
+    if (cleanup) {
+      cleanup();
+    }
 
     expect(removeEventListenerSpy).toHaveBeenCalledWith("click", expect.any(Function));
   });
 });
-

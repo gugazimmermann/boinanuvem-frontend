@@ -17,13 +17,13 @@ import {
   getPropertyViewRoute,
   getObservationViewRoute,
 } from "~/routes.config";
-import { getSupplierById } from "~/mocks/suppliers";
-import { getPropertyById } from "~/mocks/properties";
+import { getSupplierById } from "~/services/suppliers.service";
+import { getPropertyById } from "~/services/properties.service";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
 import {
   getSupplierObservationsBySupplierId,
   addSupplierObservation,
-} from "~/mocks/supplier-observations";
+} from "~/services/supplier-observations.service";
 import type { SupplierObservation } from "~/types/supplier-observation";
 
 export function meta() {
@@ -347,7 +347,7 @@ export default function SupplierDetails() {
                   </p>
                   <div className="mt-1 flex flex-wrap gap-2">
                     {supplier.propertyIds && supplier.propertyIds.length > 0 ? (
-                      supplier.propertyIds.map((propertyId) => {
+                      supplier.propertyIds.map((propertyId: string) => {
                         const property = getPropertyById(propertyId);
                         return property ? (
                           <span

@@ -85,9 +85,8 @@ describe("locations mock", () => {
       codesByProperty.get(location.propertyId)!.add(location.code);
     });
 
-    codesByProperty.forEach((codes, propertyId) => {
+    codesByProperty.forEach((codes, _propertyId) => {
       expect(codes.size).toBeGreaterThan(0);
     });
   });
 });
-

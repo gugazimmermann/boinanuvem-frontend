@@ -46,4 +46,3 @@ export function updateWeighing(weighingId: string, data: Partial<WeighingFormDat
 export function deleteWeighing(weighingId: string): boolean {
   return deleteEntity(mockWeighings, weighingId);
 }
-

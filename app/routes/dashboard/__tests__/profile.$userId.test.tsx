@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -61,7 +62,7 @@ describe("UserProfileView", () => {
   it("should render user profile", () => {
     const router = createRouter("user-1");
     render(<RouterProvider router={router} />);
-    
+
     expect(screen.getByTestId("user-profile")).toBeInTheDocument();
     expect(screen.getByText(/User Profile: user-1/)).toBeInTheDocument();
   });
@@ -70,4 +71,3 @@ describe("UserProfileView", () => {
     expect(UserProfileView).toBeDefined();
   });
 });
-

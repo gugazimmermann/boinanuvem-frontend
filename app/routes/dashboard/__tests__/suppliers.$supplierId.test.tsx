@@ -1,11 +1,12 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
 import SupplierDetails from "../suppliers.$supplierId";
-import { getSupplierById } from "~/mocks/suppliers";
-import { getSupplierObservationsBySupplierId } from "~/mocks/supplier-observations";
+import { getSupplierById } from "~/services/suppliers.service";
+import { getSupplierObservationsBySupplierId } from "~/services/supplier-observations.service";
 
 const mockNavigate = vi.fn();
 const mockSetSearchParams = vi.fn();
@@ -36,20 +37,24 @@ vi.mock("~/mocks/properties", async () => {
   return {
     ...actual,
     mockProperties: [{ id: "prop-1", name: "Test Property" }],
-    getPropertyById: vi.fn((id) => ({ id, name: `Property ${id}` })),
+    getPropertyById: vi.fn((id: string) => ({ id, name: `Property ${id}` })),
   };
 });
 
 vi.mock("~/services/properties.service", async () => {
-  const actual = await vi.importActual<typeof import("~/services/properties.service")>("~/services/properties.service");
+  const actual = await vi.importActual<typeof import("~/services/properties.service")>(
+    "~/services/properties.service"
+  );
   return {
     ...actual,
-    getPropertyById: vi.fn((id) => ({ id, name: `Property ${id}` })),
+    getPropertyById: vi.fn((id: string) => ({ id, name: `Property ${id}` })),
   };
 });
 
 vi.mock("~/mocks/supplier-observations", async () => {
-  const actual = await vi.importActual<typeof import("~/mocks/supplier-observations")>("~/mocks/supplier-observations");
+  const actual = await vi.importActual<typeof import("~/mocks/supplier-observations")>(
+    "~/mocks/supplier-observations"
+  );
   return {
     ...actual,
     getSupplierObservationsBySupplierId: vi.fn(() => []),
@@ -79,9 +84,7 @@ vi.mock("~/components/ui", () => ({
       onChange={(e) => onFilesChange?.(Array.from(e.target.files || []))}
     />
   ),
-  Alert: ({ title, variant }: any) => (
-    <div data-testid={`alert-${variant}`}>{title}</div>
-  ),
+  Alert: ({ title, variant }: any) => <div data-testid={`alert-${variant}`}>{title}</div>,
 }));
 
 describe("SupplierDetails", () => {
@@ -121,7 +124,9 @@ describe("SupplierDetails", () => {
         },
       ],
       {
-        initialEntries: [`/dashboard/suppliers/${supplierId}${searchParams ? `?${searchParams}` : ""}`],
+        initialEntries: [
+          `/dashboard/suppliers/${supplierId}${searchParams ? `?${searchParams}` : ""}`,
+        ],
       }
     );
   };
@@ -135,7 +140,7 @@ describe("SupplierDetails", () => {
   it("should render supplier details", () => {
     const router = createRouter("supplier-1");
     render(<RouterProvider router={router} />);
-    
+
     expect(getSupplierById).toHaveBeenCalledWith("supplier-1");
     const table = screen.queryByTestId("table");
     const buttons = screen.queryAllByRole("button");
@@ -146,7 +151,7 @@ describe("SupplierDetails", () => {
     vi.mocked(getSupplierById).mockReturnValue(undefined);
     const router = createRouter("invalid-id");
     render(<RouterProvider router={router} />);
-    
+
     const backButton = screen.queryByRole("button");
     expect(backButton).toBeInTheDocument();
   });
@@ -154,12 +159,13 @@ describe("SupplierDetails", () => {
   it("should switch tabs", () => {
     const router = createRouter("supplier-1");
     render(<RouterProvider router={router} />);
-    
-    const tabButtons = screen.queryAllByRole("button").filter((btn) =>
-      btn.textContent?.includes("Observações") || 
-      btn.textContent?.includes("Atividades")
-    );
-    
+
+    const tabButtons = screen
+      .queryAllByRole("button")
+      .filter(
+        (btn) => btn.textContent?.includes("Observações") || btn.textContent?.includes("Atividades")
+      );
+
     if (tabButtons.length > 0) {
       fireEvent.click(tabButtons[0]);
       expect(mockSetSearchParams).toHaveBeenCalled();
@@ -169,44 +175,43 @@ describe("SupplierDetails", () => {
   it("should handle tab from URL params", () => {
     const router = createRouter("supplier-1", "tab=observations");
     render(<RouterProvider router={router} />);
-    
+
     expect(getSupplierById).toHaveBeenCalledWith("supplier-1");
   });
 
   it("should have correct meta function", () => {
-    
     expect(SupplierDetails).toBeDefined();
   });
 
   it("should display info tab", () => {
     const router = createRouter("supplier-1", "tab=info");
     render(<RouterProvider router={router} />);
-    
+
     expect(getSupplierById).toHaveBeenCalledWith("supplier-1");
   });
 
   it("should display activities tab", () => {
     const router = createRouter("supplier-1", "tab=activities");
     render(<RouterProvider router={router} />);
-    
+
     expect(getSupplierById).toHaveBeenCalledWith("supplier-1");
   });
 
   it("should display observations tab", () => {
     const router = createRouter("supplier-1", "tab=observations");
     render(<RouterProvider router={router} />);
-    
+
     expect(getSupplierById).toHaveBeenCalledWith("supplier-1");
   });
 
   it("should navigate to edit supplier", () => {
     const router = createRouter("supplier-1");
     render(<RouterProvider router={router} />);
-    
-    const editButtons = screen.queryAllByRole("button").filter((btn) =>
-      btn.textContent?.includes("Editar") || btn.textContent?.includes("Edit")
-    );
-    
+
+    const editButtons = screen
+      .queryAllByRole("button")
+      .filter((btn) => btn.textContent?.includes("Editar") || btn.textContent?.includes("Edit"));
+
     if (editButtons.length > 0) {
       fireEvent.click(editButtons[0]);
       expect(mockNavigate).toHaveBeenCalled();
@@ -216,14 +221,14 @@ describe("SupplierDetails", () => {
   it("should handle supplier observations", () => {
     const router = createRouter("supplier-1", "tab=observations");
     render(<RouterProvider router={router} />);
-    
+
     expect(getSupplierObservationsBySupplierId).toHaveBeenCalledWith("supplier-1");
   });
 
   it("should handle file upload for observations", () => {
     const router = createRouter("supplier-1", "tab=observations");
     render(<RouterProvider router={router} />);
-    
+
     const fileUpload = screen.queryByTestId("file-upload");
     expect(fileUpload || screen.queryAllByRole("button").length > 0).toBeTruthy();
   });
@@ -232,7 +237,7 @@ describe("SupplierDetails", () => {
     vi.mocked(getSupplierObservationsBySupplierId).mockReturnValueOnce([]);
     const router = createRouter("supplier-1", "tab=observations");
     render(<RouterProvider router={router} />);
-    
+
     expect(getSupplierById).toHaveBeenCalledWith("supplier-1");
   });
 
@@ -244,28 +249,28 @@ describe("SupplierDetails", () => {
     vi.mocked(getSupplierById).mockReturnValueOnce(inactiveSupplier);
     const router = createRouter("supplier-1");
     render(<RouterProvider router={router} />);
-    
+
     expect(getSupplierById).toHaveBeenCalledWith("supplier-1");
   });
 
   it("should handle default tab when no tab param provided", () => {
     const router = createRouter("supplier-1");
     render(<RouterProvider router={router} />);
-    
+
     expect(getSupplierById).toHaveBeenCalledWith("supplier-1");
   });
 
   it("should handle invalid tab param", () => {
     const router = createRouter("supplier-1", "tab=invalid");
     render(<RouterProvider router={router} />);
-    
+
     expect(getSupplierById).toHaveBeenCalledWith("supplier-1");
   });
 
   it("should handle supplier with properties", () => {
     const router = createRouter("supplier-1");
     render(<RouterProvider router={router} />);
-    
+
     expect(getSupplierById).toHaveBeenCalledWith("supplier-1");
   });
 
@@ -277,7 +282,7 @@ describe("SupplierDetails", () => {
     vi.mocked(getSupplierById).mockReturnValueOnce(supplierWithoutProperties);
     const router = createRouter("supplier-1");
     render(<RouterProvider router={router} />);
-    
+
     expect(getSupplierById).toHaveBeenCalledWith("supplier-1");
   });
 
@@ -285,7 +290,7 @@ describe("SupplierDetails", () => {
     vi.mocked(getSupplierById).mockReturnValue(undefined);
     const router = createRouter("invalid-id");
     render(<RouterProvider router={router} />);
-    
+
     const backButton = screen.queryByRole("button");
     if (backButton) {
       fireEvent.click(backButton);
@@ -293,4 +298,3 @@ describe("SupplierDetails", () => {
     }
   });
 });
-

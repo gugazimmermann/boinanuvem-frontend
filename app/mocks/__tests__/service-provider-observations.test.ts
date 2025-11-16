@@ -45,4 +45,3 @@ describe("service-provider-observations mock", () => {
     expect(uniqueIds.size).toBe(ids.length);
   });
 });
-

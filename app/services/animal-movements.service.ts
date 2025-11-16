@@ -82,9 +82,7 @@ export function getAnimalsByLastMovementLocation(locationId: string): string[] {
 /**
  * Add a new animal movement
  */
-export function addAnimalMovement(
-  data: Omit<AnimalMovement, "id" | "createdAt">
-): AnimalMovement {
+export function addAnimalMovement(data: Omit<AnimalMovement, "id" | "createdAt">): AnimalMovement {
   const newMovement: AnimalMovement = {
     ...data,
     id: generateUUID(),
@@ -100,4 +98,3 @@ export function addAnimalMovement(
 export function deleteAnimalMovement(movementId: string): boolean {
   return deleteEntity(mockAnimalMovements, movementId);
 }
-

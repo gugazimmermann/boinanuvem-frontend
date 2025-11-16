@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -5,9 +6,6 @@ import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
 import PropertyDetails from "../properties.$propertyId";
 import { getPropertyById } from "~/services/properties.service";
-import { getLocationsByPropertyId } from "~/services/locations.service";
-import { getAnimalsByPropertyId } from "~/services/animals.service";
-import { getWeighingsByAnimalId } from "~/services/weighings.service";
 
 const mockNavigate = vi.fn();
 const mockSetSearchParams = vi.fn();
@@ -55,7 +53,7 @@ vi.mock("~/mocks/animals", async () => {
 
 vi.mock("~/services/animals.service", () => ({
   getAnimalsByPropertyId: (...args: any[]) => mockGetAnimalsByPropertyId(...args),
-  getAnimalById: vi.fn((id) => ({ id, code: `AN${id}`, name: `Animal ${id}` })),
+  getAnimalById: vi.fn((id: string) => ({ id, code: `AN${id}`, name: `Animal ${id}` })),
   deleteAnimal: vi.fn(() => true),
 }));
 
@@ -66,17 +64,19 @@ vi.mock("~/mocks/employees", async () => {
 
 vi.mock("~/services/employees.service", () => ({
   getEmployeesByPropertyId: vi.fn(() => []),
-  getEmployeeById: vi.fn((id) => ({ id, name: `Employee ${id}` })),
+  getEmployeeById: vi.fn((id: string) => ({ id, name: `Employee ${id}` })),
 }));
 
 vi.mock("~/mocks/service-providers", async () => {
-  const actual = await vi.importActual<typeof import("~/mocks/service-providers")>("~/mocks/service-providers");
+  const actual = await vi.importActual<typeof import("~/mocks/service-providers")>(
+    "~/mocks/service-providers"
+  );
   return actual;
 });
 
 vi.mock("~/services/service-providers.service", () => ({
   getServiceProvidersByPropertyId: vi.fn(() => []),
-  getServiceProviderById: vi.fn((id) => ({ id, name: `SP ${id}` })),
+  getServiceProviderById: vi.fn((id: string) => ({ id, name: `SP ${id}` })),
 }));
 
 vi.mock("~/mocks/suppliers", async () => {
@@ -98,7 +98,9 @@ vi.mock("~/services/buyers.service", () => ({
 }));
 
 vi.mock("~/mocks/location-movements", async () => {
-  const actual = await vi.importActual<typeof import("~/mocks/location-movements")>("~/mocks/location-movements");
+  const actual = await vi.importActual<typeof import("~/mocks/location-movements")>(
+    "~/mocks/location-movements"
+  );
   return actual;
 });
 
@@ -107,7 +109,9 @@ vi.mock("~/services/location-movements.service", () => ({
 }));
 
 vi.mock("~/mocks/animal-movements", async () => {
-  const actual = await vi.importActual<typeof import("~/mocks/animal-movements")>("~/mocks/animal-movements");
+  const actual = await vi.importActual<typeof import("~/mocks/animal-movements")>(
+    "~/mocks/animal-movements"
+  );
   return actual;
 });
 
@@ -166,9 +170,7 @@ vi.mock("~/components/ui", () => ({
       </div>
     ) : null,
   AnimalRegistrationModal: () => <div data-testid="animal-registration-modal" />,
-  Alert: ({ title, variant }: any) => (
-    <div data-testid={`alert-${variant}`}>{title}</div>
-  ),
+  Alert: ({ title, variant }: any) => <div data-testid={`alert-${variant}`}>{title}</div>,
   Tooltip: ({ children }: any) => <div>{children}</div>,
   PasturePlanningGraph: () => <div data-testid="pasture-planning-graph" />,
   PropertyMap: () => <div data-testid="property-map" />,
@@ -205,7 +207,9 @@ describe("PropertyDetails", () => {
         },
       ],
       {
-        initialEntries: [`/dashboard/properties/${propertyId}${searchParams ? `?${searchParams}` : ""}`],
+        initialEntries: [
+          `/dashboard/properties/${propertyId}${searchParams ? `?${searchParams}` : ""}`,
+        ],
       }
     );
   };
@@ -226,7 +230,7 @@ describe("PropertyDetails", () => {
   it("should render property details", () => {
     const router = createRouter("property-1");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
     const buttons = screen.queryAllByRole("button");
     const table = screen.queryByTestId("table");
@@ -237,7 +241,7 @@ describe("PropertyDetails", () => {
     vi.mocked(getPropertyById).mockReturnValue(undefined);
     const router = createRouter("invalid-id");
     render(<RouterProvider router={router} />);
-    
+
     const backButton = screen.queryByRole("button");
     expect(backButton).toBeInTheDocument();
   });
@@ -245,14 +249,17 @@ describe("PropertyDetails", () => {
   it("should switch tabs", () => {
     const router = createRouter("property-1");
     render(<RouterProvider router={router} />);
-    
-    const tabButtons = screen.queryAllByRole("button").filter((btn) =>
-      btn.textContent?.includes("Localizações") || 
-      btn.textContent?.includes("Funcionários") ||
-      btn.textContent?.includes("Animais") ||
-      btn.textContent?.includes("Movimentações")
-    );
-    
+
+    const tabButtons = screen
+      .queryAllByRole("button")
+      .filter(
+        (btn) =>
+          btn.textContent?.includes("Localizações") ||
+          btn.textContent?.includes("Funcionários") ||
+          btn.textContent?.includes("Animais") ||
+          btn.textContent?.includes("Movimentações")
+      );
+
     if (tabButtons.length > 0) {
       fireEvent.click(tabButtons[0]);
       expect(mockSetSearchParams).toHaveBeenCalled();
@@ -271,14 +278,14 @@ describe("PropertyDetails", () => {
   it("should handle registrations sub-tabs", () => {
     const router = createRouter("property-1", "tab=registrations&subTab=serviceProviders");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
   it("should handle animal deletion flow", async () => {
     const router = createRouter("property-1", "tab=animals");
     render(<RouterProvider router={router} />);
-    
+
     await waitFor(() => {
       const deleteButtons = screen.queryAllByTestId("action-0");
       if (deleteButtons.length > 0) {
@@ -295,11 +302,11 @@ describe("PropertyDetails", () => {
   it("should open animal registration modal", () => {
     const router = createRouter("property-1", "tab=animals");
     render(<RouterProvider router={router} />);
-    
-    const addButtons = screen.queryAllByRole("button").filter((btn) =>
-      btn.textContent?.includes("Adicionar") || btn.textContent?.includes("Add")
-    );
-    
+
+    const addButtons = screen
+      .queryAllByRole("button")
+      .filter((btn) => btn.textContent?.includes("Adicionar") || btn.textContent?.includes("Add"));
+
     if (addButtons.length > 0) {
       fireEvent.click(addButtons[0]);
       const modal = screen.queryByTestId("animal-registration-modal");
@@ -310,7 +317,7 @@ describe("PropertyDetails", () => {
   it("should calculate and display statistics", () => {
     const router = createRouter("property-1");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
     const buttons = screen.queryAllByRole("button");
     expect(buttons.length > 0).toBeTruthy();
@@ -319,25 +326,25 @@ describe("PropertyDetails", () => {
   it("should handle movements tab", () => {
     const router = createRouter("property-1", "tab=movements");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
   it("should handle activities tab", () => {
     const router = createRouter("property-1", "tab=activities");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
   it("should navigate to edit property", () => {
     const router = createRouter("property-1");
     render(<RouterProvider router={router} />);
-    
-    const editButtons = screen.queryAllByRole("button").filter((btn) =>
-      btn.textContent?.includes("Editar") || btn.textContent?.includes("Edit")
-    );
-    
+
+    const editButtons = screen
+      .queryAllByRole("button")
+      .filter((btn) => btn.textContent?.includes("Editar") || btn.textContent?.includes("Edit"));
+
     if (editButtons.length > 0) {
       fireEvent.click(editButtons[0]);
       expect(mockNavigate).toHaveBeenCalled();
@@ -345,16 +352,15 @@ describe("PropertyDetails", () => {
   });
 
   it("should have correct meta function", () => {
-    
     expect(PropertyDetails).toBeDefined();
   });
 
   it("should calculate total weight from animal weighings", () => {
     const router = createRouter("property-1");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
-    
+
     const buttons = screen.queryAllByRole("button");
     expect(buttons.length >= 0).toBeTruthy();
   });
@@ -362,42 +368,42 @@ describe("PropertyDetails", () => {
   it("should calculate animal units from total weight", () => {
     const router = createRouter("property-1");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
   it("should calculate stocking rate", () => {
     const router = createRouter("property-1");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
   it("should calculate density", () => {
     const router = createRouter("property-1");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
   it("should convert area types to hectares", () => {
     const router = createRouter("property-1");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
   it("should display property information tab", () => {
     const router = createRouter("property-1", "tab=info");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
   it("should display locations tab with locations data", () => {
     const router = createRouter("property-1", "tab=locations");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
     const table = screen.queryByTestId("table");
     expect(table || screen.queryAllByRole("button").length > 0).toBeTruthy();
@@ -406,7 +412,7 @@ describe("PropertyDetails", () => {
   it("should display animals tab with animals data", () => {
     const router = createRouter("property-1", "tab=animals");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
     const table = screen.queryByTestId("table");
     expect(table || screen.queryAllByRole("button").length > 0).toBeTruthy();
@@ -415,70 +421,70 @@ describe("PropertyDetails", () => {
   it("should display registrations tab with employees sub-tab", () => {
     const router = createRouter("property-1", "tab=registrations&subTab=employees");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
   it("should display registrations tab with service providers sub-tab", () => {
     const router = createRouter("property-1", "tab=registrations&subTab=serviceProviders");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
   it("should display registrations tab with suppliers sub-tab", () => {
     const router = createRouter("property-1", "tab=registrations&subTab=suppliers");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
   it("should display registrations tab with buyers sub-tab", () => {
     const router = createRouter("property-1", "tab=registrations&subTab=buyers");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
   it("should handle animals search value change", () => {
     const router = createRouter("property-1", "tab=animals");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
   it("should handle animals filter change", () => {
     const router = createRouter("property-1", "tab=animals");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
   it("should handle animals pagination", () => {
     const router = createRouter("property-1", "tab=animals");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
   it("should handle animals sorting", () => {
     const router = createRouter("property-1", "tab=animals");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
   it("should handle animal selection", () => {
     const router = createRouter("property-1", "tab=animals");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
   it("should cancel animal deletion", async () => {
     const router = createRouter("property-1", "tab=animals");
     render(<RouterProvider router={router} />);
-    
+
     await waitFor(() => {
       const deleteButtons = screen.queryAllByTestId("action-0");
       if (deleteButtons.length > 0) {
@@ -495,11 +501,11 @@ describe("PropertyDetails", () => {
   it("should close animal registration modal", () => {
     const router = createRouter("property-1", "tab=animals");
     render(<RouterProvider router={router} />);
-    
-    const addButtons = screen.queryAllByRole("button").filter((btn) =>
-      btn.textContent?.includes("Adicionar") || btn.textContent?.includes("Add")
-    );
-    
+
+    const addButtons = screen
+      .queryAllByRole("button")
+      .filter((btn) => btn.textContent?.includes("Adicionar") || btn.textContent?.includes("Add"));
+
     if (addButtons.length > 0) {
       fireEvent.click(addButtons[0]);
       const modal = screen.queryByTestId("animal-registration-modal");
@@ -510,11 +516,11 @@ describe("PropertyDetails", () => {
   it("should navigate back to properties list", () => {
     const router = createRouter("property-1");
     render(<RouterProvider router={router} />);
-    
-    const backButtons = screen.queryAllByRole("button").filter((btn) =>
-      btn.textContent?.includes("Voltar") || btn.textContent?.includes("Back")
-    );
-    
+
+    const backButtons = screen
+      .queryAllByRole("button")
+      .filter((btn) => btn.textContent?.includes("Voltar") || btn.textContent?.includes("Back"));
+
     if (backButtons.length > 0) {
       fireEvent.click(backButtons[0]);
       expect(mockNavigate).toHaveBeenCalled();
@@ -524,7 +530,7 @@ describe("PropertyDetails", () => {
   it("should display property map in information tab", () => {
     const router = createRouter("property-1", "tab=info");
     render(<RouterProvider router={router} />);
-    
+
     const map = screen.queryByTestId("property-map");
     expect(map || screen.queryAllByRole("button").length > 0).toBeTruthy();
   });
@@ -532,7 +538,7 @@ describe("PropertyDetails", () => {
   it("should display pasture planning graph", () => {
     const router = createRouter("property-1", "tab=info");
     render(<RouterProvider router={router} />);
-    
+
     const graph = screen.queryByTestId("pasture-planning-graph");
     expect(graph || screen.queryAllByRole("button").length > 0).toBeTruthy();
   });
@@ -540,35 +546,35 @@ describe("PropertyDetails", () => {
   it("should handle location movements display", () => {
     const router = createRouter("property-1", "tab=movements");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
   it("should handle animal movements display", () => {
     const router = createRouter("property-1", "tab=movements");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
   it("should handle activities tab with location movements", () => {
     const router = createRouter("property-1", "tab=activities");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
   it("should handle activities tab with animal movements", () => {
     const router = createRouter("property-1", "tab=activities");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
   it("should format dates correctly", () => {
     const router = createRouter("property-1");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
@@ -576,7 +582,7 @@ describe("PropertyDetails", () => {
     mockGetLocationsByPropertyId.mockReturnValueOnce([]);
     const router = createRouter("property-1", "tab=locations");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
@@ -584,7 +590,7 @@ describe("PropertyDetails", () => {
     mockGetAnimalsByPropertyId.mockReturnValueOnce([]);
     const router = createRouter("property-1", "tab=animals");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
@@ -592,14 +598,14 @@ describe("PropertyDetails", () => {
     mockGetWeighingsByAnimalId.mockReturnValueOnce([]);
     const router = createRouter("property-1");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
   it("should handle alert message display and auto-dismiss", async () => {
     const router = createRouter("property-1", "tab=animals");
     render(<RouterProvider router={router} />);
-    
+
     await waitFor(() => {
       const deleteButtons = screen.queryAllByTestId("action-0");
       if (deleteButtons.length > 0) {
@@ -607,8 +613,9 @@ describe("PropertyDetails", () => {
         const confirmButton = screen.queryByTestId("confirm-button");
         if (confirmButton) {
           fireEvent.click(confirmButton);
-          
-          const alert = screen.queryByTestId("alert-success") || screen.queryByTestId("alert-error");
+
+          const alert =
+            screen.queryByTestId("alert-success") || screen.queryByTestId("alert-error");
           expect(alert || confirmButton).toBeTruthy();
         }
       }
@@ -623,12 +630,18 @@ describe("PropertyDetails", () => {
     vi.mocked(getPropertyById).mockReturnValueOnce(propertyWithZeroArea);
     const router = createRouter("property-1");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
   it("should handle property with different area types", () => {
-    const areaTypes = ["hectares", "square_meters", "acres", "square_kilometers", "square_miles"] as const;
+    const areaTypes = [
+      "hectares",
+      "square_meters",
+      "acres",
+      "square_kilometers",
+      "square_miles",
+    ] as const;
     areaTypes.forEach((type) => {
       const propertyWithArea = {
         ...mockProperty,
@@ -649,21 +662,24 @@ describe("PropertyDetails", () => {
     vi.mocked(getPropertyById).mockReturnValueOnce(inactiveProperty);
     const router = createRouter("property-1");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
   it("should handle search params update on tab change", () => {
     const router = createRouter("property-1");
     render(<RouterProvider router={router} />);
-    
-    const tabButtons = screen.queryAllByRole("button").filter((btn) =>
-      btn.textContent?.includes("Localizações") || 
-      btn.textContent?.includes("Funcionários") ||
-      btn.textContent?.includes("Animais") ||
-      btn.textContent?.includes("Movimentações")
-    );
-    
+
+    const tabButtons = screen
+      .queryAllByRole("button")
+      .filter(
+        (btn) =>
+          btn.textContent?.includes("Localizações") ||
+          btn.textContent?.includes("Funcionários") ||
+          btn.textContent?.includes("Animais") ||
+          btn.textContent?.includes("Movimentações")
+      );
+
     if (tabButtons.length > 0) {
       fireEvent.click(tabButtons[0]);
       expect(mockSetSearchParams).toHaveBeenCalled();
@@ -673,22 +689,21 @@ describe("PropertyDetails", () => {
   it("should handle default tab when no tab param provided", () => {
     const router = createRouter("property-1");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
   it("should handle invalid tab param", () => {
     const router = createRouter("property-1", "tab=invalid");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
   it("should handle default registrations sub-tab", () => {
     const router = createRouter("property-1", "tab=registrations");
     render(<RouterProvider router={router} />);
-    
+
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 });
-

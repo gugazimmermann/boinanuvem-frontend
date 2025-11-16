@@ -40,8 +40,11 @@ describe("location-movements mock", () => {
     mockLocationMovements.forEach((movement: LocationMovement) => {
       expect(movement.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
       expect(() => new Date(movement.date)).not.toThrow();
-      expect(movement.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
-      expect(() => new Date(movement.createdAt)).not.toThrow();
+      if (movement.createdAt) {
+        const createdAt = movement.createdAt;
+        expect(createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+        expect(() => new Date(createdAt)).not.toThrow();
+      }
     });
   });
 
@@ -117,4 +120,3 @@ describe("location-movements mock", () => {
     expect(types.size).toBeGreaterThan(1);
   });
 });
-

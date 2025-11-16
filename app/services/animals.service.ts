@@ -46,4 +46,3 @@ export function updateAnimal(animalId: string, data: Partial<AnimalFormData>): b
 export function deleteAnimal(animalId: string): boolean {
   return deleteEntity(mockAnimals, animalId);
 }
-

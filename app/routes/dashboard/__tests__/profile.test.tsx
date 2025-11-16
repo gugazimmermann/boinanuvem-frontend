@@ -50,7 +50,6 @@ describe("Profile", () => {
   });
 
   it("should have correct meta function", () => {
-    
     expect(Profile).toBeDefined();
   });
 
@@ -72,10 +71,10 @@ describe("Profile", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    const userTabButton = screen.queryAllByRole("button").find((btn) =>
-      btn.textContent?.includes("Usuário") || btn.textContent?.includes("User")
-    );
-    
+    const userTabButton = screen
+      .queryAllByRole("button")
+      .find((btn) => btn.textContent?.includes("Usuário") || btn.textContent?.includes("User"));
+
     if (userTabButton) {
       fireEvent.click(userTabButton);
       expect(screen.getByTestId("user-profile")).toBeInTheDocument();
@@ -86,10 +85,10 @@ describe("Profile", () => {
     const router = createRouter("/dashboard/profile?tab=user");
     render(<RouterProvider router={router} />);
 
-    const companyTabButton = screen.queryAllByRole("button").find((btn) =>
-      btn.textContent?.includes("Empresa") || btn.textContent?.includes("Company")
-    );
-    
+    const companyTabButton = screen
+      .queryAllByRole("button")
+      .find((btn) => btn.textContent?.includes("Empresa") || btn.textContent?.includes("Company"));
+
     if (companyTabButton) {
       fireEvent.click(companyTabButton);
       expect(screen.getByTestId("company-profile")).toBeInTheDocument();
@@ -107,7 +106,6 @@ describe("Profile", () => {
     const router = createRouter("/dashboard/profile?tab=invalid");
     render(<RouterProvider router={router} />);
 
-    
     expect(screen.getByTestId("company-profile")).toBeInTheDocument();
   });
 
@@ -115,8 +113,6 @@ describe("Profile", () => {
     const router = createRouter("/dashboard/profile");
     render(<RouterProvider router={router} />);
 
-    
     expect(screen.getByTestId("company-profile")).toBeInTheDocument();
   });
 });
-
