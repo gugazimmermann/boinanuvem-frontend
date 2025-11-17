@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import {
   Table,
@@ -61,10 +61,6 @@ export default function Locations() {
     column: string | null;
     direction: SortDirection;
   }>({ column: "name", direction: "asc" });
-
-  useEffect(() => {
-    setLocations([...mockLocations]);
-  }, []);
 
   const [searchValue, setSearchValue] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("all");

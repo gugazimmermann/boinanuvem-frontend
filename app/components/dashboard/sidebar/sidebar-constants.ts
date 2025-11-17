@@ -34,6 +34,7 @@ export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
     path: "#",
     icon: "💰",
     subItems: [
+      { translationKey: "financesDashboard", path: ROUTES.FINANCES_DASHBOARD, icon: "📊" },
       { translationKey: "cashFlow", path: ROUTES.CASH_FLOW, icon: "💵" },
       { translationKey: "accountsPayable", path: ROUTES.ACCOUNTS_PAYABLE, icon: "📤" },
       { translationKey: "accountsReceivable", path: ROUTES.ACCOUNTS_RECEIVABLE, icon: "📥" },

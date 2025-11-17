@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router";
 import {
   Table,
@@ -31,19 +31,17 @@ export default function BankAccounts() {
   const t = useTranslation();
   const navigate = useNavigate();
   const company = mockCompanies[0];
-  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>(
-    company ? getBankAccountsByCompanyId(company.id) : []
-  );
+  const initialBankAccounts = useMemo(() => {
+    if (company) {
+      return getBankAccountsByCompanyId(company.id);
+    }
+    return [];
+  }, [company]);
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>(initialBankAccounts);
   const [sortState, setSortState] = useState<{
     column: string | null;
     direction: SortDirection;
   }>({ column: "bankName", direction: "asc" });
-
-  useEffect(() => {
-    if (company) {
-      setBankAccounts(getBankAccountsByCompanyId(company.id));
-    }
-  }, [company]);
 
   const [searchValue, setSearchValue] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("all");

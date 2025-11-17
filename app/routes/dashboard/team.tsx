@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import {
   Table,
@@ -41,13 +41,10 @@ export default function Team() {
   } | null>(null);
   const itemsPerPage = 10;
 
-  useEffect(() => {
-    setUsers([...mockUsers.filter((user) => !user.mainUser)]);
-  }, []);
-
-  useEffect(() => {
+  const handleSearchChange = (value: string) => {
+    setSearchValue(value);
     setCurrentPage(1);
-  }, [searchValue]);
+  };
 
   const filteredUsers = users.filter((user) => {
     if (user.mainUser) {
@@ -213,7 +210,7 @@ export default function Team() {
         search={{
           placeholder: t.team.searchPlaceholder,
           value: searchValue,
-          onChange: setSearchValue,
+          onChange: handleSearchChange,
         }}
         pagination={{
           currentPage,

@@ -87,5 +87,6 @@ export default [
     route(ROUTE_NAMES.BANK_ACCOUNTS_NEW, "routes/dashboard/bank-accounts.new.tsx"),
     route(ROUTE_NAMES.BANK_ACCOUNTS_EDIT, "routes/dashboard/bank-accounts.edit.$bankAccountId.tsx"),
     route(ROUTE_NAMES.BANK_ACCOUNTS_VIEW, "routes/dashboard/bank-accounts.$bankAccountId.tsx"),
+    route(ROUTE_NAMES.FINANCES_DASHBOARD, "routes/dashboard/finances.tsx"),
   ]),
 ] satisfies RouteConfig;

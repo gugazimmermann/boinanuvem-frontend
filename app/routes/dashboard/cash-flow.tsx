@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
@@ -52,10 +52,6 @@ export default function CashFlow() {
     column: string | null;
     direction: SortDirection;
   }>({ column: "date", direction: "desc" });
-
-  useEffect(() => {
-    setTransactions([...mockCashFlow]);
-  }, []);
 
   const [searchValue, setSearchValue] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("all");

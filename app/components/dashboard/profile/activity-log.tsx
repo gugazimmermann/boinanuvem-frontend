@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Table, type TableColumn } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { DASHBOARD_COLORS } from "../utils/colors";
@@ -33,9 +33,10 @@ export function ActivityLog({
     }).format(date);
   };
 
-  useEffect(() => {
+  const handleSearchChange = (value: string) => {
+    setSearchValue(value);
     setCurrentPage(1);
-  }, [searchValue]);
+  };
 
   const filteredLogs = logs.filter((log) => {
     if (!searchValue.trim()) {
@@ -123,7 +124,7 @@ export function ActivityLog({
           ? t.profile.company.logs.searchPlaceholder
           : t.profile.user.logs.searchPlaceholder,
         value: searchValue,
-        onChange: setSearchValue,
+        onChange: handleSearchChange,
       }}
       pagination={{
         currentPage,

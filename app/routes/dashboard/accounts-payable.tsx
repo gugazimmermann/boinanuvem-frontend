@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
@@ -49,19 +49,17 @@ export default function AccountsPayable() {
   const { language } = useLanguage();
   const navigate = useNavigate();
   const company = mockCompanies[0];
-  const [transactions, setTransactions] = useState<AccountsPayable[]>(
-    company ? getAccountsPayableByCompanyId(company.id) : [...mockAccountsPayable]
-  );
+  const initialTransactions = useMemo(() => {
+    if (company) {
+      return getAccountsPayableByCompanyId(company.id);
+    }
+    return [...mockAccountsPayable];
+  }, [company]);
+  const [transactions, setTransactions] = useState<AccountsPayable[]>(initialTransactions);
   const [sortState, setSortState] = useState<{
     column: string | null;
     direction: SortDirection;
   }>({ column: "dueDate", direction: "asc" });
-
-  useEffect(() => {
-    if (company) {
-      setTransactions(getAccountsPayableByCompanyId(company.id));
-    }
-  }, [company]);
 
   const [searchValue, setSearchValue] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("all");

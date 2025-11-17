@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router";
 import { CompanyProfile, UserProfile } from "~/components/dashboard/profile";
 import { useTranslation } from "~/i18n";
@@ -18,16 +17,9 @@ export default function Profile() {
   const t = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get("tab");
-  const [activeTab, setActiveTab] = useState<"company" | "user">(
-    (tabParam === "user" ? "user" : "company") as "company" | "user"
-  );
-
-  useEffect(() => {
-    const tab = searchParams.get("tab");
-    if (tab === "user" || tab === "company") {
-      setActiveTab(tab);
-    }
-  }, [searchParams]);
+  const activeTab = (tabParam === "user" || tabParam === "company" ? tabParam : "company") as
+    | "company"
+    | "user";
 
   return (
     <div>
@@ -37,7 +29,6 @@ export default function Profile() {
         <nav className="flex space-x-8" aria-label="Tabs">
           <button
             onClick={() => {
-              setActiveTab("company");
               setSearchParams({ tab: "company" });
             }}
             className={`
@@ -58,7 +49,6 @@ export default function Profile() {
           </button>
           <button
             onClick={() => {
-              setActiveTab("user");
               setSearchParams({ tab: "user" });
             }}
             className={`

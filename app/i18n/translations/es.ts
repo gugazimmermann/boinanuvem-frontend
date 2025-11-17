@@ -50,6 +50,7 @@ export const es = {
     accountsReceivable: "Cuentas por Cobrar",
     bankAccounts: "Cuentas Bancarias",
     financas: "Finanzas",
+    financesDashboard: "Dashboard",
   },
 
   navbar: {
@@ -208,6 +209,10 @@ export const es = {
       finance: {
         title: "Finanzas",
         description: "Todas las transacciones financieras relacionadas con esta propiedad",
+        subTabs: {
+          dashboard: "Panel",
+          transactions: "Transacciones",
+        },
       },
       movements: {
         title: "Movimientos",
@@ -722,6 +727,10 @@ export const es = {
         title: "Finanzas",
         description:
           "Todas las transacciones financieras relacionadas con este prestador de servicio",
+        subTabs: {
+          dashboard: "Panel",
+          transactions: "Transacciones",
+        },
       },
       observation: "Observación",
       addObservation: "Agregar Observación",
@@ -856,6 +865,10 @@ export const es = {
       finance: {
         title: "Finanzas",
         description: "Todas las transacciones financieras relacionadas con este proveedor",
+        subTabs: {
+          dashboard: "Panel",
+          transactions: "Transacciones",
+        },
       },
       observation: "Observación",
       addObservation: "Agregar Observación",
@@ -990,6 +1003,10 @@ export const es = {
       finance: {
         title: "Finanzas",
         description: "Todas las transacciones financieras relacionadas con este comprador",
+        subTabs: {
+          dashboard: "Panel",
+          transactions: "Transacciones",
+        },
       },
       observation: "Observación",
       addObservation: "Agregar Observación",
@@ -2166,6 +2183,52 @@ export const es = {
         answer:
           "Depende de tu plan de salud y el tipo de servicio. Algunos planes cubren nuestros servicios parcial o totalmente. Te recomendamos que contactes a tu aseguradora antes de reservar para verificar la cobertura. También podemos ayudarte a verificar esto a través de nuestro soporte.",
       },
+    },
+  },
+  financesDashboard: {
+    title: "Panel Financiero",
+    meta: {
+      title: "Panel Financiero - Boi na Nuvem",
+      description: "Resumen financiero de Boi na Nuvem",
+    },
+    cards: {
+      totalIncome: "Ingresos Totales",
+      totalExpenses: "Gastos Totales",
+      netCashFlow: "Flujo de Caja Neto",
+      accountsPayable: "Cuentas por Pagar",
+      accountsReceivable: "Cuentas por Cobrar",
+      overdue: "Vencidas",
+    },
+    charts: {
+      incomeVsExpenses: "Ingresos vs Gastos",
+      monthlyCashFlow: "Flujo de Caja Mensual",
+      cashFlowByCategory: "Flujo de Caja por Categoría",
+      paymentStatus: "Estado de Pagos",
+      expenseCategories: "Categorías de Gastos",
+      income: "Ingresos",
+      expenses: "Gastos",
+      netCashFlow: "Neto",
+    },
+    tables: {
+      recentTransactions: "Transacciones Recientes",
+      upcomingPayments: "Próximos Pagos",
+      upcomingReceivables: "Próximos Cobros",
+      overdue: "Items Vencidos",
+      date: "Fecha",
+      dueDate: "Vencimiento",
+      description: "Descripción",
+      amount: "Monto",
+      type: "Tipo",
+      payable: "Por Pagar",
+      receivable: "Por Cobrar",
+      noData: "No hay datos disponibles",
+      noOverdue: "No hay items vencidos",
+    },
+    status: {
+      paid: "Pagado",
+      unpaid: "No Pagado",
+      overdue: "Vencido",
+      partial: "Parcial",
     },
   },
 } as const;

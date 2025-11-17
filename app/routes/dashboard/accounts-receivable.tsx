@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
@@ -51,19 +51,17 @@ export default function AccountsReceivable() {
   const { language } = useLanguage();
   const navigate = useNavigate();
   const company = mockCompanies[0];
-  const [transactions, setTransactions] = useState<AccountsReceivable[]>(
-    company ? getAccountsReceivableByCompanyId(company.id) : [...mockAccountsReceivable]
-  );
+  const initialTransactions = useMemo(() => {
+    if (company) {
+      return getAccountsReceivableByCompanyId(company.id);
+    }
+    return [...mockAccountsReceivable];
+  }, [company]);
+  const [transactions, setTransactions] = useState<AccountsReceivable[]>(initialTransactions);
   const [sortState, setSortState] = useState<{
     column: string | null;
     direction: SortDirection;
   }>({ column: "dueDate", direction: "asc" });
-
-  useEffect(() => {
-    if (company) {
-      setTransactions(getAccountsReceivableByCompanyId(company.id));
-    }
-  }, [company]);
 
   const [searchValue, setSearchValue] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("all");

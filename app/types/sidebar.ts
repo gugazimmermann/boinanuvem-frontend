@@ -14,6 +14,7 @@ export interface SidebarSubItemConfig {
     accountsPayable: string;
     accountsReceivable: string;
     bankAccounts: string;
+    financesDashboard: string;
   };
   path: string;
   icon?: string;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import { differenceInMonths, differenceInDays, format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
@@ -48,10 +48,6 @@ export default function Animals() {
     column: string | null;
     direction: SortDirection;
   }>({ column: "code", direction: "asc" });
-
-  useEffect(() => {
-    setAnimals([...mockAnimals]);
-  }, []);
 
   const [searchValue, setSearchValue] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("all");

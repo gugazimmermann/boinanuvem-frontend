@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
@@ -53,7 +53,13 @@ export default function BankAccountDetails() {
   const t = useTranslation();
   const { language } = useLanguage();
   const bankAccount = getBankAccountById(bankAccountId);
-  const [allTransactions, setAllTransactions] = useState<CashFlow[]>([]);
+  const initialTransactions = useMemo(() => {
+    if (bankAccountId) {
+      return getCashFlowByBankAccountId(bankAccountId);
+    }
+    return [];
+  }, [bankAccountId]);
+  const [allTransactions, setAllTransactions] = useState<CashFlow[]>(initialTransactions);
   const [searchValue, setSearchValue] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [selectedSupplier, setSelectedSupplier] = useState<string>("all");
@@ -68,12 +74,6 @@ export default function BankAccountDetails() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<CashFlow | null>(null);
   const itemsPerPage = 10;
-
-  useEffect(() => {
-    if (bankAccountId) {
-      setAllTransactions(getCashFlowByBankAccountId(bankAccountId));
-    }
-  }, [bankAccountId]);
 
   const handleDeleteClick = (transaction: CashFlow) => {
     setSelectedTransaction(transaction);

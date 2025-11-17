@@ -50,12 +50,7 @@ export default tseslint.config(
           argsIgnorePattern: "^_",
           varsIgnorePattern: "^_",
         },
-      ],
-      "@typescript-eslint/no-explicit-any": "warn",
-      "@typescript-eslint/explicit-module-boundary-types": "off",
-      "react-hooks/set-state-in-effect": "off",
-      "no-loss-of-precision": "warn",
-      "no-empty-pattern": "warn",
+      ],    
     },
   }
 );

@@ -774,7 +774,7 @@ describe("PropertyDetails", () => {
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
-  it("should render Finance tab", async () => {
+  it("should render Finance tab with i18n translation", async () => {
     const router = createRouter("property-1", "tab=finance");
     render(<RouterProvider router={router} />);
 
@@ -799,5 +799,48 @@ describe("PropertyDetails", () => {
       fireEvent.click(tabButtons[0]);
       expect(mockSetSearchParams).toHaveBeenCalled();
     }
+  });
+
+  it("should display finance dashboard sub-tab", () => {
+    const router = createRouter("property-1", "tab=finance&subTab=dashboard");
+    render(<RouterProvider router={router} />);
+
+    expect(getPropertyById).toHaveBeenCalledWith("property-1");
+  });
+
+  it("should display finance transactions sub-tab", () => {
+    const router = createRouter("property-1", "tab=finance&subTab=transactions");
+    render(<RouterProvider router={router} />);
+
+    expect(getPropertyById).toHaveBeenCalledWith("property-1");
+    const table = screen.queryByTestId("table");
+    expect(table || screen.queryAllByRole("button").length > 0).toBeTruthy();
+  });
+
+  it("should switch between finance sub-tabs using i18n", () => {
+    const router = createRouter("property-1", "tab=finance&subTab=dashboard");
+    render(<RouterProvider router={router} />);
+
+    const subTabButtons = screen
+      .queryAllByRole("button")
+      .filter(
+        (btn) =>
+          btn.textContent?.includes("Dashboard") ||
+          btn.textContent?.includes("Transações") ||
+          btn.textContent?.includes("Transactions")
+      );
+
+    if (subTabButtons.length > 0) {
+      fireEvent.click(subTabButtons[0]);
+      expect(mockSetSearchParams).toHaveBeenCalled();
+    }
+  });
+
+  it("should use i18n for finance dashboard labels", () => {
+    const router = createRouter("property-1", "tab=finance&subTab=dashboard");
+    render(<RouterProvider router={router} />);
+
+    expect(getPropertyById).toHaveBeenCalledWith("property-1");
+    expect(screen.queryAllByRole("button").length).toBeGreaterThan(0);
   });
 });

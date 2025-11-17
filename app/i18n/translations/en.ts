@@ -50,6 +50,7 @@ export const en = {
     accountsReceivable: "Accounts Receivable",
     bankAccounts: "Bank Accounts",
     financas: "Finance",
+    financesDashboard: "Dashboard",
   },
 
   navbar: {
@@ -208,6 +209,10 @@ export const en = {
       finance: {
         title: "Finance",
         description: "All financial transactions related to this property",
+        subTabs: {
+          dashboard: "Dashboard",
+          transactions: "Transactions",
+        },
       },
       movements: {
         title: "Movements",
@@ -719,6 +724,10 @@ export const en = {
       finance: {
         title: "Finance",
         description: "All financial transactions related to this service provider",
+        subTabs: {
+          dashboard: "Dashboard",
+          transactions: "Transactions",
+        },
       },
       observation: "Observation",
       addObservation: "Add Observation",
@@ -852,6 +861,10 @@ export const en = {
       finance: {
         title: "Finance",
         description: "All financial transactions related to this supplier",
+        subTabs: {
+          dashboard: "Dashboard",
+          transactions: "Transactions",
+        },
       },
       observation: "Observation",
       addObservation: "Add Observation",
@@ -985,6 +998,10 @@ export const en = {
       finance: {
         title: "Finance",
         description: "All financial transactions related to this buyer",
+        subTabs: {
+          dashboard: "Dashboard",
+          transactions: "Transactions",
+        },
       },
       observation: "Observation",
       addObservation: "Add Observation",
@@ -2154,6 +2171,52 @@ export const en = {
         answer:
           "It depends on your health plan and the type of service. Some plans cover our services partially or fully. We recommend that you contact your insurer before booking to verify coverage. We can also help you verify this through our support.",
       },
+    },
+  },
+  financesDashboard: {
+    title: "Financial Dashboard",
+    meta: {
+      title: "Financial Dashboard - Boi na Nuvem",
+      description: "Financial overview of Boi na Nuvem",
+    },
+    cards: {
+      totalIncome: "Total Income",
+      totalExpenses: "Total Expenses",
+      netCashFlow: "Net Cash Flow",
+      accountsPayable: "Accounts Payable",
+      accountsReceivable: "Accounts Receivable",
+      overdue: "Overdue",
+    },
+    charts: {
+      incomeVsExpenses: "Income vs Expenses",
+      monthlyCashFlow: "Monthly Cash Flow",
+      cashFlowByCategory: "Cash Flow by Category",
+      paymentStatus: "Payment Status",
+      expenseCategories: "Expense Categories",
+      income: "Income",
+      expenses: "Expenses",
+      netCashFlow: "Net",
+    },
+    tables: {
+      recentTransactions: "Recent Transactions",
+      upcomingPayments: "Upcoming Payments",
+      upcomingReceivables: "Upcoming Receivables",
+      overdue: "Overdue Items",
+      date: "Date",
+      dueDate: "Due Date",
+      description: "Description",
+      amount: "Amount",
+      type: "Type",
+      payable: "Payable",
+      receivable: "Receivable",
+      noData: "No data available",
+      noOverdue: "No overdue items",
+    },
+    status: {
+      paid: "Paid",
+      unpaid: "Unpaid",
+      overdue: "Overdue",
+      partial: "Partial",
     },
   },
 } as const;

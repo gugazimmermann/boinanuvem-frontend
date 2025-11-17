@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import {
   Table,
@@ -46,10 +46,6 @@ export default function Buyers() {
     column: string | null;
     direction: SortDirection;
   }>({ column: "name", direction: "asc" });
-
-  useEffect(() => {
-    setBuyers([...mockBuyers]);
-  }, []);
 
   const [searchValue, setSearchValue] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("all");
