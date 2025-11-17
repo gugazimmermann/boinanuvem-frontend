@@ -32,6 +32,7 @@ import { useLanguage } from "~/contexts/language-context";
 import {
   ROUTES,
   getPropertyEditRoute,
+  getPropertyBreedingSeasonEditRoute,
   getLocationViewRoute,
   getEmployeeViewRoute,
   getServiceProviderViewRoute,
@@ -1079,14 +1080,37 @@ export default function PropertyDetails() {
           </div>
 
           {property.pasturePlanning && property.pasturePlanning.length > 0 && (
-            <PasturePlanningGraph data={property.pasturePlanning} />
+            <PasturePlanningGraph
+              data={property.pasturePlanning}
+              propertyId={property.id}
+              isModifiedByUser={property.pasturePlanningModifiedByUser || false}
+            />
           )}
 
-          {property.breedingMonths && property.breedingMonths.length > 0 && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-                {t.properties.details.pasturePlanning.breedingSeason.title}
-              </h2>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex-1">
+                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                  {t.properties.details.pasturePlanning.breedingSeason.title}
+                </h2>
+                {!(property.breedingSeasonModifiedByUser || false) && (
+                  <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <p className="text-sm text-blue-800 dark:text-blue-300">
+                      {t.properties.details.pasturePlanning.breedingSeason.aiGeneratedNote}
+                    </p>
+                  </div>
+                )}
+              </div>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => navigate(getPropertyBreedingSeasonEditRoute(property.id))}
+                className="ml-4"
+              >
+                {t.properties.edit.title.split(" ")[0]}
+              </Button>
+            </div>
+            {property.breedingMonths && property.breedingMonths.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {(() => {
                   const monthOrder = [
@@ -1122,8 +1146,12 @@ export default function PropertyDetails() {
                   });
                 })()}
               </div>
-            </div>
-          )}
+            ) : (
+              <p className="text-gray-600 dark:text-gray-400">
+                {t.properties.details.pasturePlanning.breedingSeason.noData}
+              </p>
+            )}
+          </div>
         </div>
       )}
 

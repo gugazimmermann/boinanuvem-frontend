@@ -6,6 +6,7 @@ export const pt = {
     cancel: "Cancelar",
     back: "Voltar",
     save: "Salvar",
+    select: "Selecione...",
     month: "mês",
     months: "meses",
     today: "Hoje",
@@ -111,6 +112,14 @@ export const pt = {
       details: {
         title: "Detalhes da Propriedade - Boi na Nuvem",
       },
+      pasturePlanningEdit: {
+        title: "Editar Planejamento de Pastagem - Boi na Nuvem",
+        description: "Editar dados de planejamento de pastagem da propriedade",
+      },
+      breedingSeasonEdit: {
+        title: "Editar Estação de Monta - Boi na Nuvem",
+        description: "Editar estação de monta da propriedade",
+      },
     },
     addProperty: "Adicionar Propriedade",
     searchPlaceholder: "Buscar propriedades...",
@@ -179,6 +188,11 @@ export const pt = {
       statusLabel: "Status",
       areaValidationError: "Área deve ser um número maior que zero",
       propertyNotFound: "Propriedade não encontrada. Tente novamente.",
+      validation: {
+        temperatureRange: "Temperatura deve estar entre -50 e 50°C",
+        minTempGreaterThanMax: "Temperatura mínima deve ser menor ou igual à máxima",
+        precipitationNonNegative: "Precipitação deve ser maior ou igual a zero",
+      },
     },
     details: {
       propertyInfo: "Informações da Propriedade",
@@ -295,15 +309,13 @@ export const pt = {
         avgTemp: "Temp. Média",
         precip: "Precipitação",
         forage: "Forragem",
-        classification: {
-          Poor: "Ruim",
-          Medium: "Média",
-          Good: "Boa",
-          Excellent: "Excelente",
-        },
+        aiGeneratedNote:
+          "Estes dados foram gerados automaticamente por IA. Você pode editá-los conforme necessário.",
         breedingSeason: {
           title: "Estação de Monta",
           noData: "Nenhuma estação de monta definida.",
+          aiGeneratedNote:
+            "Estes dados foram gerados automaticamente por IA. Você pode editá-los conforme necessário.",
           months: {
             January: "Janeiro",
             February: "Fevereiro",
@@ -318,6 +330,12 @@ export const pt = {
             November: "Novembro",
             December: "Dezembro",
           },
+        },
+        classification: {
+          Poor: "Ruim",
+          Medium: "Média",
+          Good: "Boa",
+          Excellent: "Excelente",
         },
       },
     },

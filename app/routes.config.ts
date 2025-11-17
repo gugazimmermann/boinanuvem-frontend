@@ -10,6 +10,8 @@ export const ROUTES = {
   PROPERTIES_NEW: "/dashboard/propriedades/novo",
   PROPERTIES_EDIT: "/dashboard/propriedades/:propertyId/editar",
   PROPERTIES_VIEW: "/dashboard/propriedades/:propertyId",
+  PROPERTIES_PASTURE_PLANNING_EDIT: "/dashboard/propriedades/:propertyId/planejamento-pastagem/editar",
+  PROPERTIES_BREEDING_SEASON_EDIT: "/dashboard/propriedades/:propertyId/estacao-monta/editar",
   LOCATIONS: "/dashboard/localizacoes",
   LOCATIONS_NEW: "/dashboard/localizacoes/novo",
   LOCATIONS_EDIT: "/dashboard/localizacoes/:locationId/editar",
@@ -89,6 +91,14 @@ export function getPropertyEditRoute(propertyId: string): string {
 
 export function getPropertyViewRoute(propertyId: string): string {
   return `/dashboard/propriedades/${propertyId}`;
+}
+
+export function getPropertyPasturePlanningEditRoute(propertyId: string): string {
+  return `/dashboard/propriedades/${propertyId}/planejamento-pastagem/editar`;
+}
+
+export function getPropertyBreedingSeasonEditRoute(propertyId: string): string {
+  return `/dashboard/propriedades/${propertyId}/estacao-monta/editar`;
 }
 
 export function getLocationEditRoute(locationId: string): string {
@@ -202,6 +212,8 @@ export const ROUTE_NAMES = {
   PROPERTIES_NEW: "propriedades/novo",
   PROPERTIES_EDIT: "propriedades/:propertyId/editar",
   PROPERTIES_VIEW: "propriedades/:propertyId",
+  PROPERTIES_PASTURE_PLANNING_EDIT: "propriedades/:propertyId/planejamento-pastagem/editar",
+  PROPERTIES_BREEDING_SEASON_EDIT: "propriedades/:propertyId/estacao-monta/editar",
   LOCATIONS: "localizacoes",
   LOCATIONS_NEW: "localizacoes/novo",
   LOCATIONS_EDIT: "localizacoes/:locationId/editar",

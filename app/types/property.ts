@@ -27,6 +27,8 @@ export interface Property extends Record<string, unknown> {
   longitude?: number;
   pasturePlanning?: PasturePlanningMonth[];
   breedingMonths?: string[];
+  pasturePlanningModifiedByUser?: boolean;
+  breedingSeasonModifiedByUser?: boolean;
 }
 
 export interface PropertyFormData {
@@ -42,4 +44,8 @@ export interface PropertyFormData {
   city: string;
   state: string;
   zipCode: string;
+  pasturePlanning?: PasturePlanningMonth[];
+  breedingMonths?: string[];
+  pasturePlanningModifiedByUser?: boolean;
+  breedingSeasonModifiedByUser?: boolean;
 }

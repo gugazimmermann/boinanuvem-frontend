@@ -13,6 +13,14 @@ export default [
     route(ROUTE_NAMES.PROPERTIES_NEW, "routes/dashboard/properties.new.tsx"),
     route(ROUTE_NAMES.PROPERTIES_EDIT, "routes/dashboard/properties.edit.$propertyId.tsx"),
     route(ROUTE_NAMES.PROPERTIES_VIEW, "routes/dashboard/properties.$propertyId.tsx"),
+    route(
+      ROUTE_NAMES.PROPERTIES_PASTURE_PLANNING_EDIT,
+      "routes/dashboard/properties.$propertyId.pasture-planning.edit.tsx"
+    ),
+    route(
+      ROUTE_NAMES.PROPERTIES_BREEDING_SEASON_EDIT,
+      "routes/dashboard/properties.$propertyId.breeding-season.edit.tsx"
+    ),
     route(ROUTE_NAMES.MOVEMENTS_NEW, "routes/dashboard/properties.$propertyId.movements.new.tsx"),
     route(ROUTE_NAMES.LOCATIONS, "routes/dashboard/locations.tsx"),
     route(ROUTE_NAMES.LOCATIONS_NEW, "routes/dashboard/locations.new.tsx"),

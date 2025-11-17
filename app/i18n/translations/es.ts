@@ -6,6 +6,7 @@ export const es = {
     cancel: "Cancelar",
     back: "Volver",
     save: "Guardar",
+    select: "Seleccione...",
     month: "mes",
     months: "meses",
     today: "Hoy",
@@ -112,6 +113,14 @@ export const es = {
       details: {
         title: "Detalles de la Propiedad - Boi na Nuvem",
       },
+      pasturePlanningEdit: {
+        title: "Editar Planificación de Pastos - Boi na Nuvem",
+        description: "Editar datos de planificación de pastos de la propiedad",
+      },
+      breedingSeasonEdit: {
+        title: "Editar Temporada de Reproducción - Boi na Nuvem",
+        description: "Editar temporada de reproducción de la propiedad",
+      },
     },
     addProperty: "Agregar Propiedad",
     searchPlaceholder: "Buscar propiedades...",
@@ -180,6 +189,11 @@ export const es = {
       statusLabel: "Estado",
       areaValidationError: "El área debe ser un número mayor que cero",
       propertyNotFound: "Propiedad no encontrada. Intente nuevamente.",
+      validation: {
+        temperatureRange: "La temperatura debe estar entre -50 y 50°C",
+        minTempGreaterThanMax: "La temperatura mínima debe ser menor o igual a la máxima",
+        precipitationNonNegative: "La precipitación debe ser mayor o igual a cero",
+      },
     },
     details: {
       propertyInfo: "Información de la Propiedad",
@@ -296,6 +310,8 @@ export const es = {
         avgTemp: "Temp. Prom",
         precip: "Precipitación",
         forage: "Forraje",
+        aiGeneratedNote:
+          "Estos datos fueron generados automáticamente por IA. Puede editarlos según sea necesario.",
         classification: {
           Poor: "Mala",
           Medium: "Media",
@@ -305,6 +321,8 @@ export const es = {
         breedingSeason: {
           title: "Temporada de Monta",
           noData: "No se ha definido temporada de monta.",
+          aiGeneratedNote:
+            "Estos datos fueron generados automáticamente por IA. Puede editarlos según sea necesario.",
           months: {
             January: "Enero",
             February: "Febrero",

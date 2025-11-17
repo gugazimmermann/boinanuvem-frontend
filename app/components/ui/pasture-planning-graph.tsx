@@ -1,6 +1,9 @@
+import { useNavigate } from "react-router";
 import type { PasturePlanningMonth } from "~/types/property";
 import { useTranslation } from "~/i18n";
 import { useTheme } from "~/contexts/theme-context";
+import { Button } from "./button";
+import { getPropertyPasturePlanningEditRoute } from "~/routes.config";
 import {
   ComposedChart,
   Area,
@@ -18,6 +21,8 @@ import {
 
 interface PasturePlanningGraphProps {
   data: PasturePlanningMonth[];
+  propertyId: string;
+  isModifiedByUser?: boolean;
 }
 
 const CLASSIFICATION_COLORS = {
@@ -49,8 +54,13 @@ const monthMap: Record<string, string> = {
   December: "Dez",
 };
 
-export function PasturePlanningGraph({ data }: PasturePlanningGraphProps) {
+export function PasturePlanningGraph({
+  data,
+  propertyId,
+  isModifiedByUser = false,
+}: PasturePlanningGraphProps) {
   const t = useTranslation();
+  const navigate = useNavigate();
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
@@ -85,9 +95,28 @@ export function PasturePlanningGraph({ data }: PasturePlanningGraphProps) {
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-      <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-6">
-        {t.properties.details.pasturePlanning.title}
-      </h2>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex-1">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+            {t.properties.details.pasturePlanning.title}
+          </h2>
+          {!isModifiedByUser && (
+            <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <p className="text-sm text-blue-800 dark:text-blue-300">
+                {t.properties.details.pasturePlanning.aiGeneratedNote}
+              </p>
+            </div>
+          )}
+        </div>
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={() => navigate(getPropertyPasturePlanningEditRoute(propertyId))}
+          className="ml-4"
+        >
+          {t.properties.edit.title.split(" ")[0]}
+        </Button>
+      </div>
 
       <div className="w-full">
         <ResponsiveContainer width="100%" height={450}>

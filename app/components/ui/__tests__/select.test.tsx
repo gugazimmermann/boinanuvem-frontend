@@ -2,6 +2,8 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Select } from "../select";
+import { LanguageProvider } from "~/contexts/language-context";
+import { ThemeProvider } from "~/contexts/theme-context";
 
 const options = [
   { value: "option1", label: "Option 1" },
@@ -9,51 +11,57 @@ const options = [
   { value: "option3", label: "Option 3" },
 ];
 
+const wrapper = ({ children }: { children: React.ReactNode }) => (
+  <ThemeProvider>
+    <LanguageProvider>{children}</LanguageProvider>
+  </ThemeProvider>
+);
+
 describe("Select", () => {
   it("should render select", () => {
-    render(<Select options={options} />);
+    render(<Select options={options} />, { wrapper });
     expect(screen.getByRole("combobox")).toBeInTheDocument();
   });
 
   it("should render with label", () => {
-    render(<Select label="Test Label" options={options} />);
+    render(<Select label="Test Label" options={options} />, { wrapper });
     expect(screen.getByLabelText("Test Label")).toBeInTheDocument();
   });
 
   it("should render with helper text", () => {
-    render(<Select helperText="Helper text" options={options} />);
+    render(<Select helperText="Helper text" options={options} />, { wrapper });
     expect(screen.getByText("Helper text")).toBeInTheDocument();
   });
 
   it("should render with error message", () => {
-    render(<Select error="Error message" options={options} />);
+    render(<Select error="Error message" options={options} />, { wrapper });
     expect(screen.getByText("Error message")).toBeInTheDocument();
     expect(screen.getByRole("combobox")).toHaveAttribute("aria-invalid", "true");
   });
 
   it("should prioritize error over helper text", () => {
-    render(<Select error="Error" helperText="Helper" options={options} />);
+    render(<Select error="Error" helperText="Helper" options={options} />, { wrapper });
     expect(screen.getByText("Error")).toBeInTheDocument();
     expect(screen.queryByText("Helper")).not.toBeInTheDocument();
   });
 
   it("should render all options", () => {
-    render(<Select options={options} />);
+    render(<Select options={options} />, { wrapper });
     expect(screen.getByText("Option 1")).toBeInTheDocument();
     expect(screen.getByText("Option 2")).toBeInTheDocument();
     expect(screen.getByText("Option 3")).toBeInTheDocument();
   });
 
   it("should render default option", () => {
-    render(<Select options={options} />);
-    expect(screen.getByText("Selecione...")).toBeInTheDocument();
+    render(<Select options={options} />, { wrapper });
+    expect(screen.getByText("Select...")).toBeInTheDocument();
   });
 
   it("should handle value changes", async () => {
     const handleChange = vi.fn();
     const user = userEvent.setup();
 
-    render(<Select options={options} onChange={handleChange} />);
+    render(<Select options={options} onChange={handleChange} />, { wrapper });
     const select = screen.getByRole("combobox");
 
     await user.selectOptions(select, "option1");
@@ -61,32 +69,34 @@ describe("Select", () => {
   });
 
   it("should apply custom className", () => {
-    const { container } = render(<Select className="custom-class" options={options} />);
+    const { container } = render(<Select className="custom-class" options={options} />, {
+      wrapper,
+    });
     const outerDiv = container.firstChild as HTMLElement;
     expect(outerDiv.className).toContain("custom-class");
   });
 
   it("should apply selectClassName", () => {
-    render(<Select selectClassName="custom-select" options={options} />);
+    render(<Select selectClassName="custom-select" options={options} />, { wrapper });
     const select = screen.getByRole("combobox");
     expect(select.className).toContain("custom-select");
   });
 
   it("should forward ref", () => {
     const ref = vi.fn();
-    render(<Select ref={ref} options={options} />);
+    render(<Select ref={ref} options={options} />, { wrapper });
     expect(ref).toHaveBeenCalled();
   });
 
   it("should pass through other select props", () => {
-    render(<Select options={options} required />);
+    render(<Select options={options} required />, { wrapper });
     const select = screen.getByRole("combobox");
     expect(select).toBeRequired();
   });
 
   it("should handle empty options array", () => {
-    render(<Select options={[]} />);
+    render(<Select options={[]} />, { wrapper });
     expect(screen.getByRole("combobox")).toBeInTheDocument();
-    expect(screen.getByText("Selecione...")).toBeInTheDocument();
+    expect(screen.getByText("Select...")).toBeInTheDocument();
   });
 });

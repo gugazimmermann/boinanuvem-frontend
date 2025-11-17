@@ -111,6 +111,8 @@ export const mockProperties: Property[] = [
       },
     ],
     breedingMonths: ["April", "May", "June", "July", "February", "March"],
+    pasturePlanningModifiedByUser: false,
+    breedingSeasonModifiedByUser: false,
   },
   {
     id: "550e8400-e29b-41d4-a716-446655440011",
@@ -219,6 +221,8 @@ export const mockProperties: Property[] = [
       },
     ],
     breedingMonths: ["April", "May", "June", "July", "February", "March"],
+    pasturePlanningModifiedByUser: false,
+    breedingSeasonModifiedByUser: false,
   },
   {
     id: "550e8400-e29b-41d4-a716-446655440012",
@@ -327,5 +331,7 @@ export const mockProperties: Property[] = [
       },
     ],
     breedingMonths: ["April", "May", "June", "July", "February", "March"],
+    pasturePlanningModifiedByUser: false,
+    breedingSeasonModifiedByUser: false,
   },
 ];

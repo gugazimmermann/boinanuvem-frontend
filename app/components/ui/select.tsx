@@ -1,4 +1,5 @@
 import { forwardRef, useId, type SelectHTMLAttributes } from "react";
+import { useTranslation } from "~/i18n/use-translation";
 
 interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, "className"> {
   label?: string;
@@ -7,6 +8,8 @@ interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, "cla
   className?: string;
   selectClassName?: string;
   options: Array<{ value: string; label: string }>;
+  placeholder?: string;
+  showPlaceholder?: boolean;
 }
 
 const baseSelectStyles = [
@@ -39,13 +42,27 @@ const errorSelectStyles = ["border-red-400", "focus:border-red-400", "focus:ring
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
   (
-    { label, helperText, error, className = "", selectClassName = "", id, options, ...selectProps },
+    {
+      label,
+      helperText,
+      error,
+      className = "",
+      selectClassName = "",
+      id,
+      options,
+      placeholder,
+      showPlaceholder = true,
+      ...selectProps
+    },
     ref
   ) => {
+    const t = useTranslation();
     const generatedId = useId();
     const selectId = id || generatedId;
     const hasError = Boolean(error);
     const displayText = error || helperText;
+    const defaultPlaceholder = t.common.select || "Select...";
+    const placeholderText = placeholder || defaultPlaceholder;
 
     const selectStyles = [baseSelectStyles, hasError && errorSelectStyles, selectClassName]
       .filter(Boolean)
@@ -67,7 +84,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             aria-invalid={hasError}
             {...selectProps}
           >
-            <option value="">Selecione...</option>
+            {showPlaceholder && <option value="">{placeholderText}</option>}
             {options.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
