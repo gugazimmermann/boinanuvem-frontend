@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -13,7 +14,6 @@ vi.mock("~/components/site/auth-layout", () => ({
 }));
 
 vi.mock("~/components/site/ui", () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   AuthInput: ({
     type,
     placeholder,
@@ -35,7 +35,6 @@ vi.mock("~/components/site/ui", () => ({
       />
     );
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   AuthButton: ({ children, fullWidth: _fullWidth, onClick, type, ...props }: any) => (
     <button data-testid="auth-button" type={type} onClick={onClick} {...props}>
       {children}
