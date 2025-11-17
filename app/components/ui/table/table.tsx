@@ -27,6 +27,9 @@ export function Table<T extends Record<string, unknown>>({
   selectable,
   selectedCountLabel,
   selectedActionButton,
+  additionalContent,
+  middleContent,
+  rightContent,
 }: TableProps<T>) {
   const getRowClassName = (row: T, index: number): string => {
     if (typeof rowClassName === "function") {
@@ -181,6 +184,9 @@ export function Table<T extends Record<string, unknown>>({
                 filters={filters}
                 selectedCountLabel={selectedCountLabel}
                 selectedActionButton={selectedActionButton}
+                additionalContent={additionalContent}
+                middleContent={middleContent}
+                rightContent={rightContent}
               />
             </div>
           )}
@@ -193,6 +199,9 @@ export function Table<T extends Record<string, unknown>>({
             search={search}
             selectedCountLabel={selectedCountLabel}
             selectedActionButton={selectedActionButton}
+            additionalContent={additionalContent}
+            middleContent={middleContent}
+            rightContent={rightContent}
           />
         </>
       )}

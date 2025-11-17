@@ -1,0 +1,480 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale/pt-BR";
+import {
+  Table,
+  StatusBadge,
+  TableActionButtons,
+  ConfirmationModal,
+  Alert,
+  Select,
+  type TableColumn,
+  type TableAction,
+  type TableFilter,
+  type SortDirection,
+} from "~/components/ui";
+import { useTranslation } from "~/i18n";
+import { useLanguage } from "~/contexts/language-context";
+import { mockAccountsReceivable } from "~/mocks/accounts-receivable";
+import {
+  deleteAccountsReceivable,
+  getAccountsReceivableByCompanyId,
+} from "~/services/accounts-receivable.service";
+import { getBuyerById } from "~/services/buyers.service";
+import { getPropertyById } from "~/services/properties.service";
+import type { AccountsReceivable } from "~/types";
+import {
+  ROUTES,
+  getAccountsReceivableEditRoute,
+  getAccountsReceivableViewRoute,
+} from "~/routes.config";
+import { mockCompanies } from "~/mocks/companies";
+
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return format(date, "dd/MM/yyyy", { locale: ptBR });
+};
+
+export function meta() {
+  return [
+    { title: "Contas a Receber - Boi na Nuvem" },
+    {
+      name: "description",
+      content: "Gerenciamento de contas a receber do Boi na Nuvem",
+    },
+  ];
+}
+
+export default function AccountsReceivable() {
+  const t = useTranslation();
+  const { language } = useLanguage();
+  const navigate = useNavigate();
+  const company = mockCompanies[0];
+  const [transactions, setTransactions] = useState<AccountsReceivable[]>(
+    company ? getAccountsReceivableByCompanyId(company.id) : [...mockAccountsReceivable]
+  );
+  const [sortState, setSortState] = useState<{
+    column: string | null;
+    direction: SortDirection;
+  }>({ column: "dueDate", direction: "asc" });
+
+  useEffect(() => {
+    if (company) {
+      setTransactions(getAccountsReceivableByCompanyId(company.id));
+    }
+  }, [company]);
+
+  const [searchValue, setSearchValue] = useState("");
+  const [activeFilter, setActiveFilter] = useState<string>("all");
+  const [selectedYear, setSelectedYear] = useState<string>("all");
+  const [selectedMonth, setSelectedMonth] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<AccountsReceivable | null>(null);
+  const [alertMessage, setAlertMessage] = useState<{
+    title: string;
+    variant: "success" | "error" | "warning" | "info";
+  } | null>(null);
+  const itemsPerPage = 10;
+
+  const showAlert = (
+    title: string,
+    variant: "success" | "error" | "warning" | "info" = "success"
+  ) => {
+    setAlertMessage({ title, variant });
+    setTimeout(() => {
+      setAlertMessage(null);
+    }, 3000);
+  };
+
+  const handleDeleteClick = (transaction: AccountsReceivable) => {
+    setSelectedTransaction(transaction);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDeleteTransaction = async () => {
+    if (!selectedTransaction) return;
+    const success = deleteAccountsReceivable(selectedTransaction.id);
+    if (success) {
+      setTransactions(transactions.filter((t) => t.id !== selectedTransaction.id));
+      showAlert(t.accountsReceivable.success.deleted, "success");
+    } else {
+      showAlert(t.accountsReceivable.errors.deleteFailed, "error");
+    }
+    setSelectedTransaction(null);
+  };
+
+  const filteredData = transactions.filter((transaction) => {
+    const matchesSearch =
+      transaction.description.toLowerCase().includes(searchValue.toLowerCase()) ||
+      transaction.referenceNumber?.toLowerCase().includes(searchValue.toLowerCase()) ||
+      false;
+
+    const matchesFilter =
+      activeFilter === "all" ||
+      (activeFilter === "paid" && transaction.status === "paid") ||
+      (activeFilter === "unpaid" && transaction.status === "unpaid") ||
+      (activeFilter === "overdue" && transaction.status === "overdue") ||
+      (activeFilter === "partial" && transaction.status === "partial");
+
+    const matchesYear = selectedYear === "all" || transaction.dueDate.startsWith(selectedYear);
+    const monthStr = selectedMonth === "all" ? null : selectedMonth.padStart(2, "0");
+    const matchesMonth =
+      selectedMonth === "all" || (monthStr && transaction.dueDate.substring(5, 7) === monthStr);
+
+    return matchesSearch && matchesFilter && matchesYear && matchesMonth;
+  });
+
+  const sortedData = [...filteredData].sort((a, b) => {
+    if (!sortState.column || !sortState.direction) {
+      return 0;
+    }
+
+    const aValue = a[sortState.column];
+    const bValue = b[sortState.column];
+
+    if (aValue == null && bValue == null) return 0;
+    if (aValue == null) return 1;
+    if (bValue == null) return -1;
+
+    let comparison = 0;
+    if (typeof aValue === "string" && typeof bValue === "string") {
+      comparison = aValue.localeCompare(bValue, "pt-BR", {
+        sensitivity: "base",
+      });
+    } else if (typeof aValue === "number" && typeof bValue === "number") {
+      comparison = aValue - bValue;
+    } else {
+      comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
+    }
+
+    return sortState.direction === "asc" ? comparison : -comparison;
+  });
+
+  const paginatedData = sortedData.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+
+  // Calculate total from filtered data
+  const totalAmount = filteredData.reduce((sum, t) => sum + t.amount, 0);
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(value);
+  };
+
+  const getStatusVariant = (status: string) => {
+    switch (status) {
+      case "paid":
+        return "success";
+      case "overdue":
+        return "danger";
+      case "partial":
+        return "warning";
+      default:
+        return "default";
+    }
+  };
+
+  const columns: TableColumn<AccountsReceivable>[] = [
+    {
+      key: "amount",
+      label: t.accountsReceivable.table.amount,
+      sortable: true,
+      render: (_, row) => (
+        <span className="font-medium text-green-600 dark:text-green-400">
+          {formatCurrency(row.amount)}
+        </span>
+      ),
+    },
+    {
+      key: "dueDate",
+      label: t.accountsReceivable.table.dueDate,
+      sortable: true,
+      render: (_, row) => (
+        <span className="text-gray-700 dark:text-gray-300">{formatDate(row.dueDate)}</span>
+      ),
+    },
+    {
+      key: "property",
+      label: t.accountsReceivable.table.property,
+      sortable: true,
+      render: (_, row) => {
+        const property = getPropertyById(row.propertyId);
+        return <span className="text-gray-700 dark:text-gray-300">{property?.name || "-"}</span>;
+      },
+    },
+    {
+      key: "category",
+      label: t.cashFlow.table.category,
+      sortable: true,
+      render: (_, row) => (
+        <span className="text-gray-700 dark:text-gray-300">
+          {row.category ? t.cashFlow.categories[row.category] || row.category : "-"}
+        </span>
+      ),
+    },
+    {
+      key: "description",
+      label: t.accountsReceivable.table.description,
+      sortable: true,
+      render: (_, row) => (
+        <span className="text-gray-700 dark:text-gray-300">{row.description}</span>
+      ),
+    },
+    {
+      key: "buyer",
+      label: "",
+      sortable: false,
+      render: (_, row) => {
+        if (!row.buyerId) {
+          return <span className="text-gray-400 dark:text-gray-500">-</span>;
+        }
+        const buyer = getBuyerById(row.buyerId);
+        return <span className="text-gray-700 dark:text-gray-300">{buyer?.name || "-"}</span>;
+      },
+    },
+    {
+      key: "status",
+      label: t.accountsReceivable.table.status,
+      sortable: true,
+      render: (_, row) => (
+        <StatusBadge
+          label={t.accountsReceivable.status[row.status] || row.status}
+          variant={getStatusVariant(row.status)}
+        />
+      ),
+    },
+    {
+      key: "paidAmount",
+      label: t.accountsReceivable.table.paidAmount,
+      sortable: true,
+      render: (_, row) => (
+        <span className="text-gray-700 dark:text-gray-300">
+          {row.paidAmount ? formatCurrency(row.paidAmount) : "-"}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      label: "",
+      headerClassName: "relative",
+      render: (_, row) => (
+        <TableActionButtons
+          onEdit={() => navigate(getAccountsReceivableEditRoute(row.id))}
+          onDelete={() => handleDeleteClick(row)}
+        />
+      ),
+    },
+  ];
+
+  const headerActions: TableAction[] = [
+    {
+      label: t.accountsReceivable.addTransaction,
+      variant: "primary",
+      leftIcon: (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth={1.5}
+          stroke="currentColor"
+          className="w-5 h-5"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+      ),
+      onClick: () => navigate(ROUTES.ACCOUNTS_RECEIVABLE_NEW),
+    },
+  ];
+
+  const filters: TableFilter[] = [
+    {
+      label: t.accountsReceivable.filters.all,
+      value: "all",
+      active: activeFilter === "all",
+      onClick: () => setActiveFilter("all"),
+    },
+    {
+      label: t.accountsReceivable.filters.paid,
+      value: "paid",
+      active: activeFilter === "paid",
+      onClick: () => setActiveFilter("paid"),
+    },
+    {
+      label: t.accountsReceivable.filters.unpaid,
+      value: "unpaid",
+      active: activeFilter === "unpaid",
+      onClick: () => setActiveFilter("unpaid"),
+    },
+    {
+      label: t.accountsReceivable.filters.overdue,
+      value: "overdue",
+      active: activeFilter === "overdue",
+      onClick: () => setActiveFilter("overdue"),
+    },
+    {
+      label: t.accountsReceivable.filters.partial,
+      value: "partial",
+      active: activeFilter === "partial",
+      onClick: () => setActiveFilter("partial"),
+    },
+  ];
+
+  const handleSort = (column: string, direction: SortDirection) => {
+    setSortState({ column, direction });
+    setCurrentPage(1);
+  };
+
+  // Generate year options
+  const getYearOptions = () => {
+    const allYearsLabel =
+      language === "pt" ? "Todos os anos" : language === "en" ? "All years" : "Todos los años";
+    const options = [{ value: "all", label: allYearsLabel }];
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+
+    // Add previous year and current year
+    options.push({ value: String(currentYear - 1), label: String(currentYear - 1) });
+    options.push({ value: String(currentYear), label: String(currentYear) });
+
+    return options;
+  };
+
+  // Generate month options
+  const getMonthOptions = () => {
+    const localeMap: Record<string, string> = {
+      pt: "pt-BR",
+      en: "en-US",
+      es: "es-ES",
+    };
+    const locale = localeMap[language] || "pt-BR";
+    const allMonthsLabel =
+      language === "pt" ? "Todos os meses" : language === "en" ? "All months" : "Todos los meses";
+    const options = [{ value: "all", label: allMonthsLabel }];
+
+    // Add all 12 months
+    for (let month = 1; month <= 12; month++) {
+      const monthName = new Date(2000, month - 1).toLocaleDateString(locale, {
+        month: "long",
+      });
+      options.push({ value: String(month), label: monthName });
+    }
+
+    return options;
+  };
+
+  return (
+    <div>
+      <Table<AccountsReceivable>
+        columns={columns}
+        data={paginatedData}
+        header={{
+          title: t.accountsReceivable.title,
+          badge: {
+            label: t.accountsReceivable.badge.transactions(filteredData.length),
+            variant: "primary",
+          },
+          description: t.accountsReceivable.description,
+          actions: headerActions,
+        }}
+        filters={filters}
+        search={{
+          placeholder: t.accountsReceivable.searchPlaceholder,
+          value: searchValue,
+          onChange: setSearchValue,
+        }}
+        middleContent={
+          <div className="flex items-center gap-4 text-sm">
+            <div className="flex flex-col">
+              <span className="text-gray-500 dark:text-gray-400 text-xs">Total</span>
+              <span className="font-semibold text-gray-700 dark:text-gray-300">
+                {formatCurrency(totalAmount)}
+              </span>
+            </div>
+          </div>
+        }
+        rightContent={
+          <div className="flex items-center gap-2">
+            <div className="w-32">
+              <Select
+                value={selectedYear}
+                onChange={(e) => {
+                  setSelectedYear(e.target.value);
+                  setCurrentPage(1);
+                }}
+                options={getYearOptions()}
+                selectClassName="text-xs sm:text-sm py-2"
+              />
+            </div>
+            <div className="w-36">
+              <Select
+                value={selectedMonth}
+                onChange={(e) => {
+                  setSelectedMonth(e.target.value);
+                  setCurrentPage(1);
+                }}
+                options={getMonthOptions()}
+                selectClassName="text-xs sm:text-sm py-2"
+              />
+            </div>
+          </div>
+        }
+        pagination={{
+          currentPage,
+          totalPages: totalPages || 1,
+          onPageChange: setCurrentPage,
+          showInfo: false,
+        }}
+        sortState={sortState}
+        onSort={handleSort}
+        onRowClick={(row) => navigate(getAccountsReceivableViewRoute(row.id))}
+        emptyState={{
+          title: t.accountsReceivable.emptyState.title,
+          description: searchValue
+            ? t.accountsReceivable.emptyState.descriptionWithSearch(searchValue)
+            : t.accountsReceivable.emptyState.descriptionWithoutSearch,
+          onClearSearch: () => {
+            setSearchValue("");
+            setActiveFilter("all");
+            setSelectedYear("all");
+            setSelectedMonth("all");
+          },
+          clearSearchLabel: t.common.clearSearch,
+          onAddNew: () => navigate(ROUTES.ACCOUNTS_RECEIVABLE_NEW),
+          addNewLabel: t.accountsReceivable.addTransaction,
+        }}
+      />
+
+      {alertMessage && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
+          <Alert title={alertMessage.title} variant={alertMessage.variant} />
+        </div>
+      )}
+
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setSelectedTransaction(null);
+        }}
+        onConfirm={handleDeleteTransaction}
+        title={t.accountsReceivable.deleteModal.title}
+        message={t.accountsReceivable.deleteModal.message(selectedTransaction?.description || "")}
+        confirmLabel={t.accountsReceivable.deleteModal.confirm}
+        cancelLabel={t.accountsReceivable.deleteModal.cancel}
+        variant="danger"
+      />
+    </div>
+  );
+}

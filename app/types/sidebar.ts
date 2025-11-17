@@ -10,6 +10,10 @@ export interface SidebarSubItemConfig {
     births: string;
     acquisitions: string;
     weighings: string;
+    cashFlow: string;
+    accountsPayable: string;
+    accountsReceivable: string;
+    bankAccounts: string;
   };
   path: string;
   icon?: string;
@@ -30,6 +34,10 @@ export interface SidebarItemConfig {
     births: string;
     acquisitions: string;
     weighings: string;
+    cashFlow: string;
+    accountsPayable: string;
+    accountsReceivable: string;
+    financas: string;
     pastures: string;
     reports: string;
     settings: string;

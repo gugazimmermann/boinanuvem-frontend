@@ -59,5 +59,33 @@ export default [
     route(ROUTE_NAMES.TEAM_EDIT, "routes/dashboard/team.edit.$userId.tsx"),
     route(ROUTE_NAMES.TEAM_PERMISSIONS, "routes/dashboard/team.permissions.$userId.tsx"),
     route(ROUTE_NAMES.HELP, "routes/dashboard/help.tsx"),
+    route(ROUTE_NAMES.CASH_FLOW, "routes/dashboard/cash-flow.tsx"),
+    route(ROUTE_NAMES.CASH_FLOW_NEW, "routes/dashboard/cash-flow.new.tsx"),
+    route(ROUTE_NAMES.CASH_FLOW_EDIT, "routes/dashboard/cash-flow.edit.$transactionId.tsx"),
+    route(ROUTE_NAMES.CASH_FLOW_VIEW, "routes/dashboard/cash-flow.$transactionId.tsx"),
+    route(ROUTE_NAMES.ACCOUNTS_PAYABLE, "routes/dashboard/accounts-payable.tsx"),
+    route(ROUTE_NAMES.ACCOUNTS_PAYABLE_NEW, "routes/dashboard/accounts-payable.new.tsx"),
+    route(
+      ROUTE_NAMES.ACCOUNTS_PAYABLE_EDIT,
+      "routes/dashboard/accounts-payable.edit.$transactionId.tsx"
+    ),
+    route(
+      ROUTE_NAMES.ACCOUNTS_PAYABLE_VIEW,
+      "routes/dashboard/accounts-payable.$transactionId.tsx"
+    ),
+    route(ROUTE_NAMES.ACCOUNTS_RECEIVABLE, "routes/dashboard/accounts-receivable.tsx"),
+    route(ROUTE_NAMES.ACCOUNTS_RECEIVABLE_NEW, "routes/dashboard/accounts-receivable.new.tsx"),
+    route(
+      ROUTE_NAMES.ACCOUNTS_RECEIVABLE_EDIT,
+      "routes/dashboard/accounts-receivable.edit.$transactionId.tsx"
+    ),
+    route(
+      ROUTE_NAMES.ACCOUNTS_RECEIVABLE_VIEW,
+      "routes/dashboard/accounts-receivable.$transactionId.tsx"
+    ),
+    route(ROUTE_NAMES.BANK_ACCOUNTS, "routes/dashboard/bank-accounts.tsx"),
+    route(ROUTE_NAMES.BANK_ACCOUNTS_NEW, "routes/dashboard/bank-accounts.new.tsx"),
+    route(ROUTE_NAMES.BANK_ACCOUNTS_EDIT, "routes/dashboard/bank-accounts.edit.$bankAccountId.tsx"),
+    route(ROUTE_NAMES.BANK_ACCOUNTS_VIEW, "routes/dashboard/bank-accounts.$bankAccountId.tsx"),
   ]),
 ] satisfies RouteConfig;

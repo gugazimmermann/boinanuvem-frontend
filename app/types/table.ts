@@ -85,4 +85,7 @@ export interface TableProps<T = unknown> {
   };
   selectedCountLabel?: ReactNode;
   selectedActionButton?: ReactNode;
+  additionalContent?: ReactNode;
+  middleContent?: ReactNode;
+  rightContent?: ReactNode;
 }

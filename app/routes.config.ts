@@ -52,6 +52,22 @@ export const ROUTES = {
   TEAM_NEW: "/dashboard/equipe/novo",
   TEAM_EDIT: "/dashboard/equipe/:userId/editar",
   TEAM_PERMISSIONS: "/dashboard/equipe/:userId/permissoes",
+  CASH_FLOW: "/dashboard/fluxo-caixa",
+  CASH_FLOW_NEW: "/dashboard/fluxo-caixa/novo",
+  CASH_FLOW_EDIT: "/dashboard/fluxo-caixa/:transactionId/editar",
+  CASH_FLOW_VIEW: "/dashboard/fluxo-caixa/:transactionId",
+  ACCOUNTS_PAYABLE: "/dashboard/contas-pagar",
+  ACCOUNTS_PAYABLE_NEW: "/dashboard/contas-pagar/novo",
+  ACCOUNTS_PAYABLE_EDIT: "/dashboard/contas-pagar/:transactionId/editar",
+  ACCOUNTS_PAYABLE_VIEW: "/dashboard/contas-pagar/:transactionId",
+  ACCOUNTS_RECEIVABLE: "/dashboard/contas-receber",
+  ACCOUNTS_RECEIVABLE_NEW: "/dashboard/contas-receber/novo",
+  ACCOUNTS_RECEIVABLE_EDIT: "/dashboard/contas-receber/:transactionId/editar",
+  ACCOUNTS_RECEIVABLE_VIEW: "/dashboard/contas-receber/:transactionId",
+  BANK_ACCOUNTS: "/dashboard/contas-bancarias",
+  BANK_ACCOUNTS_NEW: "/dashboard/contas-bancarias/novo",
+  BANK_ACCOUNTS_EDIT: "/dashboard/contas-bancarias/:bankAccountId/editar",
+  BANK_ACCOUNTS_VIEW: "/dashboard/contas-bancarias/:bankAccountId",
 } as const;
 
 export function getUserProfileRoute(userId: string): string {
@@ -141,6 +157,38 @@ export function getObservationViewRoute(observationId: string): string {
   return `/dashboard/observacoes/${observationId}`;
 }
 
+export function getCashFlowEditRoute(transactionId: string): string {
+  return `/dashboard/fluxo-caixa/${transactionId}/editar`;
+}
+
+export function getCashFlowViewRoute(transactionId: string): string {
+  return `/dashboard/fluxo-caixa/${transactionId}`;
+}
+
+export function getAccountsPayableEditRoute(transactionId: string): string {
+  return `/dashboard/contas-pagar/${transactionId}/editar`;
+}
+
+export function getAccountsPayableViewRoute(transactionId: string): string {
+  return `/dashboard/contas-pagar/${transactionId}`;
+}
+
+export function getAccountsReceivableEditRoute(transactionId: string): string {
+  return `/dashboard/contas-receber/${transactionId}/editar`;
+}
+
+export function getAccountsReceivableViewRoute(transactionId: string): string {
+  return `/dashboard/contas-receber/${transactionId}`;
+}
+
+export function getBankAccountEditRoute(bankAccountId: string): string {
+  return `/dashboard/contas-bancarias/${bankAccountId}/editar`;
+}
+
+export function getBankAccountViewRoute(bankAccountId: string): string {
+  return `/dashboard/contas-bancarias/${bankAccountId}`;
+}
+
 export const ROUTE_NAMES = {
   HOME: "",
   LOGIN: "entrar",
@@ -196,6 +244,22 @@ export const ROUTE_NAMES = {
   TEAM_NEW: "equipe/novo",
   TEAM_EDIT: "equipe/:userId/editar",
   TEAM_PERMISSIONS: "equipe/:userId/permissoes",
+  CASH_FLOW: "fluxo-caixa",
+  CASH_FLOW_NEW: "fluxo-caixa/novo",
+  CASH_FLOW_EDIT: "fluxo-caixa/:transactionId/editar",
+  CASH_FLOW_VIEW: "fluxo-caixa/:transactionId",
+  ACCOUNTS_PAYABLE: "contas-pagar",
+  ACCOUNTS_PAYABLE_NEW: "contas-pagar/novo",
+  ACCOUNTS_PAYABLE_EDIT: "contas-pagar/:transactionId/editar",
+  ACCOUNTS_PAYABLE_VIEW: "contas-pagar/:transactionId",
+  ACCOUNTS_RECEIVABLE: "contas-receber",
+  ACCOUNTS_RECEIVABLE_NEW: "contas-receber/novo",
+  ACCOUNTS_RECEIVABLE_EDIT: "contas-receber/:transactionId/editar",
+  ACCOUNTS_RECEIVABLE_VIEW: "contas-receber/:transactionId",
+  BANK_ACCOUNTS: "contas-bancarias",
+  BANK_ACCOUNTS_NEW: "contas-bancarias/novo",
+  BANK_ACCOUNTS_EDIT: "contas-bancarias/:bankAccountId/editar",
+  BANK_ACCOUNTS_VIEW: "contas-bancarias/:bankAccountId",
 } as const;
 
 import type { RoutePath, RouteName } from "~/types";

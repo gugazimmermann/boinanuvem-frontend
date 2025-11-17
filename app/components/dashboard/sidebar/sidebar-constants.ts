@@ -29,4 +29,15 @@ export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
       { translationKey: "weighings", path: ROUTES.WEIGHINGS_NEW, icon: "⚖️" },
     ],
   },
+  {
+    translationKey: "financas",
+    path: "#",
+    icon: "💰",
+    subItems: [
+      { translationKey: "cashFlow", path: ROUTES.CASH_FLOW, icon: "💵" },
+      { translationKey: "accountsPayable", path: ROUTES.ACCOUNTS_PAYABLE, icon: "📤" },
+      { translationKey: "accountsReceivable", path: ROUTES.ACCOUNTS_RECEIVABLE, icon: "📥" },
+      { translationKey: "bankAccounts", path: ROUTES.BANK_ACCOUNTS, icon: "🏦" },
+    ],
+  },
 ];

@@ -36,3 +36,9 @@ export * from "./employee-observations.service";
 export * from "./service-provider-observations.service";
 export * from "./supplier-observations.service";
 export * from "./buyer-observations.service";
+
+// Cash flow services
+export * from "./cash-flow.service";
+export * from "./accounts-payable.service";
+export * from "./accounts-receivable.service";
+export * from "./bank-account.service";
