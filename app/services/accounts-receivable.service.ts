@@ -29,6 +29,13 @@ export function getAccountsReceivableByBuyerId(buyerId: string): AccountsReceiva
 }
 
 /**
+ * Get accounts receivable transactions by property ID
+ */
+export function getAccountsReceivableByPropertyId(propertyId: string): AccountsReceivable[] {
+  return findByField(mockAccountsReceivable, "propertyId", propertyId);
+}
+
+/**
  * Add a new accounts receivable transaction
  */
 export function addAccountsReceivable(data: AccountsReceivableFormData): AccountsReceivable {

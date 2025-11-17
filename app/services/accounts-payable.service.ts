@@ -29,6 +29,29 @@ export function getAccountsPayableBySupplierId(supplierId: string): AccountsPaya
 }
 
 /**
+ * Get accounts payable transactions by property ID
+ */
+export function getAccountsPayableByPropertyId(propertyId: string): AccountsPayable[] {
+  return findByField(mockAccountsPayable, "propertyId", propertyId);
+}
+
+/**
+ * Get accounts payable transactions by employee ID
+ */
+export function getAccountsPayableByEmployeeId(employeeId: string): AccountsPayable[] {
+  return findByField(mockAccountsPayable, "employeeId", employeeId);
+}
+
+/**
+ * Get accounts payable transactions by service provider ID
+ */
+export function getAccountsPayableByServiceProviderId(
+  serviceProviderId: string
+): AccountsPayable[] {
+  return findByField(mockAccountsPayable, "serviceProviderId", serviceProviderId);
+}
+
+/**
  * Add a new accounts payable transaction
  */
 export function addAccountsPayable(data: AccountsPayableFormData): AccountsPayable {

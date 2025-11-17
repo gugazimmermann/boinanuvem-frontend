@@ -139,6 +139,56 @@ vi.mock("~/services/weighings.service", () => ({
   getWeighingsByAnimalId: (...args: any[]) => mockGetWeighingsByAnimalId(...args),
 }));
 
+vi.mock("~/mocks/cash-flow", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/cash-flow")>("~/mocks/cash-flow");
+  return actual;
+});
+
+vi.mock("~/services/cash-flow.service", () => ({
+  getCashFlowByPropertyId: vi.fn(() => []),
+  deleteCashFlow: vi.fn(() => true),
+}));
+
+vi.mock("~/mocks/accounts-receivable", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/accounts-receivable")>(
+    "~/mocks/accounts-receivable"
+  );
+  return actual;
+});
+
+vi.mock("~/services/accounts-receivable.service", () => ({
+  getAccountsReceivableByPropertyId: vi.fn(() => []),
+  deleteAccountsReceivable: vi.fn(() => true),
+}));
+
+vi.mock("~/mocks/accounts-payable", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/accounts-payable")>(
+    "~/mocks/accounts-payable"
+  );
+  return actual;
+});
+
+vi.mock("~/services/accounts-payable.service", () => ({
+  getAccountsPayableByPropertyId: vi.fn(() => []),
+  deleteAccountsPayable: vi.fn(() => true),
+}));
+
+vi.mock("~/services/suppliers.service", () => ({
+  getSupplierById: vi.fn((id: string) => ({ id, name: `Supplier ${id}` })),
+}));
+
+vi.mock("~/services/buyers.service", () => ({
+  getBuyerById: vi.fn((id: string) => ({ id, name: `Buyer ${id}` })),
+}));
+
+vi.mock("~/services/employees.service", () => ({
+  getEmployeeById: vi.fn((id: string) => ({ id, name: `Employee ${id}` })),
+}));
+
+vi.mock("~/services/service-providers.service", () => ({
+  getServiceProviderById: vi.fn((id: string) => ({ id, name: `ServiceProvider ${id}` })),
+}));
+
 vi.mock("~/components/ui", () => ({
   Button: ({ children, onClick, leftIcon, rightIcon, ...props }: any) => (
     <button onClick={onClick} {...props}>
@@ -174,6 +224,15 @@ vi.mock("~/components/ui", () => ({
   Tooltip: ({ children }: any) => <div>{children}</div>,
   PasturePlanningGraph: () => <div data-testid="pasture-planning-graph" />,
   PropertyMap: () => <div data-testid="property-map" />,
+  Select: ({ options, value, onChange }: any) => (
+    <select data-testid="select" value={value} onChange={onChange}>
+      {options?.map((opt: any, idx: number) => (
+        <option key={idx} value={opt.value}>
+          {opt.label}
+        </option>
+      ))}
+    </select>
+  ),
 }));
 
 describe("PropertyDetails", () => {
@@ -267,7 +326,15 @@ describe("PropertyDetails", () => {
   });
 
   it("should handle all tab types from URL params", () => {
-    const tabs = ["info", "animals", "locations", "registrations", "activities", "movements"];
+    const tabs = [
+      "info",
+      "animals",
+      "locations",
+      "registrations",
+      "activities",
+      "movements",
+      "finance",
+    ];
     tabs.forEach((tab) => {
       const router = createRouter("property-1", `tab=${tab}`);
       render(<RouterProvider router={router} />);
@@ -705,5 +772,32 @@ describe("PropertyDetails", () => {
     render(<RouterProvider router={router} />);
 
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
+  });
+
+  it("should render Finance tab", async () => {
+    const router = createRouter("property-1", "tab=finance");
+    render(<RouterProvider router={router} />);
+
+    expect(getPropertyById).toHaveBeenCalledWith("property-1");
+    const financeTab = screen
+      .queryAllByRole("button")
+      .find((btn) => btn.textContent?.includes("Finanças") || btn.textContent?.includes("Finance"));
+    expect(financeTab).toBeInTheDocument();
+  });
+
+  it("should switch to Finance tab", () => {
+    const router = createRouter("property-1");
+    render(<RouterProvider router={router} />);
+
+    const tabButtons = screen
+      .queryAllByRole("button")
+      .filter(
+        (btn) => btn.textContent?.includes("Finanças") || btn.textContent?.includes("Finance")
+      );
+
+    if (tabButtons.length > 0) {
+      fireEvent.click(tabButtons[0]);
+      expect(mockSetSearchParams).toHaveBeenCalled();
+    }
   });
 });

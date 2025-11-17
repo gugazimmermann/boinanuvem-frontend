@@ -1,16 +1,23 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale/pt-BR";
 import {
   Button,
   StatusBadge,
   Table,
+  TableActionButtons,
+  ConfirmationModal,
+  Select,
   type TableColumn,
   type TableAction,
+  type TableFilter,
   type SortDirection,
   FileUpload,
   Alert,
 } from "~/components/ui";
 import { useTranslation } from "~/i18n";
+import { useLanguage } from "~/contexts/language-context";
 import {
   ROUTES,
   getServiceProviderEditRoute,
@@ -26,7 +33,20 @@ import { getAnimalMovementsByServiceProviderId } from "~/services/animal-movemen
 import { getLocationById } from "~/services/locations.service";
 import { getEmployeeById } from "~/services/employees.service";
 import { getAnimalById } from "~/services/animals.service";
-import type { LocationMovement, AnimalMovement } from "~/types";
+import { getCashFlowByServiceProviderId, deleteCashFlow } from "~/services/cash-flow.service";
+import {
+  getAccountsPayableByServiceProviderId,
+  deleteAccountsPayable,
+} from "~/services/accounts-payable.service";
+import { getSupplierById } from "~/services/suppliers.service";
+import { getBuyerById } from "~/services/buyers.service";
+import {
+  getCashFlowViewRoute,
+  getCashFlowEditRoute,
+  getAccountsPayableViewRoute,
+  getAccountsPayableEditRoute,
+} from "~/routes.config";
+import type { LocationMovement, AnimalMovement, CashFlow, AccountsPayable } from "~/types";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
 import {
   getServiceProviderObservationsByServiceProviderId,
@@ -48,14 +68,20 @@ export default function ServiceProviderDetails() {
   const { serviceProviderId } = useParams<{ serviceProviderId: string }>();
   const navigate = useNavigate();
   const t = useTranslation();
+  const { language } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
   const serviceProvider = getServiceProviderById(serviceProviderId);
 
   const tabParam = searchParams.get("tab");
-  const [activeTab, setActiveTab] = useState<"info" | "activities" | "movements" | "observations">(
-    (tabParam === "activities" || tabParam === "movements" || tabParam === "observations"
+  const [activeTab, setActiveTab] = useState<
+    "info" | "activities" | "movements" | "observations" | "finance"
+  >(
+    (tabParam === "activities" ||
+    tabParam === "movements" ||
+    tabParam === "observations" ||
+    tabParam === "finance"
       ? tabParam
-      : "info") as "info" | "activities" | "movements" | "observations"
+      : "info") as "info" | "activities" | "movements" | "observations" | "finance"
   );
 
   const [sortState, setSortState] = useState<{
@@ -67,9 +93,32 @@ export default function ServiceProviderDetails() {
   const itemsPerPage = 10;
   const [searchValue, setSearchValue] = useState("");
 
+  const [financeSearchValue, setFinanceSearchValue] = useState("");
+  const [financeActiveFilter, setFinanceActiveFilter] = useState<string>("all");
+  const [financeSelectedYear, setFinanceSelectedYear] = useState<string>("all");
+  const [financeSelectedMonth, setFinanceSelectedMonth] = useState<string>("all");
+  const [financeCurrentPage, setFinanceCurrentPage] = useState(1);
+  const [financeSortState, setFinanceSortState] = useState<{
+    column: string | null;
+    direction: SortDirection;
+  }>({ column: "date", direction: "desc" });
+  const [isDeleteFinanceModalOpen, setIsDeleteFinanceModalOpen] = useState(false);
+  const [selectedFinanceTransaction, setSelectedFinanceTransaction] = useState<
+    CashFlow | AccountsPayable | null
+  >(null);
+  const [selectedFinanceTransactionType, setSelectedFinanceTransactionType] = useState<
+    "cashFlow" | "payable" | null
+  >(null);
+  const financeItemsPerPage = 10;
+
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (tab === "activities" || tab === "movements" || tab === "observations") {
+    if (
+      tab === "activities" ||
+      tab === "movements" ||
+      tab === "observations" ||
+      tab === "finance"
+    ) {
       setActiveTab(tab);
     } else if (!tab) {
       setActiveTab("info");
@@ -294,6 +343,27 @@ export default function ServiceProviderDetails() {
             }
           >
             {t.serviceProviders.details.tabs.observations || "Observações"}
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab("finance");
+              setSearchParams({ tab: "finance" });
+            }}
+            className={`
+              py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
+              ${
+                activeTab === "finance"
+                  ? "dark:text-blue-400"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+              }
+            `}
+            style={
+              activeTab === "finance"
+                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
+                : undefined
+            }
+          >
+            {t.serviceProviders.details.tabs.finance}
           </button>
           <button
             onClick={() => {
@@ -1267,6 +1337,611 @@ export default function ServiceProviderDetails() {
                   }
                 />
               )}
+            </div>
+          );
+        })()}
+
+      {activeTab === "finance" &&
+        serviceProvider &&
+        (() => {
+          type UnifiedTransaction = {
+            id: string;
+            type: "income" | "expense";
+            amount: number;
+            date: string;
+            description: string;
+            category?: string;
+            paymentMethod?: string;
+            referenceNumber?: string;
+            status: string;
+            transactionType: "cashFlow" | "payable";
+            propertyId?: string;
+            supplierId?: string;
+            buyerId?: string;
+            employeeId?: string;
+            serviceProviderId?: string;
+            [key: string]: unknown;
+          };
+
+          const normalizeCashFlow = (cf: CashFlow): UnifiedTransaction => ({
+            id: cf.id,
+            type: cf.type,
+            amount: cf.amount,
+            date: cf.date,
+            description: cf.description,
+            category: cf.category,
+            paymentMethod: cf.paymentMethod,
+            referenceNumber: cf.referenceNumber,
+            status: cf.status,
+            transactionType: "cashFlow",
+            propertyId: cf.propertyId,
+            supplierId: cf.supplierId,
+            buyerId: cf.buyerId,
+          });
+
+          const normalizePayable = (ap: AccountsPayable): UnifiedTransaction => ({
+            id: ap.id,
+            type: "expense",
+            amount: ap.amount,
+            date: ap.dueDate,
+            description: ap.description,
+            category: ap.category,
+            paymentMethod: ap.paymentMethod,
+            referenceNumber: ap.referenceNumber,
+            status: ap.status,
+            transactionType: "payable",
+            propertyId: ap.propertyId,
+            supplierId: ap.supplierId,
+          });
+
+          const cashFlowTransactions = getCashFlowByServiceProviderId(serviceProvider.id);
+          const payableTransactions = getAccountsPayableByServiceProviderId(serviceProvider.id);
+
+          const allTransactions: UnifiedTransaction[] = [
+            ...cashFlowTransactions.map(normalizeCashFlow),
+            ...payableTransactions.map(normalizePayable),
+          ];
+
+          const formatDate = (dateString: string) => {
+            const date = new Date(dateString);
+            return format(date, "dd/MM/yyyy", { locale: ptBR });
+          };
+
+          const formatCurrency = (value: number) => {
+            return new Intl.NumberFormat("pt-BR", {
+              style: "currency",
+              currency: "BRL",
+            }).format(value);
+          };
+
+          const handleDeleteFinanceClick = (transaction: UnifiedTransaction) => {
+            let originalTransaction: CashFlow | AccountsPayable | null = null;
+            let transactionType: "cashFlow" | "payable" | null = null;
+
+            if (transaction.transactionType === "cashFlow") {
+              const found = cashFlowTransactions.find((t) => t.id === transaction.id);
+              if (found) {
+                originalTransaction = found;
+                transactionType = "cashFlow";
+              }
+            } else if (transaction.transactionType === "payable") {
+              const found = payableTransactions.find((t) => t.id === transaction.id);
+              if (found) {
+                originalTransaction = found;
+                transactionType = "payable";
+              }
+            }
+
+            if (originalTransaction && transactionType) {
+              setSelectedFinanceTransaction(originalTransaction);
+              setSelectedFinanceTransactionType(transactionType);
+              setIsDeleteFinanceModalOpen(true);
+            }
+          };
+
+          const handleDeleteFinanceTransaction = async () => {
+            if (!selectedFinanceTransaction || !selectedFinanceTransactionType) return;
+
+            let success = false;
+            if (selectedFinanceTransactionType === "cashFlow") {
+              success = deleteCashFlow(selectedFinanceTransaction.id);
+            } else if (selectedFinanceTransactionType === "payable") {
+              success = deleteAccountsPayable(selectedFinanceTransaction.id);
+            }
+
+            if (success) {
+              setObservationAlert({
+                title: t.cashFlow.success.deleted,
+                variant: "success",
+              });
+              setTimeout(() => setObservationAlert(null), 3000);
+            } else {
+              setObservationAlert({
+                title: t.cashFlow.errors.deleteFailed,
+                variant: "error",
+              });
+              setTimeout(() => setObservationAlert(null), 3000);
+            }
+            setSelectedFinanceTransaction(null);
+            setSelectedFinanceTransactionType(null);
+          };
+
+          const filteredFinanceData = allTransactions.filter((transaction) => {
+            let matchesSearch: boolean;
+            if (!financeSearchValue) {
+              matchesSearch = true;
+            } else {
+              const searchLower = financeSearchValue.toLowerCase();
+              const property = transaction.propertyId
+                ? getPropertyById(transaction.propertyId)
+                : null;
+              const propertyName = property?.name?.toLowerCase() || "";
+              const category = transaction.category
+                ? (t.cashFlow.categories as Record<string, string>)[
+                    transaction.category
+                  ]?.toLowerCase() || ""
+                : "";
+              const paymentMethod = transaction.paymentMethod
+                ? (t.cashFlow.paymentMethods as Record<string, string>)[
+                    transaction.paymentMethod
+                  ]?.toLowerCase() || ""
+                : "";
+              const amount = formatCurrency(transaction.amount).toLowerCase();
+
+              let supplierName = "";
+              if (transaction.supplierId) {
+                const supplier = getSupplierById(transaction.supplierId);
+                supplierName = supplier?.name?.toLowerCase() || "";
+              }
+
+              let buyerName = "";
+              if (transaction.buyerId) {
+                const buyer = getBuyerById(transaction.buyerId);
+                buyerName = buyer?.name?.toLowerCase() || "";
+              }
+
+              matchesSearch =
+                transaction.description.toLowerCase().includes(searchLower) ||
+                transaction.referenceNumber?.toLowerCase().includes(searchLower) ||
+                propertyName.includes(searchLower) ||
+                category.includes(searchLower) ||
+                paymentMethod.includes(searchLower) ||
+                amount.includes(searchLower) ||
+                supplierName.includes(searchLower) ||
+                buyerName.includes(searchLower);
+            }
+
+            const matchesFilter =
+              financeActiveFilter === "all" ||
+              (financeActiveFilter === "income" && transaction.type === "income") ||
+              (financeActiveFilter === "expense" && transaction.type === "expense");
+
+            const matchesYear =
+              financeSelectedYear === "all" || transaction.date.startsWith(financeSelectedYear);
+            const monthStr =
+              financeSelectedMonth === "all" ? null : financeSelectedMonth.padStart(2, "0");
+            const matchesMonth =
+              financeSelectedMonth === "all" ||
+              (monthStr && transaction.date.substring(5, 7) === monthStr);
+
+            return matchesSearch && matchesFilter && matchesYear && matchesMonth;
+          });
+
+          const sortedFinanceData = [...filteredFinanceData].sort((a, b) => {
+            if (!financeSortState.column || !financeSortState.direction) {
+              return 0;
+            }
+
+            const aValue = a[financeSortState.column];
+            const bValue = b[financeSortState.column];
+
+            if (aValue == null && bValue == null) return 0;
+            if (aValue == null) return 1;
+            if (bValue == null) return -1;
+
+            let comparison = 0;
+            if (typeof aValue === "string" && typeof bValue === "string") {
+              comparison = aValue.localeCompare(bValue, "pt-BR", {
+                sensitivity: "base",
+              });
+            } else if (typeof aValue === "number" && typeof bValue === "number") {
+              comparison = aValue - bValue;
+            } else {
+              comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
+            }
+
+            return financeSortState.direction === "asc" ? comparison : -comparison;
+          });
+
+          const paginatedFinanceData = sortedFinanceData.slice(
+            (financeCurrentPage - 1) * financeItemsPerPage,
+            financeCurrentPage * financeItemsPerPage
+          );
+
+          const totalFinancePages = Math.ceil(filteredFinanceData.length / financeItemsPerPage);
+
+          const totalIncome = filteredFinanceData
+            .filter((t) => t.type === "income")
+            .reduce((sum, t) => sum + t.amount, 0);
+          const totalExpenses = filteredFinanceData
+            .filter((t) => t.type === "expense")
+            .reduce((sum, t) => sum + t.amount, 0);
+          const netTotal = totalIncome - totalExpenses;
+
+          const getStatusVariant = (status: string, transactionType: string) => {
+            if (transactionType === "cashFlow") {
+              return "success";
+            }
+            switch (status) {
+              case "paid":
+                return "success";
+              case "overdue":
+                return "danger";
+              case "partial":
+                return "warning";
+              default:
+                return "default";
+            }
+          };
+
+          const getStatusLabel = (status: string, transactionType: string) => {
+            if (transactionType === "cashFlow") {
+              return t.cashFlow.table.completed;
+            }
+            if (transactionType === "payable") {
+              return (
+                t.accountsPayable.status[status as keyof typeof t.accountsPayable.status] || status
+              );
+            }
+            return status;
+          };
+
+          const financeColumns: TableColumn<UnifiedTransaction>[] = [
+            {
+              key: "type",
+              label: t.cashFlow.table.type,
+              sortable: true,
+              render: (_, row) => (
+                <StatusBadge
+                  label={row.type === "income" ? t.cashFlow.table.income : t.cashFlow.table.expense}
+                  variant={row.type === "income" ? "success" : "default"}
+                />
+              ),
+            },
+            {
+              key: "amount",
+              label: t.cashFlow.table.amount,
+              sortable: true,
+              render: (_, row) => (
+                <span
+                  className={`font-medium ${
+                    row.type === "income"
+                      ? "text-green-600 dark:text-green-400"
+                      : "text-red-600 dark:text-red-400"
+                  }`}
+                >
+                  {row.type === "income" ? "+" : "-"} {formatCurrency(row.amount)}
+                </span>
+              ),
+            },
+            {
+              key: "date",
+              label: t.cashFlow.table.date,
+              sortable: true,
+              render: (_, row) => (
+                <span className="text-gray-700 dark:text-gray-300">{formatDate(row.date)}</span>
+              ),
+            },
+            {
+              key: "property",
+              label: t.cashFlow.table.property,
+              sortable: true,
+              render: (_, row) => {
+                const property = getPropertyById(row.propertyId);
+                return (
+                  <span className="text-gray-700 dark:text-gray-300">{property?.name || "-"}</span>
+                );
+              },
+            },
+            {
+              key: "category",
+              label: t.cashFlow.table.category,
+              sortable: true,
+              render: (_, row) => (
+                <span className="text-gray-700 dark:text-gray-300">
+                  {row.category
+                    ? (t.cashFlow.categories as Record<string, string>)[row.category] ||
+                      row.category
+                    : row.category}
+                </span>
+              ),
+            },
+            {
+              key: "description",
+              label: t.cashFlow.table.description,
+              sortable: true,
+              render: (_, row) => (
+                <span className="text-gray-700 dark:text-gray-300">{row.description}</span>
+              ),
+            },
+            {
+              key: "supplierBuyer",
+              label: "",
+              sortable: false,
+              render: (_, row) => {
+                if (row.type === "expense" && row.supplierId) {
+                  const supplier = getSupplierById(row.supplierId);
+                  return (
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {supplier?.name || "-"}
+                    </span>
+                  );
+                }
+                if (row.type === "expense" && row.employeeId) {
+                  const employee = getEmployeeById(row.employeeId);
+                  return (
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {employee?.name || "-"}
+                    </span>
+                  );
+                }
+                if (row.type === "income" && row.buyerId) {
+                  const buyer = getBuyerById(row.buyerId);
+                  return (
+                    <span className="text-gray-700 dark:text-gray-300">{buyer?.name || "-"}</span>
+                  );
+                }
+                return <span className="text-gray-400 dark:text-gray-500">-</span>;
+              },
+            },
+            {
+              key: "paymentMethod",
+              label: t.cashFlow.table.paymentMethod,
+              sortable: true,
+              render: (_, row) => (
+                <span className="text-gray-700 dark:text-gray-300">
+                  {row.paymentMethod
+                    ? (t.cashFlow.paymentMethods as Record<string, string>)[row.paymentMethod] ||
+                      row.paymentMethod
+                    : row.paymentMethod}
+                </span>
+              ),
+            },
+            {
+              key: "referenceNumber",
+              label: t.cashFlow.table.referenceNumber,
+              sortable: true,
+              render: (_, row) => (
+                <span className="text-gray-700 dark:text-gray-300">
+                  {row.referenceNumber || "-"}
+                </span>
+              ),
+            },
+            {
+              key: "status",
+              label: t.cashFlow.table.status,
+              sortable: true,
+              render: (_, row) => (
+                <StatusBadge
+                  label={getStatusLabel(row.status, row.transactionType)}
+                  variant={getStatusVariant(row.status, row.transactionType)}
+                />
+              ),
+            },
+            {
+              key: "actions",
+              label: "",
+              headerClassName: "relative",
+              render: (_, row) => {
+                const getEditRoute = () => {
+                  if (row.transactionType === "cashFlow") {
+                    return getCashFlowEditRoute(row.id);
+                  } else {
+                    return getAccountsPayableEditRoute(row.id);
+                  }
+                };
+
+                return (
+                  <TableActionButtons
+                    onEdit={() => navigate(getEditRoute())}
+                    onDelete={() => handleDeleteFinanceClick(row)}
+                  />
+                );
+              },
+            },
+          ];
+
+          const financeFilters: TableFilter[] = [
+            {
+              label: t.cashFlow.filters.all,
+              value: "all",
+              active: financeActiveFilter === "all",
+              onClick: () => {
+                setFinanceActiveFilter("all");
+                setFinanceCurrentPage(1);
+              },
+            },
+            {
+              label: t.cashFlow.filters.income,
+              value: "income",
+              active: financeActiveFilter === "income",
+              onClick: () => {
+                setFinanceActiveFilter("income");
+                setFinanceCurrentPage(1);
+              },
+            },
+            {
+              label: t.cashFlow.filters.expense,
+              value: "expense",
+              active: financeActiveFilter === "expense",
+              onClick: () => {
+                setFinanceActiveFilter("expense");
+                setFinanceCurrentPage(1);
+              },
+            },
+          ];
+
+          const getYearOptions = () => {
+            const options: Array<{ value: string; label: string }> = [
+              { value: "all", label: t.cashFlow.filters.allYears },
+            ];
+            const currentDate = new Date();
+            const currentYear = currentDate.getFullYear();
+
+            options.push({ value: String(currentYear - 1), label: String(currentYear - 1) });
+            options.push({ value: String(currentYear), label: String(currentYear) });
+
+            return options;
+          };
+
+          const getMonthOptions = () => {
+            const localeMap: Record<string, string> = {
+              pt: "pt-BR",
+              en: "en-US",
+              es: "es-ES",
+            };
+            const locale = localeMap[language] || "pt-BR";
+            const options: Array<{ value: string; label: string }> = [
+              { value: "all", label: t.cashFlow.filters.allMonths },
+            ];
+
+            for (let month = 1; month <= 12; month++) {
+              const monthName = new Date(2000, month - 1).toLocaleDateString(locale, {
+                month: "long",
+              });
+              options.push({ value: String(month), label: monthName });
+            }
+
+            return options;
+          };
+
+          return (
+            <div className="space-y-6">
+              <Table<UnifiedTransaction>
+                columns={financeColumns}
+                data={paginatedFinanceData}
+                header={{
+                  title: t.serviceProviders.details.finance.title,
+                  badge: {
+                    label: t.cashFlow.badge.transactions(filteredFinanceData.length),
+                    variant: "primary",
+                  },
+                  description: t.serviceProviders.details.finance.description,
+                }}
+                filters={financeFilters}
+                search={{
+                  placeholder: t.cashFlow.searchPlaceholder,
+                  value: financeSearchValue,
+                  onChange: setFinanceSearchValue,
+                }}
+                rightContent={
+                  <div className="flex items-center gap-2">
+                    <div className="w-32">
+                      <Select
+                        value={financeSelectedYear}
+                        onChange={(e) => {
+                          setFinanceSelectedYear(e.target.value);
+                          setFinanceCurrentPage(1);
+                        }}
+                        options={getYearOptions()}
+                        selectClassName="text-xs sm:text-sm py-2"
+                      />
+                    </div>
+                    <div className="w-36">
+                      <Select
+                        value={financeSelectedMonth}
+                        onChange={(e) => {
+                          setFinanceSelectedMonth(e.target.value);
+                          setFinanceCurrentPage(1);
+                        }}
+                        options={getMonthOptions()}
+                        selectClassName="text-xs sm:text-sm py-2"
+                      />
+                    </div>
+                  </div>
+                }
+                middleContent={
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="flex flex-col">
+                      <span className="text-gray-500 dark:text-gray-400 text-xs">
+                        {t.cashFlow.filters.income}
+                      </span>
+                      <span className="font-semibold text-green-600 dark:text-green-400">
+                        {formatCurrency(totalIncome)}
+                      </span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-gray-500 dark:text-gray-400 text-xs">
+                        {t.cashFlow.filters.expense}
+                      </span>
+                      <span className="font-semibold text-red-600 dark:text-red-400">
+                        {formatCurrency(totalExpenses)}
+                      </span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-gray-500 dark:text-gray-400 text-xs">
+                        {t.common.total || "Total"}
+                      </span>
+                      <span
+                        className={`font-semibold ${
+                          netTotal >= 0
+                            ? "text-green-600 dark:text-green-400"
+                            : "text-red-600 dark:text-red-400"
+                        }`}
+                      >
+                        {formatCurrency(netTotal)}
+                      </span>
+                    </div>
+                  </div>
+                }
+                pagination={{
+                  currentPage: financeCurrentPage,
+                  totalPages: totalFinancePages || 1,
+                  onPageChange: setFinanceCurrentPage,
+                  showInfo: false,
+                }}
+                sortState={financeSortState}
+                onSort={(column, direction) => {
+                  setFinanceSortState({ column, direction });
+                  setFinanceCurrentPage(1);
+                }}
+                onRowClick={(row) => {
+                  if (row.transactionType === "cashFlow") {
+                    navigate(getCashFlowViewRoute(row.id));
+                  } else {
+                    navigate(getAccountsPayableViewRoute(row.id));
+                  }
+                }}
+                emptyState={{
+                  title: t.cashFlow.emptyState.title,
+                  description: financeSearchValue
+                    ? t.cashFlow.emptyState.descriptionWithSearch(financeSearchValue)
+                    : t.cashFlow.emptyState.descriptionWithoutSearch,
+                  onClearSearch: () => {
+                    setFinanceSearchValue("");
+                    setFinanceActiveFilter("all");
+                    setFinanceSelectedYear("all");
+                    setFinanceSelectedMonth("all");
+                  },
+                  clearSearchLabel: t.common.clearSearch,
+                }}
+              />
+
+              <ConfirmationModal
+                isOpen={isDeleteFinanceModalOpen}
+                onClose={() => {
+                  setIsDeleteFinanceModalOpen(false);
+                  setSelectedFinanceTransaction(null);
+                }}
+                onConfirm={handleDeleteFinanceTransaction}
+                title={t.cashFlow.deleteModal.title}
+                message={t.cashFlow.deleteModal.message(
+                  (selectedFinanceTransaction as CashFlow | AccountsPayable)?.description || ""
+                )}
+                confirmLabel={t.cashFlow.deleteModal.confirm}
+                cancelLabel={t.cashFlow.deleteModal.cancel}
+                variant="danger"
+              />
             </div>
           );
         })()}

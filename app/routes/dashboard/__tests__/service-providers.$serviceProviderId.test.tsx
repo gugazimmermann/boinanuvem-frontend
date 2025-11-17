@@ -51,6 +51,40 @@ vi.mock("~/services/location-movements.service", () => ({
   getLocationMovementsByServiceProviderId: vi.fn(() => []),
 }));
 
+vi.mock("~/mocks/cash-flow", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/cash-flow")>("~/mocks/cash-flow");
+  return actual;
+});
+
+vi.mock("~/services/cash-flow.service", () => ({
+  getCashFlowByServiceProviderId: vi.fn(() => []),
+  deleteCashFlow: vi.fn(() => true),
+}));
+
+vi.mock("~/mocks/accounts-payable", async () => {
+  const actual = await vi.importActual<typeof import("~/mocks/accounts-payable")>(
+    "~/mocks/accounts-payable"
+  );
+  return actual;
+});
+
+vi.mock("~/services/accounts-payable.service", () => ({
+  getAccountsPayableByServiceProviderId: vi.fn(() => []),
+  deleteAccountsPayable: vi.fn(() => true),
+}));
+
+vi.mock("~/services/suppliers.service", () => ({
+  getSupplierById: vi.fn((id: string) => ({ id, name: `Supplier ${id}` })),
+}));
+
+vi.mock("~/services/buyers.service", () => ({
+  getBuyerById: vi.fn((id: string) => ({ id, name: `Buyer ${id}` })),
+}));
+
+vi.mock("~/services/employees.service", () => ({
+  getEmployeeById: vi.fn((id: string) => ({ id, name: `Employee ${id}` })),
+}));
+
 vi.mock("~/mocks/animal-movements", async () => {
   const actual = await vi.importActual<typeof import("~/mocks/animal-movements")>(
     "~/mocks/animal-movements"
@@ -92,6 +126,35 @@ vi.mock("~/components/ui", () => ({
     />
   ),
   Alert: ({ title, variant }: any) => <div data-testid={`alert-${variant}`}>{title}</div>,
+  Select: ({ options, value, onChange }: any) => (
+    <select data-testid="select" value={value} onChange={onChange}>
+      {options?.map((opt: any, idx: number) => (
+        <option key={idx} value={opt.value}>
+          {opt.label}
+        </option>
+      ))}
+    </select>
+  ),
+  ConfirmationModal: ({ isOpen, onConfirm, onCancel }: any) =>
+    isOpen ? (
+      <div data-testid="confirmation-modal">
+        <button data-testid="confirm-button" onClick={onConfirm}>
+          Confirm
+        </button>
+        <button data-testid="cancel-button" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+    ) : null,
+  TableActionButtons: ({ actions }: any) => (
+    <div data-testid="table-action-buttons">
+      {actions?.map((action: any, idx: number) => (
+        <button key={idx} data-testid={`action-${idx}`} onClick={action.onClick}>
+          {action.label}
+        </button>
+      ))}
+    </div>
+  ),
 }));
 
 describe("ServiceProviderDetails", () => {
@@ -339,6 +402,33 @@ describe("ServiceProviderDetails", () => {
     if (backButton) {
       fireEvent.click(backButton);
       expect(mockNavigate).toHaveBeenCalled();
+    }
+  });
+
+  it("should render Finance tab", async () => {
+    const router = createRouter("sp-1", "tab=finance");
+    render(<RouterProvider router={router} />);
+
+    expect(getServiceProviderById).toHaveBeenCalledWith("sp-1");
+    const financeTab = screen
+      .queryAllByRole("button")
+      .find((btn) => btn.textContent?.includes("Finanças") || btn.textContent?.includes("Finance"));
+    expect(financeTab).toBeInTheDocument();
+  });
+
+  it("should switch to Finance tab", () => {
+    const router = createRouter("sp-1");
+    render(<RouterProvider router={router} />);
+
+    const tabButtons = screen
+      .queryAllByRole("button")
+      .filter(
+        (btn) => btn.textContent?.includes("Finanças") || btn.textContent?.includes("Finance")
+      );
+
+    if (tabButtons.length > 0) {
+      fireEvent.click(tabButtons[0]);
+      expect(mockSetSearchParams).toHaveBeenCalled();
     }
   });
 });

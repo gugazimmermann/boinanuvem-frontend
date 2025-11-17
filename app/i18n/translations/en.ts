@@ -24,6 +24,7 @@ export const en = {
     unknownError: "Unknown error",
     addressNotFound: "Address not found",
     requestError: "Request error",
+    total: "Total",
   },
 
   sidebar: {
@@ -202,6 +203,11 @@ export const en = {
         buyers: "Buyers",
         activities: "Activities",
         movements: "Movements",
+        finance: "Finance",
+      },
+      finance: {
+        title: "Finance",
+        description: "All financial transactions related to this property",
       },
       movements: {
         title: "Movements",
@@ -574,6 +580,11 @@ export const en = {
         info: "Details",
         activities: "Activities",
         observations: "Observations",
+        finance: "Finance",
+      },
+      finance: {
+        title: "Finance",
+        description: "All financial transactions related to this employee",
       },
       observation: "Observation",
       addObservation: "Add Observation",
@@ -703,6 +714,11 @@ export const en = {
         info: "Details",
         activities: "Activities",
         observations: "Observations",
+        finance: "Finance",
+      },
+      finance: {
+        title: "Finance",
+        description: "All financial transactions related to this service provider",
       },
       observation: "Observation",
       addObservation: "Add Observation",
@@ -831,6 +847,11 @@ export const en = {
         info: "Details",
         activities: "Activities",
         observations: "Observations",
+        finance: "Finance",
+      },
+      finance: {
+        title: "Finance",
+        description: "All financial transactions related to this supplier",
       },
       observation: "Observation",
       addObservation: "Add Observation",
@@ -959,6 +980,11 @@ export const en = {
         info: "Details",
         activities: "Activities",
         observations: "Observations",
+        finance: "Finance",
+      },
+      finance: {
+        title: "Finance",
+        description: "All financial transactions related to this buyer",
       },
       observation: "Observation",
       addObservation: "Add Observation",
@@ -1004,6 +1030,8 @@ export const en = {
       expense: "Expenses",
       allSuppliers: "All suppliers",
       allBuyers: "All buyers",
+      allYears: "All years",
+      allMonths: "All months",
     },
     table: {
       type: "Type",

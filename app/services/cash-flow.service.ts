@@ -27,6 +27,41 @@ export function getCashFlowByBankAccountId(bankAccountId: string): CashFlow[] {
 }
 
 /**
+ * Get cash flow transactions by property ID
+ */
+export function getCashFlowByPropertyId(propertyId: string): CashFlow[] {
+  return findByField(mockCashFlow, "propertyId", propertyId);
+}
+
+/**
+ * Get cash flow transactions by employee ID
+ */
+export function getCashFlowByEmployeeId(employeeId: string): CashFlow[] {
+  return findByField(mockCashFlow, "employeeId", employeeId);
+}
+
+/**
+ * Get cash flow transactions by service provider ID
+ */
+export function getCashFlowByServiceProviderId(serviceProviderId: string): CashFlow[] {
+  return findByField(mockCashFlow, "serviceProviderId", serviceProviderId);
+}
+
+/**
+ * Get cash flow transactions by supplier ID
+ */
+export function getCashFlowBySupplierId(supplierId: string): CashFlow[] {
+  return findByField(mockCashFlow, "supplierId", supplierId);
+}
+
+/**
+ * Get cash flow transactions by buyer ID
+ */
+export function getCashFlowByBuyerId(buyerId: string): CashFlow[] {
+  return findByField(mockCashFlow, "buyerId", buyerId);
+}
+
+/**
  * Add a new cash flow transaction
  */
 export function addCashFlow(data: CashFlowFormData): CashFlow {

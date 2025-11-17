@@ -104,10 +104,50 @@ export default function AccountsPayable() {
   };
 
   const filteredData = transactions.filter((transaction) => {
-    const matchesSearch =
-      transaction.description.toLowerCase().includes(searchValue.toLowerCase()) ||
-      transaction.referenceNumber?.toLowerCase().includes(searchValue.toLowerCase()) ||
-      false;
+    let matchesSearch: boolean;
+    if (!searchValue) {
+      matchesSearch = true;
+    } else {
+      const searchLower = searchValue.toLowerCase();
+      const property = getPropertyById(transaction.propertyId);
+      const propertyName = property?.name?.toLowerCase() || "";
+      const category = transaction.category
+        ? t.cashFlow.categories[transaction.category]?.toLowerCase() || ""
+        : "";
+      const paymentMethod = transaction.paymentMethod
+        ? t.cashFlow.paymentMethods[transaction.paymentMethod]?.toLowerCase() || ""
+        : "";
+      const amount = formatCurrency(transaction.amount).toLowerCase();
+
+      let supplierName = "";
+      if (transaction.supplierId) {
+        const supplier = getSupplierById(transaction.supplierId);
+        supplierName = supplier?.name?.toLowerCase() || "";
+      }
+
+      let employeeName = "";
+      if (transaction.employeeId) {
+        const employee = getEmployeeById(transaction.employeeId);
+        employeeName = employee?.name?.toLowerCase() || "";
+      }
+
+      let serviceProviderName = "";
+      if (transaction.serviceProviderId) {
+        const serviceProvider = getServiceProviderById(transaction.serviceProviderId);
+        serviceProviderName = serviceProvider?.name?.toLowerCase() || "";
+      }
+
+      matchesSearch =
+        transaction.description.toLowerCase().includes(searchLower) ||
+        transaction.referenceNumber?.toLowerCase().includes(searchLower) ||
+        propertyName.includes(searchLower) ||
+        category.includes(searchLower) ||
+        paymentMethod.includes(searchLower) ||
+        amount.includes(searchLower) ||
+        supplierName.includes(searchLower) ||
+        employeeName.includes(searchLower) ||
+        serviceProviderName.includes(searchLower);
+    }
 
     const matchesFilter =
       activeFilter === "all" ||
@@ -157,7 +197,6 @@ export default function AccountsPayable() {
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
-  // Calculate total from filtered data
   const totalAmount = filteredData.reduce((sum, t) => sum + t.amount, 0);
 
   const formatCurrency = (value: number) => {
@@ -344,22 +383,19 @@ export default function AccountsPayable() {
     setCurrentPage(1);
   };
 
-  // Generate year options
   const getYearOptions = () => {
-    const allYearsLabel =
-      language === "pt" ? "Todos os anos" : language === "en" ? "All years" : "Todos los años";
-    const options = [{ value: "all", label: allYearsLabel }];
+    const options: Array<{ value: string; label: string }> = [
+      { value: "all", label: t.cashFlow.filters.allYears },
+    ];
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
 
-    // Add previous year and current year
     options.push({ value: String(currentYear - 1), label: String(currentYear - 1) });
     options.push({ value: String(currentYear), label: String(currentYear) });
 
     return options;
   };
 
-  // Generate month options
   const getMonthOptions = () => {
     const localeMap: Record<string, string> = {
       pt: "pt-BR",
@@ -367,11 +403,10 @@ export default function AccountsPayable() {
       es: "es-ES",
     };
     const locale = localeMap[language] || "pt-BR";
-    const allMonthsLabel =
-      language === "pt" ? "Todos os meses" : language === "en" ? "All months" : "Todos los meses";
-    const options = [{ value: "all", label: allMonthsLabel }];
+    const options: Array<{ value: string; label: string }> = [
+      { value: "all", label: t.cashFlow.filters.allMonths },
+    ];
 
-    // Add all 12 months
     for (let month = 1; month <= 12; month++) {
       const monthName = new Date(2000, month - 1).toLocaleDateString(locale, {
         month: "long",

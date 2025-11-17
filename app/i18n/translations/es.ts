@@ -24,6 +24,7 @@ export const es = {
     unknownError: "Error desconocido",
     addressNotFound: "Dirección no encontrada",
     requestError: "Error en la solicitud",
+    total: "Total",
   },
 
   sidebar: {
@@ -202,6 +203,11 @@ export const es = {
         buyers: "Compradores",
         activities: "Actividades",
         movements: "Movimientos",
+        finance: "Finanzas",
+      },
+      finance: {
+        title: "Finanzas",
+        description: "Todas las transacciones financieras relacionadas con esta propiedad",
       },
       movements: {
         title: "Movimientos",
@@ -574,6 +580,11 @@ export const es = {
         info: "Detalles",
         activities: "Actividades",
         observations: "Observaciones",
+        finance: "Finanzas",
+      },
+      finance: {
+        title: "Finanzas",
+        description: "Todas las transacciones financieras relacionadas con este empleado",
       },
       observation: "Observación",
       addObservation: "Agregar Observación",
@@ -705,6 +716,12 @@ export const es = {
         info: "Detalles",
         activities: "Actividades",
         observations: "Observaciones",
+        finance: "Finanzas",
+      },
+      finance: {
+        title: "Finanzas",
+        description:
+          "Todas las transacciones financieras relacionadas con este prestador de servicio",
       },
       observation: "Observación",
       addObservation: "Agregar Observación",
@@ -834,6 +851,11 @@ export const es = {
         info: "Detalles",
         activities: "Actividades",
         observations: "Observaciones",
+        finance: "Finanzas",
+      },
+      finance: {
+        title: "Finanzas",
+        description: "Todas las transacciones financieras relacionadas con este proveedor",
       },
       observation: "Observación",
       addObservation: "Agregar Observación",
@@ -963,6 +985,11 @@ export const es = {
         info: "Detalles",
         activities: "Actividades",
         observations: "Observaciones",
+        finance: "Finanzas",
+      },
+      finance: {
+        title: "Finanzas",
+        description: "Todas las transacciones financieras relacionadas con este comprador",
       },
       observation: "Observación",
       addObservation: "Agregar Observación",
@@ -1009,6 +1036,8 @@ export const es = {
       expense: "Gastos",
       allSuppliers: "Todos los proveedores",
       allBuyers: "Todos los compradores",
+      allYears: "Todos los años",
+      allMonths: "Todos los meses",
     },
     table: {
       type: "Tipo",
