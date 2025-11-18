@@ -1,8 +1,24 @@
-import { Outlet } from "react-router";
+import { useEffect } from "react";
+import { Outlet, useNavigate } from "react-router";
 import { Navbar } from "./navbar";
 import { Sidebar } from "./sidebar";
+import { useAuth } from "~/contexts/auth-context";
+import { ROUTES } from "~/routes.config";
 
 export function DashboardLayout() {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate(ROUTES.LOGIN, { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
+
+  if (!isAuthenticated) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-950">
       <Navbar />

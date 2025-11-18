@@ -4,12 +4,42 @@ import userEvent from "@testing-library/user-event";
 import { UserProfile } from "../user-profile";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
+import { AuthProvider } from "~/contexts/auth-context";
+import type { TeamUser } from "~/types";
 
-const wrapper = ({ children }: { children: React.ReactNode }) => (
-  <ThemeProvider>
-    <LanguageProvider>{children}</LanguageProvider>
-  </ThemeProvider>
-);
+const mockUser: TeamUser = {
+  id: "test-user-id",
+  name: "Test User",
+  email: "test@example.com",
+  phone: "1234567890",
+  cpf: "12345678901",
+  street: "Test Street",
+  number: "123",
+  complement: "Apt 1",
+  neighborhood: "Test Neighborhood",
+  city: "Test City",
+  state: "SP",
+  zipCode: "12345678",
+  role: "user",
+  status: "active",
+  mainUser: true,
+  companyId: "1",
+  createdAt: "2025-01-01",
+  permissions: {} as never,
+};
+
+const wrapper = ({ children }: { children: React.ReactNode }) => {
+  if (typeof window !== "undefined") {
+    localStorage.setItem("currentUserId", "test-user-id");
+  }
+  return (
+    <ThemeProvider>
+      <LanguageProvider>
+        <AuthProvider>{children}</AuthProvider>
+      </LanguageProvider>
+    </ThemeProvider>
+  );
+};
 
 vi.mock("~/mocks/users", async () => {
   const actual = await vi.importActual<typeof import("~/mocks/users")>("~/mocks/users");
@@ -44,22 +74,10 @@ vi.mock("~/mocks/users", async () => {
 });
 
 vi.mock("~/services/users.service", () => ({
-  getUserById: vi.fn((id: string) => ({
-    id,
-    name: "Test User",
-    email: "test@example.com",
-    phone: "1234567890",
-    cpf: "12345678901",
-    street: "Test Street",
-    number: "123",
-    complement: "Apt 1",
-    neighborhood: "Test Neighborhood",
-    city: "Test City",
-    state: "SP",
-    zipCode: "12345678",
-    companyId: "1",
-    mainUser: true,
-  })),
+  getUserById: vi.fn((id: string) => {
+    if (id === "test-user-id") return mockUser;
+    return null;
+  }),
   updateUser: vi.fn(),
 }));
 
@@ -74,6 +92,9 @@ vi.mock("~/mocks/companies", () => ({
 
 describe("UserProfile", () => {
   beforeEach(() => {
+    if (typeof window !== "undefined") {
+      localStorage.clear();
+    }
     vi.clearAllMocks();
     global.alert = vi.fn();
   });

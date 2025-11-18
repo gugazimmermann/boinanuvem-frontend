@@ -3,11 +3,26 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
+import { AuthProvider } from "~/contexts/auth-context";
 import NewTeamMember from "../team.new";
 import { addUser } from "~/services/users.service";
+import type { TeamUser } from "~/types";
 
 const mockNavigate = vi.fn();
 const mockUseCEPLookup = vi.fn(() => ({ data: null, loading: false, error: null }));
+
+const mockMainUser: TeamUser = {
+  id: "main-user-id",
+  name: "Main User",
+  email: "main@example.com",
+  phone: "1234567890",
+  role: "admin",
+  status: "active",
+  mainUser: true,
+  companyId: "company-id",
+  createdAt: "2025-01-01",
+  permissions: {} as never,
+};
 
 vi.mock("react-router", async () => {
   const actual = await vi.importActual("react-router");
@@ -19,6 +34,10 @@ vi.mock("react-router", async () => {
 
 vi.mock("~/services/users.service", () => ({
   addUser: vi.fn(() => ({ id: "new-user" })),
+  getUserById: vi.fn((id: string) => {
+    if (id === "main-user-id") return mockMainUser;
+    return null;
+  }),
 }));
 
 vi.mock("~/components/site/hooks", () => ({
@@ -95,6 +114,9 @@ vi.mock("~/components/ui", () => ({
 
 describe("NewTeamMember", () => {
   const createRouter = () => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("currentUserId", "main-user-id");
+    }
     return createMemoryRouter(
       [
         {
@@ -102,7 +124,9 @@ describe("NewTeamMember", () => {
           element: (
             <LanguageProvider>
               <ThemeProvider>
-                <NewTeamMember />
+                <AuthProvider>
+                  <NewTeamMember />
+                </AuthProvider>
               </ThemeProvider>
             </LanguageProvider>
           ),
@@ -115,6 +139,9 @@ describe("NewTeamMember", () => {
   };
 
   beforeEach(() => {
+    if (typeof window !== "undefined") {
+      localStorage.clear();
+    }
     vi.clearAllMocks();
   });
 

@@ -7,6 +7,7 @@ import { useCEPLookup, type CEPData } from "~/components/site/hooks";
 import { mapCEPDataToAddressForm } from "~/components/site/utils";
 import { ROUTES } from "~/routes.config";
 import { getUserById, updateUser } from "~/services/users.service";
+import { useAuth } from "~/contexts/auth-context";
 import type { UserFormData } from "~/components/dashboard/team/user-form-modal";
 
 export function meta() {
@@ -23,7 +24,14 @@ export default function EditTeamMember() {
   const t = useTranslation();
   const navigate = useNavigate();
   const { userId } = useParams<{ userId: string }>();
+  const { currentUser } = useAuth();
   const user = getUserById(userId);
+
+  useEffect(() => {
+    if (currentUser && !currentUser.mainUser) {
+      navigate(ROUTES.PROFILE);
+    }
+  }, [currentUser, navigate]);
 
   const [formData, setFormData] = useState<
     UserFormData & { password: string; confirmPassword: string }

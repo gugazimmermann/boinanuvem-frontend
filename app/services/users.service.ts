@@ -3,7 +3,8 @@ import type { UserPermissions } from "~/types/permissions";
 import { mockUsers } from "~/mocks/users";
 import { mockCompanies } from "~/mocks/companies";
 import { findById, findByField } from "./base-service";
-const DEFAULT_PASSWORD_HASH = "$2b$10$9c7eBs.MydmDkdO6SworA.ENm1i1yiT62zIzVrxJTecnU6Tl1ZhVu";
+import bcrypt from "bcryptjs";
+const DEFAULT_PASSWORD_HASH = "$2a$10$MyHqC7lONCHhrYYtZgUoEu3xR61lWfbQwSKfWOJVrNGZF.JbrUVQW";
 
 export function getUserById(userId: string | undefined): TeamUser | undefined {
   return findById(mockUsers, userId);
@@ -52,4 +53,30 @@ export function addUser(data: UserFormData & { password: string }): TeamUser {
   };
   mockUsers.push(newUser);
   return newUser;
+}
+
+export async function authenticateUser(email: string, password: string): Promise<TeamUser | null> {
+  const user = mockUsers.find((u) => u.email === email);
+
+  if (!user) {
+    return null;
+  }
+
+  // Only allow active users to login
+  if (user.status !== "active") {
+    return null;
+  }
+
+  // Validate password using bcryptjs
+  if (!user.password) {
+    return null;
+  }
+
+  const isPasswordValid = await bcrypt.compare(password, user.password);
+
+  if (!isPasswordValid) {
+    return null;
+  }
+
+  return user;
 }

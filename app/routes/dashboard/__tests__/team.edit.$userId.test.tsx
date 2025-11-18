@@ -4,11 +4,26 @@ import { createMemoryRouter, RouterProvider } from "react-router";
 import type { ComponentProps } from "react";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
+import { AuthProvider } from "~/contexts/auth-context";
 import EditTeamMember from "../team.edit.$userId";
 import { getUserById, updateUser } from "~/services/users.service";
 import { Input, Button, Alert } from "~/components/ui";
+import type { TeamUser } from "~/types";
 
 const mockNavigate = vi.fn();
+
+const mockMainUser: TeamUser = {
+  id: "main-user-id",
+  name: "Main User",
+  email: "main@example.com",
+  phone: "1234567890",
+  role: "admin",
+  status: "active",
+  mainUser: true,
+  companyId: "company-id",
+  createdAt: "2025-01-01",
+  permissions: {} as never,
+};
 
 vi.mock("react-router", async () => {
   const actual = await vi.importActual("react-router");
@@ -85,6 +100,9 @@ describe("EditTeamMember", () => {
   };
 
   const createRouter = (userId: string) => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("currentUserId", "main-user-id");
+    }
     return createMemoryRouter(
       [
         {
@@ -92,7 +110,9 @@ describe("EditTeamMember", () => {
           element: (
             <LanguageProvider>
               <ThemeProvider>
-                <EditTeamMember />
+                <AuthProvider>
+                  <EditTeamMember />
+                </AuthProvider>
               </ThemeProvider>
             </LanguageProvider>
           ),
@@ -105,8 +125,15 @@ describe("EditTeamMember", () => {
   };
 
   beforeEach(() => {
+    if (typeof window !== "undefined") {
+      localStorage.clear();
+    }
     vi.clearAllMocks();
-    vi.mocked(getUserById).mockReturnValue(mockUser);
+    vi.mocked(getUserById).mockImplementation((id: string) => {
+      if (id === "main-user-id") return mockMainUser;
+      if (id === "user-1") return mockUser as TeamUser;
+      return undefined;
+    });
   });
 
   it("should render edit team member form with pre-filled data", async () => {

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Input, Button, Alert } from "~/components/ui";
 import { useTranslation } from "~/i18n";
@@ -7,6 +7,7 @@ import { useCEPLookup, type CEPData } from "~/components/site/hooks";
 import { mapCEPDataToAddressForm } from "~/components/site/utils";
 import { ROUTES, getTeamPermissionsRoute } from "~/routes.config";
 import { addUser } from "~/services/users.service";
+import { useAuth } from "~/contexts/auth-context";
 import type { UserFormData } from "~/components/dashboard/team/user-form-modal";
 
 export function meta() {
@@ -22,6 +23,13 @@ export function meta() {
 export default function NewTeamMember() {
   const t = useTranslation();
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
+
+  useEffect(() => {
+    if (currentUser && !currentUser.mainUser) {
+      navigate(ROUTES.PROFILE);
+    }
+  }, [currentUser, navigate]);
   const [formData, setFormData] = useState<
     UserFormData & { password: string; confirmPassword: string }
   >({

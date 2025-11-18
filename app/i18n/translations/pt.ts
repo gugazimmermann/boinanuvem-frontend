@@ -26,6 +26,8 @@ export const pt = {
     requestError: "Erro na requisição",
     total: "Total",
     invalidEmail: "Email inválido",
+    defaultUser: "Usuário",
+    defaultEmail: "user@example.com",
   },
 
   sidebar: {

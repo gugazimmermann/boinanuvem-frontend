@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import { AuthLayout } from "../components/site/auth-layout";
 import { AuthInput, AuthButton } from "../components/site/ui";
 import { COLORS } from "../components/site/constants";
 import { ROUTES } from "../routes.config";
+import { authenticateUser } from "../services/users.service";
+import { useAuth } from "../contexts/auth-context";
 
 export function meta() {
   return [
@@ -16,10 +19,43 @@ export function meta() {
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    navigate(ROUTES.DASHBOARD);
+    setError("");
+
+    if (!email.trim()) {
+      setError("Email é obrigatório");
+      return;
+    }
+
+    if (!password.trim()) {
+      setError("Senha é obrigatória");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const user = await authenticateUser(email.trim(), password);
+
+      if (!user) {
+        setError("Email ou senha inválidos, ou usuário inativo");
+        setIsLoading(false);
+        return;
+      }
+
+      login(user.id);
+      navigate(ROUTES.DASHBOARD);
+    } catch {
+      setError("Erro ao fazer login. Tente novamente.");
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -40,8 +76,25 @@ export default function Login() {
           <p className="mt-1 text-center text-gray-500">Faça login ou crie uma conta</p>
 
           <form className="mt-6" onSubmit={handleSubmit}>
+            {error && (
+              <div className="mb-4 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg">
+                {error}
+              </div>
+            )}
+
             <div className="w-full">
-              <AuthInput type="email" placeholder="Email" aria-label="Email" className="mt-0" />
+              <AuthInput
+                type="email"
+                placeholder="Email"
+                aria-label="Email"
+                className="mt-0"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (error) setError("");
+                }}
+                error={error && !email.trim() ? "Email é obrigatório" : undefined}
+              />
             </div>
 
             <div className="w-full mt-4">
@@ -51,6 +104,12 @@ export default function Login() {
                 aria-label="Senha"
                 className="mt-0"
                 showPasswordToggle
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (error) setError("");
+                }}
+                error={error && !password.trim() ? "Senha é obrigatória" : undefined}
               />
             </div>
 
@@ -62,8 +121,8 @@ export default function Login() {
                 Esqueceu a senha?
               </a>
 
-              <AuthButton type="submit" variant="primary" size="md">
-                Entrar
+              <AuthButton type="submit" variant="primary" size="md" disabled={isLoading}>
+                {isLoading ? "Entrando..." : "Entrar"}
               </AuthButton>
             </div>
           </form>

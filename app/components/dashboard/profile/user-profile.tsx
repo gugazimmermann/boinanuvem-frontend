@@ -14,9 +14,8 @@ import {
 import { useTranslation } from "~/i18n";
 import { DASHBOARD_COLORS } from "../utils/colors";
 import type { AddressFormData } from "~/components/site/utils/cep-utils";
-import { mockUsers } from "~/mocks/users";
 import { getUserById, updateUser, updateUserPermissions } from "~/services/users.service";
-import { mockCompanies } from "~/mocks/companies";
+import { useAuth } from "~/contexts/auth-context";
 import type { UserPermissions, PermissionAction, ResourcePermissions } from "~/types/permissions";
 import { defaultPermissions } from "~/types/permissions";
 
@@ -27,19 +26,7 @@ interface UserFormData extends AddressFormData {
   phone: string;
 }
 
-const getMainUser = () => {
-  const company = mockCompanies[0];
-  if (!company) return null;
-
-  const mainUser = mockUsers.find(
-    (user) => user.companyId === company.id && user.mainUser === true
-  );
-
-  return mainUser || null;
-};
-
-const getMainUserData = (): UserFormData => {
-  const mainUser = getMainUser();
+const getMainUserData = (mainUser: ReturnType<typeof useAuth>["currentUser"]): UserFormData => {
   if (!mainUser) {
     return {
       name: "User",
@@ -287,8 +274,9 @@ interface UserProfileProps {
 
 export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserProfileProps) {
   const t = useTranslation();
-  const mainUserData = useMemo(() => getMainUserData(), []);
-  const mainUser = useMemo(() => getMainUser(), []);
+  const { currentUser } = useAuth();
+  const mainUser = currentUser;
+  const mainUserData = useMemo(() => getMainUserData(mainUser), [mainUser]);
   const [isEditing, setIsEditing] = useState(false);
   const [data, setData] = useState<UserFormData>(mainUserData);
   const [originalData, setOriginalData] = useState<UserFormData>(mainUserData);

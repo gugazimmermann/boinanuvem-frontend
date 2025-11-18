@@ -1,7 +1,7 @@
 import type { TeamUser } from "~/types";
 import type { UserPermissions } from "~/types/permissions";
 
-const DEFAULT_PASSWORD_HASH = "$2b$10$9c7eBs.MydmDkdO6SworA.ENm1i1yiT62zIzVrxJTecnU6Tl1ZhVu";
+const DEFAULT_PASSWORD_HASH = "$2a$10$MyHqC7lONCHhrYYtZgUoEu3xR61lWfbQwSKfWOJVrNGZF.JbrUVQW";
 
 // Full permissions for admin/main user
 const fullPermissions: UserPermissions = {
@@ -163,7 +163,7 @@ export const mockUsers: TeamUser[] = [
     id: "550e8400-e29b-41d4-a716-446655440000",
     name: "Guga Zimmermann",
     cpf: "00674902980",
-    email: "guga.zimmermann@gmail.com",
+    email: "gugazimmermann@gmail.com",
     password: DEFAULT_PASSWORD_HASH,
     phone: "47988704247",
     role: "admin",
@@ -185,7 +185,7 @@ export const mockUsers: TeamUser[] = [
     id: "550e8400-e29b-41d4-a716-446655440001",
     name: "Maria Santos",
     cpf: "234.567.890-11",
-    email: "maria.santos@fazendasaojoao.com.br",
+    email: "user1@gmail.com",
     password: DEFAULT_PASSWORD_HASH,
     phone: "(11) 98765-4322",
     role: "manager",
@@ -207,7 +207,7 @@ export const mockUsers: TeamUser[] = [
     id: "550e8400-e29b-41d4-a716-446655440002",
     name: "Pedro Costa",
     cpf: "345.678.901-22",
-    email: "pedro.costa@fazendasaojoao.com.br",
+    email: "user2@gmail.com",
     password: DEFAULT_PASSWORD_HASH,
     phone: "(11) 98765-4323",
     role: "user",

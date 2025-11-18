@@ -4,6 +4,7 @@ import { Button, Alert } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { ROUTES } from "~/routes.config";
 import { getUserById, updateUserPermissions } from "~/services/users.service";
+import { useAuth } from "~/contexts/auth-context";
 import type { TeamUser } from "~/routes/dashboard/team";
 import type { UserPermissions, PermissionAction, ResourcePermissions } from "~/types/permissions";
 import { defaultPermissions } from "~/types/permissions";
@@ -12,7 +13,6 @@ import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
 type PermissionSection = "registration" | "records" | "breedings" | "finances";
 
 type PermissionResource =
-  // Registration
   | "property"
   | "location"
   | "employee"
@@ -20,17 +20,14 @@ type PermissionResource =
   | "supplier"
   | "buyer"
   | "animals"
-  // Records
   | "births"
   | "acquisitions"
   | "weighings"
-  // Breedings
   | "breedings"
   | "unconfirmedBreedings"
   | "pregnantCows"
   | "reproductiveIndexes"
   | "birthForecast"
-  // Finances
   | "cashFlow"
   | "accountsPayable"
   | "accountsReceivable"
@@ -117,6 +114,13 @@ export default function TeamPermissions() {
   const t = useTranslation();
   const navigate = useNavigate();
   const { userId } = useParams<{ userId: string }>();
+  const { currentUser } = useAuth();
+
+  useEffect(() => {
+    if (currentUser && !currentUser.mainUser) {
+      navigate(ROUTES.PROFILE);
+    }
+  }, [currentUser, navigate]);
   const [user, setUser] = useState<TeamUser | null>(null);
   const [permissions, setPermissions] = useState<UserPermissions>(defaultPermissions);
   const [isSaving, setIsSaving] = useState(false);

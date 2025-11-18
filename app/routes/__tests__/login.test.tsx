@@ -1,14 +1,29 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import type { ComponentProps } from "react";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
+import { AuthProvider } from "~/contexts/auth-context";
 import Login from "../login";
 import { ROUTES } from "~/routes.config";
 import { AuthInput, AuthButton } from "~/components/site/ui";
+import type { TeamUser } from "~/types";
 
 const mockNavigate = vi.fn();
+
+const mockUser: TeamUser = {
+  id: "test-user-id",
+  name: "Test User",
+  email: "test@example.com",
+  phone: "1234567890",
+  role: "user",
+  status: "active",
+  mainUser: false,
+  companyId: "company-id",
+  createdAt: "2025-01-01",
+  permissions: {} as never,
+};
 
 vi.mock("react-router", async () => {
   const actual = await vi.importActual("react-router");
@@ -17,6 +32,14 @@ vi.mock("react-router", async () => {
     useNavigate: () => mockNavigate,
   };
 });
+
+vi.mock("~/services/users.service", () => ({
+  getUserById: vi.fn((id: string) => {
+    if (id === "test-user-id") return mockUser;
+    return null;
+  }),
+  authenticateUser: vi.fn(() => Promise.resolve(mockUser)),
+}));
 
 vi.mock("~/components/site/auth-layout", () => ({
   AuthLayout: ({ children }: { children: React.ReactNode }) => (
@@ -42,6 +65,9 @@ vi.mock("~/components/site/ui", () => ({
 
 describe("Login", () => {
   const createRouter = () => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("currentUserId", "test-user-id");
+    }
     return createMemoryRouter(
       [
         {
@@ -49,7 +75,9 @@ describe("Login", () => {
           element: (
             <LanguageProvider>
               <ThemeProvider>
-                <Login />
+                <AuthProvider>
+                  <Login />
+                </AuthProvider>
               </ThemeProvider>
             </LanguageProvider>
           ),
@@ -62,6 +90,9 @@ describe("Login", () => {
   };
 
   beforeEach(() => {
+    if (typeof window !== "undefined") {
+      localStorage.clear();
+    }
     vi.clearAllMocks();
   });
 
@@ -86,14 +117,22 @@ describe("Login", () => {
     expect(screen.getByText("Faça login ou crie uma conta")).toBeInTheDocument();
   });
 
-  it("should navigate to dashboard on form submit", () => {
+  it("should navigate to dashboard on form submit", async () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    const form = screen.getByTestId("auth-input-email").closest("form");
+    const emailInput = screen.getByTestId("auth-input-email");
+    const passwordInput = screen.getByTestId("auth-input-password");
+
+    fireEvent.change(emailInput, { target: { value: "test@example.com" } });
+    fireEvent.change(passwordInput, { target: { value: "password123" } });
+
+    const form = emailInput.closest("form");
     if (form) {
       fireEvent.submit(form);
-      expect(mockNavigate).toHaveBeenCalledWith(ROUTES.DASHBOARD);
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith(ROUTES.DASHBOARD);
+      });
     }
   });
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import {
   Table,
@@ -11,6 +11,7 @@ import { useTranslation } from "~/i18n";
 import { UserFormModal, DeleteUserModal, type UserFormData } from "~/components/dashboard/team";
 import { getUserProfileRoute, ROUTES, getTeamEditRoute } from "~/routes.config";
 import { mockUsers } from "~/mocks/users";
+import { useAuth } from "~/contexts/auth-context";
 
 import type { TeamUser } from "~/types";
 
@@ -28,10 +29,17 @@ export function meta() {
 
 export default function Team() {
   const t = useTranslation();
+  const { currentUser } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (currentUser && !currentUser.mainUser) {
+      navigate(ROUTES.PROFILE);
+    }
+  }, [currentUser, navigate]);
   const [users, setUsers] = useState<TeamUser[]>([...mockUsers.filter((user) => !user.mainUser)]);
   const [searchValue, setSearchValue] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const navigate = useNavigate();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<TeamUser | null>(null);

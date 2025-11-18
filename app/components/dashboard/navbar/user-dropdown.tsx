@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router";
 import { AvatarButton } from "./avatar-button";
 import { DropdownMenu } from "./dropdown-menu";
 import { UserInfo } from "./user-info";
@@ -8,8 +9,8 @@ import { LanguageSelectorMenuItem } from "./language-selector-menu-item";
 import { ROUTES } from "../../../routes.config";
 import { useTranslation } from "~/i18n";
 import type { TranslationKey } from "~/i18n";
-import { mockUsers } from "~/mocks/users";
-import { mockCompanies } from "~/mocks/companies";
+import { useAuth } from "~/contexts/auth-context";
+import type { TeamUser } from "~/types";
 
 type MenuItem =
   | {
@@ -29,15 +30,31 @@ interface UserDropdownProps {
   menuItems?: MenuItem[];
 }
 
-const createMenuItems = (t: TranslationKey): MenuItem[] => [
-  { label: t.userDropdown.companyProfile, href: `${ROUTES.PROFILE}?tab=company` },
-  { label: t.userDropdown.userProfile, href: `${ROUTES.PROFILE}?tab=user` },
-  { label: t.userDropdown.team, href: ROUTES.TEAM },
-  { divider: true },
-  { label: t.userDropdown.help, href: ROUTES.HELP },
-  { divider: true },
-  { label: t.userDropdown.logout, href: ROUTES.LOGIN },
-];
+const createMenuItems = (
+  t: TranslationKey,
+  onLogout: () => void,
+  currentUser: TeamUser | null
+): MenuItem[] => {
+  const isMainUser = currentUser?.mainUser === true;
+  const items: MenuItem[] = [];
+
+  if (isMainUser) {
+    items.push({ label: t.userDropdown.companyProfile, href: `${ROUTES.PROFILE}?tab=company` });
+  }
+
+  items.push({ label: t.userDropdown.userProfile, href: `${ROUTES.PROFILE}?tab=user` });
+
+  if (isMainUser) {
+    items.push({ label: t.userDropdown.team, href: ROUTES.TEAM });
+  }
+
+  items.push({ divider: true });
+  items.push({ label: t.userDropdown.help, href: ROUTES.HELP });
+  items.push({ divider: true });
+  items.push({ label: t.userDropdown.logout, onClick: onLogout });
+
+  return items;
+};
 
 const getInitials = (name: string): string => {
   if (!name) return "U";
@@ -47,29 +64,25 @@ const getInitials = (name: string): string => {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
-const getMainUser = () => {
-  const company = mockCompanies[0];
-  if (!company) return null;
-
-  const mainUser = mockUsers.find(
-    (user) => user.companyId === company.id && user.mainUser === true
-  );
-
-  return mainUser || null;
-};
-
 export function UserDropdown({ name, email, initial, menuItems }: UserDropdownProps) {
   const t = useTranslation();
-  const mainUser = useMemo(() => getMainUser(), []);
+  const navigate = useNavigate();
+  const { currentUser, logout } = useAuth();
 
-  const displayName = name || mainUser?.name || "User";
-  const displayEmail = email || mainUser?.email || "user@example.com";
+  const displayName = name || currentUser?.name || t.common.defaultUser;
+  const displayEmail = email || currentUser?.email || t.common.defaultEmail;
   const displayInitial = initial || getInitials(displayName);
 
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const items = menuItems || createMenuItems(t as TranslationKey);
+  const handleLogout = () => {
+    logout();
+    navigate(ROUTES.LOGIN);
+    setIsOpen(false);
+  };
+
+  const items = menuItems || createMenuItems(t as TranslationKey, handleLogout, currentUser);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

@@ -3,8 +3,10 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
+import { AuthProvider } from "~/contexts/auth-context";
 import Team from "../team";
 import { mockUsers } from "~/mocks/users";
+import type { TeamUser } from "~/types";
 
 const mockNavigate = vi.fn();
 
@@ -15,6 +17,40 @@ vi.mock("react-router", async () => {
     useNavigate: () => mockNavigate,
   };
 });
+
+const mockMainUser: TeamUser = {
+  id: "main-user-id",
+  name: "Main User",
+  email: "main@example.com",
+  phone: "1234567890",
+  role: "admin",
+  status: "active",
+  mainUser: true,
+  companyId: "company-id",
+  createdAt: "2025-01-01",
+  permissions: {} as never,
+};
+
+const mockNonMainUser: TeamUser = {
+  id: "non-main-user-id",
+  name: "Regular User",
+  email: "user@example.com",
+  phone: "1234567890",
+  role: "user",
+  status: "active",
+  mainUser: false,
+  companyId: "company-id",
+  createdAt: "2025-01-01",
+  permissions: {} as never,
+};
+
+vi.mock("~/services/users.service", () => ({
+  getUserById: vi.fn((id: string) => {
+    if (id === "main-user-id") return mockMainUser;
+    if (id === "non-main-user-id") return mockNonMainUser;
+    return null;
+  }),
+}));
 
 vi.mock("~/mocks/users", async () => {
   const actual = await vi.importActual<typeof import("~/mocks/users")>("~/mocks/users");
@@ -108,7 +144,10 @@ vi.mock("~/components/dashboard/team", () => ({
 }));
 
 describe("Team", () => {
-  const createRouter = () => {
+  const createRouter = (userId: string | null = null) => {
+    if (userId && typeof window !== "undefined") {
+      localStorage.setItem("currentUserId", userId);
+    }
     return createMemoryRouter(
       [
         {
@@ -116,7 +155,9 @@ describe("Team", () => {
           element: (
             <LanguageProvider>
               <ThemeProvider>
-                <Team />
+                <AuthProvider>
+                  <Team />
+                </AuthProvider>
               </ThemeProvider>
             </LanguageProvider>
           ),
@@ -129,18 +170,21 @@ describe("Team", () => {
   };
 
   beforeEach(() => {
+    if (typeof window !== "undefined") {
+      localStorage.clear();
+    }
     vi.clearAllMocks();
   });
 
   it("should render team table", () => {
-    const router = createRouter();
+    const router = createRouter("main-user-id");
     render(<RouterProvider router={router} />);
 
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
   it("should display users data", () => {
-    const router = createRouter();
+    const router = createRouter("main-user-id");
     render(<RouterProvider router={router} />);
 
     const nonMainUsers = mockUsers.filter((u) => !u.mainUser);
@@ -150,7 +194,7 @@ describe("Team", () => {
   });
 
   it("should open add user modal", () => {
-    const router = createRouter();
+    const router = createRouter("main-user-id");
     render(<RouterProvider router={router} />);
 
     const addButtons = screen
@@ -170,21 +214,21 @@ describe("Team", () => {
   });
 
   it("should handle search filtering", () => {
-    const router = createRouter();
+    const router = createRouter("main-user-id");
     render(<RouterProvider router={router} />);
 
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
   it("should handle pagination", () => {
-    const router = createRouter();
+    const router = createRouter("main-user-id");
     render(<RouterProvider router={router} />);
 
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
   it("should handle user deletion", async () => {
-    const router = createRouter();
+    const router = createRouter("main-user-id");
     render(<RouterProvider router={router} />);
 
     const deleteButtons = screen.queryAllByTestId("delete-button");
@@ -205,7 +249,7 @@ describe("Team", () => {
   });
 
   it("should cancel user deletion", async () => {
-    const router = createRouter();
+    const router = createRouter("main-user-id");
     render(<RouterProvider router={router} />);
 
     const deleteButtons = screen.queryAllByTestId("delete-button");
@@ -223,7 +267,7 @@ describe("Team", () => {
   });
 
   it("should close add user modal", () => {
-    const router = createRouter();
+    const router = createRouter("main-user-id");
     render(<RouterProvider router={router} />);
 
     const addButtons = screen
@@ -241,7 +285,7 @@ describe("Team", () => {
   });
 
   it("should submit new user", async () => {
-    const router = createRouter();
+    const router = createRouter("main-user-id");
     render(<RouterProvider router={router} />);
 
     const addButtons = screen
@@ -263,7 +307,7 @@ describe("Team", () => {
   });
 
   it("should navigate to user edit", () => {
-    const router = createRouter();
+    const router = createRouter("main-user-id");
     render(<RouterProvider router={router} />);
 
     const editButtons = screen.queryAllByTestId("edit-button");
@@ -274,7 +318,7 @@ describe("Team", () => {
   });
 
   it("should navigate to user profile", () => {
-    const router = createRouter();
+    const router = createRouter("main-user-id");
     render(<RouterProvider router={router} />);
 
     const rows = screen.queryAllByTestId(/table-row-/);
@@ -284,7 +328,7 @@ describe("Team", () => {
   });
 
   it("should format dates correctly", () => {
-    const router = createRouter();
+    const router = createRouter("main-user-id");
     render(<RouterProvider router={router} />);
 
     expect(screen.getByTestId("table")).toBeInTheDocument();
@@ -292,21 +336,38 @@ describe("Team", () => {
 
   it("should handle empty users list", () => {
     vi.mocked(mockUsers).length = 0;
-    const router = createRouter();
+    const router = createRouter("main-user-id");
     render(<RouterProvider router={router} />);
 
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
   it("should filter out main users", () => {
-    const router = createRouter();
+    const router = createRouter("main-user-id");
     render(<RouterProvider router={router} />);
 
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
+  it("should redirect non-main user to profile", async () => {
+    const router = createRouter("non-main-user-id");
+    render(<RouterProvider router={router} />);
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith("/dashboard/perfil");
+    });
+  });
+
+  it("should allow main user to access team page", () => {
+    const router = createRouter("main-user-id");
+    render(<RouterProvider router={router} />);
+
+    expect(screen.getByTestId("table")).toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
   it("should handle alert message display", async () => {
-    const router = createRouter();
+    const router = createRouter("main-user-id");
     render(<RouterProvider router={router} />);
 
     const addButtons = screen

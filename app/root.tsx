@@ -10,6 +10,7 @@ import {
 import type { Route } from "./+types/root";
 import { ThemeProvider } from "./contexts/theme-context";
 import { LanguageProvider } from "./contexts/language-context";
+import { AuthProvider } from "./contexts/auth-context";
 import "./app.css";
 
 export const links: Route.LinksFunction = () => [
@@ -64,7 +65,9 @@ export default function App() {
   return (
     <ThemeProvider>
       <LanguageProvider>
-        <Outlet />
+        <AuthProvider>
+          <Outlet />
+        </AuthProvider>
       </LanguageProvider>
     </ThemeProvider>
   );
