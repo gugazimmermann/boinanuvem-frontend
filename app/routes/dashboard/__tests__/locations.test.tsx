@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -71,18 +70,29 @@ vi.mock("~/services/location-observations.service", () => ({
 }));
 
 vi.mock("~/components/ui", () => ({
-  Table: ({ data, header, onRowClick }: any) => (
+  Table: ({
+    data,
+    header,
+    onRowClick,
+  }: {
+    data?: unknown[];
+    header?: { title?: string };
+    onRowClick?: (row: unknown) => void;
+  }) => (
     <div data-testid="table">
       {header?.title && <h2>{header.title}</h2>}
-      {data?.map((row: any, idx: number) => (
-        <div key={idx} data-testid={`table-row-${idx}`} onClick={() => onRowClick?.(row)}>
-          {row.name}
-        </div>
-      ))}
+      {data?.map((row, idx: number) => {
+        const rowObj = row as Record<string, unknown>;
+        return (
+          <div key={idx} data-testid={`table-row-${idx}`} onClick={() => onRowClick?.(row)}>
+            {String(rowObj.name ?? "")}
+          </div>
+        );
+      })}
     </div>
   ),
-  StatusBadge: ({ label }: any) => <span data-testid="status-badge">{label}</span>,
-  TableActionButtons: ({ onEdit, onDelete }: any) => (
+  StatusBadge: ({ label }: { label?: string }) => <span data-testid="status-badge">{label}</span>,
+  TableActionButtons: ({ onEdit, onDelete }: { onEdit?: () => void; onDelete?: () => void }) => (
     <div data-testid="table-actions">
       <button data-testid="edit-button" onClick={onEdit}>
         Edit
@@ -92,7 +102,17 @@ vi.mock("~/components/ui", () => ({
       </button>
     </div>
   ),
-  ConfirmationModal: ({ isOpen, onConfirm, onClose, title }: any) =>
+  ConfirmationModal: ({
+    isOpen,
+    onConfirm,
+    onClose,
+    title,
+  }: {
+    isOpen: boolean;
+    onConfirm?: () => void;
+    onClose?: () => void;
+    title?: string;
+  }) =>
     isOpen ? (
       <div data-testid="confirmation-modal">
         <div>{title}</div>
@@ -104,8 +124,12 @@ vi.mock("~/components/ui", () => ({
         </button>
       </div>
     ) : null,
-  Alert: ({ title, variant }: any) => <div data-testid={`alert-${variant}`}>{title}</div>,
-  LocationTypeBadge: ({ type }: any) => <span data-testid="location-type-badge">{type}</span>,
+  Alert: ({ title, variant }: { title?: string; variant?: string }) => (
+    <div data-testid={`alert-${variant}`}>{title}</div>
+  ),
+  LocationTypeBadge: ({ type }: { type?: string }) => (
+    <span data-testid="location-type-badge">{type}</span>
+  ),
 }));
 
 describe("Locations", () => {

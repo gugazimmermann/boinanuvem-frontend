@@ -1,11 +1,21 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
+import type { ComponentProps } from "react";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
 import Register, { meta } from "../register";
 import { ROUTES } from "~/routes.config";
+import { AuthInput, AuthButton, AuthSelect } from "~/components/site/ui";
+import type {
+  UseCNPJLookupOptions,
+  UseCNPJLookupReturn,
+  UseCEPLookupOptions,
+  UseCEPLookupReturn,
+  CNPJData,
+  CEPData,
+} from "~/types";
+import type { AddressFormData, CompanyFormData } from "~/types";
 
 vi.mock("~/components/site/auth-layout", () => ({
   AuthLayout: ({ children }: { children: React.ReactNode }) => (
@@ -22,7 +32,7 @@ vi.mock("~/components/site/ui", () => ({
     error,
     showPasswordToggle: _showPasswordToggle,
     ...props
-  }: any) => {
+  }: ComponentProps<typeof AuthInput> & { fullWidth?: boolean }) => {
     const { fullWidth: _fullWidth, ...domProps } = props;
     return (
       <div>
@@ -38,19 +48,24 @@ vi.mock("~/components/site/ui", () => ({
       </div>
     );
   },
-  AuthButton: ({ children, onClick, type, ...props }: any) => (
-    <button data-testid={`auth-button-${children}`} type={type} onClick={onClick} {...props}>
+  AuthButton: ({ children, onClick, type, ...props }: ComponentProps<typeof AuthButton>) => (
+    <button
+      data-testid={`auth-button-${children}`}
+      type={type as "button" | "submit" | "reset" | undefined}
+      onClick={onClick as React.MouseEventHandler<HTMLButtonElement> | undefined}
+      {...(props as React.ButtonHTMLAttributes<HTMLButtonElement>)}
+    >
       {children}
     </button>
   ),
-  AuthSelect: ({ options, value, onChange, ...props }: any) => (
+  AuthSelect: ({ options, value, onChange, ...props }: ComponentProps<typeof AuthSelect>) => (
     <select
       data-testid={`auth-select-${props["aria-label"]}`}
       value={value || ""}
       onChange={onChange}
       {...props}
     >
-      {options?.map((opt: any) => (
+      {options?.map((opt: { value: string; label: string }) => (
         <option key={opt.value} value={opt.value}>
           {opt.label}
         </option>
@@ -59,36 +74,86 @@ vi.mock("~/components/site/ui", () => ({
   ),
 }));
 
-const mockUseCNPJLookup = vi.fn();
-const mockUseCEPLookup = vi.fn();
+const mockUseCNPJLookup = vi.fn<[string, UseCNPJLookupOptions?], UseCNPJLookupReturn>();
+const mockUseCEPLookup = vi.fn<[string, UseCEPLookupOptions?], UseCEPLookupReturn>();
 
 vi.mock("~/components/site/hooks", () => ({
-  useCNPJLookup: (...args: any[]) => mockUseCNPJLookup(...args),
-  useCEPLookup: (...args: any[]) => mockUseCEPLookup(...args),
+  useCNPJLookup: (cnpj: string, options?: UseCNPJLookupOptions) => mockUseCNPJLookup(cnpj, options),
+  useCEPLookup: (cep: string, options?: UseCEPLookupOptions) => mockUseCEPLookup(cep, options),
 }));
 
-const mockMapCNPJDataToCompanyForm = vi.fn();
-const mockMapCEPDataToAddressForm = vi.fn();
+const mockMapCNPJDataToCompanyForm = vi.fn<
+  [CNPJData, Partial<CompanyFormData>?],
+  CompanyFormData
+>();
+const mockMapCEPDataToAddressForm = vi.fn<
+  [CEPData, Partial<AddressFormData>?],
+  Partial<AddressFormData>
+>();
 const mockMaskCNPJ = vi.fn((val: string) => (val || "").replace(/\D/g, ""));
 const mockMaskPhone = vi.fn((val: string) => (val || "").replace(/\D/g, ""));
 const mockMaskCEP = vi.fn((val: string) => (val || "").replace(/\D/g, ""));
 const mockMaskCPF = vi.fn((val: string) => (val || "").replace(/\D/g, ""));
 const mockUnmaskCNPJ = vi.fn((val: string) => (val || "").replace(/\D/g, ""));
 const mockUnmaskCEP = vi.fn((val: string) => (val || "").replace(/\D/g, ""));
-const mockGeocodeAddress = vi.fn();
-const mockBuildAddressString = vi.fn();
+const mockGeocodeAddress = vi.fn<
+  [
+    {
+      street: string;
+      number: string;
+      complement?: string;
+      neighborhood: string;
+      city: string;
+      state: string;
+      zipCode: string;
+    },
+  ],
+  Promise<{ lat: number; lon: number } | { error: string }>
+>();
+const mockBuildAddressString = vi.fn<
+  [
+    {
+      street: string;
+      number: string;
+      complement?: string;
+      neighborhood: string;
+      city: string;
+      state: string;
+      zipCode: string;
+    },
+  ],
+  string
+>();
 
 vi.mock("~/components/site/utils", () => ({
-  mapCNPJDataToCompanyForm: (...args: any[]) => mockMapCNPJDataToCompanyForm(...args),
-  mapCEPDataToAddressForm: (...args: any[]) => mockMapCEPDataToAddressForm(...args),
-  maskCNPJ: (...args: any[]) => mockMaskCNPJ(...args),
-  maskPhone: (...args: any[]) => mockMaskPhone(...args),
-  maskCEP: (...args: any[]) => mockMaskCEP(...args),
-  maskCPF: (...args: any[]) => mockMaskCPF(...args),
-  unmaskCNPJ: (...args: any[]) => mockUnmaskCNPJ(...args),
-  unmaskCEP: (...args: any[]) => mockUnmaskCEP(...args),
-  geocodeAddress: (...args: any[]) => mockGeocodeAddress(...args),
-  buildAddressString: (...args: any[]) => mockBuildAddressString(...args),
+  mapCNPJDataToCompanyForm: (data: CNPJData, existingData?: Partial<AddressFormData>) =>
+    mockMapCNPJDataToCompanyForm(data, existingData),
+  mapCEPDataToAddressForm: (data: CEPData, existingData?: Partial<AddressFormData>) =>
+    mockMapCEPDataToAddressForm(data, existingData),
+  maskCNPJ: (value: string) => mockMaskCNPJ(value),
+  maskPhone: (value: string) => mockMaskPhone(value),
+  maskCEP: (value: string) => mockMaskCEP(value),
+  maskCPF: (value: string) => mockMaskCPF(value),
+  unmaskCNPJ: (value: string) => mockUnmaskCNPJ(value),
+  unmaskCEP: (value: string) => mockUnmaskCEP(value),
+  geocodeAddress: (address: {
+    street: string;
+    number: string;
+    complement?: string;
+    neighborhood: string;
+    city: string;
+    state: string;
+    zipCode: string;
+  }) => mockGeocodeAddress(address),
+  buildAddressString: (address: {
+    street: string;
+    number: string;
+    complement?: string;
+    neighborhood: string;
+    city: string;
+    state: string;
+    zipCode: string;
+  }) => mockBuildAddressString(address),
 }));
 
 vi.mock("~/utils/brazilian-states", () => ({
@@ -133,8 +198,28 @@ describe("Register", () => {
       loading: false,
       error: null,
     });
-    mockMapCNPJDataToCompanyForm.mockImplementation((data: any) => data);
-    mockMapCEPDataToAddressForm.mockImplementation((data: any) => data);
+    mockMapCNPJDataToCompanyForm.mockImplementation((data: CNPJData) => ({
+      cnpj: data.cnpj || "",
+      companyName: data.razao_social || "",
+      email: data.email || "",
+      phone: data.ddd_telefone_1 || "",
+      street: data.logradouro || "",
+      number: data.numero || "",
+      complement: data.complemento || "",
+      neighborhood: data.bairro || "",
+      city: data.municipio || "",
+      state: data.uf || "",
+      zipCode: data.cep || "",
+    }));
+    mockMapCEPDataToAddressForm.mockImplementation((data: CEPData) => ({
+      zipCode: data.cep || "",
+      street: data.street || "",
+      neighborhood: data.neighborhood || "",
+      city: data.city || "",
+      state: data.state || "",
+      number: "",
+      complement: "",
+    }));
     mockUnmaskCNPJ.mockImplementation((val: string) => (val || "").replace(/\D/g, ""));
     mockUnmaskCEP.mockImplementation((val: string) => (val || "").replace(/\D/g, ""));
     mockGeocodeAddress.mockResolvedValue({ lat: -23.5505, lon: -46.6333 });
@@ -898,7 +983,7 @@ describe("Register", () => {
     await waitFor(() => {
       expect(mockGeocodeAddress).toHaveBeenCalledTimes(2);
       expect(global.alert).toHaveBeenCalled();
-      const alertCall = (global.alert as any).mock.calls[0][0];
+      const alertCall = (global.alert as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
       expect(alertCall).toContain("Latitude");
       expect(alertCall).toContain("Longitude");
     });
@@ -1012,10 +1097,18 @@ describe("Register", () => {
   });
 
   it("should handle CNPJ success callback and update state", () => {
-    const mockCNPJData = {
+    const mockCNPJData: CNPJData = {
       cnpj: "12345678000190",
       razao_social: "Test Company",
       email: "company@example.com",
+      ddd_telefone_1: "",
+      logradouro: "",
+      numero: "",
+      complemento: "",
+      bairro: "",
+      municipio: "",
+      uf: "",
+      cep: "",
     };
 
     mockMapCNPJDataToCompanyForm.mockReturnValue({
@@ -1023,14 +1116,15 @@ describe("Register", () => {
       email: "mapped@example.com",
     });
 
-    let onSuccessCallback: ((data: any) => void) | undefined;
+    let onSuccessCallback: ((data: CNPJData) => void) | undefined;
 
-    mockUseCNPJLookup.mockImplementation((cnpj: any, options: any) => {
+    mockUseCNPJLookup.mockImplementation((cnpj: string, options?: UseCNPJLookupOptions) => {
       onSuccessCallback = options?.onSuccess;
       return {
         data: null,
         loading: false,
         error: null,
+        fetchCNPJ: vi.fn(),
       };
     });
 
@@ -1047,12 +1141,17 @@ describe("Register", () => {
   });
 
   it("should handle company CEP success callback and update state", () => {
-    const mockCEPData = {
+    const mockCEPData: CEPData = {
       cep: "12345678",
       street: "Mapped Street",
       neighborhood: "Mapped Neighborhood",
       city: "Mapped City",
       state: "SC",
+      service: "",
+      location: {
+        type: "",
+        coordinates: {},
+      },
     };
 
     mockMapCEPDataToAddressForm.mockReturnValue({
@@ -1062,9 +1161,9 @@ describe("Register", () => {
       state: "SC",
     });
 
-    let onSuccessCallback: ((data: any) => void) | undefined;
+    let onSuccessCallback: ((data: CEPData) => void) | undefined;
 
-    mockUseCEPLookup.mockImplementation((cep: any, options: any) => {
+    mockUseCEPLookup.mockImplementation((cep: string, options?: UseCEPLookupOptions) => {
       if (cep === "12345678") {
         onSuccessCallback = options?.onSuccess;
       }
@@ -1072,6 +1171,7 @@ describe("Register", () => {
         data: null,
         loading: false,
         error: null,
+        fetchCEP: vi.fn(),
       };
     });
 
@@ -1090,12 +1190,17 @@ describe("Register", () => {
   });
 
   it("should handle user CEP success callback and update state", async () => {
-    const mockCEPData = {
+    const mockCEPData: CEPData = {
       cep: "87654321",
       street: "User Mapped Street",
       neighborhood: "User Mapped Neighborhood",
       city: "User Mapped City",
       state: "PR",
+      service: "",
+      location: {
+        type: "",
+        coordinates: {},
+      },
     };
 
     mockMapCEPDataToAddressForm.mockReturnValue({
@@ -1105,9 +1210,9 @@ describe("Register", () => {
       state: "PR",
     });
 
-    let userOnSuccessCallback: ((data: any) => void) | undefined;
+    let userOnSuccessCallback: ((data: CEPData) => void) | undefined;
 
-    mockUseCEPLookup.mockImplementation((cep: any, options: any) => {
+    mockUseCEPLookup.mockImplementation((cep: string, options?: UseCEPLookupOptions) => {
       if (cep === "87654321") {
         userOnSuccessCallback = options?.onSuccess;
       }
@@ -1115,6 +1220,7 @@ describe("Register", () => {
         data: null,
         loading: false,
         error: null,
+        fetchCEP: vi.fn(),
       };
     });
 
@@ -1217,18 +1323,20 @@ describe("Register", () => {
   });
 
   it("should show user CEP loading state", async () => {
-    mockUseCEPLookup.mockImplementation((cep: any) => {
+    mockUseCEPLookup.mockImplementation((cep: string) => {
       if (cep === "87654321") {
         return {
           data: null,
           loading: true,
           error: null,
+          fetchCEP: vi.fn(),
         };
       }
       return {
         data: null,
         loading: false,
         error: null,
+        fetchCEP: vi.fn(),
       };
     });
 
@@ -1254,18 +1362,20 @@ describe("Register", () => {
   });
 
   it("should display user CEP error", async () => {
-    mockUseCEPLookup.mockImplementation((cep: any) => {
+    mockUseCEPLookup.mockImplementation((cep: string) => {
       if (cep === "87654321") {
         return {
           data: null,
           loading: false,
           error: "User CEP not found",
+          fetchCEP: vi.fn(),
         };
       }
       return {
         data: null,
         loading: false,
         error: null,
+        fetchCEP: vi.fn(),
       };
     });
 

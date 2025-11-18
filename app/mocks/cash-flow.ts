@@ -21,7 +21,6 @@ const PROPERTY_1 = mockProperties[0]?.id || "";
 const PROPERTY_2 = mockProperties[1]?.id || "";
 
 export const mockCashFlow: CashFlow[] = [
-  // November 2025 - Recent transactions
   {
     id: "cc0e8400-e29b-41d4-a716-446655440010",
     companyId: COMPANY_ID,
@@ -161,7 +160,7 @@ export const mockCashFlow: CashFlow[] = [
     propertyId: PROPERTY_2,
     createdAt: "2025-11-22",
   },
-  // October 2025
+
   {
     id: "cc0e8400-e29b-41d4-a716-446655440013",
     companyId: COMPANY_ID,
@@ -312,7 +311,7 @@ export const mockCashFlow: CashFlow[] = [
     propertyId: PROPERTY_2,
     createdAt: "2025-10-30",
   },
-  // September 2025
+
   {
     id: "cc0e8400-e29b-41d4-a716-446655440016",
     companyId: COMPANY_ID,
@@ -431,7 +430,7 @@ export const mockCashFlow: CashFlow[] = [
     propertyId: PROPERTY_2,
     createdAt: "2025-09-28",
   },
-  // August 2025
+
   {
     id: "cc0e8400-e29b-41d4-a716-446655440034",
     companyId: COMPANY_ID,
@@ -550,7 +549,7 @@ export const mockCashFlow: CashFlow[] = [
     propertyId: PROPERTY_1,
     createdAt: "2025-08-30",
   },
-  // July 2025
+
   {
     id: "cc0e8400-e29b-41d4-a716-446655440041",
     companyId: COMPANY_ID,
@@ -650,7 +649,7 @@ export const mockCashFlow: CashFlow[] = [
     propertyId: PROPERTY_1,
     createdAt: "2025-07-28",
   },
-  // Additional expenses
+
   {
     id: "cc0e8400-e29b-41d4-a716-446655440047",
     companyId: COMPANY_ID,

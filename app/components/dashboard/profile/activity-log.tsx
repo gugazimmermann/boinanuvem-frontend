@@ -9,7 +9,7 @@ export type { ActivityLogEntry };
 interface ActivityLogProps {
   logs: ActivityLogEntry[];
   showUser?: boolean;
-  emptyMessage?: string; // Reserved for future use
+  emptyMessage?: string;
 }
 
 export function ActivityLog({

@@ -1,12 +1,11 @@
 export enum CashFlowCategory {
-  // Income
   CATTLE_SALES = "cattle_sales",
   MILK_SALES = "milk_sales",
   BREEDING_SERVICES = "breeding_services",
   GOVERNMENT_SUBSIDIES = "government_subsidies",
   INSURANCE_CLAIMS = "insurance_claims",
   OTHER_INCOME = "other_income",
-  // Expenses
+
   FEED = "feed",
   MEDICINES = "medicines",
   VACCINES = "vaccines",

@@ -6,25 +6,16 @@ import { mockSupplierObservations } from "~/mocks/supplier-observations";
 import { findById, findByField, deleteEntity } from "./base-service";
 import { generateUUID } from "~/utils/uuid";
 
-/**
- * Get supplier observations by supplier ID
- */
 export function getSupplierObservationsBySupplierId(supplierId: string): SupplierObservation[] {
   return findByField(mockSupplierObservations, "supplierId", supplierId);
 }
 
-/**
- * Get supplier observation by ID
- */
 export function getSupplierObservationById(
   observationId: string | undefined
 ): SupplierObservation | undefined {
   return findById(mockSupplierObservations, observationId);
 }
 
-/**
- * Add a new supplier observation
- */
 export function addSupplierObservation(data: SupplierObservationFormData): SupplierObservation {
   const newObservation: SupplierObservation = {
     ...data,
@@ -36,16 +27,10 @@ export function addSupplierObservation(data: SupplierObservationFormData): Suppl
   return newObservation;
 }
 
-/**
- * Delete a supplier observation
- */
 export function deleteSupplierObservation(observationId: string): boolean {
   return deleteEntity(mockSupplierObservations, observationId);
 }
 
-/**
- * Update a supplier observation
- */
 export function updateSupplierObservation(
   observationId: string,
   data: Partial<SupplierObservationFormData>

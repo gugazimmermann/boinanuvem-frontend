@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -102,21 +101,33 @@ vi.mock("~/services/location-observations.service", () => ({
 }));
 
 vi.mock("~/components/ui", () => ({
-  Button: ({ children, onClick, leftIcon, rightIcon, ...props }: any) => (
+  Button: ({
+    children,
+    onClick,
+    leftIcon,
+    rightIcon,
+    ...props
+  }: {
+    children?: React.ReactNode;
+    onClick?: () => void;
+    leftIcon?: React.ReactNode;
+    rightIcon?: React.ReactNode;
+    [key: string]: unknown;
+  }) => (
     <button onClick={onClick} {...props}>
       {leftIcon}
       {children}
       {rightIcon}
     </button>
   ),
-  StatusBadge: ({ label }: any) => <span>{label}</span>,
+  StatusBadge: ({ label }: { label?: string }) => <span>{label}</span>,
   Table: () => <div data-testid="table">Table</div>,
   TableActionButtons: () => <div data-testid="table-actions" />,
   ConfirmationModal: () => null,
   AnimalRegistrationModal: () => null,
   FileUpload: () => <div data-testid="file-upload" />,
   Alert: () => null,
-  Tooltip: ({ children }: any) => <div>{children}</div>,
+  Tooltip: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
 }));
 
 describe("LocationDetails", () => {

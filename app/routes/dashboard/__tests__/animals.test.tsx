@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -109,7 +108,17 @@ vi.mock("~/components/ui", () => ({
     search,
     pagination,
     selection,
-  }: any) => (
+  }: {
+    data?: unknown[];
+    header?: { title?: string };
+    onRowClick?: (row: unknown) => void;
+    onSort?: (field: string, direction: string) => void;
+    sortState?: unknown;
+    filters?: Array<{ label: string; value: string; onClick?: () => void }>;
+    search?: { placeholder?: string; value: string; onChange?: (value: string) => void };
+    pagination?: { currentPage: number; totalPages: number; onPageChange?: (page: number) => void };
+    selection?: { selectedIds?: Set<string>; onToggle?: (id: string) => void };
+  }) => (
     <div data-testid="table">
       {header?.title && <h2>{header.title}</h2>}
       {search && (
@@ -121,7 +130,7 @@ vi.mock("~/components/ui", () => ({
         />
       )}
       {filters &&
-        filters.map((filter: any, idx: number) => (
+        filters.map((filter, idx: number) => (
           <button
             key={idx}
             data-testid={`filter-${filter.value}`}
@@ -135,19 +144,22 @@ vi.mock("~/components/ui", () => ({
           Sort
         </button>
       )}
-      {data?.map((row: any, idx: number) => (
-        <div key={idx} data-testid={`table-row-${idx}`} onClick={() => onRowClick?.(row)}>
-          {row.code}
-          {selection && (
-            <input
-              type="checkbox"
-              data-testid={`select-${row.id}`}
-              checked={selection.selectedIds?.has(row.id)}
-              onChange={() => selection.onToggle?.(row.id)}
-            />
-          )}
-        </div>
-      ))}
+      {data?.map((row, idx: number) => {
+        const rowObj = row as Record<string, unknown>;
+        return (
+          <div key={idx} data-testid={`table-row-${idx}`} onClick={() => onRowClick?.(row)}>
+            {String(rowObj.code ?? "")}
+            {selection && (
+              <input
+                type="checkbox"
+                data-testid={`select-${rowObj.id}`}
+                checked={selection.selectedIds?.has(String(rowObj.id ?? ""))}
+                onChange={() => selection.onToggle?.(String(rowObj.id ?? ""))}
+              />
+            )}
+          </div>
+        );
+      })}
       {pagination && (
         <div data-testid="pagination">
           <button
@@ -169,8 +181,8 @@ vi.mock("~/components/ui", () => ({
       )}
     </div>
   ),
-  StatusBadge: ({ label }: any) => <span data-testid="status-badge">{label}</span>,
-  TableActionButtons: ({ onEdit, onDelete }: any) => (
+  StatusBadge: ({ label }: { label?: string }) => <span data-testid="status-badge">{label}</span>,
+  TableActionButtons: ({ onEdit, onDelete }: { onEdit?: () => void; onDelete?: () => void }) => (
     <div data-testid="table-actions">
       <button data-testid="edit-button" onClick={onEdit}>
         Edit
@@ -180,7 +192,17 @@ vi.mock("~/components/ui", () => ({
       </button>
     </div>
   ),
-  ConfirmationModal: ({ isOpen, onConfirm, onClose, title }: any) =>
+  ConfirmationModal: ({
+    isOpen,
+    onConfirm,
+    onClose,
+    title,
+  }: {
+    isOpen: boolean;
+    onConfirm?: () => void;
+    onClose?: () => void;
+    title?: string;
+  }) =>
     isOpen ? (
       <div data-testid="confirmation-modal">
         <div>{title}</div>
@@ -192,11 +214,22 @@ vi.mock("~/components/ui", () => ({
         </button>
       </div>
     ) : null,
-  Alert: ({ title, variant }: any) => <div data-testid={`alert-${variant}`}>{title}</div>,
-  AnimalRegistrationModal: ({ isOpen, onClose: _onClose }: any) =>
-    isOpen ? <div data-testid="animal-registration-modal">Modal</div> : null,
-  Tooltip: ({ children, content }: any) => <div title={content}>{children}</div>,
-  Button: ({ children, onClick }: any) => <button onClick={onClick}>{children}</button>,
+  Alert: ({ title, variant }: { title?: string; variant?: string }) => (
+    <div data-testid={`alert-${variant}`}>{title}</div>
+  ),
+  AnimalRegistrationModal: ({
+    isOpen,
+    onClose: _onClose,
+  }: {
+    isOpen: boolean;
+    onClose?: () => void;
+  }) => (isOpen ? <div data-testid="animal-registration-modal">Modal</div> : null),
+  Tooltip: ({ children, content }: { children?: React.ReactNode; content?: string }) => (
+    <div title={content}>{children}</div>
+  ),
+  Button: ({ children, onClick }: { children?: React.ReactNode; onClick?: () => void }) => (
+    <button onClick={onClick}>{children}</button>
+  ),
 }));
 
 describe("Animals", () => {

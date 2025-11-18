@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type { Map, Marker } from "leaflet";
 
 interface PropertyMapProps {
   latitude: number;
@@ -7,11 +8,6 @@ interface PropertyMapProps {
   className?: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type LeafletMap = any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type LeafletMarker = any;
-
 export function PropertyMap({
   latitude,
   longitude,
@@ -19,8 +15,8 @@ export function PropertyMap({
   className = "",
 }: PropertyMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<LeafletMap | null>(null);
-  const markerRef = useRef<LeafletMarker | null>(null);
+  const mapInstanceRef = useRef<Map | null>(null);
+  const markerRef = useRef<Marker | null>(null);
   const [isClient, setIsClient] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,10 +33,13 @@ export function PropertyMap({
       .then((L) => {
         if (!mounted || !mapRef.current) return;
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        delete (L.default as any).Icon.Default.prototype._getIconUrl;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (L.default as any).Icon.Default.mergeOptions({
+        // Fix Leaflet icon paths for webpack/vite
+        const LeafletIcon = L.default.Icon.Default;
+        if (LeafletIcon.prototype && "_getIconUrl" in LeafletIcon.prototype) {
+          delete (LeafletIcon.prototype as { _getIconUrl?: unknown })._getIconUrl;
+        }
+
+        LeafletIcon.mergeOptions({
           iconRetinaUrl:
             "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
           iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",

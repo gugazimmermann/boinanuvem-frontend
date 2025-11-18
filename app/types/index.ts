@@ -11,6 +11,7 @@ export { AnimalBreed } from "./animal";
 export type { AnimalMovement } from "./animal-movement";
 export type { Weighing, WeighingFormData } from "./weighing";
 export type { Birth, BirthFormData } from "./birth";
+export type { Breeding, BreedingFormData, BreedingMethod } from "./breeding";
 export { BirthPurity } from "./birth";
 export type { Acquisition, AcquisitionFormData } from "./acquisition";
 export type { UserRole, UserFormData, TeamUser } from "./user";

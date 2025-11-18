@@ -1,28 +1,14 @@
-/**
- * Base service utility for common CRUD operations
- * Follows DRY principle to avoid code duplication
- */
-
-/**
- * Generic service interface for entities with an id field
- */
 export interface EntityWithId {
   id: string;
   createdAt?: string;
 }
 
-/**
- * Base service configuration
- */
 export interface BaseServiceConfig<T extends EntityWithId> {
   data: T[];
   idPrefix: string;
   defaultId: string;
 }
 
-/**
- * Generate next ID based on the last ID in the array
- */
 export function generateNextId<T extends EntityWithId>(
   data: T[],
   idPrefix: string,
@@ -40,17 +26,11 @@ export function generateNextId<T extends EntityWithId>(
   return `${idPrefix}-${nextNumber}`;
 }
 
-/**
- * Find entity by ID
- */
 export function findById<T extends EntityWithId>(data: T[], id: string | undefined): T | undefined {
   if (!id) return undefined;
   return data.find((item) => item.id === id);
 }
 
-/**
- * Find entities by a specific field
- */
 export function findByField<T extends EntityWithId>(
   data: T[],
   field: keyof T,
@@ -59,9 +39,6 @@ export function findByField<T extends EntityWithId>(
   return data.filter((item) => item[field] === value);
 }
 
-/**
- * Find entities where a field includes a value (for arrays)
- */
 export function findByFieldIncludes<T extends EntityWithId>(
   data: T[],
   field: keyof T,
@@ -76,9 +53,6 @@ export function findByFieldIncludes<T extends EntityWithId>(
   });
 }
 
-/**
- * Create a new entity
- */
 export function createEntity<T extends EntityWithId, TFormData>(
   data: T[],
   formData: TFormData,
@@ -95,9 +69,6 @@ export function createEntity<T extends EntityWithId, TFormData>(
   return newEntity;
 }
 
-/**
- * Update an entity
- */
 export function updateEntity<T extends EntityWithId, TFormData>(
   data: T[],
   id: string,
@@ -114,9 +85,6 @@ export function updateEntity<T extends EntityWithId, TFormData>(
   return false;
 }
 
-/**
- * Delete an entity
- */
 export function deleteEntity<T extends EntityWithId>(data: T[], id: string): boolean {
   const index = data.findIndex((item) => item.id === id);
   if (index !== -1) {

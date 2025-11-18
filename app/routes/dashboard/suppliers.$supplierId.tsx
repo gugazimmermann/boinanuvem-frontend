@@ -120,7 +120,6 @@ function SupplierFinanceDashboard({ supplierId }: SupplierFinanceDashboardProps)
 
   const netCashFlow = totalIncome - totalExpenses;
 
-  // Accounts Payable totals
   const unpaidPayable = accountsPayableData.filter(
     (ap) =>
       ap.status === AccountsPayableStatus.UNPAID || ap.status === AccountsPayableStatus.OVERDUE
@@ -157,7 +156,6 @@ function SupplierFinanceDashboard({ supplierId }: SupplierFinanceDashboardProps)
     }, 0);
   }, [overduePayable]);
 
-  // Monthly data for last 12 months
   const monthlyData = useMemo(() => {
     const months: Record<string, { month: string; income: number; expenses: number; net: number }> =
       {};
@@ -192,7 +190,6 @@ function SupplierFinanceDashboard({ supplierId }: SupplierFinanceDashboardProps)
     return Object.values(months);
   }, [cashFlowData, currentDate]);
 
-  // Expense categories breakdown
   const expenseCategoriesData = useMemo(() => {
     const categories: Record<string, number> = {};
 
@@ -231,7 +228,6 @@ function SupplierFinanceDashboard({ supplierId }: SupplierFinanceDashboardProps)
 
   return (
     <div className="space-y-6">
-      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
@@ -320,9 +316,7 @@ function SupplierFinanceDashboard({ supplierId }: SupplierFinanceDashboardProps)
         </div>
       </div>
 
-      {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Income vs Expenses Trend */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
             {t.financesDashboard.charts.incomeVsExpenses}
@@ -362,7 +356,6 @@ function SupplierFinanceDashboard({ supplierId }: SupplierFinanceDashboardProps)
           </ResponsiveContainer>
         </div>
 
-        {/* Monthly Cash Flow */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
             {t.financesDashboard.charts.monthlyCashFlow}
@@ -401,7 +394,6 @@ function SupplierFinanceDashboard({ supplierId }: SupplierFinanceDashboardProps)
           </ResponsiveContainer>
         </div>
 
-        {/* Expense Categories */}
         {expenseCategoriesData.length > 0 && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 lg:col-span-2">
             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
@@ -1259,7 +1251,6 @@ export default function SupplierDetails() {
       {activeTab === "finance" &&
         supplier &&
         (() => {
-          // Finance sub-tabs navigation
           return (
             <div className="space-y-6">
               <div className="mb-4">

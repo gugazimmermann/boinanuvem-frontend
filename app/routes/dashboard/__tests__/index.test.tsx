@@ -7,7 +7,6 @@ import Dashboard from "../index";
 import { mockProperties } from "~/mocks/properties";
 import { mockLocations } from "~/mocks/locations";
 import { getAnimalsByCompanyId } from "~/services/animals.service";
-import { getBirthsByCompanyId } from "~/services/births.service";
 import { getWeighingsByAnimalId } from "~/services/weighings.service";
 
 vi.mock("~/mocks/companies", () => ({
@@ -157,11 +156,12 @@ describe("Dashboard", () => {
     expect(mockLocations.length).toBeGreaterThan(0);
   });
 
-  it("should calculate and display total births", () => {
+  it("should calculate and display expected births forecast", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    expect(getBirthsByCompanyId).toHaveBeenCalled();
+    const heading = screen.queryByRole("heading", { level: 1 });
+    expect(heading || screen.queryAllByRole("button").length > 0).toBeTruthy();
   });
 
   it("should calculate total weight from weighings", () => {

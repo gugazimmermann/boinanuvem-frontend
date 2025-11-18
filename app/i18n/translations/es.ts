@@ -26,6 +26,7 @@ export const es = {
     addressNotFound: "Dirección no encontrada",
     requestError: "Error en la solicitud",
     total: "Total",
+    invalidEmail: "Email inválido",
   },
 
   sidebar: {
@@ -42,6 +43,11 @@ export const es = {
     births: "Nacimiento",
     acquisitions: "Adquisición",
     weighings: "Pesaje",
+    breedings: "Monta",
+    pregnantCows: "Vacas Preñadas",
+    unconfirmedBreedings: "Montas No Confirmadas",
+    reproductiveIndexes: "Índices Reproductivos",
+    birthForecast: "Previsión de Nacimientos",
     pastures: "Pastos",
     reports: "Informes",
     settings: "Configuración",
@@ -86,6 +92,10 @@ export const es = {
       uaPerHa: "UA/ha",
       totalWeight: "t",
       hectares: "ha",
+      expectedBirths: "Nacimientos Esperados",
+      nextMonth: "Próximo mes",
+      nextThreeMonths: "próximos 3 meses",
+      viewForecast: "Ver previsión completa",
     },
     recentActivities: {
       title: "Actividades Recientes",
@@ -219,6 +229,7 @@ export const es = {
         activities: "Actividades",
         movements: "Movimientos",
         finance: "Finanzas",
+        reproductiveIndexes: "Índices Reproductivos",
       },
       finance: {
         title: "Finanzas",
@@ -1640,6 +1651,9 @@ export const es = {
       status: "Estado",
       active: "Activo",
       inactive: "Inactivo",
+      breedingStatus: "Estado de Monta",
+      breedingStatusPregnant: "P",
+      breedingStatusBreeding: "Monta",
     },
     purity: {
       po: "PO",
@@ -1767,6 +1781,11 @@ export const es = {
       genealogy: "Genealogía",
       mother: "Madre",
       father: "Padre",
+      sons: "Crías",
+      son: "Cría",
+      sonsPlural: "crías",
+      noSons: "Ninguna cría registrada",
+      noSonsDescription: "Este animal aún no tiene crías registradas.",
       currentAnimal: "Animal Actual",
       purity: "Pureza",
       purityInfo: "Información de Pureza",
@@ -1788,6 +1807,7 @@ export const es = {
         genealogy: "Genealogía",
         activities: "Actividades",
         observations: "Observaciones",
+        breeding: "Monta",
       },
       addObservation: "Agregar Observación",
       newObservation: "Nueva Observación",
@@ -1805,6 +1825,49 @@ export const es = {
       observationNotFound: "Observación no encontrada",
       files: "Anexos",
       filesHelper: "Puede cargar múltiples archivos",
+      breeding: {
+        title: "Montas",
+        description: "Historial de montas de este animal",
+        badge: "montas",
+        badgeSingular: "monta",
+        registerButton: "Registrar Monta",
+        registerBirthButton: "Registrar Nacimiento",
+        confirmButton: "Confirmar",
+        discardButton: "Descartar",
+        confirmSuccess: "¡Monta confirmada con éxito!",
+        confirmError: "Error al confirmar monta. Intente nuevamente.",
+        discardSuccess: "¡Monta descartada con éxito!",
+        discardError: "Error al descartar monta. Intente nuevamente.",
+        table: {
+          date: "Fecha de la Monta",
+          method: "Método",
+          status: "Estado",
+          confirmed: "Confirmada",
+          unconfirmed: "No Confirmada",
+          daysSince: "Días desde la Monta",
+          day: "día",
+          days: "días",
+          expectedBirth: "Nacimiento esperado",
+        },
+        emptyState: {
+          title: "No se registraron montas",
+          description: "Registre la primera monta para este animal.",
+        },
+        confirmModal: {
+          title: "Confirmar Monta",
+          message: (animalCode: string) =>
+            `¿Está seguro de que desea confirmar la monta del animal "${animalCode}"?`,
+          confirm: "Confirmar",
+          cancel: "Cancelar",
+        },
+        discardModal: {
+          title: "Descartar Monta",
+          message: (animalCode: string) =>
+            `¿Está seguro de que desea descartar la monta del animal "${animalCode}"? Esta acción no se puede deshacer.`,
+          confirm: "Descartar",
+          cancel: "Cancelar",
+        },
+      },
     },
     observations: {
       birth: {
@@ -1937,6 +2000,209 @@ export const es = {
     },
   },
 
+  breedings: {
+    meta: {
+      new: {
+        title: "Registrar Monta - Boi na Nuvem",
+        description: "Registrar nueva monta de animal",
+      },
+      pregnant: {
+        title: "Vacas Preñadas - Boi na Nuvem",
+        description: "Lista de vacas preñadas",
+      },
+      unconfirmed: {
+        title: "Montas No Confirmadas - Boi na Nuvem",
+        description: "Lista de montas esperando confirmación",
+      },
+    },
+    new: {
+      title: "Registrar Monta",
+      description: "Complete los datos de la monta",
+      addButton: "Registrar Monta",
+      animalSelectionTitle: "Selección de Animales",
+      methodTitle: "Método de Monta",
+      animalLabel: "Animales (Vacas)",
+      searchPlaceholder: "Buscar por código o registro",
+      noAnimals: "No hay vacas disponibles",
+      selectedAnimals: (count: number) =>
+        `${count} ${count !== 1 ? "vacas seleccionadas" : "vaca seleccionada"}`,
+      dateLabel: "Fecha de la Monta",
+      methodLabel: "Método",
+      methodNatural: "Natural",
+      methodAI: "Inseminación Artificial (IA)",
+      bullLabel: "Toro Utilizado",
+      selectBull: "Seleccione un toro",
+      bullSearchPlaceholder: "Buscar por código, registro o raza",
+      noBulls: "No hay toros disponibles",
+      bullSelected: "Toro seleccionado",
+      semenCodeLabel: "Código del Semen",
+      semenCodePlaceholder: "Ingrese el código del semen",
+      attemptNumberLabel: "Número de Intento",
+      employeesLabel: "Empleados",
+      serviceProvidersLabel: "Proveedores de Servicios",
+      noEmployees: "No hay empleados disponibles",
+      noServiceProviders: "No hay proveedores de servicios disponibles",
+      confirmedLabel: "Preñada Confirmada",
+      confirmedDescription: "Marque si la vaca ya está confirmada preñada",
+      unconfirmed: "No confirmada",
+      confirmed: "Preñada",
+      observationLabel: "Observación",
+      observationPlaceholder: "Observaciones sobre la monta (opcional)",
+      success: "Monta registrada con éxito!",
+      error: "Error al registrar monta. Intente nuevamente.",
+      errors: {
+        animalRequired: "Seleccione al menos una vaca",
+        dateRequired: "La fecha de la monta es obligatoria",
+        methodRequired: "Seleccione el método de monta",
+        bullRequired: "Seleccione el toro utilizado",
+        semenCodeRequired: "El código del semen es obligatorio",
+        attemptNumberRequired: "El número de intento es obligatorio",
+        responsibleRequired: "Seleccione al menos un empleado o proveedor de servicios",
+      },
+    },
+    pregnant: {
+      title: "Vacas Preñadas",
+      description: "Lista de vacas con monta confirmada",
+      searchPlaceholder: "Buscar por código, registro, raza, propiedad, fecha de monta o método",
+      badge: {
+        cows: (count: number) => `${count} ${count !== 1 ? "vacas preñadas" : "vaca preñada"}`,
+      },
+      table: {
+        breedingDate: "Fecha de la Monta",
+        method: "Método",
+        daysPregnant: "Período de Gestación",
+        expectedBirth: "Nacimiento Esperado",
+        days: "días",
+        months: "meses",
+        and: "y",
+      },
+      emptyState: {
+        title: "No se encontraron vacas preñadas",
+        description: "No hay vacas con monta confirmada en este momento.",
+        descriptionWithSearch: (search: string) =>
+          `Su búsqueda "${search}" no encontró vacas preñadas. Intente nuevamente o limpie la búsqueda.`,
+      },
+      forecast: {
+        title: "Previsión de Nacimientos",
+        description: "Previsión mensual de nacimientos esperados basada en montas confirmadas",
+        total: "Total esperado",
+        expectedBirths: "Nacimientos Esperados",
+      },
+    },
+    unconfirmed: {
+      title: "Montas No Confirmadas",
+      description: "Lista de montas esperando confirmación de preñez",
+      searchPlaceholder: "Buscar por código, registro, toro o semen",
+      confirmButton: "Confirmar",
+      discardButton: "Descartar",
+      confirmAll: "Confirmar Todas",
+      confirmSelected: "Confirmar Seleccionadas",
+      confirmSuccess: "Monta confirmada con éxito!",
+      confirmError: "Error al confirmar monta. Intente nuevamente.",
+      confirmAllSuccess: "Montas confirmadas con éxito!",
+      confirmAllError: "Error al confirmar montas. Intente nuevamente.",
+      deleteSuccess: "Monta descartada con éxito!",
+      deleteError: "Error al descartar monta. Intente nuevamente.",
+      badge: {
+        breedings: (count: number) =>
+          `${count} ${count !== 1 ? "montas no confirmadas" : "monta no confirmada"}`,
+      },
+      table: {
+        animal: "Animal",
+        date: "Fecha de la Monta",
+        method: "Método",
+        details: "Detalles",
+        bull: "Toro",
+      },
+      emptyState: {
+        title: "No se encontraron montas no confirmadas",
+        description: "Todas las montas han sido confirmadas o no hay registros de monta.",
+        descriptionWithSearch: (search: string) =>
+          `Su búsqueda "${search}" no encontró montas no confirmadas. Intente nuevamente o limpie la búsqueda.`,
+      },
+      confirmModal: {
+        title: "Confirmar Monta",
+        message: (animalCode: string) =>
+          `¿Está seguro de que desea confirmar la monta del animal "${animalCode}"?`,
+        confirm: "Confirmar",
+        cancel: "Cancelar",
+      },
+      deleteModal: {
+        title: "Descartar Monta",
+        message: (animalCode: string) =>
+          `¿Está seguro de que desea descartar la monta del animal "${animalCode}"? Esta acción no se puede deshacer.`,
+        confirm: "Descartar",
+        cancel: "Cancelar",
+      },
+    },
+  },
+
+  reproductiveIndexes: {
+    meta: {
+      title: "Índices Reproductivos - Boi na Nuvem",
+      description: "Índices reproductivos consolidados",
+    },
+    allProperties: "Todas las Propiedades",
+    propertyLabel: "Propiedad",
+    emptyState: {
+      title: "No se encontraron propiedades",
+      description:
+        "No hay propiedades registradas. Agregue una propiedad para visualizar los índices reproductivos.",
+    },
+    filters: {
+      startDate: "Fecha Inicial",
+      endDate: "Fecha Final",
+    },
+    fertilityRate: {
+      title: "Tasa de Preñez",
+      description: "Porcentaje de vacas preñadas en relación a las vacas expuestas",
+      pregnantCows: "Vacas Preñadas",
+      exposedCows: "Vacas Expuestas",
+    },
+    birthRate: {
+      title: "Tasa de Parto",
+      description: "Porcentaje de terneros nacidos en relación a las hembras preñadas",
+      calvesBorn: "Terneros Nacidos",
+      pregnantFemales: "Hembras Preñadas",
+    },
+    calvingInterval: {
+      title: "Intervalo Entre Partos",
+      description: "Tiempo promedio en días entre dos partos consecutivos",
+      months: "meses",
+      min: "Mínimo",
+      max: "Máximo",
+      animals: "Animales con Intervalos",
+    },
+    cullingRate: {
+      title: "Tasa de Descarte",
+      description: "Porcentaje de hembras reemplazadas en relación al total",
+      replacedFemales: "Hembras Reemplazadas",
+      totalFemales: "Total de Hembras",
+    },
+    intrauterineMortality: {
+      title: "Índice de Mortalidad Intrauterina",
+      description: "Porcentaje de pérdidas gestacionales",
+      pregnantCows: "Vacas Preñadas",
+      cowsThatCalved: "Vacas que Parieron",
+      losses: "Pérdidas",
+    },
+    bullToCowRatio: {
+      title: "Proporción Toro:Vaca",
+      description: "Relación entre número de toros y vacas expuestas",
+      bullsUsed: "Toros Utilizados",
+      exposedCows: "Vacas Expuestas",
+      byBull: "Por Toro",
+    },
+    charts: {
+      monthlyBirthRate: "Tasa de Parto Mensual",
+      annualCullingRate: "Tasa de Descarte Anual",
+      birthRate: "Tasa de Parto (%)",
+      cullingRate: "Tasa de Descarte (%)",
+      expectedFutureBirths: "Nacimientos Esperados (Futuro)",
+      expectedBirths: "Nacimientos Esperados",
+    },
+  },
+
   profile: {
     title: "Perfil",
     meta: {
@@ -2024,6 +2290,8 @@ export const es = {
       required: (field: string) => `${field} es obligatorio`,
       invalid: (field: string) => `${field} inválido`,
       saveFailed: "Error al guardar datos. Intenta de nuevo.",
+      cnpjMustHave14Digits: "CNPJ debe tener 14 dígitos",
+      cepMustHave8Digits: "Código Postal debe tener 8 dígitos",
     },
   },
 
@@ -2247,6 +2515,39 @@ export const es = {
       unpaid: "No Pagado",
       overdue: "Vencido",
       partial: "Parcial",
+    },
+  },
+
+  birthForecast: {
+    title: "Previsión de Nacimientos",
+    meta: {
+      title: "Previsión de Nacimientos - Boi na Nuvem",
+      description: "Previsión mensual de nacimientos esperados",
+    },
+    propertyLabel: "Propiedad",
+    allProperties: "Todas las Propiedades",
+    emptyState: {
+      description:
+        "No hay propiedades registradas. Agregue una propiedad para visualizar la previsión de nacimientos.",
+      noData: "No se esperan nacimientos en los próximos meses basado en montas confirmadas.",
+    },
+    summary: {
+      total: "Total Esperado",
+      totalDescription: "Total de nacimientos esperados basado en montas confirmadas",
+      nextMonth: "Próximo Mes",
+      nextMonthDescription: "Nacimientos esperados en el próximo mes",
+      average: "Promedio Mensual",
+      averageDescription: "Promedio de nacimientos por mes",
+      peakMonth: "Mes de Mayor Cantidad",
+    },
+    chart: {
+      title: "Previsión Mensual de Nacimientos",
+      expectedBirths: "Nacimientos Esperados",
+    },
+    table: {
+      title: "Desglose Mensual",
+      month: "Mes",
+      expectedBirths: "Nacimientos Esperados",
     },
   },
 } as const;

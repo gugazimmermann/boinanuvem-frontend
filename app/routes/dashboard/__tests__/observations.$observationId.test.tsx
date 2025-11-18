@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -79,7 +78,19 @@ vi.mock("~/services/animals.service", () => ({
 }));
 
 vi.mock("~/components/ui", () => ({
-  Button: ({ children, onClick, leftIcon, rightIcon, ...props }: any) => (
+  Button: ({
+    children,
+    onClick,
+    leftIcon,
+    rightIcon,
+    ...props
+  }: {
+    children?: React.ReactNode;
+    onClick?: () => void;
+    leftIcon?: React.ReactNode;
+    rightIcon?: React.ReactNode;
+    [key: string]: unknown;
+  }) => (
     <button onClick={onClick} {...props}>
       {leftIcon}
       {children}

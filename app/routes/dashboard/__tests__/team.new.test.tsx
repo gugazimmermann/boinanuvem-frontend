@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -23,16 +22,18 @@ vi.mock("~/services/users.service", () => ({
 }));
 
 vi.mock("~/components/site/hooks", () => ({
-  useCEPLookup: (...args: any[]) => mockUseCEPLookup(...args),
+  useCEPLookup: (...args: unknown[]) => mockUseCEPLookup(...args),
 }));
 
 vi.mock("~/components/site/utils", () => ({
-  mapCEPDataToAddressForm: vi.fn((data: any) => ({
-    street: data.logradouro || "",
-    neighborhood: data.bairro || "",
-    city: data.localidade || "",
-    state: data.uf || "",
-  })),
+  mapCEPDataToAddressForm: vi.fn(
+    (data: { logradouro?: string; bairro?: string; localidade?: string; uf?: string }) => ({
+      street: data.logradouro || "",
+      neighborhood: data.bairro || "",
+      city: data.localidade || "",
+      state: data.uf || "",
+    })
+  ),
   maskCEP: vi.fn((val: string) => val.replace(/\D/g, "")),
   unmaskCEP: vi.fn((val: string) => val.replace(/\D/g, "")),
   maskCPF: vi.fn((val: string) => val.replace(/\D/g, "")),
@@ -47,7 +48,14 @@ vi.mock("~/components/ui", () => ({
     onChange,
     showPasswordToggle: _showPasswordToggle,
     ...props
-  }: any) => (
+  }: {
+    label?: string;
+    placeholder?: string;
+    value?: string | number;
+    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    showPasswordToggle?: boolean;
+    [key: string]: unknown;
+  }) => (
     <input
       data-testid={`input-${label || placeholder || "input"}`}
       aria-label={label}
@@ -57,10 +65,22 @@ vi.mock("~/components/ui", () => ({
       {...props}
     />
   ),
-  Button: ({ children, onClick, type, disabled, ...props }: any) => (
+  Button: ({
+    children,
+    onClick,
+    type,
+    disabled,
+    ...props
+  }: {
+    children?: React.ReactNode;
+    onClick?: () => void;
+    type?: "button" | "submit" | "reset" | undefined;
+    disabled?: boolean;
+    [key: string]: unknown;
+  }) => (
     <button
       data-testid="submit-button"
-      type={type}
+      type={type as "button" | "submit" | "reset" | undefined}
       onClick={onClick}
       disabled={disabled}
       {...props}
@@ -68,7 +88,9 @@ vi.mock("~/components/ui", () => ({
       {children}
     </button>
   ),
-  Alert: ({ title, variant }: any) => <div data-testid={`alert-${variant}`}>{title}</div>,
+  Alert: ({ title, variant }: { title?: string; variant?: string }) => (
+    <div data-testid={`alert-${variant}`}>{title}</div>
+  ),
 }));
 
 describe("NewTeamMember", () => {
@@ -280,7 +302,7 @@ describe("NewTeamMember", () => {
   });
 
   it("should handle form submission error", () => {
-    vi.mocked(addUser).mockReturnValueOnce(undefined as any);
+    vi.mocked(addUser).mockReturnValueOnce(undefined as unknown as ReturnType<typeof addUser>);
     const router = createRouter();
     const { container } = render(<RouterProvider router={router} />);
 

@@ -160,32 +160,32 @@ export default function Register() {
 
       if (!value || value.trim() === "") {
         const fieldLabels: Record<string, string> = {
-          cnpj: "CNPJ",
-          companyName: "Razão Social",
-          email: "Email",
-          phone: "Telefone",
-          street: "Rua",
-          neighborhood: "Bairro",
-          city: "Cidade",
-          state: "Estado",
-          zipCode: "CEP",
+          cnpj: t.profile.company.fields.cnpj,
+          companyName: t.profile.company.fields.companyName,
+          email: t.profile.company.fields.email,
+          phone: t.profile.company.fields.phone,
+          street: t.profile.company.fields.street,
+          neighborhood: t.profile.company.fields.neighborhood,
+          city: t.profile.company.fields.city,
+          state: t.profile.company.fields.state,
+          zipCode: t.profile.company.fields.zipCode,
         };
-        errors[field] = `${fieldLabels[field]} is required`;
+        errors[field] = t.profile.errors.required(fieldLabels[field]);
       }
     });
 
     const unmaskedCNPJ = unmaskCNPJ(companyData.cnpj);
     if (unmaskedCNPJ && unmaskedCNPJ.length !== 14) {
-      errors.cnpj = "CNPJ must have 14 digits";
+      errors.cnpj = t.profile.errors.cnpjMustHave14Digits;
     }
 
     const unmaskedZipCode = unmaskCEP(companyData.zipCode);
     if (unmaskedZipCode && unmaskedZipCode.length !== 8) {
-      errors.zipCode = "CEP must have 8 digits";
+      errors.zipCode = t.profile.errors.cepMustHave8Digits;
     }
 
     if (companyData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(companyData.email)) {
-      errors.email = "Invalid email";
+      errors.email = t.common.invalidEmail;
     }
 
     setCompanyErrors(errors);

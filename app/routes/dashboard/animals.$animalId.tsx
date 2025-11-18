@@ -11,6 +11,7 @@ import {
   type TableAction,
   FileUpload,
   Alert,
+  ConfirmationModal,
 } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import {
@@ -19,16 +20,23 @@ import {
   getPropertyViewRoute,
   getAnimalViewRoute,
   getObservationViewRoute,
+  getBreedingNewRoute,
 } from "~/routes.config";
 import { getAnimalById } from "~/services/animals.service";
 import { getPropertyById } from "~/services/properties.service";
-import { getBirthByAnimalId } from "~/services/births.service";
+import { getBirthByAnimalId, getBirthsByFatherId } from "~/services/births.service";
 import { getAcquisitionByAnimalId } from "~/services/acquisitions.service";
 import { getWeighingsByAnimalId } from "~/services/weighings.service";
 import {
   getAnimalObservationsByAnimalId,
   addAnimalObservation,
 } from "~/services/animal-observations.service";
+import {
+  getBreedingsByAnimalId,
+  confirmBreeding,
+  deleteBreeding,
+} from "~/services/breedings.service";
+import type { Breeding, Birth } from "~/types";
 import type { AnimalObservation } from "~/types/animal-observation";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
 import type { BirthPurity } from "~/types";
@@ -151,7 +159,7 @@ export default function AnimalDetails() {
   const t = useTranslation();
   const animal = getAnimalById(animalId);
   const [activeTab, setActiveTab] = useState<
-    "dashboard" | "info" | "weighings" | "genealogy" | "activities" | "observations"
+    "dashboard" | "info" | "weighings" | "genealogy" | "activities" | "observations" | "breeding"
   >("dashboard");
   const [weighingsCurrentPage, setWeighingsCurrentPage] = useState(1);
   const [weighingsSortState, setWeighingsSortState] = useState<{
@@ -173,16 +181,41 @@ export default function AnimalDetails() {
     column: string | null;
     direction: SortDirection;
   }>({ column: "date", direction: "desc" });
+  const [breedings, setBreedings] = useState<Breeding[]>([]);
+  const [breedingsCurrentPage, setBreedingsCurrentPage] = useState(1);
+  const [breedingsSortState, setBreedingsSortState] = useState<{
+    column: string | null;
+    direction: SortDirection;
+  }>({ column: "date", direction: "desc" });
+  const [sonsSortState, setSonsSortState] = useState<{
+    column: string | null;
+    direction: SortDirection;
+  }>({ column: "birthDate", direction: "desc" });
+  const [isConfirmBreedingModalOpen, setIsConfirmBreedingModalOpen] = useState(false);
+  const [isDiscardBreedingModalOpen, setIsDiscardBreedingModalOpen] = useState(false);
+  const [selectedBreeding, setSelectedBreeding] = useState<Breeding | null>(null);
+  const [breedingAlert, setBreedingAlert] = useState<{
+    title: string;
+    variant: "success" | "error";
+  } | null>(null);
   const itemsPerPage = 10;
 
   useEffect(() => {
     if (animal) {
       setObservations(getAnimalObservationsByAnimalId(animal.id));
+      setBreedings(getBreedingsByAnimalId(animal.id));
     }
   }, [animal]);
 
   const birth = animal ? getBirthByAnimalId(animal.id) : null;
   const acquisition = animal ? getAcquisitionByAnimalId(animal.id) : null;
+  const isMale = birth?.gender === "male" || acquisition?.gender === "male";
+
+  useEffect(() => {
+    if (isMale && activeTab === "breeding") {
+      setActiveTab("dashboard");
+    }
+  }, [isMale, activeTab]);
   const weighings = useMemo(() => (animal ? getWeighingsByAnimalId(animal.id) : []), [animal]);
 
   type WeighingWithCalculations = {
@@ -234,7 +267,7 @@ export default function AnimalDetails() {
     const firstWeighing = sortedWeighings[sortedWeighings.length - 1];
     const lastWeighing = sortedWeighings[0];
     const weightDiff = lastWeighing.weight - firstWeighing.weight;
-    // Normalize dates to avoid timezone issues - parse as UTC dates
+
     const firstDateStr = firstWeighing.date.includes("T")
       ? firstWeighing.date.split("T")[0]
       : firstWeighing.date;
@@ -261,6 +294,75 @@ export default function AnimalDetails() {
   const gmd = calculateGMD;
   const currentWeight = lastWeighing?.weight || 0;
   const weightInArrobas = currentWeight > 0 ? (currentWeight / 30).toFixed(2) : "0.00";
+
+  const sonsBirths = useMemo(() => {
+    if (!animal) return [];
+    return getBirthsByFatherId(animal.id);
+  }, [animal]);
+
+  type SonWithAnimal = {
+    birth: Birth;
+    animal: NonNullable<ReturnType<typeof getAnimalById>>;
+  };
+
+  const sonsWithAnimals: SonWithAnimal[] = useMemo(() => {
+    const mapped = sonsBirths
+      .map((birth) => {
+        const sonAnimal = getAnimalById(birth.animalId);
+        if (!sonAnimal) return null;
+        return { birth, animal: sonAnimal };
+      })
+      .filter((item): item is SonWithAnimal => item !== null);
+
+    const { column, direction } = sonsSortState;
+    if (!column) {
+      return mapped.sort((a, b) => {
+        const dateA = new Date(a.birth.birthDate).getTime();
+        const dateB = new Date(b.birth.birthDate).getTime();
+        return dateB - dateA;
+      });
+    }
+
+    return mapped.sort((a, b) => {
+      let comparison = 0;
+      switch (column) {
+        case "code":
+          comparison = a.animal.code.localeCompare(b.animal.code, "pt-BR");
+          break;
+        case "registrationNumber":
+          comparison = a.animal.registrationNumber.localeCompare(
+            b.animal.registrationNumber,
+            "pt-BR"
+          );
+          break;
+        case "birthDate":
+          comparison =
+            new Date(a.birth.birthDate).getTime() - new Date(b.birth.birthDate).getTime();
+          break;
+        case "gender": {
+          const genderA = a.birth.gender || "";
+          const genderB = b.birth.gender || "";
+          comparison = genderA.localeCompare(genderB, "pt-BR");
+          break;
+        }
+        case "purity": {
+          const purityA = a.birth.purity || "";
+          const purityB = b.birth.purity || "";
+          comparison = purityA.localeCompare(purityB, "pt-BR");
+          break;
+        }
+        case "breed": {
+          const breedA = a.birth.breed || "";
+          const breedB = b.birth.breed || "";
+          comparison = breedA.localeCompare(breedB, "pt-BR");
+          break;
+        }
+        default:
+          return 0;
+      }
+      return direction === "asc" ? comparison : -comparison;
+    });
+  }, [sonsBirths, sonsSortState]);
 
   if (!animal) {
     return (
@@ -486,6 +588,26 @@ export default function AnimalDetails() {
           >
             {t.animals.details.tabs.weighings}
           </button>
+          {!isMale && (
+            <button
+              onClick={() => setActiveTab("breeding")}
+              className={`
+                py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
+                ${
+                  activeTab === "breeding"
+                    ? "dark:text-blue-400"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                }
+              `}
+              style={
+                activeTab === "breeding"
+                  ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
+                  : undefined
+              }
+            >
+              {t.animals.details.tabs.breeding || "Cobertura"}
+            </button>
+          )}
           <button
             onClick={() => setActiveTab("genealogy")}
             className={`
@@ -1056,6 +1178,105 @@ export default function AnimalDetails() {
               </div>
             )}
           </div>
+
+          {sonsWithAnimals.length > 0 && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-5 border border-gray-200 dark:border-gray-700">
+              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                {t.animals.details.sons || "Crias"}
+              </h2>
+              <Table<SonWithAnimal>
+                columns={[
+                  {
+                    key: "code",
+                    label: t.animals.table.code,
+                    sortable: true,
+                    render: (_value, row) => (
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {row.animal.code}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "registrationNumber",
+                    label: t.animals.table.registration,
+                    sortable: true,
+                    render: (_value, row) => (
+                      <span className="text-sm text-gray-900 dark:text-gray-100">
+                        {row.animal.registrationNumber}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "birthDate",
+                    label: t.animals.table.birthDate,
+                    sortable: true,
+                    render: (_value, row) => (
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        {formatDate(row.birth.birthDate)}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "gender",
+                    label: t.animals.table.gender,
+                    sortable: true,
+                    render: (_value, row) => (
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        {row.birth.gender ? t.animals.gender[row.birth.gender] : "-"}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "purity",
+                    label: t.animals.table.purity,
+                    sortable: true,
+                    render: (_value, row) => (
+                      <div>
+                        {row.birth.purity ? (
+                          <StatusBadge
+                            label={t.animals.purity[row.birth.purity]}
+                            variant="default"
+                          />
+                        ) : (
+                          <span className="text-sm text-gray-400">-</span>
+                        )}
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "breed",
+                    label: t.animals.table.breed,
+                    sortable: true,
+                    render: (_value, row) => (
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        {row.birth.breed
+                          ? t.animals.breeds[row.birth.breed as keyof typeof t.animals.breeds] ||
+                            row.birth.breed
+                          : "-"}
+                      </span>
+                    ),
+                  },
+                ]}
+                data={sonsWithAnimals}
+                header={{
+                  title: t.animals.details.sons || "Crias",
+                  badge: {
+                    label: `${sonsWithAnimals.length} ${sonsWithAnimals.length !== 1 ? t.animals.details.sonsPlural || "crias" : t.animals.details.son || "cria"}`,
+                    variant: "primary",
+                  },
+                }}
+                sortState={sonsSortState}
+                onSort={(column, direction) => {
+                  setSonsSortState({ column, direction });
+                }}
+                onRowClick={(row) => navigate(getAnimalViewRoute(row.animal.id))}
+                emptyState={{
+                  title: t.animals.details.noSons,
+                  description: t.animals.details.noSonsDescription,
+                }}
+              />
+            </div>
+          )}
         </div>
       )}
 
@@ -1447,6 +1668,355 @@ export default function AnimalDetails() {
                   }}
                 />
               )}
+            </div>
+          );
+        })()}
+
+      {activeTab === "breeding" &&
+        animal &&
+        !isMale &&
+        (() => {
+          const handleConfirmBreeding = (breeding: Breeding) => {
+            setSelectedBreeding(breeding);
+            setIsConfirmBreedingModalOpen(true);
+          };
+
+          const handleConfirmBreedingSubmit = () => {
+            if (!selectedBreeding) return;
+            const success = confirmBreeding(selectedBreeding.id);
+            if (success) {
+              setBreedings(getBreedingsByAnimalId(animal.id));
+              setBreedingAlert({
+                title:
+                  t.animals.details.breeding.confirmSuccess || "Cobertura confirmada com sucesso!",
+                variant: "success",
+              });
+              setTimeout(() => setBreedingAlert(null), 3000);
+            } else {
+              setBreedingAlert({
+                title:
+                  t.animals.details.breeding.confirmError ||
+                  "Erro ao confirmar cobertura. Tente novamente.",
+                variant: "error",
+              });
+              setTimeout(() => setBreedingAlert(null), 3000);
+            }
+            setIsConfirmBreedingModalOpen(false);
+            setSelectedBreeding(null);
+          };
+
+          const handleDiscardBreeding = (breeding: Breeding) => {
+            setSelectedBreeding(breeding);
+            setIsDiscardBreedingModalOpen(true);
+          };
+
+          const handleDiscardBreedingSubmit = () => {
+            if (!selectedBreeding) return;
+            const success = deleteBreeding(selectedBreeding.id);
+            if (success) {
+              setBreedings(getBreedingsByAnimalId(animal.id));
+              setBreedingAlert({
+                title:
+                  t.animals.details.breeding.discardSuccess || "Cobertura descartada com sucesso!",
+                variant: "success",
+              });
+              setTimeout(() => setBreedingAlert(null), 3000);
+            } else {
+              setBreedingAlert({
+                title:
+                  t.animals.details.breeding.discardError ||
+                  "Erro ao descartar cobertura. Tente novamente.",
+                variant: "error",
+              });
+              setTimeout(() => setBreedingAlert(null), 3000);
+            }
+            setIsDiscardBreedingModalOpen(false);
+            setSelectedBreeding(null);
+          };
+
+          const hasAnyBreeding = breedings.length > 0;
+
+          const sortedBreedings = [...breedings].sort((a, b) => {
+            if (!breedingsSortState.column || !breedingsSortState.direction) {
+              return new Date(b.date).getTime() - new Date(a.date).getTime();
+            }
+
+            let aValue: string | number | boolean | undefined;
+            let bValue: string | number | boolean | undefined;
+
+            if (breedingsSortState.column === "date") {
+              aValue = new Date(a.date).getTime();
+              bValue = new Date(b.date).getTime();
+            } else if (breedingsSortState.column === "method") {
+              aValue = a.method;
+              bValue = b.method;
+            } else if (breedingsSortState.column === "confirmed") {
+              aValue = a.confirmed ? 1 : 0;
+              bValue = b.confirmed ? 1 : 0;
+            } else {
+              aValue = a[breedingsSortState.column as keyof Breeding] as
+                | string
+                | number
+                | boolean
+                | undefined;
+              bValue = b[breedingsSortState.column as keyof Breeding] as
+                | string
+                | number
+                | boolean
+                | undefined;
+            }
+
+            if (aValue == null && bValue == null) return 0;
+            if (aValue == null) return 1;
+            if (bValue == null) return -1;
+
+            let comparison = 0;
+            if (typeof aValue === "string" && typeof bValue === "string") {
+              comparison = aValue.localeCompare(bValue, "pt-BR", { sensitivity: "base" });
+            } else if (typeof aValue === "number" && typeof bValue === "number") {
+              comparison = aValue - bValue;
+            } else {
+              comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
+            }
+
+            return breedingsSortState.direction === "asc" ? comparison : -comparison;
+          });
+
+          const totalPages = Math.ceil(sortedBreedings.length / itemsPerPage);
+          const paginatedBreedings = sortedBreedings.slice(
+            (breedingsCurrentPage - 1) * itemsPerPage,
+            breedingsCurrentPage * itemsPerPage
+          );
+
+          const columns: TableColumn<Breeding>[] = [
+            {
+              key: "date",
+              label: t.animals.details.breeding.table.date || "Data da Cobertura",
+              sortable: true,
+              render: (_, row) => (
+                <span className="text-gray-700 dark:text-gray-300">{formatDate(row.date)}</span>
+              ),
+            },
+            {
+              key: "method",
+              label: t.animals.details.breeding.table.method || "Método",
+              sortable: true,
+              render: (_, row) => (
+                <span className="text-gray-700 dark:text-gray-300">
+                  {row.method === "natural"
+                    ? t.breedings.new.methodNatural
+                    : t.breedings.new.methodAI}
+                </span>
+              ),
+            },
+            {
+              key: "confirmed",
+              label: t.animals.details.breeding.table.status || "Status",
+              sortable: true,
+              render: (_, row) => (
+                <StatusBadge
+                  label={
+                    row.confirmed
+                      ? t.animals.details.breeding.table.confirmed || "Confirmada"
+                      : t.animals.details.breeding.table.unconfirmed || "Não Confirmada"
+                  }
+                  variant={row.confirmed ? "success" : "warning"}
+                />
+              ),
+            },
+            {
+              key: "daysSince",
+              label: t.animals.details.breeding.table.daysSince || "Dias desde a Cobertura",
+              sortable: false,
+              render: (_, row) => {
+                const breedingDate = new Date(row.date);
+                const today = new Date();
+                const days = differenceInDays(today, breedingDate);
+                const expectedBirthDate = new Date(breedingDate);
+                expectedBirthDate.setDate(expectedBirthDate.getDate() + 270);
+                const daysUntilBirth = differenceInDays(expectedBirthDate, today);
+
+                return (
+                  <div className="space-y-1">
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      {days}{" "}
+                      {days === 1
+                        ? t.animals.details.breeding.table.day
+                        : t.animals.details.breeding.table.days}
+                    </span>
+                    {row.confirmed && daysUntilBirth > 0 && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {t.animals.details.breeding.table.expectedBirth}:{" "}
+                        {formatDate(expectedBirthDate.toISOString())}
+                      </p>
+                    )}
+                  </div>
+                );
+              },
+            },
+            {
+              key: "actions",
+              label: "",
+              sortable: false,
+              render: (_, row) => (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="warning"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const state: { motherId: string; fatherId?: string } = {
+                        motherId: animal.id,
+                      };
+                      if (row.method === "natural" && row.bullId) {
+                        state.fatherId = row.bullId;
+                      }
+                      navigate(ROUTES.BIRTHS_NEW, { state });
+                    }}
+                  >
+                    {t.animals.details.breeding.registerBirthButton || "Registrar Nascimento"}
+                  </Button>
+                  {!row.confirmed && (
+                    <>
+                      <Button
+                        variant="success"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleConfirmBreeding(row);
+                        }}
+                      >
+                        {t.animals.details.breeding.confirmButton || "Confirmar"}
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDiscardBreeding(row);
+                        }}
+                      >
+                        {t.animals.details.breeding.discardButton || "Descartar"}
+                      </Button>
+                    </>
+                  )}
+                </div>
+              ),
+            },
+          ];
+
+          const headerActions: TableAction[] = hasAnyBreeding
+            ? []
+            : [
+                {
+                  label: t.animals.details.breeding.registerButton || "Registrar Cobertura",
+                  variant: "primary",
+                  leftIcon: (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                      className="w-5 h-5"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                  ),
+                  onClick: () => {
+                    const route = getBreedingNewRoute([animal.id]);
+                    navigate(route.pathname, { state: route.state });
+                  },
+                },
+              ];
+
+          return (
+            <div className="space-y-6">
+              {breedingAlert && (
+                <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
+                  <Alert title={breedingAlert.title} variant={breedingAlert.variant} />
+                </div>
+              )}
+
+              <Table<Breeding>
+                columns={columns}
+                data={paginatedBreedings}
+                header={{
+                  title: t.animals.details.breeding.title || "Coberturas",
+                  badge: {
+                    label: `${breedings.length} ${breedings.length !== 1 ? t.animals.details.breeding.badge || "coberturas" : t.animals.details.breeding.badgeSingular || "cobertura"}`,
+                    variant: "primary",
+                  },
+                  description:
+                    t.animals.details.breeding.description ||
+                    "Histórico de coberturas deste animal",
+                  actions: headerActions,
+                }}
+                pagination={{
+                  currentPage: breedingsCurrentPage,
+                  totalPages: totalPages || 1,
+                  onPageChange: setBreedingsCurrentPage,
+                  showInfo: false,
+                }}
+                sortState={breedingsSortState}
+                onSort={(column, direction) => {
+                  setBreedingsSortState({ column, direction });
+                  setBreedingsCurrentPage(1);
+                }}
+                emptyState={{
+                  title: t.animals.details.breeding.emptyState.title,
+                  description: t.animals.details.breeding.emptyState.description,
+                  onAddNew: hasAnyBreeding
+                    ? undefined
+                    : () => {
+                        const route = getBreedingNewRoute([animal.id]);
+                        navigate(route.pathname, { state: route.state });
+                      },
+                  addNewLabel: t.animals.details.breeding.registerButton || "Registrar Cobertura",
+                }}
+              />
+
+              <ConfirmationModal
+                isOpen={isConfirmBreedingModalOpen}
+                onClose={() => {
+                  setIsConfirmBreedingModalOpen(false);
+                  setSelectedBreeding(null);
+                }}
+                onConfirm={handleConfirmBreedingSubmit}
+                title={t.animals.details.breeding.confirmModal.title || "Confirmar Cobertura"}
+                message={
+                  selectedBreeding
+                    ? t.animals.details.breeding.confirmModal.message(animal.code) ||
+                      `Tem certeza que deseja confirmar a cobertura do animal "${animal.code}"?`
+                    : ""
+                }
+                confirmLabel={t.animals.details.breeding.confirmModal.confirm || "Confirmar"}
+                cancelLabel={t.animals.details.breeding.confirmModal.cancel || "Cancelar"}
+                variant="info"
+              />
+
+              <ConfirmationModal
+                isOpen={isDiscardBreedingModalOpen}
+                onClose={() => {
+                  setIsDiscardBreedingModalOpen(false);
+                  setSelectedBreeding(null);
+                }}
+                onConfirm={handleDiscardBreedingSubmit}
+                title={t.animals.details.breeding.discardModal.title || "Descartar Cobertura"}
+                message={
+                  selectedBreeding
+                    ? t.animals.details.breeding.discardModal.message(animal.code) ||
+                      `Tem certeza que deseja descartar a cobertura do animal "${animal.code}"? Esta ação não pode ser desfeita.`
+                    : ""
+                }
+                confirmLabel={t.animals.details.breeding.discardModal.confirm || "Descartar"}
+                cancelLabel={t.animals.details.breeding.discardModal.cancel || "Cancelar"}
+                variant="danger"
+              />
             </div>
           );
         })()}

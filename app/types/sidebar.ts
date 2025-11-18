@@ -10,6 +10,11 @@ export interface SidebarSubItemConfig {
     births: string;
     acquisitions: string;
     weighings: string;
+    breedings: string;
+    pregnantCows: string;
+    unconfirmedBreedings: string;
+    reproductiveIndexes: string;
+    birthForecast: string;
     cashFlow: string;
     accountsPayable: string;
     accountsReceivable: string;
@@ -35,6 +40,7 @@ export interface SidebarItemConfig {
     births: string;
     acquisitions: string;
     weighings: string;
+    breedings: string;
     cashFlow: string;
     accountsPayable: string;
     accountsReceivable: string;

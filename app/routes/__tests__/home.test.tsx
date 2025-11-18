@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -59,7 +58,7 @@ describe("Home", () => {
   });
 
   it("should have correct meta function", () => {
-    const metaData = meta({} as any);
+    const metaData = meta({} as Parameters<typeof meta>[0]);
     expect(metaData).toHaveLength(2);
     expect(metaData[0]).toEqual({ title: "Boi na Nuvem" });
     expect(metaData[1]).toEqual({

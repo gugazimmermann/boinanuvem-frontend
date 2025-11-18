@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -44,8 +43,10 @@ vi.mock("~/mocks/births", async () => {
 });
 
 const mockGetBirthByAnimalId = vi.fn(() => null);
+const mockGetBirthsByFatherId = vi.fn(() => []);
 vi.mock("~/services/births.service", () => ({
   getBirthByAnimalId: () => mockGetBirthByAnimalId(),
+  getBirthsByFatherId: (...args: unknown[]) => mockGetBirthsByFatherId(...args),
 }));
 
 vi.mock("~/mocks/acquisitions", async () => {
@@ -79,19 +80,52 @@ vi.mock("~/mocks/animal-observations", async () => {
 const mockAddAnimalObservation = vi.fn();
 vi.mock("~/services/animal-observations.service", () => ({
   getAnimalObservationsByAnimalId: vi.fn(() => []),
-  addAnimalObservation: (...args: any[]) => mockAddAnimalObservation(...args),
+  addAnimalObservation: (...args: unknown[]) => mockAddAnimalObservation(...args),
+}));
+
+const mockGetBreedingsByAnimalId = vi.fn(() => []);
+const mockConfirmBreeding = vi.fn(() => true);
+const mockDeleteBreeding = vi.fn(() => true);
+vi.mock("~/services/breedings.service", () => ({
+  getBreedingsByAnimalId: (...args: unknown[]) => mockGetBreedingsByAnimalId(...args),
+  confirmBreeding: (...args: unknown[]) => mockConfirmBreeding(...args),
+  deleteBreeding: (...args: unknown[]) => mockDeleteBreeding(...args),
 }));
 
 vi.mock("~/components/ui", () => ({
-  Button: ({ children, onClick, leftIcon, rightIcon, ...props }: any) => (
+  Button: ({
+    children,
+    onClick,
+    leftIcon,
+    rightIcon,
+    ...props
+  }: {
+    children?: React.ReactNode;
+    onClick?: () => void;
+    leftIcon?: React.ReactNode;
+    rightIcon?: React.ReactNode;
+    [key: string]: unknown;
+  }) => (
     <button onClick={onClick} {...props}>
       {leftIcon}
       {children}
       {rightIcon}
     </button>
   ),
-  StatusBadge: ({ label }: any) => <span>{label}</span>,
-  Table: ({ children, data, onSort, sortState: _sortState, pagination }: any) => (
+  StatusBadge: ({ label }: { label?: string }) => <span>{label}</span>,
+  Table: ({
+    children,
+    data,
+    onSort,
+    sortState: _sortState,
+    pagination,
+  }: {
+    children?: React.ReactNode;
+    data?: unknown[];
+    onSort?: (field: string, direction: string) => void;
+    sortState?: unknown;
+    pagination?: { currentPage: number; totalPages: number; onPageChange: (page: number) => void };
+  }) => (
     <div data-testid="table">
       {children}
       {data && <div data-testid="table-data">{data.length} items</div>}
@@ -118,7 +152,7 @@ vi.mock("~/components/ui", () => ({
       )}
     </div>
   ),
-  FileUpload: ({ onFilesChange }: any) => (
+  FileUpload: ({ onFilesChange }: { onFilesChange?: (files: File[]) => void }) => (
     <input
       type="file"
       data-testid="file-upload"
@@ -126,11 +160,29 @@ vi.mock("~/components/ui", () => ({
       onChange={(e) => onFilesChange?.(Array.from(e.target.files || []))}
     />
   ),
-  Alert: ({ title, variant }: any) => <div data-testid={`alert-${variant}`}>{title}</div>,
-  Input: ({ value, onChange, ...props }: any) => (
+  Alert: ({ title, variant }: { title?: string; variant?: string }) => (
+    <div data-testid={`alert-${variant}`}>{title}</div>
+  ),
+  Input: ({
+    value,
+    onChange,
+    ...props
+  }: {
+    value?: string | number;
+    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    [key: string]: unknown;
+  }) => (
     <input data-testid="observation-input" value={value || ""} onChange={onChange} {...props} />
   ),
-  Textarea: ({ value, onChange, ...props }: any) => (
+  Textarea: ({
+    value,
+    onChange,
+    ...props
+  }: {
+    value?: string | number;
+    onChange?: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+    [key: string]: unknown;
+  }) => (
     <textarea
       data-testid="observation-textarea"
       value={value || ""}
@@ -138,6 +190,31 @@ vi.mock("~/components/ui", () => ({
       {...props}
     />
   ),
+  ConfirmationModal: ({
+    isOpen,
+    onConfirm,
+    onCancel,
+    title,
+    message,
+  }: {
+    isOpen: boolean;
+    onConfirm?: () => void;
+    onCancel?: () => void;
+    title?: string;
+    message?: string;
+  }) =>
+    isOpen ? (
+      <div data-testid="confirmation-modal">
+        <h2>{title}</h2>
+        <p>{message}</p>
+        <button data-testid="confirm-button" onClick={onConfirm}>
+          Confirm
+        </button>
+        <button data-testid="cancel-button" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+    ) : null,
 }));
 
 describe("AnimalDetails", () => {

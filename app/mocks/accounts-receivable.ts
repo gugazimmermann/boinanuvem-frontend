@@ -17,7 +17,6 @@ const PROPERTY_1 = mockProperties[0]?.id || "";
 const PROPERTY_2 = mockProperties[1]?.id || "";
 
 export const mockAccountsReceivable: AccountsReceivable[] = [
-  // November 2025 - Current month
   {
     id: "ar0e8400-e29b-41d4-a716-446655440010",
     companyId: COMPANY_ID,
@@ -131,7 +130,7 @@ export const mockAccountsReceivable: AccountsReceivable[] = [
     propertyId: PROPERTY_1,
     createdAt: "2025-11-12",
   },
-  // October 2025
+
   {
     id: "ar0e8400-e29b-41d4-a716-446655440012",
     companyId: COMPANY_ID,
@@ -247,7 +246,7 @@ export const mockAccountsReceivable: AccountsReceivable[] = [
     propertyId: PROPERTY_2,
     createdAt: "2025-10-05",
   },
-  // September 2025
+
   {
     id: "ar0e8400-e29b-41d4-a716-446655440025",
     companyId: COMPANY_ID,
@@ -333,7 +332,7 @@ export const mockAccountsReceivable: AccountsReceivable[] = [
     propertyId: PROPERTY_1,
     createdAt: "2025-09-25",
   },
-  // August 2025
+
   {
     id: "ar0e8400-e29b-41d4-a716-446655440030",
     companyId: COMPANY_ID,
@@ -402,7 +401,7 @@ export const mockAccountsReceivable: AccountsReceivable[] = [
     propertyId: PROPERTY_1,
     createdAt: "2025-08-20",
   },
-  // July 2025
+
   {
     id: "ar0e8400-e29b-41d4-a716-446655440034",
     companyId: COMPANY_ID,
@@ -471,7 +470,7 @@ export const mockAccountsReceivable: AccountsReceivable[] = [
     propertyId: PROPERTY_1,
     createdAt: "2025-07-18",
   },
-  // Future receivables
+
   {
     id: "ar0e8400-e29b-41d4-a716-446655440013",
     companyId: COMPANY_ID,

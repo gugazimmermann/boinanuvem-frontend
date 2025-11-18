@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -53,7 +52,19 @@ vi.mock("~/services/properties.service", async () => {
 });
 
 vi.mock("~/components/ui", () => ({
-  Input: ({ label, placeholder, value, onChange, ...props }: any) => (
+  Input: ({
+    label,
+    placeholder,
+    value,
+    onChange,
+    ...props
+  }: {
+    label?: string;
+    placeholder?: string;
+    value?: string | number;
+    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    [key: string]: unknown;
+  }) => (
     <input
       data-testid={`input-${label || placeholder || "input"}`}
       placeholder={placeholder}
@@ -63,26 +74,54 @@ vi.mock("~/components/ui", () => ({
       {...props}
     />
   ),
-  Select: ({ options, value, onChange, ...props }: any) => (
+  Select: ({
+    options,
+    value,
+    onChange,
+    ...props
+  }: {
+    options?: Array<{ value: string; label: string }>;
+    value?: string | number;
+    onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+    name?: string;
+    [key: string]: unknown;
+  }) => (
     <select
       data-testid={`select-${props.name || "select"}`}
       value={value || ""}
       onChange={onChange}
       {...props}
     >
-      {options?.map((opt: any) => (
+      {options?.map((opt) => (
         <option key={opt.value} value={opt.value}>
           {opt.label}
         </option>
       ))}
     </select>
   ),
-  Button: ({ children, onClick, type, ...props }: any) => (
-    <button data-testid="submit-button" type={type} onClick={onClick} {...props}>
+  Button: ({
+    children,
+    onClick,
+    type,
+    ...props
+  }: {
+    children?: React.ReactNode;
+    onClick?: () => void;
+    type?: "button" | "submit" | "reset" | undefined;
+    [key: string]: unknown;
+  }) => (
+    <button
+      data-testid="submit-button"
+      type={type as "button" | "submit" | "reset" | undefined}
+      onClick={onClick}
+      {...props}
+    >
       {children}
     </button>
   ),
-  Alert: ({ title, variant }: any) => <div data-testid={`alert-${variant}`}>{title}</div>,
+  Alert: ({ title, variant }: { title?: string; variant?: string }) => (
+    <div data-testid={`alert-${variant}`}>{title}</div>
+  ),
 }));
 
 describe("NewAnimal", () => {
@@ -235,7 +274,7 @@ describe("NewAnimal", () => {
   });
 
   it("should handle form submission error", () => {
-    vi.mocked(addAnimal).mockReturnValueOnce(undefined as any);
+    vi.mocked(addAnimal).mockReturnValueOnce(undefined as unknown as ReturnType<typeof addAnimal>);
     const router = createRouter();
     const { container } = render(<RouterProvider router={router} />);
 

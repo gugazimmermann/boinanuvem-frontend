@@ -1,6 +1,7 @@
 import type { Birth, BirthFormData } from "~/types";
 import { BirthPurity, AnimalBreed } from "~/types";
 import { mockAnimals } from "./animals";
+import { mockBreedings } from "./breedings";
 
 export type { Birth, BirthFormData };
 export { BirthPurity };
@@ -25,16 +26,28 @@ const breeds = [
 
 const births: Birth[] = [];
 
+const FAZENDA_DO_JUCA_ID = "550e8400-e29b-41d4-a716-446655440010";
+const SITIO_LIMOEIRO_ID = "550e8400-e29b-41d4-a716-446655440011";
+const CHACARA_DO_JUCA_ID = "550e8400-e29b-41d4-a716-446655440012";
+
 const fazendaAnimals = mockAnimals.filter((a) => a.code.startsWith("FJ"));
 const chacaraAnimals = mockAnimals.filter((a) => a.code.startsWith("CJ"));
 const sitioAnimals = mockAnimals.filter((a) => a.code.startsWith("SL"));
 
-for (let i = 0; i < 15; i++) {
+const founderCounts = {
+  fazenda: 10,
+  chacara: 5,
+  sitio: 5,
+};
+
+let birthIndex = 0;
+
+for (let i = 0; i < founderCounts.fazenda; i++) {
   const animal = fazendaAnimals[i];
   if (!animal) continue;
 
   births.push({
-    id: generateBirthId(i),
+    id: generateBirthId(birthIndex++),
     animalId: animal.id,
     birthDate: animal.createdAt,
     breed: breeds[i % breeds.length],
@@ -48,174 +61,12 @@ for (let i = 0; i < 15; i++) {
   });
 }
 
-for (let i = 15; i < 55; i++) {
-  const animal = fazendaAnimals[i];
-  if (!animal) continue;
-
-  const mother = fazendaAnimals[i % 15];
-  const father = fazendaAnimals[(i + 7) % 15];
-  const motherBirth = births.find((b) => b.animalId === mother.id);
-  const fatherBirth = births.find((b) => b.animalId === father.id);
-
-  const purity =
-    motherBirth?.purity === BirthPurity.PO &&
-    fatherBirth?.purity === BirthPurity.PO &&
-    motherBirth?.breed === fatherBirth?.breed
-      ? BirthPurity.PO
-      : motherBirth?.purity === BirthPurity.PO && fatherBirth?.purity === BirthPurity.PO
-        ? BirthPurity.F1
-        : BirthPurity.F2;
-
-  births.push({
-    id: generateBirthId(i),
-    animalId: animal.id,
-    birthDate: animal.createdAt,
-    breed: fatherBirth?.breed || breeds[i % breeds.length],
-    gender: i % 2 === 0 ? "male" : "female",
-    motherId: mother.id,
-    fatherId: father.id,
-    purity,
-    observation: "Nascimento com genealogia registrada",
-    createdAt: animal.createdAt,
-    companyId: COMPANY_ID,
-  });
-}
-
-for (let i = 55; i < 105; i++) {
-  const animal = fazendaAnimals[i];
-  if (!animal) continue;
-
-  const parentIndex = 15 + (i % 40);
-  const mother = fazendaAnimals[parentIndex];
-  const father = fazendaAnimals[parentIndex + 1];
-
-  if (!mother || !father) continue;
-
-  const motherBirth = births.find((b) => b.animalId === mother.id);
-  const fatherBirth = births.find((b) => b.animalId === father.id);
-
-  let purity = BirthPurity.F2;
-  if (motherBirth && fatherBirth) {
-    if (motherBirth.purity === BirthPurity.PO && fatherBirth.purity === BirthPurity.F1) {
-      purity = BirthPurity.F2;
-    } else if (motherBirth.purity === BirthPurity.F1 && fatherBirth.purity === BirthPurity.F1) {
-      purity = BirthPurity.F2;
-    } else if (motherBirth.purity === BirthPurity.PO && fatherBirth.purity === BirthPurity.F2) {
-      purity = BirthPurity.F3;
-    } else if (motherBirth.purity === BirthPurity.F2 && fatherBirth.purity === BirthPurity.F2) {
-      purity = BirthPurity.F3;
-    } else if (motherBirth.purity === BirthPurity.PO && fatherBirth.purity === BirthPurity.F3) {
-      purity = BirthPurity.F4;
-    }
-  }
-
-  births.push({
-    id: generateBirthId(i),
-    animalId: animal.id,
-    birthDate: animal.createdAt,
-    breed: fatherBirth?.breed || motherBirth?.breed || breeds[i % breeds.length],
-    gender: i % 2 === 0 ? "male" : "female",
-    motherId: mother.id,
-    fatherId: father.id,
-    purity,
-    observation: "Nascimento com genealogia completa até avós",
-    createdAt: animal.createdAt,
-    companyId: COMPANY_ID,
-  });
-}
-
-for (let i = 105; i < 135; i++) {
-  const animal = fazendaAnimals[i];
-  if (!animal) continue;
-
-  const parentIndex = 55 + (i % 50);
-  const mother = fazendaAnimals[parentIndex];
-  const father = fazendaAnimals[parentIndex + 1];
-
-  if (!mother || !father) continue;
-
-  const motherBirth = births.find((b) => b.animalId === mother.id);
-  const fatherBirth = births.find((b) => b.animalId === father.id);
-
-  let purity = BirthPurity.F3;
-  if (motherBirth && fatherBirth) {
-    if (motherBirth.purity === BirthPurity.F2 && fatherBirth.purity === BirthPurity.F2) {
-      purity = BirthPurity.F3;
-    } else if (motherBirth.purity === BirthPurity.PO && fatherBirth.purity === BirthPurity.F3) {
-      purity = BirthPurity.F4;
-    } else if (motherBirth.purity === BirthPurity.F3 && fatherBirth.purity === BirthPurity.F3) {
-      purity = BirthPurity.F4;
-    } else if (motherBirth.purity === BirthPurity.PO && fatherBirth.purity === BirthPurity.F4) {
-      purity = BirthPurity.F5;
-    } else if (motherBirth.purity === BirthPurity.F4 && fatherBirth.purity === BirthPurity.F4) {
-      purity = BirthPurity.F5;
-    }
-  }
-
-  births.push({
-    id: generateBirthId(i),
-    animalId: animal.id,
-    birthDate: animal.createdAt,
-    breed: fatherBirth?.breed || motherBirth?.breed || breeds[i % breeds.length],
-    gender: i % 2 === 0 ? "male" : "female",
-    motherId: mother.id,
-    fatherId: father.id,
-    purity,
-    observation: "Nascimento com genealogia profunda registrada",
-    createdAt: animal.createdAt,
-    companyId: COMPANY_ID,
-  });
-}
-
-for (let i = 135; i < 150; i++) {
-  const animal = fazendaAnimals[i];
-  if (!animal) continue;
-
-  const parentIndex = 105 + (i % 30);
-  const mother = fazendaAnimals[parentIndex];
-  const father = fazendaAnimals[parentIndex + 1];
-
-  if (!mother || !father) continue;
-
-  const motherBirth = births.find((b) => b.animalId === mother.id);
-  const fatherBirth = births.find((b) => b.animalId === father.id);
-
-  let purity = BirthPurity.F4;
-  if (motherBirth && fatherBirth) {
-    if (motherBirth.purity === BirthPurity.F3 && fatherBirth.purity === BirthPurity.F3) {
-      purity = BirthPurity.F4;
-    } else if (motherBirth.purity === BirthPurity.PO && fatherBirth.purity === BirthPurity.F4) {
-      purity = BirthPurity.F5;
-    } else if (motherBirth.purity === BirthPurity.F4 && fatherBirth.purity === BirthPurity.F4) {
-      purity = BirthPurity.F5;
-    } else if (motherBirth.purity === BirthPurity.PO && fatherBirth.purity === BirthPurity.F5) {
-      purity = BirthPurity.PC;
-    } else if (motherBirth.purity === BirthPurity.F5 && fatherBirth.purity === BirthPurity.F5) {
-      purity = BirthPurity.PC;
-    }
-  }
-
-  births.push({
-    id: generateBirthId(i),
-    animalId: animal.id,
-    birthDate: animal.createdAt,
-    breed: fatherBirth?.breed || motherBirth?.breed || breeds[i % breeds.length],
-    gender: i % 2 === 0 ? "male" : "female",
-    motherId: mother.id,
-    fatherId: father.id,
-    purity,
-    observation: "Nascimento com genealogia muito profunda registrada",
-    createdAt: animal.createdAt,
-    companyId: COMPANY_ID,
-  });
-}
-
-for (let i = 0; i < 8; i++) {
+for (let i = 0; i < founderCounts.chacara; i++) {
   const animal = chacaraAnimals[i];
   if (!animal) continue;
 
   births.push({
-    id: generateBirthId(150 + i),
+    id: generateBirthId(birthIndex++),
     animalId: animal.id,
     birthDate: animal.createdAt,
     breed: breeds[(i + 2) % breeds.length],
@@ -229,129 +80,12 @@ for (let i = 0; i < 8; i++) {
   });
 }
 
-for (let i = 8; i < 23; i++) {
-  const animal = chacaraAnimals[i];
-  if (!animal) continue;
-
-  const mother = chacaraAnimals[i % 8];
-  const father = chacaraAnimals[(i + 3) % 8];
-  const motherBirth = births.find((b) => b.animalId === mother.id);
-  const fatherBirth = births.find((b) => b.animalId === father.id);
-
-  const purity =
-    motherBirth?.purity === BirthPurity.PO &&
-    fatherBirth?.purity === BirthPurity.PO &&
-    motherBirth?.breed === fatherBirth?.breed
-      ? BirthPurity.PO
-      : motherBirth?.purity === BirthPurity.PO && fatherBirth?.purity === BirthPurity.PO
-        ? BirthPurity.F1
-        : BirthPurity.F2;
-
-  births.push({
-    id: generateBirthId(150 + i),
-    animalId: animal.id,
-    birthDate: animal.createdAt,
-    breed: fatherBirth?.breed || breeds[i % breeds.length],
-    gender: i % 2 === 0 ? "male" : "female",
-    motherId: mother.id,
-    fatherId: father.id,
-    purity,
-    observation: "Nascimento com genealogia registrada",
-    createdAt: animal.createdAt,
-    companyId: COMPANY_ID,
-  });
-}
-
-for (let i = 23; i < 35; i++) {
-  const animal = chacaraAnimals[i];
-  if (!animal) continue;
-
-  const parentIndex = 8 + (i % 15);
-  const mother = chacaraAnimals[parentIndex];
-  const father = chacaraAnimals[parentIndex + 1];
-
-  if (!mother || !father) continue;
-
-  const motherBirth = births.find((b) => b.animalId === mother.id);
-  const fatherBirth = births.find((b) => b.animalId === father.id);
-
-  let purity = BirthPurity.F2;
-  if (motherBirth && fatherBirth) {
-    if (motherBirth.purity === BirthPurity.PO && fatherBirth.purity === BirthPurity.F1) {
-      purity = BirthPurity.F2;
-    } else if (motherBirth.purity === BirthPurity.F1 && fatherBirth.purity === BirthPurity.F1) {
-      purity = BirthPurity.F2;
-    } else if (motherBirth.purity === BirthPurity.PO && fatherBirth.purity === BirthPurity.F2) {
-      purity = BirthPurity.F3;
-    } else if (motherBirth.purity === BirthPurity.F2 && fatherBirth.purity === BirthPurity.F2) {
-      purity = BirthPurity.F3;
-    } else if (motherBirth.purity === BirthPurity.PO && fatherBirth.purity === BirthPurity.F3) {
-      purity = BirthPurity.F4;
-    }
-  }
-
-  births.push({
-    id: generateBirthId(150 + i),
-    animalId: animal.id,
-    birthDate: animal.createdAt,
-    breed: fatherBirth?.breed || motherBirth?.breed || breeds[i % breeds.length],
-    gender: i % 2 === 0 ? "male" : "female",
-    motherId: mother.id,
-    fatherId: father.id,
-    purity,
-    observation: "Nascimento com genealogia completa até avós",
-    createdAt: animal.createdAt,
-    companyId: COMPANY_ID,
-  });
-}
-
-for (let i = 35; i < 40; i++) {
-  const animal = chacaraAnimals[i];
-  if (!animal) continue;
-
-  const parentIndex = 23 + (i % 12);
-  const mother = chacaraAnimals[parentIndex];
-  const father = chacaraAnimals[parentIndex + 1];
-
-  if (!mother || !father) continue;
-
-  const motherBirth = births.find((b) => b.animalId === mother.id);
-  const fatherBirth = births.find((b) => b.animalId === father.id);
-
-  let purity = BirthPurity.F3;
-  if (motherBirth && fatherBirth) {
-    if (motherBirth.purity === BirthPurity.F2 && fatherBirth.purity === BirthPurity.F2) {
-      purity = BirthPurity.F3;
-    } else if (motherBirth.purity === BirthPurity.PO && fatherBirth.purity === BirthPurity.F3) {
-      purity = BirthPurity.F4;
-    } else if (motherBirth.purity === BirthPurity.F3 && fatherBirth.purity === BirthPurity.F3) {
-      purity = BirthPurity.F4;
-    } else if (motherBirth.purity === BirthPurity.PO && fatherBirth.purity === BirthPurity.F4) {
-      purity = BirthPurity.F5;
-    }
-  }
-
-  births.push({
-    id: generateBirthId(150 + i),
-    animalId: animal.id,
-    birthDate: animal.createdAt,
-    breed: fatherBirth?.breed || motherBirth?.breed || breeds[i % breeds.length],
-    gender: i % 2 === 0 ? "male" : "female",
-    motherId: mother.id,
-    fatherId: father.id,
-    purity,
-    observation: "Nascimento com genealogia profunda registrada",
-    createdAt: animal.createdAt,
-    companyId: COMPANY_ID,
-  });
-}
-
-for (let i = 0; i < 5; i++) {
+for (let i = 0; i < founderCounts.sitio; i++) {
   const animal = sitioAnimals[i];
   if (!animal) continue;
 
   births.push({
-    id: generateBirthId(190 + i),
+    id: generateBirthId(birthIndex++),
     animalId: animal.id,
     birthDate: animal.createdAt,
     breed: breeds[(i + 4) % breeds.length],
@@ -365,80 +99,136 @@ for (let i = 0; i < 5; i++) {
   });
 }
 
-for (let i = 5; i < 15; i++) {
-  const animal = sitioAnimals[i];
-  if (!animal) continue;
-
-  const mother = sitioAnimals[i % 5];
-  const father = sitioAnimals[(i + 2) % 5];
-  const motherBirth = births.find((b) => b.animalId === mother.id);
-  const fatherBirth = births.find((b) => b.animalId === father.id);
-
-  const purity =
-    motherBirth?.purity === BirthPurity.PO &&
-    fatherBirth?.purity === BirthPurity.PO &&
-    motherBirth?.breed === fatherBirth?.breed
-      ? BirthPurity.PO
-      : motherBirth?.purity === BirthPurity.PO && fatherBirth?.purity === BirthPurity.PO
-        ? BirthPurity.F1
-        : BirthPurity.F2;
-
-  births.push({
-    id: generateBirthId(190 + i),
-    animalId: animal.id,
-    birthDate: animal.createdAt,
-    breed: fatherBirth?.breed || breeds[i % breeds.length],
-    gender: i % 2 === 0 ? "male" : "female",
-    motherId: mother.id,
-    fatherId: father.id,
-    purity,
-    observation: "Nascimento com genealogia registrada",
-    createdAt: animal.createdAt,
-    companyId: COMPANY_ID,
-  });
-}
-
-for (let i = 15; i < 20; i++) {
-  const animal = sitioAnimals[i];
-  if (!animal) continue;
-
-  const parentIndex = 5 + (i % 10);
-  const mother = sitioAnimals[parentIndex];
-  const father = sitioAnimals[parentIndex + 1];
-
-  if (!mother || !father) continue;
-
-  const motherBirth = births.find((b) => b.animalId === mother.id);
-  const fatherBirth = births.find((b) => b.animalId === father.id);
-
-  let purity = BirthPurity.F2;
-  if (motherBirth && fatherBirth) {
-    if (motherBirth.purity === BirthPurity.PO && fatherBirth.purity === BirthPurity.F1) {
-      purity = BirthPurity.F2;
-    } else if (motherBirth.purity === BirthPurity.F1 && fatherBirth.purity === BirthPurity.F1) {
-      purity = BirthPurity.F2;
-    } else if (motherBirth.purity === BirthPurity.PO && fatherBirth.purity === BirthPurity.F2) {
-      purity = BirthPurity.F3;
-    } else if (motherBirth.purity === BirthPurity.F2 && fatherBirth.purity === BirthPurity.F2) {
-      purity = BirthPurity.F3;
-    } else if (motherBirth.purity === BirthPurity.PO && fatherBirth.purity === BirthPurity.F3) {
-      purity = BirthPurity.F4;
-    }
-  }
-
-  births.push({
-    id: generateBirthId(190 + i),
-    animalId: animal.id,
-    birthDate: animal.createdAt,
-    breed: fatherBirth?.breed || motherBirth?.breed || breeds[i % breeds.length],
-    gender: i % 2 === 0 ? "male" : "female",
-    motherId: mother.id,
-    fatherId: father.id,
-    purity,
-    observation: "Nascimento com genealogia completa até avós",
-    createdAt: animal.createdAt,
-    companyId: COMPANY_ID,
-  });
-}
-
 export const mockBirths: Birth[] = births;
+
+function addBirthsFromBreedingsForProperty(
+  propertyId: string,
+  propertyAnimals: typeof mockAnimals,
+  startBirthIndex: number
+): number {
+  let currentBirthIndex = startBirthIndex;
+  const today = new Date();
+  const twoYearsAgo = new Date(today);
+  twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
+
+  const propertyConfirmedBreedings = mockBreedings.filter((breeding) => {
+    const animal = mockAnimals.find((a) => a.id === breeding.animalId);
+    return animal?.propertyId === propertyId && breeding.confirmed === true;
+  });
+
+  const breedingsByAnimal = new Map<string, typeof propertyConfirmedBreedings>();
+  propertyConfirmedBreedings.forEach((breeding) => {
+    if (!breedingsByAnimal.has(breeding.animalId)) {
+      breedingsByAnimal.set(breeding.animalId, []);
+    }
+    breedingsByAnimal.get(breeding.animalId)!.push(breeding);
+  });
+
+  let globalIndex = 0;
+  breedingsByAnimal.forEach((animalBreedings) => {
+    const sortedBreedings = [...animalBreedings].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+
+    sortedBreedings.forEach((breeding, breedingIndex) => {
+      const breedingDate = new Date(breeding.date);
+
+      if (breedingDate < twoYearsAgo) {
+        return;
+      }
+
+      const shouldCreateBirth =
+        breedingIndex === 0 ||
+        globalIndex % 10 < 8 ||
+        (globalIndex % 10 === 8 && globalIndex % 2 === 0);
+
+      if (shouldCreateBirth) {
+        const birthDate = new Date(breedingDate);
+        birthDate.setDate(birthDate.getDate() + 270 + Math.floor(Math.random() * 30) - 15);
+
+        if (birthDate > today) {
+          return;
+        }
+
+        const mother = propertyAnimals.find((a) => a.id === breeding.animalId);
+        if (!mother) return;
+
+        let father = null;
+        if (breeding.bullId) {
+          father = propertyAnimals.find((a) => a.id === breeding.bullId);
+        }
+        if (!father && propertyAnimals.length > 0) {
+          const bulls = propertyAnimals.filter((a) => {
+            const birth = mockBirths.find((b) => b.animalId === a.id);
+            return birth?.gender === "male";
+          });
+          if (bulls.length > 0) {
+            father = bulls[globalIndex % bulls.length];
+          }
+        }
+
+        const motherBirth = mockBirths.find((b) => b.animalId === mother.id);
+        const fatherBirth = father ? mockBirths.find((b) => b.animalId === father.id) : undefined;
+
+        const breed =
+          fatherBirth?.breed || motherBirth?.breed || breeds[globalIndex % breeds.length];
+        let purity = BirthPurity.PO;
+        if (motherBirth && fatherBirth) {
+          if (
+            motherBirth.purity === BirthPurity.PO &&
+            fatherBirth.purity === BirthPurity.PO &&
+            motherBirth.breed === fatherBirth.breed
+          ) {
+            purity = BirthPurity.PO;
+          } else if (
+            motherBirth.purity === BirthPurity.PO &&
+            fatherBirth.purity === BirthPurity.PO
+          ) {
+            purity = BirthPurity.F1;
+          } else {
+            purity = BirthPurity.F2;
+          }
+        }
+
+        const newAnimalId = `bb0e8400-e29b-41d4-a716-${(446655440200 + currentBirthIndex)
+          .toString()
+          .padStart(12, "0")}`;
+
+        mockBirths.push({
+          id: generateBirthId(currentBirthIndex),
+          animalId: newAnimalId,
+          birthDate: birthDate.toISOString().split("T")[0],
+          breed,
+          gender: globalIndex % 2 === 0 ? "male" : "female",
+          motherId: mother.id,
+          fatherId: father?.id,
+          purity,
+          observation: `Nascimento resultante de cobertura ${breeding.method === "natural" ? "natural" : "por IA"} em ${breeding.date}`,
+          createdAt: birthDate.toISOString().split("T")[0],
+          companyId: COMPANY_ID,
+        });
+
+        currentBirthIndex++;
+        globalIndex++;
+      }
+    });
+  });
+
+  return currentBirthIndex;
+}
+
+export function addBirthsFromBreedings() {
+  const fazendaAnimals = mockAnimals.filter((a) => a.code.startsWith("FJ"));
+  const sitioAnimals = mockAnimals.filter((a) => a.code.startsWith("SL"));
+  const chacaraAnimals = mockAnimals.filter((a) => a.code.startsWith("CJ"));
+
+  let birthIndex = founderCounts.fazenda + founderCounts.chacara + founderCounts.sitio;
+
+  birthIndex = addBirthsFromBreedingsForProperty(FAZENDA_DO_JUCA_ID, fazendaAnimals, birthIndex);
+
+  birthIndex = addBirthsFromBreedingsForProperty(SITIO_LIMOEIRO_ID, sitioAnimals, birthIndex);
+
+  addBirthsFromBreedingsForProperty(CHACARA_DO_JUCA_ID, chacaraAnimals, birthIndex);
+}
+
+addBirthsFromBreedings();

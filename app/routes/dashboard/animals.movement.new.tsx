@@ -13,7 +13,7 @@ import {
 import { mockEmployees } from "~/mocks/employees";
 import { mockServiceProviders } from "~/mocks/service-providers";
 import { mockCompanies } from "~/mocks/companies";
-import type { Animal } from "~/types";
+import type { Animal, Property } from "~/types";
 
 export function meta() {
   return [
@@ -312,8 +312,8 @@ export default function NewAnimalMovement() {
                 required
                 options={[
                   { value: "", label: "-" },
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  ...mockProperties.map((property: any) => ({
+
+                  ...mockProperties.map((property: Property) => ({
                     value: property.id,
                     label: property.name,
                   })),

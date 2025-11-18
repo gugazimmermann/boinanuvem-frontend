@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { expect, afterEach, vi } from "vitest";
 import { cleanup } from "@testing-library/react";
 import * as matchers from "@testing-library/jest-dom/matchers";
@@ -9,15 +8,20 @@ afterEach(() => {
   cleanup();
 });
 
-// Ensure window is available for React's scheduler
-// This is needed because React 18's scheduler may try to access window during async operations
-if (typeof (globalThis as any).window === "undefined") {
-  (globalThis as any).window = globalThis;
+interface GlobalWindow {
+  requestIdleCallback?: typeof window.requestIdleCallback;
+  cancelIdleCallback?: typeof window.cancelIdleCallback;
+  [key: string]: unknown;
+}
+
+const globalWindow = globalThis as typeof globalThis & { window?: GlobalWindow };
+if (typeof globalWindow.window === "undefined") {
+  (globalWindow as { window?: GlobalWindow }).window = globalThis as unknown as GlobalWindow;
 }
 
 // Mock requestIdleCallback for React's scheduler (if not already available)
 // React uses this for scheduling updates, so we need to provide a fallback
-const win = (globalThis as any).window || globalThis;
+const win = (globalWindow.window || globalThis) as GlobalWindow;
 if (typeof win.requestIdleCallback === "undefined") {
   win.requestIdleCallback = vi.fn((callback: IdleRequestCallback) => {
     return setTimeout(() => callback({ didTimeout: false, timeRemaining: () => 5 }), 0);

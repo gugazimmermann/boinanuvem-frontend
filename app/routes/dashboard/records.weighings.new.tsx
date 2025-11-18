@@ -729,7 +729,6 @@ export default function NewWeighing() {
         </form>
       </div>
 
-      {/* Session Weighings Modal */}
       {showSessionModal && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen px-4 py-4 text-center sm:block sm:p-0">

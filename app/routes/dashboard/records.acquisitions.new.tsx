@@ -7,7 +7,7 @@ import { addAcquisition } from "~/services/acquisitions.service";
 import { addAnimal } from "~/services/animals.service";
 import { addWeighing } from "~/services/weighings.service";
 import { getBirthByAnimalId, calculatePurity } from "~/services/births.service";
-import type { AcquisitionFormData, AnimalFormData, WeighingFormData } from "~/types";
+import type { AcquisitionFormData, AnimalFormData, WeighingFormData, Property } from "~/types";
 import { AnimalBreed } from "~/types";
 import { mockCompanies } from "~/mocks/companies";
 import { getAnimalsByCompanyId } from "~/services/animals.service";
@@ -342,8 +342,8 @@ export default function NewAcquisition() {
                   required
                   options={[
                     { value: "", label: "-" },
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    ...mockProperties.map((property: any) => ({
+
+                    ...mockProperties.map((property: Property) => ({
                       value: property.id,
                       label: property.name,
                     })),

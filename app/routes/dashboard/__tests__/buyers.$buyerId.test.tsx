@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -77,33 +76,65 @@ vi.mock("~/services/service-providers.service", () => ({
 }));
 
 vi.mock("~/components/ui", () => ({
-  Button: ({ children, onClick, leftIcon, rightIcon, ...props }: any) => (
+  Button: ({
+    children,
+    onClick,
+    leftIcon,
+    rightIcon,
+    ...props
+  }: {
+    children?: React.ReactNode;
+    onClick?: () => void;
+    leftIcon?: React.ReactNode;
+    rightIcon?: React.ReactNode;
+    [key: string]: unknown;
+  }) => (
     <button onClick={onClick} {...props}>
       {leftIcon}
       {children}
       {rightIcon}
     </button>
   ),
-  StatusBadge: ({ label }: any) => <span>{label}</span>,
-  Table: ({ children }: any) => <div data-testid="table">{children}</div>,
-  FileUpload: ({ onFilesChange }: any) => (
+  StatusBadge: ({ label }: { label?: string }) => <span>{label}</span>,
+  Table: ({ children }: { children?: React.ReactNode }) => (
+    <div data-testid="table">{children}</div>
+  ),
+  FileUpload: ({ onFilesChange }: { onFilesChange?: (files: File[]) => void }) => (
     <input
       type="file"
       data-testid="file-upload"
       onChange={(e) => onFilesChange?.(Array.from(e.target.files || []))}
     />
   ),
-  Alert: ({ title, variant }: any) => <div data-testid={`alert-${variant}`}>{title}</div>,
-  Select: ({ options, value, onChange }: any) => (
+  Alert: ({ title, variant }: { title?: string; variant?: string }) => (
+    <div data-testid={`alert-${variant}`}>{title}</div>
+  ),
+  Select: ({
+    options,
+    value,
+    onChange,
+  }: {
+    options?: Array<{ value: string; label: string }>;
+    value?: string | number;
+    onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  }) => (
     <select data-testid="select" value={value} onChange={onChange}>
-      {options?.map((opt: any, idx: number) => (
+      {options?.map((opt, idx: number) => (
         <option key={idx} value={opt.value}>
           {opt.label}
         </option>
       ))}
     </select>
   ),
-  ConfirmationModal: ({ isOpen, onConfirm, onCancel }: any) =>
+  ConfirmationModal: ({
+    isOpen,
+    onConfirm,
+    onCancel,
+  }: {
+    isOpen: boolean;
+    onConfirm?: () => void;
+    onCancel?: () => void;
+  }) =>
     isOpen ? (
       <div data-testid="confirmation-modal">
         <button data-testid="confirm-button" onClick={onConfirm}>
@@ -114,9 +145,13 @@ vi.mock("~/components/ui", () => ({
         </button>
       </div>
     ) : null,
-  TableActionButtons: ({ actions }: any) => (
+  TableActionButtons: ({
+    actions,
+  }: {
+    actions?: Array<{ label: string; onClick?: () => void }>;
+  }) => (
     <div data-testid="table-action-buttons">
-      {actions?.map((action: any, idx: number) => (
+      {actions?.map((action, idx: number) => (
         <button key={idx} data-testid={`action-${idx}`} onClick={action.onClick}>
           {action.label}
         </button>

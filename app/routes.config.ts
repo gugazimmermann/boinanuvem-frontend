@@ -45,6 +45,11 @@ export const ROUTES = {
   ACQUISITIONS_EDIT: "/dashboard/registros/aquisicoes/:acquisitionId/editar",
   ACQUISITIONS_VIEW: "/dashboard/registros/aquisicoes/:acquisitionId",
   WEIGHINGS_NEW: "/dashboard/registros/pesagens/novo",
+  BREEDINGS_NEW: "/dashboard/registros/montas/novo",
+  BREEDINGS_PREGNANT: "/dashboard/registros/montas/prenhas",
+  BREEDINGS_UNCONFIRMED: "/dashboard/registros/montas/nao-confirmadas",
+  REPRODUCTIVE_INDEXES: "/dashboard/indices-reprodutivos",
+  BIRTH_FORECAST: "/dashboard/previsao-nascimentos",
   MOVEMENTS_NEW: "/dashboard/propriedades/:propertyId/movimentacoes/novo",
   MOVEMENTS_VIEW: "/dashboard/movimentacoes/:movementId",
   ANIMALS_MOVEMENT_NEW: "/dashboard/animais/movimentacao/novo",
@@ -164,6 +169,13 @@ export function getAnimalMovementNewRoute(animalIds: string[]): { pathname: stri
   };
 }
 
+export function getBreedingNewRoute(animalIds: string[]): { pathname: string; state: { animalIds: string[] } } {
+  return {
+    pathname: ROUTES.BREEDINGS_NEW,
+    state: { animalIds },
+  };
+}
+
 export function getObservationViewRoute(observationId: string): string {
   return `/dashboard/observacoes/${observationId}`;
 }
@@ -247,6 +259,11 @@ export const ROUTE_NAMES = {
   ACQUISITIONS_EDIT: "registros/aquisicoes/:acquisitionId/editar",
   ACQUISITIONS_VIEW: "registros/aquisicoes/:acquisitionId",
   WEIGHINGS_NEW: "registros/pesagens/novo",
+  BREEDINGS_NEW: "registros/montas/novo",
+  BREEDINGS_PREGNANT: "registros/montas/prenhas",
+  BREEDINGS_UNCONFIRMED: "registros/montas/nao-confirmadas",
+  REPRODUCTIVE_INDEXES: "indices-reprodutivos",
+  BIRTH_FORECAST: "previsao-nascimentos",
   MOVEMENTS_NEW: "propriedades/:propertyId/movimentacoes/novo",
   MOVEMENTS_VIEW: "movimentacoes/:movementId",
   ANIMALS_MOVEMENT_NEW: "animais/movimentacao/novo",

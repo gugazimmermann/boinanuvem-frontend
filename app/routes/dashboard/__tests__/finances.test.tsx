@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -103,21 +102,29 @@ vi.mock("~/services/buyers.service", () => ({
 }));
 
 vi.mock("recharts", () => ({
-  LineChart: ({ children }: any) => <div data-testid="line-chart">{children}</div>,
+  LineChart: ({ children }: { children?: React.ReactNode }) => (
+    <div data-testid="line-chart">{children}</div>
+  ),
   Line: () => null,
-  AreaChart: ({ children }: any) => <div data-testid="area-chart">{children}</div>,
+  AreaChart: ({ children }: { children?: React.ReactNode }) => (
+    <div data-testid="area-chart">{children}</div>
+  ),
   Area: () => null,
-  PieChart: ({ children }: any) => <div data-testid="pie-chart">{children}</div>,
+  PieChart: ({ children }: { children?: React.ReactNode }) => (
+    <div data-testid="pie-chart">{children}</div>
+  ),
   Pie: () => null,
   Cell: () => null,
-  BarChart: ({ children }: any) => <div data-testid="bar-chart">{children}</div>,
+  BarChart: ({ children }: { children?: React.ReactNode }) => (
+    <div data-testid="bar-chart">{children}</div>
+  ),
   Bar: () => null,
   XAxis: () => null,
   YAxis: () => null,
   CartesianGrid: () => null,
   Tooltip: () => null,
   Legend: () => null,
-  ResponsiveContainer: ({ children }: any) => (
+  ResponsiveContainer: ({ children }: { children?: React.ReactNode }) => (
     <div data-testid="responsive-container">{children}</div>
   ),
 }));
@@ -126,7 +133,7 @@ describe("FinancesDashboard", () => {
   const originalError = console.error;
 
   beforeAll(() => {
-    console.error = (...args: any[]) => {
+    console.error = (...args: unknown[]) => {
       if (
         typeof args[0] === "string" &&
         (args[0].includes("The tag <") || args[0].includes("is using incorrect casing"))

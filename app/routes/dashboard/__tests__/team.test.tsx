@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -33,17 +32,20 @@ vi.mock("~/mocks/users", async () => {
 });
 
 vi.mock("~/components/ui", () => ({
-  Table: ({ data, header }: any) => (
+  Table: ({ data, header }: { data?: unknown[]; header?: { title?: string } }) => (
     <div data-testid="table">
       {header?.title && <h2>{header.title}</h2>}
-      {data?.map((row: any, idx: number) => (
-        <div key={idx} data-testid={`table-row-${idx}`}>
-          {row.name}
-        </div>
-      ))}
+      {data?.map((row, idx: number) => {
+        const rowObj = row as Record<string, unknown>;
+        return (
+          <div key={idx} data-testid={`table-row-${idx}`}>
+            {String(rowObj.name ?? "")}
+          </div>
+        );
+      })}
     </div>
   ),
-  TableActionButtons: ({ onEdit, onDelete }: any) => (
+  TableActionButtons: ({ onEdit, onDelete }: { onEdit?: () => void; onDelete?: () => void }) => (
     <div data-testid="table-actions">
       <button data-testid="edit-button" onClick={onEdit}>
         Edit
@@ -53,11 +55,21 @@ vi.mock("~/components/ui", () => ({
       </button>
     </div>
   ),
-  Alert: ({ title, variant }: any) => <div data-testid={`alert-${variant}`}>{title}</div>,
+  Alert: ({ title, variant }: { title?: string; variant?: string }) => (
+    <div data-testid={`alert-${variant}`}>{title}</div>
+  ),
 }));
 
 vi.mock("~/components/dashboard/team", () => ({
-  UserFormModal: ({ isOpen, onClose, onSubmit }: any) =>
+  UserFormModal: ({
+    isOpen,
+    onClose,
+    onSubmit,
+  }: {
+    isOpen: boolean;
+    onClose?: () => void;
+    onSubmit?: (data: { name: string; email: string }) => void;
+  }) =>
     isOpen ? (
       <div data-testid="user-form-modal">
         <button data-testid="close-modal" onClick={onClose}>
@@ -65,13 +77,23 @@ vi.mock("~/components/dashboard/team", () => ({
         </button>
         <button
           data-testid="submit-user"
-          onClick={() => onSubmit({ name: "New User", email: "new@example.com" })}
+          onClick={() => onSubmit?.({ name: "New User", email: "new@example.com" })}
         >
           Submit
         </button>
       </div>
     ) : null,
-  DeleteUserModal: ({ isOpen, onClose, onConfirm, user }: any) =>
+  DeleteUserModal: ({
+    isOpen,
+    onClose,
+    onConfirm,
+    user,
+  }: {
+    isOpen: boolean;
+    onClose?: () => void;
+    onConfirm?: () => void;
+    user?: { name?: string };
+  }) =>
     isOpen ? (
       <div data-testid="delete-user-modal">
         <div>{user?.name}</div>

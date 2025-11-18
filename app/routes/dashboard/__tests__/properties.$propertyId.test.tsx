@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -38,7 +37,7 @@ vi.mock("~/mocks/locations", async () => {
 });
 
 vi.mock("~/services/locations.service", () => ({
-  getLocationsByPropertyId: (...args: any[]) => mockGetLocationsByPropertyId(...args),
+  getLocationsByPropertyId: (...args: unknown[]) => mockGetLocationsByPropertyId(...args),
 }));
 
 const mockGetAnimalsByPropertyId = vi.fn(() => [
@@ -52,7 +51,7 @@ vi.mock("~/mocks/animals", async () => {
 });
 
 vi.mock("~/services/animals.service", () => ({
-  getAnimalsByPropertyId: (...args: any[]) => mockGetAnimalsByPropertyId(...args),
+  getAnimalsByPropertyId: (...args: unknown[]) => mockGetAnimalsByPropertyId(...args),
   getAnimalById: vi.fn((id: string) => ({ id, code: `AN${id}`, name: `Animal ${id}` })),
   deleteAnimal: vi.fn(() => true),
 }));
@@ -136,7 +135,7 @@ vi.mock("~/mocks/weighings", async () => {
 });
 
 vi.mock("~/services/weighings.service", () => ({
-  getWeighingsByAnimalId: (...args: any[]) => mockGetWeighingsByAnimalId(...args),
+  getWeighingsByAnimalId: (...args: unknown[]) => mockGetWeighingsByAnimalId(...args),
 }));
 
 vi.mock("~/mocks/cash-flow", async () => {
@@ -190,25 +189,51 @@ vi.mock("~/services/service-providers.service", () => ({
 }));
 
 vi.mock("~/components/ui", () => ({
-  Button: ({ children, onClick, leftIcon, rightIcon, ...props }: any) => (
+  Button: ({
+    children,
+    onClick,
+    leftIcon,
+    rightIcon,
+    ...props
+  }: {
+    children?: React.ReactNode;
+    onClick?: () => void;
+    leftIcon?: React.ReactNode;
+    rightIcon?: React.ReactNode;
+    [key: string]: unknown;
+  }) => (
     <button onClick={onClick} {...props}>
       {leftIcon}
       {children}
       {rightIcon}
     </button>
   ),
-  StatusBadge: ({ label }: any) => <span>{label}</span>,
-  Table: ({ children }: any) => <div data-testid="table">{children}</div>,
-  TableActionButtons: ({ actions }: any) => (
+  StatusBadge: ({ label }: { label?: string }) => <span>{label}</span>,
+  Table: ({ children }: { children?: React.ReactNode }) => (
+    <div data-testid="table">{children}</div>
+  ),
+  TableActionButtons: ({
+    actions,
+  }: {
+    actions?: Array<{ label: string; onClick?: () => void }>;
+  }) => (
     <div data-testid="table-action-buttons">
-      {actions?.map((action: any, idx: number) => (
+      {actions?.map((action, idx: number) => (
         <button key={idx} data-testid={`action-${idx}`} onClick={action.onClick}>
           {action.label}
         </button>
       ))}
     </div>
   ),
-  ConfirmationModal: ({ isOpen, onConfirm, onCancel }: any) =>
+  ConfirmationModal: ({
+    isOpen,
+    onConfirm,
+    onCancel,
+  }: {
+    isOpen: boolean;
+    onConfirm?: () => void;
+    onCancel?: () => void;
+  }) =>
     isOpen ? (
       <div data-testid="confirmation-modal">
         <button data-testid="confirm-button" onClick={onConfirm}>
@@ -220,13 +245,23 @@ vi.mock("~/components/ui", () => ({
       </div>
     ) : null,
   AnimalRegistrationModal: () => <div data-testid="animal-registration-modal" />,
-  Alert: ({ title, variant }: any) => <div data-testid={`alert-${variant}`}>{title}</div>,
-  Tooltip: ({ children }: any) => <div>{children}</div>,
+  Alert: ({ title, variant }: { title?: string; variant?: string }) => (
+    <div data-testid={`alert-${variant}`}>{title}</div>
+  ),
+  Tooltip: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
   PasturePlanningGraph: () => <div data-testid="pasture-planning-graph" />,
   PropertyMap: () => <div data-testid="property-map" />,
-  Select: ({ options, value, onChange }: any) => (
+  Select: ({
+    options,
+    value,
+    onChange,
+  }: {
+    options?: Array<{ value: string; label: string }>;
+    value?: string | number;
+    onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  }) => (
     <select data-testid="select" value={value} onChange={onChange}>
-      {options?.map((opt: any, idx: number) => (
+      {options?.map((opt, idx: number) => (
         <option key={idx} value={opt.value}>
           {opt.label}
         </option>

@@ -4,7 +4,7 @@ import { Input, Select, Button, Alert } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { ROUTES } from "~/routes.config";
 import { addAnimal } from "~/services/animals.service";
-import type { AnimalFormData } from "~/types";
+import type { AnimalFormData, Property } from "~/types";
 import { mockCompanies } from "~/mocks/companies";
 import { mockProperties } from "~/mocks/properties";
 
@@ -177,8 +177,8 @@ export default function NewAnimal() {
               required
               options={[
                 { value: "", label: "-" },
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                ...mockProperties.map((property: any) => ({
+
+                ...mockProperties.map((property: Property) => ({
                   value: property.id,
                   label: property.name,
                 })),

@@ -33,7 +33,6 @@ export function TableFilters({
 
   return (
     <div className="mt-4 md:flex md:items-center md:justify-between md:gap-4">
-      {/* Left: Filters */}
       <div className="flex items-center gap-3">
         {hasFilters && (
           <div className="inline-flex overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 divide-x divide-gray-200 dark:divide-gray-700 rounded-lg rtl:flex-row-reverse">
@@ -59,12 +58,10 @@ export function TableFilters({
         {selectedActionButton}
       </div>
 
-      {/* Middle: Totals or other content */}
       {middleContent && (
         <div className="flex items-center justify-center gap-4 mt-4 md:mt-0">{middleContent}</div>
       )}
 
-      {/* Right: Year/Month selects and Search */}
       {(hasSearch || rightContent) && (
         <div className="flex items-center gap-3 mt-4 md:mt-0">
           {rightContent}

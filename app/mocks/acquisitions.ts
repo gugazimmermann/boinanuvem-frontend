@@ -114,7 +114,6 @@ function initializeAcquisitions(): void {
   });
 }
 
-// Initialize acquisitions on module load
 initializeAcquisitions();
 
 export const mockAcquisitions: Acquisition[] = acquisitions;

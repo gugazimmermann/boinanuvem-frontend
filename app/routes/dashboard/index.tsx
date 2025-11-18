@@ -1,12 +1,15 @@
+import { useMemo } from "react";
+import { Link } from "react-router";
 import { useTranslation } from "~/i18n";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
 import { mockProperties } from "~/mocks/properties";
 import { mockLocations } from "~/mocks/locations";
 import { mockCompanies } from "~/mocks/companies";
 import { getAnimalsByCompanyId } from "~/services/animals.service";
-import { getBirthsByCompanyId } from "~/services/births.service";
 import { getWeighingsByAnimalId } from "~/services/weighings.service";
+import { getExpectedBirthsForecast } from "~/services/reproductive-indexes.service";
 import { AreaType } from "~/types";
+import { ROUTES } from "~/routes.config";
 
 export function meta() {
   return [
@@ -27,8 +30,6 @@ export default function Dashboard() {
   const totalAnimals = animals.length;
   const totalProperties = mockProperties.length;
   const totalLocations = mockLocations.length;
-  const births = getBirthsByCompanyId(companyId);
-  const totalBirths = births.length;
 
   const calculateTotalWeight = () => {
     let totalWeight = 0;
@@ -75,6 +76,21 @@ export default function Dashboard() {
 
   const activeAnimals = animals.filter((animal) => animal.status === "active").length;
 
+  const expectedBirthsForecast = useMemo(
+    () => getExpectedBirthsForecast(companyId, { isPropertyId: false, monthsAhead: 9 }),
+    [companyId]
+  );
+
+  const nextMonthExpected = useMemo(() => {
+    if (!expectedBirthsForecast.monthly || expectedBirthsForecast.monthly.length === 0) return 0;
+    const today = new Date();
+    const nextMonthKey = `${today.getFullYear()}-${String(today.getMonth() + 2).padStart(2, "0")}`;
+    const nextMonth = expectedBirthsForecast.monthly.find((item) => item.month === nextMonthKey);
+    return nextMonth?.expectedBirths || 0;
+  }, [expectedBirthsForecast.monthly]);
+
+  const nextThreeMonthsTotal = expectedBirthsForecast.total;
+
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
@@ -82,6 +98,41 @@ export default function Dashboard() {
       </h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                {t.dashboard.stats.properties}
+              </p>
+              <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                {totalProperties}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {totalAreaInHectares.toFixed(1)} {t.dashboard.stats.hectares}
+              </p>
+            </div>
+            <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+              <span className="text-lg">🏡</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                {t.dashboard.stats.locations}
+              </p>
+              <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                {totalLocations}
+              </p>
+            </div>
+            <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
+              <span className="text-lg">📍</span>
+            </div>
+          </div>
+        </div>
+
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
@@ -100,25 +151,6 @@ export default function Dashboard() {
               style={{ backgroundColor: `${DASHBOARD_COLORS.primaryLight}40` }}
             >
               <span className="text-lg">🐄</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                {t.dashboard.stats.properties}
-              </p>
-              <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                {totalProperties}
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {totalAreaInHectares.toFixed(1)} {t.dashboard.stats.hectares}
-              </p>
-            </div>
-            <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-              <span className="text-lg">🏡</span>
             </div>
           </div>
         </div>
@@ -160,37 +192,22 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                {t.dashboard.stats.locations}
-              </p>
-              <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                {totalLocations}
-              </p>
-            </div>
-            <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
-              <span className="text-lg">📍</span>
-            </div>
-          </div>
-        </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                {t.dashboard.stats.births}
+                {t.dashboard.stats.density}
               </p>
               <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                {totalBirths}
+                {totalAreaInHectares > 0 ? (totalAnimals / totalAreaInHectares).toFixed(2) : 0}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {t.dashboard.stats.animalsPerHa}
               </p>
             </div>
-            <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-              <span className="text-lg">👶</span>
+            <div className="w-10 h-10 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg flex items-center justify-center">
+              <span className="text-lg">📈</span>
             </div>
           </div>
         </div>
@@ -216,19 +233,26 @@ export default function Dashboard() {
 
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
-            <div>
+            <div className="flex-1">
               <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                {t.dashboard.stats.density}
+                {t.dashboard.stats.expectedBirths}
               </p>
               <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                {totalAreaInHectares > 0 ? (totalAnimals / totalAreaInHectares).toFixed(2) : 0}
+                {nextMonthExpected}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {t.dashboard.stats.animalsPerHa}
+                {t.dashboard.stats.nextMonth} • {nextThreeMonthsTotal}{" "}
+                {t.dashboard.stats.nextThreeMonths}
               </p>
+              <Link
+                to={ROUTES.BIRTH_FORECAST}
+                className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-1 inline-block"
+              >
+                {t.dashboard.stats.viewForecast}
+              </Link>
             </div>
-            <div className="w-10 h-10 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg flex items-center justify-center">
-              <span className="text-lg">📈</span>
+            <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center">
+              <span className="text-lg">📅</span>
             </div>
           </div>
         </div>

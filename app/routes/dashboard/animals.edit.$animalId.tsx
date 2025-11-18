@@ -4,7 +4,7 @@ import { Input, Select, Button, Alert } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { ROUTES, getAnimalViewRoute } from "~/routes.config";
 import { getAnimalById, updateAnimal } from "~/services/animals.service";
-import type { AnimalFormData } from "~/types";
+import type { AnimalFormData, Property } from "~/types";
 import { mockProperties } from "~/mocks/properties";
 
 export function meta() {
@@ -208,8 +208,8 @@ export default function EditAnimal() {
               required
               options={[
                 { value: "", label: "-" },
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                ...mockProperties.map((property: any) => ({
+
+                ...mockProperties.map((property: Property) => ({
                   value: property.id,
                   label: property.name,
                 })),

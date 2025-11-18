@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -23,10 +22,22 @@ vi.mock("~/services/users.service", () => ({
 }));
 
 vi.mock("~/components/ui", () => ({
-  Button: ({ children, onClick, type, disabled, ...props }: any) => (
+  Button: ({
+    children,
+    onClick,
+    type,
+    disabled,
+    ...props
+  }: {
+    children?: React.ReactNode;
+    onClick?: () => void;
+    type?: "button" | "submit" | "reset" | undefined;
+    disabled?: boolean;
+    [key: string]: unknown;
+  }) => (
     <button
       data-testid="submit-button"
-      type={type}
+      type={type as "button" | "submit" | "reset" | undefined}
       onClick={onClick}
       disabled={disabled}
       {...props}
@@ -34,7 +45,9 @@ vi.mock("~/components/ui", () => ({
       {children}
     </button>
   ),
-  Alert: ({ title, variant }: any) => <div data-testid={`alert-${variant}`}>{title}</div>,
+  Alert: ({ title, variant }: { title?: string; variant?: string }) => (
+    <div data-testid={`alert-${variant}`}>{title}</div>
+  ),
 }));
 
 describe("TeamPermissions", () => {

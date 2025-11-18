@@ -4,7 +4,7 @@ import { Input, Button, Alert } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { ROUTES } from "~/routes.config";
 import { addLocation } from "~/services/locations.service";
-import type { LocationFormData } from "~/types";
+import type { LocationFormData, Property } from "~/types";
 import { AreaType, LocationType } from "~/types";
 import { mockProperties } from "~/mocks/properties";
 import { getPropertyById } from "~/services/properties.service";
@@ -197,8 +197,8 @@ export default function NewLocation() {
                 }`}
               >
                 <option value="">{t.locations.new.selectProperty}</option>
-                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                {mockProperties.map((property: any) => (
+
+                {mockProperties.map((property: Property) => (
                   <option key={property.id} value={property.id}>
                     {property.name}
                   </option>

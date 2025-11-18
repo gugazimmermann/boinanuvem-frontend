@@ -3,25 +3,15 @@ import { mockAnimalObservations } from "~/mocks/animal-observations";
 import { findById, findByField, deleteEntity } from "./base-service";
 import { generateUUID } from "~/utils/uuid";
 
-/**
- * Get animal observations by animal ID
- */
 export function getAnimalObservationsByAnimalId(animalId: string): AnimalObservation[] {
   return findByField(mockAnimalObservations, "animalId", animalId);
 }
 
-/**
- * Get animal observation by ID
- */
 export function getAnimalObservationById(
   observationId: string | undefined
 ): AnimalObservation | undefined {
   return findById(mockAnimalObservations, observationId);
 }
-
-/**
- * Add a new animal observation
- */
 
 export function addAnimalObservation(data: AnimalObservationFormData): AnimalObservation {
   const newObservation: AnimalObservation = {
@@ -34,16 +24,10 @@ export function addAnimalObservation(data: AnimalObservationFormData): AnimalObs
   return newObservation;
 }
 
-/**
- * Delete an animal observation
- */
 export function deleteAnimalObservation(observationId: string): boolean {
   return deleteEntity(mockAnimalObservations, observationId);
 }
 
-/**
- * Update an animal observation
- */
 export function updateAnimalObservation(
   observationId: string,
   data: Partial<AnimalObservationFormData>

@@ -1,10 +1,12 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
+import type { ComponentProps } from "react";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
 import Login from "../login";
 import { ROUTES } from "~/routes.config";
+import { AuthInput, AuthButton } from "~/components/site/ui";
 
 const mockNavigate = vi.fn();
 
@@ -23,13 +25,16 @@ vi.mock("~/components/site/auth-layout", () => ({
 }));
 
 vi.mock("~/components/site/ui", () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  AuthInput: ({ type, placeholder, showPasswordToggle: _showPasswordToggle, ...props }: any) => (
+  AuthInput: ({
+    type,
+    placeholder,
+    showPasswordToggle: _showPasswordToggle,
+    ...props
+  }: ComponentProps<typeof AuthInput> & { fullWidth?: boolean }) => (
     <input data-testid={`auth-input-${type}`} type={type} placeholder={placeholder} {...props} />
   ),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  AuthButton: ({ children, ...props }: any) => (
-    <button data-testid="auth-button" {...props}>
+  AuthButton: ({ children, ...props }: ComponentProps<typeof AuthButton>) => (
+    <button data-testid="auth-button" {...(props as React.ButtonHTMLAttributes<HTMLButtonElement>)}>
       {children}
     </button>
   ),

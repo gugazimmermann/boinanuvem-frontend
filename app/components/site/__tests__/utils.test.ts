@@ -100,13 +100,20 @@ describe("useSmoothScroll", () => {
   it("should return undefined when window is undefined", () => {
     const originalWindow = global.window;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (global as any).window = undefined;
+    Object.defineProperty(global, "window", {
+      value: undefined,
+      writable: true,
+      configurable: true,
+    });
 
     const result = useSmoothScroll();
     expect(result).toBeUndefined();
 
-    global.window = originalWindow;
+    Object.defineProperty(global, "window", {
+      value: originalWindow,
+      writable: true,
+      configurable: true,
+    });
   });
 
   it("should set up click event listener", () => {

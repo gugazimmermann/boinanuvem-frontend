@@ -19,7 +19,6 @@ const PROPERTY_1 = mockProperties[0]?.id || "";
 const PROPERTY_2 = mockProperties[1]?.id || "";
 
 export const mockAccountsPayable: AccountsPayable[] = [
-  // November 2025 - Current month
   {
     id: "ap0e8400-e29b-41d4-a716-446655440010",
     companyId: COMPANY_ID,
@@ -148,7 +147,7 @@ export const mockAccountsPayable: AccountsPayable[] = [
     propertyId: PROPERTY_1,
     createdAt: "2025-11-12",
   },
-  // October 2025
+
   {
     id: "ap0e8400-e29b-41d4-a716-446655440012",
     companyId: COMPANY_ID,
@@ -266,7 +265,7 @@ export const mockAccountsPayable: AccountsPayable[] = [
     propertyId: PROPERTY_2,
     createdAt: "2025-10-20",
   },
-  // September 2025
+
   {
     id: "ap0e8400-e29b-41d4-a716-446655440025",
     companyId: COMPANY_ID,
@@ -352,7 +351,7 @@ export const mockAccountsPayable: AccountsPayable[] = [
     propertyId: PROPERTY_1,
     createdAt: "2025-09-20",
   },
-  // August 2025
+
   {
     id: "ap0e8400-e29b-41d4-a716-446655440030",
     companyId: COMPANY_ID,
@@ -437,7 +436,7 @@ export const mockAccountsPayable: AccountsPayable[] = [
     propertyId: PROPERTY_2,
     createdAt: "2025-08-20",
   },
-  // July 2025
+
   {
     id: "ap0e8400-e29b-41d4-a716-446655440035",
     companyId: COMPANY_ID,
@@ -489,7 +488,7 @@ export const mockAccountsPayable: AccountsPayable[] = [
     propertyId: PROPERTY_1,
     createdAt: "2025-07-05",
   },
-  // Future bills
+
   {
     id: "ap0e8400-e29b-41d4-a716-446655440038",
     companyId: COMPANY_ID,

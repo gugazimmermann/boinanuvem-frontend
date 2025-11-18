@@ -235,34 +235,30 @@ export default function BankAccountDetails() {
     },
   ];
 
-  // Generate year options
-  const getYearOptions = () => {
-    const allYearsLabel =
-      language === "pt" ? "Todos os anos" : language === "en" ? "All years" : "Todos los años";
-    const options = [{ value: "all", label: allYearsLabel }];
+  const getYearOptions = (): Array<{ value: string; label: string }> => {
+    const options: Array<{ value: string; label: string }> = [
+      { value: "all", label: t.cashFlow.filters.allYears },
+    ];
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
 
-    // Add previous year and current year
     options.push({ value: String(currentYear - 1), label: String(currentYear - 1) });
     options.push({ value: String(currentYear), label: String(currentYear) });
 
     return options;
   };
 
-  // Generate month options
-  const getMonthOptions = () => {
+  const getMonthOptions = (): Array<{ value: string; label: string }> => {
     const localeMap: Record<string, string> = {
       pt: "pt-BR",
       en: "en-US",
       es: "es-ES",
     };
     const locale = localeMap[language] || "pt-BR";
-    const allMonthsLabel =
-      language === "pt" ? "Todos os meses" : language === "en" ? "All months" : "Todos los meses";
-    const options = [{ value: "all", label: allMonthsLabel }];
+    const options: Array<{ value: string; label: string }> = [
+      { value: "all", label: t.cashFlow.filters.allMonths },
+    ];
 
-    // Add all 12 months
     for (let month = 1; month <= 12; month++) {
       const monthName = new Date(2000, month - 1).toLocaleDateString(locale, {
         month: "long",
@@ -520,7 +516,7 @@ export default function BankAccountDetails() {
                     options={[
                       {
                         value: "all",
-                        label: t.cashFlow.filters.allSuppliers || "Todos os fornecedores",
+                        label: t.cashFlow.filters.allSuppliers,
                       },
                       ...mockSuppliers.map((supplier) => ({
                         value: supplier.id,
@@ -542,7 +538,7 @@ export default function BankAccountDetails() {
                     options={[
                       {
                         value: "all",
-                        label: t.cashFlow.filters.allBuyers || "Todos os compradores",
+                        label: t.cashFlow.filters.allBuyers,
                       },
                       ...mockBuyers.map((buyer) => ({
                         value: buyer.id,

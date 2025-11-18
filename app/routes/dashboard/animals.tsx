@@ -22,6 +22,7 @@ import type { Animal } from "~/types";
 import { getPropertyById } from "~/services/properties.service";
 import { getWeighingsByAnimalId } from "~/services/weighings.service";
 import { getBirthByAnimalId } from "~/services/births.service";
+import { getBreedingsByAnimalId } from "~/services/breedings.service";
 import {
   ROUTES,
   getAnimalEditRoute,
@@ -353,6 +354,28 @@ export default function Animals() {
         return (
           <span className="text-gray-700 dark:text-gray-300">{property ? property.name : "-"}</span>
         );
+      },
+    },
+    {
+      key: "breedingStatus",
+      label: t.animals.table.breedingStatus,
+      sortable: false,
+      render: (_, row) => {
+        const birth = getBirthByAnimalId(row.id);
+        if (!birth || birth.gender !== "female") {
+          return <span className="text-gray-700 dark:text-gray-300">-</span>;
+        }
+        const breedings = getBreedingsByAnimalId(row.id);
+        if (breedings.length === 0) {
+          return <span className="text-gray-700 dark:text-gray-300">-</span>;
+        }
+        const hasConfirmed = breedings.some((b) => b.confirmed === true);
+
+        if (hasConfirmed) {
+          return <StatusBadge label={t.animals.table.breedingStatusPregnant} variant="success" />;
+        } else {
+          return <StatusBadge label={t.animals.table.breedingStatusPregnant} variant="warning" />;
+        }
       },
     },
     {

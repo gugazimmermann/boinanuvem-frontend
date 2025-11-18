@@ -6,25 +6,16 @@ import { mockLocationObservations } from "~/mocks/location-observations";
 import { findById, findByField, deleteEntity } from "./base-service";
 import { generateUUID } from "~/utils/uuid";
 
-/**
- * Get location observations by location ID
- */
 export function getLocationObservationsByLocationId(locationId: string): LocationObservation[] {
   return findByField(mockLocationObservations, "locationId", locationId);
 }
 
-/**
- * Get location observation by ID
- */
 export function getLocationObservationById(
   observationId: string | undefined
 ): LocationObservation | undefined {
   return findById(mockLocationObservations, observationId);
 }
 
-/**
- * Add a new location observation
- */
 export function addLocationObservation(data: LocationObservationFormData): LocationObservation {
   const newObservation: LocationObservation = {
     ...data,
@@ -36,16 +27,10 @@ export function addLocationObservation(data: LocationObservationFormData): Locat
   return newObservation;
 }
 
-/**
- * Delete a location observation
- */
 export function deleteLocationObservation(observationId: string): boolean {
   return deleteEntity(mockLocationObservations, observationId);
 }
 
-/**
- * Update a location observation
- */
 export function updateLocationObservation(
   observationId: string,
   data: Partial<LocationObservationFormData>

@@ -6,7 +6,14 @@ import {
 } from "react";
 import { DASHBOARD_COLORS } from "../dashboard/utils/colors";
 
-type ButtonVariant = "primary" | "secondary" | "outline" | "ghost";
+type ButtonVariant =
+  | "primary"
+  | "secondary"
+  | "outline"
+  | "ghost"
+  | "success"
+  | "warning"
+  | "danger";
 type ButtonSize = "sm" | "md" | "lg";
 
 interface BaseButtonProps {
@@ -63,6 +70,14 @@ const getVariantStyles = (variant: ButtonVariant) => {
       return ["border-2", "bg-transparent"].join(" ");
     case "ghost":
       return ["bg-transparent"].join(" ");
+    case "success":
+      return ["bg-green-600", "text-white", "hover:bg-green-500", "focus:ring-green-300"].join(" ");
+    case "warning":
+      return ["bg-yellow-600", "text-white", "hover:bg-yellow-500", "focus:ring-yellow-300"].join(
+        " "
+      );
+    case "danger":
+      return ["bg-red-600", "text-white", "hover:bg-red-500", "focus:ring-red-300"].join(" ");
     default:
       return base;
   }
@@ -88,6 +103,24 @@ const getVariantStyle = (variant: ButtonVariant) => {
         color: DASHBOARD_COLORS.primary,
         "--hover-bg": `${DASHBOARD_COLORS.primaryLight}20`,
         "--focus-ring": DASHBOARD_COLORS.primaryLight,
+      } as React.CSSProperties & { "--hover-bg"?: string; "--focus-ring"?: string };
+    case "success":
+      return {
+        backgroundColor: "#16a34a",
+        "--hover-bg": "#15803d",
+        "--focus-ring": "#86efac",
+      } as React.CSSProperties & { "--hover-bg"?: string; "--focus-ring"?: string };
+    case "warning":
+      return {
+        backgroundColor: "#ca8a04",
+        "--hover-bg": "#a16207",
+        "--focus-ring": "#fde047",
+      } as React.CSSProperties & { "--hover-bg"?: string; "--focus-ring"?: string };
+    case "danger":
+      return {
+        backgroundColor: "#dc2626",
+        "--hover-bg": "#b91c1c",
+        "--focus-ring": "#fca5a5",
       } as React.CSSProperties & { "--hover-bg"?: string; "--focus-ring"?: string };
     default:
       return {};
@@ -169,6 +202,12 @@ export const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonPr
           onMouseLeave={(e) => {
             if (variant === "primary") {
               e.currentTarget.style.backgroundColor = DASHBOARD_COLORS.primary;
+            } else if (variant === "success") {
+              e.currentTarget.style.backgroundColor = "#16a34a";
+            } else if (variant === "warning") {
+              e.currentTarget.style.backgroundColor = "#ca8a04";
+            } else if (variant === "danger") {
+              e.currentTarget.style.backgroundColor = "#dc2626";
             } else {
               e.currentTarget.style.backgroundColor = "";
             }

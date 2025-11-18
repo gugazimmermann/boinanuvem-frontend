@@ -22,6 +22,7 @@ import { getServiceProviderById } from "~/services/service-providers.service";
 import { getAnimalById } from "~/services/animals.service";
 import { getBirthByAnimalId } from "~/services/births.service";
 import { getWeighingsByAnimalId } from "~/services/weighings.service";
+import { getBreedingsByAnimalId } from "~/services/breedings.service";
 import type { LocationMovement } from "~/types/location-movement";
 import type { AnimalMovement } from "~/types/animal-movement";
 import type { Animal } from "~/types";
@@ -583,6 +584,38 @@ export default function MovementDetails() {
 
                   const gpd = (weightDifference / daysDifference).toFixed(2);
                   return <span className="text-gray-700 dark:text-gray-300">{gpd}</span>;
+                },
+              },
+              {
+                key: "breedingStatus",
+                label: t.animals.table.breedingStatus,
+                sortable: false,
+                render: (_, row) => {
+                  const birth = getBirthByAnimalId(row.id);
+                  if (!birth || birth.gender !== "female") {
+                    return <span className="text-gray-700 dark:text-gray-300">-</span>;
+                  }
+                  const breedings = getBreedingsByAnimalId(row.id);
+                  if (breedings.length === 0) {
+                    return <span className="text-gray-700 dark:text-gray-300">-</span>;
+                  }
+                  const hasConfirmed = breedings.some((b) => b.confirmed === true);
+
+                  if (hasConfirmed) {
+                    return (
+                      <StatusBadge
+                        label={t.animals.table.breedingStatusPregnant}
+                        variant="success"
+                      />
+                    );
+                  } else {
+                    return (
+                      <StatusBadge
+                        label={t.animals.table.breedingStatusPregnant}
+                        variant="warning"
+                      />
+                    );
+                  }
                 },
               },
               {

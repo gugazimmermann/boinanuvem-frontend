@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -42,7 +41,7 @@ vi.mock("~/mocks/animals", async () => {
 });
 
 vi.mock("~/services/animals.service", () => ({
-  getAnimalById: (...args: any[]) => mockGetAnimalById(...args),
+  getAnimalById: (...args: unknown[]) => mockGetAnimalById(...args),
 }));
 
 const mockGetLocationsByPropertyId = vi.fn(() => [{ id: "loc-1", name: "Test Location" }]);
@@ -61,7 +60,7 @@ vi.mock("~/mocks/locations", async () => {
 });
 
 vi.mock("~/services/locations.service", () => ({
-  getLocationsByPropertyId: (...args: any[]) => mockGetLocationsByPropertyId(...args),
+  getLocationsByPropertyId: (...args: unknown[]) => mockGetLocationsByPropertyId(...args),
 }));
 
 vi.mock("~/mocks/employees", async () => {
@@ -91,12 +90,24 @@ vi.mock("~/mocks/companies", async () => {
 });
 
 vi.mock("~/services/animal-movements.service", () => ({
-  addAnimalMovement: (...args: any[]) => mockAddAnimalMovement(...args),
-  getAnimalMovementsByAnimalId: (...args: any[]) => mockGetAnimalMovementsByAnimalId(...args),
+  addAnimalMovement: (...args: unknown[]) => mockAddAnimalMovement(...args),
+  getAnimalMovementsByAnimalId: (...args: unknown[]) => mockGetAnimalMovementsByAnimalId(...args),
 }));
 
 vi.mock("~/components/ui", () => ({
-  Input: ({ label, placeholder, value, onChange, ...props }: any) => (
+  Input: ({
+    label,
+    placeholder,
+    value,
+    onChange,
+    ...props
+  }: {
+    label?: string;
+    placeholder?: string;
+    value?: string | number;
+    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    [key: string]: unknown;
+  }) => (
     <input
       data-testid={`input-${label || placeholder || "input"}`}
       aria-label={label}
@@ -106,24 +117,50 @@ vi.mock("~/components/ui", () => ({
       {...props}
     />
   ),
-  Select: ({ options, value, onChange, name, label, ...props }: any) => (
+  Select: ({
+    options,
+    value,
+    onChange,
+    name,
+    label,
+    ...props
+  }: {
+    options?: Array<{ value: string; label: string }>;
+    value?: string | number;
+    onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+    name?: string;
+    label?: string;
+    [key: string]: unknown;
+  }) => (
     <select
       data-testid={`select-${name || label || "select"}`}
       value={value || ""}
       onChange={onChange}
       {...props}
     >
-      {options?.map((opt: any) => (
+      {options?.map((opt) => (
         <option key={opt.value} value={opt.value}>
           {opt.label}
         </option>
       ))}
     </select>
   ),
-  Button: ({ children, onClick, type, disabled, ...props }: any) => (
+  Button: ({
+    children,
+    onClick,
+    type,
+    disabled,
+    ...props
+  }: {
+    children?: React.ReactNode;
+    onClick?: () => void;
+    type?: "button" | "submit" | "reset" | undefined;
+    disabled?: boolean;
+    [key: string]: unknown;
+  }) => (
     <button
       data-testid="submit-button"
-      type={type}
+      type={type as "button" | "submit" | "reset" | undefined}
       onClick={onClick}
       disabled={disabled}
       {...props}
@@ -131,14 +168,16 @@ vi.mock("~/components/ui", () => ({
       {children}
     </button>
   ),
-  FileUpload: ({ onFilesChange }: any) => (
+  FileUpload: ({ onFilesChange }: { onFilesChange?: (files: File[]) => void }) => (
     <input
       type="file"
       data-testid="file-upload"
       onChange={(e) => onFilesChange?.(Array.from(e.target.files || []))}
     />
   ),
-  Alert: ({ title, variant }: any) => <div data-testid={`alert-${variant}`}>{title}</div>,
+  Alert: ({ title, variant }: { title?: string; variant?: string }) => (
+    <div data-testid={`alert-${variant}`}>{title}</div>
+  ),
 }));
 
 describe("NewAnimalMovement", () => {

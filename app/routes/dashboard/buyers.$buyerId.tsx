@@ -117,7 +117,6 @@ function BuyerFinanceDashboard({ buyerId }: BuyerFinanceDashboardProps) {
 
   const netCashFlow = totalIncome - totalExpenses;
 
-  // Accounts Receivable totals
   const unpaidReceivable = accountsReceivableData.filter(
     (ar) =>
       ar.status === AccountsReceivableStatus.UNPAID ||
@@ -155,7 +154,6 @@ function BuyerFinanceDashboard({ buyerId }: BuyerFinanceDashboardProps) {
     }, 0);
   }, [overdueReceivable]);
 
-  // Monthly data for last 12 months
   const monthlyData = useMemo(() => {
     const months: Record<string, { month: string; income: number; expenses: number; net: number }> =
       {};
@@ -190,7 +188,6 @@ function BuyerFinanceDashboard({ buyerId }: BuyerFinanceDashboardProps) {
     return Object.values(months);
   }, [cashFlowData, currentDate]);
 
-  // Expense categories breakdown
   const expenseCategoriesData = useMemo(() => {
     const categories: Record<string, number> = {};
 
@@ -229,7 +226,6 @@ function BuyerFinanceDashboard({ buyerId }: BuyerFinanceDashboardProps) {
 
   return (
     <div className="space-y-6">
-      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
@@ -318,9 +314,7 @@ function BuyerFinanceDashboard({ buyerId }: BuyerFinanceDashboardProps) {
         </div>
       </div>
 
-      {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Income vs Expenses Trend */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
             {t.financesDashboard.charts.incomeVsExpenses}
@@ -360,7 +354,6 @@ function BuyerFinanceDashboard({ buyerId }: BuyerFinanceDashboardProps) {
           </ResponsiveContainer>
         </div>
 
-        {/* Monthly Cash Flow */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
             {t.financesDashboard.charts.monthlyCashFlow}
@@ -399,7 +392,6 @@ function BuyerFinanceDashboard({ buyerId }: BuyerFinanceDashboardProps) {
           </ResponsiveContainer>
         </div>
 
-        {/* Expense Categories */}
         {expenseCategoriesData.length > 0 && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 lg:col-span-2">
             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
@@ -1243,7 +1235,6 @@ export default function BuyerDetails() {
       {activeTab === "finance" &&
         buyer &&
         (() => {
-          // Finance sub-tabs navigation
           return (
             <div className="space-y-6">
               <div className="mb-4">

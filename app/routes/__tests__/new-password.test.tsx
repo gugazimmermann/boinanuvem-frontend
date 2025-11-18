@@ -1,11 +1,12 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
+import type { ComponentProps } from "react";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
 import NewPassword, { meta } from "../new-password";
 import { ROUTES } from "~/routes.config";
+import { AuthInput, AuthButton } from "~/components/site/ui";
 
 vi.mock("~/components/site/auth-layout", () => ({
   AuthLayout: ({ children }: { children: React.ReactNode }) => (
@@ -21,7 +22,7 @@ vi.mock("~/components/site/ui", () => ({
     value,
     onChange,
     ...props
-  }: any) => {
+  }: ComponentProps<typeof AuthInput> & { fullWidth?: boolean }) => {
     const { fullWidth: _fullWidth, ...rest } = props;
 
     const inputProps = onChange ? { value: value || "", onChange } : { defaultValue: value || "" };
@@ -35,8 +36,19 @@ vi.mock("~/components/site/ui", () => ({
       />
     );
   },
-  AuthButton: ({ children, fullWidth: _fullWidth, onClick, type, ...props }: any) => (
-    <button data-testid="auth-button" type={type} onClick={onClick} {...props}>
+  AuthButton: ({
+    children,
+    fullWidth: _fullWidth,
+    onClick,
+    type,
+    ...props
+  }: ComponentProps<typeof AuthButton>) => (
+    <button
+      data-testid="auth-button"
+      type={type as "button" | "submit" | "reset" | undefined}
+      onClick={onClick as React.MouseEventHandler<HTMLButtonElement> | undefined}
+      {...(props as React.ButtonHTMLAttributes<HTMLButtonElement>)}
+    >
       {children}
     </button>
   ),

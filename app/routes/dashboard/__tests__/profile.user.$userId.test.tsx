@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -17,7 +16,7 @@ vi.mock("react-router", async () => {
 });
 
 vi.mock("~/components/dashboard/profile", () => ({
-  UserProfile: ({ userId, readOnly }: any) => (
+  UserProfile: ({ userId, readOnly }: { userId?: string; readOnly?: boolean }) => (
     <div data-testid="user-profile">
       User Profile: {userId} (ReadOnly: {readOnly ? "true" : "false"})
     </div>
@@ -25,7 +24,19 @@ vi.mock("~/components/dashboard/profile", () => ({
 }));
 
 vi.mock("~/components/ui", () => ({
-  Button: ({ children, onClick, leftIcon, rightIcon, ...props }: any) => (
+  Button: ({
+    children,
+    onClick,
+    leftIcon,
+    rightIcon,
+    ...props
+  }: {
+    children?: React.ReactNode;
+    onClick?: () => void;
+    leftIcon?: React.ReactNode;
+    rightIcon?: React.ReactNode;
+    [key: string]: unknown;
+  }) => (
     <button onClick={onClick} {...props}>
       {leftIcon}
       {children}

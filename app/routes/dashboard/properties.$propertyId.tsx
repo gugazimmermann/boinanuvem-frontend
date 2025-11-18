@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router";
+import { useState, useMemo } from "react";
+import { useParams, useNavigate, useSearchParams, Link } from "react-router";
 import {
   differenceInMonths,
   differenceInDays,
@@ -55,6 +55,8 @@ import { getAnimalMovementsByPropertyId } from "~/services/animal-movements.serv
 import { getAnimalsByPropertyId, deleteAnimal, getAnimalById } from "~/services/animals.service";
 import { getBirthByAnimalId } from "~/services/births.service";
 import { getWeighingsByAnimalId } from "~/services/weighings.service";
+import { getBreedingsByAnimalId } from "~/services/breedings.service";
+import { getExpectedBirthsForecast } from "~/services/reproductive-indexes.service";
 import { getCashFlowByPropertyId } from "~/services/cash-flow.service";
 import { getAccountsReceivableByPropertyId } from "~/services/accounts-receivable.service";
 import { getAccountsPayableByPropertyId } from "~/services/accounts-payable.service";
@@ -90,7 +92,6 @@ import type {
 import { AreaType } from "~/types";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
 import { LocationTypeBadge } from "~/components/dashboard/utils/location-type-badge";
-import { useMemo } from "react";
 import {
   LineChart,
   Line,
@@ -107,6 +108,7 @@ import {
 } from "recharts";
 import { useTheme } from "~/contexts/theme-context";
 import { AccountsPayableStatus, AccountsReceivableStatus } from "~/types";
+import { ReproductiveIndexes } from "~/components/dashboard/reproductive-indexes/reproductive-indexes";
 
 const formatAreaType = (type: AreaType): string => {
   const typeMap: Record<AreaType, string> = {
@@ -180,7 +182,6 @@ function PropertyFinanceDashboard({ propertyId }: PropertyFinanceDashboardProps)
 
   const netCashFlow = totalIncome - totalExpenses;
 
-  // Accounts Payable totals
   const unpaidPayable = accountsPayableData.filter(
     (ap) =>
       ap.status === AccountsPayableStatus.UNPAID || ap.status === AccountsPayableStatus.OVERDUE
@@ -190,7 +191,6 @@ function PropertyFinanceDashboard({ propertyId }: PropertyFinanceDashboardProps)
     return sum + remainingAmount;
   }, 0);
 
-  // Accounts Receivable totals
   const unpaidReceivable = accountsReceivableData.filter(
     (ar) =>
       ar.status === AccountsReceivableStatus.UNPAID ||
@@ -201,7 +201,6 @@ function PropertyFinanceDashboard({ propertyId }: PropertyFinanceDashboardProps)
     return sum + remainingAmount;
   }, 0);
 
-  // Overdue amounts
   const today = useMemo(() => {
     const date = new Date();
     date.setHours(0, 0, 0, 0);
@@ -252,7 +251,6 @@ function PropertyFinanceDashboard({ propertyId }: PropertyFinanceDashboardProps)
 
   const totalOverdue = totalOverduePayable + totalOverdueReceivable;
 
-  // Monthly data for last 12 months
   const monthlyData = useMemo(() => {
     const months: Record<string, { month: string; income: number; expenses: number; net: number }> =
       {};
@@ -287,7 +285,6 @@ function PropertyFinanceDashboard({ propertyId }: PropertyFinanceDashboardProps)
     return Object.values(months);
   }, [cashFlowData, currentDate]);
 
-  // Expense categories breakdown
   const expenseCategoriesData = useMemo(() => {
     const categories: Record<string, number> = {};
 
@@ -326,7 +323,6 @@ function PropertyFinanceDashboard({ propertyId }: PropertyFinanceDashboardProps)
 
   return (
     <div className="space-y-6">
-      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
@@ -431,9 +427,7 @@ function PropertyFinanceDashboard({ propertyId }: PropertyFinanceDashboardProps)
         </div>
       </div>
 
-      {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Income vs Expenses Trend */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
             {t.financesDashboard.charts.incomeVsExpenses}
@@ -473,7 +467,6 @@ function PropertyFinanceDashboard({ propertyId }: PropertyFinanceDashboardProps)
           </ResponsiveContainer>
         </div>
 
-        {/* Monthly Cash Flow */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
             {t.financesDashboard.charts.monthlyCashFlow}
@@ -512,7 +505,6 @@ function PropertyFinanceDashboard({ propertyId }: PropertyFinanceDashboardProps)
           </ResponsiveContainer>
         </div>
 
-        {/* Expense Categories */}
         {expenseCategoriesData.length > 0 && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 lg:col-span-2">
             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
@@ -582,7 +574,8 @@ export default function PropertyDetails() {
     tabParam === "registrations" ||
     tabParam === "activities" ||
     tabParam === "movements" ||
-    tabParam === "finance"
+    tabParam === "finance" ||
+    tabParam === "indices-reprodutivos"
       ? tabParam
       : "information";
 
@@ -643,6 +636,19 @@ export default function PropertyDetails() {
     variant: "success" | "error" | "warning" | "info";
   } | null>(null);
 
+  const expectedBirthsForecast = useMemo(() => {
+    if (!property) return { monthly: [], total: 0 };
+    return getExpectedBirthsForecast(property.id, { isPropertyId: true, monthsAhead: 9 });
+  }, [property]);
+
+  const nextMonthExpected = useMemo(() => {
+    if (!expectedBirthsForecast.monthly || expectedBirthsForecast.monthly.length === 0) return 0;
+    const today = new Date();
+    const nextMonthKey = `${today.getFullYear()}-${String(today.getMonth() + 2).padStart(2, "0")}`;
+    const nextMonth = expectedBirthsForecast.monthly.find((item) => item.month === nextMonthKey);
+    return nextMonth?.expectedBirths || 0;
+  }, [expectedBirthsForecast.monthly]);
+
   if (!property) {
     return (
       <div className="space-y-6">
@@ -697,9 +703,11 @@ export default function PropertyDetails() {
     }
   };
 
-  const areaInHectares = convertToHectares(property.area.value, property.area.type);
+  const areaInHectares = property ? convertToHectares(property.area.value, property.area.type) : 0;
   const stockingRate = areaInHectares > 0 && animalUnits > 0 ? animalUnits / areaInHectares : 0;
   const density = areaInHectares > 0 && animalsCount > 0 ? animalsCount / areaInHectares : 0;
+  const averageWeight = animalsCount > 0 ? totalWeight / animalsCount : 0;
+  const nextThreeMonthsTotal = expectedBirthsForecast.total;
 
   const showAlert = (
     title: string,
@@ -856,6 +864,26 @@ export default function PropertyDetails() {
           </button>
           <button
             onClick={() => {
+              setSearchParams({ tab: "indices-reprodutivos" });
+            }}
+            className={`
+              py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
+              ${
+                activeTab === "indices-reprodutivos"
+                  ? "dark:text-blue-400"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+              }
+            `}
+            style={
+              activeTab === "indices-reprodutivos"
+                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
+                : undefined
+            }
+          >
+            {t.properties.details.tabs.reproductiveIndexes}
+          </button>
+          <button
+            onClick={() => {
               setSearchParams({ tab: "movements" });
             }}
             className={`
@@ -959,7 +987,7 @@ export default function PropertyDetails() {
 
       {activeTab === "information" && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <div>
@@ -1028,7 +1056,7 @@ export default function PropertyDetails() {
                     })}
                   </p>
                 </div>
-                <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
                   <span className="text-lg">📊</span>
                 </div>
               </div>
@@ -1050,8 +1078,8 @@ export default function PropertyDetails() {
                     {t.dashboard.stats.uaPerHa}
                   </p>
                 </div>
-                <div className="w-10 h-10 bg-teal-100 dark:bg-teal-900/30 rounded-lg flex items-center justify-center">
-                  <span className="text-lg">📈</span>
+                <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
+                  <span className="text-lg">🌱</span>
                 </div>
               </div>
             </div>
@@ -1073,7 +1101,52 @@ export default function PropertyDetails() {
                   </p>
                 </div>
                 <div className="w-10 h-10 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg flex items-center justify-center">
-                  <span className="text-lg">📊</span>
+                  <span className="text-lg">📈</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {t.dashboard.stats.averageWeight}
+                  </p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                    {averageWeight.toFixed(0)}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {t.dashboard.stats.kgPerAnimal}
+                  </p>
+                </div>
+                <div className="w-10 h-10 bg-teal-100 dark:bg-teal-900/30 rounded-lg flex items-center justify-center">
+                  <span className="text-lg">⚖️</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {t.dashboard.stats.expectedBirths}
+                  </p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                    {nextMonthExpected}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {t.dashboard.stats.nextMonth} • {nextThreeMonthsTotal}{" "}
+                    {t.dashboard.stats.nextThreeMonths}
+                  </p>
+                  <Link
+                    to={ROUTES.BIRTH_FORECAST}
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-1 inline-block"
+                  >
+                    {t.dashboard.stats.viewForecast}
+                  </Link>
+                </div>
+                <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center">
+                  <span className="text-lg">📅</span>
                 </div>
               </div>
             </div>
@@ -1632,6 +1705,32 @@ export default function PropertyDetails() {
 
                 const gpd = (weightDifference / daysDifference).toFixed(2);
                 return <span className="text-gray-700 dark:text-gray-300">{gpd}</span>;
+              },
+            },
+            {
+              key: "breedingStatus",
+              label: t.animals.table.breedingStatus,
+              sortable: false,
+              render: (_, row) => {
+                const birth = getBirthByAnimalId(row.id);
+                if (!birth || birth.gender !== "female") {
+                  return <span className="text-gray-700 dark:text-gray-300">-</span>;
+                }
+                const breedings = getBreedingsByAnimalId(row.id);
+                if (breedings.length === 0) {
+                  return <span className="text-gray-700 dark:text-gray-300">-</span>;
+                }
+                const hasConfirmed = breedings.some((b) => b.confirmed === true);
+
+                if (hasConfirmed) {
+                  return (
+                    <StatusBadge label={t.animals.table.breedingStatusPregnant} variant="success" />
+                  );
+                } else {
+                  return (
+                    <StatusBadge label={t.animals.table.breedingStatusPregnant} variant="warning" />
+                  );
+                }
               },
             },
             {
@@ -2577,6 +2676,10 @@ export default function PropertyDetails() {
         </div>
       )}
 
+      {activeTab === "indices-reprodutivos" && property && (
+        <ReproductiveIndexes propertyId={property.id} />
+      )}
+
       {activeTab === "movements" &&
         property &&
         (() => {
@@ -2992,7 +3095,6 @@ export default function PropertyDetails() {
       {activeTab === "finance" &&
         property &&
         (() => {
-          // Finance sub-tabs navigation
           return (
             <div className="space-y-6">
               <div className="mb-4">

@@ -3,25 +3,16 @@ import { mockBuyerObservations } from "~/mocks/buyer-observations";
 import { findById, findByField, deleteEntity } from "./base-service";
 import { generateUUID } from "~/utils/uuid";
 
-/**
- * Get buyer observations by buyer ID
- */
 export function getBuyerObservationsByBuyerId(buyerId: string): BuyerObservation[] {
   return findByField(mockBuyerObservations, "buyerId", buyerId);
 }
 
-/**
- * Get buyer observation by ID
- */
 export function getBuyerObservationById(
   observationId: string | undefined
 ): BuyerObservation | undefined {
   return findById(mockBuyerObservations, observationId);
 }
 
-/**
- * Add a new buyer observation
- */
 export function addBuyerObservation(data: BuyerObservationFormData): BuyerObservation {
   const newObservation: BuyerObservation = {
     ...data,
@@ -33,16 +24,10 @@ export function addBuyerObservation(data: BuyerObservationFormData): BuyerObserv
   return newObservation;
 }
 
-/**
- * Delete a buyer observation
- */
 export function deleteBuyerObservation(observationId: string): boolean {
   return deleteEntity(mockBuyerObservations, observationId);
 }
 
-/**
- * Update a buyer observation
- */
 export function updateBuyerObservation(
   observationId: string,
   data: Partial<BuyerObservationFormData>

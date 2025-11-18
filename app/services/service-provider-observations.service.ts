@@ -6,27 +6,18 @@ import { mockServiceProviderObservations } from "~/mocks/service-provider-observ
 import { findById, findByField, deleteEntity } from "./base-service";
 import { generateUUID } from "~/utils/uuid";
 
-/**
- * Get service provider observations by service provider ID
- */
 export function getServiceProviderObservationsByServiceProviderId(
   serviceProviderId: string
 ): ServiceProviderObservation[] {
   return findByField(mockServiceProviderObservations, "serviceProviderId", serviceProviderId);
 }
 
-/**
- * Get service provider observation by ID
- */
 export function getServiceProviderObservationById(
   observationId: string | undefined
 ): ServiceProviderObservation | undefined {
   return findById(mockServiceProviderObservations, observationId);
 }
 
-/**
- * Add a new service provider observation
- */
 export function addServiceProviderObservation(
   data: ServiceProviderObservationFormData
 ): ServiceProviderObservation {
@@ -40,16 +31,10 @@ export function addServiceProviderObservation(
   return newObservation;
 }
 
-/**
- * Delete a service provider observation
- */
 export function deleteServiceProviderObservation(observationId: string): boolean {
   return deleteEntity(mockServiceProviderObservations, observationId);
 }
 
-/**
- * Update a service provider observation
- */
 export function updateServiceProviderObservation(
   observationId: string,
   data: Partial<ServiceProviderObservationFormData>

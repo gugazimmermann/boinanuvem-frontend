@@ -1,11 +1,12 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
+import type { ComponentProps } from "react";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
 import EditTeamMember from "../team.edit.$userId";
 import { getUserById, updateUser } from "~/services/users.service";
+import { Input, Button, Alert } from "~/components/ui";
 
 const mockNavigate = vi.fn();
 
@@ -27,7 +28,15 @@ vi.mock("~/components/site/hooks", () => ({
 }));
 
 vi.mock("~/components/ui", () => ({
-  Input: ({ label, placeholder, value, onChange, error, type, ...props }: any) => (
+  Input: ({
+    label,
+    placeholder,
+    value,
+    onChange,
+    error,
+    type,
+    ...props
+  }: ComponentProps<typeof Input>) => (
     <div>
       <label>{label}</label>
       <input
@@ -41,18 +50,23 @@ vi.mock("~/components/ui", () => ({
       {error && <span data-testid={`error-${label || placeholder}`}>{error}</span>}
     </div>
   ),
-  Button: ({ children, onClick, type, disabled, ...props }: any) => (
-    <button
-      data-testid="submit-button"
-      type={type}
-      onClick={onClick}
-      disabled={disabled}
-      {...props}
-    >
-      {children}
-    </button>
+  Button: ({ children, onClick, type, ...props }: ComponentProps<typeof Button>) => {
+    const buttonProps = props as React.ButtonHTMLAttributes<HTMLButtonElement>;
+    return (
+      <button
+        data-testid="submit-button"
+        type={type as "button" | "submit" | "reset" | undefined}
+        onClick={onClick as React.MouseEventHandler<HTMLButtonElement> | undefined}
+        disabled={buttonProps.disabled}
+        {...buttonProps}
+      >
+        {children}
+      </button>
+    );
+  },
+  Alert: ({ title, variant }: ComponentProps<typeof Alert>) => (
+    <div data-testid={`alert-${variant}`}>{title}</div>
   ),
-  Alert: ({ title, variant }: any) => <div data-testid={`alert-${variant}`}>{title}</div>,
 }));
 
 describe("EditTeamMember", () => {

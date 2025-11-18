@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -22,8 +21,8 @@ vi.mock("react-router", async () => {
 });
 
 vi.mock("~/services/weighings.service", () => ({
-  addWeighing: (...args: any[]) => mockAddWeighing(...args),
-  getWeighingsByAnimalId: (...args: any[]) => mockGetWeighingsByAnimalId(...args),
+  addWeighing: (...args: unknown[]) => mockAddWeighing(...args),
+  getWeighingsByAnimalId: (...args: unknown[]) => mockGetWeighingsByAnimalId(...args),
 }));
 
 vi.mock("~/mocks/animals", async () => {
@@ -43,7 +42,7 @@ vi.mock("~/services/animals.service", () => ({
       createdAt: "2024-01-01",
     },
   ]),
-  getAnimalById: (...args: any[]) => mockGetAnimalById(...args),
+  getAnimalById: (...args: unknown[]) => mockGetAnimalById(...args),
 }));
 
 vi.mock("~/mocks/companies", async () => {
@@ -65,7 +64,7 @@ vi.mock("~/mocks/employees", async () => {
 });
 
 vi.mock("~/services/employees.service", () => ({
-  getEmployeeById: (...args: any[]) => mockGetEmployeeById(...args),
+  getEmployeeById: (...args: unknown[]) => mockGetEmployeeById(...args),
 }));
 
 vi.mock("~/mocks/service-providers", async () => {
@@ -81,11 +80,23 @@ vi.mock("~/mocks/service-providers", async () => {
 });
 
 vi.mock("~/services/service-providers.service", () => ({
-  getServiceProviderById: (...args: any[]) => mockGetServiceProviderById(...args),
+  getServiceProviderById: (...args: unknown[]) => mockGetServiceProviderById(...args),
 }));
 
 vi.mock("~/components/ui", () => ({
-  Input: ({ label, placeholder, value, onChange, ...props }: any) => (
+  Input: ({
+    label,
+    placeholder,
+    value,
+    onChange,
+    ...props
+  }: {
+    label?: string;
+    placeholder?: string;
+    value?: string | number;
+    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    [key: string]: unknown;
+  }) => (
     <input
       data-testid={`input-${label || placeholder || "input"}`}
       aria-label={label}
@@ -95,10 +106,24 @@ vi.mock("~/components/ui", () => ({
       {...props}
     />
   ),
-  Button: ({ children, onClick, type, disabled, variant, ...props }: any) => (
+  Button: ({
+    children,
+    onClick,
+    type,
+    disabled,
+    variant,
+    ...props
+  }: {
+    children?: React.ReactNode;
+    onClick?: () => void;
+    type?: "button" | "submit" | "reset" | undefined;
+    disabled?: boolean;
+    variant?: string;
+    [key: string]: unknown;
+  }) => (
     <button
       data-testid={type === "submit" ? "submit-button" : "button"}
-      type={type}
+      type={type as "button" | "submit" | "reset" | undefined}
       onClick={onClick}
       disabled={disabled}
       data-variant={variant}
@@ -107,8 +132,28 @@ vi.mock("~/components/ui", () => ({
       {children}
     </button>
   ),
-  Alert: ({ title, variant }: any) => <div data-testid={`alert-${variant}`}>{title}</div>,
-  Table: ({ columns, data, search, pagination, emptyState, slim }: any) => (
+  Alert: ({ title, variant }: { title?: string; variant?: string }) => (
+    <div data-testid={`alert-${variant}`}>{title}</div>
+  ),
+  Table: ({
+    columns,
+    data,
+    search,
+    pagination,
+    emptyState,
+    slim,
+  }: {
+    columns?: Array<{
+      key: string;
+      label: string;
+      render?: (value: unknown, row: unknown, index: number) => React.ReactNode;
+    }>;
+    data?: unknown[];
+    search?: { placeholder?: string; value: string; onChange: (value: string) => void };
+    pagination?: { currentPage: number; totalPages: number };
+    emptyState?: { title?: string };
+    slim?: boolean;
+  }) => (
     <div data-testid="table" data-slim={slim}>
       {search && (
         <input
@@ -121,21 +166,25 @@ vi.mock("~/components/ui", () => ({
       <table>
         <thead>
           <tr>
-            {columns.map((col: any) => (
+            {columns?.map((col) => (
               <th key={col.key}>{col.label}</th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {data.length === 0 ? (
+          {!data || data.length === 0 ? (
             <tr>
-              <td colSpan={columns.length}>{emptyState?.title || "No data"}</td>
+              <td colSpan={columns?.length || 0}>{emptyState?.title || "No data"}</td>
             </tr>
           ) : (
-            data.map((row: any, idx: number) => (
+            data?.map((row, idx: number) => (
               <tr key={idx}>
-                {columns.map((col: any) => (
-                  <td key={col.key}>{col.render ? col.render(null, row, idx) : row[col.key]}</td>
+                {columns?.map((col) => (
+                  <td key={col.key}>
+                    {col.render
+                      ? (col.render(null, row, idx) as React.ReactNode)
+                      : String((row as Record<string, unknown>)[col.key] ?? "")}
+                  </td>
                 ))}
               </tr>
             ))

@@ -1,10 +1,12 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
+import type { ComponentProps } from "react";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
 import ForgotPassword, { meta } from "../forgot-password";
 import { ROUTES } from "~/routes.config";
+import { AuthInput, AuthButton } from "~/components/site/ui";
 
 vi.mock("~/components/site/auth-layout", () => ({
   AuthLayout: ({ children }: { children: React.ReactNode }) => (
@@ -13,8 +15,13 @@ vi.mock("~/components/site/auth-layout", () => ({
 }));
 
 vi.mock("~/components/site/ui", () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  AuthInput: ({ type, placeholder, value, onChange, ...props }: any) => {
+  AuthInput: ({
+    type,
+    placeholder,
+    value,
+    onChange,
+    ...props
+  }: ComponentProps<typeof AuthInput> & { fullWidth?: boolean }) => {
     const { fullWidth: _fullWidth, showPasswordToggle: _showPasswordToggle, ...rest } = props;
 
     const inputProps = onChange ? { value: value || "", onChange } : { defaultValue: value || "" };
@@ -28,9 +35,19 @@ vi.mock("~/components/site/ui", () => ({
       />
     );
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  AuthButton: ({ children, fullWidth: _fullWidth, onClick, type, ...props }: any) => (
-    <button data-testid="auth-button" type={type} onClick={onClick} {...props}>
+  AuthButton: ({
+    children,
+    fullWidth: _fullWidth,
+    onClick,
+    type,
+    ...props
+  }: ComponentProps<typeof AuthButton>) => (
+    <button
+      data-testid="auth-button"
+      type={type as "button" | "submit" | "reset" | undefined}
+      onClick={onClick as React.MouseEventHandler<HTMLButtonElement> | undefined}
+      {...(props as React.ButtonHTMLAttributes<HTMLButtonElement>)}
+    >
       {children}
     </button>
   ),

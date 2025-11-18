@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -67,33 +66,58 @@ vi.mock("~/services/weighings.service", () => ({
 }));
 
 vi.mock("~/components/ui", () => ({
-  Button: ({ children, onClick, leftIcon, ...props }: any) => (
+  Button: ({
+    children,
+    onClick,
+    leftIcon,
+    ...props
+  }: {
+    children?: React.ReactNode;
+    onClick?: () => void;
+    leftIcon?: React.ReactNode;
+    [key: string]: unknown;
+  }) => (
     <button onClick={onClick} {...props}>
       {leftIcon}
       {children}
     </button>
   ),
-  Table: ({ data, columns, onRowClick, emptyState }: any) => (
+  Table: ({
+    data,
+    columns,
+    onRowClick,
+    emptyState,
+  }: {
+    data?: unknown[];
+    columns?: Array<{ key: string; render?: (value: unknown, row: unknown) => React.ReactNode }>;
+    onRowClick?: (row: unknown) => void;
+    emptyState?: { title?: string };
+  }) => (
     <div data-testid="table">
       {data && data.length > 0 ? (
         <div>
-          {data.map((row: any, idx: number) => (
-            <div key={idx} data-testid={`table-row-${idx}`} onClick={() => onRowClick?.(row)}>
-              {columns?.map((col: any, colIdx: number) => (
-                <div key={colIdx} data-testid={`cell-${col.key}`}>
-                  {col.render ? col.render(null, row) : row[col.key]}
-                </div>
-              ))}
-            </div>
-          ))}
+          {data.map((row, idx: number) => {
+            const rowObj = row as Record<string, unknown>;
+            return (
+              <div key={idx} data-testid={`table-row-${idx}`} onClick={() => onRowClick?.(row)}>
+                {columns?.map((col, colIdx: number) => (
+                  <div key={colIdx} data-testid={`cell-${col.key}`}>
+                    {col.render ? col.render(null, row) : String(rowObj[col.key] ?? "")}
+                  </div>
+                ))}
+              </div>
+            );
+          })}
         </div>
       ) : (
         <div data-testid="empty-state">{emptyState?.title}</div>
       )}
     </div>
   ),
-  Tooltip: ({ children, content }: any) => <div title={content}>{children}</div>,
-  StatusBadge: ({ label, variant }: any) => (
+  Tooltip: ({ children, content }: { children?: React.ReactNode; content?: string }) => (
+    <div title={content}>{children}</div>
+  ),
+  StatusBadge: ({ label, variant }: { label?: string; variant?: string }) => (
     <span data-testid={`status-badge-${variant}`}>{label}</span>
   ),
 }));

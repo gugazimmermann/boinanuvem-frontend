@@ -1,14 +1,15 @@
-import { useState, useMemo } from "react";
-import { useNavigate } from "react-router";
+import { useState, useMemo, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router";
 import { Input, Select, Button, Alert } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { ROUTES } from "~/routes.config";
 import { addBirth, calculatePurity } from "~/services/births.service";
+import { unconfirmMostRecentBreedingForAnimal } from "~/services/breedings.service";
 import { addAnimal } from "~/services/animals.service";
 import { addWeighing } from "~/services/weighings.service";
-import type { BirthFormData, AnimalFormData, WeighingFormData } from "~/types";
+import type { BirthFormData, AnimalFormData, WeighingFormData, Property } from "~/types";
 import { mockCompanies } from "~/mocks/companies";
-import { getAnimalsByCompanyId } from "~/services/animals.service";
+import { getAnimalsByCompanyId, getAnimalById } from "~/services/animals.service";
 import { getBirthByAnimalId } from "~/services/births.service";
 import { mockProperties } from "~/mocks/properties";
 import { mockEmployees } from "~/mocks/employees";
@@ -27,10 +28,19 @@ export function meta() {
 export default function NewBirth() {
   const t = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const company = mockCompanies[0];
   const companyId = company?.id || "";
 
   const today = new Date().toISOString().split("T")[0];
+
+  const preSelectedData = useMemo(() => {
+    const state = location.state as { motherId?: string; fatherId?: string } | null;
+    return {
+      motherId: state?.motherId || "",
+      fatherId: state?.fatherId || "",
+    };
+  }, [location.state]);
 
   const [motherSearch, setMotherSearch] = useState("");
   const [fatherSearch, setFatherSearch] = useState("");
@@ -89,8 +99,8 @@ export default function NewBirth() {
     propertyId: "",
     birthDate: today,
     gender: "",
-    motherId: "",
-    fatherId: "",
+    motherId: preSelectedData.motherId,
+    fatherId: preSelectedData.fatherId,
     observation: "",
     weighingDate: today,
     weight: "",
@@ -105,6 +115,33 @@ export default function NewBirth() {
     title: string;
     variant: "success" | "error" | "warning" | "info";
   } | null>(null);
+
+  useEffect(() => {
+    if (animals.length > 0) {
+      if (preSelectedData.motherId) {
+        const mother = getAnimalById(preSelectedData.motherId);
+        if (mother && femaleAnimals.some((a) => a.id === preSelectedData.motherId)) {
+          setFormData((prev) => {
+            if (prev.motherId !== preSelectedData.motherId) {
+              return { ...prev, motherId: preSelectedData.motherId };
+            }
+            return prev;
+          });
+        }
+      }
+      if (preSelectedData.fatherId) {
+        const father = getAnimalById(preSelectedData.fatherId);
+        if (father && maleAnimals.some((a) => a.id === preSelectedData.fatherId)) {
+          setFormData((prev) => {
+            if (prev.fatherId !== preSelectedData.fatherId) {
+              return { ...prev, fatherId: preSelectedData.fatherId };
+            }
+            return prev;
+          });
+        }
+      }
+    }
+  }, [preSelectedData.motherId, preSelectedData.fatherId, animals, femaleAnimals, maleAnimals]);
 
   const showAlert = (
     title: string,
@@ -210,6 +247,10 @@ export default function NewBirth() {
       };
       addBirth(birthData);
 
+      if (formData.motherId) {
+        unconfirmMostRecentBreedingForAnimal(formData.motherId);
+      }
+
       if (formData.weight && formData.weighingDate) {
         const weighingData: WeighingFormData = {
           animalId: newAnimal.id,
@@ -293,8 +334,8 @@ export default function NewBirth() {
                   required
                   options={[
                     { value: "", label: "-" },
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    ...mockProperties.map((property: any) => ({
+
+                    ...mockProperties.map((property: Property) => ({
                       value: property.id,
                       label: property.name,
                     })),

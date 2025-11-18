@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -46,7 +45,20 @@ vi.mock("~/services/properties.service", async () => {
 });
 
 vi.mock("~/components/ui", () => ({
-  Input: ({ label, value, onChange, error, ...props }: any) => (
+  Input: ({
+    label,
+    value,
+    onChange,
+    error,
+    ...props
+  }: {
+    label?: string;
+    value?: string | number;
+    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    error?: string;
+    name?: string;
+    [key: string]: unknown;
+  }) => (
     <div>
       <label>{label}</label>
       <input
@@ -59,7 +71,21 @@ vi.mock("~/components/ui", () => ({
       {error && <span data-testid={`error-${label || props.name}`}>{error}</span>}
     </div>
   ),
-  Select: ({ options, value, onChange, name, label, ...props }: any) => (
+  Select: ({
+    options,
+    value,
+    onChange,
+    name,
+    label,
+    ...props
+  }: {
+    options?: Array<{ value: string; label: string }>;
+    value?: string | number;
+    onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+    name?: string;
+    label?: string;
+    [key: string]: unknown;
+  }) => (
     <div>
       <label>{label}</label>
       <select
@@ -68,7 +94,7 @@ vi.mock("~/components/ui", () => ({
         onChange={onChange}
         {...props}
       >
-        {options?.map((opt: any) => (
+        {options?.map((opt) => (
           <option key={opt.value} value={opt.value}>
             {opt.label}
           </option>
@@ -76,10 +102,22 @@ vi.mock("~/components/ui", () => ({
       </select>
     </div>
   ),
-  Button: ({ children, onClick, type, disabled, ...props }: any) => (
+  Button: ({
+    children,
+    onClick,
+    type,
+    disabled,
+    ...props
+  }: {
+    children?: React.ReactNode;
+    onClick?: () => void;
+    type?: "button" | "submit" | "reset" | undefined;
+    disabled?: boolean;
+    [key: string]: unknown;
+  }) => (
     <button
       data-testid="submit-button"
-      type={type}
+      type={type as "button" | "submit" | "reset" | undefined}
       onClick={onClick}
       disabled={disabled}
       {...props}
@@ -87,7 +125,9 @@ vi.mock("~/components/ui", () => ({
       {children}
     </button>
   ),
-  Alert: ({ title, variant }: any) => <div data-testid={`alert-${variant}`}>{title}</div>,
+  Alert: ({ title, variant }: { title?: string; variant?: string }) => (
+    <div data-testid={`alert-${variant}`}>{title}</div>
+  ),
 }));
 
 describe("EditAnimal", () => {

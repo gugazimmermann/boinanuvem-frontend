@@ -30,6 +30,18 @@ export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
     ],
   },
   {
+    translationKey: "breedings",
+    path: "#",
+    icon: "🤰",
+    subItems: [
+      { translationKey: "breedings", path: ROUTES.BREEDINGS_NEW, icon: "🤰" },
+      { translationKey: "unconfirmedBreedings", path: ROUTES.BREEDINGS_UNCONFIRMED, icon: "⏳" },
+      { translationKey: "pregnantCows", path: ROUTES.BREEDINGS_PREGNANT, icon: "🐄" },
+      { translationKey: "reproductiveIndexes", path: ROUTES.REPRODUCTIVE_INDEXES, icon: "📊" },
+      { translationKey: "birthForecast", path: ROUTES.BIRTH_FORECAST, icon: "📅" },
+    ],
+  },
+  {
     translationKey: "financas",
     path: "#",
     icon: "💰",

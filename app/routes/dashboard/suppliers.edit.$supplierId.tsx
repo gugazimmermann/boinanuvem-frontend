@@ -7,7 +7,7 @@ import { useCEPLookup, type CEPData } from "~/components/site/hooks";
 import { mapCEPDataToAddressForm } from "~/components/site/utils";
 import { ROUTES, getSupplierViewRoute } from "~/routes.config";
 import { getSupplierById, updateSupplier } from "~/services/suppliers.service";
-import type { SupplierFormData } from "~/types";
+import type { SupplierFormData, Property } from "~/types";
 import { mockProperties } from "~/mocks/properties";
 import { BRAZILIAN_STATES } from "~/utils/brazilian-states";
 
@@ -316,8 +316,7 @@ export default function EditSupplier() {
                   errors.propertyIds ? "border-red-500" : "border-gray-300 dark:border-gray-600"
                 }`}
               >
-                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                {mockProperties.map((property: any) => (
+                {mockProperties.map((property: Property) => (
                   <option key={property.id} value={property.id}>
                     {property.name}
                   </option>
