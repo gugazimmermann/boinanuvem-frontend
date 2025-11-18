@@ -5,32 +5,19 @@ import { DashboardLayout } from "../dashboard-layout";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
 import { AuthProvider } from "~/contexts/auth-context";
-import type { TeamUser } from "~/types";
+import { getUserById } from "~/services/users.service";
+import { createMockMainUser, setCurrentUserId, clearLocalStorage } from "~/test-utils";
 
-const mockUser: TeamUser = {
-  id: "test-user-id",
-  name: "Test User",
-  email: "test@example.com",
-  phone: "1234567890",
-  role: "user",
-  status: "active",
-  mainUser: false,
-  companyId: "company-id",
-  createdAt: "2025-01-01",
-  permissions: {} as never,
-};
+const mockUsePermissions = vi.fn();
+vi.mock("~/utils/permissions", () => ({
+  usePermissions: () => mockUsePermissions(),
+}));
 
 vi.mock("~/services/users.service", () => ({
-  getUserById: vi.fn((id: string) => {
-    if (id === "test-user-id") return mockUser;
-    return null;
-  }),
+  getUserById: vi.fn(),
 }));
 
 const wrapper = ({ children }: { children: React.ReactNode }) => {
-  if (typeof window !== "undefined") {
-    localStorage.setItem("currentUserId", "test-user-id");
-  }
   return (
     <MemoryRouter>
       <ThemeProvider>
@@ -44,10 +31,18 @@ const wrapper = ({ children }: { children: React.ReactNode }) => {
 
 describe("DashboardLayout", () => {
   beforeEach(() => {
-    if (typeof window !== "undefined") {
-      localStorage.clear();
-    }
+    clearLocalStorage();
     vi.clearAllMocks();
+    const mockUser = createMockMainUser();
+    vi.mocked(getUserById).mockReturnValue(mockUser);
+    setCurrentUserId(mockUser.id);
+    mockUsePermissions.mockReturnValue({
+      canView: () => true,
+      canAdd: () => true,
+      canEdit: () => true,
+      canRemove: () => true,
+      isMainUser: () => true,
+    });
   });
 
   it("should render navbar", () => {

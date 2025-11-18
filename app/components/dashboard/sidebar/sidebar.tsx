@@ -1,12 +1,16 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useLocation } from "react-router";
 import { SidebarItem } from "./sidebar-item";
 import { SIDEBAR_ITEMS } from "./sidebar-constants";
 import { useTranslation } from "~/i18n";
+import { usePermissions } from "~/utils/permissions";
+import { getRoutePermission } from "~/utils/route-permissions";
+import type { UserPermissions } from "~/types/permissions";
 
 export function Sidebar() {
   const t = useTranslation();
   const location = useLocation();
+  const { canView } = usePermissions();
 
   // Initialize expanded state: expand the item that has an active sub-item
   const getInitialExpandedItem = () => {
@@ -24,7 +28,66 @@ export function Sidebar() {
     setExpandedItemKey((current) => (current === translationKey ? null : translationKey));
   };
 
-  const translatedItems = SIDEBAR_ITEMS.map((item) => ({
+  // Filter sidebar items based on permissions
+  const filteredItems = useMemo(() => {
+    return SIDEBAR_ITEMS.filter((item) => {
+      // Dashboard is always visible
+      if (item.translationKey === "dashboard") {
+        return true;
+      }
+
+      // Filter sub-items based on view permissions
+      if (item.subItems && item.subItems.length > 0) {
+        const visibleSubItems = item.subItems.filter((subItem) => {
+          // Check if route has permission mapping
+          const permissionPath = getRoutePermission(subItem.path);
+          if (!permissionPath) {
+            return true; // Allow routes not in permission map
+          }
+
+          const [section, ...resourceParts] = permissionPath.split(".");
+          const resource = resourceParts.join(".");
+          return canView(section as keyof UserPermissions, resource);
+        });
+
+        // Only show parent item if it has at least one visible sub-item
+        return visibleSubItems.length > 0;
+      }
+
+      // For items without sub-items, check permission directly
+      const permissionPath = getRoutePermission(item.path);
+      if (!permissionPath) {
+        return true; // Allow routes not in permission map
+      }
+
+      const [section, ...resourceParts] = permissionPath.split(".");
+      const resource = resourceParts.join(".");
+      return canView(section as keyof UserPermissions, resource);
+    }).map((item) => {
+      // Filter sub-items for items that have them
+      if (item.subItems && item.subItems.length > 0) {
+        const visibleSubItems = item.subItems.filter((subItem) => {
+          const permissionPath = getRoutePermission(subItem.path);
+          if (!permissionPath) {
+            return true;
+          }
+
+          const [section, ...resourceParts] = permissionPath.split(".");
+          const resource = resourceParts.join(".");
+          return canView(section as keyof UserPermissions, resource);
+        });
+
+        return {
+          ...item,
+          subItems: visibleSubItems,
+        };
+      }
+
+      return item;
+    });
+  }, [canView]);
+
+  const translatedItems = filteredItems.map((item) => ({
     ...item,
     label: t.sidebar[item.translationKey],
     subItems: item.subItems?.map((subItem) => ({

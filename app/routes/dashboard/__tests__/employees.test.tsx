@@ -3,10 +3,13 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
+import { AuthProvider } from "~/contexts/auth-context";
 import Employees from "../employees";
 import { mockEmployees } from "~/mocks/employees";
 import { deleteEmployee } from "~/services/employees.service";
 import { ROUTES } from "~/routes.config";
+import { getUserById } from "~/services/users.service";
+import { createMockMainUser, setCurrentUserId, clearLocalStorage } from "~/test-utils";
 
 const mockNavigate = vi.fn();
 
@@ -53,6 +56,15 @@ vi.mock("~/mocks/location-movements", () => ({
 
 vi.mock("~/mocks/employee-observations", () => ({
   getEmployeeObservationsByEmployeeId: vi.fn(() => []),
+}));
+
+const mockUsePermissions = vi.fn();
+vi.mock("~/utils/permissions", () => ({
+  usePermissions: () => mockUsePermissions(),
+}));
+
+vi.mock("~/services/users.service", () => ({
+  getUserById: vi.fn(),
 }));
 
 vi.mock("~/components/ui", () => ({
@@ -124,7 +136,9 @@ describe("Employees", () => {
           element: (
             <LanguageProvider>
               <ThemeProvider>
-                <Employees />
+                <AuthProvider>
+                  <Employees />
+                </AuthProvider>
               </ThemeProvider>
             </LanguageProvider>
           ),
@@ -137,7 +151,18 @@ describe("Employees", () => {
   };
 
   beforeEach(() => {
+    clearLocalStorage();
     vi.clearAllMocks();
+    const mockUser = createMockMainUser();
+    vi.mocked(getUserById).mockReturnValue(mockUser);
+    setCurrentUserId(mockUser.id);
+    mockUsePermissions.mockReturnValue({
+      canView: () => true,
+      canAdd: () => true,
+      canEdit: () => true,
+      canRemove: () => true,
+      isMainUser: () => true,
+    });
   });
 
   it("should render employees table", () => {

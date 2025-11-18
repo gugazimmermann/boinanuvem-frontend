@@ -3,9 +3,12 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
+import { AuthProvider } from "~/contexts/auth-context";
 import SupplierDetails from "../suppliers.$supplierId";
 import { getSupplierById } from "~/services/suppliers.service";
 import { getSupplierObservationsBySupplierId } from "~/services/supplier-observations.service";
+import { getUserById } from "~/services/users.service";
+import { createMockMainUser, setCurrentUserId, clearLocalStorage } from "~/test-utils";
 
 const mockNavigate = vi.fn();
 const mockSetSearchParams = vi.fn();
@@ -94,6 +97,15 @@ vi.mock("~/services/employees.service", () => ({
 
 vi.mock("~/services/service-providers.service", () => ({
   getServiceProviderById: vi.fn((id: string) => ({ id, name: `ServiceProvider ${id}` })),
+}));
+
+const mockUsePermissions = vi.fn();
+vi.mock("~/utils/permissions", () => ({
+  usePermissions: () => mockUsePermissions(),
+}));
+
+vi.mock("~/services/users.service", () => ({
+  getUserById: vi.fn(),
 }));
 
 vi.mock("~/components/ui", () => ({
@@ -211,7 +223,9 @@ describe("SupplierDetails", () => {
           element: (
             <LanguageProvider>
               <ThemeProvider>
-                <SupplierDetails />
+                <AuthProvider>
+                  <SupplierDetails />
+                </AuthProvider>
               </ThemeProvider>
             </LanguageProvider>
           ),
@@ -226,7 +240,18 @@ describe("SupplierDetails", () => {
   };
 
   beforeEach(() => {
+    clearLocalStorage();
     vi.clearAllMocks();
+    const mockUser = createMockMainUser();
+    vi.mocked(getUserById).mockReturnValue(mockUser);
+    setCurrentUserId(mockUser.id);
+    mockUsePermissions.mockReturnValue({
+      canView: () => true,
+      canAdd: () => true,
+      canEdit: () => true,
+      canRemove: () => true,
+      isMainUser: () => true,
+    });
     vi.mocked(getSupplierById).mockReturnValue(mockSupplier);
     vi.mocked(getSupplierObservationsBySupplierId).mockReturnValue(mockObservations);
   });

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams, Link } from "react-router";
 import {
   differenceInMonths,
@@ -74,6 +74,7 @@ import {
   getAccountsPayableEditRoute,
 } from "~/routes.config";
 import { deleteCashFlow } from "~/services/cash-flow.service";
+import { usePermissions } from "~/utils/permissions";
 import { deleteAccountsReceivable } from "~/services/accounts-receivable.service";
 import { deleteAccountsPayable } from "~/services/accounts-payable.service";
 import type {
@@ -556,11 +557,17 @@ export function meta() {
   ];
 }
 
+export async function loader({ request }: { request: Request }) {
+  const { createRouteGuard } = await import("~/utils/route-guard");
+  return createRouteGuard(undefined, "view")({ request });
+}
+
 export default function PropertyDetails() {
   const { propertyId } = useParams<{ propertyId: string }>();
   const navigate = useNavigate();
   const t = useTranslation();
   const { language } = useLanguage();
+  const { canEdit, canRemove, isMainUser } = usePermissions();
   const [searchParams, setSearchParams] = useSearchParams();
   const property = getPropertyById(propertyId);
 
@@ -619,6 +626,13 @@ export default function PropertyDetails() {
     "cashFlow" | "receivable" | "payable" | null
   >(null);
   const financeItemsPerPage = 10;
+
+  // Redirect non-main users away from activities tab
+  useEffect(() => {
+    if (activeTab === "activities" && !isMainUser()) {
+      setSearchParams({ tab: "information" });
+    }
+  }, [activeTab, isMainUser, setSearchParams]);
 
   const [animalsSearchValue, setAnimalsSearchValue] = useState("");
   const [animalsActiveFilter, setAnimalsActiveFilter] = useState<string>("all");
@@ -765,22 +779,24 @@ export default function PropertyDetails() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            onClick={() => navigate(getPropertyEditRoute(property.id))}
-            leftIcon={
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                />
-              </svg>
-            }
-          >
-            {t.profile.company.edit}
-          </Button>
+          {canEdit("registration", "property") && (
+            <Button
+              variant="outline"
+              onClick={() => navigate(getPropertyEditRoute(property.id))}
+              leftIcon={
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+              }
+            >
+              {t.profile.company.edit}
+            </Button>
+          )}
           <Button
             variant="outline"
             onClick={() => navigate(ROUTES.PROPERTIES)}
@@ -962,26 +978,28 @@ export default function PropertyDetails() {
           >
             {t.properties.details.tabs.finance}
           </button>
-          <button
-            onClick={() => {
-              setSearchParams({ tab: "activities" });
-            }}
-            className={`
-              py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
-              ${
+          {isMainUser() && (
+            <button
+              onClick={() => {
+                setSearchParams({ tab: "activities" });
+              }}
+              className={`
+                py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
+                ${
+                  activeTab === "activities"
+                    ? "dark:text-blue-400"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                }
+              `}
+              style={
                 activeTab === "activities"
-                  ? "dark:text-blue-400"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                  ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
+                  : undefined
               }
-            `}
-            style={
-              activeTab === "activities"
-                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
-                : undefined
-            }
-          >
-            {t.properties.details.tabs.activities}
-          </button>
+            >
+              {t.properties.details.tabs.activities}
+            </button>
+          )}
         </nav>
       </div>
 
@@ -1754,6 +1772,8 @@ export default function PropertyDetails() {
                 <TableActionButtons
                   onEdit={() => navigate(getAnimalEditRoute(row.id))}
                   onDelete={() => handleDeleteAnimalClick(row)}
+                  canEdit={canEdit("registration", "animals")}
+                  canDelete={canRemove("registration", "animals")}
                 />
               ),
             },
@@ -2632,7 +2652,7 @@ export default function PropertyDetails() {
         </div>
       )}
 
-      {activeTab === "activities" && (
+      {activeTab === "activities" && isMainUser() && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
             {t.dashboard.recentActivities.title}
@@ -3618,10 +3638,32 @@ export default function PropertyDetails() {
                           }
                         };
 
+                        const getCanEdit = () => {
+                          if (row.transactionType === "cashFlow") {
+                            return canEdit("finances", "cashFlow");
+                          } else if (row.transactionType === "receivable") {
+                            return canEdit("finances", "accountsReceivable");
+                          } else {
+                            return canEdit("finances", "accountsPayable");
+                          }
+                        };
+
+                        const getCanDelete = () => {
+                          if (row.transactionType === "cashFlow") {
+                            return canRemove("finances", "cashFlow");
+                          } else if (row.transactionType === "receivable") {
+                            return canRemove("finances", "accountsReceivable");
+                          } else {
+                            return canRemove("finances", "accountsPayable");
+                          }
+                        };
+
                         return (
                           <TableActionButtons
                             onEdit={() => navigate(getEditRoute())}
                             onDelete={() => handleDeleteFinanceClick(row)}
+                            canEdit={getCanEdit()}
+                            canDelete={getCanDelete()}
                           />
                         );
                       },

@@ -30,6 +30,7 @@ import {
   getAnimalMovementNewRoute,
 } from "~/routes.config";
 import { Button } from "~/components/ui";
+import { usePermissions } from "~/utils/permissions";
 
 export function meta() {
   return [
@@ -41,9 +42,15 @@ export function meta() {
   ];
 }
 
+export async function loader({ request }: { request: Request }) {
+  const { createRouteGuard } = await import("~/utils/route-guard");
+  return createRouteGuard(undefined, "view")({ request });
+}
+
 export default function Animals() {
   const t = useTranslation();
   const navigate = useNavigate();
+  const { canAdd, canEdit, canRemove } = usePermissions();
   const [animals, setAnimals] = useState<Animal[]>([...mockAnimals]);
   const [sortState, setSortState] = useState<{
     column: string | null;
@@ -397,34 +404,38 @@ export default function Animals() {
         <TableActionButtons
           onEdit={() => navigate(getAnimalEditRoute(row.id))}
           onDelete={() => handleDeleteClick(row)}
+          canEdit={canEdit("registration", "animals")}
+          canDelete={canRemove("registration", "animals")}
         />
       ),
     },
   ];
 
-  const headerActions: TableAction[] = [
-    {
-      label: t.animals.addAnimal,
-      variant: "primary",
-      leftIcon: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={1.5}
-          stroke="currentColor"
-          className="w-5 h-5"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-      ),
-      onClick: () => setIsAnimalRegistrationModalOpen(true),
-    },
-  ];
+  const headerActions: TableAction[] = canAdd("registration", "animals")
+    ? [
+        {
+          label: t.animals.addAnimal,
+          variant: "primary",
+          leftIcon: (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className="w-5 h-5"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          ),
+          onClick: () => setIsAnimalRegistrationModalOpen(true),
+        },
+      ]
+    : [];
 
   const filters: TableFilter[] = [
     {

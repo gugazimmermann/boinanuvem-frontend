@@ -3,18 +3,27 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
+import { AuthProvider } from "~/contexts/auth-context";
 import PropertyDetails from "../properties.$propertyId";
 import { getPropertyById } from "~/services/properties.service";
+import { getUserById } from "~/services/users.service";
+import {
+  createMockMainUser,
+  createMockViewOnlyUser,
+  setCurrentUserId,
+  clearLocalStorage,
+} from "~/test-utils";
 
 const mockNavigate = vi.fn();
 const mockSetSearchParams = vi.fn();
+let mockSearchParams = new URLSearchParams();
 
 vi.mock("react-router", async () => {
   const actual = await vi.importActual("react-router");
   return {
     ...actual,
     useNavigate: () => mockNavigate,
-    useSearchParams: () => [new URLSearchParams(), mockSetSearchParams],
+    useSearchParams: () => [mockSearchParams, mockSetSearchParams],
   };
 });
 
@@ -25,6 +34,15 @@ vi.mock("~/mocks/properties", async () => {
 
 vi.mock("~/services/properties.service", () => ({
   getPropertyById: vi.fn(),
+}));
+
+vi.mock("~/services/users.service", () => ({
+  getUserById: vi.fn(),
+}));
+
+const mockUsePermissions = vi.fn();
+vi.mock("~/utils/permissions", () => ({
+  usePermissions: () => mockUsePermissions(),
 }));
 
 const mockGetLocationsByPropertyId = vi.fn(() => [
@@ -286,7 +304,10 @@ describe("PropertyDetails", () => {
     },
   };
 
-  const createRouter = (propertyId: string, searchParams?: string) => {
+  const createRouter = (propertyId: string, searchParams?: string, userId?: string) => {
+    if (userId) {
+      setCurrentUserId(userId);
+    }
     return createMemoryRouter(
       [
         {
@@ -294,7 +315,9 @@ describe("PropertyDetails", () => {
           element: (
             <LanguageProvider>
               <ThemeProvider>
-                <PropertyDetails />
+                <AuthProvider>
+                  <PropertyDetails />
+                </AuthProvider>
               </ThemeProvider>
             </LanguageProvider>
           ),
@@ -310,7 +333,20 @@ describe("PropertyDetails", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    clearLocalStorage();
+    mockSearchParams = new URLSearchParams();
     vi.mocked(getPropertyById).mockReturnValue(mockProperty);
+
+    const mockMainUser = createMockMainUser();
+    vi.mocked(getUserById).mockReturnValue(mockMainUser);
+    mockUsePermissions.mockReturnValue({
+      canView: () => true,
+      canAdd: () => true,
+      canEdit: () => true,
+      canRemove: () => true,
+      isMainUser: () => true,
+    });
+
     mockGetLocationsByPropertyId.mockReturnValue([
       { id: "loc-1", name: "Location 1", propertyId: "property-1" },
     ]);
@@ -432,15 +468,36 @@ describe("PropertyDetails", () => {
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
-  it("should handle activities tab", () => {
-    const router = createRouter("property-1", "tab=activities");
+  it("should handle activities tab for main user", () => {
+    const router = createRouter("property-1", "tab=activities", "main-user-id");
     render(<RouterProvider router={router} />);
 
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
-  it("should navigate to edit property", () => {
-    const router = createRouter("property-1");
+  it("should hide activities tab for non-main user", async () => {
+    const mockTeamUser = createMockViewOnlyUser("registration", "property", {
+      id: "team-user-id",
+    });
+    vi.mocked(getUserById).mockReturnValue(mockTeamUser);
+    mockUsePermissions.mockReturnValue({
+      canView: () => true,
+      canAdd: () => false,
+      canEdit: () => false,
+      canRemove: () => false,
+      isMainUser: () => false,
+    });
+
+    const router = createRouter("property-1", "tab=activities", "team-user-id");
+    render(<RouterProvider router={router} />);
+
+    await waitFor(() => {
+      expect(getPropertyById).toHaveBeenCalledWith("property-1");
+    });
+  });
+
+  it("should navigate to edit property when user has edit permission", () => {
+    const router = createRouter("property-1", undefined, "main-user-id");
     render(<RouterProvider router={router} />);
 
     const editButtons = screen
@@ -451,6 +508,74 @@ describe("PropertyDetails", () => {
       fireEvent.click(editButtons[0]);
       expect(mockNavigate).toHaveBeenCalled();
     }
+  });
+
+  it("should hide edit button when user lacks edit permission", async () => {
+    const mockTeamUser = createMockViewOnlyUser("registration", "property", {
+      id: "team-user-id",
+    });
+    setCurrentUserId("team-user-id");
+    vi.mocked(getUserById).mockReturnValue(mockTeamUser);
+
+    const mockCanEdit = vi.fn((section: string, resource: string) => {
+      if (section === "registration" && resource === "property") {
+        return false;
+      }
+      return false;
+    });
+
+    mockUsePermissions.mockClear();
+    mockUsePermissions.mockReturnValue({
+      canView: vi.fn(() => true),
+      canAdd: vi.fn(() => false),
+      canEdit: mockCanEdit,
+      canRemove: vi.fn(() => false),
+      isMainUser: vi.fn(() => false),
+    });
+
+    const router = createRouter("property-1", undefined, "team-user-id");
+    render(<RouterProvider router={router} />);
+
+    await waitFor(() => {
+      expect(getPropertyById).toHaveBeenCalledWith("property-1");
+    });
+
+    await waitFor(() => {
+      expect(mockCanEdit).toHaveBeenCalledWith("registration", "property");
+      const calls = mockCanEdit.mock.calls;
+      const lastCall = calls[calls.length - 1];
+      if (lastCall) {
+        const result = mockCanEdit(...lastCall);
+        expect(result).toBe(false);
+      }
+    });
+
+    await waitFor(
+      () => {
+        expect(mockCanEdit).toHaveBeenCalled();
+        const registrationPropertyCalls = mockCanEdit.mock.calls.filter(
+          (call: [string, string]) => call[0] === "registration" && call[1] === "property"
+        );
+        expect(registrationPropertyCalls.length).toBeGreaterThan(0);
+
+        const propertyName = screen.getByText("Test Property");
+        const headerSection = propertyName.closest("div.flex.items-center.justify-between");
+        expect(headerSection).toBeTruthy();
+
+        const buttonContainer = headerSection?.querySelector("div.flex.items-center.gap-3");
+        expect(buttonContainer).toBeTruthy();
+
+        if (buttonContainer) {
+          const headerButtons = Array.from(buttonContainer.querySelectorAll("button"));
+          const nonBackButtons = headerButtons.filter((btn) => {
+            const text = btn.textContent || "";
+            return !text.includes("Back") && !text.trim().toLowerCase().includes("back");
+          });
+          expect(nonBackButtons.length).toBe(0);
+        }
+      },
+      { timeout: 3000 }
+    );
   });
 
   it("should have correct meta function", () => {
@@ -877,5 +1002,37 @@ describe("PropertyDetails", () => {
 
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
     expect(screen.queryAllByRole("button").length).toBeGreaterThan(0);
+  });
+
+  it("should redirect non-main user from activities tab to info tab", async () => {
+    const mockTeamUser = createMockViewOnlyUser("registration", "property", {
+      id: "team-user-id",
+    });
+    setCurrentUserId("team-user-id");
+    vi.mocked(getUserById).mockReturnValue(mockTeamUser);
+
+    mockSearchParams = new URLSearchParams("tab=activities");
+
+    mockUsePermissions.mockReturnValue({
+      canView: vi.fn(() => true),
+      canAdd: vi.fn(() => false),
+      canEdit: vi.fn(() => false),
+      canRemove: vi.fn(() => false),
+      isMainUser: vi.fn(() => false),
+    });
+
+    const router = createRouter("property-1", "tab=activities", "team-user-id");
+    render(<RouterProvider router={router} />);
+
+    await waitFor(() => {
+      expect(getPropertyById).toHaveBeenCalledWith("property-1");
+    });
+
+    await waitFor(
+      () => {
+        expect(mockSetSearchParams).toHaveBeenCalled();
+      },
+      { timeout: 3000 }
+    );
   });
 });

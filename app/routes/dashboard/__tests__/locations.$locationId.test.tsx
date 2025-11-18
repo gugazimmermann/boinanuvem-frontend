@@ -1,20 +1,29 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
+import { AuthProvider } from "~/contexts/auth-context";
 import LocationDetails from "../locations.$locationId";
 import { getLocationById } from "~/services/locations.service";
+import { getUserById } from "~/services/users.service";
+import {
+  createMockMainUser,
+  createMockViewOnlyUser,
+  setCurrentUserId,
+  clearLocalStorage,
+} from "~/test-utils";
 
 const mockNavigate = vi.fn();
 const mockSetSearchParams = vi.fn();
+let mockSearchParams = new URLSearchParams();
 
 vi.mock("react-router", async () => {
   const actual = await vi.importActual("react-router");
   return {
     ...actual,
     useNavigate: () => mockNavigate,
-    useSearchParams: () => [new URLSearchParams(), mockSetSearchParams],
+    useSearchParams: () => [mockSearchParams, mockSetSearchParams],
   };
 });
 
@@ -25,6 +34,15 @@ vi.mock("~/mocks/locations", async () => {
 
 vi.mock("~/services/locations.service", () => ({
   getLocationById: vi.fn(),
+}));
+
+vi.mock("~/services/users.service", () => ({
+  getUserById: vi.fn(),
+}));
+
+const mockUsePermissions = vi.fn();
+vi.mock("~/utils/permissions", () => ({
+  usePermissions: () => mockUsePermissions(),
 }));
 
 vi.mock("~/mocks/properties", async () => {
@@ -145,7 +163,10 @@ describe("LocationDetails", () => {
     },
   };
 
-  const createRouter = (locationId: string, searchParams?: string) => {
+  const createRouter = (locationId: string, searchParams?: string, userId?: string) => {
+    if (userId) {
+      setCurrentUserId(userId);
+    }
     return createMemoryRouter(
       [
         {
@@ -153,7 +174,9 @@ describe("LocationDetails", () => {
           element: (
             <LanguageProvider>
               <ThemeProvider>
-                <LocationDetails />
+                <AuthProvider>
+                  <LocationDetails />
+                </AuthProvider>
               </ThemeProvider>
             </LanguageProvider>
           ),
@@ -167,7 +190,19 @@ describe("LocationDetails", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    clearLocalStorage();
+    mockSearchParams = new URLSearchParams();
     vi.mocked(getLocationById).mockReturnValue(mockLocation);
+
+    const mockMainUser = createMockMainUser();
+    vi.mocked(getUserById).mockReturnValue(mockMainUser);
+    mockUsePermissions.mockReturnValue({
+      canView: () => true,
+      canAdd: () => true,
+      canEdit: () => true,
+      canRemove: () => true,
+      isMainUser: () => true,
+    });
   });
 
   it("should render location details", () => {
@@ -199,11 +234,32 @@ describe("LocationDetails", () => {
     expect(getLocationById).toHaveBeenCalledWith("location-1");
   });
 
-  it("should display activities tab", () => {
-    const router = createRouter("location-1", "?tab=activities");
+  it("should display activities tab for main user", () => {
+    const router = createRouter("location-1", "?tab=activities", "main-user-id");
     render(<RouterProvider router={router} />);
 
     expect(getLocationById).toHaveBeenCalledWith("location-1");
+  });
+
+  it("should hide activities tab for non-main user", async () => {
+    const mockTeamUser = createMockViewOnlyUser("registration", "location", {
+      id: "team-user-id",
+    });
+    vi.mocked(getUserById).mockReturnValue(mockTeamUser);
+    mockUsePermissions.mockReturnValue({
+      canView: () => true,
+      canAdd: () => false,
+      canEdit: () => false,
+      canRemove: () => false,
+      isMainUser: () => false,
+    });
+
+    const router = createRouter("location-1", "?tab=activities", "team-user-id");
+    render(<RouterProvider router={router} />);
+
+    await waitFor(() => {
+      expect(getLocationById).toHaveBeenCalledWith("location-1");
+    });
   });
 
   it("should display movements tab", () => {
@@ -234,8 +290,8 @@ describe("LocationDetails", () => {
     expect(getLocationById).toHaveBeenCalledWith("location-1");
   });
 
-  it("should navigate to edit location", () => {
-    const router = createRouter("location-1");
+  it("should navigate to edit location when user has edit permission", () => {
+    const router = createRouter("location-1", undefined, "main-user-id");
     render(<RouterProvider router={router} />);
 
     const editButtons = screen
@@ -246,6 +302,29 @@ describe("LocationDetails", () => {
       fireEvent.click(editButtons[0]);
       expect(mockNavigate).toHaveBeenCalled();
     }
+  });
+
+  it("should hide edit button when user lacks edit permission", () => {
+    const mockTeamUser = createMockViewOnlyUser("registration", "location", {
+      id: "team-user-id",
+    });
+    vi.mocked(getUserById).mockReturnValue(mockTeamUser);
+    mockUsePermissions.mockReturnValue({
+      canView: () => true,
+      canAdd: () => false,
+      canEdit: () => false,
+      canRemove: () => false,
+      isMainUser: () => false,
+    });
+
+    const router = createRouter("location-1", undefined, "team-user-id");
+    render(<RouterProvider router={router} />);
+
+    const editButtons = screen
+      .queryAllByRole("button")
+      .filter((btn) => btn.textContent?.includes("Editar") || btn.textContent?.includes("Edit"));
+
+    expect(editButtons.length).toBe(0);
   });
 
   it("should handle location movements display", () => {
@@ -374,5 +453,37 @@ describe("LocationDetails", () => {
     render(<RouterProvider router={router} />);
 
     expect(getLocationById).toHaveBeenCalledWith("location-1");
+  });
+
+  it("should redirect non-main user from activities tab to info tab", async () => {
+    const mockTeamUser = createMockViewOnlyUser("registration", "location", {
+      id: "team-user-id",
+    });
+    setCurrentUserId("team-user-id");
+    vi.mocked(getUserById).mockReturnValue(mockTeamUser);
+
+    mockSearchParams = new URLSearchParams("tab=activities");
+
+    mockUsePermissions.mockReturnValue({
+      canView: vi.fn(() => true),
+      canAdd: vi.fn(() => false),
+      canEdit: vi.fn(() => false),
+      canRemove: vi.fn(() => false),
+      isMainUser: vi.fn(() => false),
+    });
+
+    const router = createRouter("location-1", "?tab=activities", "team-user-id");
+    render(<RouterProvider router={router} />);
+
+    await waitFor(() => {
+      expect(getLocationById).toHaveBeenCalledWith("location-1");
+    });
+
+    await waitFor(
+      () => {
+        expect(mockSetSearchParams).toHaveBeenCalled();
+      },
+      { timeout: 3000 }
+    );
   });
 });

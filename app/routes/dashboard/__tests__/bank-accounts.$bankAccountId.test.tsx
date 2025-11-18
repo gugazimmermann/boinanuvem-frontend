@@ -3,7 +3,10 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
+import { AuthProvider } from "~/contexts/auth-context";
 import BankAccountDetails from "../bank-accounts.$bankAccountId";
+import { getUserById } from "~/services/users.service";
+import { createMockMainUser, setCurrentUserId, clearLocalStorage } from "~/test-utils";
 
 const mockNavigate = vi.fn();
 const mockGetBankAccountById = vi.fn();
@@ -45,6 +48,15 @@ vi.mock("~/services/employees.service", () => ({
 
 vi.mock("~/services/service-providers.service", () => ({
   getServiceProviderById: vi.fn((id: string) => ({ id, name: `Service Provider ${id}` })),
+}));
+
+const mockUsePermissions = vi.fn();
+vi.mock("~/utils/permissions", () => ({
+  usePermissions: () => mockUsePermissions(),
+}));
+
+vi.mock("~/services/users.service", () => ({
+  getUserById: vi.fn(),
 }));
 
 vi.mock("~/mocks/suppliers", async () => {
@@ -231,7 +243,9 @@ describe("BankAccountDetails", () => {
           element: (
             <LanguageProvider>
               <ThemeProvider>
-                <BankAccountDetails />
+                <AuthProvider>
+                  <BankAccountDetails />
+                </AuthProvider>
               </ThemeProvider>
             </LanguageProvider>
           ),
@@ -244,7 +258,18 @@ describe("BankAccountDetails", () => {
   };
 
   beforeEach(() => {
+    clearLocalStorage();
     vi.clearAllMocks();
+    const mockUser = createMockMainUser();
+    vi.mocked(getUserById).mockReturnValue(mockUser);
+    setCurrentUserId(mockUser.id);
+    mockUsePermissions.mockReturnValue({
+      canView: () => true,
+      canAdd: () => true,
+      canEdit: () => true,
+      canRemove: () => true,
+      isMainUser: () => true,
+    });
     mockGetBankAccountById.mockReturnValue(mockBankAccount);
     mockGetCashFlowByBankAccountId.mockReturnValue([]);
   });

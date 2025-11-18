@@ -18,6 +18,7 @@ import type { Supplier } from "~/types";
 import { getPropertyById } from "~/services/properties.service";
 import { ROUTES, getSupplierEditRoute, getSupplierViewRoute } from "~/routes.config";
 import { getSupplierObservationsBySupplierId } from "~/services/supplier-observations.service";
+import { usePermissions } from "~/utils/permissions";
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
@@ -38,9 +39,15 @@ export function meta() {
   ];
 }
 
+export async function loader({ request }: { request: Request }) {
+  const { createRouteGuard } = await import("~/utils/route-guard");
+  return createRouteGuard(undefined, "view")({ request });
+}
+
 export default function Suppliers() {
   const t = useTranslation();
   const navigate = useNavigate();
+  const { canAdd, canEdit, canRemove } = usePermissions();
   const [suppliers, setSuppliers] = useState<Supplier[]>([...mockSuppliers]);
   const [sortState, setSortState] = useState<{
     column: string | null;
@@ -237,34 +244,38 @@ export default function Suppliers() {
         <TableActionButtons
           onEdit={() => navigate(getSupplierEditRoute(row.id))}
           onDelete={() => handleDeleteClick(row)}
+          canEdit={canEdit("registration", "supplier")}
+          canDelete={canRemove("registration", "supplier")}
         />
       ),
     },
   ];
 
-  const headerActions: TableAction[] = [
-    {
-      label: t.suppliers.addSupplier,
-      variant: "primary",
-      leftIcon: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={1.5}
-          stroke="currentColor"
-          className="w-5 h-5"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-      ),
-      onClick: () => navigate(ROUTES.SUPPLIERS_NEW),
-    },
-  ];
+  const headerActions: TableAction[] = canAdd("registration", "supplier")
+    ? [
+        {
+          label: t.suppliers.addSupplier,
+          variant: "primary",
+          leftIcon: (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className="w-5 h-5"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          ),
+          onClick: () => navigate(ROUTES.SUPPLIERS_NEW),
+        },
+      ]
+    : [];
 
   const filters: TableFilter[] = [
     {

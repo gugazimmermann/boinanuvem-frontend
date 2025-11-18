@@ -21,6 +21,11 @@ export function meta() {
   ];
 }
 
+export async function loader({ request }: { request: Request }) {
+  const { createRouteGuard } = await import("~/utils/route-guard");
+  return createRouteGuard(undefined, "edit")({ request });
+}
+
 export default function EditProperty() {
   const t = useTranslation();
   const navigate = useNavigate();

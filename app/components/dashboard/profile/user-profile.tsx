@@ -16,6 +16,7 @@ import { DASHBOARD_COLORS } from "../utils/colors";
 import type { AddressFormData } from "~/components/site/utils/cep-utils";
 import { getUserById, updateUser, updateUserPermissions } from "~/services/users.service";
 import { useAuth } from "~/contexts/auth-context";
+import { usePermissions } from "~/utils/permissions";
 import type { UserPermissions, PermissionAction, ResourcePermissions } from "~/types/permissions";
 import { defaultPermissions } from "~/types/permissions";
 
@@ -275,6 +276,7 @@ interface UserProfileProps {
 export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserProfileProps) {
   const t = useTranslation();
   const { currentUser } = useAuth();
+  const { isMainUser } = usePermissions();
   const mainUser = currentUser;
   const mainUserData = useMemo(() => getMainUserData(mainUser), [mainUser]);
   const [isEditing, setIsEditing] = useState(false);
@@ -292,6 +294,13 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
       setActiveSubTab("data");
     }
   }, [userId, activeSubTab]);
+
+  // Redirect non-main users away from logs tab
+  useEffect(() => {
+    if (activeSubTab === "logs" && !isMainUser()) {
+      setActiveSubTab("data");
+    }
+  }, [activeSubTab, isMainUser]);
 
   useEffect(() => {
     if (userId) {
@@ -541,27 +550,29 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
               {t.profile.user.subTabs.permissions}
             </button>
           )}
-          <button
-            onClick={() => setActiveSubTab("logs")}
-            className={`
-              px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer
-              ${
+          {isMainUser() && (
+            <button
+              onClick={() => setActiveSubTab("logs")}
+              className={`
+                px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer
+                ${
+                  activeSubTab === "logs"
+                    ? "shadow-sm"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+                }
+              `}
+              style={
                 activeSubTab === "logs"
-                  ? "shadow-sm"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+                  ? {
+                      backgroundColor: `${DASHBOARD_COLORS.primaryLight}40`,
+                      color: DASHBOARD_COLORS.primaryDark,
+                    }
+                  : undefined
               }
-            `}
-            style={
-              activeSubTab === "logs"
-                ? {
-                    backgroundColor: `${DASHBOARD_COLORS.primaryLight}40`,
-                    color: DASHBOARD_COLORS.primaryDark,
-                  }
-                : undefined
-            }
-          >
-            {t.profile.user.subTabs.logs}
-          </button>
+            >
+              {t.profile.user.subTabs.logs}
+            </button>
+          )}
         </nav>
       </div>
 
@@ -650,7 +661,7 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
         </div>
       )}
 
-      {activeSubTab === "logs" && (
+      {activeSubTab === "logs" && isMainUser() && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
           <ActivityLog
             logs={mockUserLogs}

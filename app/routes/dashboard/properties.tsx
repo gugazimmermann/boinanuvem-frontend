@@ -19,6 +19,7 @@ import { AreaType } from "~/types";
 import { getLocationsByPropertyId } from "~/services/locations.service";
 import { getAnimalsByPropertyId } from "~/services/animals.service";
 import { ROUTES, getPropertyEditRoute, getPropertyViewRoute } from "~/routes.config";
+import { usePermissions } from "~/utils/permissions";
 
 const formatAreaType = (type: AreaType): string => {
   const typeMap: Record<AreaType, string> = {
@@ -42,9 +43,15 @@ export function meta() {
   ];
 }
 
+export async function loader({ request }: { request: Request }) {
+  const { createRouteGuard } = await import("~/utils/route-guard");
+  return createRouteGuard(undefined, "view")({ request });
+}
+
 export default function Properties() {
   const t = useTranslation();
   const navigate = useNavigate();
+  const { canAdd, canEdit, canRemove } = usePermissions();
   const [properties, setProperties] = useState<Property[]>([...mockProperties]);
   const [sortState, setSortState] = useState<{
     column: string | null;
@@ -220,34 +227,38 @@ export default function Properties() {
         <TableActionButtons
           onEdit={() => navigate(getPropertyEditRoute(row.id))}
           onDelete={() => handleDeleteClick(row)}
+          canEdit={canEdit("registration", "property")}
+          canDelete={canRemove("registration", "property")}
         />
       ),
     },
   ];
 
-  const headerActions: TableAction[] = [
-    {
-      label: t.properties.addProperty,
-      variant: "primary",
-      leftIcon: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={1.5}
-          stroke="currentColor"
-          className="w-5 h-5"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-      ),
-      onClick: () => navigate(ROUTES.PROPERTIES_NEW),
-    },
-  ];
+  const headerActions: TableAction[] = canAdd("registration", "property")
+    ? [
+        {
+          label: t.properties.addProperty,
+          variant: "primary",
+          leftIcon: (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className="w-5 h-5"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          ),
+          onClick: () => navigate(ROUTES.PROPERTIES_NEW),
+        },
+      ]
+    : [];
 
   const filters: TableFilter[] = [
     {

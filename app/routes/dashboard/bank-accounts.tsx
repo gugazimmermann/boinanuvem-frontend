@@ -16,6 +16,7 @@ import { mockCompanies } from "~/mocks/companies";
 import { deleteBankAccount, getBankAccountsByCompanyId } from "~/services/bank-account.service";
 import type { BankAccount } from "~/types";
 import { ROUTES, getBankAccountEditRoute, getBankAccountViewRoute } from "~/routes.config";
+import { usePermissions } from "~/utils/permissions";
 
 export function meta() {
   return [
@@ -27,9 +28,15 @@ export function meta() {
   ];
 }
 
+export async function loader({ request }: { request: Request }) {
+  const { createRouteGuard } = await import("~/utils/route-guard");
+  return createRouteGuard(undefined, "view")({ request });
+}
+
 export default function BankAccounts() {
   const t = useTranslation();
   const navigate = useNavigate();
+  const { canAdd, canEdit, canRemove } = usePermissions();
   const company = mockCompanies[0];
   const initialBankAccounts = useMemo(() => {
     if (company) {
@@ -198,34 +205,38 @@ export default function BankAccounts() {
         <TableActionButtons
           onEdit={() => navigate(getBankAccountEditRoute(row.id))}
           onDelete={() => handleDeleteClick(row)}
+          canEdit={canEdit("finances", "bankAccounts")}
+          canDelete={canRemove("finances", "bankAccounts")}
         />
       ),
     },
   ];
 
-  const headerActions: TableAction[] = [
-    {
-      label: t.bankAccounts.addBankAccount,
-      variant: "primary",
-      leftIcon: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={1.5}
-          stroke="currentColor"
-          className="w-5 h-5"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-      ),
-      onClick: () => navigate(ROUTES.BANK_ACCOUNTS_NEW),
-    },
-  ];
+  const headerActions: TableAction[] = canAdd("finances", "bankAccounts")
+    ? [
+        {
+          label: t.bankAccounts.addBankAccount,
+          variant: "primary",
+          leftIcon: (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className="w-5 h-5"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          ),
+          onClick: () => navigate(ROUTES.BANK_ACCOUNTS_NEW),
+        },
+      ]
+    : [];
 
   const filters: TableFilter[] = [
     {

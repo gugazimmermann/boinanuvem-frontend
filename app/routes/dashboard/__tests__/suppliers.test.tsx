@@ -3,10 +3,13 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
+import { AuthProvider } from "~/contexts/auth-context";
 import Suppliers from "../suppliers";
 import { mockSuppliers } from "~/mocks/suppliers";
 import { deleteSupplier } from "~/services/suppliers.service";
 import { ROUTES } from "~/routes.config";
+import { getUserById } from "~/services/users.service";
+import { createMockMainUser, setCurrentUserId, clearLocalStorage } from "~/test-utils";
 
 const mockNavigate = vi.fn();
 
@@ -56,6 +59,15 @@ vi.mock("~/mocks/supplier-observations", async () => {
 
 vi.mock("~/services/supplier-observations.service", () => ({
   getSupplierObservationsBySupplierId: vi.fn(() => []),
+}));
+
+const mockUsePermissions = vi.fn();
+vi.mock("~/utils/permissions", () => ({
+  usePermissions: () => mockUsePermissions(),
+}));
+
+vi.mock("~/services/users.service", () => ({
+  getUserById: vi.fn(),
 }));
 
 vi.mock("~/components/ui", () => ({
@@ -127,7 +139,9 @@ describe("Suppliers", () => {
           element: (
             <LanguageProvider>
               <ThemeProvider>
-                <Suppliers />
+                <AuthProvider>
+                  <Suppliers />
+                </AuthProvider>
               </ThemeProvider>
             </LanguageProvider>
           ),
@@ -140,7 +154,18 @@ describe("Suppliers", () => {
   };
 
   beforeEach(() => {
+    clearLocalStorage();
     vi.clearAllMocks();
+    const mockUser = createMockMainUser();
+    vi.mocked(getUserById).mockReturnValue(mockUser);
+    setCurrentUserId(mockUser.id);
+    mockUsePermissions.mockReturnValue({
+      canView: () => true,
+      canAdd: () => true,
+      canEdit: () => true,
+      canRemove: () => true,
+      isMainUser: () => true,
+    });
   });
 
   it("should render suppliers table", () => {

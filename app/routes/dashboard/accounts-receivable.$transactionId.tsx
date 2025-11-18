@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import { Button, StatusBadge } from "~/components/ui";
 import { useTranslation } from "~/i18n";
+import { usePermissions } from "~/utils/permissions";
 import { ROUTES, getAccountsReceivableEditRoute } from "~/routes.config";
 import { getAccountsReceivableById } from "~/services/accounts-receivable.service";
 import { getBuyerById } from "~/services/buyers.service";
@@ -31,10 +32,16 @@ export function meta() {
   ];
 }
 
+export async function loader({ request }: { request: Request }) {
+  const { createRouteGuard } = await import("~/utils/route-guard");
+  return createRouteGuard(undefined, "view")({ request });
+}
+
 export default function AccountsReceivableDetails() {
   const { transactionId } = useParams<{ transactionId: string }>();
   const navigate = useNavigate();
   const t = useTranslation();
+  const { canEdit } = usePermissions();
   const transaction = getAccountsReceivableById(transactionId);
 
   if (!transaction) {
@@ -83,12 +90,14 @@ export default function AccountsReceivableDetails() {
           <Button variant="outline" onClick={() => navigate(ROUTES.ACCOUNTS_RECEIVABLE)}>
             {t.common.back}
           </Button>
-          <Button
-            variant="primary"
-            onClick={() => navigate(getAccountsReceivableEditRoute(transaction.id))}
-          >
-            {t.common.save}
-          </Button>
+          {canEdit("finances", "accountsReceivable") && (
+            <Button
+              variant="primary"
+              onClick={() => navigate(getAccountsReceivableEditRoute(transaction.id))}
+            >
+              {t.common.save}
+            </Button>
+          )}
         </div>
       </div>
 

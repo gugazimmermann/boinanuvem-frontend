@@ -142,6 +142,9 @@ interface TableActionButtonsProps {
   onEdit?: () => void;
   onDelete?: () => void;
   className?: string;
+  canView?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
 export function TableActionButtons({
@@ -149,10 +152,13 @@ export function TableActionButtons({
   onEdit,
   onDelete,
   className = "",
+  canView = true,
+  canEdit = true,
+  canDelete = true,
 }: TableActionButtonsProps) {
   return (
     <div className={`flex items-center gap-x-6 ${className}`}>
-      {onView && (
+      {onView && canView && (
         <button
           type="button"
           className="text-gray-700 dark:text-gray-300 transition-colors duration-200 hover:text-blue-500 dark:hover:text-blue-400 focus:outline-none cursor-pointer"
@@ -181,7 +187,7 @@ export function TableActionButtons({
         </button>
       )}
 
-      {onEdit && (
+      {onEdit && canEdit && (
         <button
           type="button"
           className="text-gray-700 dark:text-gray-300 transition-colors duration-200 hover:text-yellow-500 dark:hover:text-yellow-400 focus:outline-none cursor-pointer"
@@ -208,7 +214,7 @@ export function TableActionButtons({
         </button>
       )}
 
-      {onDelete && (
+      {onDelete && canDelete && (
         <button
           type="button"
           className="text-gray-700 dark:text-gray-300 transition-colors duration-200 hover:text-red-500 dark:hover:text-red-400 focus:outline-none cursor-pointer"

@@ -3,8 +3,11 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
+import { AuthProvider } from "~/contexts/auth-context";
 import EditLocation from "../locations.edit.$locationId";
 import { getLocationById, updateLocation } from "~/services/locations.service";
+import { getUserById } from "~/services/users.service";
+import { createMockMainUser, setCurrentUserId, clearLocalStorage } from "~/test-utils";
 
 const mockNavigate = vi.fn();
 
@@ -24,6 +27,10 @@ vi.mock("~/mocks/locations", async () => {
 vi.mock("~/services/locations.service", () => ({
   getLocationById: vi.fn(),
   updateLocation: vi.fn(),
+}));
+
+vi.mock("~/services/users.service", () => ({
+  getUserById: vi.fn(),
 }));
 
 vi.mock("~/mocks/properties", async () => {
@@ -141,7 +148,10 @@ describe("EditLocation", () => {
     area: { value: 100, type: "hectares" as const },
   };
 
-  const createRouter = (locationId: string) => {
+  const createRouter = (locationId: string, userId?: string) => {
+    if (userId) {
+      setCurrentUserId(userId);
+    }
     return createMemoryRouter(
       [
         {
@@ -149,7 +159,9 @@ describe("EditLocation", () => {
           element: (
             <LanguageProvider>
               <ThemeProvider>
-                <EditLocation />
+                <AuthProvider>
+                  <EditLocation />
+                </AuthProvider>
               </ThemeProvider>
             </LanguageProvider>
           ),
@@ -163,7 +175,12 @@ describe("EditLocation", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    clearLocalStorage();
     vi.mocked(getLocationById).mockReturnValue(mockLocation);
+
+    // Default: main user with all permissions
+    const mockMainUser = createMockMainUser();
+    vi.mocked(getUserById).mockReturnValue(mockMainUser);
   });
 
   it("should render edit location form with pre-filled data", async () => {

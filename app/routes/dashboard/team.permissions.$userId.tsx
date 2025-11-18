@@ -102,12 +102,17 @@ function ResourcePermissionSection({
 
 export function meta() {
   return [
-    { title: "Permissões do Usuário - Boi na Nuvem" },
+    { title: "Permissões do Membro - Boi na Nuvem" },
     {
       name: "description",
-      content: "Defina as permissões do usuário",
+      content: "Gerenciar permissões do membro da equipe",
     },
   ];
+}
+
+export async function loader({ request }: { request: Request }) {
+  const { requireMainUser } = await import("~/utils/route-guard");
+  return requireMainUser()({ request });
 }
 
 export default function TeamPermissions() {

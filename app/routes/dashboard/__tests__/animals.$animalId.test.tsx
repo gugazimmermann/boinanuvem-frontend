@@ -3,9 +3,12 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
+import { AuthProvider } from "~/contexts/auth-context";
 import AnimalDetails from "../animals.$animalId";
 import { getAnimalById } from "~/services/animals.service";
 import { getAnimalObservationsByAnimalId } from "~/services/animal-observations.service";
+import { getUserById } from "~/services/users.service";
+import { createMockMainUser, setCurrentUserId, clearLocalStorage } from "~/test-utils";
 
 const mockNavigate = vi.fn();
 const mockSetSearchParams = vi.fn();
@@ -90,6 +93,15 @@ vi.mock("~/services/breedings.service", () => ({
   getBreedingsByAnimalId: (...args: unknown[]) => mockGetBreedingsByAnimalId(...args),
   confirmBreeding: (...args: unknown[]) => mockConfirmBreeding(...args),
   deleteBreeding: (...args: unknown[]) => mockDeleteBreeding(...args),
+}));
+
+const mockUsePermissions = vi.fn();
+vi.mock("~/utils/permissions", () => ({
+  usePermissions: () => mockUsePermissions(),
+}));
+
+vi.mock("~/services/users.service", () => ({
+  getUserById: vi.fn(),
 }));
 
 vi.mock("~/components/ui", () => ({
@@ -245,7 +257,9 @@ describe("AnimalDetails", () => {
           element: (
             <LanguageProvider>
               <ThemeProvider>
-                <AnimalDetails />
+                <AuthProvider>
+                  <AnimalDetails />
+                </AuthProvider>
               </ThemeProvider>
             </LanguageProvider>
           ),
@@ -258,7 +272,18 @@ describe("AnimalDetails", () => {
   };
 
   beforeEach(() => {
+    clearLocalStorage();
     vi.clearAllMocks();
+    const mockUser = createMockMainUser();
+    vi.mocked(getUserById).mockReturnValue(mockUser);
+    setCurrentUserId(mockUser.id);
+    mockUsePermissions.mockReturnValue({
+      canView: () => true,
+      canAdd: () => true,
+      canEdit: () => true,
+      canRemove: () => true,
+      isMainUser: () => true,
+    });
     vi.mocked(getAnimalById).mockReturnValue(mockAnimal);
     vi.mocked(getAnimalObservationsByAnimalId).mockReturnValue(mockObservations);
     mockGetBirthByAnimalId.mockReturnValue(null);

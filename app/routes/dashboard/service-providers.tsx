@@ -19,6 +19,7 @@ import { getPropertyById } from "~/services/properties.service";
 import { ROUTES, getServiceProviderEditRoute, getServiceProviderViewRoute } from "~/routes.config";
 import { getLocationMovementsByServiceProviderId } from "~/services/location-movements.service";
 import { getServiceProviderObservationsByServiceProviderId } from "~/services/service-provider-observations.service";
+import { usePermissions } from "~/utils/permissions";
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
@@ -39,9 +40,15 @@ export function meta() {
   ];
 }
 
+export async function loader({ request }: { request: Request }) {
+  const { createRouteGuard } = await import("~/utils/route-guard");
+  return createRouteGuard(undefined, "view")({ request });
+}
+
 export default function ServiceProviders() {
   const t = useTranslation();
   const navigate = useNavigate();
+  const { canAdd, canEdit, canRemove } = usePermissions();
   const [serviceProviders, setServiceProviders] = useState<ServiceProvider[]>([
     ...mockServiceProviders,
   ]);
@@ -272,34 +279,38 @@ export default function ServiceProviders() {
         <TableActionButtons
           onEdit={() => navigate(getServiceProviderEditRoute(row.id))}
           onDelete={() => handleDeleteClick(row)}
+          canEdit={canEdit("registration", "serviceProvider")}
+          canDelete={canRemove("registration", "serviceProvider")}
         />
       ),
     },
   ];
 
-  const headerActions: TableAction[] = [
-    {
-      label: t.serviceProviders.addServiceProvider,
-      variant: "primary",
-      leftIcon: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={1.5}
-          stroke="currentColor"
-          className="w-5 h-5"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-      ),
-      onClick: () => navigate(ROUTES.SERVICE_PROVIDERS_NEW),
-    },
-  ];
+  const headerActions: TableAction[] = canAdd("registration", "serviceProvider")
+    ? [
+        {
+          label: t.serviceProviders.addServiceProvider,
+          variant: "primary",
+          leftIcon: (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className="w-5 h-5"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          ),
+          onClick: () => navigate(ROUTES.SERVICE_PROVIDERS_NEW),
+        },
+      ]
+    : [];
 
   const filters: TableFilter[] = [
     {

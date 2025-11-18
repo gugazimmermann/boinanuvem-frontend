@@ -19,6 +19,7 @@ import { getPropertyById } from "~/services/properties.service";
 import { ROUTES, getEmployeeEditRoute, getEmployeeViewRoute } from "~/routes.config";
 import { getLocationMovementsByEmployeeId } from "~/services/location-movements.service";
 import { getEmployeeObservationsByEmployeeId } from "~/services/employee-observations.service";
+import { usePermissions } from "~/utils/permissions";
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
@@ -39,9 +40,15 @@ export function meta() {
   ];
 }
 
+export async function loader({ request }: { request: Request }) {
+  const { createRouteGuard } = await import("~/utils/route-guard");
+  return createRouteGuard(undefined, "view")({ request });
+}
+
 export default function Employees() {
   const t = useTranslation();
   const navigate = useNavigate();
+  const { canAdd, canEdit, canRemove } = usePermissions();
   const [employees, setEmployees] = useState<Employee[]>([...mockEmployees]);
   const [sortState, setSortState] = useState<{
     column: string | null;
@@ -262,34 +269,38 @@ export default function Employees() {
         <TableActionButtons
           onEdit={() => navigate(getEmployeeEditRoute(row.id))}
           onDelete={() => handleDeleteClick(row)}
+          canEdit={canEdit("registration", "employee")}
+          canDelete={canRemove("registration", "employee")}
         />
       ),
     },
   ];
 
-  const headerActions: TableAction[] = [
-    {
-      label: t.employees.addEmployee,
-      variant: "primary",
-      leftIcon: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={1.5}
-          stroke="currentColor"
-          className="w-5 h-5"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-      ),
-      onClick: () => navigate(ROUTES.EMPLOYEES_NEW),
-    },
-  ];
+  const headerActions: TableAction[] = canAdd("registration", "employee")
+    ? [
+        {
+          label: t.employees.addEmployee,
+          variant: "primary",
+          leftIcon: (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className="w-5 h-5"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          ),
+          onClick: () => navigate(ROUTES.EMPLOYEES_NEW),
+        },
+      ]
+    : [];
 
   const filters: TableFilter[] = [
     {

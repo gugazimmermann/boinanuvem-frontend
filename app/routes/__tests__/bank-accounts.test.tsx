@@ -1,9 +1,12 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
+import { AuthProvider } from "~/contexts/auth-context";
 import BankAccounts from "../dashboard/bank-accounts";
+import { getUserById } from "~/services/users.service";
+import { createMockMainUser, setCurrentUserId, clearLocalStorage } from "~/test-utils";
 
 vi.mock("~/components/ui", () => ({
   Table: () => <div data-testid="table">Table</div>,
@@ -27,6 +30,15 @@ vi.mock("~/services/bank-account.service", () => ({
   deleteBankAccount: vi.fn(() => true),
 }));
 
+const mockUsePermissions = vi.fn();
+vi.mock("~/utils/permissions", () => ({
+  usePermissions: () => mockUsePermissions(),
+}));
+
+vi.mock("~/services/users.service", () => ({
+  getUserById: vi.fn(),
+}));
+
 describe("BankAccounts", () => {
   const createRouter = () => {
     return createMemoryRouter(
@@ -36,7 +48,9 @@ describe("BankAccounts", () => {
           element: (
             <LanguageProvider>
               <ThemeProvider>
-                <BankAccounts />
+                <AuthProvider>
+                  <BankAccounts />
+                </AuthProvider>
               </ThemeProvider>
             </LanguageProvider>
           ),
@@ -47,6 +61,21 @@ describe("BankAccounts", () => {
       }
     );
   };
+
+  beforeEach(() => {
+    clearLocalStorage();
+    vi.clearAllMocks();
+    const mockUser = createMockMainUser();
+    vi.mocked(getUserById).mockReturnValue(mockUser);
+    setCurrentUserId(mockUser.id);
+    mockUsePermissions.mockReturnValue({
+      canView: () => true,
+      canAdd: () => true,
+      canEdit: () => true,
+      canRemove: () => true,
+      isMainUser: () => true,
+    });
+  });
 
   it("should render bank accounts table", () => {
     const router = createRouter();

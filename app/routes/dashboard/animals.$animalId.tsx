@@ -40,6 +40,7 @@ import type { Breeding, Birth } from "~/types";
 import type { AnimalObservation } from "~/types/animal-observation";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
 import type { BirthPurity } from "~/types";
+import { usePermissions } from "~/utils/permissions";
 
 type GenealogyNodeType = {
   animal: { id: string; code: string; registrationNumber: string };
@@ -153,14 +154,27 @@ export function meta() {
   ];
 }
 
+export async function loader({ request }: { request: Request }) {
+  const { createRouteGuard } = await import("~/utils/route-guard");
+  return createRouteGuard(undefined, "view")({ request });
+}
+
 export default function AnimalDetails() {
   const { animalId } = useParams<{ animalId: string }>();
   const navigate = useNavigate();
   const t = useTranslation();
+  const { canEdit, isMainUser } = usePermissions();
   const animal = getAnimalById(animalId);
   const [activeTab, setActiveTab] = useState<
     "dashboard" | "info" | "weighings" | "genealogy" | "activities" | "observations" | "breeding"
   >("dashboard");
+
+  // Redirect non-main users away from activities tab
+  useEffect(() => {
+    if (activeTab === "activities" && !isMainUser()) {
+      setActiveTab("dashboard");
+    }
+  }, [activeTab, isMainUser]);
   const [weighingsCurrentPage, setWeighingsCurrentPage] = useState(1);
   const [weighingsSortState, setWeighingsSortState] = useState<{
     column: string | null;
@@ -497,22 +511,24 @@ export default function AnimalDetails() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            onClick={() => navigate(getAnimalEditRoute(animal.id))}
-            leftIcon={
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                />
-              </svg>
-            }
-          >
-            {t.profile.company.edit}
-          </Button>
+          {canEdit("registration", "animals") && (
+            <Button
+              variant="outline"
+              onClick={() => navigate(getAnimalEditRoute(animal.id))}
+              leftIcon={
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+              }
+            >
+              {t.profile.company.edit}
+            </Button>
+          )}
           <Button
             variant="outline"
             onClick={() => navigate(ROUTES.ANIMALS)}
@@ -644,24 +660,26 @@ export default function AnimalDetails() {
           >
             {t.animals.details.tabs.observations || "Observações"}
           </button>
-          <button
-            onClick={() => setActiveTab("activities")}
-            className={`
-              py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
-              ${
+          {isMainUser() && (
+            <button
+              onClick={() => setActiveTab("activities")}
+              className={`
+                py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
+                ${
+                  activeTab === "activities"
+                    ? "dark:text-blue-400"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                }
+              `}
+              style={
                 activeTab === "activities"
-                  ? "dark:text-blue-400"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                  ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
+                  : undefined
               }
-            `}
-            style={
-              activeTab === "activities"
-                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
-                : undefined
-            }
-          >
-            {t.animals.details.tabs.activities}
-          </button>
+            >
+              {t.animals.details.tabs.activities}
+            </button>
+          )}
         </nav>
       </div>
 
@@ -1280,7 +1298,7 @@ export default function AnimalDetails() {
         </div>
       )}
 
-      {activeTab === "activities" && (
+      {activeTab === "activities" && isMainUser() && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
             {t.dashboard.recentActivities.title}

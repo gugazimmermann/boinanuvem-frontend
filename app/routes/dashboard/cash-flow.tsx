@@ -27,6 +27,7 @@ import { getServiceProviderById } from "~/services/service-providers.service";
 import { getPropertyById } from "~/services/properties.service";
 import type { CashFlow } from "~/types";
 import { ROUTES, getCashFlowEditRoute, getCashFlowViewRoute } from "~/routes.config";
+import { usePermissions } from "~/utils/permissions";
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
@@ -43,10 +44,16 @@ export function meta() {
   ];
 }
 
+export async function loader({ request }: { request: Request }) {
+  const { createRouteGuard } = await import("~/utils/route-guard");
+  return createRouteGuard(undefined, "view")({ request });
+}
+
 export default function CashFlow() {
   const t = useTranslation();
   const { language } = useLanguage();
   const navigate = useNavigate();
+  const { canAdd, canEdit, canRemove } = usePermissions();
   const [transactions, setTransactions] = useState<CashFlow[]>([...mockCashFlow]);
   const [sortState, setSortState] = useState<{
     column: string | null;
@@ -351,34 +358,38 @@ export default function CashFlow() {
         <TableActionButtons
           onEdit={() => navigate(getCashFlowEditRoute(row.id))}
           onDelete={() => handleDeleteClick(row)}
+          canEdit={canEdit("finances", "cashFlow")}
+          canDelete={canRemove("finances", "cashFlow")}
         />
       ),
     },
   ];
 
-  const headerActions: TableAction[] = [
-    {
-      label: t.cashFlow.addTransaction,
-      variant: "primary",
-      leftIcon: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={1.5}
-          stroke="currentColor"
-          className="w-5 h-5"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-      ),
-      onClick: () => navigate(ROUTES.CASH_FLOW_NEW),
-    },
-  ];
+  const headerActions: TableAction[] = canAdd("finances", "cashFlow")
+    ? [
+        {
+          label: t.cashFlow.addTransaction,
+          variant: "primary",
+          leftIcon: (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className="w-5 h-5"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          ),
+          onClick: () => navigate(ROUTES.CASH_FLOW_NEW),
+        },
+      ]
+    : [];
 
   const filters: TableFilter[] = [
     {

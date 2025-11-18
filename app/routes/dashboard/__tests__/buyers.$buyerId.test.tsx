@@ -3,9 +3,12 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
+import { AuthProvider } from "~/contexts/auth-context";
 import BuyerDetails from "../buyers.$buyerId";
 import { getBuyerById } from "~/services/buyers.service";
 import { getBuyerObservationsByBuyerId } from "~/services/buyer-observations.service";
+import { getUserById } from "~/services/users.service";
+import { createMockMainUser, setCurrentUserId, clearLocalStorage } from "~/test-utils";
 
 const mockNavigate = vi.fn();
 const mockSetSearchParams = vi.fn();
@@ -73,6 +76,15 @@ vi.mock("~/services/accounts-receivable.service", () => ({
 
 vi.mock("~/services/service-providers.service", () => ({
   getServiceProviderById: vi.fn((id: string) => ({ id, name: `ServiceProvider ${id}` })),
+}));
+
+const mockUsePermissions = vi.fn();
+vi.mock("~/utils/permissions", () => ({
+  usePermissions: () => mockUsePermissions(),
+}));
+
+vi.mock("~/services/users.service", () => ({
+  getUserById: vi.fn(),
 }));
 
 vi.mock("~/components/ui", () => ({
@@ -197,7 +209,9 @@ describe("BuyerDetails", () => {
           element: (
             <LanguageProvider>
               <ThemeProvider>
-                <BuyerDetails />
+                <AuthProvider>
+                  <BuyerDetails />
+                </AuthProvider>
               </ThemeProvider>
             </LanguageProvider>
           ),
@@ -210,7 +224,18 @@ describe("BuyerDetails", () => {
   };
 
   beforeEach(() => {
+    clearLocalStorage();
     vi.clearAllMocks();
+    const mockUser = createMockMainUser();
+    vi.mocked(getUserById).mockReturnValue(mockUser);
+    setCurrentUserId(mockUser.id);
+    mockUsePermissions.mockReturnValue({
+      canView: () => true,
+      canAdd: () => true,
+      canEdit: () => true,
+      canRemove: () => true,
+      isMainUser: () => true,
+    });
     vi.mocked(getBuyerById).mockReturnValue(mockBuyer);
     vi.mocked(getBuyerObservationsByBuyerId).mockReturnValue(mockObservations);
   });

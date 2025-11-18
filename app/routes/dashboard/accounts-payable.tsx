@@ -28,6 +28,7 @@ import { getPropertyById } from "~/services/properties.service";
 import type { AccountsPayable } from "~/types";
 import { ROUTES, getAccountsPayableEditRoute, getAccountsPayableViewRoute } from "~/routes.config";
 import { mockCompanies } from "~/mocks/companies";
+import { usePermissions } from "~/utils/permissions";
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
@@ -44,10 +45,16 @@ export function meta() {
   ];
 }
 
+export async function loader({ request }: { request: Request }) {
+  const { createRouteGuard } = await import("~/utils/route-guard");
+  return createRouteGuard(undefined, "view")({ request });
+}
+
 export default function AccountsPayable() {
   const t = useTranslation();
   const { language } = useLanguage();
   const navigate = useNavigate();
+  const { canAdd, canEdit, canRemove } = usePermissions();
   const company = mockCompanies[0];
   const initialTransactions = useMemo(() => {
     if (company) {
@@ -314,34 +321,38 @@ export default function AccountsPayable() {
         <TableActionButtons
           onEdit={() => navigate(getAccountsPayableEditRoute(row.id))}
           onDelete={() => handleDeleteClick(row)}
+          canEdit={canEdit("finances", "accountsPayable")}
+          canDelete={canRemove("finances", "accountsPayable")}
         />
       ),
     },
   ];
 
-  const headerActions: TableAction[] = [
-    {
-      label: t.accountsPayable.addTransaction,
-      variant: "primary",
-      leftIcon: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={1.5}
-          stroke="currentColor"
-          className="w-5 h-5"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-      ),
-      onClick: () => navigate(ROUTES.ACCOUNTS_PAYABLE_NEW),
-    },
-  ];
+  const headerActions: TableAction[] = canAdd("finances", "accountsPayable")
+    ? [
+        {
+          label: t.accountsPayable.addTransaction,
+          variant: "primary",
+          leftIcon: (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className="w-5 h-5"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          ),
+          onClick: () => navigate(ROUTES.ACCOUNTS_PAYABLE_NEW),
+        },
+      ]
+    : [];
 
   const filters: TableFilter[] = [
     {

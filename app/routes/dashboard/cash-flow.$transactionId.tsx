@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import { Button, StatusBadge } from "~/components/ui";
 import { useTranslation } from "~/i18n";
+import { usePermissions } from "~/utils/permissions";
 import {
   ROUTES,
   getCashFlowEditRoute,
@@ -38,10 +39,16 @@ export function meta() {
   ];
 }
 
+export async function loader({ request }: { request: Request }) {
+  const { createRouteGuard } = await import("~/utils/route-guard");
+  return createRouteGuard(undefined, "view")({ request });
+}
+
 export default function CashFlowDetails() {
   const { transactionId } = useParams<{ transactionId: string }>();
   const navigate = useNavigate();
   const t = useTranslation();
+  const { canEdit } = usePermissions();
   const transaction = getCashFlowById(transactionId);
   const supplier =
     transaction?.type === "expense" && transaction?.supplierId
@@ -83,9 +90,14 @@ export default function CashFlowDetails() {
           <Button variant="outline" onClick={() => navigate(ROUTES.CASH_FLOW)}>
             {t.common.back}
           </Button>
-          <Button variant="primary" onClick={() => navigate(getCashFlowEditRoute(transaction.id))}>
-            {t.cashFlow.edit.title}
-          </Button>
+          {canEdit("finances", "cashFlow") && (
+            <Button
+              variant="primary"
+              onClick={() => navigate(getCashFlowEditRoute(transaction.id))}
+            >
+              {t.cashFlow.edit.title}
+            </Button>
+          )}
         </div>
       </div>
 

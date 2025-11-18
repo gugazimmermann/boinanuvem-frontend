@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import { Button, StatusBadge } from "~/components/ui";
 import { useTranslation } from "~/i18n";
+import { usePermissions } from "~/utils/permissions";
 import { ROUTES, getAccountsPayableEditRoute } from "~/routes.config";
 import { getAccountsPayableById } from "~/services/accounts-payable.service";
 import { getSupplierById } from "~/services/suppliers.service";
@@ -33,10 +34,16 @@ export function meta() {
   ];
 }
 
+export async function loader({ request }: { request: Request }) {
+  const { createRouteGuard } = await import("~/utils/route-guard");
+  return createRouteGuard(undefined, "view")({ request });
+}
+
 export default function AccountsPayableDetails() {
   const { transactionId } = useParams<{ transactionId: string }>();
   const navigate = useNavigate();
   const t = useTranslation();
+  const { canEdit } = usePermissions();
   const transaction = getAccountsPayableById(transactionId);
 
   if (!transaction) {
@@ -89,12 +96,14 @@ export default function AccountsPayableDetails() {
           <Button variant="outline" onClick={() => navigate(ROUTES.ACCOUNTS_PAYABLE)}>
             {t.common.back}
           </Button>
-          <Button
-            variant="primary"
-            onClick={() => navigate(getAccountsPayableEditRoute(transaction.id))}
-          >
-            {t.common.save}
-          </Button>
+          {canEdit("finances", "accountsPayable") && (
+            <Button
+              variant="primary"
+              onClick={() => navigate(getAccountsPayableEditRoute(transaction.id))}
+            >
+              {t.common.save}
+            </Button>
+          )}
         </div>
       </div>
 

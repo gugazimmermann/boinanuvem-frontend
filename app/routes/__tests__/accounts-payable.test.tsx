@@ -1,9 +1,12 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
+import { AuthProvider } from "~/contexts/auth-context";
 import AccountsPayable from "../dashboard/accounts-payable";
+import { getUserById } from "~/services/users.service";
+import { createMockMainUser, setCurrentUserId, clearLocalStorage } from "~/test-utils";
 
 vi.mock("~/components/ui", () => ({
   Table: () => <div data-testid="table">Table</div>,
@@ -48,6 +51,15 @@ vi.mock("~/services/properties.service", () => ({
   getPropertyById: vi.fn(() => null),
 }));
 
+const mockUsePermissions = vi.fn();
+vi.mock("~/utils/permissions", () => ({
+  usePermissions: () => mockUsePermissions(),
+}));
+
+vi.mock("~/services/users.service", () => ({
+  getUserById: vi.fn(),
+}));
+
 describe("AccountsPayable", () => {
   const createRouter = () => {
     return createMemoryRouter(
@@ -57,7 +69,9 @@ describe("AccountsPayable", () => {
           element: (
             <LanguageProvider>
               <ThemeProvider>
-                <AccountsPayable />
+                <AuthProvider>
+                  <AccountsPayable />
+                </AuthProvider>
               </ThemeProvider>
             </LanguageProvider>
           ),
@@ -68,6 +82,21 @@ describe("AccountsPayable", () => {
       }
     );
   };
+
+  beforeEach(() => {
+    clearLocalStorage();
+    vi.clearAllMocks();
+    const mockUser = createMockMainUser();
+    vi.mocked(getUserById).mockReturnValue(mockUser);
+    setCurrentUserId(mockUser.id);
+    mockUsePermissions.mockReturnValue({
+      canView: () => true,
+      canAdd: () => true,
+      canEdit: () => true,
+      canRemove: () => true,
+      isMainUser: () => true,
+    });
+  });
 
   it("should render accounts payable table", () => {
     const router = createRouter();

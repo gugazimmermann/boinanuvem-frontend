@@ -27,6 +27,11 @@ export function meta() {
   ];
 }
 
+export async function loader({ request }: { request: Request }) {
+  const { requireMainUser } = await import("~/utils/route-guard");
+  return requireMainUser()({ request });
+}
+
 export default function Team() {
   const t = useTranslation();
   const { currentUser } = useAuth();

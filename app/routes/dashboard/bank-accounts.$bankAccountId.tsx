@@ -14,6 +14,7 @@ import {
   type SortDirection,
 } from "~/components/ui";
 import { useTranslation } from "~/i18n";
+import { usePermissions } from "~/utils/permissions";
 import { useLanguage } from "~/contexts/language-context";
 import {
   ROUTES,
@@ -47,11 +48,17 @@ export function meta() {
   ];
 }
 
+export async function loader({ request }: { request: Request }) {
+  const { createRouteGuard } = await import("~/utils/route-guard");
+  return createRouteGuard(undefined, "view")({ request });
+}
+
 export default function BankAccountDetails() {
   const { bankAccountId } = useParams<{ bankAccountId: string }>();
   const navigate = useNavigate();
   const t = useTranslation();
   const { language } = useLanguage();
+  const { canEdit } = usePermissions();
   const bankAccount = getBankAccountById(bankAccountId);
   const initialTransactions = useMemo(() => {
     if (bankAccountId) {
@@ -416,12 +423,14 @@ export default function BankAccountDetails() {
           <Button variant="outline" onClick={() => navigate(ROUTES.BANK_ACCOUNTS)}>
             {t.common.back}
           </Button>
-          <Button
-            variant="primary"
-            onClick={() => navigate(getBankAccountEditRoute(bankAccount.id))}
-          >
-            {t.bankAccounts.edit.title}
-          </Button>
+          {canEdit("finances", "bankAccounts") && (
+            <Button
+              variant="primary"
+              onClick={() => navigate(getBankAccountEditRoute(bankAccount.id))}
+            >
+              {t.bankAccounts.edit.title}
+            </Button>
+          )}
         </div>
       </div>
 

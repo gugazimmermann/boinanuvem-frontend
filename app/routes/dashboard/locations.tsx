@@ -21,6 +21,7 @@ import { ROUTES, getLocationEditRoute, getLocationViewRoute } from "~/routes.con
 import { LocationTypeBadge } from "~/components/dashboard/utils/location-type-badge";
 import { getLocationMovementsByLocationId } from "~/services/location-movements.service";
 import { getLocationObservationsByLocationId } from "~/services/location-observations.service";
+import { usePermissions } from "~/utils/permissions";
 
 const formatAreaType = (type: AreaType): string => {
   const typeMap: Record<AreaType, string> = {
@@ -53,9 +54,15 @@ export function meta() {
   ];
 }
 
+export async function loader({ request }: { request: Request }) {
+  const { createRouteGuard } = await import("~/utils/route-guard");
+  return createRouteGuard(undefined, "view")({ request });
+}
+
 export default function Locations() {
   const t = useTranslation();
   const navigate = useNavigate();
+  const { canAdd, canEdit, canRemove } = usePermissions();
   const [locations, setLocations] = useState<Location[]>([...mockLocations]);
   const [sortState, setSortState] = useState<{
     column: string | null;
@@ -282,34 +289,38 @@ export default function Locations() {
         <TableActionButtons
           onEdit={() => navigate(getLocationEditRoute(row.id))}
           onDelete={() => handleDeleteClick(row)}
+          canEdit={canEdit("registration", "location")}
+          canDelete={canRemove("registration", "location")}
         />
       ),
     },
   ];
 
-  const headerActions: TableAction[] = [
-    {
-      label: t.locations.addLocation,
-      variant: "primary",
-      leftIcon: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={1.5}
-          stroke="currentColor"
-          className="w-5 h-5"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-      ),
-      onClick: () => navigate(ROUTES.LOCATIONS_NEW),
-    },
-  ];
+  const headerActions: TableAction[] = canAdd("registration", "location")
+    ? [
+        {
+          label: t.locations.addLocation,
+          variant: "primary",
+          leftIcon: (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className="w-5 h-5"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          ),
+          onClick: () => navigate(ROUTES.LOCATIONS_NEW),
+        },
+      ]
+    : [];
 
   const filters: TableFilter[] = [
     {

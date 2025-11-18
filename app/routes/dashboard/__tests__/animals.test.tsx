@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
+import { AuthProvider } from "~/contexts/auth-context";
 import Animals from "../animals";
 import { mockAnimals } from "~/mocks/animals";
 import { deleteAnimal } from "~/services/animals.service";
@@ -10,6 +11,8 @@ import { ROUTES } from "~/routes.config";
 import { getBirthByAnimalId } from "~/services/births.service";
 import { getWeighingsByAnimalId } from "~/services/weighings.service";
 import { getPropertyById } from "~/services/properties.service";
+import { getUserById } from "~/services/users.service";
+import { createMockMainUser, setCurrentUserId, clearLocalStorage } from "~/test-utils";
 
 const mockNavigate = vi.fn();
 
@@ -95,6 +98,15 @@ vi.mock("~/mocks/weighings", async () => {
 
 vi.mock("~/services/weighings.service", () => ({
   getWeighingsByAnimalId: vi.fn(() => []),
+}));
+
+const mockUsePermissions = vi.fn();
+vi.mock("~/utils/permissions", () => ({
+  usePermissions: () => mockUsePermissions(),
+}));
+
+vi.mock("~/services/users.service", () => ({
+  getUserById: vi.fn(),
 }));
 
 vi.mock("~/components/ui", () => ({
@@ -241,7 +253,9 @@ describe("Animals", () => {
           element: (
             <LanguageProvider>
               <ThemeProvider>
-                <Animals />
+                <AuthProvider>
+                  <Animals />
+                </AuthProvider>
               </ThemeProvider>
             </LanguageProvider>
           ),
@@ -254,7 +268,18 @@ describe("Animals", () => {
   };
 
   beforeEach(() => {
+    clearLocalStorage();
     vi.clearAllMocks();
+    const mockUser = createMockMainUser();
+    vi.mocked(getUserById).mockReturnValue(mockUser);
+    setCurrentUserId(mockUser.id);
+    mockUsePermissions.mockReturnValue({
+      canView: () => true,
+      canAdd: () => true,
+      canEdit: () => true,
+      canRemove: () => true,
+      isMainUser: () => true,
+    });
   });
 
   it("should render animals table", () => {
