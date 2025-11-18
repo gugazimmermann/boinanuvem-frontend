@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Link, useLocation } from "react-router";
 import { DASHBOARD_COLORS } from "../utils/colors";
 
@@ -9,10 +8,13 @@ interface SidebarSubItemProps {
 }
 
 interface SidebarItemProps {
+  translationKey: string;
   label: string;
   path: string;
   icon?: string;
   subItems?: SidebarSubItemProps[];
+  isExpanded?: boolean;
+  onToggle?: () => void;
 }
 
 function SidebarSubItem({ label, path, icon }: SidebarSubItemProps) {
@@ -36,12 +38,15 @@ function SidebarSubItem({ label, path, icon }: SidebarSubItemProps) {
   );
 }
 
-export function SidebarItem({ label, path, icon, subItems }: SidebarItemProps) {
+export function SidebarItem({
+  label,
+  path,
+  icon,
+  subItems,
+  isExpanded,
+  onToggle,
+}: SidebarItemProps) {
   const location = useLocation();
-  const [isExpanded, setIsExpanded] = useState(() => {
-    if (!subItems) return false;
-    return subItems.some((subItem) => location.pathname === subItem.path);
-  });
 
   const hasActiveSubItem = subItems?.some((subItem) => location.pathname === subItem.path);
   const isActive = location.pathname === path || hasActiveSubItem;
@@ -58,7 +63,7 @@ export function SidebarItem({ label, path, icon, subItems }: SidebarItemProps) {
   if (subItems && subItems.length > 0) {
     return (
       <div>
-        <div className={className} style={activeStyle} onClick={() => setIsExpanded(!isExpanded)}>
+        <div className={className} style={activeStyle} onClick={onToggle}>
           {icon && <span className="text-lg">{icon}</span>}
           <span className="font-medium flex-1">{label}</span>
           <svg
