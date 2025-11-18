@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Input } from "~/components/ui";
 import { Button } from "~/components/ui";
 import { AddressForm } from "./address-form";
@@ -15,8 +15,10 @@ import { useTranslation } from "~/i18n";
 import { DASHBOARD_COLORS } from "../utils/colors";
 import type { AddressFormData } from "~/components/site/utils/cep-utils";
 import { mockUsers } from "~/mocks/users";
-import { getUserById, updateUser } from "~/services/users.service";
+import { getUserById, updateUser, updateUserPermissions } from "~/services/users.service";
 import { mockCompanies } from "~/mocks/companies";
+import type { UserPermissions, PermissionAction, ResourcePermissions } from "~/types/permissions";
+import { defaultPermissions } from "~/types/permissions";
 
 interface UserFormData extends AddressFormData {
   name: string;
@@ -142,6 +144,140 @@ const generateUserLogs = (): ActivityLogEntry[] => {
 
 const mockUserLogs: ActivityLogEntry[] = generateUserLogs();
 
+type PermissionSection = "registration" | "records" | "breedings" | "finances";
+
+type PermissionResource =
+  // Registration
+  | "property"
+  | "location"
+  | "employee"
+  | "serviceProvider"
+  | "supplier"
+  | "buyer"
+  | "animals"
+  // Records
+  | "births"
+  | "acquisitions"
+  | "weighings"
+  // Breedings
+  | "breedings"
+  | "unconfirmedBreedings"
+  | "pregnantCows"
+  | "reproductiveIndexes"
+  | "birthForecast"
+  // Finances
+  | "cashFlow"
+  | "accountsPayable"
+  | "accountsReceivable"
+  | "bankAccounts";
+
+interface ResourcePermissionSectionProps {
+  resource: PermissionResource;
+  resourceLabel: string;
+  permissions: ResourcePermissions;
+  isEditable: boolean;
+  onPermissionChange: (action: PermissionAction, value: boolean) => void;
+  onSelectAll: (value: boolean) => void;
+}
+
+function ResourcePermissionSection({
+  resourceLabel,
+  permissions,
+  isEditable,
+  onPermissionChange,
+  onSelectAll,
+}: ResourcePermissionSectionProps) {
+  const t = useTranslation();
+  const checkboxRef = useRef<HTMLInputElement>(null);
+  const allSelected = Object.values(permissions).every((v) => v === true);
+  const someSelected = Object.values(permissions).some((v) => v === true);
+
+  useEffect(() => {
+    if (checkboxRef.current) {
+      checkboxRef.current.indeterminate = someSelected && !allSelected;
+    }
+  }, [permissions, allSelected, someSelected]);
+
+  const actions: PermissionAction[] = ["view", "add", "edit", "remove"];
+
+  return (
+    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+      <div className="flex items-center justify-between mb-2">
+        <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">{resourceLabel}</h4>
+        {isEditable && (
+          <label className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
+            <input
+              ref={checkboxRef}
+              type="checkbox"
+              checked={allSelected}
+              onChange={(e) => onSelectAll(e.target.checked)}
+              className="w-3.5 h-3.5 rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:bg-gray-700"
+              style={{
+                accentColor: DASHBOARD_COLORS.primary,
+              }}
+            />
+            <span>{t.team.permissions.selectAll}</span>
+          </label>
+        )}
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        {actions.map((action) => (
+          <label
+            key={action}
+            className={`flex items-center gap-1.5 ${isEditable ? "cursor-pointer" : "cursor-default"}`}
+          >
+            {isEditable ? (
+              <>
+                <input
+                  type="checkbox"
+                  checked={permissions[action]}
+                  onChange={(e) => onPermissionChange(action, e.target.checked)}
+                  className="w-3.5 h-3.5 rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:bg-gray-700"
+                  style={{
+                    accentColor: DASHBOARD_COLORS.primary,
+                  }}
+                />
+                <span className="text-xs text-gray-700 dark:text-gray-300">
+                  {t.team.permissions.actions[action]}
+                </span>
+              </>
+            ) : (
+              <>
+                <div
+                  className={`w-3.5 h-3.5 rounded flex items-center justify-center ${
+                    permissions[action]
+                      ? "bg-blue-600 dark:bg-blue-500"
+                      : "bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600"
+                  }`}
+                >
+                  {permissions[action] && (
+                    <svg
+                      className="w-2.5 h-2.5 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  )}
+                </div>
+                <span className="text-xs text-gray-700 dark:text-gray-300">
+                  {t.team.permissions.actions[action]}
+                </span>
+              </>
+            )}
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 interface UserProfileProps {
   userId?: string;
   readOnly?: boolean;
@@ -158,7 +294,16 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
   const [originalData, setOriginalData] = useState<UserFormData>(mainUserData);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
-  const [activeSubTab, setActiveSubTab] = useState<"data" | "logs">("data");
+  const [activeSubTab, setActiveSubTab] = useState<"data" | "logs" | "permissions">("data");
+  const [permissions, setPermissions] = useState<UserPermissions>(defaultPermissions);
+  const [isSavingPermissions, setIsSavingPermissions] = useState(false);
+
+  // Reset to "data" tab if permissions tab is selected but userId is not provided
+  useEffect(() => {
+    if (!userId && activeSubTab === "permissions") {
+      setActiveSubTab("data");
+    }
+  }, [userId, activeSubTab]);
 
   useEffect(() => {
     if (userId) {
@@ -179,12 +324,16 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
         };
         setData(userData);
         setOriginalData(userData);
+        const userPermissions = user.permissions as UserPermissions | undefined;
+        setPermissions(userPermissions || defaultPermissions);
       }
     } else {
       setData(mainUserData);
       setOriginalData(mainUserData);
+      const mainUserPermissions = mainUser?.permissions as UserPermissions | undefined;
+      setPermissions(mainUserPermissions || defaultPermissions);
     }
-  }, [userId, mainUserData]);
+  }, [userId, mainUserData, mainUser]);
 
   const handleChange = (field: keyof UserFormData, value: string) => {
     setData((prev) => ({ ...prev, [field]: value }));
@@ -301,6 +450,61 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
     setIsEditing(false);
   };
 
+  const handlePermissionChange = (
+    section: PermissionSection,
+    resource: PermissionResource,
+    action: PermissionAction,
+    value: boolean
+  ) => {
+    setPermissions((prev) => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        [resource]: {
+          ...(prev[section] as Record<string, ResourcePermissions>)[resource],
+          [action]: value,
+        },
+      },
+    }));
+  };
+
+  const handleSelectAll = (
+    section: PermissionSection,
+    resource: PermissionResource,
+    value: boolean
+  ) => {
+    setPermissions((prev) => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        [resource]: {
+          view: value,
+          add: value,
+          edit: value,
+          remove: value,
+        },
+      },
+    }));
+  };
+
+  const handleSavePermissions = async () => {
+    if (!userId && !mainUser) return;
+
+    setIsSavingPermissions(true);
+    try {
+      const targetUserId = userId || mainUser?.id;
+      if (targetUserId) {
+        updateUserPermissions(targetUserId, permissions);
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        alert(t.team.permissions.success);
+      }
+    } catch {
+      alert(t.team.permissions.error);
+    } finally {
+      setIsSavingPermissions(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="mb-4">
@@ -326,6 +530,29 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
           >
             {t.profile.user.subTabs.data}
           </button>
+          {userId && (
+            <button
+              onClick={() => setActiveSubTab("permissions")}
+              className={`
+                px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer
+                ${
+                  activeSubTab === "permissions"
+                    ? "shadow-sm"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+                }
+              `}
+              style={
+                activeSubTab === "permissions"
+                  ? {
+                      backgroundColor: `${DASHBOARD_COLORS.primaryLight}40`,
+                      color: DASHBOARD_COLORS.primaryDark,
+                    }
+                  : undefined
+              }
+            >
+              {t.profile.user.subTabs.permissions}
+            </button>
+          )}
           <button
             onClick={() => setActiveSubTab("logs")}
             className={`
@@ -442,6 +669,99 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
             showUser={false}
             emptyMessage={t.profile.user.logs.empty}
           />
+        </div>
+      )}
+
+      {activeSubTab === "permissions" && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+          <div className="mb-4">
+            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">
+              {t.team.permissions.title}
+            </h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {mainUser ? t.team.permissions.description : "Visualize as permissões do usuário"}
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {[
+              {
+                section: "registration" as PermissionSection,
+                sectionLabel: t.team.permissions.registration,
+                resources: [
+                  "property",
+                  "location",
+                  "employee",
+                  "serviceProvider",
+                  "supplier",
+                  "buyer",
+                  "animals",
+                ] as PermissionResource[],
+              },
+              {
+                section: "records" as PermissionSection,
+                sectionLabel: t.team.permissions.records || "Registros",
+                resources: ["births", "acquisitions", "weighings"] as PermissionResource[],
+              },
+              {
+                section: "breedings" as PermissionSection,
+                sectionLabel: t.team.permissions.breedings || "Reprodução",
+                resources: [
+                  "breedings",
+                  "unconfirmedBreedings",
+                  "pregnantCows",
+                  "reproductiveIndexes",
+                  "birthForecast",
+                ] as PermissionResource[],
+              },
+              {
+                section: "finances" as PermissionSection,
+                sectionLabel: t.team.permissions.finances || "Finanças",
+                resources: [
+                  "cashFlow",
+                  "accountsPayable",
+                  "accountsReceivable",
+                  "bankAccounts",
+                ] as PermissionResource[],
+              },
+            ].map(({ section, sectionLabel, resources }) => (
+              <div key={section}>
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                  {sectionLabel}
+                </h3>
+                <div className="space-y-2">
+                  {resources.map((resource) => (
+                    <ResourcePermissionSection
+                      key={resource}
+                      resource={resource}
+                      resourceLabel={t.team.permissions.resources[resource] || resource}
+                      permissions={
+                        (permissions[section] as Record<string, ResourcePermissions>)[resource]
+                      }
+                      isEditable={!!mainUser}
+                      onPermissionChange={(action, value) =>
+                        handlePermissionChange(section, resource, action, value)
+                      }
+                      onSelectAll={(value) => handleSelectAll(section, resource, value)}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            {mainUser && (
+              <div className="flex justify-end gap-3 pt-3 mt-4 border-t border-gray-200 dark:border-gray-700">
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={handleSavePermissions}
+                  disabled={isSavingPermissions}
+                >
+                  {isSavingPermissions ? t.common.loading : t.team.permissions.savePermissions}
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

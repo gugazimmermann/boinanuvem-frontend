@@ -9,6 +9,7 @@ import {
 } from "../users.service";
 import { mockUsers } from "~/mocks/users";
 import type { UserFormData, UserPermissions } from "~/types";
+import { defaultPermissions } from "~/types/permissions";
 
 vi.mock("~/mocks/users", () => ({
   mockUsers: [],
@@ -47,10 +48,7 @@ describe("users.service", () => {
         mainUser: true,
         companyId: "550e8400-e29b-41d4-a716-446655440000",
         createdAt: "2020-01-01",
-        permissions: {
-          animals: { create: true, read: true, update: true, delete: true },
-          employees: { create: true, read: true, update: true, delete: true },
-        },
+        permissions: defaultPermissions,
       },
       {
         id: "550e8400-e29b-41d4-a716-446655440001",
@@ -71,10 +69,7 @@ describe("users.service", () => {
         mainUser: false,
         companyId: "550e8400-e29b-41d4-a716-446655440000",
         createdAt: "2020-01-02",
-        permissions: {
-          animals: { create: false, read: true, update: false, delete: false },
-          employees: { create: false, read: true, update: false, delete: false },
-        },
+        permissions: defaultPermissions,
       }
     );
   });
@@ -193,6 +188,25 @@ describe("users.service", () => {
           serviceProvider: { view: false, add: false, edit: false, remove: false },
           supplier: { view: false, add: false, edit: false, remove: false },
           buyer: { view: false, add: false, edit: false, remove: false },
+          animals: { view: false, add: false, edit: false, remove: false },
+        },
+        records: {
+          births: { view: false, add: false, edit: false, remove: false },
+          acquisitions: { view: false, add: false, edit: false, remove: false },
+          weighings: { view: false, add: false, edit: false, remove: false },
+        },
+        breedings: {
+          breedings: { view: false, add: false, edit: false, remove: false },
+          unconfirmedBreedings: { view: false, add: false, edit: false, remove: false },
+          pregnantCows: { view: false, add: false, edit: false, remove: false },
+          reproductiveIndexes: { view: false, add: false, edit: false, remove: false },
+          birthForecast: { view: false, add: false, edit: false, remove: false },
+        },
+        finances: {
+          cashFlow: { view: false, add: false, edit: false, remove: false },
+          accountsPayable: { view: false, add: false, edit: false, remove: false },
+          accountsReceivable: { view: false, add: false, edit: false, remove: false },
+          bankAccounts: { view: false, add: false, edit: false, remove: false },
         },
       };
 
@@ -204,16 +218,7 @@ describe("users.service", () => {
 
     it("should not update non-existent user", () => {
       const initialUsers = [...mockUsers];
-      updateUserPermissions("nonexistent-id", {
-        registration: {
-          property: { view: true, add: true, edit: true, remove: true },
-          location: { view: true, add: true, edit: true, remove: true },
-          employee: { view: true, add: true, edit: true, remove: true },
-          serviceProvider: { view: false, add: false, edit: false, remove: false },
-          supplier: { view: false, add: false, edit: false, remove: false },
-          buyer: { view: false, add: false, edit: false, remove: false },
-        },
-      });
+      updateUserPermissions("nonexistent-id", defaultPermissions);
       expect(mockUsers).toEqual(initialUsers);
     });
   });

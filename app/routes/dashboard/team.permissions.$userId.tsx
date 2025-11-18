@@ -9,13 +9,32 @@ import type { UserPermissions, PermissionAction, ResourcePermissions } from "~/t
 import { defaultPermissions } from "~/types/permissions";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
 
+type PermissionSection = "registration" | "records" | "breedings" | "finances";
+
 type PermissionResource =
+  // Registration
   | "property"
   | "location"
   | "employee"
   | "serviceProvider"
   | "supplier"
-  | "buyer";
+  | "buyer"
+  | "animals"
+  // Records
+  | "births"
+  | "acquisitions"
+  | "weighings"
+  // Breedings
+  | "breedings"
+  | "unconfirmedBreedings"
+  | "pregnantCows"
+  | "reproductiveIndexes"
+  | "birthForecast"
+  // Finances
+  | "cashFlow"
+  | "accountsPayable"
+  | "accountsReceivable"
+  | "bankAccounts";
 
 interface ResourcePermissionSectionProps {
   resource: PermissionResource;
@@ -45,16 +64,16 @@ function ResourcePermissionSection({
   const actions: PermissionAction[] = ["view", "add", "edit", "remove"];
 
   return (
-    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-medium text-gray-900 dark:text-gray-100">{resourceLabel}</h3>
-        <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
+    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">{resourceLabel}</h3>
+        <label className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
           <input
             ref={checkboxRef}
             type="checkbox"
             checked={allSelected}
             onChange={(e) => onSelectAll(e.target.checked)}
-            className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:bg-gray-700"
+            className="w-3.5 h-3.5 rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:bg-gray-700"
             style={{
               accentColor: DASHBOARD_COLORS.primary,
             }}
@@ -62,19 +81,19 @@ function ResourcePermissionSection({
           <span>{t.team.permissions.selectAll}</span>
         </label>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         {actions.map((action) => (
-          <label key={action} className="flex items-center gap-2 cursor-pointer">
+          <label key={action} className="flex items-center gap-1.5 cursor-pointer">
             <input
               type="checkbox"
               checked={permissions[action]}
               onChange={(e) => onPermissionChange(action, e.target.checked)}
-              className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:bg-gray-700"
+              className="w-3.5 h-3.5 rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:bg-gray-700"
               style={{
                 accentColor: DASHBOARD_COLORS.primary,
               }}
             />
-            <span className="text-sm text-gray-700 dark:text-gray-300">
+            <span className="text-xs text-gray-700 dark:text-gray-300">
               {t.team.permissions.actions[action]}
             </span>
           </label>
@@ -133,27 +152,32 @@ export default function TeamPermissions() {
   }, [userId, navigate, showAlert, t.team.permissions.userNotFound]);
 
   const handlePermissionChange = (
+    section: PermissionSection,
     resource: PermissionResource,
     action: PermissionAction,
     value: boolean
   ) => {
     setPermissions((prev) => ({
       ...prev,
-      registration: {
-        ...prev.registration,
+      [section]: {
+        ...prev[section],
         [resource]: {
-          ...prev.registration[resource],
+          ...(prev[section] as Record<string, ResourcePermissions>)[resource],
           [action]: value,
         },
       },
     }));
   };
 
-  const handleSelectAll = (resource: PermissionResource, value: boolean) => {
+  const handleSelectAll = (
+    section: PermissionSection,
+    resource: PermissionResource,
+    value: boolean
+  ) => {
     setPermissions((prev) => ({
       ...prev,
-      registration: {
-        ...prev.registration,
+      [section]: {
+        ...prev[section],
         [resource]: {
           view: value,
           add: value,
@@ -197,13 +221,45 @@ export default function TeamPermissions() {
     );
   }
 
-  const resources: PermissionResource[] = [
-    "property",
-    "location",
-    "employee",
-    "serviceProvider",
-    "supplier",
-    "buyer",
+  const permissionSections: Array<{
+    section: PermissionSection;
+    sectionLabel: string;
+    resources: PermissionResource[];
+  }> = [
+    {
+      section: "registration",
+      sectionLabel: t.team.permissions.registration,
+      resources: [
+        "property",
+        "location",
+        "employee",
+        "serviceProvider",
+        "supplier",
+        "buyer",
+        "animals",
+      ],
+    },
+    {
+      section: "records",
+      sectionLabel: t.team.permissions.records || "Registros",
+      resources: ["births", "acquisitions", "weighings"],
+    },
+    {
+      section: "breedings",
+      sectionLabel: t.team.permissions.breedings || "Reprodução",
+      resources: [
+        "breedings",
+        "unconfirmedBreedings",
+        "pregnantCows",
+        "reproductiveIndexes",
+        "birthForecast",
+      ],
+    },
+    {
+      section: "finances",
+      sectionLabel: t.team.permissions.finances || "Finanças",
+      resources: ["cashFlow", "accountsPayable", "accountsReceivable", "bankAccounts"],
+    },
   ];
 
   return (
@@ -228,29 +284,33 @@ export default function TeamPermissions() {
         </Button>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              {t.team.permissions.registration}
-            </h2>
-            <div className="space-y-6">
-              {resources.map((resource) => (
-                <ResourcePermissionSection
-                  key={resource}
-                  resource={resource}
-                  resourceLabel={t.team.permissions.resources[resource]}
-                  permissions={permissions.registration[resource]}
-                  onPermissionChange={(action, value) =>
-                    handlePermissionChange(resource, action, value)
-                  }
-                  onSelectAll={(value) => handleSelectAll(resource, value)}
-                />
-              ))}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+        <div className="space-y-4">
+          {permissionSections.map(({ section, sectionLabel, resources }) => (
+            <div key={section}>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                {sectionLabel}
+              </h2>
+              <div className="space-y-2">
+                {resources.map((resource) => (
+                  <ResourcePermissionSection
+                    key={resource}
+                    resource={resource}
+                    resourceLabel={t.team.permissions.resources[resource] || resource}
+                    permissions={
+                      (permissions[section] as Record<string, ResourcePermissions>)[resource]
+                    }
+                    onPermissionChange={(action, value) =>
+                      handlePermissionChange(section, resource, action, value)
+                    }
+                    onSelectAll={(value) => handleSelectAll(section, resource, value)}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
+          ))}
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex justify-end gap-3 pt-3 mt-4 border-t border-gray-200 dark:border-gray-700">
             <Button
               type="button"
               variant="outline"

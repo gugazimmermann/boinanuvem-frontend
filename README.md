@@ -120,14 +120,30 @@ A modern, full-stack React application built with React Router v7, featuring a c
   - Add, edit, and remove team members
   - User role assignment
   - Team member profile management
+  - Row-click navigation to user details
 - **Profile Management**: User and company profile management with activity logs
   - User profile editing
   - Company profile management
   - Activity log tracking
-- **Permissions System**: Granular permission management for team members
-  - Resource-based permissions
-  - Action-level access control (create, read, update, delete)
-  - Permission assignment interface
+  - User-specific permissions viewing and editing (for main user)
+- **Permissions System**: Comprehensive granular permission management for team members
+  - **Section-based organization**: Permissions organized into logical sections
+    - **Registration**: Property, Location, Employee, Service Provider, Supplier, Buyer, Animals
+    - **Records**: Births, Acquisitions, Weighings
+    - **Breedings**: Breedings, Unconfirmed Breedings, Pregnant Cows, Reproductive Indexes, Birth Forecast
+    - **Finances**: Cash Flow, Accounts Payable, Accounts Receivable, Bank Accounts
+  - **Action-level access control**: Four permission actions per resource
+    - View: Read-only access to view data
+    - Add: Create new records
+    - Edit: Modify existing records
+    - Remove: Delete records
+  - **Permission assignment interface**: Intuitive UI for managing user permissions
+    - Section and resource grouping
+    - Bulk selection (select all) per resource
+    - Visual permission indicators
+    - Editable by main user only
+  - **Permission visibility**: View permissions on user profile pages
+  - **Default permissions**: Configurable default permission sets for new users
 
 ### Financial Management
 - **Financial Dashboard**: Comprehensive overview with income, expenses, and cash flow metrics

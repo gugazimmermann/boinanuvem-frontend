@@ -64,6 +64,25 @@ describe("TeamPermissions", () => {
         serviceProvider: { view: true, add: false, edit: false, remove: false },
         supplier: { view: true, add: false, edit: false, remove: false },
         buyer: { view: true, add: false, edit: false, remove: false },
+        animals: { view: true, add: false, edit: false, remove: false },
+      },
+      records: {
+        births: { view: false, add: false, edit: false, remove: false },
+        acquisitions: { view: false, add: false, edit: false, remove: false },
+        weighings: { view: false, add: false, edit: false, remove: false },
+      },
+      breedings: {
+        breedings: { view: false, add: false, edit: false, remove: false },
+        unconfirmedBreedings: { view: false, add: false, edit: false, remove: false },
+        pregnantCows: { view: false, add: false, edit: false, remove: false },
+        reproductiveIndexes: { view: false, add: false, edit: false, remove: false },
+        birthForecast: { view: false, add: false, edit: false, remove: false },
+      },
+      finances: {
+        cashFlow: { view: false, add: false, edit: false, remove: false },
+        accountsPayable: { view: false, add: false, edit: false, remove: false },
+        accountsReceivable: { view: false, add: false, edit: false, remove: false },
+        bankAccounts: { view: false, add: false, edit: false, remove: false },
       },
     },
   };

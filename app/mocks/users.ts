@@ -1,6 +1,162 @@
 import type { TeamUser } from "~/types";
+import type { UserPermissions } from "~/types/permissions";
 
 const DEFAULT_PASSWORD_HASH = "$2b$10$9c7eBs.MydmDkdO6SworA.ENm1i1yiT62zIzVrxJTecnU6Tl1ZhVu";
+
+// Full permissions for admin/main user
+const fullPermissions: UserPermissions = {
+  registration: {
+    property: { view: true, add: true, edit: true, remove: true },
+    location: { view: true, add: true, edit: true, remove: true },
+    employee: { view: true, add: true, edit: true, remove: true },
+    serviceProvider: { view: true, add: true, edit: true, remove: true },
+    supplier: { view: true, add: true, edit: true, remove: true },
+    buyer: { view: true, add: true, edit: true, remove: true },
+    animals: { view: true, add: true, edit: true, remove: true },
+  },
+  records: {
+    births: { view: true, add: true, edit: true, remove: true },
+    acquisitions: { view: true, add: true, edit: true, remove: true },
+    weighings: { view: true, add: true, edit: true, remove: true },
+  },
+  breedings: {
+    breedings: { view: true, add: true, edit: true, remove: true },
+    unconfirmedBreedings: { view: true, add: true, edit: true, remove: true },
+    pregnantCows: { view: true, add: true, edit: true, remove: true },
+    reproductiveIndexes: { view: true, add: true, edit: true, remove: true },
+    birthForecast: { view: true, add: true, edit: true, remove: true },
+  },
+  finances: {
+    cashFlow: { view: true, add: true, edit: true, remove: true },
+    accountsPayable: { view: true, add: true, edit: true, remove: true },
+    accountsReceivable: { view: true, add: true, edit: true, remove: true },
+    bankAccounts: { view: true, add: true, edit: true, remove: true },
+  },
+};
+
+// Manager permissions: view, add, edit but no remove
+const managerPermissions: UserPermissions = {
+  registration: {
+    property: { view: true, add: true, edit: true, remove: false },
+    location: { view: true, add: true, edit: true, remove: false },
+    employee: { view: true, add: true, edit: true, remove: false },
+    serviceProvider: { view: true, add: true, edit: true, remove: false },
+    supplier: { view: true, add: true, edit: true, remove: false },
+    buyer: { view: true, add: true, edit: true, remove: false },
+    animals: { view: true, add: true, edit: true, remove: false },
+  },
+  records: {
+    births: { view: true, add: true, edit: true, remove: false },
+    acquisitions: { view: true, add: true, edit: true, remove: false },
+    weighings: { view: true, add: true, edit: true, remove: false },
+  },
+  breedings: {
+    breedings: { view: true, add: true, edit: true, remove: false },
+    unconfirmedBreedings: { view: true, add: true, edit: true, remove: false },
+    pregnantCows: { view: true, add: true, edit: true, remove: false },
+    reproductiveIndexes: { view: true, add: true, edit: true, remove: false },
+    birthForecast: { view: true, add: true, edit: true, remove: false },
+  },
+  finances: {
+    cashFlow: { view: true, add: true, edit: true, remove: false },
+    accountsPayable: { view: true, add: true, edit: true, remove: false },
+    accountsReceivable: { view: true, add: true, edit: true, remove: false },
+    bankAccounts: { view: true, add: true, edit: true, remove: false },
+  },
+};
+
+// Regular user permissions: limited access
+const regularUserPermissions: UserPermissions = {
+  registration: {
+    property: { view: true, add: true, edit: false, remove: false },
+    location: { view: true, add: true, edit: false, remove: false },
+    employee: { view: true, add: false, edit: false, remove: false },
+    serviceProvider: { view: true, add: true, edit: false, remove: false },
+    supplier: { view: true, add: false, edit: false, remove: false },
+    buyer: { view: true, add: true, edit: false, remove: false },
+    animals: { view: true, add: true, edit: false, remove: false },
+  },
+  records: {
+    births: { view: true, add: true, edit: false, remove: false },
+    acquisitions: { view: true, add: true, edit: false, remove: false },
+    weighings: { view: true, add: true, edit: false, remove: false },
+  },
+  breedings: {
+    breedings: { view: true, add: true, edit: false, remove: false },
+    unconfirmedBreedings: { view: true, add: false, edit: false, remove: false },
+    pregnantCows: { view: true, add: false, edit: false, remove: false },
+    reproductiveIndexes: { view: true, add: false, edit: false, remove: false },
+    birthForecast: { view: true, add: false, edit: false, remove: false },
+  },
+  finances: {
+    cashFlow: { view: true, add: false, edit: false, remove: false },
+    accountsPayable: { view: true, add: false, edit: false, remove: false },
+    accountsReceivable: { view: true, add: false, edit: false, remove: false },
+    bankAccounts: { view: true, add: false, edit: false, remove: false },
+  },
+};
+
+// Inactive user permissions: view only
+const inactiveUserPermissions: UserPermissions = {
+  registration: {
+    property: { view: true, add: false, edit: false, remove: false },
+    location: { view: true, add: false, edit: false, remove: false },
+    employee: { view: true, add: false, edit: false, remove: false },
+    serviceProvider: { view: true, add: false, edit: false, remove: false },
+    supplier: { view: true, add: false, edit: false, remove: false },
+    buyer: { view: true, add: false, edit: false, remove: false },
+    animals: { view: true, add: false, edit: false, remove: false },
+  },
+  records: {
+    births: { view: true, add: false, edit: false, remove: false },
+    acquisitions: { view: true, add: false, edit: false, remove: false },
+    weighings: { view: true, add: false, edit: false, remove: false },
+  },
+  breedings: {
+    breedings: { view: true, add: false, edit: false, remove: false },
+    unconfirmedBreedings: { view: true, add: false, edit: false, remove: false },
+    pregnantCows: { view: true, add: false, edit: false, remove: false },
+    reproductiveIndexes: { view: true, add: false, edit: false, remove: false },
+    birthForecast: { view: true, add: false, edit: false, remove: false },
+  },
+  finances: {
+    cashFlow: { view: true, add: false, edit: false, remove: false },
+    accountsPayable: { view: true, add: false, edit: false, remove: false },
+    accountsReceivable: { view: true, add: false, edit: false, remove: false },
+    bankAccounts: { view: true, add: false, edit: false, remove: false },
+  },
+};
+
+// Pending user permissions: no access
+const pendingUserPermissions: UserPermissions = {
+  registration: {
+    property: { view: false, add: false, edit: false, remove: false },
+    location: { view: false, add: false, edit: false, remove: false },
+    employee: { view: false, add: false, edit: false, remove: false },
+    serviceProvider: { view: false, add: false, edit: false, remove: false },
+    supplier: { view: false, add: false, edit: false, remove: false },
+    buyer: { view: false, add: false, edit: false, remove: false },
+    animals: { view: false, add: false, edit: false, remove: false },
+  },
+  records: {
+    births: { view: false, add: false, edit: false, remove: false },
+    acquisitions: { view: false, add: false, edit: false, remove: false },
+    weighings: { view: false, add: false, edit: false, remove: false },
+  },
+  breedings: {
+    breedings: { view: false, add: false, edit: false, remove: false },
+    unconfirmedBreedings: { view: false, add: false, edit: false, remove: false },
+    pregnantCows: { view: false, add: false, edit: false, remove: false },
+    reproductiveIndexes: { view: false, add: false, edit: false, remove: false },
+    birthForecast: { view: false, add: false, edit: false, remove: false },
+  },
+  finances: {
+    cashFlow: { view: false, add: false, edit: false, remove: false },
+    accountsPayable: { view: false, add: false, edit: false, remove: false },
+    accountsReceivable: { view: false, add: false, edit: false, remove: false },
+    bankAccounts: { view: false, add: false, edit: false, remove: false },
+  },
+};
 
 export const mockUsers: TeamUser[] = [
   {
@@ -23,6 +179,7 @@ export const mockUsers: TeamUser[] = [
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     createdAt: "2025-01-01",
     lastAccess: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    permissions: fullPermissions,
   },
   {
     id: "550e8400-e29b-41d4-a716-446655440001",
@@ -44,6 +201,7 @@ export const mockUsers: TeamUser[] = [
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     createdAt: "2025-01-15",
     lastAccess: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+    permissions: managerPermissions,
   },
   {
     id: "550e8400-e29b-41d4-a716-446655440002",
@@ -65,6 +223,7 @@ export const mockUsers: TeamUser[] = [
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     createdAt: "2025-02-01",
     lastAccess: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+    permissions: regularUserPermissions,
   },
   {
     id: "550e8400-e29b-41d4-a716-446655440003",
@@ -86,6 +245,7 @@ export const mockUsers: TeamUser[] = [
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     createdAt: "2025-02-15",
     lastAccess: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+    permissions: inactiveUserPermissions,
   },
   {
     id: "550e8400-e29b-41d4-a716-446655440004",
@@ -106,5 +266,6 @@ export const mockUsers: TeamUser[] = [
     mainUser: false,
     companyId: "550e8400-e29b-41d4-a716-446655440000",
     createdAt: "2025-03-01",
+    permissions: pendingUserPermissions,
   },
 ];

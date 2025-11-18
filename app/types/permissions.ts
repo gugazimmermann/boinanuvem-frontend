@@ -15,6 +15,25 @@ export interface UserPermissions {
     serviceProvider: ResourcePermissions;
     supplier: ResourcePermissions;
     buyer: ResourcePermissions;
+    animals: ResourcePermissions;
+  };
+  records: {
+    births: ResourcePermissions;
+    acquisitions: ResourcePermissions;
+    weighings: ResourcePermissions;
+  };
+  breedings: {
+    breedings: ResourcePermissions;
+    unconfirmedBreedings: ResourcePermissions;
+    pregnantCows: ResourcePermissions;
+    reproductiveIndexes: ResourcePermissions;
+    birthForecast: ResourcePermissions;
+  };
+  finances: {
+    cashFlow: ResourcePermissions;
+    accountsPayable: ResourcePermissions;
+    accountsReceivable: ResourcePermissions;
+    bankAccounts: ResourcePermissions;
   };
 }
 
@@ -51,6 +70,90 @@ export const defaultPermissions: UserPermissions = {
       remove: false,
     },
     buyer: {
+      view: false,
+      add: false,
+      edit: false,
+      remove: false,
+    },
+    animals: {
+      view: false,
+      add: false,
+      edit: false,
+      remove: false,
+    },
+  },
+  records: {
+    births: {
+      view: false,
+      add: false,
+      edit: false,
+      remove: false,
+    },
+    acquisitions: {
+      view: false,
+      add: false,
+      edit: false,
+      remove: false,
+    },
+    weighings: {
+      view: false,
+      add: false,
+      edit: false,
+      remove: false,
+    },
+  },
+  breedings: {
+    breedings: {
+      view: false,
+      add: false,
+      edit: false,
+      remove: false,
+    },
+    unconfirmedBreedings: {
+      view: false,
+      add: false,
+      edit: false,
+      remove: false,
+    },
+    pregnantCows: {
+      view: false,
+      add: false,
+      edit: false,
+      remove: false,
+    },
+    reproductiveIndexes: {
+      view: false,
+      add: false,
+      edit: false,
+      remove: false,
+    },
+    birthForecast: {
+      view: false,
+      add: false,
+      edit: false,
+      remove: false,
+    },
+  },
+  finances: {
+    cashFlow: {
+      view: false,
+      add: false,
+      edit: false,
+      remove: false,
+    },
+    accountsPayable: {
+      view: false,
+      add: false,
+      edit: false,
+      remove: false,
+    },
+    accountsReceivable: {
+      view: false,
+      add: false,
+      edit: false,
+      remove: false,
+    },
+    bankAccounts: {
       view: false,
       add: false,
       edit: false,

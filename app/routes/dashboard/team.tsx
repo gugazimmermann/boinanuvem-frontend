@@ -171,7 +171,6 @@ export default function Team() {
       headerClassName: "relative",
       render: (_, row) => (
         <TableActionButtons
-          onView={() => handleViewUser(row)}
           onEdit={() => handleEditClick(row)}
           onDelete={() => handleDeleteClick(row)}
         />
@@ -218,6 +217,7 @@ export default function Team() {
           onPageChange: setCurrentPage,
           showInfo: true,
         }}
+        onRowClick={(row) => handleViewUser(row)}
         emptyState={{
           title: t.team.emptyState.title,
           description: t.team.emptyState.description,
