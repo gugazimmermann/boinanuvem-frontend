@@ -207,10 +207,14 @@ A modern, full-stack React application built with React Router v7, featuring a c
   - User action logging
   - System event tracking
   - Activity history viewing
-- **Help Center**: FAQ and help documentation
-  - Categorized FAQs
-  - Searchable help content
-  - User guidance and support
+- **Help Center**: Comprehensive FAQ and help documentation
+  - **36+ FAQs** covering all major features and workflows
+  - **9 Categories**: Getting Started, Animals, Locations, Relationships, Records, Financial, Analytics, Team, and Technical
+  - **Quick Start Guide**: Step-by-step instructions for new users
+  - **Contact Support**: Support channels and contact information
+  - **Category Filtering**: Filter FAQs by category for easy navigation
+  - **Fully Internationalized**: All help content available in Portuguese, English, and Spanish
+  - **Comprehensive Coverage**: FAQs for animal management, locations, employees, service providers, suppliers, buyers, observations, weighings (including session weighings), acquisitions, movements, financial management, reproductive indexes, birth forecast, dashboard metrics, pasture planning, breeding season, search & filtering, data organization, and best practices
 
 ## 📋 Prerequisites
 
