@@ -127,23 +127,37 @@ A modern, full-stack React application built with React Router v7, featuring a c
   - Activity log tracking
   - User-specific permissions viewing and editing (for main user)
 - **Permissions System**: Comprehensive granular permission management for team members
+  - **Main User**: Special administrative user with full system access
+    - **Automatic Full Permissions**: Main users automatically have all permissions granted (bypasses permission checks)
+    - **Permission Management**: Only main users can view and edit permissions for other team members
+    - **Activity Logs Access**: Main users have exclusive access to view activity logs for all users
+    - **Company Ownership**: Typically the company owner or primary administrator
+    - **Unrestricted Access**: Can access all features and data regardless of permission settings
+  - **Regular Users**: Team members with specific permission assignments
+    - **Granular Permissions**: Each user has specific permissions assigned by the main user
+    - **Permission-Based Access**: Access to features is controlled by assigned permissions
+    - **View-Only Permissions**: Can view their own permissions but cannot modify them
   - **Section-based organization**: Permissions organized into logical sections
     - **Registration**: Property, Location, Employee, Service Provider, Supplier, Buyer, Animals
     - **Records**: Births, Acquisitions, Weighings
     - **Breedings**: Breedings, Unconfirmed Breedings, Pregnant Cows, Reproductive Indexes, Birth Forecast
     - **Finances**: Cash Flow, Accounts Payable, Accounts Receivable, Bank Accounts
   - **Action-level access control**: Four permission actions per resource
-    - View: Read-only access to view data
-    - Add: Create new records
-    - Edit: Modify existing records
-    - Remove: Delete records
+    - **View**: Read-only access to view data
+    - **Add**: Create new records
+    - **Edit**: Modify existing records
+    - **Remove**: Delete records
   - **Permission assignment interface**: Intuitive UI for managing user permissions
     - Section and resource grouping
     - Bulk selection (select all) per resource
     - Visual permission indicators
-    - Editable by main user only
+    - **Editable by main user only** - Regular users cannot modify permissions
   - **Permission visibility**: View permissions on user profile pages
+    - Main users can view and edit all user permissions
+    - Regular users can view their own permissions (read-only)
   - **Default permissions**: Configurable default permission sets for new users
+    - New users start with no permissions by default
+    - Main user assigns appropriate permissions during user creation or later
 
 ### Financial Management
 - **Financial Dashboard**: Comprehensive overview with income, expenses, and cash flow metrics
@@ -200,23 +214,36 @@ A modern, full-stack React application built with React Router v7, featuring a c
 
 ## 📋 Prerequisites
 
-- Node.js 20 or higher
-- npm (comes with Node.js)
+- **Node.js** 20 or higher
+- **npm** (comes with Node.js) or **yarn** or **pnpm**
 
-## 🛠️ Installation
+## 🚀 Quick Start
 
-1. Clone the repository:
+1. **Clone the repository:**
 ```bash
 git clone <repository-url>
 cd boinanuvem-frontend
 ```
 
-2. Install dependencies:
+2. **Install dependencies:**
 ```bash
 npm install
 ```
 
+3. **Start the development server:**
+```bash
+npm run dev
+```
+
+The application will be available at `http://localhost:5173` with Hot Module Replacement (HMR) enabled.
+
+## 🛠️ Installation
+
+For detailed installation instructions, follow the Quick Start guide above. The project uses npm by default, but you can use yarn or pnpm as well.
+
 ## 🏃 Development
+
+### Development Server
 
 Start the development server with Hot Module Replacement (HMR):
 
@@ -225,6 +252,13 @@ npm run dev
 ```
 
 The application will be available at `http://localhost:5173`.
+
+### Development Features
+
+- **Hot Module Replacement (HMR)**: Instant updates without page refresh
+- **TypeScript**: Full type checking and IntelliSense support
+- **ESLint**: Real-time code quality checks
+- **Fast Refresh**: React component state preservation during development
 
 ### Available Scripts
 
@@ -377,27 +411,59 @@ The application includes a comprehensive mock data system for development and te
 
 ## 🌐 Internationalization
 
-The application supports multiple languages:
-- Portuguese (pt) - Default
-- English (en)
-- Spanish (es)
+The application supports multiple languages with full internationalization (i18n) support:
+- **Portuguese (pt)** - Default language
+- **English (en)** - Full translation coverage
+- **Spanish (es)** - Full translation coverage
 
-Language files are located in `app/i18n/translations/`. The language context provides translation hooks throughout the application.
+### Translation System
+
+Language files are located in `app/i18n/translations/`. The language context provides translation hooks throughout the application using the `useTranslation` hook.
 
 ### Translation Coverage
 
 All user-facing strings are internationalized, including:
-- Animal movement types and labels
-- Form labels and placeholders
-- Error messages and notifications
-- Table headers and filters
-- Button labels and actions
+- **Navigation**: Menu items, breadcrumbs, page titles
+- **Forms**: Labels, placeholders, validation messages
+- **Tables**: Headers, filters, pagination controls
+- **Actions**: Button labels, tooltips, confirmations
+- **Notifications**: Success, error, and info messages
+- **Data**: Animal movement types, breeding methods, financial categories
+- **Analytics**: Chart labels, metric names, date formats
 
-The application uses a comprehensive translation system with type-safe translation keys and fallback support.
+### Using Translations
+
+```typescript
+import { useTranslation } from "~/i18n/use-translation";
+
+function MyComponent() {
+  const { t } = useTranslation();
+  
+  return <h1>{t.animals.title}</h1>;
+}
+```
+
+The application uses a comprehensive translation system with:
+- **Type-safe translation keys** - Full TypeScript support
+- **Fallback support** - Defaults to Portuguese if translation is missing
+- **Locale-aware formatting** - Dates and numbers formatted according to locale
+- **Dynamic language switching** - Change language without page reload
 
 ## 🎨 Theming
 
-The application supports both light and dark themes with automatic system preference detection. Theme preferences are persisted in localStorage.
+The application supports both **light** and **dark** themes with comprehensive theme management:
+
+### Theme Features
+
+- **Automatic System Detection**: Detects and applies system theme preference on first visit
+- **Manual Theme Switching**: Users can manually toggle between light and dark themes
+- **Persistent Preferences**: Theme selection is saved in localStorage and persists across sessions
+- **Smooth Transitions**: Theme changes apply smoothly without page reload
+- **Consistent Styling**: All components respect the selected theme using Tailwind CSS dark mode
+
+### Theme Implementation
+
+The theme is managed through React Context (`ThemeContext`) and uses Tailwind CSS's dark mode classes. Theme preferences are automatically synced across all components.
 
 ## 🐳 Docker Deployment
 
@@ -417,11 +483,13 @@ The application will be available at `http://localhost:3000`.
 
 ### Docker Multi-Stage Build
 
-The Dockerfile uses a multi-stage build process:
-1. **development-dependencies-env**: Installs all dependencies
+The Dockerfile uses a multi-stage build process to optimize image size and build time:
+1. **development-dependencies-env**: Installs all dependencies (including dev dependencies)
 2. **production-dependencies-env**: Installs production dependencies only
-3. **build-env**: Builds the application
-4. **Final stage**: Creates minimal production image
+3. **build-env**: Builds the application for production
+4. **Final stage**: Creates minimal production image with only runtime dependencies
+
+This approach results in a smaller final image (~200MB) while maintaining all necessary functionality.
 
 ## 📦 Production Build
 
@@ -464,6 +532,17 @@ Make sure to configure the following environment variables for production:
 - `NODE_ENV=production` - Set to production mode
 - Any API endpoints or service URLs your application requires
 - Additional environment-specific configuration as needed
+
+### Docker Deployment
+
+The application includes a Dockerfile for containerized deployment. The Dockerfile uses a multi-stage build process to optimize the final image size:
+
+1. **development-dependencies-env**: Installs all dependencies (including dev dependencies)
+2. **production-dependencies-env**: Installs production dependencies only
+3. **build-env**: Builds the application for production
+4. **Final stage**: Creates minimal production image with only necessary files
+
+This approach results in a smaller final image while maintaining all necessary functionality.
 
 ## 🧪 Testing
 
@@ -546,17 +625,140 @@ app/
 - Proper use of `act()` for state updates in React component tests
 - Mock services and hooks to isolate component behavior
 
+## 🔐 Permissions & Access Control
+
+### Main User vs Regular Users
+
+The application implements a two-tier user system with distinct permission models:
+
+#### Main User
+
+The **main user** is a special administrative account that serves as the company owner or primary administrator:
+
+- **Full System Access**: Automatically bypasses all permission checks and has unrestricted access to all features
+- **Permission Management**: Exclusive right to view and edit permissions for all team members
+- **Activity Logs**: Can view activity logs for all users in the company
+- **Company Administration**: Typically the first user created for a company or designated as the main user
+- **No Permission Restrictions**: All routes, features, and data are accessible regardless of permission settings
+
+**Technical Implementation:**
+- Identified by `mainUser: true` property on the user object
+- Permission checks automatically return `true` for main users
+- Uses `usePermissions()` hook which returns `isMainUser()` helper function
+
+#### Regular Users
+
+**Regular users** are team members with specific, granular permissions:
+
+- **Assigned Permissions**: Each user has a specific set of permissions assigned by the main user
+- **Permission-Based Access**: Access to features is strictly controlled by assigned permissions
+- **View-Only Permissions**: Can view their own permissions but cannot modify them
+- **Restricted Access**: Can only access features and data for which they have explicit permissions
+
+**Permission Structure:**
+- Permissions are organized into sections (Registration, Records, Breedings, Finances)
+- Each resource has four actions: View, Add, Edit, Remove
+- Permissions are stored per user and checked on every route and action
+
+### Permission System Architecture
+
+The permissions system uses a hierarchical structure:
+
+```
+UserPermissions
+├── registration/
+│   ├── property (view, add, edit, remove)
+│   ├── location (view, add, edit, remove)
+│   ├── employee (view, add, edit, remove)
+│   ├── serviceProvider (view, add, edit, remove)
+│   ├── supplier (view, add, edit, remove)
+│   ├── buyer (view, add, edit, remove)
+│   └── animals (view, add, edit, remove)
+├── records/
+│   ├── births (view, add, edit, remove)
+│   ├── acquisitions (view, add, edit, remove)
+│   └── weighings (view, add, edit, remove)
+├── breedings/
+│   ├── breedings (view, add, edit, remove)
+│   ├── unconfirmedBreedings (view, add, edit, remove)
+│   ├── pregnantCows (view, add, edit, remove)
+│   ├── reproductiveIndexes (view, add, edit, remove)
+│   └── birthForecast (view, add, edit, remove)
+└── finances/
+    ├── cashFlow (view, add, edit, remove)
+    ├── accountsPayable (view, add, edit, remove)
+    ├── accountsReceivable (view, add, edit, remove)
+    └── bankAccounts (view, add, edit, remove)
+```
+
+### Using Permissions in Code
+
+The application provides a `usePermissions()` hook for checking permissions:
+
+```typescript
+import { usePermissions } from "~/utils/permissions";
+
+function MyComponent() {
+  const { canView, canAdd, canEdit, canRemove, isMainUser } = usePermissions();
+  
+  // Check specific permissions
+  if (canView("registration", "animals")) {
+    // Show animals list
+  }
+  
+  // Check if user is main user
+  if (isMainUser()) {
+    // Show admin-only features
+  }
+  
+  // Check multiple permissions
+  const canManageAnimals = canAdd("registration", "animals") && 
+                           canEdit("registration", "animals");
+}
+```
+
+### Route Protection
+
+Routes are protected using route guards that check permissions:
+
+```typescript
+// Require specific permission
+export const loader = createRouteGuard(
+  "registration.animals",
+  "view"
+);
+
+// Require main user
+export const loader = requireMainUser();
+```
+
+### Permission Assignment Workflow
+
+1. **User Creation**: Main user creates a new team member
+2. **Default Permissions**: New user starts with no permissions (all false)
+3. **Permission Assignment**: Main user assigns appropriate permissions via the user profile page
+4. **Permission Updates**: Main user can modify permissions at any time
+5. **Permission Validation**: System validates permissions on every action and route access
+
 ## 🧪 Code Quality
 
 ### Pre-commit Hooks
 
-This project uses Husky to run pre-commit checks. Before each commit, the following checks are automatically executed:
-- TypeScript type checking
-- ESLint code quality checks
-- Prettier code formatting validation
-- Test suite execution
+This project uses **Husky** to run pre-commit checks. Before each commit, the following checks are automatically executed:
+- **TypeScript type checking** - Ensures type safety
+- **ESLint code quality checks** - Validates code style and best practices
+- **Prettier code formatting validation** - Ensures consistent code formatting
+- **Test suite execution** - Runs all tests to prevent regressions
 
-This ensures code quality and consistency across the project.
+This ensures code quality and consistency across the project. All checks must pass before a commit can be completed.
+
+### Git Hooks Setup
+
+Husky is automatically set up when you run `npm install` (via the `prepare` script). If you need to manually set up hooks:
+
+```bash
+npm run prepare
+```
 
 ### Type Checking
 
@@ -659,13 +861,60 @@ npm run format:check
 - **@react-router/serve** (^7.9.2) - React Router production server
 - **isbot** (^5.1.31) - Bot detection for SSR optimization
 
+## 🔧 Troubleshooting
+
+### Common Issues
+
+**Port already in use:**
+```bash
+# Kill the process using port 5173
+lsof -ti:5173 | xargs kill -9
+```
+
+**Type errors after installation:**
+```bash
+# Regenerate React Router types
+npm run typecheck
+```
+
+**Module not found errors:**
+```bash
+# Clear node_modules and reinstall
+rm -rf node_modules package-lock.json
+npm install
+```
+
+**Build failures:**
+```bash
+# Clear build cache and rebuild
+rm -rf build .react-router
+npm run build
+```
+
 ## 📝 License
 
-[Add your license information here]
+This project is proprietary software. All rights reserved.
 
 ## 👥 Contributing
 
-[Add contributing guidelines here]
+Contributions are welcome! Please follow these guidelines:
+
+1. **Fork the repository** and create a feature branch
+2. **Follow code style** - Run `npm run lint` and `npm run format` before committing
+3. **Write tests** - Ensure all new features have test coverage
+4. **Update documentation** - Keep the README and code comments up to date
+5. **Submit a pull request** - Include a clear description of changes
+
+### Development Workflow
+
+1. Create a new branch from `main`
+2. Make your changes
+3. Run tests: `npm test`
+4. Run type checking: `npm run typecheck`
+5. Run linting: `npm run lint`
+6. Format code: `npm run format`
+7. Commit changes (pre-commit hooks will run automatically)
+8. Push and create a pull request
 
 ---
 
