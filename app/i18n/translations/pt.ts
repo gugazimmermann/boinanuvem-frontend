@@ -2456,37 +2456,202 @@ export const pt = {
     tableOfContent: "Índice",
     all: "Todos",
     categories: {
-      general: "Geral",
-      trust: "Confiança e Segurança",
-      services: "Serviços",
-      billing: "Cobrança",
-      cleaning: "Limpeza de Escritório",
+      gettingStarted: "Primeiros Passos",
+      animals: "Animais",
+      locations: "Localizações",
+      people: "Relacionamentos",
+      records: "Registros",
+      financial: "Financeiro",
+      analytics: "Análises",
+      team: "Equipe",
+      technical: "Técnico",
+    },
+    contactSupport: {
+      title: "Precisa de Mais Ajuda?",
+      description:
+        "Nossa equipe de suporte está pronta para ajudá-lo. Entre em contato conosco através dos seguintes canais:",
+      contactMethods: [
+        "Email: suporte@boinanuvem.com.br",
+        "Telefone: (00) 0000-0000 (Segunda a Sexta, 8h às 18h)",
+        "Chat online: Disponível no canto inferior direito da tela",
+        "Documentação completa: Disponível em nosso site",
+      ],
     },
     faqs: {
-      payment: {
-        question: "Como posso pagar pela minha consulta?",
+      quickStartGuide: {
+        question: "Qual é o guia de início rápido?",
         answer:
-          "Você pode pagar pela sua consulta de várias formas: cartão de crédito, cartão de débito, transferência bancária ou PIX. O pagamento pode ser feito diretamente na plataforma ao agendar ou no momento da consulta, dependendo do serviço escolhido.",
+          "Para começar a usar o Boi na Nuvem, siga estes passos: 1) Cadastre suas propriedades rurais em 'Cadastros' > 'Propriedades'; 2) Adicione localizações (pastos, currais) dentro de cada propriedade; 3) Registre seus animais em 'Cadastros' > 'Animais'; 4) Cadastre funcionários, fornecedores e compradores conforme necessário; 5) Comece a registrar nascimentos, pesagens e coberturas; 6) Configure o planejamento de pastagem e estação de monta nas propriedades; 7) Explore o dashboard para visualizar métricas e análises.",
       },
-      firstConsultation: {
-        question: "O que posso esperar na minha primeira consulta?",
+      gettingStarted: {
+        question: "Como começar a usar o Boi na Nuvem?",
         answer:
-          "Na sua primeira consulta, você será recebido pela nossa equipe que coletará suas informações básicas e entenderá suas necessidades. Em seguida, você terá uma reunião com um especialista que analisará seu caso e proporá as melhores soluções para você.",
+          "Para começar, recomendamos que você primeiro cadastre suas propriedades rurais. Acesse o menu 'Cadastros' > 'Propriedades' e clique em 'Novo' para adicionar sua primeira propriedade. Em seguida, cadastre as localizações (pastos, currais, etc.) e depois os animais. O sistema permite gerenciar múltiplas propriedades e organizar seu rebanho de forma eficiente.",
       },
-      openingHours: {
-        question: "Quais são os seus horários de funcionamento?",
+      addProperty: {
+        question: "Como adicionar uma nova propriedade?",
         answer:
-          "Nosso horário de funcionamento é de segunda a sexta, das 8h às 18h, e aos sábados das 9h às 13h. Estamos fechados aos domingos e feriados. Para emergências, temos um canal de suporte 24/7 disponível.",
+          "Vá até 'Cadastros' > 'Propriedades' e clique no botão 'Novo'. Preencha as informações básicas como nome, endereço, área total e tipo de área (hectares, metros quadrados, etc.). Você também pode configurar o planejamento de pastagem e a estação de monta para cada propriedade. Após salvar, a propriedade estará disponível para associar animais e localizações.",
       },
-      referral: {
-        question: "Preciso de um encaminhamento?",
+      addAnimal: {
+        question: "Como cadastrar um novo animal?",
         answer:
-          "Um encaminhamento não é necessário para a maioria dos nossos serviços. Você pode agendar diretamente pela plataforma. No entanto, alguns serviços específicos podem exigir documentação adicional, que será informada no momento do agendamento.",
+          "Acesse 'Cadastros' > 'Animais' e clique em 'Novo'. Preencha as informações obrigatórias: código do animal, raça, sexo e data de nascimento. Você pode também informar os pais do animal para manter o histórico genético. O sistema calcula automaticamente a pureza (PO, F1, F2, etc.) baseado nas raças dos pais. Após salvar, o animal estará disponível para registros de pesagens, coberturas e movimentações.",
       },
-      insurance: {
-        question: "O custo da consulta é coberto pelo plano de saúde privado?",
+      animalCode: {
+        question: "Como funciona o código do animal?",
         answer:
-          "Depende do seu plano de saúde e do tipo de serviço. Alguns planos cobrem nossos serviços parcial ou totalmente. Recomendamos que você entre em contato com sua seguradora antes de agendar para verificar a cobertura. Também podemos ajudá-lo a verificar isso através do nosso suporte.",
+          "O código do animal é um identificador único que você define para cada animal. Recomendamos usar um sistema de codificação consistente, como números sequenciais ou códigos que incluam informações sobre a propriedade, ano de nascimento ou linhagem. O código é usado para identificar o animal em todos os registros e relatórios do sistema.",
+      },
+      recordBirth: {
+        question: "Como registrar um nascimento?",
+        answer:
+          "Vá até 'Registros' > 'Nascimento' e clique em 'Novo'. Selecione a mãe e o pai do animal nascido, informe a data do nascimento, o sexo e o código do novo animal. O sistema calcula automaticamente a pureza do animal baseado nas raças dos pais. Você também pode adicionar observações sobre o parto ou condições do animal ao nascer.",
+      },
+      recordBreeding: {
+        question: "Como registrar uma cobertura?",
+        answer:
+          "Acesse 'Coberturas' > 'Cobertura' e clique em 'Novo'. Selecione a fêmea e o macho envolvidos na cobertura, informe a data da cobertura e o método utilizado (monta natural, inseminação artificial, etc.). Após o registro, você pode acompanhar o status da cobertura em 'Coberturas Não Confirmadas' e, quando confirmada a prenhez, ela aparecerá em 'Vacas Prenhas'. O sistema também gera automaticamente a previsão de nascimentos.",
+      },
+      reproductiveIndexes: {
+        question: "O que são os Índices Reprodutivos?",
+        answer:
+          "Os Índices Reprodutivos são métricas importantes para avaliar a eficiência reprodutiva do seu rebanho. O sistema calcula automaticamente indicadores como taxa de prenhez, taxa de natalidade, intervalo entre partos e outros indicadores baseados nos registros de coberturas e nascimentos. Acesse 'Coberturas' > 'Índices Reprodutivos' para visualizar essas informações e acompanhar a performance reprodutiva do seu rebanho.",
+      },
+      cashFlow: {
+        question: "Como gerenciar o fluxo de caixa?",
+        answer:
+          "O módulo de Fluxo de Caixa permite registrar todas as entradas e saídas financeiras da sua operação. Acesse 'Finanças' > 'Fluxo de Caixa' e clique em 'Novo' para adicionar uma transação. Você pode categorizar cada transação, associar a fornecedores ou compradores, e definir o método de pagamento. O sistema gera gráficos e relatórios para ajudá-lo a visualizar sua situação financeira e tomar decisões informadas.",
+      },
+      accountsPayable: {
+        question: "Como gerenciar contas a pagar?",
+        answer:
+          "Em 'Finanças' > 'Contas a Pagar', você pode registrar todas as suas obrigações financeiras. Ao criar uma nova conta, informe o valor, a data de vencimento, o fornecedor e a descrição. O sistema acompanha o status de cada conta (pendente, paga, vencida) e permite registrar o pagamento quando realizado. Isso ajuda a manter o controle financeiro e evitar esquecimentos de pagamentos importantes.",
+      },
+      addTeamMember: {
+        question: "Como adicionar um membro à equipe?",
+        answer:
+          "Acesse 'Equipe' no menu lateral e clique em 'Novo'. Preencha os dados do novo usuário, incluindo nome, email, CPF e endereço. Após criar o usuário, você pode definir as permissões específicas que ele terá no sistema. Isso permite controlar o acesso a diferentes módulos e funcionalidades, garantindo que cada membro da equipe tenha acesso apenas ao que precisa para realizar seu trabalho.",
+      },
+      permissions: {
+        question: "Como funcionam as permissões?",
+        answer:
+          "O sistema de permissões permite que você controle o acesso de cada membro da equipe aos diferentes módulos do sistema. Você pode conceder permissões para visualizar, criar, editar ou excluir registros em cada área (animais, propriedades, registros, finanças, etc.). Apenas o usuário principal pode gerenciar permissões. Isso garante segurança e organização, permitindo que cada pessoa trabalhe apenas nas áreas relevantes para sua função.",
+      },
+      dataBackup: {
+        question: "Meus dados estão seguros?",
+        answer:
+          "Sim, todos os dados são armazenados de forma segura na nuvem. O Boi na Nuvem utiliza infraestrutura moderna com backups automáticos regulares para garantir a segurança e disponibilidade dos seus dados. Recomendamos que você mantenha seus próprios backups periódicos exportando os dados quando necessário. Em caso de dúvidas sobre segurança ou recuperação de dados, entre em contato com nosso suporte.",
+      },
+      exportData: {
+        question: "Posso exportar meus dados?",
+        answer:
+          "Sim, você pode exportar seus dados a qualquer momento. O sistema permite exportar informações de animais, propriedades, registros e relatórios financeiros. As opções de exportação estão disponíveis nas respectivas páginas de listagem. Os dados são exportados em formatos padrão que podem ser abertos em planilhas ou outros sistemas de gestão, permitindo que você mantenha cópias de segurança ou integre com outras ferramentas.",
+      },
+      addLocation: {
+        question: "Como adicionar uma localização?",
+        answer:
+          "Acesse 'Cadastros' > 'Localizações' e clique em 'Novo'. Selecione a propriedade à qual a localização pertence, informe o tipo (pasto, curral, celeiro, etc.), nome e área. Você pode adicionar observações e anexar arquivos relacionados à localização. As localizações são essenciais para organizar seu rebanho e rastrear movimentações de animais.",
+      },
+      manageEmployees: {
+        question: "Como gerenciar funcionários?",
+        answer:
+          "Vá até 'Cadastros' > 'Funcionários' para gerenciar sua equipe. Você pode cadastrar novos funcionários com informações completas como nome, CPF, endereço e contato. O sistema permite adicionar observações sobre cada funcionário, rastrear histórico de atividades e associar funcionários a registros de pesagens e movimentações. Isso ajuda a manter um registro organizado de sua equipe.",
+      },
+      serviceProviders: {
+        question: "Como gerenciar prestadores de serviço?",
+        answer:
+          "Em 'Cadastros' > 'Prestadores de Serviço', você pode registrar veterinários, inseminadores e outros profissionais que prestam serviços à sua propriedade. Cadastre informações de contato, especialidades e histórico de serviços. O sistema permite associar prestadores de serviço a registros de coberturas, pesagens e outras atividades, facilitando o acompanhamento dos serviços prestados.",
+      },
+      suppliers: {
+        question: "Como gerenciar fornecedores?",
+        answer:
+          "Acesse 'Cadastros' > 'Fornecedores' para cadastrar empresas e pessoas que fornecem produtos ou serviços. Você pode buscar fornecedores por CNPJ e associá-los a registros de aquisições e contas a pagar. O sistema mantém um histórico de transações com cada fornecedor, facilitando o controle de compras e relacionamento comercial.",
+      },
+      buyers: {
+        question: "Como gerenciar compradores?",
+        answer:
+          "Em 'Cadastros' > 'Compradores', registre informações sobre empresas e pessoas que compram seus animais ou produtos. Você pode associar compradores a registros de vendas e contas a receber. O sistema mantém um histórico de transações, ajudando você a gerenciar relacionamentos comerciais e acompanhar recebimentos.",
+      },
+      observations: {
+        question: "Como funciona o sistema de observações?",
+        answer:
+          "O sistema de observações permite registrar informações detalhadas sobre animais, localizações, funcionários, prestadores de serviço, fornecedores e compradores. Você pode adicionar observações com texto rico, anexar arquivos (fotos, documentos) e rastrear o histórico completo. As observações são úteis para manter registros detalhados de eventos, tratamentos, manutenções e outras informações relevantes.",
+      },
+      recordWeighing: {
+        question: "Como registrar uma pesagem?",
+        answer:
+          "Vá até 'Registros' > 'Pesagem' e clique em 'Novo'. Selecione o animal, informe a data e o peso. Você pode associar funcionários e prestadores de serviço que participaram da pesagem, e adicionar observações. O sistema calcula automaticamente a diferença de peso em relação à última pesagem e o GMD (Ganho Médio Diário), ajudando você a acompanhar o desenvolvimento dos animais.",
+      },
+      sessionWeighings: {
+        question: "Como funciona a pesagem em sessão?",
+        answer:
+          "A funcionalidade de pesagem em sessão permite registrar múltiplas pesagens sem precisar navegar entre páginas. Após registrar uma pesagem, você pode continuar registrando outras na mesma sessão. O sistema preserva as seleções de funcionários e prestadores de serviço entre registros, acelerando o processo. Você pode visualizar todas as pesagens da sessão atual em um modal antes de finalizar.",
+      },
+      recordAcquisition: {
+        question: "Como registrar uma aquisição?",
+        answer:
+          "Acesse 'Registros' > 'Aquisição' e clique em 'Novo'. Selecione o animal adquirido (ou cadastre um novo), informe a data da aquisição, o preço pago e o fornecedor. Você pode adicionar observações sobre a aquisição. O sistema mantém um histórico completo de todas as aquisições, facilitando o controle de investimentos e origem dos animais.",
+      },
+      animalMovements: {
+        question: "Como registrar movimentações de animais?",
+        answer:
+          "As movimentações de animais podem ser registradas de duas formas: através da página do animal ou através da propriedade. Selecione o tipo de movimentação (entrada, saída ou transferência), a origem e destino, a data, e os responsáveis. Você pode adicionar observações e anexar documentos relacionados à movimentação. Isso ajuda a rastrear a localização de cada animal ao longo do tempo.",
+      },
+      locationMovements: {
+        question: "O que são movimentações de localização?",
+        answer:
+          "As movimentações de localização registram atividades e eventos que ocorrem em uma localização específica, como entrega de ração, manutenção de equipamentos, serviços veterinários, rotação de pasto, limpeza, inspeções e muito mais. Acesse a página de detalhes de uma localização para registrar movimentações. Isso ajuda a manter um histórico completo de todas as atividades realizadas em cada área da propriedade.",
+      },
+      accountsReceivable: {
+        question: "Como gerenciar contas a receber?",
+        answer:
+          "Em 'Finanças' > 'Contas a Receber', registre todos os valores que você tem a receber. Ao criar uma nova conta, informe o valor, a data de vencimento, o comprador e a descrição. O sistema acompanha o status de cada conta (pendente, recebida, vencida) e permite registrar o recebimento quando ocorrer. Isso ajuda a manter o controle financeiro e identificar contas em atraso.",
+      },
+      bankAccounts: {
+        question: "Como gerenciar contas bancárias?",
+        answer:
+          "Acesse 'Finanças' > 'Contas Bancárias' para cadastrar e gerenciar suas contas bancárias. Você pode registrar múltiplas contas, informando o banco, tipo de conta (corrente, poupança, etc.), número da conta e saldo inicial. O sistema permite atualizar saldos e manter um controle organizado de todas as suas contas financeiras.",
+      },
+      financialDashboard: {
+        question: "O que posso ver no dashboard financeiro?",
+        answer:
+          "O dashboard financeiro oferece uma visão completa da situação financeira da sua operação. Você pode visualizar receitas totais, despesas totais, fluxo de caixa líquido, contas a pagar e a receber, e contas vencidas. O sistema gera gráficos interativos mostrando a evolução das receitas vs despesas, fluxo de caixa mensal e status de pagamentos. Isso ajuda você a tomar decisões financeiras informadas.",
+      },
+      birthForecast: {
+        question: "Como usar a previsão de nascimentos?",
+        answer:
+          "A previsão de nascimentos é gerada automaticamente com base nas coberturas confirmadas. Acesse 'Coberturas' > 'Previsão de Nascimentos' para visualizar quantos nascimentos são esperados em cada mês, até 9 meses à frente. Você pode filtrar por propriedade ou ver o total da empresa. Os gráficos mostram visualmente a distribuição esperada de nascimentos, ajudando você a planejar recursos e preparar a infraestrutura necessária.",
+      },
+      dashboardMetrics: {
+        question: "Quais métricas estão disponíveis no dashboard?",
+        answer:
+          "O dashboard principal exibe métricas importantes como total de animais, número de propriedades e localizações, total de pastos, nascimentos esperados, peso médio do rebanho, densidade de animais por hectare e unidades animais (UA). Você também pode ver atividades recentes e acessar rapidamente diferentes seções do sistema. Essas métricas fornecem uma visão geral rápida da saúde e status da sua operação.",
+      },
+      pasturePlanning: {
+        question: "Como funciona o planejamento de pastagem?",
+        answer:
+          "O planejamento de pastagem utiliza dados climáticos (temperatura e precipitação) para classificar a qualidade da forragem em cada mês (Pobre, Média, Boa, Excelente). Acesse a página de uma propriedade e vá em 'Planejamento de Pastagem' para visualizar e editar esses dados. O sistema pode gerar automaticamente uma classificação baseada em dados climáticos, mas você pode ajustar manualmente conforme sua experiência e conhecimento local.",
+      },
+      breedingSeason: {
+        question: "Como configurar a estação de monta?",
+        answer:
+          "A estação de monta é calculada automaticamente com base no planejamento de pastagem, identificando os meses com melhor qualidade de forragem para programar os nascimentos. Acesse a página de uma propriedade e vá em 'Estação de Monta' para visualizar e editar os meses recomendados. Você pode ajustar manualmente os meses de cobertura com base em suas necessidades e estratégia de produção.",
+      },
+      searchFiltering: {
+        question: "Como usar busca e filtros?",
+        answer:
+          "A maioria das páginas de listagem oferece funcionalidades de busca e filtro. Use a barra de busca para encontrar registros por nome, código ou outras informações relevantes. Os filtros permitem refinar os resultados por critérios específicos como status, data, propriedade, raça, etc. Combine busca e filtros para encontrar rapidamente o que você precisa, mesmo em grandes volumes de dados.",
+      },
+      dataOrganization: {
+        question: "Como organizar meus dados?",
+        answer:
+          "O sistema oferece várias formas de organizar seus dados. Use códigos consistentes para animais, organize localizações por propriedade, mantenha informações completas em cada registro e aproveite o sistema de observações para adicionar contexto. Utilize filtros e buscas para navegar eficientemente. A organização adequada facilita a geração de relatórios precisos e análises significativas.",
+      },
+      bestPractices: {
+        question: "Quais são as melhores práticas para usar o sistema?",
+        answer:
+          "Algumas práticas recomendadas incluem: manter registros atualizados regularmente, usar códigos consistentes para animais, registrar pesagens periodicamente para acompanhar desenvolvimento, confirmar coberturas em tempo hábil, manter informações financeiras atualizadas, adicionar observações relevantes aos registros, e revisar regularmente os índices reprodutivos e métricas do dashboard. Essas práticas garantem que você aproveite ao máximo o sistema e mantenha dados precisos para tomada de decisões.",
       },
     },
   },

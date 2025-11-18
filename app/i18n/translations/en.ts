@@ -2442,37 +2442,202 @@ export const en = {
     tableOfContent: "Table of Content",
     all: "All",
     categories: {
-      general: "General",
-      trust: "Trust & Safety",
-      services: "Services",
-      billing: "Billing",
-      cleaning: "Office Cleaning",
+      gettingStarted: "Getting Started",
+      animals: "Animals",
+      locations: "Locations",
+      people: "Relationships",
+      records: "Records",
+      financial: "Financial",
+      analytics: "Analytics",
+      team: "Team",
+      technical: "Technical",
+    },
+    contactSupport: {
+      title: "Need More Help?",
+      description:
+        "Our support team is ready to help you. Contact us through the following channels:",
+      contactMethods: [
+        "Email: support@boinanuvem.com",
+        "Phone: (00) 0000-0000 (Monday to Friday, 8am to 6pm)",
+        "Online chat: Available in the bottom right corner of the screen",
+        "Complete documentation: Available on our website",
+      ],
     },
     faqs: {
-      payment: {
-        question: "How can I pay for my appointment?",
+      quickStartGuide: {
+        question: "What is the quick start guide?",
         answer:
-          "You can pay for your appointment in several ways: credit card, debit card, bank transfer, or PIX. Payment can be made directly on the platform when booking or at the time of consultation, depending on the service chosen.",
+          "To get started with Boi na Nuvem, follow these steps: 1) Register your rural properties in 'Registrations' > 'Properties'; 2) Add locations (pastures, corrals) within each property; 3) Register your animals in 'Registrations' > 'Animals'; 4) Register employees, suppliers, and buyers as needed; 5) Start recording births, weighings, and breedings; 6) Configure pasture planning and breeding season for properties; 7) Explore the dashboard to view metrics and analytics.",
       },
-      firstConsultation: {
-        question: "What can I expect at my first consultation?",
+      gettingStarted: {
+        question: "How do I get started with Boi na Nuvem?",
         answer:
-          "At your first consultation, you will be welcomed by our team who will collect your basic information and understand your needs. Then, you will have a meeting with a specialist who will analyze your case and propose the best solutions for you.",
+          "To get started, we recommend first registering your rural properties. Go to the 'Registrations' menu > 'Properties' and click 'New' to add your first property. Then, register locations (pastures, corrals, etc.) and then animals. The system allows you to manage multiple properties and organize your herd efficiently.",
       },
-      openingHours: {
-        question: "What are your opening hours?",
+      addProperty: {
+        question: "How do I add a new property?",
         answer:
-          "Our business hours are Monday through Friday, from 8am to 6pm, and Saturdays from 9am to 1pm. We are closed on Sundays and holidays. For emergencies, we have a 24/7 support channel available.",
+          "Go to 'Registrations' > 'Properties' and click the 'New' button. Fill in basic information such as name, address, total area, and area type (hectares, square meters, etc.). You can also configure pasture planning and breeding season for each property. After saving, the property will be available to associate animals and locations.",
       },
-      referral: {
-        question: "Do I need a referral?",
+      addAnimal: {
+        question: "How do I register a new animal?",
         answer:
-          "A referral is not required for most of our services. You can book directly through the platform. However, some specific services may require additional documentation, which will be informed at the time of booking.",
+          "Go to 'Registrations' > 'Animals' and click 'New'. Fill in the required information: animal code, breed, gender, and birth date. You can also enter the animal's parents to maintain genetic history. The system automatically calculates purity (PO, F1, F2, etc.) based on the parents' breeds. After saving, the animal will be available for weighing, breeding, and movement records.",
       },
-      insurance: {
-        question: "Is the cost of the appointment covered by private health insurance?",
+      animalCode: {
+        question: "How does the animal code work?",
         answer:
-          "It depends on your health plan and the type of service. Some plans cover our services partially or fully. We recommend that you contact your insurer before booking to verify coverage. We can also help you verify this through our support.",
+          "The animal code is a unique identifier that you define for each animal. We recommend using a consistent coding system, such as sequential numbers or codes that include information about the property, birth year, or lineage. The code is used to identify the animal in all system records and reports.",
+      },
+      recordBirth: {
+        question: "How do I record a birth?",
+        answer:
+          "Go to 'Records' > 'Birth' and click 'New'. Select the mother and father of the born animal, enter the birth date, gender, and code of the new animal. The system automatically calculates the animal's purity based on the parents' breeds. You can also add observations about the birth or the animal's condition at birth.",
+      },
+      recordBreeding: {
+        question: "How do I record a breeding?",
+        answer:
+          "Go to 'Breedings' > 'Breeding' and click 'New'. Select the female and male involved in the breeding, enter the breeding date and method used (natural breeding, artificial insemination, etc.). After registration, you can track the breeding status in 'Unconfirmed Breedings' and, when pregnancy is confirmed, it will appear in 'Pregnant Cows'. The system also automatically generates birth forecasts.",
+      },
+      reproductiveIndexes: {
+        question: "What are Reproductive Indexes?",
+        answer:
+          "Reproductive Indexes are important metrics to evaluate the reproductive efficiency of your herd. The system automatically calculates indicators such as pregnancy rate, birth rate, calving interval, and other indicators based on breeding and birth records. Go to 'Breedings' > 'Reproductive Indexes' to view this information and track your herd's reproductive performance.",
+      },
+      cashFlow: {
+        question: "How do I manage cash flow?",
+        answer:
+          "The Cash Flow module allows you to record all financial inflows and outflows of your operation. Go to 'Finances' > 'Cash Flow' and click 'New' to add a transaction. You can categorize each transaction, associate it with suppliers or buyers, and define the payment method. The system generates charts and reports to help you visualize your financial situation and make informed decisions.",
+      },
+      accountsPayable: {
+        question: "How do I manage accounts payable?",
+        answer:
+          "In 'Finances' > 'Accounts Payable', you can record all your financial obligations. When creating a new account, enter the amount, due date, supplier, and description. The system tracks the status of each account (pending, paid, overdue) and allows you to record payment when made. This helps maintain financial control and avoid missing important payments.",
+      },
+      addTeamMember: {
+        question: "How do I add a team member?",
+        answer:
+          "Go to 'Team' in the sidebar menu and click 'New'. Fill in the new user's data, including name, email, CPF, and address. After creating the user, you can define the specific permissions they will have in the system. This allows you to control access to different modules and features, ensuring each team member has access only to what they need to perform their work.",
+      },
+      permissions: {
+        question: "How do permissions work?",
+        answer:
+          "The permissions system allows you to control each team member's access to different system modules. You can grant permissions to view, create, edit, or delete records in each area (animals, properties, records, finances, etc.). Only the main user can manage permissions. This ensures security and organization, allowing each person to work only in areas relevant to their role.",
+      },
+      dataBackup: {
+        question: "Is my data safe?",
+        answer:
+          "Yes, all data is stored securely in the cloud. Boi na Nuvem uses modern infrastructure with regular automatic backups to ensure the security and availability of your data. We recommend that you maintain your own periodic backups by exporting data when necessary. If you have questions about security or data recovery, contact our support.",
+      },
+      exportData: {
+        question: "Can I export my data?",
+        answer:
+          "Yes, you can export your data at any time. The system allows you to export information about animals, properties, records, and financial reports. Export options are available on the respective listing pages. Data is exported in standard formats that can be opened in spreadsheets or other management systems, allowing you to maintain backup copies or integrate with other tools.",
+      },
+      addLocation: {
+        question: "How do I add a location?",
+        answer:
+          "Go to 'Registrations' > 'Locations' and click 'New'. Select the property the location belongs to, enter the type (pasture, corral, barn, etc.), name, and area. You can add observations and attach files related to the location. Locations are essential for organizing your herd and tracking animal movements.",
+      },
+      manageEmployees: {
+        question: "How do I manage employees?",
+        answer:
+          "Go to 'Registrations' > 'Employees' to manage your team. You can register new employees with complete information such as name, CPF, address, and contact. The system allows you to add observations about each employee, track activity history, and associate employees with weighing and movement records. This helps maintain an organized record of your team.",
+      },
+      serviceProviders: {
+        question: "How do I manage service providers?",
+        answer:
+          "In 'Registrations' > 'Service Providers', you can register veterinarians, inseminators, and other professionals who provide services to your property. Register contact information, specialties, and service history. The system allows you to associate service providers with breeding, weighing, and other activity records, making it easier to track services provided.",
+      },
+      suppliers: {
+        question: "How do I manage suppliers?",
+        answer:
+          "Go to 'Registrations' > 'Suppliers' to register companies and people who supply products or services. You can search for suppliers by CNPJ and associate them with acquisition records and accounts payable. The system maintains a transaction history with each supplier, making it easier to control purchases and business relationships.",
+      },
+      buyers: {
+        question: "How do I manage buyers?",
+        answer:
+          "In 'Registrations' > 'Buyers', register information about companies and people who buy your animals or products. You can associate buyers with sales records and accounts receivable. The system maintains a transaction history, helping you manage business relationships and track receipts.",
+      },
+      observations: {
+        question: "How does the observations system work?",
+        answer:
+          "The observations system allows you to record detailed information about animals, locations, employees, service providers, suppliers, and buyers. You can add observations with rich text, attach files (photos, documents), and track complete history. Observations are useful for maintaining detailed records of events, treatments, maintenance, and other relevant information.",
+      },
+      recordWeighing: {
+        question: "How do I record a weighing?",
+        answer:
+          "Go to 'Records' > 'Weighing' and click 'New'. Select the animal, enter the date and weight. You can associate employees and service providers who participated in the weighing, and add observations. The system automatically calculates the weight difference from the last weighing and GMD (Daily Average Gain), helping you track animal development.",
+      },
+      sessionWeighings: {
+        question: "How does session weighing work?",
+        answer:
+          "The session weighing feature allows you to register multiple weighings without needing to navigate between pages. After registering a weighing, you can continue registering others in the same session. The system preserves employee and service provider selections between registrations, speeding up the process. You can view all weighings from the current session in a modal before finishing.",
+      },
+      recordAcquisition: {
+        question: "How do I record an acquisition?",
+        answer:
+          "Go to 'Records' > 'Acquisition' and click 'New'. Select the acquired animal (or register a new one), enter the acquisition date, price paid, and supplier. You can add observations about the acquisition. The system maintains a complete history of all acquisitions, making it easier to control investments and animal origins.",
+      },
+      animalMovements: {
+        question: "How do I record animal movements?",
+        answer:
+          "Animal movements can be recorded in two ways: through the animal's page or through the property. Select the movement type (entry, exit, or transfer), origin and destination, date, and responsible parties. You can add observations and attach documents related to the movement. This helps track each animal's location over time.",
+      },
+      locationMovements: {
+        question: "What are location movements?",
+        answer:
+          "Location movements record activities and events that occur at a specific location, such as feed delivery, equipment maintenance, veterinary services, pasture rotation, cleaning, inspections, and much more. Go to a location's details page to record movements. This helps maintain a complete history of all activities performed in each area of the property.",
+      },
+      accountsReceivable: {
+        question: "How do I manage accounts receivable?",
+        answer:
+          "In 'Finances' > 'Accounts Receivable', record all amounts you have to receive. When creating a new account, enter the amount, due date, buyer, and description. The system tracks the status of each account (pending, received, overdue) and allows you to record receipt when it occurs. This helps maintain financial control and identify overdue accounts.",
+      },
+      bankAccounts: {
+        question: "How do I manage bank accounts?",
+        answer:
+          "Go to 'Finances' > 'Bank Accounts' to register and manage your bank accounts. You can register multiple accounts, entering the bank, account type (checking, savings, etc.), account number, and initial balance. The system allows you to update balances and maintain organized control of all your financial accounts.",
+      },
+      financialDashboard: {
+        question: "What can I see in the financial dashboard?",
+        answer:
+          "The financial dashboard offers a complete view of your operation's financial situation. You can view total income, total expenses, net cash flow, accounts payable and receivable, and overdue accounts. The system generates interactive charts showing the evolution of income vs expenses, monthly cash flow, and payment status. This helps you make informed financial decisions.",
+      },
+      birthForecast: {
+        question: "How do I use the birth forecast?",
+        answer:
+          "The birth forecast is automatically generated based on confirmed breedings. Go to 'Breedings' > 'Birth Forecast' to view how many births are expected each month, up to 9 months ahead. You can filter by property or see the company total. Charts visually show the expected distribution of births, helping you plan resources and prepare necessary infrastructure.",
+      },
+      dashboardMetrics: {
+        question: "What metrics are available on the dashboard?",
+        answer:
+          "The main dashboard displays important metrics such as total animals, number of properties and locations, total pastures, expected births, herd average weight, animal density per hectare, and animal units (AU). You can also see recent activities and quickly access different sections of the system. These metrics provide a quick overview of your operation's health and status.",
+      },
+      pasturePlanning: {
+        question: "How does pasture planning work?",
+        answer:
+          "Pasture planning uses climate data (temperature and precipitation) to classify forage quality each month (Poor, Medium, Good, Excellent). Go to a property's page and click 'Pasture Planning' to view and edit this data. The system can automatically generate a classification based on climate data, but you can manually adjust it according to your experience and local knowledge.",
+      },
+      breedingSeason: {
+        question: "How do I configure the breeding season?",
+        answer:
+          "The breeding season is automatically calculated based on pasture planning, identifying months with the best forage quality to schedule births. Go to a property's page and click 'Breeding Season' to view and edit recommended months. You can manually adjust breeding months based on your needs and production strategy.",
+      },
+      searchFiltering: {
+        question: "How do I use search and filters?",
+        answer:
+          "Most listing pages offer search and filter functionality. Use the search bar to find records by name, code, or other relevant information. Filters allow you to refine results by specific criteria such as status, date, property, breed, etc. Combine search and filters to quickly find what you need, even with large volumes of data.",
+      },
+      dataOrganization: {
+        question: "How do I organize my data?",
+        answer:
+          "The system offers several ways to organize your data. Use consistent codes for animals, organize locations by property, maintain complete information in each record, and take advantage of the observations system to add context. Use filters and searches to navigate efficiently. Proper organization facilitates generating accurate reports and meaningful analyses.",
+      },
+      bestPractices: {
+        question: "What are the best practices for using the system?",
+        answer:
+          "Some recommended practices include: keeping records updated regularly, using consistent codes for animals, recording weighings periodically to track development, confirming breedings in a timely manner, keeping financial information updated, adding relevant observations to records, and regularly reviewing reproductive indexes and dashboard metrics. These practices ensure you get the most out of the system and maintain accurate data for decision-making.",
       },
     },
   },

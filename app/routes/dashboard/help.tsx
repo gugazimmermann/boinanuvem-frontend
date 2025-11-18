@@ -14,7 +14,7 @@ export function meta(_args: Route.MetaArgs) {
 
 export default function Help() {
   const t = useTranslation();
-  const [openFaq, setOpenFaq] = useState<string | null>("payment");
+  const [openFaq, setOpenFaq] = useState<string | null>("quick-start-guide");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const toggleFaq = (faqId: string) => {
@@ -23,11 +23,15 @@ export default function Help() {
 
   const faqCategories = useMemo(
     () => [
-      { id: "general", label: t.help.categories.general },
-      { id: "trust", label: t.help.categories.trust },
-      { id: "services", label: t.help.categories.services },
-      { id: "billing", label: t.help.categories.billing },
-      { id: "cleaning", label: t.help.categories.cleaning },
+      { id: "getting-started", label: t.help.categories.gettingStarted },
+      { id: "animals", label: t.help.categories.animals },
+      { id: "locations", label: t.help.categories.locations },
+      { id: "people", label: t.help.categories.people },
+      { id: "records", label: t.help.categories.records },
+      { id: "financial", label: t.help.categories.financial },
+      { id: "analytics", label: t.help.categories.analytics },
+      { id: "team", label: t.help.categories.team },
+      { id: "technical", label: t.help.categories.technical },
     ],
     [t]
   );
@@ -35,34 +39,214 @@ export default function Help() {
   const faqItems = useMemo(
     () => [
       {
-        id: "payment",
-        category: "billing",
-        question: t.help.faqs.payment.question,
-        answer: t.help.faqs.payment.answer,
+        id: "quick-start-guide",
+        category: "getting-started",
+        question: t.help.faqs.quickStartGuide.question,
+        answer: t.help.faqs.quickStartGuide.answer,
       },
       {
-        id: "first-consultation",
-        category: "general",
-        question: t.help.faqs.firstConsultation.question,
-        answer: t.help.faqs.firstConsultation.answer,
+        id: "getting-started",
+        category: "getting-started",
+        question: t.help.faqs.gettingStarted.question,
+        answer: t.help.faqs.gettingStarted.answer,
       },
       {
-        id: "opening-hours",
-        category: "general",
-        question: t.help.faqs.openingHours.question,
-        answer: t.help.faqs.openingHours.answer,
+        id: "add-property",
+        category: "getting-started",
+        question: t.help.faqs.addProperty.question,
+        answer: t.help.faqs.addProperty.answer,
       },
       {
-        id: "referral",
-        category: "services",
-        question: t.help.faqs.referral.question,
-        answer: t.help.faqs.referral.answer,
+        id: "add-animal",
+        category: "animals",
+        question: t.help.faqs.addAnimal.question,
+        answer: t.help.faqs.addAnimal.answer,
       },
       {
-        id: "insurance",
-        category: "billing",
-        question: t.help.faqs.insurance.question,
-        answer: t.help.faqs.insurance.answer,
+        id: "animal-code",
+        category: "animals",
+        question: t.help.faqs.animalCode.question,
+        answer: t.help.faqs.animalCode.answer,
+      },
+      {
+        id: "add-location",
+        category: "locations",
+        question: t.help.faqs.addLocation.question,
+        answer: t.help.faqs.addLocation.answer,
+      },
+      {
+        id: "manage-employees",
+        category: "people",
+        question: t.help.faqs.manageEmployees.question,
+        answer: t.help.faqs.manageEmployees.answer,
+      },
+      {
+        id: "service-providers",
+        category: "people",
+        question: t.help.faqs.serviceProviders.question,
+        answer: t.help.faqs.serviceProviders.answer,
+      },
+      {
+        id: "suppliers",
+        category: "people",
+        question: t.help.faqs.suppliers.question,
+        answer: t.help.faqs.suppliers.answer,
+      },
+      {
+        id: "buyers",
+        category: "people",
+        question: t.help.faqs.buyers.question,
+        answer: t.help.faqs.buyers.answer,
+      },
+      {
+        id: "observations",
+        category: "people",
+        question: t.help.faqs.observations.question,
+        answer: t.help.faqs.observations.answer,
+      },
+      {
+        id: "record-birth",
+        category: "records",
+        question: t.help.faqs.recordBirth.question,
+        answer: t.help.faqs.recordBirth.answer,
+      },
+      {
+        id: "record-breeding",
+        category: "records",
+        question: t.help.faqs.recordBreeding.question,
+        answer: t.help.faqs.recordBreeding.answer,
+      },
+      {
+        id: "record-weighing",
+        category: "records",
+        question: t.help.faqs.recordWeighing.question,
+        answer: t.help.faqs.recordWeighing.answer,
+      },
+      {
+        id: "session-weighings",
+        category: "records",
+        question: t.help.faqs.sessionWeighings.question,
+        answer: t.help.faqs.sessionWeighings.answer,
+      },
+      {
+        id: "record-acquisition",
+        category: "records",
+        question: t.help.faqs.recordAcquisition.question,
+        answer: t.help.faqs.recordAcquisition.answer,
+      },
+      {
+        id: "animal-movements",
+        category: "records",
+        question: t.help.faqs.animalMovements.question,
+        answer: t.help.faqs.animalMovements.answer,
+      },
+      {
+        id: "location-movements",
+        category: "records",
+        question: t.help.faqs.locationMovements.question,
+        answer: t.help.faqs.locationMovements.answer,
+      },
+      {
+        id: "cash-flow",
+        category: "financial",
+        question: t.help.faqs.cashFlow.question,
+        answer: t.help.faqs.cashFlow.answer,
+      },
+      {
+        id: "accounts-payable",
+        category: "financial",
+        question: t.help.faqs.accountsPayable.question,
+        answer: t.help.faqs.accountsPayable.answer,
+      },
+      {
+        id: "accounts-receivable",
+        category: "financial",
+        question: t.help.faqs.accountsReceivable.question,
+        answer: t.help.faqs.accountsReceivable.answer,
+      },
+      {
+        id: "bank-accounts",
+        category: "financial",
+        question: t.help.faqs.bankAccounts.question,
+        answer: t.help.faqs.bankAccounts.answer,
+      },
+      {
+        id: "financial-dashboard",
+        category: "financial",
+        question: t.help.faqs.financialDashboard.question,
+        answer: t.help.faqs.financialDashboard.answer,
+      },
+      {
+        id: "reproductive-indexes",
+        category: "analytics",
+        question: t.help.faqs.reproductiveIndexes.question,
+        answer: t.help.faqs.reproductiveIndexes.answer,
+      },
+      {
+        id: "birth-forecast",
+        category: "analytics",
+        question: t.help.faqs.birthForecast.question,
+        answer: t.help.faqs.birthForecast.answer,
+      },
+      {
+        id: "dashboard-metrics",
+        category: "analytics",
+        question: t.help.faqs.dashboardMetrics.question,
+        answer: t.help.faqs.dashboardMetrics.answer,
+      },
+      {
+        id: "pasture-planning",
+        category: "analytics",
+        question: t.help.faqs.pasturePlanning.question,
+        answer: t.help.faqs.pasturePlanning.answer,
+      },
+      {
+        id: "breeding-season",
+        category: "analytics",
+        question: t.help.faqs.breedingSeason.question,
+        answer: t.help.faqs.breedingSeason.answer,
+      },
+      {
+        id: "add-team-member",
+        category: "team",
+        question: t.help.faqs.addTeamMember.question,
+        answer: t.help.faqs.addTeamMember.answer,
+      },
+      {
+        id: "permissions",
+        category: "team",
+        question: t.help.faqs.permissions.question,
+        answer: t.help.faqs.permissions.answer,
+      },
+      {
+        id: "search-filtering",
+        category: "technical",
+        question: t.help.faqs.searchFiltering.question,
+        answer: t.help.faqs.searchFiltering.answer,
+      },
+      {
+        id: "data-organization",
+        category: "technical",
+        question: t.help.faqs.dataOrganization.question,
+        answer: t.help.faqs.dataOrganization.answer,
+      },
+      {
+        id: "best-practices",
+        category: "technical",
+        question: t.help.faqs.bestPractices.question,
+        answer: t.help.faqs.bestPractices.answer,
+      },
+      {
+        id: "data-backup",
+        category: "technical",
+        question: t.help.faqs.dataBackup.question,
+        answer: t.help.faqs.dataBackup.answer,
+      },
+      {
+        id: "export-data",
+        category: "technical",
+        question: t.help.faqs.exportData.question,
+        answer: t.help.faqs.exportData.answer,
       },
     ],
     [t]
@@ -168,6 +352,26 @@ export default function Help() {
                 )}
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Contact Support Section */}
+        <div className="mt-16 max-w-4xl mx-auto">
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">
+              {t.help.contactSupport.title}
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              {t.help.contactSupport.description}
+            </p>
+            <div className="space-y-2 text-gray-700 dark:text-gray-300">
+              {t.help.contactSupport.contactMethods.map((method, index) => (
+                <div key={index} className="flex items-start gap-2">
+                  <span className="text-blue-500 dark:text-blue-400 mt-1">•</span>
+                  <span>{method}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
