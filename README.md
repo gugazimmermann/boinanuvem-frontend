@@ -1,7 +1,6 @@
 # Boi na Nuvem - Frontend
 
-A modern, full-stack React application built with React Router v7, featuring a comprehensive dashboard for livestock management, team collaboration, and property management.
-
+A modern, full-stack React application built with React Router v7, featuring a comprehensive dashboard for livestock management, team collaboration, and property management. This application provides a complete solution for managing cattle operations, from animal tracking to financial management and reproductive analytics.
 
 ## 🚀 Features
 
@@ -15,8 +14,17 @@ A modern, full-stack React application built with React Router v7, featuring a c
 
 ### Livestock Management
 - **Animal Management**: Complete animal registration, editing, and tracking with comprehensive filtering and search
+  - Detailed animal profiles with breed, gender, birth information, and parent relationships
+  - Animal code management and identification
+  - Full CRUD operations with view, edit, and delete capabilities
 - **Birth Records**: Track and manage animal births with parent relationships
+  - Automatic purity calculation (PO, F1, F2, F3, F4, F5, PC) based on parent breeds
+  - Birth date tracking and gender recording
+  - Parent-child relationship management
 - **Acquisitions**: Record and manage animal acquisitions with pricing and supplier information
+  - Purchase price tracking
+  - Supplier relationship management
+  - Acquisition date and details recording
 - **Weighings**: 
   - Track animal weight measurements over time with trend analysis
   - **Session Weighings**: Register multiple weighings in a single session without page navigation
@@ -25,42 +33,154 @@ A modern, full-stack React application built with React Router v7, featuring a c
   - **Efficient Data Entry**: Form preserves employee and service provider selections between registrations for faster data entry
   - **Large Dataset Support**: Paginated table with search and sorting capabilities to handle 500+ weighings efficiently
 - **Animal Movements**: Track animal movements between properties and locations with responsible parties, observations, and file attachments
+  - Movement type tracking (entry, exit, transfer)
+  - Responsible party assignment
+  - File attachment support for movement documentation
 - **Location Movements**: Monitor location-based movements and activities
+  - Track activities and changes at specific locations
+  - Movement type categorization
 - **Animal Observations**: Record detailed observations for individual animals with file attachments
+  - Rich text observations
+  - File attachment support
+  - Observation history tracking
+
+### Breeding Management
+- **Breeding Records**: Register and manage breeding records with multiple methods
+  - Natural breeding and artificial insemination tracking
+  - Bull and inseminator assignment
+  - Breeding date and confirmation status
+- **Unconfirmed Breedings**: View and manage unconfirmed breeding records
+  - Confirmation workflow
+  - Discard functionality for invalid records
+- **Pregnant Cows**: Track and monitor pregnant animals
+  - Pregnancy status management
+  - Expected birth date calculation
+- **Reproductive Indexes**: Comprehensive reproductive performance analytics
+  - **Fertility Rate**: Percentage of pregnant cows relative to exposed cows
+  - **Birth Rate**: Percentage of calves born relative to pregnant females
+  - **Calving Interval**: Average time between consecutive calvings
+  - **Culling Rate**: Percentage of replaced females relative to total
+  - **Intrauterine Mortality Index**: Percentage of gestation losses
+  - **Bull-to-Cow Ratio**: Relationship between number of bulls and exposed cows
+  - Monthly and annual trend charts
+  - Property-level and aggregated company-wide analysis
+- **Birth Forecast**: Predict expected births based on confirmed breedings
+  - Monthly birth forecasts up to 9 months ahead
+  - Visual charts showing expected births by month
+  - Property and company-level forecasting
 
 ### Property & Location Management
 - **Properties**: Manage multiple properties with detailed information
+  - Property registration with address and geolocation
+  - Interactive maps with Leaflet integration
+  - Property-specific analytics and reports
 - **Locations**: Track specific locations within properties
+  - Location types (pasture, corral, barn, etc.)
+  - Area tracking and management
+  - Location-specific observations
 - **Interactive Maps**: Visual property and location mapping with Leaflet
+  - Geocoding integration for address-to-coordinates conversion
+  - Map visualization for properties and locations
 - **Location Observations**: Record observations for locations
+  - Location-specific notes and documentation
+  - File attachment support
+- **Pasture Planning**: Visual planning tools for pasture management
+  - Pasture allocation and planning
+  - Breeding season planning based on climate data
+  - Forage quality classification based on temperature and precipitation
 
 ### People & Business Management
 - **Employees**: Manage employee records and information with observation tracking
+  - Employee registration and profile management
+  - Observation history
+  - Role and responsibility tracking
 - **Service Providers**: Track service provider relationships and observations
+  - Service provider registration
+  - Service history tracking
+  - Observation and note management
 - **Suppliers**: Manage supplier information and relationships with observation records
+  - Supplier registration with CNPJ lookup
+  - Purchase history tracking
+  - Observation management
 - **Buyers**: Track buyer information and transactions with observation history
+  - Buyer registration
+  - Transaction history
+  - Observation tracking
 - **Observations**: Comprehensive observation system for locations, employees, service providers, suppliers, buyers, and animals
+  - Rich text observations
+  - File attachment support
+  - Date and author tracking
 
 ### User & Team Management
 - **Authentication**: Complete authentication flow (login, register, password recovery)
+  - Secure login system
+  - User registration
+  - Password recovery and reset functionality
 - **Team Management**: User management with permissions and role-based access
+  - Add, edit, and remove team members
+  - User role assignment
+  - Team member profile management
 - **Profile Management**: User and company profile management with activity logs
+  - User profile editing
+  - Company profile management
+  - Activity log tracking
 - **Permissions System**: Granular permission management for team members
+  - Resource-based permissions
+  - Action-level access control (create, read, update, delete)
+  - Permission assignment interface
 
 ### Financial Management
 - **Financial Dashboard**: Comprehensive overview with income, expenses, and cash flow metrics
+  - Income vs expenses visualization
+  - Monthly cash flow charts
+  - Payment status overview
+  - Key financial metrics at a glance
 - **Cash Flow Management**: Track income and expenses with detailed categorization
+  - Income and expense recording
+  - Category-based organization
+  - Payment method tracking
+  - Date and description management
 - **Accounts Payable**: Manage bills and payments with due date tracking and status monitoring
+  - Bill registration with due dates
+  - Payment status tracking (pending, paid, overdue)
+  - Payment date recording
+  - Supplier relationship linking
 - **Accounts Receivable**: Track receivables with payment status and overdue management
+  - Receivable registration
+  - Payment status tracking
+  - Buyer relationship linking
+  - Overdue identification
 - **Bank Accounts**: Manage multiple bank accounts with balance tracking
+  - Bank account registration
+  - Account type management (checking, savings, etc.)
+  - Balance tracking
+  - Account details management
 - **Financial Analytics**: Visual charts and graphs for income vs expenses, monthly cash flow, and payment status
+  - Recharts integration for data visualization
+  - Interactive charts and graphs
+  - Period-based filtering
 - **Transaction Management**: Complete CRUD operations for all financial transactions
+  - Create, read, update, and delete operations
+  - Transaction history
+  - Detailed transaction views
 
 ### Dashboard & Analytics
 - **Comprehensive Dashboard**: Overview with key metrics and statistics
+  - Quick access to main features
+  - Key performance indicators
+  - Recent activity summary
 - **Data Visualization**: Charts and graphs using Recharts
+  - Line charts for trends
+  - Bar charts for comparisons
+  - Responsive chart containers
 - **Activity Logs**: Track user and system activities
-- **Pasture Planning**: Visual planning tools for pasture management
+  - User action logging
+  - System event tracking
+  - Activity history viewing
+- **Help Center**: FAQ and help documentation
+  - Categorized FAQs
+  - Searchable help content
+  - User guidance and support
 
 ## 📋 Prerequisites
 
@@ -156,15 +276,88 @@ boinanuvem-frontend/
 
 ### Service Layer Architecture
 
-The application uses a service layer pattern to abstract data access and business logic:
+The application uses a service layer pattern to abstract data access and business logic. All services follow a consistent pattern with CRUD operations and data filtering capabilities:
 
-- **Core Entity Services**: Animals, Users, Companies, Properties, Locations, Employees, Suppliers, Buyers, Service Providers
-- **Record Services**: Births, Weighings, Acquisitions
-- **Movement Services**: Animal Movements, Location Movements
-- **Observation Services**: Animal, Location, Employee, Service Provider, Supplier, Buyer Observations
-- **Financial Services**: Cash Flow, Accounts Payable, Accounts Receivable, Bank Accounts
+- **Core Entity Services**: 
+  - `animals.service.ts` - Animal management and queries
+  - `users.service.ts` - User and authentication management
+  - `companies.service.ts` - Company profile management
+  - `properties.service.ts` - Property management and queries
+  - `locations.service.ts` - Location management within properties
+  - `employees.service.ts` - Employee management
+  - `suppliers.service.ts` - Supplier management
+  - `buyers.service.ts` - Buyer management
+  - `service-providers.service.ts` - Service provider management
 
-All services are exported through `app/services/index.ts` for centralized access.
+- **Record Services**: 
+  - `births.service.ts` - Birth record management with purity calculation
+  - `weighings.service.ts` - Weight measurement tracking
+  - `acquisitions.service.ts` - Animal acquisition records
+  - `breedings.service.ts` - Breeding record management
+
+- **Movement Services**: 
+  - `animal-movements.service.ts` - Animal movement tracking between properties/locations
+  - `location-movements.service.ts` - Location-based movement tracking
+
+- **Observation Services**: 
+  - `animal-observations.service.ts` - Animal observation management
+  - `location-observations.service.ts` - Location observation management
+  - `employee-observations.service.ts` - Employee observation management
+  - `service-provider-observations.service.ts` - Service provider observation management
+  - `supplier-observations.service.ts` - Supplier observation management
+  - `buyer-observations.service.ts` - Buyer observation management
+
+- **Financial Services**: 
+  - `cash-flow.service.ts` - Income and expense tracking
+  - `accounts-payable.service.ts` - Bills and payments management
+  - `accounts-receivable.service.ts` - Receivables management
+  - `bank-account.service.ts` - Bank account management
+
+- **Analytics Services**: 
+  - `reproductive-indexes.service.ts` - Reproductive performance calculations
+    - Fertility rate, birth rate, calving interval
+    - Culling rate, intrauterine mortality index
+    - Bull-to-cow ratio
+    - Expected births forecast
+
+All services are exported through `app/services/index.ts` for centralized access. Services use mock data for development and can be easily replaced with API calls in production.
+
+### Mock Data System
+
+The application includes a comprehensive mock data system for development and testing:
+
+- **Mock Data Files**: Located in `app/mocks/` directory
+  - `animals.ts` - Animal mock data with relationships
+  - `births.ts` - Birth records with parent relationships
+  - `breedings.ts` - Breeding records with confirmation status
+  - `weighings.ts` - Weight measurement records
+  - `acquisitions.ts` - Acquisition records
+  - `companies.ts` - Company profiles
+  - `properties.ts` - Property data with locations
+  - `locations.ts` - Location data within properties
+  - `employees.ts` - Employee records
+  - `suppliers.ts` - Supplier information
+  - `buyers.ts` - Buyer information
+  - `service-providers.ts` - Service provider records
+  - `users.ts` - User accounts and authentication
+  - `animal-movements.ts` - Animal movement records
+  - `location-movements.ts` - Location movement records
+  - `animal-observations.ts` - Animal observation records
+  - `location-observations.ts` - Location observation records
+  - `employee-observations.ts` - Employee observation records
+  - `service-provider-observations.ts` - Service provider observation records
+  - `supplier-observations.ts` - Supplier observation records
+  - `buyer-observations.ts` - Buyer observation records
+  - `cash-flow.ts` - Cash flow transactions
+  - `accounts-payable.ts` - Accounts payable records
+  - `accounts-receivable.ts` - Accounts receivable records
+  - `bank-accounts.ts` - Bank account records
+
+- **Mock Data Features**:
+  - Realistic data relationships (parent-child, property-location, etc.)
+  - Comprehensive test coverage for mock data functions
+  - Type-safe mock data generation
+  - Consistent data structure across all entities
 
 ## 🌐 Internationalization
 
@@ -414,12 +607,19 @@ npm run format:check
 ### Styling & UI
 - **Tailwind CSS v4** (^4.1.13) - Utility-first CSS framework
 - **Custom UI Components** - Reusable component library
-- **@tailwindcss/vite** - Tailwind CSS Vite plugin
+- **@tailwindcss/vite** (^4.1.13) - Tailwind CSS Vite plugin
 
 ### Data & Visualization
 - **Recharts** (^3.4.1) - Chart and graph library for data visualization
+  - Line charts for trend analysis
+  - Bar charts for comparisons
+  - Responsive chart containers
 - **Leaflet** (^1.9.4) - Interactive maps for property and location visualization
+  - Geocoding integration
+  - Map markers and layers
 - **date-fns** (^4.1.0) - Date utility library
+  - Locale support for pt, en, es
+  - Date formatting and manipulation
 
 ### Testing
 - **Vitest** (^4.0.9) - Fast unit test framework
@@ -435,11 +635,13 @@ npm run format:check
 - **Prettier** (^3.6.2) - Code formatting
 - **TypeScript ESLint** (^8.46.4) - TypeScript-specific linting rules
 - **Husky** (^9.1.7) - Git hooks for pre-commit checks
+- **vite-tsconfig-paths** (^5.1.4) - TypeScript path resolution for Vite
 
 ### Runtime
 - **Node.js 20** - Runtime environment (Alpine Linux in Docker)
 - **@react-router/node** (^7.9.2) - React Router Node.js adapter
 - **@react-router/serve** (^7.9.2) - React Router production server
+- **isbot** (^5.1.31) - Bot detection for SSR optimization
 
 ## 📝 License
 
