@@ -71,4 +71,87 @@ describe("SidebarItem", () => {
 
     expect(screen.getByText("Sub Item")).toBeInTheDocument();
   });
+
+  describe("Mobile sidebar close behavior", () => {
+    it("should call onItemClick callback when main item is clicked", async () => {
+      const user = userEvent.setup();
+      const handleItemClick = vi.fn();
+
+      render(
+        <SidebarItem
+          translationKey="test"
+          label="Test Item"
+          path="/test"
+          onItemClick={handleItemClick}
+        />,
+        { wrapper }
+      );
+
+      const link = screen.getByText("Test Item").closest("a");
+      if (link) {
+        await user.click(link);
+        expect(handleItemClick).toHaveBeenCalledTimes(1);
+      }
+    });
+
+    it("should call onItemClick callback when sub-item is clicked", async () => {
+      const user = userEvent.setup();
+      const handleItemClick = vi.fn();
+      const subItems = [{ label: "Sub Item", path: "/test/sub" }];
+
+      render(
+        <SidebarItem
+          translationKey="test"
+          label="Test Item"
+          path="/test"
+          subItems={subItems}
+          isExpanded={true}
+          onToggle={() => {}}
+          onItemClick={handleItemClick}
+        />,
+        { wrapper }
+      );
+
+      const subItemLink = screen.getByText("Sub Item").closest("a");
+      if (subItemLink) {
+        await user.click(subItemLink);
+        expect(handleItemClick).toHaveBeenCalledTimes(1);
+      }
+    });
+
+    it("should not call onItemClick when it is not provided", async () => {
+      const user = userEvent.setup();
+
+      render(<SidebarItem translationKey="test" label="Test Item" path="/test" />, { wrapper });
+
+      const link = screen.getByText("Test Item").closest("a");
+      if (link) {
+        await user.click(link);
+        // Should not throw error when onItemClick is undefined
+        expect(link).toBeInTheDocument();
+      }
+    });
+
+    it("should close sidebar when navigating to a route (mobile behavior)", async () => {
+      const user = userEvent.setup();
+      const handleItemClick = vi.fn();
+
+      render(
+        <SidebarItem
+          translationKey="test"
+          label="Test Item"
+          path="/test"
+          onItemClick={handleItemClick}
+        />,
+        { wrapper }
+      );
+
+      const link = screen.getByText("Test Item").closest("a");
+      if (link) {
+        await user.click(link);
+        // onItemClick should be called to close sidebar on mobile
+        expect(handleItemClick).toHaveBeenCalled();
+      }
+    });
+  });
 });

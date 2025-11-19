@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { Navbar } from "../navbar";
 import { LanguageProvider } from "~/contexts/language-context";
@@ -51,15 +52,55 @@ describe("Navbar", () => {
   });
 
   it("should render brand link", () => {
-    render(<Navbar />, { wrapper });
+    render(<Navbar onToggleSidebar={() => {}} />, { wrapper });
     const brandLink = screen.getByText("Boi na Nuvem");
     expect(brandLink).toBeInTheDocument();
     expect(brandLink.closest("a")).toHaveAttribute("href", "/dashboard");
   });
 
   it("should render user dropdown", () => {
-    const { container } = render(<Navbar />, { wrapper });
+    const { container } = render(<Navbar onToggleSidebar={() => {}} />, { wrapper });
     const userDropdown = container.querySelector('[class*="relative"]');
     expect(userDropdown).toBeInTheDocument();
+  });
+
+  describe("Hamburger menu button", () => {
+    it("should render hamburger button with correct attributes", () => {
+      const handleToggle = vi.fn();
+      render(<Navbar onToggleSidebar={handleToggle} />, { wrapper });
+      const hamburgerButton = screen.getByLabelText("Toggle sidebar");
+
+      expect(hamburgerButton).toBeInTheDocument();
+      expect(hamburgerButton).toHaveAttribute("aria-label", "Toggle sidebar");
+      expect(hamburgerButton).toHaveAttribute("data-hamburger-button");
+    });
+
+    it("should call onToggleSidebar when hamburger button is clicked", async () => {
+      const user = userEvent.setup();
+      const handleToggle = vi.fn();
+      render(<Navbar onToggleSidebar={handleToggle} />, { wrapper });
+      const hamburgerButton = screen.getByLabelText("Toggle sidebar");
+
+      await user.click(hamburgerButton);
+      expect(handleToggle).toHaveBeenCalledTimes(1);
+    });
+
+    it("should have hamburger button only visible on mobile (sm:hidden class)", () => {
+      const handleToggle = vi.fn();
+      render(<Navbar onToggleSidebar={handleToggle} />, { wrapper });
+      const hamburgerButton = screen.getByLabelText("Toggle sidebar");
+
+      // Button should be visible on mobile but hidden on desktop
+      expect(hamburgerButton).toHaveClass("sm:hidden");
+    });
+
+    it("should have proper accessibility attributes on hamburger button", () => {
+      const handleToggle = vi.fn();
+      render(<Navbar onToggleSidebar={handleToggle} />, { wrapper });
+      const hamburgerButton = screen.getByLabelText("Toggle sidebar");
+
+      expect(hamburgerButton).toHaveAttribute("aria-label", "Toggle sidebar");
+      expect(hamburgerButton.tagName).toBe("BUTTON");
+    });
   });
 });

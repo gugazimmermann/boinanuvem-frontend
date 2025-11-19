@@ -7,7 +7,12 @@ import { usePermissions } from "~/utils/permissions";
 import { getRoutePermission } from "~/utils/route-permissions";
 import type { UserPermissions } from "~/types/permissions";
 
-export function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const t = useTranslation();
   const location = useLocation();
   const { canView } = usePermissions();
@@ -97,7 +102,19 @@ export function Sidebar() {
   }));
 
   return (
-    <aside className="w-48 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 h-[calc(100vh-3rem)] overflow-y-auto">
+    <aside
+      className={`
+        fixed sm:static
+        top-12 left-0
+        w-48 h-[calc(100vh-3rem)]
+        bg-gray-50 dark:bg-gray-900
+        border-r border-gray-200 dark:border-gray-800
+        overflow-y-auto
+        z-50 sm:z-auto
+        transform transition-transform duration-300 ease-in-out
+        ${isOpen ? "translate-x-0" : "-translate-x-full sm:translate-x-0"}
+      `}
+    >
       <div className="p-2">
         <nav className="space-y-1">
           {translatedItems.map((item) => (
@@ -110,6 +127,7 @@ export function Sidebar() {
               subItems={item.subItems}
               isExpanded={item.subItems ? expandedItemKey === item.translationKey : undefined}
               onToggle={item.subItems ? () => handleToggle(item.translationKey) : undefined}
+              onItemClick={onClose}
             />
           ))}
         </nav>

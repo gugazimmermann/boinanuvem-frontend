@@ -15,9 +15,14 @@ interface SidebarItemProps {
   subItems?: SidebarSubItemProps[];
   isExpanded?: boolean;
   onToggle?: () => void;
+  onItemClick?: () => void;
 }
 
-function SidebarSubItem({ label, path, icon }: SidebarSubItemProps) {
+interface SidebarSubItemPropsWithCallback extends SidebarSubItemProps {
+  onItemClick?: () => void;
+}
+
+function SidebarSubItem({ label, path, icon, onItemClick }: SidebarSubItemPropsWithCallback) {
   const location = useLocation();
   const isActive = location.pathname === path;
 
@@ -30,8 +35,14 @@ function SidebarSubItem({ label, path, icon }: SidebarSubItemProps) {
   const className = `${baseClasses} ${isActive ? activeClasses : inactiveClasses}`;
   const activeStyle = isActive ? { backgroundColor: DASHBOARD_COLORS.primary } : undefined;
 
+  const handleClick = () => {
+    if (onItemClick) {
+      onItemClick();
+    }
+  };
+
   return (
-    <Link to={path} className={className} style={activeStyle}>
+    <Link to={path} className={className} style={activeStyle} onClick={handleClick}>
       {icon && <span className="text-lg">{icon}</span>}
       <span className="font-medium">{label}</span>
     </Link>
@@ -45,6 +56,7 @@ export function SidebarItem({
   subItems,
   isExpanded,
   onToggle,
+  onItemClick,
 }: SidebarItemProps) {
   const location = useLocation();
 
@@ -59,6 +71,12 @@ export function SidebarItem({
 
   const className = `${baseClasses} ${isActive ? activeClasses : inactiveClasses}`;
   const activeStyle = isActive ? { backgroundColor: DASHBOARD_COLORS.primary } : undefined;
+
+  const handleItemClick = () => {
+    if (onItemClick) {
+      onItemClick();
+    }
+  };
 
   if (subItems && subItems.length > 0) {
     return (
@@ -83,6 +101,7 @@ export function SidebarItem({
                 label={subItem.label}
                 path={subItem.path}
                 icon={subItem.icon}
+                onItemClick={onItemClick}
               />
             ))}
           </div>
@@ -92,7 +111,7 @@ export function SidebarItem({
   }
 
   return (
-    <Link to={path} className={className} style={activeStyle}>
+    <Link to={path} className={className} style={activeStyle} onClick={handleItemClick}>
       {icon && <span className="text-lg">{icon}</span>}
       <span className="font-medium">{label}</span>
     </Link>
