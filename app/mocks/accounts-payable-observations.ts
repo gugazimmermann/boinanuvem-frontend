@@ -1,0 +1,106 @@
+import type {
+  AccountsPayableObservation,
+  AccountsPayableObservationFormData,
+} from "~/types/accounts-payable-observation";
+import { generateUUID } from "~/utils/uuid";
+
+export type { AccountsPayableObservation, AccountsPayableObservationFormData };
+
+export const mockAccountsPayableObservations: AccountsPayableObservation[] = [
+  {
+    id: generateUUID(),
+    accountsPayableId: "ap0e8400-e29b-41d4-a716-446655440010",
+    observation: "Aguardando pagamento",
+    fileIds: [],
+    createdAt: "2025-11-05T10:00:00Z",
+    createdBy: "user-001",
+  },
+  {
+    id: generateUUID(),
+    accountsPayableId: "ap0e8400-e29b-41d4-a716-446655440011",
+    observation: "Pagamento antecipado",
+    fileIds: [],
+    createdAt: "2025-11-01T10:00:00Z",
+    createdBy: "user-001",
+  },
+  {
+    id: generateUUID(),
+    accountsPayableId: "ap0e8400-e29b-41d4-a716-446655440013",
+    observation: "Salário mensal",
+    fileIds: [],
+    createdAt: "2025-11-08T10:00:00Z",
+    createdBy: "user-001",
+  },
+  {
+    id: generateUUID(),
+    accountsPayableId: "ap0e8400-e29b-41d4-a716-446655440016",
+    observation: "Vacinas para campanha de novembro",
+    fileIds: [],
+    createdAt: "2025-11-10T10:00:00Z",
+    createdBy: "user-001",
+  },
+  {
+    id: generateUUID(),
+    accountsPayableId: "ap0e8400-e29b-41d4-a716-446655440018",
+    observation: "Pagamento em dia",
+    fileIds: [],
+    createdAt: "2025-11-01T10:00:00Z",
+    createdBy: "user-001",
+  },
+  {
+    id: generateUUID(),
+    accountsPayableId: "ap0e8400-e29b-41d4-a716-446655440012",
+    observation: "Vencida - negociando parcelamento",
+    fileIds: [],
+    createdAt: "2025-10-01T10:00:00Z",
+    createdBy: "user-001",
+  },
+  {
+    id: generateUUID(),
+    accountsPayableId: "ap0e8400-e29b-41d4-a716-446655440014",
+    observation: "Pagamento parcial - restante até 30/10",
+    fileIds: [],
+    createdAt: "2025-10-20T10:00:00Z",
+    createdBy: "user-001",
+  },
+  {
+    id: generateUUID(),
+    accountsPayableId: "ap0e8400-e29b-41d4-a716-446655440022",
+    observation: "Vencida - aguardando pagamento",
+    fileIds: [],
+    createdAt: "2025-09-25T10:00:00Z",
+    createdBy: "user-001",
+  },
+  {
+    id: generateUUID(),
+    accountsPayableId: "ap0e8400-e29b-41d4-a716-446655440024",
+    observation: "Manutenção preventiva",
+    fileIds: [],
+    createdAt: "2025-10-20T10:00:00Z",
+    createdBy: "user-001",
+  },
+  {
+    id: generateUUID(),
+    accountsPayableId: "ap0e8400-e29b-41d4-a716-446655440028",
+    observation: "Atendimento de emergência",
+    fileIds: [],
+    createdAt: "2025-09-20T10:00:00Z",
+    createdBy: "user-001",
+  },
+  {
+    id: generateUUID(),
+    accountsPayableId: "ap0e8400-e29b-41d4-a716-446655440033",
+    observation: "Reparo de cerca elétrica",
+    fileIds: [],
+    createdAt: "2025-08-10T10:00:00Z",
+    createdBy: "user-001",
+  },
+  {
+    id: generateUUID(),
+    accountsPayableId: "ap0e8400-e29b-41d4-a716-446655440039",
+    observation: "Inclui 13º salário",
+    fileIds: [],
+    createdAt: "2025-11-28T10:00:00Z",
+    createdBy: "user-001",
+  },
+];

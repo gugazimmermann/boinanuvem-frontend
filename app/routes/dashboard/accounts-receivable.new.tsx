@@ -1,9 +1,10 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router";
-import { Input, Select, Button, Alert } from "~/components/ui";
+import { Input, Select, Button, Alert, FileUpload } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { ROUTES } from "~/routes.config";
 import { addAccountsReceivable } from "~/services/accounts-receivable.service";
+import { addAccountsReceivableObservation } from "~/services/accounts-receivable-observations.service";
 import { getBankAccountsByCompanyId } from "~/services/bank-account.service";
 import { getPropertiesByCompanyId } from "~/services/properties.service";
 import type {
@@ -47,9 +48,9 @@ export default function NewAccountsReceivable() {
     paidDate: string;
     paidAmount: string;
     referenceNumber: string;
-    observation: string;
     bankAccountId: string;
     propertyId: string;
+    observation: string;
   }>({
     buyerId: "",
     amount: "",
@@ -61,17 +62,19 @@ export default function NewAccountsReceivable() {
     paidDate: "",
     paidAmount: "",
     referenceNumber: "",
-    observation: "",
     bankAccountId: "",
     propertyId: "",
+    observation: "",
   });
+
+  const [observationFiles, setObservationFiles] = useState<File[]>([]);
 
   const bankAccounts = company ? getBankAccountsByCompanyId(company.id) : [];
   const properties = company ? getPropertiesByCompanyId(company.id) : [];
 
   const buyers = useMemo(() => {
     if (!formData.propertyId) return mockBuyers;
-    return mockBuyers.filter((buy) => buy.propertyIds.includes(formData.propertyId));
+    return mockBuyers.filter((buy) => buy.propertyIds?.includes(formData.propertyId));
   }, [formData.propertyId]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -146,11 +149,24 @@ export default function NewAccountsReceivable() {
         paidDate: formData.paidDate || undefined,
         paidAmount: formData.paidAmount ? parseFloat(formData.paidAmount) : undefined,
         referenceNumber: formData.referenceNumber || undefined,
-        observation: formData.observation || undefined,
         bankAccountId: formData.bankAccountId || undefined,
         propertyId: formData.propertyId,
       };
-      addAccountsReceivable(transactionData);
+      const newTransaction = addAccountsReceivable(transactionData);
+
+      // Create observation if provided
+      if (formData.observation?.trim()) {
+        const fileIds = observationFiles.map(
+          (_, index) => `file-accountsreceivable-obs-${Date.now()}-${index}`
+        );
+
+        addAccountsReceivableObservation({
+          accountsReceivableId: newTransaction.id,
+          observation: formData.observation.trim(),
+          fileIds: fileIds.length > 0 ? fileIds : undefined,
+        });
+      }
+
       showAlert(t.accountsReceivable.new.success, "success");
       setTimeout(() => {
         navigate(ROUTES.ACCOUNTS_RECEIVABLE);
@@ -355,16 +371,32 @@ export default function NewAccountsReceivable() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t.accountsReceivable.new.observationLabel}
+                {t.accountsReceivable.details.observation || "Observação"}
               </label>
               <textarea
                 value={formData.observation}
                 onChange={(e) => handleChange("observation", e.target.value)}
                 disabled={isSubmitting}
-                rows={3}
+                rows={4}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200"
+                placeholder={
+                  t.accountsReceivable.details.observationPlaceholder ||
+                  "Adicione uma observação (opcional)"
+                }
               />
             </div>
+
+            <FileUpload
+              label={t.accountsReceivable.details.files || "Anexos"}
+              files={observationFiles}
+              onChange={setObservationFiles}
+              disabled={isSubmitting}
+              multiple={true}
+              helperText={
+                t.accountsReceivable.details.filesHelper ||
+                "Você pode anexar múltiplos arquivos à observação"
+              }
+            />
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">

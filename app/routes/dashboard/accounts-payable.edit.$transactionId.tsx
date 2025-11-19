@@ -62,7 +62,6 @@ export default function EditAccountsPayable() {
     paidDate: string;
     paidAmount: string;
     referenceNumber: string;
-    observation: string;
     bankAccountId: string;
     propertyId: string;
   }>({
@@ -78,7 +77,6 @@ export default function EditAccountsPayable() {
     paidDate: "",
     paidAmount: "",
     referenceNumber: "",
-    observation: "",
     bankAccountId: "",
     propertyId: "",
   });
@@ -98,7 +96,6 @@ export default function EditAccountsPayable() {
         paidDate: transaction.paidDate || "",
         paidAmount: transaction.paidAmount?.toString() || "",
         referenceNumber: transaction.referenceNumber || "",
-        observation: transaction.observation || "",
         bankAccountId: transaction.bankAccountId || "",
         propertyId: transaction.propertyId,
       });
@@ -107,17 +104,17 @@ export default function EditAccountsPayable() {
 
   const employees = useMemo(() => {
     if (!formData.propertyId) return allEmployees;
-    return allEmployees.filter((emp) => emp.propertyIds.includes(formData.propertyId));
+    return allEmployees.filter((emp) => emp.propertyIds?.includes(formData.propertyId));
   }, [allEmployees, formData.propertyId]);
 
   const serviceProviders = useMemo(() => {
     if (!formData.propertyId) return allServiceProviders;
-    return allServiceProviders.filter((sp) => sp.propertyIds.includes(formData.propertyId));
+    return allServiceProviders.filter((sp) => sp.propertyIds?.includes(formData.propertyId));
   }, [allServiceProviders, formData.propertyId]);
 
   const suppliers = useMemo(() => {
     if (!formData.propertyId) return mockSuppliers;
-    return mockSuppliers.filter((sup) => sup.propertyIds.includes(formData.propertyId));
+    return mockSuppliers.filter((sup) => sup.propertyIds?.includes(formData.propertyId));
   }, [formData.propertyId]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -210,7 +207,6 @@ export default function EditAccountsPayable() {
         paidDate: formData.paidDate || undefined,
         paidAmount: formData.paidAmount ? parseFloat(formData.paidAmount) : undefined,
         referenceNumber: formData.referenceNumber || undefined,
-        observation: formData.observation || undefined,
         bankAccountId: formData.bankAccountId || undefined,
         propertyId: formData.propertyId,
       });
@@ -457,19 +453,6 @@ export default function EditAccountsPayable() {
               error={errors.referenceNumber}
               disabled={isSubmitting}
             />
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t.accountsPayable.edit.observationLabel}
-              </label>
-              <textarea
-                value={formData.observation}
-                onChange={(e) => handleChange("observation", e.target.value)}
-                disabled={isSubmitting}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200"
-              />
-            </div>
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">

@@ -54,8 +54,6 @@ export interface CashFlow extends Record<string, unknown> {
   serviceProviderId?: string;
   paymentDate?: string;
   referenceNumber?: string;
-  observation?: string;
-  fileIds?: string[];
   bankAccountId?: string;
   propertyId: string;
   createdAt: string;
@@ -76,8 +74,6 @@ export interface CashFlowFormData {
   serviceProviderId?: string;
   paymentDate?: string;
   referenceNumber?: string;
-  observation?: string;
-  fileIds?: string[];
   bankAccountId?: string;
   propertyId: string;
 }

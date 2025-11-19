@@ -22,8 +22,6 @@ export interface AccountsPayable extends Record<string, unknown> {
   paidDate?: string;
   paidAmount?: number;
   referenceNumber?: string;
-  observation?: string;
-  fileIds?: string[];
   bankAccountId?: string;
   propertyId: string;
   createdAt: string;
@@ -43,8 +41,6 @@ export interface AccountsPayableFormData {
   paidDate?: string;
   paidAmount?: number;
   referenceNumber?: string;
-  observation?: string;
-  fileIds?: string[];
   bankAccountId?: string;
   propertyId: string;
 }

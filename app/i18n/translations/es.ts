@@ -1402,6 +1402,22 @@ export const es = {
       employee: "Empleado",
       serviceProvider: "Proveedor de Servicios",
       property: "Propiedad",
+      observationRequired: "Por favor, ingrese una observación",
+      observationAdded: "¡Observación agregada con éxito!",
+      observationError: "Error al agregar observación",
+      observationDate: "Fecha de la Observación",
+      files: "Adjuntos",
+      filesHelper: "Puede adjuntar múltiples archivos",
+      addObservation: "Agregar Observación",
+      newObservation: "Nueva Observación",
+      observationPlaceholder: "Ingrese su observación sobre esta transacción...",
+      observations: "Observaciones",
+      observationsDescription: "Gestionar observaciones para esta transacción",
+      searchObservations: "Buscar observaciones...",
+      noObservations: "No hay observaciones registradas",
+      noObservationsWithSearch: (search: string) =>
+        `No se encontraron observaciones para "${search}"`,
+      noObservationsDescription: "Agregue su primera observación sobre esta transacción.",
     },
     categories: {
       cattle_sales: "Venta de Ganado",
@@ -1568,6 +1584,22 @@ export const es = {
       serviceProvider: "Proveedor de Servicios",
       employee: "Empleado",
       property: "Propiedad",
+      observationRequired: "Por favor, ingrese una observación",
+      observationAdded: "¡Observación agregada con éxito!",
+      observationError: "Error al agregar observación",
+      observationDate: "Fecha de la Observación",
+      files: "Adjuntos",
+      filesHelper: "Puede adjuntar múltiples archivos",
+      addObservation: "Agregar Observación",
+      newObservation: "Nueva Observación",
+      observationPlaceholder: "Ingrese su observación sobre esta cuenta por pagar...",
+      observations: "Observaciones",
+      observationsDescription: "Gestionar observaciones para esta cuenta por pagar",
+      searchObservations: "Buscar observaciones...",
+      noObservations: "No hay observaciones registradas",
+      noObservationsWithSearch: (search: string) =>
+        `No se encontraron observaciones para "${search}"`,
+      noObservationsDescription: "Agregue su primera observación sobre esta cuenta por pagar.",
     },
     status: {
       paid: "Pagada",
@@ -1708,6 +1740,22 @@ export const es = {
       createdAt: "Fecha de Creación",
       bankAccount: "Cuenta Bancaria",
       property: "Propiedad",
+      observationRequired: "Por favor, ingrese una observación",
+      observationAdded: "¡Observación agregada con éxito!",
+      observationError: "Error al agregar observación",
+      observationDate: "Fecha de la Observación",
+      files: "Adjuntos",
+      filesHelper: "Puede adjuntar múltiples archivos",
+      addObservation: "Agregar Observación",
+      newObservation: "Nueva Observación",
+      observationPlaceholder: "Ingrese su observación sobre esta cuenta por cobrar...",
+      observations: "Observaciones",
+      observationsDescription: "Gestionar observaciones para esta cuenta por cobrar",
+      searchObservations: "Buscar observaciones...",
+      noObservations: "No hay observaciones registradas",
+      noObservationsWithSearch: (search: string) =>
+        `No se encontraron observaciones para "${search}"`,
+      noObservationsDescription: "Agregue su primera observación sobre esta cuenta por cobrar.",
     },
     status: {
       paid: "Cobrada",
@@ -2736,12 +2784,12 @@ export const es = {
       cashFlow: {
         question: "¿Cómo gestiono el flujo de caja?",
         answer:
-          "El módulo de Flujo de Caja te permite registrar todas las entradas y salidas financieras de tu operación. Ve a 'Finanzas' > 'Flujo de Caja' y haz clic en 'Nuevo' para agregar una transacción. Puedes categorizar cada transacción, asociarla con proveedores o compradores, y definir el método de pago. El sistema genera gráficos e informes para ayudarte a visualizar tu situación financiera y tomar decisiones informadas.",
+          "El módulo de Flujo de Caja te permite registrar todas las entradas y salidas financieras de tu operación. Ve a 'Finanzas' > 'Flujo de Caja' y haz clic en 'Nuevo' para agregar una transacción. Puedes categorizar cada transacción, asociarla con proveedores o compradores, y definir el método de pago. Al crear una nueva transacción, puedes opcionalmente agregar una observación inicial con archivos adjuntos (fotos, documentos) para documentar detalles importantes. En la página de detalles de cada transacción, puedes agregar, ver, editar y eliminar múltiples observaciones, cada una con sus propios archivos adjuntos, para mantener un historial completo de notas y documentación. El sistema genera gráficos e informes para ayudarte a visualizar tu situación financiera y tomar decisiones informadas.",
       },
       accountsPayable: {
         question: "¿Cómo gestiono las cuentas por pagar?",
         answer:
-          "En 'Finanzas' > 'Cuentas por Pagar', puedes registrar todas tus obligaciones financieras. Al crear una nueva cuenta, ingresa el monto, la fecha de vencimiento, el proveedor y la descripción. El sistema sigue el estado de cada cuenta (pendiente, pagada, vencida) y te permite registrar el pago cuando se realice. Esto ayuda a mantener el control financiero y evitar olvidar pagos importantes.",
+          "En 'Finanzas' > 'Cuentas por Pagar', puedes registrar todas tus obligaciones financieras. Al crear una nueva cuenta, ingresa el monto, la fecha de vencimiento, el proveedor y la descripción. Puedes opcionalmente agregar una observación inicial con archivos adjuntos (fotos, documentos) al crear la cuenta. En la página de detalles de cada cuenta, puedes agregar, ver, editar y eliminar múltiples observaciones, cada una con sus propios archivos adjuntos, para mantener un historial completo de notas y documentación. El sistema sigue el estado de cada cuenta (pendiente, pagada, vencida) y te permite registrar el pago cuando se realice. Esto ayuda a mantener el control financiero y evitar olvidar pagos importantes.",
       },
       addTeamMember: {
         question: "¿Cómo agrego un miembro al equipo?",
@@ -2821,7 +2869,7 @@ export const es = {
       accountsReceivable: {
         question: "¿Cómo gestiono las cuentas por cobrar?",
         answer:
-          "En 'Finanzas' > 'Cuentas por Cobrar', registra todos los montos que tienes por recibir. Al crear una nueva cuenta, ingresa el monto, la fecha de vencimiento, el comprador y la descripción. El sistema sigue el estado de cada cuenta (pendiente, recibida, vencida) y te permite registrar el recibo cuando ocurra. Esto ayuda a mantener el control financiero e identificar cuentas vencidas.",
+          "En 'Finanzas' > 'Cuentas por Cobrar', registra todos los montos que tienes por recibir. Al crear una nueva cuenta, ingresa el monto, la fecha de vencimiento, el comprador y la descripción. Puedes opcionalmente agregar una observación inicial con archivos adjuntos (fotos, documentos) al crear la cuenta. En la página de detalles de cada cuenta, puedes agregar, ver, editar y eliminar múltiples observaciones, cada una con sus propios archivos adjuntos, para mantener un historial completo de notas y documentación. El sistema sigue el estado de cada cuenta (pendiente, recibida, vencida) y te permite registrar el recibo cuando ocurra. Esto ayuda a mantener el control financiero e identificar cuentas vencidas.",
       },
       bankAccounts: {
         question: "¿Cómo gestiono cuentas bancarias?",

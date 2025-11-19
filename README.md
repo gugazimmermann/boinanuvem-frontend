@@ -115,10 +115,12 @@ A modern, full-stack React application built with React Router v7, featuring a c
   - Buyer registration
   - Transaction history
   - Observation tracking
-- **Observations**: Comprehensive observation system for locations, employees, service providers, suppliers, buyers, and animals
+- **Observations**: Comprehensive observation system for locations, employees, service providers, suppliers, buyers, animals, and financial entities
   - Rich text observations
   - File attachment support
   - Date and author tracking
+  - Multiple observations per entity with full CRUD operations
+  - Initial observations when creating new records (for financial entities)
 
 ### User & Team Management
 - **Authentication**: Complete authentication flow (login, register, password recovery)
@@ -179,16 +181,31 @@ A modern, full-stack React application built with React Router v7, featuring a c
   - Category-based organization
   - Payment method tracking
   - Date and description management
+  - **Observations System**: Add multiple observations with file attachments to each transaction
+    - Initial observation when creating new transactions
+    - Multiple observations on transaction detail pages
+    - File attachment support (photos, documents)
+    - Complete observation history tracking
 - **Accounts Payable**: Manage bills and payments with due date tracking and status monitoring
   - Bill registration with due dates
   - Payment status tracking (pending, paid, overdue)
   - Payment date recording
   - Supplier relationship linking
+  - **Observations System**: Add multiple observations with file attachments to each account
+    - Initial observation when creating new accounts
+    - Multiple observations on account detail pages
+    - File attachment support (photos, documents)
+    - Complete observation history tracking
 - **Accounts Receivable**: Track receivables with payment status and overdue management
   - Receivable registration
   - Payment status tracking
   - Buyer relationship linking
   - Overdue identification
+  - **Observations System**: Add multiple observations with file attachments to each account
+    - Initial observation when creating new accounts
+    - Multiple observations on account detail pages
+    - File attachment support (photos, documents)
+    - Complete observation history tracking
 - **Bank Accounts**: Manage multiple bank accounts with balance tracking
   - Bank account registration
   - Account type management (checking, savings, etc.)
@@ -223,7 +240,7 @@ A modern, full-stack React application built with React Router v7, featuring a c
   - **Contact Support**: Support channels and contact information
   - **Category Filtering**: Filter FAQs by category for easy navigation
   - **Fully Internationalized**: All help content available in Portuguese, English, and Spanish
-  - **Comprehensive Coverage**: FAQs for animal management, locations, employees, service providers, suppliers, buyers, observations, weighings (including session weighings), acquisitions, movements, inventory management (including financial integration), financial management, reproductive indexes, birth forecast, dashboard metrics, pasture planning, breeding season, search & filtering, data organization, and best practices
+  - **Comprehensive Coverage**: FAQs for animal management, locations, employees, service providers, suppliers, buyers, observations, weighings (including session weighings), acquisitions, movements, inventory management (including financial integration), financial management (including observations for cash flow, accounts payable, and accounts receivable), reproductive indexes, birth forecast, dashboard metrics, pasture planning, breeding season, search & filtering, data organization, and best practices
 
 ## 📋 Prerequisites
 
@@ -369,6 +386,9 @@ The application uses a service layer pattern to abstract data access and busines
   - `service-provider-observations.service.ts` - Service provider observation management
   - `supplier-observations.service.ts` - Supplier observation management
   - `buyer-observations.service.ts` - Buyer observation management
+  - `cash-flow-observations.service.ts` - Cash flow transaction observation management
+  - `accounts-payable-observations.service.ts` - Accounts payable observation management
+  - `accounts-receivable-observations.service.ts` - Accounts receivable observation management
 
 - **Financial Services**: 
   - `cash-flow.service.ts` - Income and expense tracking
@@ -411,6 +431,9 @@ The application includes a comprehensive mock data system for development and te
   - `service-provider-observations.ts` - Service provider observation records
   - `supplier-observations.ts` - Supplier observation records
   - `buyer-observations.ts` - Buyer observation records
+  - `cash-flow-observations.ts` - Cash flow transaction observation records
+  - `accounts-payable-observations.ts` - Accounts payable observation records
+  - `accounts-receivable-observations.ts` - Accounts receivable observation records
   - `cash-flow.ts` - Cash flow transactions
   - `accounts-payable.ts` - Accounts payable records
   - `accounts-receivable.ts` - Accounts receivable records

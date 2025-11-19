@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
@@ -7,6 +7,7 @@ import NewAccountsPayable from "../accounts-payable.new";
 
 const mockNavigate = vi.fn();
 const mockAddAccountsPayable = vi.fn();
+const mockAddAccountsPayableObservation = vi.fn();
 
 vi.mock("react-router", async () => {
   const actual = await vi.importActual("react-router");
@@ -18,6 +19,10 @@ vi.mock("react-router", async () => {
 
 vi.mock("~/services/accounts-payable.service", () => ({
   addAccountsPayable: (...args: unknown[]) => mockAddAccountsPayable(...args),
+}));
+
+vi.mock("~/services/accounts-payable-observations.service", () => ({
+  addAccountsPayableObservation: (...args: unknown[]) => mockAddAccountsPayableObservation(...args),
 }));
 
 vi.mock("~/services/bank-account.service", () => ({
@@ -168,6 +173,28 @@ vi.mock("~/components/ui", () => ({
   Alert: ({ title, variant }: { title?: string; variant?: string }) => (
     <div data-testid={`alert-${variant}`}>{title}</div>
   ),
+  FileUpload: ({
+    files: _files,
+    onChange,
+    helperText: _helperText,
+    ...props
+  }: {
+    files?: File[];
+    onChange?: (files: File[]) => void;
+    helperText?: string;
+    [key: string]: unknown;
+  }) => (
+    <input
+      type="file"
+      data-testid="file-upload"
+      multiple
+      onChange={(e) => {
+        const selectedFiles = Array.from(e.target.files || []);
+        onChange?.(selectedFiles);
+      }}
+      {...props}
+    />
+  ),
 }));
 
 describe("NewAccountsPayable", () => {
@@ -201,6 +228,12 @@ describe("NewAccountsPayable", () => {
       description: "Test",
       createdAt: "2024-01-15T10:00:00Z",
     });
+    mockAddAccountsPayableObservation.mockReturnValue({
+      id: "obs-1",
+      accountsPayableId: "ap-1",
+      observation: "Test observation",
+      createdAt: "2024-01-15T10:00:00Z",
+    });
   });
 
   it("should render new accounts payable form", () => {
@@ -225,5 +258,124 @@ describe("NewAccountsPayable", () => {
 
   it("should have correct meta function", () => {
     expect(NewAccountsPayable).toBeDefined();
+  });
+
+  it("should create observation when observation text is provided", async () => {
+    const router = createRouter();
+    render(<RouterProvider router={router} />);
+
+    // Fill required fields
+    const descriptionInput = screen.getByTestId("input-Description");
+    const amountInput = screen.getByTestId("input-Amount");
+    const dueDateInput = screen.getByTestId("input-Due Date");
+    const selects = screen.getAllByTestId("select-select");
+    const propertySelect = selects[0]; // Property is always the first select
+
+    fireEvent.change(descriptionInput, { target: { value: "Test description" } });
+    fireEvent.change(amountInput, { target: { value: "1000" } });
+    fireEvent.change(dueDateInput, { target: { value: "2024-12-31" } });
+    fireEvent.change(propertySelect, { target: { value: "prop-1" } });
+
+    // Find and fill observation textarea
+    const textareas = screen.queryAllByRole("textbox");
+    const observationTextarea = textareas.find(
+      (textarea) => (textarea as HTMLTextAreaElement).rows === 4
+    ) as HTMLTextAreaElement | undefined;
+
+    if (observationTextarea) {
+      fireEvent.change(observationTextarea, {
+        target: { value: "Test observation" },
+      });
+    }
+
+    // Submit form
+    const submitButton = screen.getByTestId("submit-button");
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(mockAddAccountsPayable).toHaveBeenCalled();
+      expect(mockAddAccountsPayableObservation).toHaveBeenCalledWith(
+        expect.objectContaining({
+          accountsPayableId: "ap-1",
+          observation: "Test observation",
+        })
+      );
+    });
+  });
+
+  it("should not create observation when observation text is empty", async () => {
+    const router = createRouter();
+    render(<RouterProvider router={router} />);
+
+    // Fill required fields
+    const descriptionInput = screen.getByTestId("input-Description");
+    const amountInput = screen.getByTestId("input-Amount");
+    const dueDateInput = screen.getByTestId("input-Due Date");
+    const selects = screen.getAllByTestId("select-select");
+    const propertySelect = selects[0]; // Property is always the first select
+
+    fireEvent.change(descriptionInput, { target: { value: "Test description" } });
+    fireEvent.change(amountInput, { target: { value: "1000" } });
+    fireEvent.change(dueDateInput, { target: { value: "2024-12-31" } });
+    fireEvent.change(propertySelect, { target: { value: "prop-1" } });
+
+    // Submit form without observation
+    const submitButton = screen.getByTestId("submit-button");
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(mockAddAccountsPayable).toHaveBeenCalled();
+      expect(mockAddAccountsPayableObservation).not.toHaveBeenCalled();
+    });
+  });
+
+  it("should handle file upload for observations", async () => {
+    const router = createRouter();
+    render(<RouterProvider router={router} />);
+
+    // Fill required fields
+    const descriptionInput = screen.getByTestId("input-Description");
+    const amountInput = screen.getByTestId("input-Amount");
+    const dueDateInput = screen.getByTestId("input-Due Date");
+    const selects = screen.getAllByTestId("select-select");
+    const propertySelect = selects[0]; // Property is always the first select
+
+    fireEvent.change(descriptionInput, { target: { value: "Test description" } });
+    fireEvent.change(amountInput, { target: { value: "1000" } });
+    fireEvent.change(dueDateInput, { target: { value: "2024-12-31" } });
+    fireEvent.change(propertySelect, { target: { value: "prop-1" } });
+
+    // Find and fill observation textarea
+    const textareas = screen.queryAllByRole("textbox");
+    const observationTextarea = textareas.find(
+      (textarea) => (textarea as HTMLTextAreaElement).rows === 4
+    ) as HTMLTextAreaElement | undefined;
+
+    if (observationTextarea) {
+      fireEvent.change(observationTextarea, {
+        target: { value: "Test observation" },
+      });
+    }
+
+    // Upload file
+    const fileUpload = screen.getByTestId("file-upload");
+    const file = new File(["test content"], "test.txt", { type: "text/plain" });
+    fireEvent.change(fileUpload, {
+      target: { files: [file] },
+    });
+
+    // Submit form
+    const submitButton = screen.getByTestId("submit-button");
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(mockAddAccountsPayable).toHaveBeenCalled();
+      expect(mockAddAccountsPayableObservation).toHaveBeenCalled();
+      const callArgs = mockAddAccountsPayableObservation.mock.calls[0][0];
+      expect(callArgs.accountsPayableId).toBe("ap-1");
+      expect(callArgs.observation).toBe("Test observation");
+      expect(callArgs.fileIds).toBeDefined();
+      expect(Array.isArray(callArgs.fileIds)).toBe(true);
+    });
   });
 });

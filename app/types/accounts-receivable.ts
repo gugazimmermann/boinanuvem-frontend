@@ -20,8 +20,6 @@ export interface AccountsReceivable extends Record<string, unknown> {
   paidDate?: string;
   paidAmount?: number;
   referenceNumber?: string;
-  observation?: string;
-  fileIds?: string[];
   bankAccountId?: string;
   propertyId: string;
   createdAt: string;
@@ -39,8 +37,6 @@ export interface AccountsReceivableFormData {
   paidDate?: string;
   paidAmount?: number;
   referenceNumber?: string;
-  observation?: string;
-  fileIds?: string[];
   bankAccountId?: string;
   propertyId: string;
 }

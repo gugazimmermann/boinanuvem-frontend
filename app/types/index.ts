@@ -50,6 +50,15 @@ export type {
 } from "./service-provider-observation";
 export type { SupplierObservation, SupplierObservationFormData } from "./supplier-observation";
 export type { BuyerObservation, BuyerObservationFormData } from "./buyer-observation";
+export type { CashFlowObservation, CashFlowObservationFormData } from "./cash-flow-observation";
+export type {
+  AccountsPayableObservation,
+  AccountsPayableObservationFormData,
+} from "./accounts-payable-observation";
+export type {
+  AccountsReceivableObservation,
+  AccountsReceivableObservationFormData,
+} from "./accounts-receivable-observation";
 export type { CashFlow, CashFlowFormData, CashFlowType } from "./cash-flow";
 export { CashFlowCategory, PaymentMethod } from "./cash-flow";
 export type { AccountsPayable, AccountsPayableFormData } from "./accounts-payable";
