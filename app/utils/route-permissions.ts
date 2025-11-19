@@ -30,6 +30,12 @@ const ROUTE_PERMISSION_MAP: Record<string, string> = {
   [ROUTES.SUPPLIERS_EDIT]: "registration.supplier",
   [ROUTES.SUPPLIERS_VIEW]: "registration.supplier",
 
+  [ROUTES.INVENTORY]: "registration.inventory",
+  [ROUTES.INVENTORY_NEW]: "registration.inventory",
+  [ROUTES.INVENTORY_EDIT]: "registration.inventory",
+  [ROUTES.INVENTORY_VIEW]: "registration.inventory",
+  [ROUTES.INVENTORY_MOVEMENT_NEW]: "registration.inventory",
+
   [ROUTES.BUYERS]: "registration.buyer",
   [ROUTES.BUYERS_NEW]: "registration.buyer",
   [ROUTES.BUYERS_EDIT]: "registration.buyer",

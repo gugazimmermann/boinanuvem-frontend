@@ -28,6 +28,7 @@ export interface SidebarSubItemConfig {
 export interface SidebarItemConfig {
   translationKey: keyof {
     dashboard: string;
+    inventory: string;
     registrations: string;
     properties: string;
     locations: string;

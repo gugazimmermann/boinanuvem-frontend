@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
-import { Input } from "~/components/ui";
+import { Input, Alert } from "~/components/ui";
 import { Button } from "~/components/ui";
 import { AddressForm } from "./address-form";
 import { ActivityLog, type ActivityLogEntry } from "./activity-log";
@@ -172,6 +172,20 @@ export function CompanyProfile() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState<"data" | "logs">("data");
+  const [alertMessage, setAlertMessage] = useState<{
+    title: string;
+    variant: "success" | "error" | "warning" | "info";
+  } | null>(null);
+
+  const showAlert = (
+    title: string,
+    variant: "success" | "error" | "warning" | "info" = "success"
+  ) => {
+    setAlertMessage({ title, variant });
+    setTimeout(() => {
+      setAlertMessage(null);
+    }, 3000);
+  };
 
   const handleCNPJSuccess = useCallback(
     (cnpjData: Parameters<typeof mapCNPJDataToCompanyForm>[0]) => {
@@ -262,9 +276,9 @@ export function CompanyProfile() {
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
       setIsEditing(false);
-      alert(t.profile.success.saved);
+      showAlert(t.profile.success.saved, "success");
     } catch {
-      alert(t.profile.errors.saveFailed);
+      showAlert(t.profile.errors.saveFailed, "error");
     } finally {
       setIsSaving(false);
     }
@@ -278,6 +292,11 @@ export function CompanyProfile() {
 
   return (
     <div className="space-y-4">
+      {alertMessage && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
+          <Alert title={alertMessage.title} variant={alertMessage.variant} />
+        </div>
+      )}
       <div className="mb-4">
         <nav className="flex space-x-3" aria-label="Sub Tabs">
           <button

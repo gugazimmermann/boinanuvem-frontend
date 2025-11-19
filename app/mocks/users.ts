@@ -3,7 +3,6 @@ import type { UserPermissions } from "~/types/permissions";
 
 const DEFAULT_PASSWORD_HASH = "$2a$10$MyHqC7lONCHhrYYtZgUoEu3xR61lWfbQwSKfWOJVrNGZF.JbrUVQW";
 
-// Full permissions for admin/main user
 const fullPermissions: UserPermissions = {
   registration: {
     property: { view: true, add: true, edit: true, remove: true },
@@ -12,6 +11,7 @@ const fullPermissions: UserPermissions = {
     serviceProvider: { view: true, add: true, edit: true, remove: true },
     supplier: { view: true, add: true, edit: true, remove: true },
     buyer: { view: true, add: true, edit: true, remove: true },
+    inventory: { view: true, add: true, edit: true, remove: true },
     animals: { view: true, add: true, edit: true, remove: true },
   },
   records: {
@@ -34,7 +34,6 @@ const fullPermissions: UserPermissions = {
   },
 };
 
-// Manager permissions: view, add, edit but no remove
 const managerPermissions: UserPermissions = {
   registration: {
     property: { view: true, add: true, edit: true, remove: false },
@@ -43,6 +42,7 @@ const managerPermissions: UserPermissions = {
     serviceProvider: { view: true, add: true, edit: true, remove: false },
     supplier: { view: true, add: true, edit: true, remove: false },
     buyer: { view: true, add: true, edit: true, remove: false },
+    inventory: { view: true, add: true, edit: true, remove: false },
     animals: { view: true, add: true, edit: true, remove: false },
   },
   records: {
@@ -65,7 +65,6 @@ const managerPermissions: UserPermissions = {
   },
 };
 
-// Regular user permissions: limited access
 const regularUserPermissions: UserPermissions = {
   registration: {
     property: { view: true, add: true, edit: false, remove: false },
@@ -74,6 +73,7 @@ const regularUserPermissions: UserPermissions = {
     serviceProvider: { view: true, add: true, edit: false, remove: false },
     supplier: { view: true, add: false, edit: false, remove: false },
     buyer: { view: true, add: true, edit: false, remove: false },
+    inventory: { view: true, add: true, edit: false, remove: false },
     animals: { view: true, add: true, edit: false, remove: false },
   },
   records: {
@@ -96,7 +96,6 @@ const regularUserPermissions: UserPermissions = {
   },
 };
 
-// Inactive user permissions: view only
 const inactiveUserPermissions: UserPermissions = {
   registration: {
     property: { view: true, add: false, edit: false, remove: false },
@@ -105,6 +104,7 @@ const inactiveUserPermissions: UserPermissions = {
     serviceProvider: { view: true, add: false, edit: false, remove: false },
     supplier: { view: true, add: false, edit: false, remove: false },
     buyer: { view: true, add: false, edit: false, remove: false },
+    inventory: { view: true, add: false, edit: false, remove: false },
     animals: { view: true, add: false, edit: false, remove: false },
   },
   records: {
@@ -127,7 +127,6 @@ const inactiveUserPermissions: UserPermissions = {
   },
 };
 
-// Pending user permissions: no access
 const pendingUserPermissions: UserPermissions = {
   registration: {
     property: { view: false, add: false, edit: false, remove: false },
@@ -136,6 +135,7 @@ const pendingUserPermissions: UserPermissions = {
     serviceProvider: { view: false, add: false, edit: false, remove: false },
     supplier: { view: false, add: false, edit: false, remove: false },
     buyer: { view: false, add: false, edit: false, remove: false },
+    inventory: { view: false, add: false, edit: false, remove: false },
     animals: { view: false, add: false, edit: false, remove: false },
   },
   records: {

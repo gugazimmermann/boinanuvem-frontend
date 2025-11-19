@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router";
 import { differenceInMonths, differenceInDays, format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
+import { enUS } from "date-fns/locale/en-US";
+import { es } from "date-fns/locale/es";
 import {
   Table,
   StatusBadge,
@@ -16,6 +18,7 @@ import {
   type SortDirection,
 } from "~/components/ui";
 import { useTranslation } from "~/i18n";
+import { useLanguage } from "~/contexts/language-context";
 import { mockAnimals } from "~/mocks/animals";
 import { deleteAnimal } from "~/services/animals.service";
 import type { Animal } from "~/types";
@@ -49,6 +52,7 @@ export async function loader({ request }: { request: Request }) {
 
 export default function Animals() {
   const t = useTranslation();
+  const { language } = useLanguage();
   const navigate = useNavigate();
   const { canAdd, canEdit, canRemove } = usePermissions();
   const [animals, setAnimals] = useState<Animal[]>([...mockAnimals]);
@@ -69,6 +73,26 @@ export default function Animals() {
     variant: "success" | "error" | "warning" | "info";
   } | null>(null);
   const itemsPerPage = 10;
+
+  const dateLocale = useMemo(() => {
+    switch (language) {
+      case "en":
+        return enUS;
+      case "es":
+        return es;
+      default:
+        return ptBR;
+    }
+  }, [language]);
+
+  const localeForDateTime = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
+
+  const formatDate = (dateString: string | Date) => {
+    const date = typeof dateString === "string" ? new Date(dateString) : dateString;
+    const dateFormat =
+      language === "en" ? "MM/dd/yyyy" : language === "es" ? "dd/MM/yyyy" : "dd/MM/yyyy";
+    return format(date, dateFormat, { locale: dateLocale });
+  };
 
   const showAlert = (
     title: string,
@@ -129,13 +153,13 @@ export default function Animals() {
 
     let comparison = 0;
     if (typeof aValue === "string" && typeof bValue === "string") {
-      comparison = aValue.localeCompare(bValue, "pt-BR", {
+      comparison = aValue.localeCompare(bValue, localeForDateTime, {
         sensitivity: "base",
       });
     } else if (typeof aValue === "number" && typeof bValue === "number") {
       comparison = aValue - bValue;
     } else {
-      comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
+      comparison = String(aValue).localeCompare(String(bValue), localeForDateTime);
     }
 
     return sortState.direction === "asc" ? comparison : -comparison;
@@ -221,7 +245,7 @@ export default function Animals() {
         const birthDate = new Date(birth.birthDate);
         const today = new Date();
         const months = differenceInMonths(today, birthDate);
-        const formattedDate = format(birthDate, "dd/MM/yyyy", { locale: ptBR });
+        const formattedDate = formatDate(birthDate);
 
         return (
           <Tooltip content={formattedDate}>
@@ -244,7 +268,7 @@ export default function Animals() {
         const acquisitionDate = new Date(row.acquisitionDate);
         const today = new Date();
         const months = differenceInMonths(today, acquisitionDate);
-        const formattedDate = format(acquisitionDate, "dd/MM/yyyy", { locale: ptBR });
+        const formattedDate = formatDate(acquisitionDate);
 
         return (
           <Tooltip content={formattedDate}>
@@ -299,12 +323,11 @@ export default function Animals() {
         )[0];
         if (!lastWeighing) return <span className="text-gray-700 dark:text-gray-300">-</span>;
 
-        const formattedDate = format(new Date(lastWeighing.date), "dd/MM/yyyy", { locale: ptBR });
+        const formattedDate = formatDate(new Date(lastWeighing.date));
         const today = new Date();
         const weighingDate = new Date(lastWeighing.date);
         const daysAgo = differenceInDays(today, weighingDate);
-        const tooltipText =
-          daysAgo === 0 ? "Hoje" : daysAgo === 1 ? "Há 1 dia" : `Há ${daysAgo} dias`;
+        const tooltipText = t.common.daysAgo(daysAgo);
 
         return (
           <Tooltip content={tooltipText}>
@@ -318,7 +341,7 @@ export default function Animals() {
     {
       key: "gmd",
       label: (
-        <Tooltip content={t.common.dailyAverageGain}>
+        <Tooltip content={t.common.dailyAverageGain} position="bottom">
           <span className="border-b border-dotted border-gray-400 dark:border-gray-500 hover:border-blue-500 dark:hover:border-blue-400 transition-colors cursor-help">
             {t.animals.table.gmd}
           </span>

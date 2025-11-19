@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
+import { enUS } from "date-fns/locale/en-US";
+import { es } from "date-fns/locale/es";
 import {
   Table,
   StatusBadge,
@@ -28,11 +30,6 @@ import { getPropertyById } from "~/services/properties.service";
 import type { CashFlow } from "~/types";
 import { ROUTES, getCashFlowEditRoute, getCashFlowViewRoute } from "~/routes.config";
 import { usePermissions } from "~/utils/permissions";
-
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return format(date, "dd/MM/yyyy", { locale: ptBR });
-};
 
 export function meta() {
   return [
@@ -74,6 +71,27 @@ export default function CashFlow() {
     variant: "success" | "error" | "warning" | "info";
   } | null>(null);
   const itemsPerPage = 10;
+
+  const dateLocale = useMemo(() => {
+    switch (language) {
+      case "en":
+        return enUS;
+      case "es":
+        return es;
+      default:
+        return ptBR;
+    }
+  }, [language]);
+
+  const localeForCurrency = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
+  const localeForDateTime = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const dateFormat =
+      language === "en" ? "MM/dd/yyyy" : language === "es" ? "dd/MM/yyyy" : "dd/MM/yyyy";
+    return format(date, dateFormat, { locale: dateLocale });
+  };
 
   const showAlert = (
     title: string,
@@ -197,13 +215,13 @@ export default function CashFlow() {
 
     let comparison = 0;
     if (typeof aValue === "string" && typeof bValue === "string") {
-      comparison = aValue.localeCompare(bValue, "pt-BR", {
+      comparison = aValue.localeCompare(bValue, localeForDateTime, {
         sensitivity: "base",
       });
     } else if (typeof aValue === "number" && typeof bValue === "number") {
       comparison = aValue - bValue;
     } else {
-      comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
+      comparison = String(aValue).localeCompare(String(bValue), localeForDateTime);
     }
 
     return sortState.direction === "asc" ? comparison : -comparison;
@@ -225,7 +243,7 @@ export default function CashFlow() {
   const netTotal = totalIncome - totalExpenses;
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
+    return new Intl.NumberFormat(localeForCurrency, {
       style: "currency",
       currency: "BRL",
     }).format(value);

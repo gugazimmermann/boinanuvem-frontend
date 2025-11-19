@@ -19,6 +19,7 @@ type PermissionResource =
   | "serviceProvider"
   | "supplier"
   | "buyer"
+  | "inventory"
   | "animals"
   | "births"
   | "acquisitions"
@@ -245,17 +246,18 @@ export default function TeamPermissions() {
         "serviceProvider",
         "supplier",
         "buyer",
+        "inventory",
         "animals",
       ],
     },
     {
       section: "records",
-      sectionLabel: t.team.permissions.records || "Registros",
+      sectionLabel: t.team.permissions.records,
       resources: ["births", "acquisitions", "weighings"],
     },
     {
       section: "breedings",
-      sectionLabel: t.team.permissions.breedings || "Reprodução",
+      sectionLabel: t.team.permissions.breedings,
       resources: [
         "breedings",
         "unconfirmedBreedings",
@@ -266,7 +268,7 @@ export default function TeamPermissions() {
     },
     {
       section: "finances",
-      sectionLabel: t.team.permissions.finances || "Finanças",
+      sectionLabel: t.team.permissions.finances,
       resources: ["cashFlow", "accountsPayable", "accountsReceivable", "bankAccounts"],
     },
   ];

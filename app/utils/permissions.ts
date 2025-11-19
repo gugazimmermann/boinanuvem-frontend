@@ -10,6 +10,7 @@ const fullPermissions: UserPermissions = {
     serviceProvider: { view: true, add: true, edit: true, remove: true },
     supplier: { view: true, add: true, edit: true, remove: true },
     buyer: { view: true, add: true, edit: true, remove: true },
+    inventory: { view: true, add: true, edit: true, remove: true },
     animals: { view: true, add: true, edit: true, remove: true },
   },
   records: {
@@ -52,6 +53,7 @@ export function usePermissions() {
         serviceProvider: { view: false, add: false, edit: false, remove: false },
         supplier: { view: false, add: false, edit: false, remove: false },
         buyer: { view: false, add: false, edit: false, remove: false },
+        inventory: { view: false, add: false, edit: false, remove: false },
         animals: { view: false, add: false, edit: false, remove: false },
       },
       records: {

@@ -12,6 +12,7 @@ import {
   type SortDirection,
 } from "~/components/ui";
 import { useTranslation } from "~/i18n";
+import { useLanguage } from "~/contexts/language-context";
 import { mockProperties } from "~/mocks/properties";
 import { deleteProperty } from "~/services/properties.service";
 import type { Property } from "~/types";
@@ -50,6 +51,7 @@ export async function loader({ request }: { request: Request }) {
 
 export default function Properties() {
   const t = useTranslation();
+  const { language } = useLanguage();
   const navigate = useNavigate();
   const { canAdd, canEdit, canRemove } = usePermissions();
   const [properties, setProperties] = useState<Property[]>([...mockProperties]);
@@ -68,6 +70,9 @@ export default function Properties() {
     variant: "success" | "error" | "warning" | "info";
   } | null>(null);
   const itemsPerPage = 10;
+
+  const localeForDateTime = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
+  const localeForNumber = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
 
   const showAlert = (
     title: string,
@@ -135,13 +140,13 @@ export default function Properties() {
 
     let comparison = 0;
     if (typeof aValue === "string" && typeof bValue === "string") {
-      comparison = aValue.localeCompare(bValue, "pt-BR", {
+      comparison = aValue.localeCompare(bValue, localeForDateTime, {
         sensitivity: "base",
       });
     } else if (typeof aValue === "number" && typeof bValue === "number") {
       comparison = aValue - bValue;
     } else {
-      comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
+      comparison = String(aValue).localeCompare(String(bValue), localeForDateTime);
     }
 
     return sortState.direction === "asc" ? comparison : -comparison;
@@ -182,7 +187,7 @@ export default function Properties() {
       sortable: true,
       render: (_, row) => (
         <span className="text-gray-700 dark:text-gray-300">
-          {row.area.value.toLocaleString("pt-BR", {
+          {row.area.value.toLocaleString(localeForNumber, {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
           })}{" "}

@@ -28,6 +28,11 @@ export const ROUTES = {
   SUPPLIERS_NEW: "/dashboard/fornecedores/novo",
   SUPPLIERS_EDIT: "/dashboard/fornecedores/:supplierId/editar",
   SUPPLIERS_VIEW: "/dashboard/fornecedores/:supplierId",
+  INVENTORY: "/dashboard/estoque",
+  INVENTORY_NEW: "/dashboard/estoque/novo",
+  INVENTORY_EDIT: "/dashboard/estoque/:itemId/editar",
+  INVENTORY_VIEW: "/dashboard/estoque/:itemId",
+  INVENTORY_MOVEMENT_NEW: "/dashboard/estoque/:itemId/movimentacao/novo",
   BUYERS: "/dashboard/compradores",
   BUYERS_NEW: "/dashboard/compradores/novo",
   BUYERS_EDIT: "/dashboard/compradores/:buyerId/editar",
@@ -146,6 +151,18 @@ export function getBuyerViewRoute(buyerId: string): string {
   return `/dashboard/compradores/${buyerId}`;
 }
 
+export function getInventoryEditRoute(itemId: string): string {
+  return `/dashboard/estoque/${itemId}/editar`;
+}
+
+export function getInventoryViewRoute(itemId: string): string {
+  return `/dashboard/estoque/${itemId}`;
+}
+
+export function getInventoryMovementNewRoute(itemId: string): string {
+  return `/dashboard/estoque/${itemId}/movimentacao/novo`;
+}
+
 export function getAnimalEditRoute(animalId: string): string {
   return `/dashboard/animais/${animalId}/editar`;
 }
@@ -242,6 +259,11 @@ export const ROUTE_NAMES = {
   SUPPLIERS_NEW: "fornecedores/novo",
   SUPPLIERS_EDIT: "fornecedores/:supplierId/editar",
   SUPPLIERS_VIEW: "fornecedores/:supplierId",
+  INVENTORY: "estoque",
+  INVENTORY_NEW: "estoque/novo",
+  INVENTORY_EDIT: "estoque/:itemId/editar",
+  INVENTORY_VIEW: "estoque/:itemId",
+  INVENTORY_MOVEMENT_NEW: "estoque/:itemId/movimentacao/novo",
   BUYERS: "compradores",
   BUYERS_NEW: "compradores/novo",
   BUYERS_EDIT: "compradores/:buyerId/editar",

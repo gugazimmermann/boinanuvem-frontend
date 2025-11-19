@@ -163,8 +163,6 @@ vi.mock("~/utils/brazilian-states", () => ({
   ],
 }));
 
-global.alert = vi.fn();
-
 describe("Register", () => {
   const createRouter = () => {
     return createMemoryRouter(
@@ -878,7 +876,8 @@ describe("Register", () => {
 
     await waitFor(() => {
       expect(mockGeocodeAddress).toHaveBeenCalledTimes(2);
-      expect(global.alert).toHaveBeenCalled();
+      const alert = screen.queryByText(/Address Coordinates/i);
+      expect(alert).toBeInTheDocument();
     });
   });
 
@@ -905,7 +904,8 @@ describe("Register", () => {
 
     await waitFor(() => {
       expect(mockGeocodeAddress).toHaveBeenCalled();
-      expect(global.alert).toHaveBeenCalled();
+      const alert = screen.queryByText(/Address Coordinates/i);
+      expect(alert).toBeInTheDocument();
     });
   });
 
@@ -932,7 +932,8 @@ describe("Register", () => {
 
     await waitFor(() => {
       expect(mockGeocodeAddress).toHaveBeenCalled();
-      expect(global.alert).toHaveBeenCalled();
+      const alert = screen.queryByText(/Address Coordinates/i);
+      expect(alert).toBeInTheDocument();
     });
   });
 
@@ -959,7 +960,8 @@ describe("Register", () => {
 
     await waitFor(() => {
       expect(mockGeocodeAddress).toHaveBeenCalled();
-      expect(global.alert).toHaveBeenCalled();
+      const alert = screen.queryByText(/Address Coordinates/i);
+      expect(alert).toBeInTheDocument();
     });
   });
 
@@ -982,10 +984,12 @@ describe("Register", () => {
 
     await waitFor(() => {
       expect(mockGeocodeAddress).toHaveBeenCalledTimes(2);
-      expect(global.alert).toHaveBeenCalled();
-      const alertCall = (global.alert as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
-      expect(alertCall).toContain("Latitude");
-      expect(alertCall).toContain("Longitude");
+      const alert = screen.queryByText(/Address Coordinates/i);
+      expect(alert).toBeInTheDocument();
+      if (alert) {
+        expect(alert.textContent).toContain("Latitude");
+        expect(alert.textContent).toContain("Longitude");
+      }
     });
   });
 
@@ -1010,7 +1014,8 @@ describe("Register", () => {
 
     await waitFor(() => {
       expect(mockGeocodeAddress).toHaveBeenCalledTimes(2);
-      expect(global.alert).toHaveBeenCalled();
+      const alert = screen.queryByText(/Address Coordinates/i);
+      expect(alert).toBeInTheDocument();
     });
   });
 

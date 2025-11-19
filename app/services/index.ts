@@ -30,3 +30,6 @@ export * from "./cash-flow.service";
 export * from "./accounts-payable.service";
 export * from "./accounts-receivable.service";
 export * from "./bank-account.service";
+
+export * from "./inventory.service";
+export * from "./inventory-movements.service";

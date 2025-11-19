@@ -84,6 +84,7 @@ describe("TeamPermissions", () => {
         serviceProvider: { view: true, add: false, edit: false, remove: false },
         supplier: { view: true, add: false, edit: false, remove: false },
         buyer: { view: true, add: false, edit: false, remove: false },
+        inventory: { view: true, add: false, edit: false, remove: false },
         animals: { view: true, add: false, edit: false, remove: false },
       },
       records: {

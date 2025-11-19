@@ -188,6 +188,7 @@ describe("users.service", () => {
           serviceProvider: { view: false, add: false, edit: false, remove: false },
           supplier: { view: false, add: false, edit: false, remove: false },
           buyer: { view: false, add: false, edit: false, remove: false },
+          inventory: { view: false, add: false, edit: false, remove: false },
           animals: { view: false, add: false, edit: false, remove: false },
         },
         records: {

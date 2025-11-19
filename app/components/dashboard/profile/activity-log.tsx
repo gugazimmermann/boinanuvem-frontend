@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Table, type TableColumn } from "~/components/ui";
 import { useTranslation } from "~/i18n";
+import { useLanguage } from "~/contexts/language-context";
 import { DASHBOARD_COLORS } from "../utils/colors";
 import type { ActivityLogEntry } from "~/types";
 
@@ -18,13 +19,16 @@ export function ActivityLog({
   emptyMessage: _emptyMessage,
 }: ActivityLogProps) {
   const t = useTranslation();
+  const { language } = useLanguage();
   const [currentPage, setCurrentPage] = useState(1);
   const [searchValue, setSearchValue] = useState("");
   const itemsPerPage = 10;
 
+  const localeForDateTime = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat("pt-BR", {
+    return new Intl.DateTimeFormat(localeForDateTime, {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",

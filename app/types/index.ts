@@ -57,3 +57,10 @@ export { AccountsPayableStatus } from "./accounts-payable";
 export type { AccountsReceivable, AccountsReceivableFormData } from "./accounts-receivable";
 export { AccountsReceivableStatus } from "./accounts-receivable";
 export type { BankAccount, BankAccountFormData, BankAccountType } from "./bank-account";
+export type {
+  InventoryItem,
+  InventoryItemFormData,
+  InventoryMovement,
+  InventoryMovementFormData,
+} from "./inventory";
+export { InventoryItemCategory, InventoryMovementType } from "./inventory";

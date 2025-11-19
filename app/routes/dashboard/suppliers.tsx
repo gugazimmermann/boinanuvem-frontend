@@ -12,6 +12,7 @@ import {
   type SortDirection,
 } from "~/components/ui";
 import { useTranslation } from "~/i18n";
+import { useLanguage } from "~/contexts/language-context";
 import { mockSuppliers } from "~/mocks/suppliers";
 import { deleteSupplier } from "~/services/suppliers.service";
 import type { Supplier } from "~/types";
@@ -19,15 +20,6 @@ import { getPropertyById } from "~/services/properties.service";
 import { ROUTES, getSupplierEditRoute, getSupplierViewRoute } from "~/routes.config";
 import { getSupplierObservationsBySupplierId } from "~/services/supplier-observations.service";
 import { usePermissions } from "~/utils/permissions";
-
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return new Intl.DateTimeFormat("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(date);
-};
 
 export function meta() {
   return [
@@ -46,6 +38,7 @@ export async function loader({ request }: { request: Request }) {
 
 export default function Suppliers() {
   const t = useTranslation();
+  const { language } = useLanguage();
   const navigate = useNavigate();
   const { canAdd, canEdit, canRemove } = usePermissions();
   const [suppliers, setSuppliers] = useState<Supplier[]>([...mockSuppliers]);
@@ -64,6 +57,17 @@ export default function Suppliers() {
     variant: "success" | "error" | "warning" | "info";
   } | null>(null);
   const itemsPerPage = 10;
+
+  const localeForDateTime = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat(localeForDateTime, {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(date);
+  };
 
   const showAlert = (
     title: string,
@@ -123,13 +127,13 @@ export default function Suppliers() {
 
     let comparison = 0;
     if (typeof aValue === "string" && typeof bValue === "string") {
-      comparison = aValue.localeCompare(bValue, "pt-BR", {
+      comparison = aValue.localeCompare(bValue, localeForDateTime, {
         sensitivity: "base",
       });
     } else if (typeof aValue === "number" && typeof bValue === "number") {
       comparison = aValue - bValue;
     } else {
-      comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
+      comparison = String(aValue).localeCompare(String(bValue), localeForDateTime);
     }
 
     return sortState.direction === "asc" ? comparison : -comparison;

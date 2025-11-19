@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router";
 import {
   Button,
@@ -16,6 +16,7 @@ import {
   AnimalRegistrationModal,
 } from "~/components/ui";
 import { useTranslation } from "~/i18n";
+import { useLanguage } from "~/contexts/language-context";
 import {
   ROUTES,
   getLocationEditRoute,
@@ -35,6 +36,8 @@ import { getServiceProviderById } from "~/services/service-providers.service";
 import type { LocationMovement, AnimalMovement, Animal } from "~/types";
 import { differenceInMonths, differenceInDays, format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
+import { enUS } from "date-fns/locale/en-US";
+import { es } from "date-fns/locale/es";
 import {
   getAnimalsByLastMovementLocation,
   getAnimalMovementsByLocationId,
@@ -83,6 +86,7 @@ export default function LocationDetails() {
   const { locationId } = useParams<{ locationId: string }>();
   const navigate = useNavigate();
   const t = useTranslation();
+  const { language } = useLanguage();
   const { canEdit, canRemove, isMainUser } = usePermissions();
   const [searchParams, setSearchParams] = useSearchParams();
   const location = getLocationById(locationId);
@@ -127,6 +131,20 @@ export default function LocationDetails() {
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
   const [selectedAnimals, setSelectedAnimals] = useState<Set<string>>(new Set());
   const [isAnimalRegistrationModalOpen, setIsAnimalRegistrationModalOpen] = useState(false);
+
+  const dateLocale = useMemo(() => {
+    switch (language) {
+      case "en":
+        return enUS;
+      case "es":
+        return es;
+      default:
+        return ptBR;
+    }
+  }, [language]);
+
+  const localeForDateTime = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
+  const localeForNumber = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
 
   useEffect(() => {
     const tab = searchParams.get("tab");
@@ -234,7 +252,7 @@ export default function LocationDetails() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat("pt-BR", {
+    return new Intl.DateTimeFormat(localeForDateTime, {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
@@ -243,7 +261,7 @@ export default function LocationDetails() {
 
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat("pt-BR", {
+    return new Intl.DateTimeFormat(localeForDateTime, {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
@@ -494,7 +512,7 @@ export default function LocationDetails() {
                     {t.locations.table.area}
                   </p>
                   <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                    {location.area.value.toLocaleString("pt-BR", {
+                    {location.area.value.toLocaleString(localeForNumber, {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}{" "}
@@ -533,7 +551,7 @@ export default function LocationDetails() {
                     {t.locations.table.uas}
                   </p>
                   <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                    {animalUnits.toLocaleString("pt-BR", {
+                    {animalUnits.toLocaleString(localeForNumber, {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}
@@ -552,7 +570,7 @@ export default function LocationDetails() {
                     {t.locations.table.stockingRate}
                   </p>
                   <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                    {stockingRate.toLocaleString("pt-BR", {
+                    {stockingRate.toLocaleString(localeForNumber, {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}
@@ -574,7 +592,7 @@ export default function LocationDetails() {
                     {t.dashboard.stats.density}
                   </p>
                   <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                    {density.toLocaleString("pt-BR", {
+                    {density.toLocaleString(localeForNumber, {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}
@@ -640,7 +658,7 @@ export default function LocationDetails() {
                     {t.locations.table.area}
                   </p>
                   <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
-                    {location.area.value.toLocaleString("pt-BR", {
+                    {location.area.value.toLocaleString(localeForNumber, {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}{" "}
@@ -860,7 +878,7 @@ export default function LocationDetails() {
 
             let comparison = 0;
             if (typeof aValue === "string" && typeof bValue === "string") {
-              comparison = aValue.localeCompare(bValue, "pt-BR", {
+              comparison = aValue.localeCompare(bValue, localeForDateTime, {
                 sensitivity: "base",
               });
             } else if (typeof aValue === "number" && typeof bValue === "number") {
@@ -953,7 +971,13 @@ export default function LocationDetails() {
                 const birthDate = new Date(birth.birthDate);
                 const today = new Date();
                 const months = differenceInMonths(today, birthDate);
-                const formattedDate = format(birthDate, "dd/MM/yyyy", { locale: ptBR });
+                const dateFormat =
+                  language === "en"
+                    ? "MM/dd/yyyy"
+                    : language === "es"
+                      ? "dd/MM/yyyy"
+                      : "dd/MM/yyyy";
+                const formattedDate = format(birthDate, dateFormat, { locale: dateLocale });
 
                 return (
                   <Tooltip content={formattedDate}>
@@ -976,7 +1000,13 @@ export default function LocationDetails() {
                 const acquisitionDate = new Date(row.acquisitionDate);
                 const today = new Date();
                 const months = differenceInMonths(today, acquisitionDate);
-                const formattedDate = format(acquisitionDate, "dd/MM/yyyy", { locale: ptBR });
+                const dateFormat =
+                  language === "en"
+                    ? "MM/dd/yyyy"
+                    : language === "es"
+                      ? "dd/MM/yyyy"
+                      : "dd/MM/yyyy";
+                const formattedDate = format(acquisitionDate, dateFormat, { locale: dateLocale });
 
                 return (
                   <Tooltip content={formattedDate}>
@@ -1032,8 +1062,14 @@ export default function LocationDetails() {
                 if (!lastWeighing)
                   return <span className="text-gray-700 dark:text-gray-300">-</span>;
 
-                const formattedDate = format(new Date(lastWeighing.date), "dd/MM/yyyy", {
-                  locale: ptBR,
+                const dateFormat =
+                  language === "en"
+                    ? "MM/dd/yyyy"
+                    : language === "es"
+                      ? "dd/MM/yyyy"
+                      : "dd/MM/yyyy";
+                const formattedDate = format(new Date(lastWeighing.date), dateFormat, {
+                  locale: dateLocale,
                 });
                 const today = new Date();
                 const weighingDate = new Date(lastWeighing.date);
@@ -1052,7 +1088,7 @@ export default function LocationDetails() {
             {
               key: "gmd",
               label: (
-                <Tooltip content={t.common.dailyAverageGain}>
+                <Tooltip content={t.common.dailyAverageGain} position="bottom">
                   <span className="border-b border-dotted border-gray-400 dark:border-gray-500 hover:border-blue-500 dark:hover:border-blue-400 transition-colors cursor-help">
                     {t.animals.table.gmd}
                   </span>
@@ -1374,7 +1410,7 @@ export default function LocationDetails() {
 
             let comparison = 0;
             if (typeof aValue === "string" && typeof bValue === "string") {
-              comparison = aValue.localeCompare(bValue, "pt-BR", {
+              comparison = aValue.localeCompare(bValue, localeForDateTime, {
                 sensitivity: "base",
               });
             } else if (typeof aValue === "number" && typeof bValue === "number") {
@@ -1792,7 +1828,7 @@ export default function LocationDetails() {
 
             let comparison = 0;
             if (typeof aValue === "string" && typeof bValue === "string") {
-              comparison = aValue.localeCompare(bValue, "pt-BR", {
+              comparison = aValue.localeCompare(bValue, localeForDateTime, {
                 sensitivity: "base",
               });
             } else if (typeof aValue === "number" && typeof bValue === "number") {

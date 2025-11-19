@@ -147,6 +147,30 @@ export default function Help() {
         answer: t.help.faqs.locationMovements.answer,
       },
       {
+        id: "add-inventory-item",
+        category: "records",
+        question: t.help.faqs.addInventoryItem.question,
+        answer: t.help.faqs.addInventoryItem.answer,
+      },
+      {
+        id: "manage-inventory",
+        category: "records",
+        question: t.help.faqs.manageInventory.question,
+        answer: t.help.faqs.manageInventory.answer,
+      },
+      {
+        id: "inventory-movements",
+        category: "records",
+        question: t.help.faqs.inventoryMovements.question,
+        answer: t.help.faqs.inventoryMovements.answer,
+      },
+      {
+        id: "track-stock-levels",
+        category: "records",
+        question: t.help.faqs.trackStockLevels.question,
+        answer: t.help.faqs.trackStockLevels.answer,
+      },
+      {
         id: "cash-flow",
         category: "financial",
         question: t.help.faqs.cashFlow.question,
@@ -175,6 +199,12 @@ export default function Help() {
         category: "financial",
         question: t.help.faqs.financialDashboard.question,
         answer: t.help.faqs.financialDashboard.answer,
+      },
+      {
+        id: "inventory-financial-integration",
+        category: "financial",
+        question: t.help.faqs.inventoryFinancialIntegration.question,
+        answer: t.help.faqs.inventoryFinancialIntegration.answer,
       },
       {
         id: "reproductive-indexes",

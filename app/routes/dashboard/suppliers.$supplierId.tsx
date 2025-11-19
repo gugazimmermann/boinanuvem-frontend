@@ -9,6 +9,7 @@ import {
   TableActionButtons,
   ConfirmationModal,
   Select,
+  Tooltip,
   type TableColumn,
   type TableAction,
   type TableFilter,
@@ -52,7 +53,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   Legend,
   ResponsiveContainer,
 } from "recharts";
@@ -63,7 +64,10 @@ import {
   addSupplierObservation,
 } from "~/services/supplier-observations.service";
 import type { SupplierObservation } from "~/types/supplier-observation";
-import type { CashFlow, AccountsPayable } from "~/types";
+import type { CashFlow, AccountsPayable, InventoryItem } from "~/types";
+import { InventoryItemCategory } from "~/types";
+import { getInventoryItemsBySupplierId, getCurrentStock } from "~/services/inventory.service";
+import { getInventoryViewRoute } from "~/routes.config";
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("pt-BR", {
@@ -330,7 +334,7 @@ function SupplierFinanceDashboard({ supplierId }: SupplierFinanceDashboardProps)
                 tick={{ fill: textColor, fontSize: 12 }}
                 tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
               />
-              <Tooltip
+              <RechartsTooltip
                 contentStyle={{
                   backgroundColor: isDark ? "#1f2937" : "#ffffff",
                   border: `1px solid ${gridColor}`,
@@ -375,7 +379,7 @@ function SupplierFinanceDashboard({ supplierId }: SupplierFinanceDashboardProps)
                 tick={{ fill: textColor, fontSize: 12 }}
                 tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
               />
-              <Tooltip
+              <RechartsTooltip
                 contentStyle={{
                   backgroundColor: isDark ? "#1f2937" : "#ffffff",
                   border: `1px solid ${gridColor}`,
@@ -414,7 +418,7 @@ function SupplierFinanceDashboard({ supplierId }: SupplierFinanceDashboardProps)
                   tick={{ fill: textColor, fontSize: 11 }}
                   width={150}
                 />
-                <Tooltip
+                <RechartsTooltip
                   contentStyle={{
                     backgroundColor: isDark ? "#1f2937" : "#ffffff",
                     border: `1px solid ${gridColor}`,
@@ -461,10 +465,15 @@ export default function SupplierDetails() {
   const supplier = getSupplierById(supplierId);
 
   const tabParam = searchParams.get("tab");
-  const [activeTab, setActiveTab] = useState<"info" | "activities" | "observations" | "finance">(
-    (tabParam === "activities" || tabParam === "observations" || tabParam === "finance"
+  const [activeTab, setActiveTab] = useState<
+    "info" | "activities" | "observations" | "finance" | "inventory"
+  >(
+    (tabParam === "activities" ||
+    tabParam === "observations" ||
+    tabParam === "finance" ||
+    tabParam === "inventory"
       ? tabParam
-      : "info") as "info" | "activities" | "observations" | "finance"
+      : "info") as "info" | "activities" | "observations" | "finance" | "inventory"
   );
 
   const [sortState, setSortState] = useState<{
@@ -507,7 +516,12 @@ export default function SupplierDetails() {
       setSearchParams({ tab: "info" });
       return;
     }
-    if (tab === "activities" || tab === "observations" || tab === "finance") {
+    if (
+      tab === "activities" ||
+      tab === "observations" ||
+      tab === "finance" ||
+      tab === "inventory"
+    ) {
       setActiveTab(tab);
     } else if (!tab) {
       setActiveTab("info");
@@ -530,6 +544,9 @@ export default function SupplierDetails() {
     variant: "success" | "error" | "warning" | "info";
   } | null>(null);
   const [observations, setObservations] = useState<SupplierObservation[]>([]);
+  const [inventorySearchValue, setInventorySearchValue] = useState("");
+  const [inventoryCurrentPage, setInventoryCurrentPage] = useState(1);
+  const inventoryItemsPerPage = 10;
 
   useEffect(() => {
     if (supplier) {
@@ -736,6 +753,27 @@ export default function SupplierDetails() {
             }
           >
             {t.suppliers.details.tabs.finance}
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab("inventory");
+              setSearchParams({ tab: "inventory" });
+            }}
+            className={`
+              py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
+              ${
+                activeTab === "inventory"
+                  ? "dark:text-blue-400"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+              }
+            `}
+            style={
+              activeTab === "inventory"
+                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
+                : undefined
+            }
+          >
+            {t.suppliers.details.tabs.inventory || "Estoque"}
           </button>
           {isMainUser() && (
             <button
@@ -1960,6 +1998,191 @@ export default function SupplierDetails() {
                     </div>
                   );
                 })()}
+            </div>
+          );
+        })()}
+
+      {activeTab === "inventory" &&
+        supplier &&
+        (() => {
+          const inventoryItems = getInventoryItemsBySupplierId(supplier.id);
+
+          const filteredInventoryItems = inventoryItems.filter((item) => {
+            if (!inventorySearchValue) return true;
+            const searchLower = inventorySearchValue.toLowerCase();
+            return (
+              item.name.toLowerCase().includes(searchLower) ||
+              item.code.toLowerCase().includes(searchLower) ||
+              (item.description?.toLowerCase().includes(searchLower) ?? false)
+            );
+          });
+
+          const paginatedInventoryItems = filteredInventoryItems.slice(
+            (inventoryCurrentPage - 1) * inventoryItemsPerPage,
+            inventoryCurrentPage * inventoryItemsPerPage
+          );
+
+          const totalInventoryPages = Math.ceil(
+            filteredInventoryItems.length / inventoryItemsPerPage
+          );
+
+          const inventoryColumns: TableColumn<InventoryItem>[] = [
+            {
+              key: "name",
+              label: t.inventory.table.name,
+              sortable: true,
+              render: (_, row) => (
+                <div>
+                  <h2 className="font-medium text-gray-800 dark:text-gray-200">{row.name}</h2>
+                  <p className="text-sm font-normal text-gray-600 dark:text-gray-400">{row.code}</p>
+                </div>
+              ),
+            },
+            {
+              key: "category",
+              label: t.inventory.table.category,
+              sortable: true,
+              render: (_, row) => (
+                <span className="text-gray-700 dark:text-gray-300">
+                  {row.category === InventoryItemCategory.CUSTOM
+                    ? row.customCategory || t.inventory.categories.custom
+                    : t.inventory.categories[row.category as keyof typeof t.inventory.categories] ||
+                      row.category}
+                </span>
+              ),
+            },
+            {
+              key: "currentStock",
+              label: t.inventory.table.currentStock,
+              sortable: false,
+              render: (_, row) => {
+                const currentStock = getCurrentStock(row.id);
+                const isLowStock = currentStock < row.minimumStock;
+                const getUnitLabel = (unit: string, quantity: number = 1): string => {
+                  const unitMap: Record<
+                    string,
+                    {
+                      singular: keyof typeof t.inventory.units;
+                      plural?: keyof typeof t.inventory.units;
+                    }
+                  > = {
+                    // Weight units
+                    unidade: { singular: "unit", plural: "unitPlural" },
+                    g: { singular: "gram" },
+                    kg: { singular: "kg" },
+                    tonelada: { singular: "ton", plural: "tonPlural" },
+                    // Volume units
+                    ml: { singular: "milliliter" },
+                    L: { singular: "liter" },
+                    // Length units
+                    cm: { singular: "centimeter", plural: "centimeterPlural" },
+                    m: { singular: "meter", plural: "meterPlural" },
+                    // Area units
+                    m2: { singular: "squareMeter", plural: "squareMeterPlural" },
+                    ha: { singular: "hectare", plural: "hectarePlural" },
+                    // Count/Container units
+                    saco: { singular: "bag", plural: "bagPlural" },
+                    frasco: { singular: "bottle", plural: "bottlePlural" },
+                    dose: { singular: "dose", plural: "dosePlural" },
+                    caixa: { singular: "box", plural: "boxPlural" },
+                    comprimido: { singular: "tablet", plural: "tabletPlural" },
+                    pilula: { singular: "pill", plural: "pillPlural" },
+                    ampola: { singular: "ampoule", plural: "ampoulePlural" },
+                    seringa: { singular: "syringe", plural: "syringePlural" },
+                    cartucho: { singular: "cartridge", plural: "cartridgePlural" },
+                    rolo: { singular: "roll", plural: "rollPlural" },
+                    pacote: { singular: "package", plural: "packagePlural" },
+                    lata: { singular: "can", plural: "canPlural" },
+                  };
+                  const unitInfo = unitMap[unit];
+                  if (!unitInfo) return unit;
+
+                  const isPlural = Math.abs(quantity) !== 1;
+                  const key = isPlural && unitInfo.plural ? unitInfo.plural : unitInfo.singular;
+                  return t.inventory.units[key] || unit;
+                };
+                return (
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`font-medium ${isLowStock ? "text-red-600 dark:text-red-400" : "text-gray-700 dark:text-gray-300"}`}
+                    >
+                      {currentStock} {getUnitLabel(row.unit, currentStock)}
+                    </span>
+                    {isLowStock && (
+                      <Tooltip content={t.inventory.table.lowStock} position="top">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={2}
+                          stroke="currentColor"
+                          className="w-5 h-5 text-red-600 dark:text-red-400"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+                          />
+                        </svg>
+                      </Tooltip>
+                    )}
+                  </div>
+                );
+              },
+            },
+            {
+              key: "actions",
+              label: "",
+              headerClassName: "relative",
+              render: (_, row) => (
+                <TableActionButtons
+                  onEdit={() => navigate(getInventoryViewRoute(row.id))}
+                  canEdit={canEdit("registration", "inventory")}
+                  canDelete={false}
+                />
+              ),
+            },
+          ];
+
+          return (
+            <div className="space-y-6">
+              <Table<InventoryItem>
+                columns={inventoryColumns}
+                data={paginatedInventoryItems}
+                header={{
+                  title: t.suppliers.details.tabs.inventory || "Estoque",
+                  badge: {
+                    label: `${filteredInventoryItems.length} ${filteredInventoryItems.length !== 1 ? "itens" : "item"}`,
+                    variant: "primary",
+                  },
+                  description:
+                    t.suppliers.details.inventoryDescription ||
+                    "Itens de estoque fornecidos por este fornecedor",
+                }}
+                search={{
+                  placeholder: t.inventory.searchPlaceholder,
+                  value: inventorySearchValue,
+                  onChange: setInventorySearchValue,
+                }}
+                pagination={{
+                  currentPage: inventoryCurrentPage,
+                  totalPages: totalInventoryPages || 1,
+                  onPageChange: setInventoryCurrentPage,
+                  showInfo: false,
+                }}
+                onRowClick={(row) => navigate(getInventoryViewRoute(row.id))}
+                emptyState={{
+                  title: t.inventory.emptyState.title,
+                  description: inventorySearchValue
+                    ? t.inventory.emptyState.descriptionWithSearch(inventorySearchValue)
+                    : t.suppliers.details.noInventoryItems ||
+                      "Este fornecedor não possui itens de estoque associados.",
+                  onClearSearch: () => {
+                    setInventorySearchValue("");
+                  },
+                  clearSearchLabel: t.common.clearSearch,
+                }}
+              />
             </div>
           );
         })()}

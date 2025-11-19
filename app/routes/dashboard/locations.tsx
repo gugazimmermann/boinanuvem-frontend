@@ -12,6 +12,7 @@ import {
   type SortDirection,
 } from "~/components/ui";
 import { useTranslation } from "~/i18n";
+import { useLanguage } from "~/contexts/language-context";
 import { mockLocations } from "~/mocks/locations";
 import { deleteLocation } from "~/services/locations.service";
 import type { Location } from "~/types";
@@ -35,15 +36,6 @@ const formatAreaType = (type: AreaType): string => {
   return typeMap[type] || type;
 };
 
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return new Intl.DateTimeFormat("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(date);
-};
-
 export function meta() {
   return [
     { title: "Localizações - Boi na Nuvem" },
@@ -61,6 +53,7 @@ export async function loader({ request }: { request: Request }) {
 
 export default function Locations() {
   const t = useTranslation();
+  const { language } = useLanguage();
   const navigate = useNavigate();
   const { canAdd, canEdit, canRemove } = usePermissions();
   const [locations, setLocations] = useState<Location[]>([...mockLocations]);
@@ -79,6 +72,18 @@ export default function Locations() {
     variant: "success" | "error" | "warning" | "info";
   } | null>(null);
   const itemsPerPage = 10;
+
+  const localeForDateTime = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
+  const localeForNumber = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat(localeForDateTime, {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(date);
+  };
 
   const showAlert = (
     title: string,
@@ -145,13 +150,13 @@ export default function Locations() {
 
     let comparison = 0;
     if (typeof aValue === "string" && typeof bValue === "string") {
-      comparison = aValue.localeCompare(bValue, "pt-BR", {
+      comparison = aValue.localeCompare(bValue, localeForDateTime, {
         sensitivity: "base",
       });
     } else if (typeof aValue === "number" && typeof bValue === "number") {
       comparison = aValue - bValue;
     } else {
-      comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
+      comparison = String(aValue).localeCompare(String(bValue), localeForDateTime);
     }
 
     return sortState.direction === "asc" ? comparison : -comparison;
@@ -205,7 +210,7 @@ export default function Locations() {
       sortable: true,
       render: (_, row) => (
         <span className="text-gray-700 dark:text-gray-300">
-          {row.area.value.toLocaleString("pt-BR", {
+          {row.area.value.toLocaleString(localeForNumber, {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
           })}{" "}

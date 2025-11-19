@@ -8,6 +8,7 @@ import {
   Alert,
 } from "~/components/ui";
 import { useTranslation } from "~/i18n";
+import { useLanguage } from "~/contexts/language-context";
 import { UserFormModal, DeleteUserModal, type UserFormData } from "~/components/dashboard/team";
 import { getUserProfileRoute, ROUTES, getTeamEditRoute } from "~/routes.config";
 import { mockUsers } from "~/mocks/users";
@@ -34,6 +35,7 @@ export async function loader({ request }: { request: Request }) {
 
 export default function Team() {
   const t = useTranslation();
+  const { language } = useLanguage();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
@@ -48,11 +50,14 @@ export default function Team() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<TeamUser | null>(null);
+
   const [alertMessage, setAlertMessage] = useState<{
     title: string;
     variant: "success" | "error" | "warning" | "info";
   } | null>(null);
   const itemsPerPage = 10;
+
+  const localeForDateTime = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
 
   const handleSearchChange = (value: string) => {
     setSearchValue(value);
@@ -85,7 +90,7 @@ export default function Team() {
   const formatDate = (dateString?: string) => {
     if (!dateString) return "-";
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat("pt-BR", {
+    return new Intl.DateTimeFormat(localeForDateTime, {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",

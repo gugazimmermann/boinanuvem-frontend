@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Input } from "~/components/ui";
+import { Input, Alert } from "~/components/ui";
 import { Button } from "~/components/ui";
 import { AddressForm } from "./address-form";
 import { ActivityLog, type ActivityLogEntry } from "./activity-log";
@@ -287,6 +287,20 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
   const [activeSubTab, setActiveSubTab] = useState<"data" | "logs" | "permissions">("data");
   const [permissions, setPermissions] = useState<UserPermissions>(defaultPermissions);
   const [isSavingPermissions, setIsSavingPermissions] = useState(false);
+  const [alertMessage, setAlertMessage] = useState<{
+    title: string;
+    variant: "success" | "error" | "warning" | "info";
+  } | null>(null);
+
+  const showAlert = (
+    title: string,
+    variant: "success" | "error" | "warning" | "info" = "success"
+  ) => {
+    setAlertMessage({ title, variant });
+    setTimeout(() => {
+      setAlertMessage(null);
+    }, 3000);
+  };
 
   // Reset to "data" tab if permissions tab is selected but userId is not provided
   useEffect(() => {
@@ -433,9 +447,9 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
         setOriginalData(data);
       }
       setIsEditing(false);
-      alert(t.profile.success.saved);
+      showAlert(t.profile.success.saved, "success");
     } catch {
-      alert(t.profile.errors.saveFailed);
+      showAlert(t.profile.errors.saveFailed, "error");
     } finally {
       setIsSaving(false);
     }
@@ -493,10 +507,10 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
       if (targetUserId) {
         updateUserPermissions(targetUserId, permissions);
         await new Promise((resolve) => setTimeout(resolve, 500));
-        alert(t.team.permissions.success);
+        showAlert(t.team.permissions.success, "success");
       }
     } catch {
-      alert(t.team.permissions.error);
+      showAlert(t.team.permissions.error, "error");
     } finally {
       setIsSavingPermissions(false);
     }
@@ -504,6 +518,11 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
 
   return (
     <div className="space-y-4">
+      {alertMessage && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
+          <Alert title={alertMessage.title} variant={alertMessage.variant} />
+        </div>
+      )}
       <div className="mb-4">
         <nav className="flex space-x-3" aria-label="Sub Tabs">
           <button

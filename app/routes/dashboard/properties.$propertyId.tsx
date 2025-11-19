@@ -10,6 +10,8 @@ import {
   parseISO,
 } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
+import { enUS } from "date-fns/locale/en-US";
+import { es } from "date-fns/locale/es";
 import {
   Button,
   StatusBadge,
@@ -123,13 +125,6 @@ const formatAreaType = (type: AreaType): string => {
   return typeMap[type] || type;
 };
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(value);
-};
-
 const monthNames = [
   "Jan",
   "Fev",
@@ -151,6 +146,7 @@ interface PropertyFinanceDashboardProps {
 
 function PropertyFinanceDashboard({ propertyId }: PropertyFinanceDashboardProps) {
   const t = useTranslation();
+  const { language } = useLanguage();
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
@@ -172,6 +168,15 @@ function PropertyFinanceDashboard({ propertyId }: PropertyFinanceDashboardProps)
     const transactionDate = parseISO(transaction.date);
     return transactionDate >= currentMonthStart && transactionDate <= currentMonthEnd;
   });
+
+  const localeForCurrency = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat(localeForCurrency, {
+      style: "currency",
+      currency: "BRL",
+    }).format(value);
+  };
 
   const totalIncome = currentMonthCashFlow
     .filter((t) => t.type === "income")
@@ -663,6 +668,19 @@ export default function PropertyDetails() {
     return nextMonth?.expectedBirths || 0;
   }, [expectedBirthsForecast.monthly]);
 
+  const dateLocale = useMemo(() => {
+    switch (language) {
+      case "en":
+        return enUS;
+      case "es":
+        return es;
+      default:
+        return ptBR;
+    }
+  }, [language]);
+
+  const localeForDateTime = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
+
   if (!property) {
     return (
       <div className="space-y-6">
@@ -721,7 +739,6 @@ export default function PropertyDetails() {
   const stockingRate = areaInHectares > 0 && animalUnits > 0 ? animalUnits / areaInHectares : 0;
   const density = areaInHectares > 0 && animalsCount > 0 ? animalsCount / areaInHectares : 0;
   const averageWeight = animalsCount > 0 ? totalWeight / animalsCount : 0;
-  const nextThreeMonthsTotal = expectedBirthsForecast.total;
 
   const showAlert = (
     title: string,
@@ -752,7 +769,7 @@ export default function PropertyDetails() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat("pt-BR", {
+    return new Intl.DateTimeFormat(localeForDateTime, {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
@@ -1013,7 +1030,7 @@ export default function PropertyDetails() {
                     {t.properties.table.area}
                   </p>
                   <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                    {property.area.value.toLocaleString("pt-BR", {
+                    {property.area.value.toLocaleString(localeForDateTime, {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}{" "}
@@ -1068,7 +1085,7 @@ export default function PropertyDetails() {
                     {t.properties.table.uas}
                   </p>
                   <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                    {animalUnits.toLocaleString("pt-BR", {
+                    {animalUnits.toLocaleString(localeForDateTime, {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}
@@ -1087,7 +1104,7 @@ export default function PropertyDetails() {
                     {t.properties.table.stockingRate}
                   </p>
                   <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                    {stockingRate.toLocaleString("pt-BR", {
+                    {stockingRate.toLocaleString(localeForDateTime, {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}
@@ -1109,7 +1126,7 @@ export default function PropertyDetails() {
                     {t.dashboard.stats.density}
                   </p>
                   <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                    {density.toLocaleString("pt-BR", {
+                    {density.toLocaleString(localeForDateTime, {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}
@@ -1153,7 +1170,7 @@ export default function PropertyDetails() {
                     {nextMonthExpected}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {t.dashboard.stats.nextMonth} • {nextThreeMonthsTotal}{" "}
+                    {t.dashboard.stats.nextMonth} • {expectedBirthsForecast.total}{" "}
                     {t.dashboard.stats.nextThreeMonths}
                   </p>
                   <Link
@@ -1271,7 +1288,7 @@ export default function PropertyDetails() {
                     {t.properties.table.area}
                   </p>
                   <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
-                    {property.area.value.toLocaleString("pt-BR", {
+                    {property.area.value.toLocaleString(localeForDateTime, {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}{" "}
@@ -1499,13 +1516,13 @@ export default function PropertyDetails() {
 
             let comparison = 0;
             if (typeof aValue === "string" && typeof bValue === "string") {
-              comparison = aValue.localeCompare(bValue, "pt-BR", {
+              comparison = aValue.localeCompare(bValue, localeForDateTime, {
                 sensitivity: "base",
               });
             } else if (typeof aValue === "number" && typeof bValue === "number") {
               comparison = aValue - bValue;
             } else {
-              comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
+              comparison = String(aValue).localeCompare(String(bValue), localeForDateTime);
             }
 
             return animalsSortState.direction === "asc" ? comparison : -comparison;
@@ -1592,7 +1609,7 @@ export default function PropertyDetails() {
                 const birthDate = new Date(birth.birthDate);
                 const today = new Date();
                 const months = differenceInMonths(today, birthDate);
-                const formattedDate = format(birthDate, "dd/MM/yyyy", { locale: ptBR });
+                const formattedDate = format(birthDate, "dd/MM/yyyy", { locale: dateLocale });
 
                 return (
                   <UITooltip content={formattedDate}>
@@ -1615,7 +1632,7 @@ export default function PropertyDetails() {
                 const acquisitionDate = new Date(row.acquisitionDate);
                 const today = new Date();
                 const months = differenceInMonths(today, acquisitionDate);
-                const formattedDate = format(acquisitionDate, "dd/MM/yyyy", { locale: ptBR });
+                const formattedDate = format(acquisitionDate, "dd/MM/yyyy", { locale: dateLocale });
 
                 return (
                   <UITooltip content={formattedDate}>
@@ -1672,7 +1689,7 @@ export default function PropertyDetails() {
                   return <span className="text-gray-700 dark:text-gray-300">-</span>;
 
                 const formattedDate = format(new Date(lastWeighing.date), "dd/MM/yyyy", {
-                  locale: ptBR,
+                  locale: dateLocale,
                 });
                 const today = new Date();
                 const weighingDate = new Date(lastWeighing.date);
@@ -1691,7 +1708,7 @@ export default function PropertyDetails() {
             {
               key: "gmd",
               label: (
-                <UITooltip content={t.common.dailyAverageGain}>
+                <UITooltip content={t.common.dailyAverageGain} position="bottom">
                   <span className="border-b border-dotted border-gray-400 dark:border-gray-500 hover:border-blue-500 dark:hover:border-blue-400 transition-colors cursor-help">
                     {t.animals.table.gmd}
                   </span>
@@ -1995,13 +2012,13 @@ export default function PropertyDetails() {
 
             let comparison = 0;
             if (typeof aValue === "string" && typeof bValue === "string") {
-              comparison = aValue.localeCompare(bValue, "pt-BR", {
+              comparison = aValue.localeCompare(bValue, localeForDateTime, {
                 sensitivity: "base",
               });
             } else if (typeof aValue === "number" && typeof bValue === "number") {
               comparison = aValue - bValue;
             } else {
-              comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
+              comparison = String(aValue).localeCompare(String(bValue), localeForDateTime);
             }
 
             return sortState.direction === "asc" ? comparison : -comparison;
@@ -2039,7 +2056,7 @@ export default function PropertyDetails() {
               sortable: true,
               render: (_, row) => (
                 <span className="text-gray-700 dark:text-gray-300">
-                  {row.area.value.toLocaleString("pt-BR", {
+                  {row.area.value.toLocaleString(localeForDateTime, {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}{" "}
@@ -2208,13 +2225,13 @@ export default function PropertyDetails() {
 
                 let comparison = 0;
                 if (typeof aValue === "string" && typeof bValue === "string") {
-                  comparison = aValue.localeCompare(bValue, "pt-BR", {
+                  comparison = aValue.localeCompare(bValue, localeForDateTime, {
                     sensitivity: "base",
                   });
                 } else if (typeof aValue === "number" && typeof bValue === "number") {
                   comparison = aValue - bValue;
                 } else {
-                  comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
+                  comparison = String(aValue).localeCompare(String(bValue), localeForDateTime);
                 }
 
                 return sortState.direction === "asc" ? comparison : -comparison;
@@ -2322,13 +2339,13 @@ export default function PropertyDetails() {
 
                 let comparison = 0;
                 if (typeof aValue === "string" && typeof bValue === "string") {
-                  comparison = aValue.localeCompare(bValue, "pt-BR", {
+                  comparison = aValue.localeCompare(bValue, localeForDateTime, {
                     sensitivity: "base",
                   });
                 } else if (typeof aValue === "number" && typeof bValue === "number") {
                   comparison = aValue - bValue;
                 } else {
-                  comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
+                  comparison = String(aValue).localeCompare(String(bValue), localeForDateTime);
                 }
 
                 return sortState.direction === "asc" ? comparison : -comparison;
@@ -2438,13 +2455,13 @@ export default function PropertyDetails() {
 
                 let comparison = 0;
                 if (typeof aValue === "string" && typeof bValue === "string") {
-                  comparison = aValue.localeCompare(bValue, "pt-BR", {
+                  comparison = aValue.localeCompare(bValue, localeForDateTime, {
                     sensitivity: "base",
                   });
                 } else if (typeof aValue === "number" && typeof bValue === "number") {
                   comparison = aValue - bValue;
                 } else {
-                  comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
+                  comparison = String(aValue).localeCompare(String(bValue), localeForDateTime);
                 }
 
                 return sortState.direction === "asc" ? comparison : -comparison;
@@ -2554,13 +2571,13 @@ export default function PropertyDetails() {
 
                 let comparison = 0;
                 if (typeof aValue === "string" && typeof bValue === "string") {
-                  comparison = aValue.localeCompare(bValue, "pt-BR", {
+                  comparison = aValue.localeCompare(bValue, localeForDateTime, {
                     sensitivity: "base",
                   });
                 } else if (typeof aValue === "number" && typeof bValue === "number") {
                   comparison = aValue - bValue;
                 } else {
-                  comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
+                  comparison = String(aValue).localeCompare(String(bValue), localeForDateTime);
                 }
 
                 return sortState.direction === "asc" ? comparison : -comparison;
@@ -2864,13 +2881,13 @@ export default function PropertyDetails() {
 
             let comparison = 0;
             if (typeof aValue === "string" && typeof bValue === "string") {
-              comparison = aValue.localeCompare(bValue, "pt-BR", {
+              comparison = aValue.localeCompare(bValue, localeForDateTime, {
                 sensitivity: "base",
               });
             } else if (typeof aValue === "number" && typeof bValue === "number") {
               comparison = aValue - bValue;
             } else {
-              comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
+              comparison = String(aValue).localeCompare(String(bValue), localeForDateTime);
             }
 
             return sortState.direction === "asc" ? comparison : -comparison;
@@ -3252,11 +3269,11 @@ export default function PropertyDetails() {
 
                   const formatDate = (dateString: string) => {
                     const date = new Date(dateString);
-                    return format(date, "dd/MM/yyyy", { locale: ptBR });
+                    return format(date, "dd/MM/yyyy", { locale: dateLocale });
                   };
 
                   const formatCurrency = (value: number) => {
-                    return new Intl.NumberFormat("pt-BR", {
+                    return new Intl.NumberFormat(localeForDateTime, {
                       style: "currency",
                       currency: "BRL",
                     }).format(value);
@@ -3410,13 +3427,13 @@ export default function PropertyDetails() {
 
                     let comparison = 0;
                     if (typeof aValue === "string" && typeof bValue === "string") {
-                      comparison = aValue.localeCompare(bValue, "pt-BR", {
+                      comparison = aValue.localeCompare(bValue, localeForDateTime, {
                         sensitivity: "base",
                       });
                     } else if (typeof aValue === "number" && typeof bValue === "number") {
                       comparison = aValue - bValue;
                     } else {
-                      comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
+                      comparison = String(aValue).localeCompare(String(bValue), localeForDateTime);
                     }
 
                     return financeSortState.direction === "asc" ? comparison : -comparison;
@@ -3718,11 +3735,11 @@ export default function PropertyDetails() {
 
                   const getMonthOptions = () => {
                     const localeMap: Record<string, string> = {
-                      pt: "pt-BR",
+                      pt: localeForDateTime,
                       en: "en-US",
                       es: "es-ES",
                     };
-                    const locale = localeMap[language] || "pt-BR";
+                    const locale = localeMap[language] || localeForDateTime;
                     const options: Array<{ value: string; label: string }> = [
                       { value: "all", label: t.cashFlow.filters.allMonths },
                     ];

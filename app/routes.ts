@@ -44,6 +44,14 @@ export default [
     route(ROUTE_NAMES.SUPPLIERS_NEW, "routes/dashboard/suppliers.new.tsx"),
     route(ROUTE_NAMES.SUPPLIERS_EDIT, "routes/dashboard/suppliers.edit.$supplierId.tsx"),
     route(ROUTE_NAMES.SUPPLIERS_VIEW, "routes/dashboard/suppliers.$supplierId.tsx"),
+    route(ROUTE_NAMES.INVENTORY, "routes/dashboard/inventory.tsx"),
+    route(ROUTE_NAMES.INVENTORY_NEW, "routes/dashboard/inventory.new.tsx"),
+    route(ROUTE_NAMES.INVENTORY_EDIT, "routes/dashboard/inventory.edit.$itemId.tsx"),
+    route(ROUTE_NAMES.INVENTORY_VIEW, "routes/dashboard/inventory.$itemId.tsx"),
+    route(
+      ROUTE_NAMES.INVENTORY_MOVEMENT_NEW,
+      "routes/dashboard/inventory.$itemId.movement.new.tsx"
+    ),
     route(ROUTE_NAMES.BUYERS, "routes/dashboard/buyers.tsx"),
     route(ROUTE_NAMES.BUYERS_NEW, "routes/dashboard/buyers.new.tsx"),
     route(ROUTE_NAMES.BUYERS_EDIT, "routes/dashboard/buyers.edit.$buyerId.tsx"),

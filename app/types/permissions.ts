@@ -15,6 +15,7 @@ export interface UserPermissions {
     serviceProvider: ResourcePermissions;
     supplier: ResourcePermissions;
     buyer: ResourcePermissions;
+    inventory: ResourcePermissions;
     animals: ResourcePermissions;
   };
   records: {
@@ -70,6 +71,12 @@ export const defaultPermissions: UserPermissions = {
       remove: false,
     },
     buyer: {
+      view: false,
+      add: false,
+      edit: false,
+      remove: false,
+    },
+    inventory: {
       view: false,
       add: false,
       edit: false,

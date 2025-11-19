@@ -17,6 +17,15 @@ A modern, full-stack React application built with React Router v7, featuring a c
   - Detailed animal profiles with breed, gender, birth information, and parent relationships
   - Animal code management and identification
   - Full CRUD operations with view, edit, and delete capabilities
+- **Inventory Management**: Comprehensive inventory tracking and management system
+  - Complete inventory item registration with categories, units, and minimum stock levels
+  - Stock level tracking with automatic calculation based on movements
+  - Inventory movements (purchase, sale, adjustment, consumption) with supplier association
+  - Low stock alerts and expiration date tracking
+  - **Financial Integration**: When adding new inventory items with suppliers, automatically create cash flow transactions and/or accounts payable
+    - Cash flow transaction creation with payment method and bank account selection
+    - Accounts payable creation with due date, payment method, and bank account
+    - Seamless integration between inventory purchases and financial records
 - **Birth Records**: Track and manage animal births with parent relationships
   - Automatic purity calculation (PO, F1, F2, F3, F4, F5, PC) based on parent breeds
   - Birth date tracking and gender recording
@@ -208,13 +217,13 @@ A modern, full-stack React application built with React Router v7, featuring a c
   - System event tracking
   - Activity history viewing
 - **Help Center**: Comprehensive FAQ and help documentation
-  - **36+ FAQs** covering all major features and workflows
+  - **41+ FAQs** covering all major features and workflows
   - **9 Categories**: Getting Started, Animals, Locations, Relationships, Records, Financial, Analytics, Team, and Technical
   - **Quick Start Guide**: Step-by-step instructions for new users
   - **Contact Support**: Support channels and contact information
   - **Category Filtering**: Filter FAQs by category for easy navigation
   - **Fully Internationalized**: All help content available in Portuguese, English, and Spanish
-  - **Comprehensive Coverage**: FAQs for animal management, locations, employees, service providers, suppliers, buyers, observations, weighings (including session weighings), acquisitions, movements, financial management, reproductive indexes, birth forecast, dashboard metrics, pasture planning, breeding season, search & filtering, data organization, and best practices
+  - **Comprehensive Coverage**: FAQs for animal management, locations, employees, service providers, suppliers, buyers, observations, weighings (including session weighings), acquisitions, movements, inventory management (including financial integration), financial management, reproductive indexes, birth forecast, dashboard metrics, pasture planning, breeding season, search & filtering, data organization, and best practices
 
 ## 📋 Prerequisites
 
@@ -628,6 +637,21 @@ app/
 - Comprehensive coverage of edge cases, error handling, and user interactions
 - Proper use of `act()` for state updates in React component tests
 - Mock services and hooks to isolate component behavior
+
+### Recent Test Improvements
+
+- **Comprehensive Inventory Test Coverage**: Added complete test suites for inventory routes, services, and mocks
+  - Inventory list page tests (rendering, search, filters, pagination, sorting, deletion)
+  - New inventory item form tests (form submission, validation, financial integration)
+  - Edit inventory item form tests (data pre-population, form submission, validation)
+  - Inventory item details page tests (data display, stock status, expiration tracking)
+  - Inventory movement form tests (movement types, validation, financial options)
+  - Service layer tests (CRUD operations, stock calculation, filtering)
+  - Mock data structure validation tests
+- **Alert Component Migration**: Replaced all vanilla `alert()` calls with the custom Alert component
+  - Updated user profile, company profile, and registration components
+  - Updated all related tests to check for Alert component rendering instead of `global.alert` calls
+  - Consistent UI experience with styled alerts, animations, and auto-dismiss functionality
 
 ## 🔐 Permissions & Access Control
 

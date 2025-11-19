@@ -1,8 +1,12 @@
 import { useParams, useNavigate, useSearchParams } from "react-router";
+import { useMemo } from "react";
 import { differenceInMonths, differenceInDays, format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
+import { enUS } from "date-fns/locale/en-US";
+import { es } from "date-fns/locale/es";
 import { Button, Table, Tooltip, StatusBadge, type TableColumn } from "~/components/ui";
 import { useTranslation } from "~/i18n";
+import { useLanguage } from "~/contexts/language-context";
 import {
   ROUTES,
   getPropertyViewRoute,
@@ -42,6 +46,20 @@ export default function MovementDetails() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const t = useTranslation();
+  const { language } = useLanguage();
+
+  const dateLocale = useMemo(() => {
+    switch (language) {
+      case "en":
+        return enUS;
+      case "es":
+        return es;
+      default:
+        return ptBR;
+    }
+  }, [language]);
+
+  const localeForDateTime = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
   const locationMovement = movementId ? getLocationMovementById(movementId) : undefined;
   const animalMovement = movementId ? getAnimalMovementById(movementId) : undefined;
   const movement = locationMovement || animalMovement;
@@ -92,7 +110,7 @@ export default function MovementDetails() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat("pt-BR", {
+    return new Intl.DateTimeFormat(localeForDateTime, {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
@@ -451,7 +469,13 @@ export default function MovementDetails() {
                   const birthDate = new Date(birth.birthDate);
                   const today = new Date();
                   const months = differenceInMonths(today, birthDate);
-                  const formattedDate = format(birthDate, "dd/MM/yyyy", { locale: ptBR });
+                  const dateFormat =
+                    language === "en"
+                      ? "MM/dd/yyyy"
+                      : language === "es"
+                        ? "dd/MM/yyyy"
+                        : "dd/MM/yyyy";
+                  const formattedDate = format(birthDate, dateFormat, { locale: dateLocale });
 
                   return (
                     <Tooltip content={formattedDate}>
@@ -474,7 +498,13 @@ export default function MovementDetails() {
                   const acquisitionDate = new Date(row.acquisitionDate);
                   const today = new Date();
                   const months = differenceInMonths(today, acquisitionDate);
-                  const formattedDate = format(acquisitionDate, "dd/MM/yyyy", { locale: ptBR });
+                  const dateFormat =
+                    language === "en"
+                      ? "MM/dd/yyyy"
+                      : language === "es"
+                        ? "dd/MM/yyyy"
+                        : "dd/MM/yyyy";
+                  const formattedDate = format(acquisitionDate, dateFormat, { locale: dateLocale });
 
                   return (
                     <Tooltip content={formattedDate}>
@@ -532,8 +562,14 @@ export default function MovementDetails() {
                   if (!lastWeighing)
                     return <span className="text-gray-700 dark:text-gray-300">-</span>;
 
-                  const formattedDate = format(new Date(lastWeighing.date), "dd/MM/yyyy", {
-                    locale: ptBR,
+                  const dateFormat =
+                    language === "en"
+                      ? "MM/dd/yyyy"
+                      : language === "es"
+                        ? "dd/MM/yyyy"
+                        : "dd/MM/yyyy";
+                  const formattedDate = format(new Date(lastWeighing.date), dateFormat, {
+                    locale: dateLocale,
                   });
                   const today = new Date();
                   const weighingDate = new Date(lastWeighing.date);
@@ -552,7 +588,7 @@ export default function MovementDetails() {
               {
                 key: "gmd",
                 label: (
-                  <Tooltip content={t.common.dailyAverageGain}>
+                  <Tooltip content={t.common.dailyAverageGain} position="bottom">
                     <span className="border-b border-dotted border-gray-400 dark:border-gray-500 hover:border-blue-500 dark:hover:border-blue-400 transition-colors cursor-help">
                       {t.animals.table.gmd}
                     </span>

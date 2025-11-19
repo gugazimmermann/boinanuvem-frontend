@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router";
 import { differenceInMonths, differenceInDays, format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
+import { enUS } from "date-fns/locale/en-US";
+import { es } from "date-fns/locale/es";
 import {
   Button,
   StatusBadge,
@@ -14,6 +16,7 @@ import {
   ConfirmationModal,
 } from "~/components/ui";
 import { useTranslation } from "~/i18n";
+import { useLanguage } from "~/contexts/language-context";
 import {
   ROUTES,
   getAnimalEditRoute,
@@ -163,8 +166,22 @@ export default function AnimalDetails() {
   const { animalId } = useParams<{ animalId: string }>();
   const navigate = useNavigate();
   const t = useTranslation();
+  const { language } = useLanguage();
   const { canEdit, isMainUser } = usePermissions();
   const animal = getAnimalById(animalId);
+
+  const dateLocale = useMemo(() => {
+    switch (language) {
+      case "en":
+        return enUS;
+      case "es":
+        return es;
+      default:
+        return ptBR;
+    }
+  }, [language]);
+
+  const localeForDateTime = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
   const [activeTab, setActiveTab] = useState<
     "dashboard" | "info" | "weighings" | "genealogy" | "activities" | "observations" | "breeding"
   >("dashboard");
@@ -341,12 +358,12 @@ export default function AnimalDetails() {
       let comparison = 0;
       switch (column) {
         case "code":
-          comparison = a.animal.code.localeCompare(b.animal.code, "pt-BR");
+          comparison = a.animal.code.localeCompare(b.animal.code, localeForDateTime);
           break;
         case "registrationNumber":
           comparison = a.animal.registrationNumber.localeCompare(
             b.animal.registrationNumber,
-            "pt-BR"
+            localeForDateTime
           );
           break;
         case "birthDate":
@@ -356,19 +373,19 @@ export default function AnimalDetails() {
         case "gender": {
           const genderA = a.birth.gender || "";
           const genderB = b.birth.gender || "";
-          comparison = genderA.localeCompare(genderB, "pt-BR");
+          comparison = genderA.localeCompare(genderB, localeForDateTime);
           break;
         }
         case "purity": {
           const purityA = a.birth.purity || "";
           const purityB = b.birth.purity || "";
-          comparison = purityA.localeCompare(purityB, "pt-BR");
+          comparison = purityA.localeCompare(purityB, localeForDateTime);
           break;
         }
         case "breed": {
           const breedA = a.birth.breed || "";
           const breedB = b.birth.breed || "";
-          comparison = breedA.localeCompare(breedB, "pt-BR");
+          comparison = breedA.localeCompare(breedB, localeForDateTime);
           break;
         }
         default:
@@ -376,7 +393,7 @@ export default function AnimalDetails() {
       }
       return direction === "asc" ? comparison : -comparison;
     });
-  }, [sonsBirths, sonsSortState]);
+  }, [sonsBirths, sonsSortState, localeForDateTime]);
 
   if (!animal) {
     return (
@@ -391,15 +408,19 @@ export default function AnimalDetails() {
     );
   }
 
+  const localeForNumber = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
+
   const formatDate = (dateString: string | undefined) => {
     if (!dateString) return "-";
     const date = new Date(dateString);
-    return format(date, "dd/MM/yyyy", { locale: ptBR });
+    const dateFormat =
+      language === "en" ? "MM/dd/yyyy" : language === "es" ? "dd/MM/yyyy" : "dd/MM/yyyy";
+    return format(date, dateFormat, { locale: dateLocale });
   };
 
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat("pt-BR", {
+    return new Intl.DateTimeFormat(localeForDateTime, {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
@@ -831,7 +852,10 @@ export default function AnimalDetails() {
                       {t.animals.details.price}
                     </p>
                     <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
-                      R$ {acquisition.price.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      R${" "}
+                      {acquisition.price.toLocaleString(localeForNumber, {
+                        minimumFractionDigits: 2,
+                      })}
                     </p>
                   </div>
                 )}
@@ -1435,13 +1459,13 @@ export default function AnimalDetails() {
 
             let comparison = 0;
             if (typeof aValue === "string" && typeof bValue === "string") {
-              comparison = aValue.localeCompare(bValue, "pt-BR", {
+              comparison = aValue.localeCompare(bValue, localeForDateTime, {
                 sensitivity: "base",
               });
             } else if (typeof aValue === "number" && typeof bValue === "number") {
               comparison = aValue - bValue;
             } else {
-              comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
+              comparison = String(aValue).localeCompare(String(bValue), localeForDateTime);
             }
 
             return observationsSortState.direction === "asc" ? comparison : -comparison;

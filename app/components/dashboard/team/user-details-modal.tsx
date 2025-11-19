@@ -1,5 +1,6 @@
 import { Button } from "~/components/ui";
 import { useTranslation } from "~/i18n";
+import { useLanguage } from "~/contexts/language-context";
 import { maskPhone } from "~/components/site/utils/masks";
 import type { UserFormData } from "./user-form-modal";
 
@@ -15,11 +16,14 @@ interface UserDetailsModalProps {
 
 export function UserDetailsModal({ isOpen, onClose, user }: UserDetailsModalProps) {
   const t = useTranslation();
+  const { language } = useLanguage();
+
+  const localeForDateTime = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "-";
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat("pt-BR", {
+    return new Intl.DateTimeFormat(localeForDateTime, {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",

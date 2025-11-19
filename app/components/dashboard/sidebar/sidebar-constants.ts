@@ -41,6 +41,7 @@ export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
       { translationKey: "birthForecast", path: ROUTES.BIRTH_FORECAST, icon: "📅" },
     ],
   },
+  { translationKey: "inventory", path: ROUTES.INVENTORY, icon: "📦" },
   {
     translationKey: "financas",
     path: "#",

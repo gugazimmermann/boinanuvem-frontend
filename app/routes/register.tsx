@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { AuthLayout } from "../components/site/auth-layout";
 import { AuthInput, AuthButton, AuthSelect } from "../components/site/ui";
+import { Alert } from "../components/ui";
 import { COLORS } from "../components/site/constants";
 import { ROUTES } from "../routes.config";
 import { useCNPJLookup, type CNPJData, useCEPLookup, type CEPData } from "../components/site/hooks";
@@ -33,6 +34,17 @@ export default function Register() {
   const t = useTranslation();
   const [step, setStep] = useState<1 | 2>(1);
   const [companyErrors, setCompanyErrors] = useState<Record<string, string>>({});
+  const [alertMessage, setAlertMessage] = useState<{
+    title: string;
+    variant: "success" | "error" | "warning" | "info";
+  } | null>(null);
+
+  const showAlert = (title: string, variant: "success" | "error" | "warning" | "info" = "info") => {
+    setAlertMessage({ title, variant });
+    setTimeout(() => {
+      setAlertMessage(null);
+    }, 5000);
+  };
 
   const [companyData, setCompanyData] = useState({
     cnpj: "",
@@ -279,11 +291,16 @@ export default function Register() {
       message += `✅ Longitude: ${userGeocode.lon}\n`;
     }
 
-    alert(message);
+    showAlert(message, "info");
   };
 
   return (
     <AuthLayout>
+      {alertMessage && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
+          <Alert title={alertMessage.title} variant={alertMessage.variant} />
+        </div>
+      )}
       <div className="w-full max-w-2xl mx-auto overflow-hidden bg-white rounded-lg shadow-md">
         <div className="px-6 py-4">
           <div className="flex justify-center mx-auto mb-4">
