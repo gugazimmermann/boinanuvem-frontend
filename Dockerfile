@@ -1,4 +1,5 @@
 FROM node:20-alpine AS development-dependencies-env
+ENV HUSKY=0
 COPY . /app
 WORKDIR /app
 RUN npm ci
