@@ -173,9 +173,7 @@ export default function ObservationDetails() {
               <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                 {location.name}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {t.locations.table.code}: {location.code}
-              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{location.code}</p>
             </div>
             <svg
               className="w-4 h-4 text-gray-400"
@@ -202,9 +200,7 @@ export default function ObservationDetails() {
               <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                 {employee.name}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {t.employees.table.code}: {employee.code}
-              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{employee.code}</p>
             </div>
             <svg
               className="w-4 h-4 text-gray-400"
@@ -233,9 +229,7 @@ export default function ObservationDetails() {
               <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                 {serviceProvider.name}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {t.serviceProviders.table.code}: {serviceProvider.code}
-              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{serviceProvider.code}</p>
             </div>
             <svg
               className="w-4 h-4 text-gray-400"
@@ -262,9 +256,7 @@ export default function ObservationDetails() {
               <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                 {supplier.name}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {t.suppliers.table.code}: {supplier.code}
-              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{supplier.code}</p>
             </div>
             <svg
               className="w-4 h-4 text-gray-400"
@@ -289,9 +281,7 @@ export default function ObservationDetails() {
           >
             <div>
               <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{buyer.name}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {t.buyers.table.code}: {buyer.code}
-              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{buyer.code}</p>
             </div>
             <svg
               className="w-4 h-4 text-gray-400"

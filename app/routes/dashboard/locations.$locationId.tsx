@@ -328,7 +328,7 @@ export default function LocationDetails() {
             />
           </div>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {t.locations.table.code}: {location.code} {property && `• ${property.name}`}
+            {location.code} {property && `• ${property.name}`}
           </p>
         </div>
         <div className="flex items-center gap-3">

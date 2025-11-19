@@ -266,11 +266,7 @@ export default function UnconfirmedBreedings() {
       sortable: false,
       render: (_, row) => {
         if (row.method === "natural" && row.bull) {
-          return (
-            <span className="text-gray-700 dark:text-gray-300">
-              {t.breedings.unconfirmed.table.bull}: {row.bull.code}
-            </span>
-          );
+          return <span className="text-gray-700 dark:text-gray-300">{row.bull.code}</span>;
         } else if (row.method === "artificial_insemination") {
           return (
             <div className="text-sm text-gray-700 dark:text-gray-300">

@@ -202,7 +202,7 @@ describe("InventoryItemDetails", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    const itemCode = screen.queryByText(mockItem.code);
+    const itemCode = screen.queryAllByText(mockItem.code)[0];
     const itemName = screen.queryAllByText(mockItem.name)[0];
     expect(itemCode || itemName || screen.getByTestId("movements-table")).toBeTruthy();
   });

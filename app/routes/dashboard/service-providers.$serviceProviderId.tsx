@@ -656,9 +656,7 @@ export default function ServiceProviderDetails() {
               variant={serviceProvider.status === "active" ? "success" : "default"}
             />
           </div>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {t.serviceProviders.table.code}: {serviceProvider.code}
-          </p>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{serviceProvider.code}</p>
         </div>
         <div className="flex items-center gap-3">
           {canEdit("registration", "serviceProvider") && (

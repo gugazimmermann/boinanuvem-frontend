@@ -646,9 +646,7 @@ export default function SupplierDetails() {
               variant={supplier.status === "active" ? "success" : "default"}
             />
           </div>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {t.suppliers.table.code}: {supplier.code}
-          </p>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{supplier.code}</p>
         </div>
         <div className="flex items-center gap-3">
           {canEdit("registration", "supplier") && (

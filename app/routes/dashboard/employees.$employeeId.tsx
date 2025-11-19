@@ -246,9 +246,7 @@ export default function EmployeeDetails() {
               variant={employee.status === "active" ? "success" : "default"}
             />
           </div>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {t.employees.table.code}: {employee.code}
-          </p>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{employee.code}</p>
         </div>
         <div className="flex items-center gap-3">
           {canEdit("registration", "employee") && (

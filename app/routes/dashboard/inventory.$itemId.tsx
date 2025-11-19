@@ -321,9 +321,7 @@ export default function InventoryItemDetails() {
             {isLowStock && <StatusBadge label={t.inventory.table.lowStock} variant="danger" />}
             {isExpiring && <StatusBadge label={t.inventory.table.expiring} variant="warning" />}
           </div>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {t.inventory.table.code}: {item.code}
-          </p>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{item.code}</p>
         </div>
         <div className="flex items-center gap-3">
           {canEdit("registration", "inventory") && (

@@ -625,9 +625,7 @@ export default function BuyerDetails() {
               variant={buyer.status === "active" ? "success" : "default"}
             />
           </div>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {t.buyers.table.code}: {buyer.code}
-          </p>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{buyer.code}</p>
         </div>
         <div className="flex items-center gap-3">
           {canEdit("registration", "buyer") && (

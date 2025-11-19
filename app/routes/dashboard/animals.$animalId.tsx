@@ -527,9 +527,7 @@ export default function AnimalDetails() {
               variant={animal.status === "active" ? "success" : "default"}
             />
           </div>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {t.animals.table.code}: {animal.code}
-          </p>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{animal.code}</p>
         </div>
         <div className="flex items-center gap-3">
           {canEdit("registration", "animals") && (
