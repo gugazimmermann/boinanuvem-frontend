@@ -16,7 +16,6 @@ describe("users mock", () => {
       expect(user).toHaveProperty("email");
       expect(user).toHaveProperty("password");
       expect(user).toHaveProperty("phone");
-      expect(user).toHaveProperty("role");
       expect(user).toHaveProperty("status");
       expect(user).toHaveProperty("street");
       expect(user).toHaveProperty("number");
@@ -34,7 +33,6 @@ describe("users mock", () => {
       expect(typeof user.email).toBe("string");
       expect(typeof user.password).toBe("string");
       expect(typeof user.phone).toBe("string");
-      expect(typeof user.role).toBe("string");
       expect(typeof user.status).toBe("string");
       expect(typeof user.street).toBe("string");
       expect(typeof user.number).toBe("string");
@@ -57,12 +55,6 @@ describe("users mock", () => {
   it("should have valid email format", () => {
     mockUsers.forEach((user: TeamUser) => {
       expect(user.email).toMatch(/^[^\s@]+@[^\s@]+\.[^\s@]+$/);
-    });
-  });
-
-  it("should have valid role", () => {
-    mockUsers.forEach((user: TeamUser) => {
-      expect(["admin", "manager", "user"]).toContain(user.role);
     });
   });
 

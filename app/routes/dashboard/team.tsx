@@ -114,6 +114,8 @@ export default function Team() {
       ...data,
       id: String(users.length + 1),
       status: "pending",
+      mainUser: false,
+      companyId: currentUser?.companyId || "",
       createdAt: new Date().toISOString().split("T")[0],
     };
     setUsers([...users, newUser]);

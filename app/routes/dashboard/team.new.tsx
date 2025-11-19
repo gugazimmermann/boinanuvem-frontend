@@ -155,7 +155,6 @@ export default function NewTeamMember() {
       const newUser = addUser({
         ...formData,
         cpf: unmaskCPF(formData.cpf || ""),
-        role: "user",
       });
       showAlert(t.team.success.added, "success");
       setTimeout(() => {

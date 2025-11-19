@@ -44,7 +44,6 @@ export function createMockUser(
     name: "Test User",
     email: "test@example.com",
     phone: "1234567890",
-    role: "user",
     status: "active",
     companyId: "company-id",
     createdAt: "2025-01-01",
@@ -59,7 +58,6 @@ export function createMockMainUser(overrides: Partial<TeamUser> = {}): TeamUser 
     id: "main-user-id",
     name: "Main User",
     email: "main@example.com",
-    role: "admin",
     mainUser: true,
     ...overrides,
   });

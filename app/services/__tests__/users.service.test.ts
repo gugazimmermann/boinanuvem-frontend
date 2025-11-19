@@ -3,7 +3,6 @@ import {
   getUserById,
   getUsersByCompanyId,
   updateUser,
-  updateUserRole,
   updateUserPermissions,
   addUser,
 } from "../users.service";
@@ -36,7 +35,6 @@ describe("users.service", () => {
         email: "john@example.com",
         password: "hashed-password",
         phone: "47999999999",
-        role: "admin",
         status: "active",
         street: "Main St",
         number: "123",
@@ -57,7 +55,6 @@ describe("users.service", () => {
         email: "jane@example.com",
         password: "hashed-password",
         phone: "47988888888",
-        role: "user",
         status: "pending",
         street: "Second St",
         number: "456",
@@ -159,21 +156,6 @@ describe("users.service", () => {
     it("should not update non-existent user", () => {
       const initialUsers = [...mockUsers];
       updateUser("nonexistent-id", { name: "New Name" } as UserFormData);
-      expect(mockUsers).toEqual(initialUsers);
-    });
-  });
-
-  describe("updateUserRole", () => {
-    it("should update user role", () => {
-      updateUserRole("550e8400-e29b-41d4-a716-446655440001", "manager");
-
-      const updated = mockUsers.find((u) => u.id === "550e8400-e29b-41d4-a716-446655440001");
-      expect(updated?.role).toBe("manager");
-    });
-
-    it("should not update non-existent user", () => {
-      const initialUsers = [...mockUsers];
-      updateUserRole("nonexistent-id", "admin");
       expect(mockUsers).toEqual(initialUsers);
     });
   });

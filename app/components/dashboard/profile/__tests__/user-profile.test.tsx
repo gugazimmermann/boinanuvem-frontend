@@ -20,7 +20,6 @@ const mockUser: TeamUser = {
   city: "Test City",
   state: "SP",
   zipCode: "12345678",
-  role: "user",
   status: "active",
   mainUser: true,
   companyId: "1",

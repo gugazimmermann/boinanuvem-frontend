@@ -26,13 +26,6 @@ export function updateUser(userId: string, data: UserFormData): void {
   }
 }
 
-export function updateUserRole(userId: string, role: "admin" | "manager" | "user"): void {
-  const userIndex = mockUsers.findIndex((user) => user.id === userId);
-  if (userIndex !== -1) {
-    mockUsers[userIndex].role = role;
-  }
-}
-
 export function updateUserPermissions(userId: string, permissions: UserPermissions): void {
   const userIndex = mockUsers.findIndex((user) => user.id === userId);
   if (userIndex !== -1) {

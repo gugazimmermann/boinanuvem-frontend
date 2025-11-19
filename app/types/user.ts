@@ -17,8 +17,10 @@ export interface UserFormData {
   confirmPassword?: string;
 }
 
-export interface TeamUser extends UserFormData, Record<string, unknown> {
+export interface TeamUser extends Omit<UserFormData, "role">, Record<string, unknown> {
   id: string;
   status: "active" | "inactive" | "pending";
   createdAt: string;
+  mainUser: boolean;
+  companyId: string;
 }

@@ -18,6 +18,8 @@ const mockUser: TeamUser = {
   email: "john@example.com",
   phone: "1234567890",
   status: "active",
+  mainUser: false,
+  companyId: "company-id",
   lastAccess: new Date().toISOString(),
   createdAt: new Date().toISOString(),
 };

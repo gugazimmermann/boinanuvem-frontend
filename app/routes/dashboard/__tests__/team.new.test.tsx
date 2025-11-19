@@ -16,7 +16,6 @@ const mockMainUser: TeamUser = {
   name: "Main User",
   email: "main@example.com",
   phone: "1234567890",
-  role: "admin",
   status: "active",
   mainUser: true,
   companyId: "company-id",

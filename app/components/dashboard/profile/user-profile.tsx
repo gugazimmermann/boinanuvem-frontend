@@ -433,7 +433,6 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
             cpf: unmaskCPF(data.cpf),
             email: data.email,
             phone: unmaskPhone(data.phone),
-            role: mainUser.role,
             street: data.street,
             number: data.number,
             complement: data.complement,
