@@ -2941,6 +2941,11 @@ export const es = {
         answer:
           "El sistema calcula automáticamente el stock actual de cada artículo basándose en los movimientos registrados. Puedes ver el stock actual en la lista de artículos y en la página de detalles. El sistema alerta cuando el stock está por debajo del mínimo configurado. Para artículos con vencimiento, el sistema también muestra alertas cuando están próximos a vencer. Usa los filtros en la lista de artículos para encontrar rápidamente artículos con stock bajo o próximos a vencer.",
       },
+      inventoryObservations: {
+        question: "¿Cómo agrego observaciones a artículos de inventario?",
+        answer:
+          "En la página de detalles de cada artículo de inventario, puedes agregar, ver, editar y eliminar múltiples observaciones, cada una con sus propios archivos adjuntos (fotos, documentos). Esto ayuda a mantener un historial completo de notas y documentación para cada artículo de inventario. Las observaciones son útiles para registrar información importante como notas de calidad, registros de mantenimiento, comunicaciones con proveedores o cualquier otro detalle relevante sobre el artículo.",
+      },
     },
   },
   financesDashboard: {

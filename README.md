@@ -22,6 +22,10 @@ A modern, full-stack React application built with React Router v7, featuring a c
   - Stock level tracking with automatic calculation based on movements
   - Inventory movements (purchase, sale, adjustment, consumption) with supplier association
   - Low stock alerts and expiration date tracking
+  - **Observations System**: Add multiple observations with file attachments to each inventory item
+    - Multiple observations on item detail pages
+    - File attachment support (photos, documents)
+    - Complete observation history tracking
   - **Financial Integration**: When adding new inventory items with suppliers, automatically create cash flow transactions and/or accounts payable
     - Cash flow transaction creation with payment method and bank account selection
     - Accounts payable creation with due date, payment method, and bank account
@@ -115,7 +119,7 @@ A modern, full-stack React application built with React Router v7, featuring a c
   - Buyer registration
   - Transaction history
   - Observation tracking
-- **Observations**: Comprehensive observation system for locations, employees, service providers, suppliers, buyers, animals, and financial entities
+- **Observations**: Comprehensive observation system for locations, employees, service providers, suppliers, buyers, animals, inventory items, and financial entities
   - Rich text observations
   - File attachment support
   - Date and author tracking
@@ -240,7 +244,7 @@ A modern, full-stack React application built with React Router v7, featuring a c
   - **Contact Support**: Support channels and contact information
   - **Category Filtering**: Filter FAQs by category for easy navigation
   - **Fully Internationalized**: All help content available in Portuguese, English, and Spanish
-  - **Comprehensive Coverage**: FAQs for animal management, locations, employees, service providers, suppliers, buyers, observations, weighings (including session weighings), acquisitions, movements, inventory management (including financial integration), financial management (including observations for cash flow, accounts payable, and accounts receivable), reproductive indexes, birth forecast, dashboard metrics, pasture planning, breeding season, search & filtering, data organization, and best practices
+  - **Comprehensive Coverage**: FAQs for animal management, locations, employees, service providers, suppliers, buyers, observations, weighings (including session weighings), acquisitions, movements, inventory management (including observations and financial integration), financial management (including observations for cash flow, accounts payable, and accounts receivable), reproductive indexes, birth forecast, dashboard metrics, pasture planning, breeding season, search & filtering, data organization, and best practices
 
 ## 📋 Prerequisites
 
@@ -368,6 +372,7 @@ The application uses a service layer pattern to abstract data access and busines
   - `suppliers.service.ts` - Supplier management
   - `buyers.service.ts` - Buyer management
   - `service-providers.service.ts` - Service provider management
+  - `inventory.service.ts` - Inventory item management and stock tracking
 
 - **Record Services**: 
   - `births.service.ts` - Birth record management with purity calculation
@@ -378,6 +383,7 @@ The application uses a service layer pattern to abstract data access and busines
 - **Movement Services**: 
   - `animal-movements.service.ts` - Animal movement tracking between properties/locations
   - `location-movements.service.ts` - Location-based movement tracking
+  - `inventory-movements.service.ts` - Inventory movement tracking (purchase, sale, adjustment, consumption)
 
 - **Observation Services**: 
   - `animal-observations.service.ts` - Animal observation management
@@ -386,6 +392,7 @@ The application uses a service layer pattern to abstract data access and busines
   - `service-provider-observations.service.ts` - Service provider observation management
   - `supplier-observations.service.ts` - Supplier observation management
   - `buyer-observations.service.ts` - Buyer observation management
+  - `inventory-observations.service.ts` - Inventory item observation management
   - `cash-flow-observations.service.ts` - Cash flow transaction observation management
   - `accounts-payable-observations.service.ts` - Accounts payable observation management
   - `accounts-receivable-observations.service.ts` - Accounts receivable observation management
@@ -423,6 +430,8 @@ The application includes a comprehensive mock data system for development and te
   - `buyers.ts` - Buyer information
   - `service-providers.ts` - Service provider records
   - `users.ts` - User accounts and authentication
+  - `inventory.ts` - Inventory item records
+  - `inventory-movements.ts` - Inventory movement records
   - `animal-movements.ts` - Animal movement records
   - `location-movements.ts` - Location movement records
   - `animal-observations.ts` - Animal observation records
@@ -431,6 +440,7 @@ The application includes a comprehensive mock data system for development and te
   - `service-provider-observations.ts` - Service provider observation records
   - `supplier-observations.ts` - Supplier observation records
   - `buyer-observations.ts` - Buyer observation records
+  - `inventory-observations.ts` - Inventory item observation records
   - `cash-flow-observations.ts` - Cash flow transaction observation records
   - `accounts-payable-observations.ts` - Accounts payable observation records
   - `accounts-receivable-observations.ts` - Accounts receivable observation records

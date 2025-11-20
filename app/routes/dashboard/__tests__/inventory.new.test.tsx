@@ -33,6 +33,11 @@ vi.mock("~/services/accounts-payable.service", () => ({
   addAccountsPayable: vi.fn(() => ({ id: "ap-1" })),
 }));
 
+const mockAddInventoryObservation = vi.fn();
+vi.mock("~/services/inventory-observations.service", () => ({
+  addInventoryObservation: (...args: unknown[]) => mockAddInventoryObservation(...args),
+}));
+
 vi.mock("~/services/bank-account.service", () => ({
   getBankAccountsByCompanyId: vi.fn(() => [
     { id: "bank-1", bankName: "Test Bank", accountNumber: "12345", accountType: "checking" },
@@ -144,6 +149,28 @@ vi.mock("~/components/ui", () => ({
   Alert: ({ title, variant }: { title?: string; variant?: string }) => (
     <div data-testid={`alert-${variant}`}>{title}</div>
   ),
+  FileUpload: ({
+    files: _files,
+    onChange,
+    helperText: _helperText,
+    ...props
+  }: {
+    files?: File[];
+    onChange?: (files: File[]) => void;
+    helperText?: string;
+    [key: string]: unknown;
+  }) => (
+    <input
+      type="file"
+      data-testid="file-upload"
+      multiple
+      onChange={(e) => {
+        const selectedFiles = Array.from(e.target.files || []);
+        onChange?.(selectedFiles);
+      }}
+      {...props}
+    />
+  ),
 }));
 
 describe("NewInventoryItem", () => {
@@ -181,6 +208,23 @@ describe("NewInventoryItem", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(addInventoryItem).mockReturnValue({
+      id: "new-item",
+      name: "New Item",
+      code: "ITEM001",
+      category: InventoryItemCategory.FEED,
+      unit: "kg",
+      minimumStock: 100,
+      companyId: "company-1",
+      propertyIds: ["prop-1"],
+      createdAt: "2025-01-01",
+    });
+    mockAddInventoryObservation.mockReturnValue({
+      id: "obs-1",
+      itemId: "new-item",
+      observation: "Test observation",
+      createdAt: "2025-01-01T10:00:00Z",
+    });
   });
 
   it("should render new inventory item form", () => {
@@ -420,5 +464,101 @@ describe("NewInventoryItem", () => {
 
   it("should have correct meta function", () => {
     expect(NewInventoryItem).toBeDefined();
+  });
+
+  it("should not create observation when observation text is empty", async () => {
+    const router = createRouter();
+    const { container } = render(<RouterProvider router={router} />);
+
+    const codeInput = screen.queryByTestId("input-Code");
+    const nameInput = screen.queryByTestId("input-Name");
+    const categorySelect = screen.queryByTestId("select-Category");
+    const propertySelect = container.querySelector("select[multiple]") as HTMLSelectElement;
+
+    if (codeInput) fireEvent.change(codeInput, { target: { value: "ITEM001" } });
+    if (nameInput) fireEvent.change(nameInput, { target: { value: "Test Item" } });
+    if (categorySelect)
+      fireEvent.change(categorySelect, { target: { value: InventoryItemCategory.FEED } });
+    if (propertySelect && propertySelect.options.length > 0) {
+      simulateMultiSelectChange(propertySelect, 0);
+    }
+
+    const form = container.querySelector("form");
+    if (form) {
+      fireEvent.submit(form);
+    } else {
+      const submitButton = screen.queryByTestId("submit-button");
+      if (submitButton) {
+        fireEvent.click(submitButton);
+      }
+    }
+
+    await waitFor(
+      () => {
+        expect(addInventoryItem).toHaveBeenCalled();
+        expect(mockAddInventoryObservation).not.toHaveBeenCalled();
+      },
+      { timeout: 3000 }
+    );
+  });
+
+  it("should handle file upload for observations", async () => {
+    const router = createRouter();
+    const { container } = render(<RouterProvider router={router} />);
+
+    const codeInput = screen.queryByTestId("input-Code");
+    const nameInput = screen.queryByTestId("input-Name");
+    const categorySelect = screen.queryByTestId("select-Category");
+    const propertySelect = container.querySelector("select[multiple]") as HTMLSelectElement;
+
+    if (codeInput) fireEvent.change(codeInput, { target: { value: "ITEM001" } });
+    if (nameInput) fireEvent.change(nameInput, { target: { value: "Test Item" } });
+    if (categorySelect)
+      fireEvent.change(categorySelect, { target: { value: InventoryItemCategory.FEED } });
+    if (propertySelect && propertySelect.options.length > 0) {
+      simulateMultiSelectChange(propertySelect, 0);
+    }
+
+    const textareas = screen.queryAllByRole("textbox");
+    const observationTextarea = textareas.find(
+      (textarea) => (textarea as HTMLTextAreaElement).rows === 4
+    ) as HTMLTextAreaElement | undefined;
+
+    if (observationTextarea) {
+      fireEvent.change(observationTextarea, {
+        target: { value: "Test observation" },
+      });
+    }
+
+    const fileUpload = screen.queryByTestId("file-upload");
+    if (fileUpload) {
+      const file = new File(["test content"], "test.txt", { type: "text/plain" });
+      fireEvent.change(fileUpload, {
+        target: { files: [file] },
+      });
+    }
+
+    const form = container.querySelector("form");
+    if (form) {
+      fireEvent.submit(form);
+    } else {
+      const submitButton = screen.queryByTestId("submit-button");
+      if (submitButton) {
+        fireEvent.click(submitButton);
+      }
+    }
+
+    await waitFor(
+      () => {
+        expect(addInventoryItem).toHaveBeenCalled();
+        expect(mockAddInventoryObservation).toHaveBeenCalled();
+        const callArgs = mockAddInventoryObservation.mock.calls[0][0];
+        expect(callArgs.itemId).toBe("new-item");
+        expect(callArgs.observation).toBe("Test observation");
+        expect(callArgs.fileIds).toBeDefined();
+        expect(Array.isArray(callArgs.fileIds)).toBe(true);
+      },
+      { timeout: 3000 }
+    );
   });
 });

@@ -2921,6 +2921,11 @@ export const en = {
         answer:
           "The system automatically calculates the current stock of each item based on recorded movements. You can view current stock in the items list and on the details page. The system alerts when stock is below the configured minimum. For items with expiration, the system also shows alerts when they are near expiration. Use filters in the items list to quickly find items with low stock or near expiration.",
       },
+      inventoryObservations: {
+        question: "How do I add observations to inventory items?",
+        answer:
+          "On each inventory item's details page, you can add, view, edit, and delete multiple observations, each with its own file attachments (photos, documents). This helps maintain a complete history of notes and documentation for each inventory item. Observations are useful for recording important information such as quality notes, maintenance records, supplier communications, or any other relevant details about the item.",
+      },
     },
   },
   financesDashboard: {

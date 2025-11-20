@@ -57,7 +57,6 @@ describe("inventory mock", () => {
       if (item.hasExpiration) {
         expect(item).toHaveProperty("expirationDate");
         expect(typeof item.expirationDate).toBe("string");
-        // Validate date format (YYYY-MM-DD)
         expect(item.expirationDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
       }
     });
@@ -66,7 +65,6 @@ describe("inventory mock", () => {
   it("should not have expirationDate when hasExpiration is false", () => {
     mockInventoryItems.forEach((item: InventoryItem) => {
       if (!item.hasExpiration) {
-        // expirationDate should be undefined or not present
         expect(item.expirationDate === undefined || item.expirationDate === null).toBe(true);
       }
     });
@@ -115,7 +113,6 @@ describe("inventory mock", () => {
 
   it("should have consistent companyId", () => {
     const companyIds = new Set(mockInventoryItems.map((item) => item.companyId));
-    // All items should belong to the same company in mock data
     expect(companyIds.size).toBeGreaterThan(0);
   });
 
@@ -159,9 +156,7 @@ describe("inventory mock", () => {
 
   it("should have valid createdAt date format", () => {
     mockInventoryItems.forEach((item: InventoryItem) => {
-      // Validate date format (YYYY-MM-DD)
       expect(item.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-      // Validate it's a valid date
       const date = new Date(item.createdAt);
       expect(date.toString()).not.toBe("Invalid Date");
     });

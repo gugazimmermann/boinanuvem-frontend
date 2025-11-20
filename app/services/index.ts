@@ -29,6 +29,7 @@ export * from "./buyer-observations.service";
 export * from "./cash-flow-observations.service";
 export * from "./accounts-payable-observations.service";
 export * from "./accounts-receivable-observations.service";
+export * from "./inventory-observations.service";
 
 export * from "./cash-flow.service";
 export * from "./accounts-payable.service";

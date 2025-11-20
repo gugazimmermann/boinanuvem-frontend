@@ -40,7 +40,6 @@ describe("inventory-movements mock", () => {
 
   it("should have valid date format", () => {
     mockInventoryMovements.forEach((movement: InventoryMovement) => {
-      // Validate date format (YYYY-MM-DD)
       expect(movement.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
       const date = new Date(movement.date);
       expect(date.toString()).not.toBe("Invalid Date");
@@ -58,7 +57,6 @@ describe("inventory-movements mock", () => {
   it("should have valid quantity", () => {
     mockInventoryMovements.forEach((movement: InventoryMovement) => {
       expect(typeof movement.quantity).toBe("number");
-      // Quantity can be negative for adjustments
       expect(Number.isFinite(movement.quantity)).toBe(true);
     });
   });
@@ -86,25 +84,16 @@ describe("inventory-movements mock", () => {
 
   it("should have valid relationships", () => {
     mockInventoryMovements.forEach((movement: InventoryMovement) => {
-      // itemId should be a valid string
       expect(typeof movement.itemId).toBe("string");
       expect(movement.itemId.length).toBeGreaterThan(0);
-
-      // propertyId should be a valid string
       expect(typeof movement.propertyId).toBe("string");
       expect(movement.propertyId.length).toBeGreaterThan(0);
-
-      // companyId should be a valid string
       expect(typeof movement.companyId).toBe("string");
       expect(movement.companyId.length).toBeGreaterThan(0);
-
-      // supplierId when present should be valid
       if (movement.supplierId !== undefined) {
         expect(typeof movement.supplierId).toBe("string");
         expect(movement.supplierId.length).toBeGreaterThan(0);
       }
-
-      // cashFlowId when present should be valid
       if (movement.cashFlowId !== undefined) {
         expect(typeof movement.cashFlowId).toBe("string");
         expect(movement.cashFlowId.length).toBeGreaterThan(0);
@@ -115,7 +104,6 @@ describe("inventory-movements mock", () => {
   it("should have supplierId for purchase movements", () => {
     mockInventoryMovements.forEach((movement: InventoryMovement) => {
       if (movement.type === InventoryMovementType.PURCHASE) {
-        // Purchases typically have suppliers, but it's optional in the type
         if (movement.supplierId !== undefined) {
           expect(typeof movement.supplierId).toBe("string");
         }
@@ -139,12 +127,10 @@ describe("inventory-movements mock", () => {
 
   it("should have consistent companyId", () => {
     const companyIds = new Set(mockInventoryMovements.map((movement) => movement.companyId));
-    // All movements should belong to the same company in mock data
     expect(companyIds.size).toBeGreaterThan(0);
   });
 
   it("should have valid itemId references", () => {
-    // All itemIds should be valid UUIDs or IDs
     mockInventoryMovements.forEach((movement: InventoryMovement) => {
       expect(movement.itemId).toMatch(/^[a-z0-9-]+$/);
     });

@@ -59,6 +59,7 @@ export type {
   AccountsReceivableObservation,
   AccountsReceivableObservationFormData,
 } from "./accounts-receivable-observation";
+export type { InventoryObservation, InventoryObservationFormData } from "./inventory-observation";
 export type { CashFlow, CashFlowFormData, CashFlowType } from "./cash-flow";
 export { CashFlowCategory, PaymentMethod } from "./cash-flow";
 export type { AccountsPayable, AccountsPayableFormData } from "./accounts-payable";

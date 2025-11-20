@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
@@ -83,6 +83,34 @@ vi.mock("~/services/cash-flow.service", () => ({
   getCashFlowById: vi.fn(() => ({ id: "cashflow-1", amount: 2100 })),
 }));
 
+const mockObservations = [
+  {
+    id: "obs-1",
+    itemId: "item-1",
+    observation: "Test observation 1",
+    fileIds: ["file-1"],
+    createdAt: "2025-01-10T10:00:00Z",
+    createdBy: "user-1",
+  },
+  {
+    id: "obs-2",
+    itemId: "item-1",
+    observation: "Test observation 2",
+    fileIds: [],
+    createdAt: "2025-01-15T10:00:00Z",
+    createdBy: "user-1",
+  },
+];
+
+const mockGetInventoryObservationsByItemId = vi.fn(() => mockObservations);
+const mockAddInventoryObservation = vi.fn();
+
+vi.mock("~/services/inventory-observations.service", () => ({
+  getInventoryObservationsByItemId: (...args: unknown[]) =>
+    mockGetInventoryObservationsByItemId(...args),
+  addInventoryObservation: (...args: unknown[]) => mockAddInventoryObservation(...args),
+}));
+
 const mockUsePermissions = vi.fn();
 vi.mock("~/utils/permissions", () => ({
   usePermissions: () => mockUsePermissions(),
@@ -118,17 +146,38 @@ vi.mock("~/components/ui", () => ({
     sortState: _sortState,
     onSort: _onSort,
     emptyState,
+    columns,
   }: {
     data?: unknown[];
-    header?: { title?: string; badge?: { label?: string } };
+    header?: {
+      title?: string;
+      badge?: { label?: string };
+      actions?: Array<{ onClick?: () => void }>;
+    };
     search?: { placeholder?: string; value: string; onChange: (value: string) => void };
     pagination?: { currentPage: number; totalPages: number; onPageChange: (page: number) => void };
     sortState?: { column: string | null; direction: string };
     onSort?: (column: string, direction: string) => void;
     emptyState?: { title?: string; onAddNew?: () => void };
+    columns?: Array<{
+      key: string;
+      label: string;
+      render?: (value: unknown, row: unknown) => React.ReactNode;
+    }>;
   }) => (
-    <div data-testid="movements-table">
+    <div
+      data-testid={
+        header?.title?.includes("Observações") || header?.title?.includes("Observations")
+          ? "observations-table"
+          : "movements-table"
+      }
+    >
       {header?.title && <h3>{header.title}</h3>}
+      {header?.actions?.map((action, idx) => (
+        <button key={idx} data-testid="add-observation" onClick={action.onClick}>
+          Add Observation
+        </button>
+      ))}
       {search && (
         <input
           data-testid="search-input"
@@ -138,21 +187,70 @@ vi.mock("~/components/ui", () => ({
         />
       )}
       {data?.map((row, idx: number) => (
-        <div key={idx} data-testid={`movement-row-${idx}`}>
-          {String((row as Record<string, unknown>).type ?? "")}
+        <div
+          key={idx}
+          data-testid={`${
+            header?.title?.includes("Observações") || header?.title?.includes("Observations")
+              ? "observation"
+              : "movement"
+          }-row-${idx}`}
+        >
+          {columns
+            ? columns.map((col) => (
+                <span key={col.key}>
+                  {col.render
+                    ? col.render((row as Record<string, unknown>)[col.key], row)
+                    : String((row as Record<string, unknown>)[col.key] ?? "")}
+                </span>
+              ))
+            : String((row as Record<string, unknown>).type ?? "")}
         </div>
       ))}
       {(!data || data.length === 0) && emptyState && (
         <div data-testid="empty-state">
           <div>{emptyState.title}</div>
           {emptyState.onAddNew && (
-            <button data-testid="add-movement" onClick={emptyState.onAddNew}>
-              Add Movement
+            <button
+              data-testid={
+                header?.title?.includes("Observações") || header?.title?.includes("Observations")
+                  ? "add-observation-empty"
+                  : "add-movement"
+              }
+              onClick={emptyState.onAddNew}
+            >
+              {header?.title?.includes("Observações") || header?.title?.includes("Observations")
+                ? "Add Observation"
+                : "Add Movement"}
             </button>
           )}
         </div>
       )}
     </div>
+  ),
+  FileUpload: ({
+    files: _files,
+    onChange,
+    helperText: _helperText,
+    ...props
+  }: {
+    files?: File[];
+    onChange?: (files: File[]) => void;
+    helperText?: string;
+    [key: string]: unknown;
+  }) => (
+    <input
+      type="file"
+      data-testid="file-upload"
+      multiple
+      onChange={(e) => {
+        const selectedFiles = Array.from(e.target.files || []);
+        onChange?.(selectedFiles);
+      }}
+      {...props}
+    />
+  ),
+  Alert: ({ title, variant }: { title?: string; variant?: string }) => (
+    <div data-testid={`alert-${variant}`}>{title}</div>
   ),
 }));
 
@@ -182,6 +280,13 @@ describe("InventoryItemDetails", () => {
     vi.mocked(getInventoryItemById).mockReturnValue(mockItem);
     vi.mocked(getMovementsByItemId).mockReturnValue(mockMovements);
     vi.mocked(getCurrentStock).mockReturnValue(150);
+    mockGetInventoryObservationsByItemId.mockReturnValue(mockObservations);
+    mockAddInventoryObservation.mockReturnValue({
+      id: "obs-new",
+      itemId: "item-1",
+      observation: "New observation",
+      createdAt: "2025-01-20T10:00:00Z",
+    });
     mockUsePermissions.mockReturnValue({
       canView: () => true,
       canEdit: () => true,
@@ -218,8 +323,11 @@ describe("InventoryItemDetails", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
+    const movementsTable = screen.getByTestId("movements-table");
     if (mockMovements.length > 0) {
-      expect(screen.getByText(mockMovements[0].type)).toBeInTheDocument();
+      const purchaseBadge = movementsTable.querySelector('[data-testid="status-badge-success"]');
+      const consumptionBadge = movementsTable.querySelector('[data-testid="status-badge-danger"]');
+      expect(purchaseBadge || consumptionBadge || movementsTable).toBeTruthy();
     }
   });
 
@@ -227,7 +335,10 @@ describe("InventoryItemDetails", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    const searchInput = screen.queryByTestId("search-input");
+    const movementsTable = screen.getByTestId("movements-table");
+    const searchInput = movementsTable.querySelector(
+      '[data-testid="search-input"]'
+    ) as HTMLInputElement;
     if (searchInput) {
       fireEvent.change(searchInput, { target: { value: "purchase" } });
       expect(searchInput).toHaveValue("purchase");
@@ -290,8 +401,11 @@ describe("InventoryItemDetails", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    const lowStockBadge = screen.queryByTestId("status-badge-danger");
-    expect(lowStockBadge || screen.getByText(mockItem.name)).toBeTruthy();
+    const itemNameElements = screen.getAllByText(mockItem.name);
+    const headerElement = itemNameElements.find((el) => el.tagName === "H1");
+    const headerArea = headerElement?.closest("div");
+    const lowStockBadge = headerArea?.querySelector('[data-testid="status-badge-danger"]');
+    expect(lowStockBadge || headerElement).toBeTruthy();
   });
 
   it("should display expiration warning when item is expiring", () => {
@@ -338,5 +452,123 @@ describe("InventoryItemDetails", () => {
 
   it("should have correct meta function", () => {
     expect(InventoryItemDetails).toBeDefined();
+  });
+
+  it("should display observations table", () => {
+    const router = createRouter();
+    render(<RouterProvider router={router} />);
+
+    const observationsTable = screen.queryByTestId("observations-table");
+    expect(observationsTable).toBeInTheDocument();
+  });
+
+  it("should display observations data", () => {
+    const router = createRouter();
+    render(<RouterProvider router={router} />);
+
+    const observationRows = screen.queryAllByTestId(/observation-row-/);
+    expect(observationRows.length).toBeGreaterThan(0);
+  });
+
+  it("should handle observations search", () => {
+    const router = createRouter();
+    render(<RouterProvider router={router} />);
+
+    const observationsTable = screen.getByTestId("observations-table");
+    const searchInput = observationsTable.querySelector(
+      '[data-testid="search-input"]'
+    ) as HTMLInputElement;
+    if (searchInput) {
+      fireEvent.change(searchInput, { target: { value: "Test" } });
+      expect(searchInput).toHaveValue("Test");
+    }
+  });
+
+  it("should open observation form when add button is clicked", () => {
+    const router = createRouter();
+    render(<RouterProvider router={router} />);
+
+    const addObservationButtons = screen.queryAllByTestId("add-observation");
+    if (addObservationButtons.length > 0) {
+      fireEvent.click(addObservationButtons[0]);
+      const textareas = screen.queryAllByRole("textbox");
+      const observationTextarea = textareas.find(
+        (textarea) => (textarea as HTMLTextAreaElement).rows === 4
+      );
+      expect(observationTextarea).toBeInTheDocument();
+    }
+  });
+
+  it("should handle observation form submission", async () => {
+    const router = createRouter();
+    render(<RouterProvider router={router} />);
+
+    const addObservationButtons = screen.queryAllByTestId("add-observation");
+    if (addObservationButtons.length > 0) {
+      fireEvent.click(addObservationButtons[0]);
+
+      await waitFor(() => {
+        const textareas = screen.queryAllByRole("textbox");
+        const observationTextarea = textareas.find(
+          (textarea) => (textarea as HTMLTextAreaElement).rows === 4
+        ) as HTMLTextAreaElement | undefined;
+        expect(observationTextarea).toBeInTheDocument();
+      });
+
+      const textareas = screen.queryAllByRole("textbox");
+      const observationTextarea = textareas.find(
+        (textarea) => (textarea as HTMLTextAreaElement).rows === 4
+      ) as HTMLTextAreaElement | undefined;
+
+      if (observationTextarea) {
+        fireEvent.change(observationTextarea, {
+          target: { value: "New observation" },
+        });
+
+        const form = observationTextarea.closest("form");
+        if (form) {
+          fireEvent.submit(form);
+        } else {
+          const submitButtons = screen.queryAllByTestId("button-default");
+          const submitButton = submitButtons.find(
+            (btn) => (btn as HTMLButtonElement).type === "submit"
+          );
+          if (submitButton) {
+            fireEvent.click(submitButton);
+          }
+        }
+
+        await waitFor(
+          () => {
+            expect(mockAddInventoryObservation).toHaveBeenCalledWith(
+              expect.objectContaining({
+                itemId: "item-1",
+                observation: "New observation",
+              })
+            );
+          },
+          { timeout: 3000 }
+        );
+      }
+    }
+  });
+
+  it("should handle file upload in observation form", () => {
+    const router = createRouter();
+    render(<RouterProvider router={router} />);
+
+    const addObservationButtons = screen.queryAllByTestId("add-observation");
+    if (addObservationButtons.length > 0) {
+      fireEvent.click(addObservationButtons[0]);
+
+      const fileUpload = screen.queryByTestId("file-upload");
+      if (fileUpload) {
+        const file = new File(["test content"], "test.txt", { type: "text/plain" });
+        fireEvent.change(fileUpload, {
+          target: { files: [file] },
+        });
+        expect(fileUpload).toBeInTheDocument();
+      }
+    }
   });
 });

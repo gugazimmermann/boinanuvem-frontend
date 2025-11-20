@@ -171,6 +171,12 @@ export default function Help() {
         answer: t.help.faqs.trackStockLevels.answer,
       },
       {
+        id: "inventory-observations",
+        category: "records",
+        question: t.help.faqs.inventoryObservations.question,
+        answer: t.help.faqs.inventoryObservations.answer,
+      },
+      {
         id: "cash-flow",
         category: "financial",
         question: t.help.faqs.cashFlow.question,

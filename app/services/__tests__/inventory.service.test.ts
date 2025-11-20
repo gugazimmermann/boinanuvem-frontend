@@ -435,7 +435,6 @@ describe("inventory.service", () => {
     beforeEach(() => {
       mockGetMovementsByItemId.mockImplementation((itemId: string) => {
         if (itemId === "ii0e8400-e29b-41d4-a716-446655440010") {
-          // Stock: 0 (below minimum of 100)
           return [
             {
               id: "mov-1",
@@ -460,7 +459,6 @@ describe("inventory.service", () => {
           ];
         }
         if (itemId === "ii0e8400-e29b-41d4-a716-446655440011") {
-          // Stock: 100 (above minimum of 50)
           return [
             {
               id: "mov-3",
@@ -501,7 +499,6 @@ describe("inventory.service", () => {
         },
       ]);
       const result = getLowStockItems("company-1");
-      // Item 1 now has stock 200, which is above minimum 100
       expect(result.length).toBeGreaterThanOrEqual(0);
     });
   });
@@ -534,7 +531,6 @@ describe("inventory.service", () => {
     it("should respect daysThreshold parameter", () => {
       const result30 = getExpiringItems("company-1", 30);
       const result60 = getExpiringItems("company-1", 60);
-      // Items expiring in 60 days should include items expiring in 30 days
       expect(result60.length).toBeGreaterThanOrEqual(result30.length);
     });
 

@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { Input, Select, Button, Alert } from "~/components/ui";
+import { Input, Select, Button, Alert, FileUpload } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { ROUTES } from "~/routes.config";
 import { addInventoryItem } from "~/services/inventory.service";
 import { addInventoryMovement } from "~/services/inventory-movements.service";
 import { addCashFlow } from "~/services/cash-flow.service";
 import { addAccountsPayable } from "~/services/accounts-payable.service";
+import { addInventoryObservation } from "~/services/inventory-observations.service";
 import { getBankAccountsByCompanyId } from "~/services/bank-account.service";
 import type {
   InventoryItemFormData,
@@ -85,6 +86,7 @@ export default function NewInventoryItem() {
     dueDate: string;
     accountPayablePaymentMethod: PaymentMethod;
     accountPayableBankAccountId: string;
+    observation: string;
   }>({
     code: "",
     name: "",
@@ -106,7 +108,10 @@ export default function NewInventoryItem() {
     dueDate: "",
     accountPayablePaymentMethod: PaymentMethod.PIX,
     accountPayableBankAccountId: "",
+    observation: "",
   });
+
+  const [observationFiles, setObservationFiles] = useState<File[]>([]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -298,6 +303,19 @@ export default function NewInventoryItem() {
             formData.hasExpiration && formData.expirationDate ? formData.expirationDate : undefined,
         };
         addInventoryMovement(movementData);
+      }
+
+      // Create observation if provided
+      if (formData.observation?.trim()) {
+        const fileIds = observationFiles.map(
+          (_, index) => `file-inventory-obs-${Date.now()}-${index}`
+        );
+
+        addInventoryObservation({
+          itemId: newItem.id,
+          observation: formData.observation.trim(),
+          fileIds: fileIds.length > 0 ? fileIds : undefined,
+        });
       }
 
       showAlert(t.inventory.new.success, "success");
@@ -678,6 +696,29 @@ export default function NewInventoryItem() {
                 required={formData.hasExpiration}
               />
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Observação
+              </label>
+              <textarea
+                value={formData.observation}
+                onChange={(e) => handleChange("observation", e.target.value)}
+                disabled={isSubmitting}
+                rows={4}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200"
+                placeholder="Adicione uma observação (opcional)"
+              />
+            </div>
+
+            <FileUpload
+              label="Anexos"
+              files={observationFiles}
+              onChange={setObservationFiles}
+              disabled={isSubmitting}
+              multiple={true}
+              helperText="Você pode anexar múltiplos arquivos à observação"
+            />
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">

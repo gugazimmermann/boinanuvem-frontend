@@ -2941,6 +2941,11 @@ export const pt = {
         answer:
           "O sistema calcula automaticamente o estoque atual de cada item com base nas movimentações registradas. Você pode visualizar o estoque atual na lista de itens e na página de detalhes. O sistema alerta quando o estoque está abaixo do mínimo configurado. Para itens com validade, o sistema também mostra alertas quando estão próximos ao vencimento. Use os filtros na lista de itens para encontrar rapidamente itens com baixo estoque ou próximos ao vencimento.",
       },
+      inventoryObservations: {
+        question: "Como adicionar observações a itens de estoque?",
+        answer:
+          "Na página de detalhes de cada item de estoque, você pode adicionar, visualizar, editar e excluir múltiplas observações, cada uma com seus próprios anexos de arquivos (fotos, documentos). Isso ajuda a manter um histórico completo de notas e documentação para cada item de estoque. As observações são úteis para registrar informações importantes como notas de qualidade, registros de manutenção, comunicações com fornecedores ou qualquer outro detalhe relevante sobre o item.",
+      },
     },
   },
   financesDashboard: {
