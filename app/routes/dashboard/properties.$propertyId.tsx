@@ -1066,7 +1066,11 @@ export default function PropertyDetails() {
                     {t.properties.table.animals}
                   </p>
                   <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                    {animalsCount}
+                    {animalsCount.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {allPropertyAnimals.filter((a) => a.status === "active").length}{" "}
+                    {t.properties.details.activeAnimals.toLowerCase()}
                   </p>
                 </div>
                 <div
@@ -1184,6 +1188,89 @@ export default function PropertyDetails() {
                   <span className="text-lg">📅</span>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Related Entities Section */}
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              {t.properties.details.relatedEntities}
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {(() => {
+                const employees = getEmployeesByPropertyId(property.id);
+                const serviceProviders = getServiceProvidersByPropertyId(property.id);
+                const suppliers = getSuppliersByPropertyId(property.id);
+                const buyers = getBuyersByPropertyId(property.id);
+
+                return (
+                  <>
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                            {t.properties.details.tabs.employees}
+                          </p>
+                          <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                            {employees.length}
+                          </p>
+                        </div>
+                        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                          <span className="text-lg">👥</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                            {t.properties.details.tabs.serviceProviders}
+                          </p>
+                          <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                            {serviceProviders.length}
+                          </p>
+                        </div>
+                        <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                          <span className="text-lg">🏥</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                            {t.properties.details.tabs.suppliers}
+                          </p>
+                          <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                            {suppliers.length}
+                          </p>
+                        </div>
+                        <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
+                          <span className="text-lg">🏭</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                            {t.properties.details.tabs.buyers}
+                          </p>
+                          <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                            {buyers.length}
+                          </p>
+                        </div>
+                        <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                          <span className="text-lg">🛒</span>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </div>
 

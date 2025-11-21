@@ -47,9 +47,13 @@ vi.mock("~/mocks/births", async () => {
 
 const mockGetBirthByAnimalId = vi.fn(() => null);
 const mockGetBirthsByFatherId = vi.fn(() => []);
+const mockGetBirthsByCompanyId = vi.fn(() => []);
+const mockGetCalvingIntervalsByAnimalId = vi.fn(() => []);
 vi.mock("~/services/births.service", () => ({
   getBirthByAnimalId: () => mockGetBirthByAnimalId(),
   getBirthsByFatherId: (...args: unknown[]) => mockGetBirthsByFatherId(...args),
+  getBirthsByCompanyId: (...args: unknown[]) => mockGetBirthsByCompanyId(...args),
+  getCalvingIntervalsByAnimalId: (...args: unknown[]) => mockGetCalvingIntervalsByAnimalId(...args),
 }));
 
 vi.mock("~/mocks/acquisitions", async () => {
@@ -93,6 +97,40 @@ vi.mock("~/services/breedings.service", () => ({
   getBreedingsByAnimalId: (...args: unknown[]) => mockGetBreedingsByAnimalId(...args),
   confirmBreeding: (...args: unknown[]) => mockConfirmBreeding(...args),
   deleteBreeding: (...args: unknown[]) => mockDeleteBreeding(...args),
+}));
+
+const mockGetAnimalMovementsByAnimalId = vi.fn(() => []);
+vi.mock("~/services/animal-movements.service", () => ({
+  getAnimalMovementsByAnimalId: (...args: unknown[]) => mockGetAnimalMovementsByAnimalId(...args),
+}));
+
+const mockGetReproductivePerformanceByAnimalId = vi.fn(() => ({
+  totalBirths: 0,
+  totalBreedings: 0,
+  averageCalvingInterval: 0,
+}));
+vi.mock("~/services/reproductive-indexes.service", () => ({
+  getReproductivePerformanceByAnimalId: (...args: unknown[]) =>
+    mockGetReproductivePerformanceByAnimalId(...args),
+}));
+
+const mockGetAnimalTotalCost = vi.fn(() => ({
+  totalCost: 0,
+  costPerKg: 0,
+  costs: [],
+}));
+vi.mock("~/services/location-costs.service", () => ({
+  getAnimalTotalCost: (...args: unknown[]) => mockGetAnimalTotalCost(...args),
+}));
+
+const mockGetLocationById = vi.fn((id: string) => ({
+  id,
+  name: `Location ${id}`,
+  propertyId: "prop-1",
+  companyId: "company-1",
+}));
+vi.mock("~/services/locations.service", () => ({
+  getLocationById: (...args: unknown[]) => mockGetLocationById(...args),
 }));
 
 const mockUsePermissions = vi.fn();
@@ -289,6 +327,19 @@ describe("AnimalDetails", () => {
     mockGetBirthByAnimalId.mockReturnValue(null);
     mockGetAcquisitionByAnimalId.mockReturnValue(null);
     mockGetWeighingsByAnimalId.mockReturnValue([]);
+    mockGetBirthsByCompanyId.mockReturnValue([]);
+    mockGetCalvingIntervalsByAnimalId.mockReturnValue([]);
+    mockGetAnimalMovementsByAnimalId.mockReturnValue([]);
+    mockGetReproductivePerformanceByAnimalId.mockReturnValue({
+      totalBirths: 0,
+      totalBreedings: 0,
+      averageCalvingInterval: 0,
+    });
+    mockGetAnimalTotalCost.mockReturnValue({
+      totalCost: 0,
+      costPerKg: 0,
+      costs: [],
+    });
   });
 
   it("should render animal details", () => {

@@ -3,13 +3,50 @@ import { InventoryMovementType } from "~/types";
 
 export type { InventoryMovement, InventoryMovementFormData };
 
+// Today is November 21, 2025
+const TODAY = new Date("2025-11-21");
+
 const COMPANY_ID = "550e8400-e29b-41d4-a716-446655440000";
 const FAZENDA_DO_JUCA = "550e8400-e29b-41d4-a716-446655440010";
-const _SITIO_LIMOEIRO = "550e8400-e29b-41d4-a716-446655440011";
-const _CHACARA_DO_JUCA = "550e8400-e29b-41d4-a716-446655440012";
+const SITIO_LIMOEIRO = "550e8400-e29b-41d4-a716-446655440011";
+const CHACARA_DO_JUCA = "550e8400-e29b-41d4-a716-446655440012";
 const SUPPLIER_AGROFORNECEDORA = "990e8400-e29b-41d4-a716-446655440010";
 const SUPPLIER_CARLOS = "990e8400-e29b-41d4-a716-446655440011";
 const SUPPLIER_AGROSUPRIMENTOS = "990e8400-e29b-41d4-a716-446655440012";
+
+// Helper to generate realistic dates across 2020-2025
+function getRealisticDate(index: number, total: number): string {
+  const years = [2020, 2021, 2022, 2023, 2024, 2025];
+  const progress = index / total;
+
+  let yearIndex: number;
+  if (progress < 0.05) {
+    yearIndex = 0;
+  } else if (progress < 0.15) {
+    yearIndex = 1;
+  } else if (progress < 0.3) {
+    yearIndex = 2;
+  } else if (progress < 0.5) {
+    yearIndex = 3;
+  } else if (progress < 0.75) {
+    yearIndex = 4;
+  } else {
+    yearIndex = 5;
+  }
+
+  const year = years[yearIndex];
+  const month = Math.floor(Math.random() * 12) + 1;
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const day = Math.floor(Math.random() * daysInMonth) + 1;
+
+  const date = new Date(year, month - 1, day);
+  if (date > TODAY) {
+    const daysAgo = Math.floor(Math.random() * 30);
+    date.setTime(TODAY.getTime() - daysAgo * 24 * 60 * 60 * 1000);
+  }
+
+  return date.toISOString().split("T")[0];
+}
 
 // Item IDs from inventory.ts
 const RACAO_PREMIUM = "ii0e8400-e29b-41d4-a716-446655440010";
@@ -27,7 +64,7 @@ const PASTO_NORTE = "660e8400-e29b-41d4-a716-446655440010";
 const PASTO_SUL = "660e8400-e29b-41d4-a716-446655440011";
 const CONFINAMENTO_PRINCIPAL = "660e8400-e29b-41d4-a716-446655440014";
 
-export const mockInventoryMovements: InventoryMovement[] = [
+const inventoryMovements: InventoryMovement[] = [
   {
     id: "im0e8400-e29b-41d4-a716-446655440010",
     itemId: RACAO_PREMIUM,
@@ -158,3 +195,82 @@ export const mockInventoryMovements: InventoryMovement[] = [
     createdAt: "2025-11-14",
   },
 ];
+
+// Generate more movements with realistic dates
+const additionalMovements: InventoryMovement[] = [];
+const items = [RACAO_PREMIUM, VACINA_AFTOSA, ANTIBIOTICO, SUPLEMENTO_MINERAL, VITAMINA_AD];
+const suppliers = [SUPPLIER_AGROFORNECEDORA, SUPPLIER_CARLOS, SUPPLIER_AGROSUPRIMENTOS];
+const locations = [PASTO_NORTE, PASTO_SUL, CONFINAMENTO_PRINCIPAL];
+const properties = [FAZENDA_DO_JUCA, SITIO_LIMOEIRO, CHACARA_DO_JUCA];
+
+// Generate 30 more movements (purchases and consumptions)
+for (let i = 0; i < 30; i++) {
+  const itemId = items[i % items.length];
+  const isPurchase = i % 3 === 0; // Every 3rd is a purchase
+  const date = getRealisticDate(i, 30);
+  const dateObj = new Date(date);
+
+  if (isPurchase) {
+    // Purchase movement
+    const supplierId = suppliers[i % suppliers.length];
+    const propertyId = properties[i % properties.length];
+    const quantity = [500, 1000, 2000, 50, 100, 200][i % 6];
+    const unitPrice =
+      itemId === RACAO_PREMIUM
+        ? 1.5 + Math.random() * 0.5
+        : itemId === VACINA_AFTOSA
+          ? 7 + Math.random() * 2
+          : itemId === ANTIBIOTICO
+            ? 40 + Math.random() * 10
+            : itemId === SUPLEMENTO_MINERAL
+              ? 2 + Math.random() * 0.5
+              : 20 + Math.random() * 10;
+
+    // Expiration date for items with expiration (6-12 months after purchase)
+    let expirationDate: string | undefined;
+    if (itemId === VACINA_AFTOSA || itemId === ANTIBIOTICO || itemId === VITAMINA_AD) {
+      const expDate = new Date(dateObj);
+      expDate.setMonth(expDate.getMonth() + 6 + Math.floor(Math.random() * 6));
+      expirationDate = expDate.toISOString().split("T")[0];
+    }
+
+    additionalMovements.push({
+      id: `im0e8400-e29b-41d4-a716-${(446655440020 + i).toString().padStart(12, "0")}`,
+      itemId,
+      type: InventoryMovementType.PURCHASE,
+      quantity,
+      unitPrice: Math.round(unitPrice * 100) / 100,
+      date,
+      description: `Compra de ${itemId === RACAO_PREMIUM ? "ração" : itemId === VACINA_AFTOSA ? "vacinas" : itemId === ANTIBIOTICO ? "antibióticos" : itemId === SUPLEMENTO_MINERAL ? "suplemento mineral" : "vitaminas"}`,
+      supplierId,
+      propertyId,
+      companyId: COMPANY_ID,
+      expirationDate,
+      createdAt: date,
+    });
+  } else {
+    // Consumption movement
+    const propertyId = properties[i % properties.length];
+    const locationId = locations[i % locations.length];
+    const quantity = [50, 100, 150, 200, 250, 300][i % 6];
+
+    additionalMovements.push({
+      id: `im0e8400-e29b-41d4-a716-${(446655440020 + i).toString().padStart(12, "0")}`,
+      itemId,
+      type: InventoryMovementType.CONSUMPTION,
+      quantity,
+      date,
+      description: `Consumo de ${itemId === RACAO_PREMIUM ? "ração" : itemId === VACINA_AFTOSA ? "vacinas" : itemId === ANTIBIOTICO ? "antibióticos" : itemId === SUPLEMENTO_MINERAL ? "suplemento mineral" : "vitaminas"}`,
+      propertyId,
+      companyId: COMPANY_ID,
+      locationId,
+      createdAt: date,
+    });
+  }
+}
+
+// Combine and sort by date
+const allMovements = [...inventoryMovements, ...additionalMovements];
+allMovements.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+export const mockInventoryMovements: InventoryMovement[] = allMovements;

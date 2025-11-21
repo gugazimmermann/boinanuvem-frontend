@@ -1,6 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router";
-import { differenceInMonths, differenceInDays, format } from "date-fns";
+import {
+  differenceInMonths,
+  differenceInDays,
+  differenceInHours,
+  differenceInMinutes,
+  format,
+} from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import { enUS } from "date-fns/locale/en-US";
 import { es } from "date-fns/locale/es";
@@ -27,7 +33,12 @@ import {
 } from "~/routes.config";
 import { getAnimalById } from "~/services/animals.service";
 import { getPropertyById } from "~/services/properties.service";
-import { getBirthByAnimalId, getBirthsByFatherId } from "~/services/births.service";
+import {
+  getBirthByAnimalId,
+  getBirthsByFatherId,
+  getCalvingIntervalsByAnimalId,
+  getBirthsByCompanyId,
+} from "~/services/births.service";
 import { getAcquisitionByAnimalId } from "~/services/acquisitions.service";
 import { getWeighingsByAnimalId } from "~/services/weighings.service";
 import {
@@ -39,6 +50,8 @@ import {
   confirmBreeding,
   deleteBreeding,
 } from "~/services/breedings.service";
+import { getAnimalMovementsByAnimalId } from "~/services/animal-movements.service";
+import { getLocationById } from "~/services/locations.service";
 import type { Breeding, Birth } from "~/types";
 import type { AnimalObservation } from "~/types/animal-observation";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
@@ -46,6 +59,18 @@ import type { BirthPurity } from "~/types";
 import { usePermissions } from "~/utils/permissions";
 import { getAnimalTotalCost } from "~/services/location-costs.service";
 import { getLocationViewRoute } from "~/routes.config";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+import { useTheme } from "~/contexts/theme-context";
+import { mockCompanies } from "~/mocks/companies";
 
 type GenealogyNodeType = {
   animal: { id: string; code: string; registrationNumber: string };
@@ -169,6 +194,8 @@ export default function AnimalDetails() {
   const navigate = useNavigate();
   const t = useTranslation();
   const { language } = useLanguage();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const { canEdit, isMainUser } = usePermissions();
   const animal = getAnimalById(animalId);
 
@@ -407,6 +434,88 @@ export default function AnimalDetails() {
     });
   }, [sonsBirths, sonsSortState, localeForDateTime]);
 
+  // All hooks must be called before any early returns
+  // Reproductive Statistics
+  const company = mockCompanies[0];
+  const companyId = company?.id || "";
+  const allCompanyBirths = useMemo(() => getBirthsByCompanyId(companyId), [companyId]);
+  const birthsAsMother = useMemo(
+    () => (animal ? allCompanyBirths.filter((b) => b.motherId === animal.id) : []),
+    [animal, allCompanyBirths]
+  );
+  const confirmedBreedings = useMemo(
+    () => breedings.filter((b) => b.confirmed === true),
+    [breedings]
+  );
+  const pendingBreedings = useMemo(
+    () => breedings.filter((b) => b.confirmed === false),
+    [breedings]
+  );
+  const calvingIntervals = useMemo(
+    () => (animal ? getCalvingIntervalsByAnimalId(animal.id) : []),
+    [animal]
+  );
+  const averageCalvingInterval =
+    calvingIntervals.length > 0
+      ? Math.round(calvingIntervals.reduce((a, b) => a + b, 0) / calvingIntervals.length)
+      : null;
+
+  // Location & Property Information
+  const animalMovements = useMemo(
+    () => (animal ? getAnimalMovementsByAnimalId(animal.id) : []),
+    [animal]
+  );
+  const sortedMovements = useMemo(
+    () =>
+      [...animalMovements].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    [animalMovements]
+  );
+  const currentMovement = sortedMovements[0];
+  const currentLocation = currentMovement ? getLocationById(currentMovement.locationId) : null;
+  const currentProperty = currentLocation
+    ? getPropertyById(currentLocation.propertyId)
+    : animal?.propertyId
+      ? getPropertyById(animal.propertyId)
+      : null;
+  const daysInCurrentLocation = useMemo(() => {
+    if (!currentMovement) return null;
+    const today = new Date();
+    const movementDate = new Date(currentMovement.date);
+    return differenceInDays(today, movementDate);
+  }, [currentMovement]);
+
+  // Cost Information
+  const animalCostData = useMemo(() => {
+    if (!animal) return null;
+    return getAnimalTotalCost(animal.id, costsStartDate || undefined, costsEndDate || undefined);
+  }, [animal, costsStartDate, costsEndDate]);
+  const totalCost = animalCostData?.totalCost || 0;
+  const costPerKg = currentWeight > 0 ? totalCost / currentWeight : 0;
+
+  // Weighing Statistics
+  const firstWeighing =
+    sortedWeighings.length > 0 ? sortedWeighings[sortedWeighings.length - 1] : null;
+  const weightGainSinceFirst =
+    firstWeighing && currentWeight > 0 ? currentWeight - firstWeighing.weight : null;
+  const averageWeightGainPerMonth = useMemo(() => {
+    if (!firstWeighing || !lastWeighing || weightGainSinceFirst === null) return null;
+    const firstDate = new Date(firstWeighing.date);
+    const lastDate = new Date(lastWeighing.date);
+    const monthsDiff = differenceInMonths(lastDate, firstDate);
+    return monthsDiff > 0 ? (weightGainSinceFirst / monthsDiff).toFixed(2) : null;
+  }, [firstWeighing, lastWeighing, weightGainSinceFirst]);
+
+  // Weight Trend Chart Data
+  const weightChartData = useMemo(() => {
+    return sortedWeighings
+      .slice()
+      .reverse()
+      .map((weighing) => ({
+        date: format(new Date(weighing.date), "dd/MM", { locale: dateLocale }),
+        weight: weighing.weight,
+      }));
+  }, [sortedWeighings, dateLocale]);
+
   if (!animal) {
     return (
       <div className="space-y-6">
@@ -437,6 +546,13 @@ export default function AnimalDetails() {
       hour: "2-digit",
       minute: "2-digit",
     }).format(date);
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat(localeForNumber, {
+      style: "currency",
+      currency: "BRL",
+    }).format(value);
   };
 
   const handleSubmitObservation = async (e: React.FormEvent) => {
@@ -523,6 +639,35 @@ export default function AnimalDetails() {
   };
 
   const genealogyTree = buildGenealogyTree(animal.id);
+
+  // Recent Activity
+  const recentWeighings = sortedWeighings.slice(0, 5);
+  const recentBreedingsList = breedings.slice(0, 5);
+  const recentMovementsList = sortedMovements.slice(0, 5);
+  const formatRelativeTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const minutes = differenceInMinutes(now, date);
+    if (minutes < 1) {
+      return t.dashboard.recentActivities.justNow;
+    } else if (minutes < 60) {
+      return t.dashboard.recentActivities.minutesAgo(minutes);
+    } else {
+      const hours = differenceInHours(now, date);
+      if (hours < 24) {
+        return t.dashboard.recentActivities.hoursAgo(hours);
+      } else {
+        const days = differenceInDays(now, date);
+        if (days === 1) {
+          return t.dashboard.recentActivities.yesterday;
+        } else if (days < 7) {
+          return t.dashboard.recentActivities.daysAgo(days);
+        } else {
+          return format(date, "dd/MM/yyyy", { locale: dateLocale });
+        }
+      }
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -732,69 +877,663 @@ export default function AnimalDetails() {
 
       {activeTab === "dashboard" && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                    {t.animals.table.weight}
-                  </p>
-                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                    {currentWeight > 0 ? `${currentWeight} kg` : "-"}
-                  </p>
+          {/* Key Metrics */}
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              {t.dashboard.title}
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                      {t.animals.table.weight}
+                    </p>
+                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                      {currentWeight > 0 ? `${currentWeight} kg` : "-"}
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                    <span className="text-lg">⚖️</span>
+                  </div>
                 </div>
-                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                  <span className="text-lg">⚖️</span>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                      {t.animals.table.weightInArrobas}
+                    </p>
+                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                      {weightInArrobas} @
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                    <span className="text-lg">📊</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                      {t.animals.table.gmd}
+                    </p>
+                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                      {gmd ? `${gmd} kg/dia` : "-"}
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                    <span className="text-lg">📈</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                      {t.animals.table.birthDate}
+                    </p>
+                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                      {age !== null
+                        ? `${age} ${age === 1 ? t.common.month : t.common.months}`
+                        : "-"}
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
+                    <span className="text-lg">🎂</span>
+                  </div>
                 </div>
               </div>
             </div>
+          </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                    {t.animals.table.weightInArrobas}
-                  </p>
-                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                    {weightInArrobas} @
-                  </p>
+          {/* Additional Metrics */}
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              {t.animals.details.dashboard.additionalMetrics}
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                      {t.animals.table.status}
+                    </p>
+                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                      <StatusBadge
+                        label={
+                          animal.status === "active"
+                            ? t.animals.table.active
+                            : t.animals.table.inactive
+                        }
+                        variant={animal.status === "active" ? "success" : "default"}
+                      />
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
+                    <span className="text-lg">✓</span>
+                  </div>
                 </div>
-                <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                  <span className="text-lg">📊</span>
+              </div>
+
+              {birth?.breed && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                        {t.animals.details.dashboard.breed}
+                      </p>
+                      <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                        {t.animals.breeds[birth.breed] || birth.breed}
+                      </p>
+                    </div>
+                    <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
+                      <span className="text-lg">🐄</span>
+                    </div>
+                  </div>
                 </div>
+              )}
+
+              {(birth?.gender || acquisition?.gender) && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                        {t.animals.details.dashboard.gender}
+                      </p>
+                      <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                        {
+                          t.animals.gender[
+                            (birth?.gender || acquisition?.gender) as "male" | "female"
+                          ]
+                        }
+                      </p>
+                    </div>
+                    <div className="w-10 h-10 bg-pink-100 dark:bg-pink-900/30 rounded-lg flex items-center justify-center">
+                      <span className="text-lg">
+                        {birth?.gender === "male" || acquisition?.gender === "male" ? "♂" : "♀"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {birth?.purity && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                        {t.animals.details.purity}
+                      </p>
+                      <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                        {t.animals.purity[birth.purity]}
+                      </p>
+                    </div>
+                    <div className="w-10 h-10 bg-teal-100 dark:bg-teal-900/30 rounded-lg flex items-center justify-center">
+                      <span className="text-lg">⭐</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Reproductive Statistics */}
+          {(!isMale && (birthsAsMother.length > 0 || breedings.length > 0)) ||
+          (isMale && (sonsBirths.length > 0 || breedings.length > 0)) ? (
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                {t.animals.details.dashboard.reproductiveStatistics}
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {!isMale ? (
+                  <>
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                            {t.animals.details.dashboard.totalBirths}
+                          </p>
+                          <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                            {birthsAsMother.length}
+                          </p>
+                        </div>
+                        <div className="w-10 h-10 bg-pink-100 dark:bg-pink-900/30 rounded-lg flex items-center justify-center">
+                          <span className="text-lg">👶</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                            {t.animals.details.dashboard.confirmedBreedings}
+                          </p>
+                          <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                            {confirmedBreedings.length}
+                          </p>
+                        </div>
+                        <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                          <span className="text-lg">✅</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                            {t.animals.details.dashboard.pendingBreedings}
+                          </p>
+                          <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                            {pendingBreedings.length}
+                          </p>
+                        </div>
+                        <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
+                          <span className="text-lg">⏳</span>
+                        </div>
+                      </div>
+                    </div>
+                    {averageCalvingInterval !== null && (
+                      <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                              {t.animals.details.dashboard.averageCalvingInterval}
+                            </p>
+                            <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                              {averageCalvingInterval} {t.animals.details.dashboard.days}
+                            </p>
+                          </div>
+                          <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                            <span className="text-lg">📅</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                            {t.animals.details.dashboard.totalOffspring}
+                          </p>
+                          <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                            {sonsBirths.length}
+                          </p>
+                        </div>
+                        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                          <span className="text-lg">👨</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                            {t.animals.details.dashboard.totalBreedings}
+                          </p>
+                          <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                            {breedings.length}
+                          </p>
+                        </div>
+                        <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                          <span className="text-lg">🐂</span>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
+          ) : null}
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                    {t.animals.table.gmd}
-                  </p>
-                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                    {gmd ? `${gmd} kg/dia` : "-"}
-                  </p>
+          {/* Location & Property Information */}
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              {t.animals.details.dashboard.locationProperty}
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                      {t.animals.details.dashboard.currentLocation}
+                    </p>
+                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                      {currentLocation ? (
+                        <button
+                          onClick={() => navigate(getLocationViewRoute(currentLocation.id))}
+                          className="hover:underline"
+                        >
+                          {currentLocation.name}
+                        </button>
+                      ) : (
+                        t.animals.details.dashboard.noLocation
+                      )}
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg flex items-center justify-center">
+                    <span className="text-lg">📍</span>
+                  </div>
                 </div>
-                <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-                  <span className="text-lg">📈</span>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                      {t.animals.details.dashboard.currentProperty}
+                    </p>
+                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                      {currentProperty ? (
+                        <button
+                          onClick={() => navigate(getPropertyViewRoute(currentProperty.id))}
+                          className="hover:underline"
+                        >
+                          {currentProperty.name}
+                        </button>
+                      ) : (
+                        t.animals.details.dashboard.noProperty
+                      )}
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center">
+                    <span className="text-lg">🏡</span>
+                  </div>
                 </div>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                      {t.animals.details.dashboard.totalMovements}
+                    </p>
+                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                      {animalMovements.length}
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
+                    <span className="text-lg">🚚</span>
+                  </div>
+                </div>
+              </div>
+
+              {daysInCurrentLocation !== null && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                        {t.animals.details.dashboard.daysInLocation}
+                      </p>
+                      <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                        {daysInCurrentLocation} {t.animals.details.dashboard.days}
+                      </p>
+                    </div>
+                    <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
+                      <span className="text-lg">📆</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Cost Information */}
+          {animalCostData && (
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                {t.animals.details.dashboard.costInformation}
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                        {t.animals.details.costs.totalCost}
+                      </p>
+                      <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                        {formatCurrency(totalCost)}
+                      </p>
+                    </div>
+                    <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                      <span className="text-lg">💰</span>
+                    </div>
+                  </div>
+                </div>
+
+                {currentWeight > 0 && (
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                          {t.animals.details.dashboard.costPerKg}
+                        </p>
+                        <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                          {formatCurrency(costPerKg)}
+                        </p>
+                      </div>
+                      <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
+                        <span className="text-lg">📊</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
+          )}
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                    {t.animals.table.birthDate}
-                  </p>
-                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                    {age !== null ? `${age} ${age === 1 ? t.common.month : t.common.months}` : "-"}
-                  </p>
+          {/* Weighing Statistics */}
+          {weighings.length > 0 && (
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                {t.animals.details.dashboard.weighingStatistics}
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                        {t.animals.details.dashboard.totalWeighings}
+                      </p>
+                      <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                        {weighings.length}
+                      </p>
+                    </div>
+                    <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                      <span className="text-lg">⚖️</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
-                  <span className="text-lg">🎂</span>
-                </div>
+
+                {firstWeighing && (
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                          {t.animals.details.dashboard.firstWeighing}
+                        </p>
+                        <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                          {formatDate(firstWeighing.date)}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          {firstWeighing.weight} kg
+                        </p>
+                      </div>
+                      <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                        <span className="text-lg">📅</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {lastWeighing && (
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                          {t.animals.details.dashboard.lastWeighing}
+                        </p>
+                        <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                          {formatDate(lastWeighing.date)}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          {lastWeighing.weight} kg
+                        </p>
+                      </div>
+                      <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                        <span className="text-lg">📅</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {weightGainSinceFirst !== null && (
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                          {t.animals.details.dashboard.weightGain}
+                        </p>
+                        <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                          {weightGainSinceFirst > 0 ? "+" : ""}
+                          {weightGainSinceFirst.toFixed(1)} kg
+                        </p>
+                        {averageWeightGainPerMonth && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {averageWeightGainPerMonth} kg/{t.common.month}
+                          </p>
+                        )}
+                      </div>
+                      <div className="w-10 h-10 bg-teal-100 dark:bg-teal-900/30 rounded-lg flex items-center justify-center">
+                        <span className="text-lg">📈</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
+            </div>
+          )}
+
+          {/* Weight Trend Chart */}
+          {weightChartData.length > 1 && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                {t.animals.details.dashboard.weightTrend}
+              </h2>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={weightChartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#374151" : "#e5e7eb"} />
+                  <XAxis
+                    dataKey="date"
+                    stroke={isDark ? "#9ca3af" : "#6b7280"}
+                    style={{ fontSize: "12px" }}
+                  />
+                  <YAxis
+                    stroke={isDark ? "#9ca3af" : "#6b7280"}
+                    style={{ fontSize: "12px" }}
+                    label={{ value: "Weight (kg)", angle: -90, position: "insideLeft" }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: isDark ? "#1f2937" : "#ffffff",
+                      border: `1px solid ${isDark ? "#374151" : "#e5e7eb"}`,
+                      borderRadius: "8px",
+                    }}
+                  />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="weight"
+                    stroke={DASHBOARD_COLORS.primary}
+                    strokeWidth={2}
+                    dot={{ fill: DASHBOARD_COLORS.primary, r: 4 }}
+                    name="Weight (kg)"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* Recent Activity */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              {t.animals.details.dashboard.recentActivity}
+            </h2>
+            <div className="space-y-3">
+              {recentWeighings.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {t.animals.details.dashboard.recentWeighings}
+                  </h3>
+                  <div className="space-y-2">
+                    {recentWeighings.map((weighing) => (
+                      <div
+                        key={weighing.id}
+                        className="flex items-center space-x-3 pb-2 border-b border-gray-200 dark:border-gray-700 last:border-0"
+                      >
+                        <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                          <span className="text-sm">⚖️</span>
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-xs font-medium text-gray-900 dark:text-gray-100">
+                            {t.animals.details.weighing}: {weighing.weight} kg
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {formatRelativeTime(weighing.date)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {!isMale && recentBreedingsList.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {t.animals.details.dashboard.recentBreedings}
+                  </h3>
+                  <div className="space-y-2">
+                    {recentBreedingsList.map((breeding) => (
+                      <div
+                        key={breeding.id}
+                        className="flex items-center space-x-3 pb-2 border-b border-gray-200 dark:border-gray-700 last:border-0"
+                      >
+                        <div className="w-8 h-8 bg-pink-100 dark:bg-pink-900/30 rounded-full flex items-center justify-center">
+                          <span className="text-sm">💕</span>
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-xs font-medium text-gray-900 dark:text-gray-100">
+                            {t.animals.details.breeding.title}: {formatDate(breeding.date)}
+                            <span className="ml-2">
+                              {breeding.confirmed ? (
+                                <StatusBadge
+                                  label={t.animals.details.breeding.table.confirmed}
+                                  variant="success"
+                                />
+                              ) : (
+                                <StatusBadge
+                                  label={t.animals.details.breeding.table.unconfirmed}
+                                  variant="default"
+                                />
+                              )}
+                            </span>
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {formatRelativeTime(breeding.date)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {recentMovementsList.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {t.animals.details.dashboard.recentMovements}
+                  </h3>
+                  <div className="space-y-2">
+                    {recentMovementsList.map((movement) => {
+                      const location = getLocationById(movement.locationId);
+                      return (
+                        <div
+                          key={movement.id}
+                          className="flex items-center space-x-3 pb-2 border-b border-gray-200 dark:border-gray-700 last:border-0"
+                        >
+                          <div className="w-8 h-8 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center">
+                            <span className="text-sm">🚚</span>
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs font-medium text-gray-900 dark:text-gray-100">
+                              {location?.name || t.animals.details.dashboard.noLocation}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {formatRelativeTime(movement.date)}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {recentWeighings.length === 0 &&
+                recentBreedingsList.length === 0 &&
+                recentMovementsList.length === 0 && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {t.dashboard.recentActivities.noActivities}
+                  </p>
+                )}
             </div>
           </div>
         </div>

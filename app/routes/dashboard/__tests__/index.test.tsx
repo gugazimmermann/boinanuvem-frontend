@@ -70,7 +70,15 @@ vi.mock("~/services/births.service", async () => {
   );
   return {
     ...actual,
-    getBirthsByCompanyId: vi.fn(() => [{ id: "birth-1" }]),
+    getBirthsByCompanyId: vi.fn(() => [
+      {
+        id: "birth-1",
+        animalId: "animal-1",
+        birthDate: "2025-11-15",
+        createdAt: "2025-11-15",
+        companyId: "550e8400-e29b-41d4-a716-446655440000",
+      },
+    ]),
   };
 });
 

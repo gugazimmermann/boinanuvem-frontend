@@ -1,7 +1,7 @@
 import type { Acquisition, AcquisitionFormData } from "~/types";
 import { AnimalBreed, BirthPurity } from "~/types";
 import { mockAnimals } from "./animals";
-import { getBirthByAnimalId } from "~/services/births.service";
+import { mockBirths } from "./births";
 import { generateAcquisitionId } from "~/services/acquisitions.service";
 
 export type { Acquisition, AcquisitionFormData };
@@ -28,17 +28,38 @@ const breeds = [
 const acquisitions: Acquisition[] = [];
 
 function initializeAcquisitions(): void {
-  const animalsWithAcquisition = mockAnimals.filter((a) => a.acquisitionDate);
+  // Only create acquisitions for animals that don't have birth records
+  // And that were created after the founder period (not in first 15 of each property)
+  const animalsWithoutBirths = mockAnimals.filter((animal) => {
+    const birth = mockBirths.find((b) => b.animalId === animal.id);
+    if (birth) return false;
 
-  animalsWithAcquisition.forEach((animal, index) => {
-    const birth = getBirthByAnimalId(animal.id);
+    // Skip founder animals (first 15 of each property) - they should have births
+    const code = animal.code;
+    if (code.startsWith("FJ")) {
+      const num = parseInt(code.substring(2));
+      if (num <= 15) return false;
+    } else if (code.startsWith("CJ")) {
+      const num = parseInt(code.substring(2));
+      if (num <= 15) return false;
+    } else if (code.startsWith("SL")) {
+      const num = parseInt(code.substring(2));
+      if (num <= 15) return false;
+    }
 
-    if (birth) return;
+    return true;
+  });
 
+  // Select a subset of these animals to have acquisitions (about 20-30% of non-founder animals)
+  const animalsToAcquire = animalsWithoutBirths.filter((_, index) => index % 4 === 0);
+
+  animalsToAcquire.forEach((animal, index) => {
     const breed = breeds[index % breeds.length];
-    const gender = index % 2 === 0 ? "male" : "female";
+    // Use more realistic gender distribution (slightly more males in acquisitions)
+    const gender = Math.random() < 0.55 ? "male" : "female";
     const sellerId = suppliers[index % suppliers.length];
-    const price = 2000 + (index % 20) * 500;
+    // More realistic price range: R$ 2,000 to R$ 12,000
+    const price = 2000 + Math.floor(Math.random() * 10000);
 
     let motherId: string | undefined;
     let fatherId: string | undefined;
@@ -63,8 +84,12 @@ function initializeAcquisitions(): void {
           const birthDay = String((index % 28) + 1).padStart(2, "0");
           birthDate = `${birthYear}-${birthMonth}-${birthDay}`;
 
-          const motherBirth = motherId ? getBirthByAnimalId(motherId) : undefined;
-          const fatherBirth = fatherId ? getBirthByAnimalId(fatherId) : undefined;
+          const motherBirth = motherId
+            ? mockBirths.find((b) => b.animalId === motherId)
+            : undefined;
+          const fatherBirth = fatherId
+            ? mockBirths.find((b) => b.animalId === fatherId)
+            : undefined;
 
           if (motherBirth && fatherBirth) {
             if (
@@ -90,10 +115,13 @@ function initializeAcquisitions(): void {
       }
     }
 
+    // Acquisition date should be close to animal creation date
+    const acquisitionDate = animal.createdAt;
+
     acquisitions.push({
       id: generateAcquisitionId(index),
       animalId: animal.id,
-      acquisitionDate: animal.acquisitionDate!,
+      acquisitionDate,
       breed,
       gender,
       sellerId,
@@ -108,7 +136,7 @@ function initializeAcquisitions(): void {
       fatherRegistrationNumber,
       purity,
       birthObservation: birthDate ? "Data de nascimento informada pelo vendedor" : undefined,
-      createdAt: animal.acquisitionDate!,
+      createdAt: acquisitionDate,
       companyId: COMPANY_ID,
     });
   });

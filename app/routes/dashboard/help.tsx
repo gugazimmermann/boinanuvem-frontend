@@ -243,6 +243,18 @@ export default function Help() {
         answer: t.help.faqs.dashboardMetrics.answer,
       },
       {
+        id: "property-dashboard",
+        category: "analytics",
+        question: t.help.faqs.propertyDashboard.question,
+        answer: t.help.faqs.propertyDashboard.answer,
+      },
+      {
+        id: "animal-dashboard",
+        category: "analytics",
+        question: t.help.faqs.animalDashboard.question,
+        answer: t.help.faqs.animalDashboard.answer,
+      },
+      {
         id: "pasture-planning",
         category: "analytics",
         question: t.help.faqs.pasturePlanning.question,

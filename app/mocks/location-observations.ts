@@ -3,10 +3,50 @@ import type {
   LocationObservationFormData,
 } from "~/types/location-observation";
 import { generateUUID } from "~/utils/uuid";
+import { mockLocations } from "./locations";
 
 export type { LocationObservation, LocationObservationFormData };
 
-export const mockLocationObservations: LocationObservation[] = [
+// Today is November 21, 2025
+const TODAY = new Date("2025-11-21");
+
+// Helper to generate realistic dates
+function getRealisticDate(index: number, total: number): string {
+  const years = [2020, 2021, 2022, 2023, 2024, 2025];
+  const progress = index / total;
+
+  let yearIndex: number;
+  if (progress < 0.1) {
+    yearIndex = 0;
+  } else if (progress < 0.2) {
+    yearIndex = 1;
+  } else if (progress < 0.4) {
+    yearIndex = 2;
+  } else if (progress < 0.6) {
+    yearIndex = 3;
+  } else if (progress < 0.8) {
+    yearIndex = 4;
+  } else {
+    yearIndex = 5;
+  }
+
+  const year = years[yearIndex];
+  const month = Math.floor(Math.random() * 12) + 1;
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const day = Math.floor(Math.random() * daysInMonth) + 1;
+  const hour = Math.floor(Math.random() * 24);
+  const minute = Math.floor(Math.random() * 60);
+
+  const date = new Date(year, month - 1, day, hour, minute);
+  if (date > TODAY) {
+    const daysAgo = Math.floor(Math.random() * 30);
+    date.setTime(TODAY.getTime() - daysAgo * 24 * 60 * 60 * 1000);
+  }
+
+  return date.toISOString();
+}
+
+const baseObservations: LocationObservation[] = [
   {
     id: generateUUID(),
     locationId: "660e8400-e29b-41d4-a716-446655440010",
@@ -345,3 +385,64 @@ export const mockLocationObservations: LocationObservation[] = [
     createdBy: "user-002",
   },
 ];
+
+// Generate dates for all observations
+const observationsWithDates = baseObservations.map((obs, index) => {
+  const newDate = getRealisticDate(index, baseObservations.length);
+  return {
+    ...obs,
+    createdAt: newDate,
+  };
+});
+
+// Generate additional observations for more locations
+const additionalObservations: LocationObservation[] = [];
+const userIds = ["user-001", "user-002", "user-003"];
+
+const locationObservationTemplates = [
+  "Pasto apresentando boa qualidade de grama. Área necessita de rotação em breve.",
+  "Verificação de cercas realizada. Nenhum dano encontrado.",
+  "Rotação de pasto realizada com sucesso. Animais transferidos para nova área.",
+  "Sistema de irrigação funcionando perfeitamente.",
+  "Aplicação de fertilizante realizada. Condições climáticas favoráveis.",
+  "Reparo de cerca concluído com sucesso.",
+  "Inspeção geral da área realizada. Grama em bom estado.",
+  "Análise de solo realizada. Resultados indicam necessidade de adubação.",
+  "Adubação complementar aplicada conforme recomendação.",
+  "Verificação de bebedouros. Todos funcionando corretamente.",
+  "Limpeza de área realizada. Remoção de resíduos concluída.",
+  "Verificação de drenagem. Sistema funcionando adequadamente.",
+  "Monitoramento de pasto. Qualidade da grama dentro do esperado.",
+  "Manutenção de equipamentos realizada na área.",
+  "Verificação de segurança. Cercas e portões em bom estado.",
+];
+
+// Generate 30 more observations
+for (let i = 0; i < 30; i++) {
+  const location = mockLocations[Math.floor(Math.random() * mockLocations.length)];
+  if (!location) continue;
+
+  const observationDate = getRealisticDate(i, 30);
+
+  const hasFiles = Math.random() < 0.3;
+  const fileIds = hasFiles
+    ? Array.from(
+        { length: Math.floor(Math.random() * 3) + 1 },
+        (_, idx) => `file-loc-obs-${location.id}-${i}-${idx + 1}`
+      )
+    : [];
+
+  additionalObservations.push({
+    id: generateUUID(),
+    locationId: location.id,
+    observation: locationObservationTemplates[i % locationObservationTemplates.length],
+    fileIds: fileIds.length > 0 ? fileIds : undefined,
+    createdAt: observationDate,
+    createdBy: userIds[i % userIds.length],
+  });
+}
+
+export const mockLocationObservations: LocationObservation[] = [
+  ...observationsWithDates,
+  ...additionalObservations,
+].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());

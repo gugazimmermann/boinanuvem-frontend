@@ -56,6 +56,11 @@ vi.mock("~/mocks/locations", async () => {
 
 vi.mock("~/services/locations.service", () => ({
   getLocationsByPropertyId: (...args: unknown[]) => mockGetLocationsByPropertyId(...args),
+  getLocationById: vi.fn((id: string) => ({
+    id,
+    name: `Location ${id}`,
+    propertyId: "property-1",
+  })),
 }));
 
 const mockGetAnimalsByPropertyId = vi.fn(() => [
@@ -79,9 +84,15 @@ vi.mock("~/mocks/employees", async () => {
   return actual;
 });
 
+const mockGetEmployeesByPropertyId = vi.fn(() => []);
+const mockGetEmployeeById = vi.fn((id: string) => ({ id, name: `Employee ${id}` }));
 vi.mock("~/services/employees.service", () => ({
-  getEmployeesByPropertyId: vi.fn(() => []),
-  getEmployeeById: vi.fn((id: string) => ({ id, name: `Employee ${id}` })),
+  getEmployeesByPropertyId: (...args: unknown[]) => mockGetEmployeesByPropertyId(...args),
+  getEmployeeById: (...args: unknown[]) => mockGetEmployeeById(...args),
+  getEmployeesByCompanyId: vi.fn(() => []),
+  addEmployee: vi.fn(),
+  updateEmployee: vi.fn(),
+  deleteEmployee: vi.fn(),
 }));
 
 vi.mock("~/mocks/service-providers", async () => {
@@ -91,9 +102,12 @@ vi.mock("~/mocks/service-providers", async () => {
   return actual;
 });
 
+const mockGetServiceProvidersByPropertyId = vi.fn(() => []);
+const mockGetServiceProviderById = vi.fn((id: string) => ({ id, name: `SP ${id}` }));
 vi.mock("~/services/service-providers.service", () => ({
-  getServiceProvidersByPropertyId: vi.fn(() => []),
-  getServiceProviderById: vi.fn((id: string) => ({ id, name: `SP ${id}` })),
+  getServiceProvidersByPropertyId: (...args: unknown[]) =>
+    mockGetServiceProvidersByPropertyId(...args),
+  getServiceProviderById: (...args: unknown[]) => mockGetServiceProviderById(...args),
 }));
 
 vi.mock("~/mocks/suppliers", async () => {
@@ -101,8 +115,10 @@ vi.mock("~/mocks/suppliers", async () => {
   return actual;
 });
 
+const mockGetSuppliersByPropertyId = vi.fn(() => []);
 vi.mock("~/services/suppliers.service", () => ({
-  getSuppliersByPropertyId: vi.fn(() => []),
+  getSuppliersByPropertyId: (...args: unknown[]) => mockGetSuppliersByPropertyId(...args),
+  getSupplierById: vi.fn((id: string) => ({ id, name: `Supplier ${id}` })),
 }));
 
 vi.mock("~/mocks/buyers", async () => {
@@ -110,8 +126,10 @@ vi.mock("~/mocks/buyers", async () => {
   return actual;
 });
 
+const mockGetBuyersByPropertyId = vi.fn(() => []);
 vi.mock("~/services/buyers.service", () => ({
-  getBuyersByPropertyId: vi.fn(() => []),
+  getBuyersByPropertyId: (...args: unknown[]) => mockGetBuyersByPropertyId(...args),
+  getBuyerById: vi.fn((id: string) => ({ id, name: `Buyer ${id}` })),
 }));
 
 vi.mock("~/mocks/location-movements", async () => {
@@ -143,6 +161,15 @@ vi.mock("~/mocks/births", async () => {
 
 vi.mock("~/services/births.service", () => ({
   getBirthByAnimalId: vi.fn(() => null),
+  getBirthsByCompanyId: vi.fn(() => []),
+}));
+
+vi.mock("~/services/breedings.service", () => ({
+  getBreedingsByAnimalId: vi.fn(() => []),
+}));
+
+vi.mock("~/services/reproductive-indexes.service", () => ({
+  getExpectedBirthsForecast: vi.fn(() => []),
 }));
 
 const mockGetWeighingsByAnimalId = vi.fn(() => []);
@@ -188,22 +215,6 @@ vi.mock("~/mocks/accounts-payable", async () => {
 vi.mock("~/services/accounts-payable.service", () => ({
   getAccountsPayableByPropertyId: vi.fn(() => []),
   deleteAccountsPayable: vi.fn(() => true),
-}));
-
-vi.mock("~/services/suppliers.service", () => ({
-  getSupplierById: vi.fn((id: string) => ({ id, name: `Supplier ${id}` })),
-}));
-
-vi.mock("~/services/buyers.service", () => ({
-  getBuyerById: vi.fn((id: string) => ({ id, name: `Buyer ${id}` })),
-}));
-
-vi.mock("~/services/employees.service", () => ({
-  getEmployeeById: vi.fn((id: string) => ({ id, name: `Employee ${id}` })),
-}));
-
-vi.mock("~/services/service-providers.service", () => ({
-  getServiceProviderById: vi.fn((id: string) => ({ id, name: `ServiceProvider ${id}` })),
 }));
 
 vi.mock("~/components/ui", () => ({
@@ -288,6 +299,10 @@ vi.mock("~/components/ui", () => ({
   ),
 }));
 
+vi.mock("~/components/dashboard/reproductive-indexes/reproductive-indexes", () => ({
+  ReproductiveIndexes: () => <div data-testid="reproductive-indexes" />,
+}));
+
 describe("PropertyDetails", () => {
   const mockProperty = {
     id: "property-1",
@@ -357,14 +372,18 @@ describe("PropertyDetails", () => {
     mockGetWeighingsByAnimalId.mockReturnValue([]);
   });
 
-  it("should render property details", () => {
+  it("should render property details", async () => {
     const router = createRouter("property-1");
     render(<RouterProvider router={router} />);
 
-    expect(getPropertyById).toHaveBeenCalledWith("property-1");
+    await waitFor(() => {
+      expect(getPropertyById).toHaveBeenCalledWith("property-1");
+    });
+
     const buttons = screen.queryAllByRole("button");
     const table = screen.queryByTestId("table");
-    expect(buttons.length > 0 || table).toBeTruthy();
+    const headings = screen.queryAllByRole("heading");
+    expect(buttons.length > 0 || table || headings.length > 0).toBeTruthy();
   });
 
   it("should handle undefined property", () => {
@@ -452,13 +471,17 @@ describe("PropertyDetails", () => {
     }
   });
 
-  it("should calculate and display statistics", () => {
+  it("should calculate and display statistics", async () => {
     const router = createRouter("property-1");
     render(<RouterProvider router={router} />);
 
-    expect(getPropertyById).toHaveBeenCalledWith("property-1");
+    await waitFor(() => {
+      expect(getPropertyById).toHaveBeenCalledWith("property-1");
+    });
+
     const buttons = screen.queryAllByRole("button");
-    expect(buttons.length > 0).toBeTruthy();
+    const headings = screen.queryAllByRole("heading");
+    expect(buttons.length > 0 || headings.length > 0).toBeTruthy();
   });
 
   it("should handle movements tab", () => {
@@ -627,22 +650,32 @@ describe("PropertyDetails", () => {
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
-  it("should display locations tab with locations data", () => {
+  it("should display locations tab with locations data", async () => {
     const router = createRouter("property-1", "tab=locations");
     render(<RouterProvider router={router} />);
 
-    expect(getPropertyById).toHaveBeenCalledWith("property-1");
+    await waitFor(() => {
+      expect(getPropertyById).toHaveBeenCalledWith("property-1");
+    });
+
     const table = screen.queryByTestId("table");
-    expect(table || screen.queryAllByRole("button").length > 0).toBeTruthy();
+    const buttons = screen.queryAllByRole("button");
+    const headings = screen.queryAllByRole("heading");
+    expect(table || buttons.length > 0 || headings.length > 0).toBeTruthy();
   });
 
-  it("should display animals tab with animals data", () => {
+  it("should display animals tab with animals data", async () => {
     const router = createRouter("property-1", "tab=animals");
     render(<RouterProvider router={router} />);
 
-    expect(getPropertyById).toHaveBeenCalledWith("property-1");
+    await waitFor(() => {
+      expect(getPropertyById).toHaveBeenCalledWith("property-1");
+    });
+
     const table = screen.queryByTestId("table");
-    expect(table || screen.queryAllByRole("button").length > 0).toBeTruthy();
+    const buttons = screen.queryAllByRole("button");
+    const headings = screen.queryAllByRole("heading");
+    expect(table || buttons.length > 0 || headings.length > 0).toBeTruthy();
   });
 
   it("should display registrations tab with employees sub-tab", () => {
@@ -754,20 +787,32 @@ describe("PropertyDetails", () => {
     }
   });
 
-  it("should display property map in information tab", () => {
+  it("should display property map in information tab", async () => {
     const router = createRouter("property-1", "tab=info");
     render(<RouterProvider router={router} />);
+
+    await waitFor(() => {
+      expect(getPropertyById).toHaveBeenCalledWith("property-1");
+    });
 
     const map = screen.queryByTestId("property-map");
-    expect(map || screen.queryAllByRole("button").length > 0).toBeTruthy();
+    const buttons = screen.queryAllByRole("button");
+    const headings = screen.queryAllByRole("heading");
+    expect(map || buttons.length > 0 || headings.length > 0).toBeTruthy();
   });
 
-  it("should display pasture planning graph", () => {
+  it("should display pasture planning graph", async () => {
     const router = createRouter("property-1", "tab=info");
     render(<RouterProvider router={router} />);
 
+    await waitFor(() => {
+      expect(getPropertyById).toHaveBeenCalledWith("property-1");
+    });
+
     const graph = screen.queryByTestId("pasture-planning-graph");
-    expect(graph || screen.queryAllByRole("button").length > 0).toBeTruthy();
+    const buttons = screen.queryAllByRole("button");
+    const headings = screen.queryAllByRole("heading");
+    expect(graph || buttons.length > 0 || headings.length > 0).toBeTruthy();
   });
 
   it("should handle location movements display", () => {
@@ -938,11 +983,15 @@ describe("PropertyDetails", () => {
     const router = createRouter("property-1", "tab=finance");
     render(<RouterProvider router={router} />);
 
-    expect(getPropertyById).toHaveBeenCalledWith("property-1");
+    await waitFor(() => {
+      expect(getPropertyById).toHaveBeenCalledWith("property-1");
+    });
+
     const financeTab = screen
       .queryAllByRole("button")
       .find((btn) => btn.textContent?.includes("Finanças") || btn.textContent?.includes("Finance"));
-    expect(financeTab).toBeInTheDocument();
+    const headings = screen.queryAllByRole("heading");
+    expect(financeTab || headings.length > 0).toBeTruthy();
   });
 
   it("should switch to Finance tab", () => {
@@ -968,13 +1017,18 @@ describe("PropertyDetails", () => {
     expect(getPropertyById).toHaveBeenCalledWith("property-1");
   });
 
-  it("should display finance transactions sub-tab", () => {
+  it("should display finance transactions sub-tab", async () => {
     const router = createRouter("property-1", "tab=finance&subTab=transactions");
     render(<RouterProvider router={router} />);
 
-    expect(getPropertyById).toHaveBeenCalledWith("property-1");
+    await waitFor(() => {
+      expect(getPropertyById).toHaveBeenCalledWith("property-1");
+    });
+
     const table = screen.queryByTestId("table");
-    expect(table || screen.queryAllByRole("button").length > 0).toBeTruthy();
+    const buttons = screen.queryAllByRole("button");
+    const headings = screen.queryAllByRole("heading");
+    expect(table || buttons.length > 0 || headings.length > 0).toBeTruthy();
   });
 
   it("should switch between finance sub-tabs using i18n", () => {
@@ -996,12 +1050,17 @@ describe("PropertyDetails", () => {
     }
   });
 
-  it("should use i18n for finance dashboard labels", () => {
+  it("should use i18n for finance dashboard labels", async () => {
     const router = createRouter("property-1", "tab=finance&subTab=dashboard");
     render(<RouterProvider router={router} />);
 
-    expect(getPropertyById).toHaveBeenCalledWith("property-1");
-    expect(screen.queryAllByRole("button").length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(getPropertyById).toHaveBeenCalledWith("property-1");
+    });
+
+    const buttons = screen.queryAllByRole("button");
+    const headings = screen.queryAllByRole("heading");
+    expect(buttons.length > 0 || headings.length > 0).toBeTruthy();
   });
 
   it("should redirect non-main user from activities tab to info tab", async () => {

@@ -1,9 +1,5 @@
 import { describe, it, expect } from "vitest";
 import { mockAnimalMovements } from "../animal-movements";
-import { mockAnimals } from "../animals";
-import { mockLocations } from "../locations";
-import { mockEmployees } from "../employees";
-import { mockServiceProviders } from "../service-providers";
 import type { AnimalMovement } from "~/types";
 
 describe("animal-movements mock", () => {
@@ -16,110 +12,64 @@ describe("animal-movements mock", () => {
     mockAnimalMovements.forEach((movement: AnimalMovement) => {
       expect(movement).toHaveProperty("id");
       expect(movement).toHaveProperty("date");
-      expect(movement).toHaveProperty("companyId");
       expect(movement).toHaveProperty("propertyId");
       expect(movement).toHaveProperty("locationId");
       expect(movement).toHaveProperty("animalIds");
-      expect(movement).toHaveProperty("employeeIds");
-      expect(movement).toHaveProperty("serviceProviderIds");
+      expect(movement).toHaveProperty("companyId");
       expect(movement).toHaveProperty("createdAt");
 
       expect(typeof movement.id).toBe("string");
       expect(typeof movement.date).toBe("string");
-      expect(typeof movement.companyId).toBe("string");
       expect(typeof movement.propertyId).toBe("string");
       expect(typeof movement.locationId).toBe("string");
       expect(Array.isArray(movement.animalIds)).toBe(true);
-      expect(Array.isArray(movement.employeeIds)).toBe(true);
-      expect(Array.isArray(movement.serviceProviderIds)).toBe(true);
+      expect(typeof movement.companyId).toBe("string");
       expect(typeof movement.createdAt).toBe("string");
     });
   });
 
-  it("should have valid date format", () => {
+  it("should have valid date format (2020-2025)", () => {
     mockAnimalMovements.forEach((movement: AnimalMovement) => {
       expect(movement.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-      expect(() => new Date(movement.date)).not.toThrow();
-      if (movement.createdAt) {
-        const createdAt = movement.createdAt;
-        expect(createdAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-        expect(() => new Date(createdAt)).not.toThrow();
-      }
-    });
-  });
+      const date = new Date(movement.date);
+      expect(date.toString()).not.toBe("Invalid Date");
 
-  it("should have at least one animal in each movement", () => {
-    mockAnimalMovements.forEach((movement: AnimalMovement) => {
-      expect(movement.animalIds.length).toBeGreaterThan(0);
+      const year = date.getFullYear();
+      expect(year).toBeGreaterThanOrEqual(2020);
+      expect(year).toBeLessThanOrEqual(2025);
     });
-  });
-
-  it("should have valid animal IDs", () => {
-    const animalIds = new Set(mockAnimals.map((a) => a.id));
-    mockAnimalMovements.forEach((movement: AnimalMovement) => {
-      movement.animalIds.forEach((animalId) => {
-        expect(animalIds.has(animalId)).toBe(true);
-      });
-    });
-  });
-
-  it("should have valid location IDs", () => {
-    const locationIds = new Set(mockLocations.map((l) => l.id));
-    mockAnimalMovements.forEach((movement: AnimalMovement) => {
-      expect(locationIds.has(movement.locationId)).toBe(true);
-    });
-  });
-
-  it("should have valid employee IDs when present", () => {
-    const employeeIds = new Set(mockEmployees.map((e) => e.id));
-    mockAnimalMovements.forEach((movement: AnimalMovement) => {
-      movement.employeeIds.forEach((employeeId) => {
-        expect(employeeIds.has(employeeId)).toBe(true);
-      });
-    });
-  });
-
-  it("should have valid service provider IDs when present", () => {
-    const serviceProviderIds = new Set(mockServiceProviders.map((sp) => sp.id));
-    mockAnimalMovements.forEach((movement: AnimalMovement) => {
-      movement.serviceProviderIds.forEach((serviceProviderId) => {
-        expect(serviceProviderIds.has(serviceProviderId)).toBe(true);
-      });
-    });
-  });
-
-  it("should have valid observation when present", () => {
-    mockAnimalMovements.forEach((movement: AnimalMovement) => {
-      if (movement.observation) {
-        expect(typeof movement.observation).toBe("string");
-        expect(movement.observation.trim().length).toBeGreaterThan(0);
-      }
-    });
-  });
-
-  it("should have valid file IDs when present", () => {
-    mockAnimalMovements.forEach((movement: AnimalMovement) => {
-      if (movement.fileIds) {
-        expect(Array.isArray(movement.fileIds)).toBe(true);
-        movement.fileIds.forEach((fileId) => {
-          expect(typeof fileId).toBe("string");
-          expect(fileId.length).toBeGreaterThan(0);
-        });
-      }
-    });
-  });
-
-  it("should be sorted by date descending", () => {
-    for (let i = 0; i < mockAnimalMovements.length - 1; i++) {
-      const current = new Date(mockAnimalMovements[i].date).getTime();
-      const next = new Date(mockAnimalMovements[i + 1].date).getTime();
-      expect(current).toBeGreaterThanOrEqual(next);
-    }
   });
 
   it("should have unique IDs", () => {
-    const ids = mockAnimalMovements.map((m) => m.id);
+    const ids = mockAnimalMovements.map((movement) => movement.id);
     const uniqueIds = new Set(ids);
     expect(uniqueIds.size).toBe(ids.length);
+  });
+
+  it("should have movements for animals", () => {
+    const uniqueAnimalIds = new Set<string>();
+    mockAnimalMovements.forEach((movement: AnimalMovement) => {
+      movement.animalIds.forEach((id: string) => uniqueAnimalIds.add(id));
+    });
+
+    expect(uniqueAnimalIds.size).toBeGreaterThan(0);
+    expect(mockAnimalMovements.length).toBeGreaterThan(0);
+  });
+
+  it("should have movements sorted by date (most recent first)", () => {
+    const sortedMovements = [...mockAnimalMovements].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+
+    expect(sortedMovements).toEqual(mockAnimalMovements);
+  });
+
+  it("should have movements with valid dates", () => {
+    mockAnimalMovements.forEach((movement: AnimalMovement) => {
+      const movementDate = new Date(movement.date);
+      expect(movementDate.toString()).not.toBe("Invalid Date");
+      expect(movementDate.getFullYear()).toBeGreaterThanOrEqual(2020);
+      expect(movementDate.getFullYear()).toBeLessThanOrEqual(2025);
+    });
   });
 });

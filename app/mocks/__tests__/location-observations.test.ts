@@ -13,23 +13,29 @@ describe("location-observations mock", () => {
       expect(observation).toHaveProperty("id");
       expect(observation).toHaveProperty("locationId");
       expect(observation).toHaveProperty("observation");
-      expect(observation).toHaveProperty("fileIds");
       expect(observation).toHaveProperty("createdAt");
       expect(observation).toHaveProperty("createdBy");
 
       expect(typeof observation.id).toBe("string");
       expect(typeof observation.locationId).toBe("string");
       expect(typeof observation.observation).toBe("string");
-      expect(Array.isArray(observation.fileIds)).toBe(true);
       expect(typeof observation.createdAt).toBe("string");
       expect(typeof observation.createdBy).toBe("string");
+
+      if (observation.fileIds !== undefined) {
+        expect(Array.isArray(observation.fileIds)).toBe(true);
+      }
     });
   });
 
-  it("should have valid date format", () => {
+  it("should have valid date format (2020-2025)", () => {
     mockLocationObservations.forEach((observation: LocationObservation) => {
-      expect(observation.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
-      expect(() => new Date(observation.createdAt)).not.toThrow();
+      const date = new Date(observation.createdAt);
+      expect(date.toString()).not.toBe("Invalid Date");
+
+      const year = date.getFullYear();
+      expect(year).toBeGreaterThanOrEqual(2020);
+      expect(year).toBeLessThanOrEqual(2025);
     });
   });
 

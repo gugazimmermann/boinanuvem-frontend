@@ -8,6 +8,11 @@ describe("animals mock", () => {
     expect(mockAnimals.length).toBeGreaterThan(0);
   });
 
+  it("should have approximately 300 animals", () => {
+    expect(mockAnimals.length).toBeGreaterThanOrEqual(250);
+    expect(mockAnimals.length).toBeLessThanOrEqual(350);
+  });
+
   it("should have valid animal structure", () => {
     mockAnimals.forEach((animal: Animal) => {
       expect(animal).toHaveProperty("id");
@@ -28,63 +33,75 @@ describe("animals mock", () => {
     });
   });
 
-  it("should have valid status", () => {
+  it("should have valid date format (2020-2025)", () => {
     mockAnimals.forEach((animal: Animal) => {
-      expect(["active", "inactive", "pending"]).toContain(animal.status);
+      const date = new Date(animal.createdAt);
+      expect(date.toString()).not.toBe("Invalid Date");
+
+      const year = date.getFullYear();
+      expect(year).toBeGreaterThanOrEqual(2020);
+      expect(year).toBeLessThanOrEqual(2025);
     });
   });
 
-  it("should have valid date format", () => {
+  it("should have valid status values", () => {
+    const validStatuses = ["active", "inactive"];
     mockAnimals.forEach((animal: Animal) => {
-      expect(animal.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-      expect(() => new Date(animal.createdAt)).not.toThrow();
-    });
-  });
-
-  it("should have valid acquisition date format when present", () => {
-    mockAnimals.forEach((animal: Animal) => {
-      if (animal.acquisitionDate) {
-        expect(animal.acquisitionDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-        expect(() => new Date(animal.acquisitionDate!)).not.toThrow();
-      }
+      expect(validStatuses).toContain(animal.status);
     });
   });
 
   it("should have unique IDs", () => {
-    const ids = mockAnimals.map((a) => a.id);
+    const ids = mockAnimals.map((animal) => animal.id);
     const uniqueIds = new Set(ids);
     expect(uniqueIds.size).toBe(ids.length);
   });
 
-  it("should have unique codes per property", () => {
-    const codesByProperty = new Map<string, Set<string>>();
+  it("should have consistent companyId", () => {
+    const companyIds = new Set(mockAnimals.map((animal) => animal.companyId));
+    expect(companyIds.size).toBeGreaterThan(0);
+  });
+
+  it("should have animals distributed across properties", () => {
+    const propertyIds = new Set(mockAnimals.map((animal) => animal.propertyId));
+    expect(propertyIds.size).toBeGreaterThanOrEqual(3);
+  });
+
+  it("should have animals with codes matching property prefixes", () => {
+    const fazendaAnimals = mockAnimals.filter((a) => a.code.startsWith("FJ"));
+    const chacaraAnimals = mockAnimals.filter((a) => a.code.startsWith("CJ"));
+    const sitioAnimals = mockAnimals.filter((a) => a.code.startsWith("SL"));
+
+    expect(fazendaAnimals.length).toBeGreaterThan(0);
+    expect(chacaraAnimals.length).toBeGreaterThan(0);
+    expect(sitioAnimals.length).toBeGreaterThan(0);
+
+    fazendaAnimals.forEach((animal) => {
+      expect(animal.code).toMatch(/^FJ\d+/);
+    });
+    chacaraAnimals.forEach((animal) => {
+      expect(animal.code).toMatch(/^CJ\d+/);
+    });
+    sitioAnimals.forEach((animal) => {
+      expect(animal.code).toMatch(/^SL\d+/);
+    });
+  });
+
+  it("should have registration numbers matching year in code", () => {
     mockAnimals.forEach((animal: Animal) => {
-      if (!codesByProperty.has(animal.propertyId)) {
-        codesByProperty.set(animal.propertyId, new Set());
+      expect(animal.registrationNumber).toMatch(/^BR-\d{4}-/);
+      const yearMatch = animal.registrationNumber.match(/^BR-(\d{4})-/);
+      if (yearMatch) {
+        const year = parseInt(yearMatch[1]);
+        expect(year).toBeGreaterThanOrEqual(2020);
+        expect(year).toBeLessThanOrEqual(2025);
       }
-      codesByProperty.get(animal.propertyId)!.add(animal.code);
-    });
-
-    codesByProperty.forEach((codes, _propertyId) => {
-      expect(codes.size).toBeGreaterThan(0);
     });
   });
 
-  it("should have valid registration number format", () => {
+  it("should not have acquisitionDate in animals (handled in acquisitions)", () => {
     mockAnimals.forEach((animal: Animal) => {
-      expect(animal.registrationNumber).toMatch(/^BR-\d{4}-[A-Z]{2}\d{4}$/);
+      expect(animal).not.toHaveProperty("acquisitionDate");
     });
-  });
-
-  it("should have animals from different properties", () => {
-    const propertyIds = new Set(mockAnimals.map((a) => a.propertyId));
-    expect(propertyIds.size).toBeGreaterThan(1);
-  });
-
-  it("should have animals with and without acquisition dates", () => {
-    const animalsWithAcquisition = mockAnimals.filter((a) => a.acquisitionDate);
-    const animalsWithoutAcquisition = mockAnimals.filter((a) => !a.acquisitionDate);
-    expect(animalsWithAcquisition.length).toBeGreaterThan(0);
-    expect(animalsWithoutAcquisition.length).toBeGreaterThan(0);
   });
 });

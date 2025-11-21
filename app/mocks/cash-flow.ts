@@ -9,6 +9,9 @@ import { mockProperties } from "./properties";
 
 export type { CashFlow, CashFlowFormData };
 
+// Today is November 21, 2025
+const TODAY = new Date("2025-11-21");
+
 const COMPANY_ID = "550e8400-e29b-41d4-a716-446655440000";
 const SUPPLIER_AGROFORNECEDORA = mockSuppliers[0].id;
 const SUPPLIER_CARLOS = mockSuppliers[1].id;
@@ -20,7 +23,44 @@ const BANK_ACCOUNT_CEF = mockBankAccounts[2].id;
 const PROPERTY_1 = mockProperties[0]?.id || "";
 const PROPERTY_2 = mockProperties[1]?.id || "";
 
-export const mockCashFlow: CashFlow[] = [
+// Helper to generate realistic dates across 2020-2025
+// More transactions in recent years
+function getRealisticDate(index: number, total: number): string {
+  const years = [2020, 2021, 2022, 2023, 2024, 2025];
+  const progress = index / total;
+
+  let yearIndex: number;
+  if (progress < 0.05) {
+    yearIndex = 0; // 2020
+  } else if (progress < 0.15) {
+    yearIndex = 1; // 2021
+  } else if (progress < 0.3) {
+    yearIndex = 2; // 2022
+  } else if (progress < 0.5) {
+    yearIndex = 3; // 2023
+  } else if (progress < 0.75) {
+    yearIndex = 4; // 2024
+  } else {
+    yearIndex = 5; // 2025
+  }
+
+  const year = years[yearIndex];
+  const month = Math.floor(Math.random() * 12) + 1;
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const day = Math.floor(Math.random() * daysInMonth) + 1;
+
+  // Don't create dates in the future
+  const date = new Date(year, month - 1, day);
+  if (date > TODAY) {
+    // If future, use a recent past date
+    const daysAgo = Math.floor(Math.random() * 30);
+    date.setTime(TODAY.getTime() - daysAgo * 24 * 60 * 60 * 1000);
+  }
+
+  return date.toISOString().split("T")[0];
+}
+
+const cashFlowTransactions: CashFlow[] = [
   {
     id: "cc0e8400-e29b-41d4-a716-446655440010",
     companyId: COMPANY_ID,
@@ -733,3 +773,23 @@ export const mockCashFlow: CashFlow[] = [
     createdAt: "2025-01-15",
   },
 ];
+
+// Generate dates for all transactions
+const transactionsWithDates = cashFlowTransactions.map((transaction, index) => {
+  const newDate = getRealisticDate(index, cashFlowTransactions.length);
+  return {
+    ...transaction,
+    date: newDate,
+    paymentDate: transaction.paymentDate ? newDate : transaction.paymentDate,
+    createdAt: newDate,
+    // Update reference numbers to match year
+    referenceNumber:
+      transaction.referenceNumber?.replace(/2025/g, newDate.substring(0, 4)) ||
+      transaction.referenceNumber,
+  };
+});
+
+// Sort by date (most recent first)
+transactionsWithDates.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+export const mockCashFlow: CashFlow[] = transactionsWithDates;

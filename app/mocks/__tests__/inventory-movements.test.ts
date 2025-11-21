@@ -38,19 +38,27 @@ describe("inventory-movements mock", () => {
     });
   });
 
-  it("should have valid date format", () => {
+  it("should have valid date format (2020-2025)", () => {
     mockInventoryMovements.forEach((movement: InventoryMovement) => {
       expect(movement.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
       const date = new Date(movement.date);
       expect(date.toString()).not.toBe("Invalid Date");
+
+      const year = date.getFullYear();
+      expect(year).toBeGreaterThanOrEqual(2020);
+      expect(year).toBeLessThanOrEqual(2025);
     });
   });
 
-  it("should have valid createdAt date format", () => {
+  it("should have valid createdAt date format (2020-2025)", () => {
     mockInventoryMovements.forEach((movement: InventoryMovement) => {
       expect(movement.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
       const date = new Date(movement.createdAt);
       expect(date.toString()).not.toBe("Invalid Date");
+
+      const year = date.getFullYear();
+      expect(year).toBeGreaterThanOrEqual(2020);
+      expect(year).toBeLessThanOrEqual(2025);
     });
   });
 
@@ -140,5 +148,27 @@ describe("inventory-movements mock", () => {
     mockInventoryMovements.forEach((movement: InventoryMovement) => {
       expect(movement.propertyId).toMatch(/^[a-z0-9-]+$/);
     });
+  });
+
+  it("should have more movements (at least 30)", () => {
+    expect(mockInventoryMovements.length).toBeGreaterThanOrEqual(30);
+  });
+
+  it("should have valid expiration dates when present", () => {
+    mockInventoryMovements.forEach((movement: InventoryMovement) => {
+      if (movement.expirationDate) {
+        expect(movement.expirationDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+        const date = new Date(movement.expirationDate);
+        expect(date.toString()).not.toBe("Invalid Date");
+      }
+    });
+  });
+
+  it("should have movements sorted by date (most recent first)", () => {
+    const sortedMovements = [...mockInventoryMovements].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+
+    expect(sortedMovements).toEqual(mockInventoryMovements);
   });
 });
