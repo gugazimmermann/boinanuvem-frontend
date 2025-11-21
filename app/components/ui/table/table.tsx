@@ -30,6 +30,7 @@ export function Table<T extends Record<string, unknown>>({
   additionalContent,
   middleContent,
   rightContent,
+  belowContent,
 }: TableProps<T>) {
   const getRowClassName = (row: T, index: number): string => {
     if (typeof rowClassName === "function") {
@@ -187,6 +188,7 @@ export function Table<T extends Record<string, unknown>>({
                 additionalContent={additionalContent}
                 middleContent={middleContent}
                 rightContent={rightContent}
+                belowContent={belowContent}
               />
             </div>
           )}
@@ -202,6 +204,7 @@ export function Table<T extends Record<string, unknown>>({
             additionalContent={additionalContent}
             middleContent={middleContent}
             rightContent={rightContent}
+            belowContent={belowContent}
           />
         </>
       )}

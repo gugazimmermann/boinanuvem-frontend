@@ -69,4 +69,23 @@ describe("TableFilters", () => {
     expect(screen.getByText("All")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Search")).toBeInTheDocument();
   });
+
+  it("should render belowContent on a separate line", () => {
+    const filters = [{ value: "all", label: "All", active: true, onClick: vi.fn() }];
+    const belowContent = <div data-testid="below-content">Summary Content</div>;
+
+    render(<TableFilters filters={filters} belowContent={belowContent} />);
+    expect(screen.getByText("All")).toBeInTheDocument();
+    expect(screen.getByTestId("below-content")).toBeInTheDocument();
+    expect(screen.getByText("Summary Content")).toBeInTheDocument();
+  });
+
+  it("should render rightContent", () => {
+    const filters = [{ value: "all", label: "All", active: true, onClick: vi.fn() }];
+    const rightContent = <div data-testid="right-content">Right Content</div>;
+
+    render(<TableFilters filters={filters} rightContent={rightContent} />);
+    expect(screen.getByText("All")).toBeInTheDocument();
+    expect(screen.getByTestId("right-content")).toBeInTheDocument();
+  });
 });

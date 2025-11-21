@@ -88,4 +88,5 @@ export interface TableProps<T = unknown> {
   additionalContent?: ReactNode;
   middleContent?: ReactNode;
   rightContent?: ReactNode;
+  belowContent?: ReactNode;
 }

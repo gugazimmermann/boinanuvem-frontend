@@ -26,7 +26,7 @@ import {
 import { getSupplierById } from "~/services/suppliers.service";
 import { getEmployeeById } from "~/services/employees.service";
 import { getServiceProviderById } from "~/services/service-providers.service";
-import { getPropertyById } from "~/services/properties.service";
+import { getPropertyById, getPropertiesByCompanyId } from "~/services/properties.service";
 import type { AccountsPayable } from "~/types";
 import { ROUTES, getAccountsPayableEditRoute, getAccountsPayableViewRoute } from "~/routes.config";
 import { mockCompanies } from "~/mocks/companies";
@@ -67,6 +67,7 @@ export default function AccountsPayable() {
 
   const [searchValue, setSearchValue] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("all");
+  const [propertyFilter, setPropertyFilter] = useState<string>("all");
   const [selectedYear, setSelectedYear] = useState<string>("all");
   const [selectedMonth, setSelectedMonth] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
@@ -91,6 +92,10 @@ export default function AccountsPayable() {
 
   const localeForCurrency = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
   const localeForDateTime = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
+  const properties = useMemo(
+    () => (company ? getPropertiesByCompanyId(company.id) : []),
+    [company]
+  );
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -184,7 +189,9 @@ export default function AccountsPayable() {
     const matchesMonth =
       selectedMonth === "all" || (monthStr && transaction.dueDate.substring(5, 7) === monthStr);
 
-    return matchesSearch && matchesFilter && matchesYear && matchesMonth;
+    const matchesProperty = propertyFilter === "all" || transaction.propertyId === propertyFilter;
+
+    return matchesSearch && matchesFilter && matchesYear && matchesMonth && matchesProperty;
   });
 
   const sortedData = [...filteredData].sort((a, b) => {
@@ -464,8 +471,8 @@ export default function AccountsPayable() {
           value: searchValue,
           onChange: setSearchValue,
         }}
-        middleContent={
-          <div className="flex items-center gap-4 text-sm">
+        belowContent={
+          <div className="flex items-center gap-6 text-sm">
             <div className="flex flex-col">
               <span className="text-gray-500 dark:text-gray-400 text-xs">Total</span>
               <span className="font-semibold text-gray-700 dark:text-gray-300">
@@ -476,6 +483,24 @@ export default function AccountsPayable() {
         }
         rightContent={
           <div className="flex items-center gap-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+              {t.reproductiveIndexes.propertyLabel}:
+            </label>
+            <select
+              value={propertyFilter}
+              onChange={(e) => {
+                setPropertyFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+            >
+              <option value="all">{t.reproductiveIndexes.allProperties}</option>
+              {properties.map((property) => (
+                <option key={property.id} value={property.id}>
+                  {property.name}
+                </option>
+              ))}
+            </select>
             <div className="w-32">
               <Select
                 value={selectedYear}
@@ -517,6 +542,7 @@ export default function AccountsPayable() {
           onClearSearch: () => {
             setSearchValue("");
             setActiveFilter("all");
+            setPropertyFilter("all");
             setSelectedYear("all");
             setSelectedMonth("all");
           },

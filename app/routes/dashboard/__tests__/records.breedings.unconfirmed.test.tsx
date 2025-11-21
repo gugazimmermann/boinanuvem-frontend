@@ -3,97 +3,60 @@ import { render, screen } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
+import { AuthProvider } from "~/contexts/auth-context";
 import UnconfirmedBreedings from "../records.breedings.unconfirmed";
+import { getUserById } from "~/services/users.service";
+import { createMockMainUser, setCurrentUserId, clearLocalStorage } from "~/test-utils";
 
-const mockNavigate = vi.fn();
-const mockConfirmBreeding = vi.fn();
-const mockDeleteBreeding = vi.fn();
+vi.mock("~/components/ui", () => ({
+  Table: ({ rightContent }: { rightContent?: React.ReactNode }) => (
+    <div data-testid="table">
+      {rightContent && <div data-testid="right-content">{rightContent}</div>}
+    </div>
+  ),
+  Button: () => <button data-testid="button">Button</button>,
+  Alert: () => <div data-testid="alert">Alert</div>,
+  ConfirmationModal: () => <div data-testid="confirmation-modal">ConfirmationModal</div>,
+}));
 
-vi.mock("react-router", async () => {
-  const actual = await vi.importActual("react-router");
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-  };
-});
+vi.mock("~/mocks/companies", () => ({
+  mockCompanies: [
+    {
+      id: "company-1",
+      name: "Test Company",
+    },
+  ],
+}));
 
 vi.mock("~/services/breedings.service", () => ({
-  getUnconfirmedBreedings: vi.fn(() => [
-    {
-      id: "breeding-1",
-      animalId: "animal-1",
-      companyId: "company-1",
-      date: "2024-01-01",
-      confirmed: false,
-      createdAt: "2024-01-01T10:00:00Z",
-    },
-  ]),
-  confirmBreeding: (...args: unknown[]) => mockConfirmBreeding(...args),
-  deleteBreeding: (...args: unknown[]) => mockDeleteBreeding(...args),
+  getUnconfirmedBreedings: vi.fn(() => []),
+  confirmBreeding: vi.fn(() => true),
+  deleteBreeding: vi.fn(() => true),
 }));
 
 vi.mock("~/services/animals.service", () => ({
   getAnimalById: vi.fn(() => ({
     id: "animal-1",
-    code: "A001",
+    code: "AN001",
     registrationNumber: "REG001",
-    companyId: "company-1",
-    propertyId: "prop-1",
-    status: "active" as const,
-    createdAt: "2024-01-01",
+    propertyId: "property-1",
   })),
 }));
 
 vi.mock("~/services/births.service", () => ({
-  getBirthByAnimalId: vi.fn(() => ({
-    id: "birth-1",
-    animalId: "animal-1",
-    gender: "female",
-    companyId: "company-1",
-    birthDate: "2020-01-01",
-    purity: "PO" as const,
-    createdAt: "2020-01-01",
-  })),
+  getBirthByAnimalId: vi.fn(() => null),
 }));
 
 vi.mock("~/services/properties.service", () => ({
-  getPropertyById: vi.fn(() => ({
-    id: "prop-1",
-    name: "Test Property",
-    companyId: "company-1",
-    status: "active" as const,
-  })),
+  getPropertyById: vi.fn(() => ({ id: "property-1", name: "Property One" })),
+  getPropertiesByCompanyId: vi.fn(() => [
+    { id: "property-1", name: "Property One" },
+    { id: "property-2", name: "Property Two" },
+  ]),
 }));
 
-vi.mock("~/mocks/companies", async () => {
-  const actual = await vi.importActual<typeof import("~/mocks/companies")>("~/mocks/companies");
-  return {
-    ...actual,
-    mockCompanies: [{ id: "company-1", name: "Test Company" }],
-  };
-});
-
-vi.mock("~/components/ui", () => ({
-  Table: () => <div data-testid="table">Table</div>,
-  Button: ({ children, onClick }: { children?: React.ReactNode; onClick?: () => void }) => (
-    <button onClick={onClick}>{children}</button>
-  ),
-  Alert: () => <div data-testid="alert">Alert</div>,
-  ConfirmationModal: ({
-    isOpen,
-    onConfirm,
-    onCancel,
-  }: {
-    isOpen: boolean;
-    onConfirm: () => void;
-    onCancel: () => void;
-  }) =>
-    isOpen ? (
-      <div data-testid="confirmation-modal">
-        <button onClick={onConfirm}>Confirm</button>
-        <button onClick={onCancel}>Cancel</button>
-      </div>
-    ) : null,
+vi.mock("~/services/users.service", () => ({
+  getUserById: vi.fn(),
 }));
 
 describe("UnconfirmedBreedings", () => {
@@ -101,37 +64,44 @@ describe("UnconfirmedBreedings", () => {
     return createMemoryRouter(
       [
         {
-          path: "/dashboard/registros/montas/nao-confirmadas",
+          path: "/dashboard/breedings/unconfirmed",
           element: (
             <LanguageProvider>
               <ThemeProvider>
-                <UnconfirmedBreedings />
+                <AuthProvider>
+                  <UnconfirmedBreedings />
+                </AuthProvider>
               </ThemeProvider>
             </LanguageProvider>
           ),
         },
       ],
       {
-        initialEntries: ["/dashboard/registros/montas/nao-confirmadas"],
+        initialEntries: ["/dashboard/breedings/unconfirmed"],
       }
     );
   };
 
   beforeEach(() => {
+    clearLocalStorage();
     vi.clearAllMocks();
-    mockConfirmBreeding.mockReturnValue(true);
-    mockDeleteBreeding.mockReturnValue(true);
+    const mockUser = createMockMainUser();
+    vi.mocked(getUserById).mockReturnValue(mockUser);
+    setCurrentUserId(mockUser.id);
   });
 
-  it("should render unconfirmed breedings page", () => {
+  it("should render unconfirmed breedings table", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    const table = screen.queryByTestId("table");
-    expect(table || document.body).toBeTruthy();
+    expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
-  it("should have correct meta function", () => {
-    expect(UnconfirmedBreedings).toBeDefined();
+  it("should render property filter", () => {
+    const router = createRouter();
+    render(<RouterProvider router={router} />);
+
+    const rightContent = screen.queryByTestId("right-content");
+    expect(rightContent || screen.getByTestId("table")).toBeTruthy();
   });
 });

@@ -30,6 +30,7 @@ import { getSupplierById } from "~/services/suppliers.service";
 import { ROUTES, getInventoryEditRoute, getInventoryViewRoute } from "~/routes.config";
 import { usePermissions } from "~/utils/permissions";
 import { mockCompanies } from "~/mocks/companies";
+import { getPropertiesByCompanyId } from "~/services/properties.service";
 
 const isExpiringSoon = (expirationDate?: string, daysThreshold: number = 30): boolean => {
   if (!expirationDate) return false;
@@ -131,7 +132,7 @@ export default function Inventory() {
 
   const [searchValue, setSearchValue] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("all");
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [propertyFilter, setPropertyFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
@@ -170,6 +171,10 @@ export default function Inventory() {
 
   const lowStockItems = useMemo(() => getLowStockItems(companyId), [companyId]);
   const expiringItems = useMemo(() => getExpiringItems(companyId, 30), [companyId]);
+  const properties = useMemo(
+    () => (company ? getPropertiesByCompanyId(company.id) : []),
+    [company]
+  );
 
   const filteredData = items.filter((item) => {
     const matchesSearch =
@@ -182,9 +187,9 @@ export default function Inventory() {
       (activeFilter === "lowStock" && lowStockItems.some((i) => i.id === item.id)) ||
       (activeFilter === "expiring" && expiringItems.some((i) => i.id === item.id));
 
-    const matchesCategory = categoryFilter === "all" || item.category === categoryFilter;
+    const matchesProperty = propertyFilter === "all" || item.propertyIds.includes(propertyFilter);
 
-    return matchesSearch && matchesFilter && matchesCategory;
+    return matchesSearch && matchesFilter && matchesProperty;
   });
 
   const sortedData = [...filteredData].sort((a, b) => {
@@ -400,23 +405,6 @@ export default function Inventory() {
     },
   ];
 
-  const categoryFilters: TableFilter[] = [
-    {
-      label: t.inventory.filters.allCategories,
-      value: "all",
-      active: categoryFilter === "all",
-      onClick: () => setCategoryFilter("all"),
-    },
-    ...Object.values(InventoryItemCategory)
-      .filter((cat) => cat !== InventoryItemCategory.CUSTOM)
-      .map((category) => ({
-        label: t.inventory.categories[category as keyof typeof t.inventory.categories] || category,
-        value: category,
-        active: categoryFilter === category,
-        onClick: () => setCategoryFilter(category),
-      })),
-  ];
-
   const handleSort = (column: string, direction: SortDirection) => {
     setSortState({ column, direction });
     setCurrentPage(1);
@@ -437,21 +425,23 @@ export default function Inventory() {
           actions: headerActions,
         }}
         filters={filters}
-        additionalContent={
-          <div className="inline-flex overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 divide-x divide-gray-200 dark:divide-gray-700 rounded-lg rtl:flex-row-reverse">
-            {categoryFilters.map((filter) => (
-              <button
-                key={filter.value}
-                onClick={filter.onClick}
-                className={`px-5 py-2 text-xs font-medium transition-colors duration-200 sm:text-sm cursor-pointer ${
-                  filter.active
-                    ? "text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700"
-                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-                }`}
-              >
-                {filter.label}
-              </button>
-            ))}
+        rightContent={
+          <div className="flex items-center gap-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+              {t.reproductiveIndexes.propertyLabel}:
+            </label>
+            <select
+              value={propertyFilter}
+              onChange={(e) => setPropertyFilter(e.target.value)}
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+            >
+              <option value="all">{t.reproductiveIndexes.allProperties}</option>
+              {properties.map((property) => (
+                <option key={property.id} value={property.id}>
+                  {property.name}
+                </option>
+              ))}
+            </select>
           </div>
         }
         search={{
@@ -476,7 +466,7 @@ export default function Inventory() {
           onClearSearch: () => {
             setSearchValue("");
             setActiveFilter("all");
-            setCategoryFilter("all");
+            setPropertyFilter("all");
           },
           clearSearchLabel: t.common.clearSearch,
           onAddNew: () => navigate(ROUTES.INVENTORY_NEW),

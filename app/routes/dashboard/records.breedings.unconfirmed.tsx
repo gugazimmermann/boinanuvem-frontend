@@ -24,7 +24,7 @@ import {
 } from "~/services/breedings.service";
 import { getAnimalById } from "~/services/animals.service";
 import { getBirthByAnimalId } from "~/services/births.service";
-import { getPropertyById } from "~/services/properties.service";
+import { getPropertyById, getPropertiesByCompanyId } from "~/services/properties.service";
 import { getAnimalViewRoute } from "~/routes.config";
 
 export function meta() {
@@ -62,6 +62,7 @@ export default function UnconfirmedBreedings() {
   }>({ column: "date", direction: "desc" });
 
   const [searchValue, setSearchValue] = useState("");
+  const [propertyFilter, setPropertyFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const [alertMessage, setAlertMessage] = useState<{
@@ -73,6 +74,10 @@ export default function UnconfirmedBreedings() {
   const [_refreshKey, setRefreshKey] = useState(0);
 
   const unconfirmedBreedings = useMemo(() => getUnconfirmedBreedings(companyId), [companyId]);
+  const properties = useMemo(
+    () => (company ? getPropertiesByCompanyId(company.id) : []),
+    [company]
+  );
 
   const enrichedBreedings = useMemo(() => {
     return unconfirmedBreedings.map((breeding) => {
@@ -106,6 +111,10 @@ export default function UnconfirmedBreedings() {
           breeding.bull?.code.toLowerCase().includes(searchLower) ||
           breeding.semenCode?.toLowerCase().includes(searchLower)
       );
+    }
+
+    if (propertyFilter !== "all") {
+      filtered = filtered.filter((breeding) => breeding.animal?.propertyId === propertyFilter);
     }
 
     if (sortState.column) {
@@ -143,7 +152,7 @@ export default function UnconfirmedBreedings() {
     }
 
     return filtered;
-  }, [enrichedBreedings, searchValue, sortState]);
+  }, [enrichedBreedings, searchValue, sortState, propertyFilter]);
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const paginatedData = filteredData.slice(
@@ -367,6 +376,28 @@ export default function UnconfirmedBreedings() {
           value: searchValue,
           onChange: setSearchValue,
         }}
+        rightContent={
+          <div className="flex items-center gap-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+              {t.reproductiveIndexes.propertyLabel}:
+            </label>
+            <select
+              value={propertyFilter}
+              onChange={(e) => {
+                setPropertyFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+            >
+              <option value="all">{t.reproductiveIndexes.allProperties}</option>
+              {properties.map((property) => (
+                <option key={property.id} value={property.id}>
+                  {property.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        }
         pagination={{
           currentPage,
           totalPages: totalPages || 1,
@@ -383,6 +414,7 @@ export default function UnconfirmedBreedings() {
             : t.breedings.unconfirmed.emptyState.description,
           onClearSearch: () => {
             setSearchValue("");
+            setPropertyFilter("all");
           },
           clearSearchLabel: t.common.clearSearch,
         }}

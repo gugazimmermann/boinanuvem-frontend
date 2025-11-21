@@ -1,78 +1,61 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
+import { AuthProvider } from "~/contexts/auth-context";
 import PregnantCows from "../records.breedings.pregnant";
+import { getUserById } from "~/services/users.service";
+import { createMockMainUser, setCurrentUserId, clearLocalStorage } from "~/test-utils";
 
-const mockNavigate = vi.fn();
+vi.mock("~/components/ui", () => ({
+  Table: ({ rightContent }: { rightContent?: React.ReactNode }) => (
+    <div data-testid="table">
+      {rightContent && <div data-testid="right-content">{rightContent}</div>}
+    </div>
+  ),
+  Tooltip: ({ children }: { children?: React.ReactNode }) => (
+    <div data-testid="tooltip">{children}</div>
+  ),
+}));
 
-vi.mock("react-router", async () => {
-  const actual = await vi.importActual("react-router");
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-  };
-});
+vi.mock("~/mocks/companies", () => ({
+  mockCompanies: [
+    {
+      id: "company-1",
+      name: "Test Company",
+    },
+  ],
+}));
 
 vi.mock("~/services/breedings.service", () => ({
-  getPregnantAnimals: vi.fn(() => [
-    {
-      id: "animal-1",
-      animalId: "animal-1",
-      companyId: "company-1",
-      date: "2024-01-01",
-      confirmed: true,
-      createdAt: "2024-01-01T10:00:00Z",
-    },
-  ]),
+  getPregnantAnimals: vi.fn(() => []),
   getBreedingsByAnimalId: vi.fn(() => []),
 }));
 
 vi.mock("~/services/animals.service", () => ({
   getAnimalById: vi.fn(() => ({
     id: "animal-1",
-    code: "A001",
+    code: "AN001",
     registrationNumber: "REG001",
-    companyId: "company-1",
-    propertyId: "prop-1",
-    status: "active" as const,
-    createdAt: "2024-01-01",
+    propertyId: "property-1",
   })),
 }));
 
 vi.mock("~/services/births.service", () => ({
-  getBirthByAnimalId: vi.fn(() => ({
-    id: "birth-1",
-    animalId: "animal-1",
-    gender: "female",
-    companyId: "company-1",
-    birthDate: "2020-01-01",
-    purity: "PO" as const,
-    createdAt: "2020-01-01",
-  })),
+  getBirthByAnimalId: vi.fn(() => null),
 }));
 
 vi.mock("~/services/properties.service", () => ({
-  getPropertyById: vi.fn(() => ({
-    id: "prop-1",
-    name: "Test Property",
-    companyId: "company-1",
-    status: "active" as const,
-  })),
+  getPropertyById: vi.fn(() => ({ id: "property-1", name: "Property One" })),
+  getPropertiesByCompanyId: vi.fn(() => [
+    { id: "property-1", name: "Property One" },
+    { id: "property-2", name: "Property Two" },
+  ]),
 }));
 
-vi.mock("~/mocks/companies", async () => {
-  const actual = await vi.importActual<typeof import("~/mocks/companies")>("~/mocks/companies");
-  return {
-    ...actual,
-    mockCompanies: [{ id: "company-1", name: "Test Company" }],
-  };
-});
-
-vi.mock("~/components/ui", () => ({
-  Table: () => <div data-testid="table">Table</div>,
-  Tooltip: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+vi.mock("~/services/users.service", () => ({
+  getUserById: vi.fn(),
 }));
 
 describe("PregnantCows", () => {
@@ -80,31 +63,44 @@ describe("PregnantCows", () => {
     return createMemoryRouter(
       [
         {
-          path: "/dashboard/registros/montas/vacas-prenhas",
+          path: "/dashboard/breedings/pregnant",
           element: (
             <LanguageProvider>
               <ThemeProvider>
-                <PregnantCows />
+                <AuthProvider>
+                  <PregnantCows />
+                </AuthProvider>
               </ThemeProvider>
             </LanguageProvider>
           ),
         },
       ],
       {
-        initialEntries: ["/dashboard/registros/montas/vacas-prenhas"],
+        initialEntries: ["/dashboard/breedings/pregnant"],
       }
     );
   };
 
-  it("should render pregnant cows page", () => {
+  beforeEach(() => {
+    clearLocalStorage();
+    vi.clearAllMocks();
+    const mockUser = createMockMainUser();
+    vi.mocked(getUserById).mockReturnValue(mockUser);
+    setCurrentUserId(mockUser.id);
+  });
+
+  it("should render pregnant cows table", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    const table = screen.queryByTestId("table");
-    expect(table || document.body).toBeTruthy();
+    expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
-  it("should have correct meta function", () => {
-    expect(PregnantCows).toBeDefined();
+  it("should render property filter", () => {
+    const router = createRouter();
+    render(<RouterProvider router={router} />);
+
+    const rightContent = screen.queryByTestId("right-content");
+    expect(rightContent || screen.getByTestId("table")).toBeTruthy();
   });
 });

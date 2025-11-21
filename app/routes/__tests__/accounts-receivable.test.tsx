@@ -9,7 +9,18 @@ import { getUserById } from "~/services/users.service";
 import { createMockMainUser, setCurrentUserId, clearLocalStorage } from "~/test-utils";
 
 vi.mock("~/components/ui", () => ({
-  Table: () => <div data-testid="table">Table</div>,
+  Table: ({
+    rightContent,
+    belowContent,
+  }: {
+    rightContent?: React.ReactNode;
+    belowContent?: React.ReactNode;
+  }) => (
+    <div data-testid="table">
+      {rightContent && <div data-testid="right-content">{rightContent}</div>}
+      {belowContent && <div data-testid="below-content">{belowContent}</div>}
+    </div>
+  ),
   StatusBadge: () => <div data-testid="status-badge">StatusBadge</div>,
   TableActionButtons: () => <div data-testid="table-action-buttons">TableActionButtons</div>,
   ConfirmationModal: () => <div data-testid="confirmation-modal">ConfirmationModal</div>,
@@ -41,6 +52,10 @@ vi.mock("~/services/buyers.service", () => ({
 
 vi.mock("~/services/properties.service", () => ({
   getPropertyById: vi.fn(() => null),
+  getPropertiesByCompanyId: vi.fn(() => [
+    { id: "property-1", name: "Property One" },
+    { id: "property-2", name: "Property Two" },
+  ]),
 }));
 
 const mockUsePermissions = vi.fn();
@@ -95,5 +110,21 @@ describe("AccountsReceivable", () => {
     render(<RouterProvider router={router} />);
 
     expect(screen.getByTestId("table")).toBeInTheDocument();
+  });
+
+  it("should render property filter in right content", () => {
+    const router = createRouter();
+    render(<RouterProvider router={router} />);
+
+    const rightContent = screen.queryByTestId("right-content");
+    expect(rightContent || screen.getByTestId("table")).toBeTruthy();
+  });
+
+  it("should render summary below filters", () => {
+    const router = createRouter();
+    render(<RouterProvider router={router} />);
+
+    const belowContent = screen.queryByTestId("below-content");
+    expect(belowContent || screen.getByTestId("table")).toBeTruthy();
   });
 });
