@@ -66,6 +66,10 @@ export default [
     route(ROUTE_NAMES.ACQUISITIONS, "routes/dashboard/records.acquisitions.tsx"),
     route(ROUTE_NAMES.ACQUISITIONS_NEW, "routes/dashboard/records.acquisitions.new.tsx"),
     route(ROUTE_NAMES.WEIGHINGS_NEW, "routes/dashboard/records.weighings.new.tsx"),
+    route(
+      ROUTE_NAMES.MEDICINE_ADMINISTRATIONS_NEW,
+      "routes/dashboard/records.sanitary-control.new.tsx"
+    ),
     route(ROUTE_NAMES.BREEDINGS_NEW, "routes/dashboard/records.breedings.new.tsx"),
     route(ROUTE_NAMES.BREEDINGS_PREGNANT, "routes/dashboard/records.breedings.pregnant.tsx"),
     route(ROUTE_NAMES.BREEDINGS_UNCONFIRMED, "routes/dashboard/records.breedings.unconfirmed.tsx"),

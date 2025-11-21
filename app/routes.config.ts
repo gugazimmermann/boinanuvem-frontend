@@ -50,6 +50,7 @@ export const ROUTES = {
   ACQUISITIONS_EDIT: "/dashboard/registros/aquisicoes/:acquisitionId/editar",
   ACQUISITIONS_VIEW: "/dashboard/registros/aquisicoes/:acquisitionId",
   WEIGHINGS_NEW: "/dashboard/registros/pesagens/novo",
+  MEDICINE_ADMINISTRATIONS_NEW: "/dashboard/registros/controle-sanitario/novo",
   BREEDINGS_NEW: "/dashboard/registros/montas/novo",
   BREEDINGS_PREGNANT: "/dashboard/registros/montas/prenhas",
   BREEDINGS_UNCONFIRMED: "/dashboard/registros/montas/nao-confirmadas",
@@ -193,6 +194,22 @@ export function getBreedingNewRoute(animalIds: string[]): { pathname: string; st
   };
 }
 
+export function getSanitaryControlNewRoute(animalId?: string | string[]): string | { pathname: string; state: { animalId?: string; animalIds?: string[] } } {
+  if (animalId) {
+    if (Array.isArray(animalId)) {
+      return {
+        pathname: ROUTES.MEDICINE_ADMINISTRATIONS_NEW,
+        state: { animalIds: animalId },
+      };
+    }
+    return {
+      pathname: ROUTES.MEDICINE_ADMINISTRATIONS_NEW,
+      state: { animalId },
+    };
+  }
+  return ROUTES.MEDICINE_ADMINISTRATIONS_NEW;
+}
+
 export function getObservationViewRoute(observationId: string): string {
   return `/dashboard/observacoes/${observationId}`;
 }
@@ -281,6 +298,7 @@ export const ROUTE_NAMES = {
   ACQUISITIONS_EDIT: "registros/aquisicoes/:acquisitionId/editar",
   ACQUISITIONS_VIEW: "registros/aquisicoes/:acquisitionId",
   WEIGHINGS_NEW: "registros/pesagens/novo",
+  MEDICINE_ADMINISTRATIONS_NEW: "registros/controle-sanitario/novo",
   BREEDINGS_NEW: "registros/montas/novo",
   BREEDINGS_PREGNANT: "registros/montas/prenhas",
   BREEDINGS_UNCONFIRMED: "registros/montas/nao-confirmadas",

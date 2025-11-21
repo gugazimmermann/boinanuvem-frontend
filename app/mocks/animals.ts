@@ -59,7 +59,9 @@ function getDateForAnimalIndex(index: number, total: number, _startYear: number 
     yearIndex = 4 + Math.floor(Math.random() * 2);
   }
 
-  const year = years[Math.min(yearIndex, years.length - 1)];
+  // Ensure yearIndex is within bounds
+  yearIndex = Math.max(0, Math.min(yearIndex, years.length - 1));
+  const year = years[yearIndex];
   const month = Math.floor(Math.random() * 12) + 1;
   const daysInMonth = new Date(year, month, 0).getDate();
   const day = Math.floor(Math.random() * daysInMonth) + 1;

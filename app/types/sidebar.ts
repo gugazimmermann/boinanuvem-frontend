@@ -10,6 +10,7 @@ export interface SidebarSubItemConfig {
     births: string;
     acquisitions: string;
     weighings: string;
+    medicineAdministrations: string;
     breedings: string;
     pregnantCows: string;
     unconfirmedBreedings: string;

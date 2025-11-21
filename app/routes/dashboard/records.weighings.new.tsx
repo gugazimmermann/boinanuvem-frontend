@@ -2,14 +2,30 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router";
 import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
-import { Input, Button, Alert, Table, type TableColumn, type SortDirection } from "~/components/ui";
+import {
+  Input,
+  Button,
+  Alert,
+  Table,
+  type TableColumn,
+  type SortDirection,
+  Select,
+} from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { ROUTES } from "~/routes.config";
 import { addWeighing, getWeighingsByAnimalId } from "~/services/weighings.service";
 import { getAnimalsByCompanyId, getAnimalById } from "~/services/animals.service";
 import { getEmployeeById } from "~/services/employees.service";
 import { getServiceProviderById } from "~/services/service-providers.service";
-import type { WeighingFormData, Weighing } from "~/types";
+import {
+  getInventoryItemsByCategory,
+  getInventoryItemById,
+  getCurrentStock,
+} from "~/services/inventory.service";
+import { addInventoryMovement } from "~/services/inventory-movements.service";
+import { getAnimalMovementsByAnimalId } from "~/services/animal-movements.service";
+import type { WeighingFormData, Weighing, InventoryItem } from "~/types";
+import { InventoryItemCategory, InventoryMovementType } from "~/types";
 import { mockCompanies } from "~/mocks/companies";
 import { mockEmployees } from "~/mocks/employees";
 import { mockServiceProviders } from "~/mocks/service-providers";
@@ -61,6 +77,7 @@ export default function NewWeighing() {
     employeeIds: string[];
     serviceProviderIds: string[];
     observation: string;
+    appliedMedicines: Array<{ itemId: string; quantity: number }>;
   }>({
     animalId: "",
     date: today,
@@ -68,6 +85,7 @@ export default function NewWeighing() {
     employeeIds: [],
     serviceProviderIds: [],
     observation: "",
+    appliedMedicines: [],
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -86,6 +104,7 @@ export default function NewWeighing() {
     column: string | null;
     direction: SortDirection;
   }>({ column: null, direction: null });
+  const [selectedMedicineId, setSelectedMedicineId] = useState<string>("");
   const itemsPerPage = 20;
 
   const filteredWeighings = useMemo(() => {
@@ -407,6 +426,89 @@ export default function NewWeighing() {
     [t]
   );
 
+  // Get available medicines and vaccines
+  const availableMedicines = useMemo(() => {
+    return getInventoryItemsByCategory(InventoryItemCategory.MEDICINES, companyId);
+  }, [companyId]);
+
+  const availableVaccines = useMemo(() => {
+    return getInventoryItemsByCategory(InventoryItemCategory.VACCINES, companyId);
+  }, [companyId]);
+
+  const availableMedicinesVaccines = useMemo(() => {
+    return [...availableMedicines, ...availableVaccines];
+  }, [availableMedicines, availableVaccines]);
+
+  // Get animal's current location and property
+  const animalLocationInfo = useMemo(() => {
+    if (!formData.animalId) return { locationId: undefined, propertyId: undefined };
+    const animal = getAnimalById(formData.animalId);
+    if (!animal) return { locationId: undefined, propertyId: undefined };
+
+    const movements = getAnimalMovementsByAnimalId(animal.id);
+    if (movements.length === 0) {
+      return { locationId: undefined, propertyId: animal.propertyId };
+    }
+
+    const sortedMovements = [...movements].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+    const latestMovement = sortedMovements[0];
+    return {
+      locationId: latestMovement.locationId,
+      propertyId: latestMovement.propertyId || animal.propertyId,
+    };
+  }, [formData.animalId]);
+
+  // Calculate dosage function
+  const calculateDosage = (item: InventoryItem, weight: number): number => {
+    if (!item.usageAmount || !item.usageBasis) return 0;
+    if (item.usageBasis === "per_kg") {
+      return item.usageAmount * weight;
+    }
+    if (item.usageBasis === "per_animal") {
+      return item.usageAmount;
+    }
+    return 0;
+  };
+
+  // Get unit label helper
+  const getUnitLabel = (unit: string, quantity: number = 1): string => {
+    const unitMap: Record<
+      string,
+      { singular: keyof typeof t.inventory.units; plural?: keyof typeof t.inventory.units }
+    > = {
+      unidade: { singular: "unit", plural: "unitPlural" },
+      g: { singular: "gram" },
+      kg: { singular: "kg" },
+      tonelada: { singular: "ton", plural: "tonPlural" },
+      ml: { singular: "milliliter" },
+      L: { singular: "liter" },
+      cm: { singular: "centimeter", plural: "centimeterPlural" },
+      m: { singular: "meter", plural: "meterPlural" },
+      m2: { singular: "squareMeter", plural: "squareMeterPlural" },
+      ha: { singular: "hectare", plural: "hectarePlural" },
+      saco: { singular: "bag", plural: "bagPlural" },
+      frasco: { singular: "bottle", plural: "bottlePlural" },
+      dose: { singular: "dose", plural: "dosePlural" },
+      caixa: { singular: "box", plural: "boxPlural" },
+      comprimido: { singular: "tablet", plural: "tabletPlural" },
+      pilula: { singular: "pill", plural: "pillPlural" },
+      ampola: { singular: "ampoule", plural: "ampoulePlural" },
+      seringa: { singular: "syringe", plural: "syringePlural" },
+      cartucho: { singular: "cartridge", plural: "cartridgePlural" },
+      rolo: { singular: "roll", plural: "rollPlural" },
+      pacote: { singular: "package", plural: "packagePlural" },
+      lata: { singular: "can", plural: "canPlural" },
+    };
+    const unitInfo = unitMap[unit];
+    if (!unitInfo) return unit;
+
+    const isPlural = Math.abs(quantity) !== 1;
+    const key = isPlural && unitInfo.plural ? unitInfo.plural : unitInfo.singular;
+    return t.inventory.units[key] || unit;
+  };
+
   const showAlert = (
     title: string,
     variant: "success" | "error" | "warning" | "info" = "success"
@@ -418,7 +520,25 @@ export default function NewWeighing() {
   };
 
   const handleChange = (field: keyof typeof formData, value: string | string[]) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => {
+      const newData = { ...prev, [field]: value };
+      // Recalculate dosages when weight changes
+      if (field === "weight" && prev.appliedMedicines.length > 0) {
+        const weight = parseFloat(value as string) || 0;
+        newData.appliedMedicines = prev.appliedMedicines.map((applied) => {
+          const item = getInventoryItemById(applied.itemId);
+          if (item) {
+            const calculatedDosage = calculateDosage(item, weight);
+            return {
+              ...applied,
+              quantity: calculatedDosage > 0 ? calculatedDosage : applied.quantity,
+            };
+          }
+          return applied;
+        });
+      }
+      return newData;
+    });
     if (errors[field]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
@@ -436,6 +556,43 @@ export default function NewWeighing() {
         : [...currentIds, id];
       return { ...prev, [field]: newIds };
     });
+  };
+
+  const addMedicine = (itemId: string) => {
+    const item = getInventoryItemById(itemId);
+    if (!item) return;
+
+    // Check if already added
+    if (formData.appliedMedicines.some((m) => m.itemId === itemId)) {
+      setSelectedMedicineId("");
+      return;
+    }
+
+    const weight = parseFloat(formData.weight) || 0;
+    const calculatedDosage = calculateDosage(item, weight);
+    const quantity = calculatedDosage > 0 ? calculatedDosage : 1;
+
+    setFormData((prev) => ({
+      ...prev,
+      appliedMedicines: [...prev.appliedMedicines, { itemId, quantity }],
+    }));
+    setSelectedMedicineId("");
+  };
+
+  const removeMedicine = (itemId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      appliedMedicines: prev.appliedMedicines.filter((m) => m.itemId !== itemId),
+    }));
+  };
+
+  const updateMedicineQuantity = (itemId: string, quantity: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      appliedMedicines: prev.appliedMedicines.map((m) =>
+        m.itemId === itemId ? { ...m, quantity } : m
+      ),
+    }));
   };
 
   const validate = () => {
@@ -458,6 +615,20 @@ export default function NewWeighing() {
       }
     }
 
+    // Validate stock for applied medicines
+    if (formData.appliedMedicines.length > 0 && animalLocationInfo.propertyId) {
+      for (const applied of formData.appliedMedicines) {
+        const item = getInventoryItemById(applied.itemId);
+        if (item) {
+          const currentStock = getCurrentStock(applied.itemId, animalLocationInfo.propertyId);
+          if (currentStock < applied.quantity) {
+            newErrors[`medicine_${applied.itemId}`] =
+              t.weighings.new.insufficientStock || "Estoque insuficiente";
+          }
+        }
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -468,16 +639,48 @@ export default function NewWeighing() {
 
     setIsSubmitting(true);
     try {
+      const weight = parseFloat(formData.weight);
+      const appliedMedicinesData = formData.appliedMedicines.map((applied) => {
+        const item = getInventoryItemById(applied.itemId);
+        const calculatedDosage = item ? calculateDosage(item, weight) : applied.quantity;
+        return {
+          itemId: applied.itemId,
+          quantity: applied.quantity,
+          calculatedDosage,
+        };
+      });
+
       const weighingData: WeighingFormData = {
         animalId: formData.animalId,
         date: formData.date,
-        weight: parseFloat(formData.weight),
+        weight,
         employeeIds: formData.employeeIds,
         serviceProviderIds: formData.serviceProviderIds,
         observation: formData.observation || undefined,
+        appliedMedicines: appliedMedicinesData.length > 0 ? appliedMedicinesData : undefined,
         companyId,
       };
       const newWeighing = addWeighing(weighingData);
+
+      // Create inventory consumption movements for applied medicines/vaccines
+      if (formData.appliedMedicines.length > 0 && animalLocationInfo.propertyId) {
+        for (const applied of formData.appliedMedicines) {
+          const item = getInventoryItemById(applied.itemId);
+          if (item) {
+            addInventoryMovement({
+              itemId: applied.itemId,
+              type: InventoryMovementType.CONSUMPTION,
+              quantity: applied.quantity,
+              date: formData.date,
+              propertyId: animalLocationInfo.propertyId,
+              locationId: animalLocationInfo.locationId,
+              companyId,
+              description: t.weighings.new.appliedDuringWeighing || "Aplicado durante pesagem",
+              unitPrice: item.unitPrice,
+            });
+          }
+        }
+      }
 
       const animal = getAnimalById(formData.animalId);
       if (animal) {
@@ -500,8 +703,10 @@ export default function NewWeighing() {
         employeeIds: prev.employeeIds,
         serviceProviderIds: prev.serviceProviderIds,
         observation: "",
+        appliedMedicines: [],
       }));
       setAnimalSearch("");
+      setSelectedMedicineId("");
       setErrors({});
     } catch (error) {
       console.error("Error adding weighing:", error);
@@ -629,6 +834,147 @@ export default function NewWeighing() {
                 />
               </div>
             </div>
+
+            {formData.animalId && formData.weight && parseFloat(formData.weight) > 0 && (
+              <div className="border-t border-b border-gray-200 dark:border-gray-700 pt-4 pb-4 mt-4">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                  {t.weighings.new.medicinesVaccinesTitle || "Medicamentos e Vacinas"}
+                </h2>
+
+                {availableMedicinesVaccines.length === 0 ? (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {t.weighings.new.noMedicinesVaccinesAvailable ||
+                      "Nenhum medicamento ou vacina disponível"}
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {formData.appliedMedicines.length > 0 && (
+                      <div className="space-y-3">
+                        {formData.appliedMedicines.map((applied) => {
+                          const item = getInventoryItemById(applied.itemId);
+                          if (!item) return null;
+                          const weight = parseFloat(formData.weight) || 0;
+                          const calculatedDosage = calculateDosage(item, weight);
+                          const currentStock = animalLocationInfo.propertyId
+                            ? getCurrentStock(applied.itemId, animalLocationInfo.propertyId)
+                            : 0;
+                          const hasError = errors[`medicine_${applied.itemId}`];
+
+                          return (
+                            <div
+                              key={applied.itemId}
+                              className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 border border-gray-200 dark:border-gray-600"
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                                      {item.name}
+                                    </h3>
+                                    <span className="text-xs px-2 py-1 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
+                                      {item.category === InventoryItemCategory.MEDICINES
+                                        ? t.inventory.categories.medicines
+                                        : t.inventory.categories.vaccines}
+                                    </span>
+                                  </div>
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                                    <div>
+                                      <span className="text-gray-600 dark:text-gray-400">
+                                        {t.weighings.new.calculatedDosage || "Dosagem Calculada"}:
+                                      </span>
+                                      <span className="ml-2 font-medium text-gray-900 dark:text-gray-100">
+                                        {calculatedDosage.toFixed(2)}{" "}
+                                        {getUnitLabel(
+                                          item.usageUnit || item.unit,
+                                          calculatedDosage
+                                        )}
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <label className="block text-gray-600 dark:text-gray-400 mb-1">
+                                        {t.weighings.new.quantityToConsume ||
+                                          "Quantidade a Consumir"}
+                                        :
+                                      </label>
+                                      <Input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={applied.quantity.toString()}
+                                        onChange={(e) => {
+                                          const qty = parseFloat(e.target.value) || 0;
+                                          updateMedicineQuantity(applied.itemId, qty);
+                                        }}
+                                        disabled={isSubmitting}
+                                        className="w-full"
+                                      />
+                                    </div>
+                                    <div>
+                                      <span className="text-gray-600 dark:text-gray-400">
+                                        {t.weighings.new.currentStock || "Estoque Atual"}:
+                                      </span>
+                                      <span
+                                        className={`ml-2 font-medium ${
+                                          currentStock < applied.quantity
+                                            ? "text-red-600 dark:text-red-400"
+                                            : "text-gray-900 dark:text-gray-100"
+                                        }`}
+                                      >
+                                        {currentStock.toFixed(2)}{" "}
+                                        {getUnitLabel(item.unit, currentStock)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  {hasError && (
+                                    <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+                                      {hasError}
+                                    </p>
+                                  )}
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => removeMedicine(applied.itemId)}
+                                  disabled={isSubmitting}
+                                  className="ml-4"
+                                >
+                                  {t.weighings.new.removeMedicineVaccine || "Remover"}
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    <div>
+                      <Select
+                        label={
+                          t.weighings.new.selectMedicineVaccine || "Selecionar Medicamento/Vacina"
+                        }
+                        value={selectedMedicineId}
+                        onChange={(e) => {
+                          const selectedId = e.target.value;
+                          setSelectedMedicineId(selectedId);
+                          if (selectedId) {
+                            addMedicine(selectedId);
+                          }
+                        }}
+                        options={availableMedicinesVaccines
+                          .filter(
+                            (item) => !formData.appliedMedicines.some((m) => m.itemId === item.id)
+                          )
+                          .map((item) => ({
+                            value: item.id,
+                            label: `${item.name} (${item.category === InventoryItemCategory.MEDICINES ? t.inventory.categories.medicines : t.inventory.categories.vaccines})`,
+                          }))}
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <div>

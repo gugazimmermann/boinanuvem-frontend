@@ -225,6 +225,30 @@ export default function Help() {
         answer: t.help.faqs.animalInventoryCosts.answer,
       },
       {
+        id: "inventory-usage-method",
+        category: "records",
+        question: t.help.faqs.inventoryUsageMethod.question,
+        answer: t.help.faqs.inventoryUsageMethod.answer,
+      },
+      {
+        id: "sanitary-control",
+        category: "records",
+        question: t.help.faqs.sanitaryControl.question,
+        answer: t.help.faqs.sanitaryControl.answer,
+      },
+      {
+        id: "sanitary-control-history",
+        category: "animals",
+        question: t.help.faqs.sanitaryControlHistory.question,
+        answer: t.help.faqs.sanitaryControlHistory.answer,
+      },
+      {
+        id: "medicine-during-weighing",
+        category: "records",
+        question: t.help.faqs.medicineDuringWeighing.question,
+        answer: t.help.faqs.medicineDuringWeighing.answer,
+      },
+      {
         id: "reproductive-indexes",
         category: "analytics",
         question: t.help.faqs.reproductiveIndexes.question,

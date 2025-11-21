@@ -30,6 +30,7 @@ import {
   getAnimalViewRoute,
   getObservationViewRoute,
   getBreedingNewRoute,
+  getSanitaryControlNewRoute,
 } from "~/routes.config";
 import { getAnimalById } from "~/services/animals.service";
 import { getPropertyById } from "~/services/properties.service";
@@ -41,6 +42,10 @@ import {
 } from "~/services/births.service";
 import { getAcquisitionByAnimalId } from "~/services/acquisitions.service";
 import { getWeighingsByAnimalId } from "~/services/weighings.service";
+import { getSanitaryControlsByAnimalId } from "~/services/sanitary-controls.service";
+import { getInventoryItemById } from "~/services/inventory.service";
+import { getEmployeeById } from "~/services/employees.service";
+import { getServiceProviderById } from "~/services/service-providers.service";
 import {
   getAnimalObservationsByAnimalId,
   addAnimalObservation,
@@ -220,6 +225,7 @@ export default function AnimalDetails() {
     | "activities"
     | "observations"
     | "breeding"
+    | "sanitaryControl"
     | "costs"
   >("dashboard");
 
@@ -257,6 +263,14 @@ export default function AnimalDetails() {
     column: string | null;
     direction: SortDirection;
   }>({ column: "date", direction: "desc" });
+  const [sanitaryControls, setSanitaryControls] = useState<
+    Array<import("~/types/sanitary-control").SanitaryControl>
+  >([]);
+  const [sanitaryControlsCurrentPage, setSanitaryControlsCurrentPage] = useState(1);
+  const [sanitaryControlsSortState, setSanitaryControlsSortState] = useState<{
+    column: string | null;
+    direction: SortDirection;
+  }>({ column: "date", direction: "desc" });
   const [sonsSortState, setSonsSortState] = useState<{
     column: string | null;
     direction: SortDirection;
@@ -274,6 +288,7 @@ export default function AnimalDetails() {
     if (animal) {
       setObservations(getAnimalObservationsByAnimalId(animal.id));
       setBreedings(getBreedingsByAnimalId(animal.id));
+      setSanitaryControls(getSanitaryControlsByAnimalId(animal.id));
     }
   }, [animal]);
 
@@ -833,6 +848,24 @@ export default function AnimalDetails() {
             }
           >
             {t.animals.details.tabs.observations || "Observações"}
+          </button>
+          <button
+            onClick={() => setActiveTab("sanitaryControl")}
+            className={`
+              py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
+              ${
+                activeTab === "sanitaryControl"
+                  ? "dark:text-blue-400"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+              }
+            `}
+            style={
+              activeTab === "sanitaryControl"
+                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
+                : undefined
+            }
+          >
+            {t.animals.details.tabs.sanitaryControl || "Controle Sanitário"}
           </button>
           <button
             onClick={() => setActiveTab("costs")}
@@ -2823,6 +2856,214 @@ export default function AnimalDetails() {
                 confirmLabel={t.animals.details.breeding.discardModal.confirm || "Descartar"}
                 cancelLabel={t.animals.details.breeding.discardModal.cancel || "Cancelar"}
                 variant="danger"
+              />
+            </div>
+          );
+        })()}
+
+      {activeTab === "sanitaryControl" &&
+        animal &&
+        (() => {
+          const sortedSanitaryControls = [...sanitaryControls].sort((a, b) => {
+            const { column, direction } = sanitaryControlsSortState;
+
+            if (!column) {
+              return new Date(b.date).getTime() - new Date(a.date).getTime();
+            }
+
+            let comparison = 0;
+            switch (column) {
+              case "date":
+                comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
+                break;
+              default:
+                return new Date(b.date).getTime() - new Date(a.date).getTime();
+            }
+
+            return direction === "asc" ? comparison : -comparison;
+          });
+
+          const filteredSanitaryControls = sortedSanitaryControls.filter(
+            (sc) => sc !== null && sc !== undefined && sc.id !== undefined
+          );
+          const totalPages = Math.ceil(filteredSanitaryControls.length / itemsPerPage);
+          const startIndex = (sanitaryControlsCurrentPage - 1) * itemsPerPage;
+          const paginatedSanitaryControls = filteredSanitaryControls.slice(
+            startIndex,
+            startIndex + itemsPerPage
+          );
+
+          const columns: TableColumn<import("~/types/sanitary-control").SanitaryControl>[] = [
+            {
+              key: "date",
+              label: t.animals.details.date,
+              sortable: true,
+              render: (_value, record) => {
+                if (!record) return <span className="text-sm text-gray-400">-</span>;
+                return (
+                  <span className="text-sm text-gray-900 dark:text-gray-100">
+                    {formatDate(record.date)}
+                  </span>
+                );
+              },
+            },
+            {
+              key: "appliedMedicines",
+              label: t.animals.details.sanitaryControl?.appliedItems || "Itens Aplicados",
+              sortable: false,
+              render: (_value, record) => {
+                if (!record) return <span className="text-sm text-gray-400">-</span>;
+                return (
+                  <div className="space-y-1">
+                    {record.appliedMedicines.map(
+                      (
+                        applied: { itemId: string; quantity: number; calculatedDosage?: number },
+                        idx: number
+                      ) => {
+                        const item = getInventoryItemById(applied.itemId);
+                        return (
+                          <div key={idx} className="text-sm text-gray-900 dark:text-gray-100">
+                            {item?.name || "Item não encontrado"}: {applied.quantity}{" "}
+                            {item?.unit || ""}
+                          </div>
+                        );
+                      }
+                    )}
+                  </div>
+                );
+              },
+            },
+            {
+              key: "responsible",
+              label: t.animals.details.sanitaryControl?.responsible || "Responsável",
+              sortable: false,
+              render: (_value, record) => {
+                if (!record) return <span className="text-sm text-gray-400">-</span>;
+                const employees = (record.employeeIds || [])
+                  .map((id: string) => getEmployeeById(id))
+                  .filter(Boolean);
+                const serviceProviders = (record.serviceProviderIds || [])
+                  .map((id: string) => getServiceProviderById(id))
+                  .filter(Boolean);
+                const allResponsible = [
+                  ...employees.map((e: { name?: string } | null | undefined) => e?.name || ""),
+                  ...serviceProviders.map(
+                    (sp: { name?: string } | null | undefined) => sp?.name || ""
+                  ),
+                ].filter(Boolean);
+
+                if (allResponsible.length === 0) {
+                  return <span className="text-sm text-gray-400">-</span>;
+                }
+
+                return (
+                  <div className="space-y-1">
+                    {allResponsible.map((name, idx) => (
+                      <div key={idx} className="text-sm text-gray-900 dark:text-gray-100">
+                        {name}
+                      </div>
+                    ))}
+                  </div>
+                );
+              },
+            },
+            {
+              key: "observation",
+              label: t.animals.details.sanitaryControl?.observation || "Observação",
+              sortable: false,
+              render: (_value, record) => {
+                if (!record || !record.observation) {
+                  return <span className="text-sm text-gray-400">-</span>;
+                }
+                return (
+                  <span className="text-sm text-gray-900 dark:text-gray-100">
+                    {record.observation}
+                  </span>
+                );
+              },
+            },
+          ];
+
+          const headerActions: TableAction[] = [
+            {
+              label: t.animals.details.sanitaryControl?.addButton || "Registrar Controle Sanitário",
+              variant: "primary",
+              leftIcon: (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="w-5 h-5"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              ),
+              onClick: () => {
+                const route = getSanitaryControlNewRoute([animal.id]);
+                if (typeof route === "string") {
+                  navigate(route);
+                } else {
+                  navigate(route.pathname, { state: route.state });
+                }
+              },
+            },
+          ];
+
+          return (
+            <div className="space-y-6">
+              <Table<import("~/types/sanitary-control").SanitaryControl>
+                columns={columns}
+                data={paginatedSanitaryControls}
+                header={{
+                  title: t.animals.details.sanitaryControl?.title || "Controle Sanitário",
+                  badge: {
+                    label: `${sanitaryControls.length} ${
+                      sanitaryControls.length !== 1
+                        ? t.animals.details.sanitaryControl?.badge || "registros"
+                        : t.animals.details.sanitaryControl?.badgeSingular || "registro"
+                    }`,
+                    variant: "primary",
+                  },
+                  description:
+                    t.animals.details.sanitaryControl?.description ||
+                    "Histórico de controles sanitários deste animal",
+                  actions: headerActions,
+                }}
+                pagination={{
+                  currentPage: sanitaryControlsCurrentPage,
+                  totalPages: totalPages || 1,
+                  onPageChange: setSanitaryControlsCurrentPage,
+                  showInfo: false,
+                }}
+                sortState={sanitaryControlsSortState}
+                onSort={(column, direction) => {
+                  setSanitaryControlsSortState({ column, direction });
+                  setSanitaryControlsCurrentPage(1);
+                }}
+                emptyState={{
+                  title:
+                    t.animals.details.sanitaryControl?.emptyState?.title ||
+                    "Nenhum controle sanitário registrado",
+                  description:
+                    t.animals.details.sanitaryControl?.emptyState?.description ||
+                    "Registre o primeiro controle sanitário para este animal.",
+                  onAddNew: () => {
+                    const route = getSanitaryControlNewRoute([animal.id]);
+                    if (typeof route === "string") {
+                      navigate(route);
+                    } else {
+                      navigate(route.pathname, { state: route.state });
+                    }
+                  },
+                  addNewLabel:
+                    t.animals.details.sanitaryControl?.addButton || "Registrar Controle Sanitário",
+                }}
               />
             </div>
           );

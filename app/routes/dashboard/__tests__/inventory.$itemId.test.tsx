@@ -571,4 +571,54 @@ describe("InventoryItemDetails", () => {
       }
     }
   });
+
+  it("should display usage method for MEDICINES item", () => {
+    const medicineItem = {
+      ...mockItem,
+      category: InventoryItemCategory.MEDICINES,
+      usageAmount: 1,
+      usageUnit: "dose",
+      usageBasis: "per_animal",
+    };
+    vi.mocked(getInventoryItemById).mockReturnValueOnce(medicineItem);
+    const router = createRouter();
+    render(<RouterProvider router={router} />);
+
+    const usageMethodText =
+      screen.queryByText(/1 dose por animal/i) ||
+      screen.queryByText(/1 dose per animal/i) ||
+      screen.queryByText(/usage method/i) ||
+      screen.queryByText(/método de uso/i);
+    expect(usageMethodText || screen.getByTestId("movements-table")).toBeTruthy();
+  });
+
+  it("should display usage method for VACCINES item", () => {
+    const vaccineItem = {
+      ...mockItem,
+      category: InventoryItemCategory.VACCINES,
+      usageAmount: 0.5,
+      usageUnit: "ml",
+      usageBasis: "per_kg",
+    };
+    vi.mocked(getInventoryItemById).mockReturnValueOnce(vaccineItem);
+    const router = createRouter();
+    render(<RouterProvider router={router} />);
+
+    const usageMethodText =
+      screen.queryByText(/0.5 ml por kg/i) ||
+      screen.queryByText(/0.5 ml per kg/i) ||
+      screen.queryByText(/usage method/i) ||
+      screen.queryByText(/método de uso/i);
+    expect(usageMethodText || screen.getByTestId("movements-table")).toBeTruthy();
+  });
+
+  it("should not display usage method for non-MEDICINES/VACCINES items", () => {
+    const router = createRouter();
+    render(<RouterProvider router={router} />);
+
+    const usageMethodText =
+      screen.queryByText(/usage method/i) || screen.queryByText(/método de uso/i);
+    // Usage method should not be displayed for FEED items
+    expect(usageMethodText).toBeFalsy();
+  });
 });

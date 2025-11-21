@@ -27,6 +27,11 @@ export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
       { translationKey: "births", path: ROUTES.BIRTHS_NEW, icon: "👶" },
       { translationKey: "acquisitions", path: ROUTES.ACQUISITIONS_NEW, icon: "🛒" },
       { translationKey: "weighings", path: ROUTES.WEIGHINGS_NEW, icon: "⚖️" },
+      {
+        translationKey: "medicineAdministrations",
+        path: ROUTES.MEDICINE_ADMINISTRATIONS_NEW,
+        icon: "💉",
+      },
     ],
   },
   {

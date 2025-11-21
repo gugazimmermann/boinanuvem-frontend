@@ -14,6 +14,7 @@ export * from "./births.service";
 export * from "./weighings.service";
 export * from "./acquisitions.service";
 export * from "./breedings.service";
+export * from "./sanitary-controls.service";
 export * from "./reproductive-indexes.service";
 
 export * from "./animal-movements.service";

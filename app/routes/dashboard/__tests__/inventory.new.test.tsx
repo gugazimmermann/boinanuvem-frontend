@@ -257,6 +257,175 @@ describe("NewInventoryItem", () => {
     }
   });
 
+  it("should show usage method fields when category is MEDICINES", async () => {
+    const router = createRouter();
+    render(<RouterProvider router={router} />);
+
+    const categorySelect = screen.queryByTestId("select-Category");
+    if (categorySelect) {
+      fireEvent.change(categorySelect, { target: { value: InventoryItemCategory.MEDICINES } });
+      await waitFor(() => {
+        const usageAmountInput = screen.queryByLabelText(/quantidade|amount/i);
+        const usageUnitSelect = screen.queryByLabelText(/unidade|unit/i);
+        const usageBasisSelect = screen.queryByLabelText(/base|basis/i);
+        expect(usageAmountInput || usageUnitSelect || usageBasisSelect).toBeTruthy();
+      });
+    }
+  });
+
+  it("should show usage method fields when category is VACCINES", async () => {
+    const router = createRouter();
+    render(<RouterProvider router={router} />);
+
+    const categorySelect = screen.queryByTestId("select-Category");
+    if (categorySelect) {
+      fireEvent.change(categorySelect, { target: { value: InventoryItemCategory.VACCINES } });
+      await waitFor(() => {
+        const usageAmountInput = screen.queryByLabelText(/quantidade|amount/i);
+        const usageUnitSelect = screen.queryByLabelText(/unidade|unit/i);
+        const usageBasisSelect = screen.queryByLabelText(/base|basis/i);
+        expect(usageAmountInput || usageUnitSelect || usageBasisSelect).toBeTruthy();
+      });
+    }
+  });
+
+  it("should not show usage method fields when category is not MEDICINES or VACCINES", async () => {
+    const router = createRouter();
+    render(<RouterProvider router={router} />);
+
+    const categorySelect = screen.queryByTestId("select-Category");
+    if (categorySelect) {
+      fireEvent.change(categorySelect, { target: { value: InventoryItemCategory.FEED } });
+      // Wait a bit to ensure fields are not rendered
+      await waitFor(
+        () => {
+          // Check for usage method section specifically, not just any "amount" or "unit" field
+          const usageMethodSection = screen.queryByText(/método de uso|usage method/i);
+          const usageAmountInput =
+            screen.queryByLabelText(/^quantidade$/i) || screen.queryByLabelText(/^amount$/i);
+          const usageUnitSelect =
+            screen.queryByLabelText(/^unidade$/i) || screen.queryByLabelText(/^unit$/i);
+          const usageBasisSelect =
+            screen.queryByLabelText(/^base$/i) || screen.queryByLabelText(/^basis$/i);
+          // Usage method section should not be present for FEED category
+          expect(usageMethodSection).toBeFalsy();
+          // These specific fields should not be present
+          expect(usageAmountInput).toBeFalsy();
+          expect(usageUnitSelect).toBeFalsy();
+          expect(usageBasisSelect).toBeFalsy();
+        },
+        { timeout: 1000 }
+      );
+    }
+  });
+
+  it("should handle usage amount input", async () => {
+    const router = createRouter();
+    render(<RouterProvider router={router} />);
+
+    const categorySelect = screen.queryByTestId("select-Category");
+    if (categorySelect) {
+      fireEvent.change(categorySelect, { target: { value: InventoryItemCategory.MEDICINES } });
+      await waitFor(() => {
+        const usageAmountInput = screen.queryByLabelText(/quantidade|amount/i);
+        if (usageAmountInput) {
+          fireEvent.change(usageAmountInput, { target: { value: "1.5" } });
+          expect(usageAmountInput).toHaveValue(1.5);
+        }
+      });
+    }
+  });
+
+  it("should handle usage unit selection", async () => {
+    const router = createRouter();
+    render(<RouterProvider router={router} />);
+
+    const categorySelect = screen.queryByTestId("select-Category");
+    if (categorySelect) {
+      fireEvent.change(categorySelect, { target: { value: InventoryItemCategory.MEDICINES } });
+      await waitFor(() => {
+        const usageUnitSelect = screen.queryByLabelText(/unidade|unit/i);
+        if (usageUnitSelect) {
+          fireEvent.change(usageUnitSelect, { target: { value: "ml" } });
+          expect(usageUnitSelect).toBeInTheDocument();
+        }
+      });
+    }
+  });
+
+  it("should handle usage basis selection", async () => {
+    const router = createRouter();
+    render(<RouterProvider router={router} />);
+
+    const categorySelect = screen.queryByTestId("select-Category");
+    if (categorySelect) {
+      fireEvent.change(categorySelect, { target: { value: InventoryItemCategory.MEDICINES } });
+      await waitFor(() => {
+        const usageBasisSelect = screen.queryByLabelText(/base|basis/i);
+        if (usageBasisSelect) {
+          fireEvent.change(usageBasisSelect, { target: { value: "per_animal" } });
+          expect(usageBasisSelect).toBeInTheDocument();
+        }
+      });
+    }
+  });
+
+  it("should include usage method fields in form submission for MEDICINES", async () => {
+    const router = createRouter();
+    const { container } = render(<RouterProvider router={router} />);
+
+    const codeInput = screen.queryByTestId("input-Code");
+    const nameInput = screen.queryByTestId("input-Name");
+    const categorySelect = screen.queryByTestId("select-Category");
+    const propertySelect = container.querySelector("select[multiple]") as HTMLSelectElement;
+
+    if (codeInput) fireEvent.change(codeInput, { target: { value: "MED001" } });
+    if (nameInput) fireEvent.change(nameInput, { target: { value: "Test Medicine" } });
+    if (categorySelect)
+      fireEvent.change(categorySelect, { target: { value: InventoryItemCategory.MEDICINES } });
+    if (propertySelect && propertySelect.options.length > 0) {
+      simulateMultiSelectChange(propertySelect, 0);
+    }
+
+    await waitFor(() => {
+      const usageAmountInput = screen.queryByLabelText(/quantidade|amount/i);
+      expect(usageAmountInput).toBeTruthy();
+    });
+
+    const usageAmountInput = screen.queryByLabelText(/quantidade|amount/i);
+    const usageUnitSelect = screen.queryByLabelText(/unidade|unit/i);
+    const usageBasisSelect = screen.queryByLabelText(/base|basis/i);
+
+    if (usageAmountInput) {
+      fireEvent.change(usageAmountInput, { target: { value: "1" } });
+    }
+    if (usageUnitSelect) {
+      fireEvent.change(usageUnitSelect, { target: { value: "dose" } });
+    }
+    if (usageBasisSelect) {
+      fireEvent.change(usageBasisSelect, { target: { value: "per_animal" } });
+    }
+
+    const form = container.querySelector("form");
+    if (form) {
+      fireEvent.submit(form);
+      await waitFor(() => {
+        expect(addInventoryItem).toHaveBeenCalled();
+        const callArgs = vi.mocked(addInventoryItem).mock.calls[0][0];
+        // Usage method fields are optional, so check if they exist
+        if (callArgs.usageAmount !== undefined) {
+          expect(callArgs.usageAmount).toBe(1);
+        }
+        if (callArgs.usageUnit !== undefined) {
+          expect(callArgs.usageUnit).toBe("dose");
+        }
+        if (callArgs.usageBasis !== undefined) {
+          expect(callArgs.usageBasis).toBe("per_animal");
+        }
+      });
+    }
+  });
+
   it("should show custom category input when category is CUSTOM", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);

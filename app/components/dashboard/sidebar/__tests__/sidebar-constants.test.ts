@@ -81,5 +81,15 @@ describe("sidebar-constants", () => {
       expect(recordsItem?.subItems).toBeDefined();
       expect(recordsItem?.subItems!.length).toBeGreaterThan(0);
     });
+
+    it("should have medicine administrations in records section", () => {
+      const recordsItem = SIDEBAR_ITEMS.find((item) => item.translationKey === "records");
+      expect(recordsItem).toBeDefined();
+      const medicineAdminItem = recordsItem?.subItems?.find(
+        (subItem) => subItem.translationKey === "medicineAdministrations"
+      );
+      expect(medicineAdminItem).toBeDefined();
+      expect(medicineAdminItem?.path).toBe(ROUTES.MEDICINE_ADMINISTRATIONS_NEW);
+    });
   });
 });

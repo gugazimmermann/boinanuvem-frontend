@@ -19,6 +19,10 @@ A modern, full-stack React application built with React Router v7, featuring a c
   - Full CRUD operations with view, edit, and delete capabilities
 - **Inventory Management**: Comprehensive inventory tracking and management system
   - Complete inventory item registration with categories, units, and minimum stock levels
+  - **Usage Method Configuration**: For medicines and vaccines, specify usage method with amount, unit, and basis (per animal or per kg)
+    - Structured dosage information for accurate administration
+    - Automatic dosage calculation during sanitary control and weighing processes
+    - Weight-based dosage calculation when applicable
   - Stock level tracking with automatic calculation based on movements
   - Inventory movements (purchase, sale, adjustment, consumption) with supplier association
   - Low stock alerts and expiration date tracking
@@ -53,6 +57,28 @@ A modern, full-stack React application built with React Router v7, featuring a c
   - **Weight Analysis**: Automatic calculation of weight difference, last weight, and GMD (Daily Average Gain) for each weighing
   - **Efficient Data Entry**: Form preserves employee and service provider selections between registrations for faster data entry
   - **Large Dataset Support**: Paginated table with search and sorting capabilities to handle 500+ weighings efficiently
+  - **Medicine/Vaccine Administration During Weighing**: Apply medicines or vaccines during the weighing process
+    - Automatic dosage calculation based on animal weight and usage method
+    - Automatic inventory stock reduction
+    - Automatic cost attribution to the animal
+    - Support for multiple medicines/vaccines per weighing
+- **Sanitary Control**: Comprehensive sanitary control management system
+  - **Standalone Administration**: Register medicine/vaccine administration independently of weighing
+  - **Multiple Animal Selection**: Apply medicines/vaccines to one or more animals simultaneously
+  - **Automatic Dosage Calculation**: Weight-based dosage calculation for each selected animal
+    - Uses latest recorded weight for each animal
+    - Supports "per animal" and "per kg" dosage bases
+    - Displays calculated dosage for single animal selection
+    - Shows dosage basis information for multiple animals
+  - **Inventory Integration**: Automatic stock reduction when medicines/vaccines are applied
+  - **Cost Tracking**: Automatic cost attribution to animals based on location and property
+  - **History Tracking**: Complete history of sanitary control records in animal details page
+    - Tab-based organization in animal profile
+    - Sortable and paginated history table
+    - Displays date, applied items, quantities, responsible parties, and observations
+    - Quick access to add new records from animal details page
+  - **Employee and Service Provider Tracking**: Record responsible parties for each administration
+  - **Observation Support**: Add observations to each sanitary control record
 - **Animal Movements**: Track animal movements between properties and locations with responsible parties, observations, and file attachments
   - Movement type tracking (entry, exit, transfer)
   - Responsible party assignment
@@ -417,6 +443,7 @@ The application uses a service layer pattern to abstract data access and busines
   - `weighings.service.ts` - Weight measurement tracking
   - `acquisitions.service.ts` - Animal acquisition records
   - `breedings.service.ts` - Breeding record management
+  - `sanitary-controls.service.ts` - Sanitary control record management (medicine/vaccine administration)
 
 - **Movement Services**: 
   - `animal-movements.service.ts` - Animal movement tracking between properties/locations
@@ -466,6 +493,7 @@ The application includes a comprehensive mock data system for development and te
   - `breedings.ts` - Breeding records with confirmation status
   - `weighings.ts` - Weight measurement records
   - `acquisitions.ts` - Acquisition records
+  - `sanitary-controls.ts` - Sanitary control records (medicine/vaccine administrations)
   - `companies.ts` - Company profiles
   - `properties.ts` - Property data with locations
   - `locations.ts` - Location data within properties
@@ -689,10 +717,11 @@ The project maintains comprehensive test coverage covering:
   - Public site routes
 
 **Current Test Status**: 
-- ✅ **2,477 tests passing** across 219 test files
+- ✅ **2,523 tests passing** across 221 test files
 - ✅ **100% pass rate** with zero failures
 - ✅ **Comprehensive mock data validation** ensuring data quality and consistency
 - ✅ **Full service layer coverage** with proper mocking strategies
+- ✅ **Complete inventory and sanitary control test coverage** including usage method fields, dosage calculation, and multi-animal administration
 
 Coverage reports are generated in the `coverage/` directory and can be viewed by opening `coverage/index.html` in a browser. The project continuously improves test coverage with focus on edge cases, user interactions, and navigation flows.
 
@@ -828,7 +857,8 @@ UserPermissions
 ├── records/
 │   ├── births (view, add, edit, remove)
 │   ├── acquisitions (view, add, edit, remove)
-│   └── weighings (view, add, edit, remove)
+│   ├── weighings (view, add, edit, remove)
+│   └── sanitaryControl (view, add, edit, remove)
 ├── breedings/
 │   ├── breedings (view, add, edit, remove)
 │   ├── unconfirmedBreedings (view, add, edit, remove)

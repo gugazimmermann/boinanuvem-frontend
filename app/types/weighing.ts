@@ -6,6 +6,7 @@ export interface Weighing extends Record<string, unknown> {
   date: string;
   weight: number;
   observation?: string;
+  appliedMedicines?: Array<{ itemId: string; quantity: number; calculatedDosage: number }>;
   createdAt: string;
   companyId: string;
 }
@@ -17,5 +18,6 @@ export interface WeighingFormData {
   date: string;
   weight: number;
   observation?: string;
+  appliedMedicines?: Array<{ itemId: string; quantity: number; calculatedDosage: number }>;
   companyId: string;
 }

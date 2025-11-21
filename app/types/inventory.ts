@@ -29,6 +29,9 @@ export interface InventoryItem extends Record<string, unknown> {
   supplierId?: string;
   hasExpiration: boolean;
   expirationDate?: string;
+  usageAmount?: number;
+  usageUnit?: string;
+  usageBasis?: string;
   companyId: string;
   propertyIds: string[];
   createdAt: string;
@@ -47,6 +50,9 @@ export interface InventoryItemFormData {
   supplierId?: string;
   hasExpiration: boolean;
   expirationDate?: string;
+  usageAmount?: number;
+  usageUnit?: string;
+  usageBasis?: string;
   companyId: string;
   propertyIds: string[];
 }

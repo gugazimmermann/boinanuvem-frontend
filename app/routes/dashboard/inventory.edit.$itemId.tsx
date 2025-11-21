@@ -44,6 +44,9 @@ export default function EditInventoryItem() {
     supplierId: string;
     hasExpiration: boolean;
     expirationDate: string;
+    usageAmount: string;
+    usageUnit: string;
+    usageBasis: string;
     propertyIds: string[];
   }>({
     code: "",
@@ -57,6 +60,9 @@ export default function EditInventoryItem() {
     supplierId: "",
     hasExpiration: false,
     expirationDate: "",
+    usageAmount: "",
+    usageUnit: "",
+    usageBasis: "",
     propertyIds: [],
   });
 
@@ -74,6 +80,9 @@ export default function EditInventoryItem() {
         supplierId: item.supplierId || "",
         hasExpiration: item.hasExpiration,
         expirationDate: item.expirationDate || "",
+        usageAmount: item.usageAmount?.toString() || "",
+        usageUnit: item.usageUnit || "",
+        usageBasis: item.usageBasis || "",
         propertyIds: item.propertyIds || [],
       });
     }
@@ -136,6 +145,19 @@ export default function EditInventoryItem() {
       newErrors.expirationDate = t.inventory.new.expirationDateRequired;
     }
 
+    // Validate usage method if category is medicines or vaccines
+    if (
+      (formData.category === InventoryItemCategory.MEDICINES ||
+        formData.category === InventoryItemCategory.VACCINES) &&
+      formData.usageAmount &&
+      formData.usageAmount.trim()
+    ) {
+      const usageAmount = parseFloat(formData.usageAmount);
+      if (isNaN(usageAmount) || usageAmount <= 0) {
+        newErrors.usageAmount = t.inventory.new.usageAmountInvalid;
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -165,6 +187,27 @@ export default function EditInventoryItem() {
         hasExpiration: formData.hasExpiration,
         expirationDate:
           formData.hasExpiration && formData.expirationDate ? formData.expirationDate : undefined,
+        usageAmount:
+          (formData.category === InventoryItemCategory.MEDICINES ||
+            formData.category === InventoryItemCategory.VACCINES) &&
+          formData.usageAmount &&
+          formData.usageAmount.trim()
+            ? parseFloat(formData.usageAmount)
+            : undefined,
+        usageUnit:
+          (formData.category === InventoryItemCategory.MEDICINES ||
+            formData.category === InventoryItemCategory.VACCINES) &&
+          formData.usageUnit &&
+          formData.usageUnit.trim()
+            ? formData.usageUnit.trim()
+            : undefined,
+        usageBasis:
+          (formData.category === InventoryItemCategory.MEDICINES ||
+            formData.category === InventoryItemCategory.VACCINES) &&
+          formData.usageBasis &&
+          formData.usageBasis.trim()
+            ? formData.usageBasis.trim()
+            : undefined,
         propertyIds: formData.propertyIds,
       };
       const success = updateInventoryItem(item.id, itemData);
@@ -233,6 +276,31 @@ export default function EditInventoryItem() {
     { value: "rolo", label: t.inventory.units.roll },
     { value: "pacote", label: t.inventory.units.package },
     { value: "lata", label: t.inventory.units.can },
+  ];
+
+  const usageUnitOptions = [
+    { value: "unidade", label: t.inventory.units.unit },
+    { value: "ml", label: t.inventory.units.milliliter },
+    { value: "L", label: t.inventory.units.liter },
+    { value: "dose", label: t.inventory.units.dose },
+    { value: "frasco", label: t.inventory.units.bottle },
+    { value: "ampola", label: t.inventory.units.ampoule },
+    { value: "seringa", label: t.inventory.units.syringe },
+    { value: "comprimido", label: t.inventory.units.tablet },
+    { value: "pilula", label: t.inventory.units.pill },
+    { value: "g", label: t.inventory.units.gram },
+    { value: "kg", label: t.inventory.units.kg },
+  ];
+
+  const usageBasisOptions = [
+    {
+      value: "per_animal",
+      label: t.inventory.new.usageBasisOptions?.perAnimal || "por animal",
+    },
+    {
+      value: "per_kg",
+      label: t.inventory.new.usageBasisOptions?.perKg || "por kg",
+    },
   ];
 
   return (
@@ -346,6 +414,44 @@ export default function EditInventoryItem() {
                 placeholder={t.inventory.new.unitPricePlaceholder}
               />
             </div>
+
+            {(formData.category === InventoryItemCategory.MEDICINES ||
+              formData.category === InventoryItemCategory.VACCINES) && (
+              <div className="space-y-4 border-t border-b border-gray-200 dark:border-gray-700 pt-4 pb-4">
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {t.inventory.new.usageMethod}
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Input
+                    label={t.inventory.new.usageAmount}
+                    type="number"
+                    value={formData.usageAmount}
+                    onChange={(e) => handleChange("usageAmount", e.target.value)}
+                    error={errors.usageAmount}
+                    disabled={isSubmitting}
+                    min="0"
+                    step="0.01"
+                    placeholder="1"
+                  />
+                  <Select
+                    label={t.inventory.new.usageUnit}
+                    value={formData.usageUnit}
+                    onChange={(e) => handleChange("usageUnit", e.target.value)}
+                    options={usageUnitOptions}
+                    error={errors.usageUnit}
+                    disabled={isSubmitting}
+                  />
+                  <Select
+                    label={t.inventory.new.usageBasis}
+                    value={formData.usageBasis}
+                    onChange={(e) => handleChange("usageBasis", e.target.value)}
+                    options={usageBasisOptions}
+                    error={errors.usageBasis}
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
+            )}
 
             <Select
               label={t.inventory.table.supplier}

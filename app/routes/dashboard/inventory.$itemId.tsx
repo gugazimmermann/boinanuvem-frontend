@@ -504,6 +504,25 @@ export default function InventoryItemDetails() {
                 {getUnitLabel(item.unit, 1)}
               </p>
             </div>
+            {(item.category === InventoryItemCategory.MEDICINES ||
+              item.category === InventoryItemCategory.VACCINES) &&
+              item.usageAmount &&
+              item.usageUnit &&
+              item.usageBasis && (
+                <div>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {t.inventory.new.usageMethod}
+                  </p>
+                  <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
+                    {item.usageAmount} {getUnitLabel(item.usageUnit, item.usageAmount)}{" "}
+                    {item.usageBasis === "per_animal"
+                      ? t.inventory.new.usageBasisOptions?.perAnimal || "por animal"
+                      : item.usageBasis === "per_kg"
+                        ? t.inventory.new.usageBasisOptions?.perKg || "por kg"
+                        : item.usageBasis}
+                  </p>
+                </div>
+              )}
             {supplier && (
               <div>
                 <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
