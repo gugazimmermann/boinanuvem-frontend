@@ -54,6 +54,12 @@ import {
 } from "~/services/location-observations.service";
 import type { LocationObservation } from "~/types/location-observation";
 import { usePermissions } from "~/utils/permissions";
+import {
+  getLocationConsumptionCosts,
+  getTotalLocationCost,
+  getAnimalCostBreakdown,
+} from "~/services/location-costs.service";
+import { Input } from "~/components/ui";
 
 const formatAreaType = (type: AreaType): string => {
   const typeMap: Record<AreaType, string> = {
@@ -94,13 +100,14 @@ export default function LocationDetails() {
 
   const tabParam = searchParams.get("tab");
   const [activeTab, setActiveTab] = useState<
-    "information" | "info" | "activities" | "movements" | "observations" | "animals"
+    "information" | "info" | "activities" | "movements" | "observations" | "animals" | "costs"
   >(
     (tabParam === "info" ||
     tabParam === "activities" ||
     tabParam === "movements" ||
     tabParam === "observations" ||
-    tabParam === "animals"
+    tabParam === "animals" ||
+    tabParam === "costs"
       ? tabParam
       : "information") as
       | "information"
@@ -109,6 +116,7 @@ export default function LocationDetails() {
       | "movements"
       | "observations"
       | "animals"
+      | "costs"
   );
 
   const [sortState, setSortState] = useState<{
@@ -131,6 +139,8 @@ export default function LocationDetails() {
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
   const [selectedAnimals, setSelectedAnimals] = useState<Set<string>>(new Set());
   const [isAnimalRegistrationModalOpen, setIsAnimalRegistrationModalOpen] = useState(false);
+  const [costsStartDate, setCostsStartDate] = useState<string>("");
+  const [costsEndDate, setCostsEndDate] = useState<string>("");
 
   const dateLocale = useMemo(() => {
     switch (language) {
@@ -159,7 +169,8 @@ export default function LocationDetails() {
       tab === "activities" ||
       tab === "movements" ||
       tab === "observations" ||
-      tab === "animals"
+      tab === "animals" ||
+      tab === "costs"
     ) {
       setActiveTab(tab);
     } else if (!tab) {
@@ -433,6 +444,27 @@ export default function LocationDetails() {
             }
           >
             {t.animals.title}
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab("costs");
+              setSearchParams({ tab: "costs" });
+            }}
+            className={`
+              py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
+              ${
+                activeTab === "costs"
+                  ? "dark:text-blue-400"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+              }
+            `}
+            style={
+              activeTab === "costs"
+                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
+                : undefined
+            }
+          >
+            {t.locations.costs.title}
           </button>
           <button
             onClick={() => {
@@ -2076,6 +2108,248 @@ export default function LocationDetails() {
             </div>
           );
         })()}
+
+      {activeTab === "costs" && location && (
+        <div className="space-y-6">
+          {(() => {
+            const consumptionCosts = getLocationConsumptionCosts(
+              location.id,
+              costsStartDate || undefined,
+              costsEndDate || undefined
+            );
+            const totalCost = getTotalLocationCost(
+              location.id,
+              costsStartDate || undefined,
+              costsEndDate || undefined
+            );
+            const animalBreakdown = getAnimalCostBreakdown(
+              location.id,
+              costsStartDate || undefined,
+              costsEndDate || undefined
+            );
+            const averageCostPerAnimal =
+              animalBreakdown.length > 0 ? totalCost / animalBreakdown.length : 0;
+
+            return (
+              <>
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
+                    {t.locations.costs.title}
+                  </h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                    {t.locations.costs.description}
+                  </p>
+
+                  {/* Date Range Filter */}
+                  <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Input
+                        label={t.locations.costs.startDate}
+                        type="date"
+                        value={costsStartDate}
+                        onChange={(e) => setCostsStartDate(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Input
+                        label={t.locations.costs.endDate}
+                        type="date"
+                        value={costsEndDate}
+                        onChange={(e) => setCostsEndDate(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setCostsStartDate("");
+                          setCostsEndDate("");
+                        }}
+                        disabled={!costsStartDate && !costsEndDate}
+                      >
+                        {t.locations.costs.clearFilter}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Summary Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                      <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                        {t.locations.costs.totalCost}
+                      </p>
+                      <p className="text-2xl font-bold text-blue-900 dark:text-blue-100 mt-1">
+                        {totalCost.toLocaleString(localeForNumber, {
+                          style: "currency",
+                          currency: "BRL",
+                        })}
+                      </p>
+                    </div>
+                    <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
+                      <p className="text-sm font-medium text-green-600 dark:text-green-400">
+                        {t.locations.costs.averageCostPerAnimal}
+                      </p>
+                      <p className="text-2xl font-bold text-green-900 dark:text-green-100 mt-1">
+                        {averageCostPerAnimal.toLocaleString(localeForNumber, {
+                          style: "currency",
+                          currency: "BRL",
+                        })}
+                      </p>
+                    </div>
+                    <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
+                      <p className="text-sm font-medium text-purple-600 dark:text-purple-400">
+                        {t.locations.costs.consumptionRecords}
+                      </p>
+                      <p className="text-2xl font-bold text-purple-900 dark:text-purple-100 mt-1">
+                        {consumptionCosts.length}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Consumption History Table */}
+                  <div className="mb-6">
+                    <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                      {t.locations.costs.consumptionHistory}
+                    </h3>
+                    {consumptionCosts.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                        <p className="font-medium">{t.locations.costs.noConsumption}</p>
+                        <p className="text-sm mt-2">
+                          {costsStartDate || costsEndDate
+                            ? t.locations.costs.noConsumptionWithFilter
+                            : t.locations.costs.noConsumptionDescription}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                          <thead className="bg-gray-50 dark:bg-gray-900">
+                            <tr>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                {t.locations.costs.itemName}
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                {t.locations.costs.quantity}
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                {t.locations.costs.unitPrice}
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                {t.locations.costs.totalCost}
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                {t.locations.costs.date}
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                {t.locations.costs.animalsPresent}
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                            {consumptionCosts.map((cost) => (
+                              <tr key={cost.movement.id}>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                  {cost.item.name}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                  {cost.movement.quantity.toLocaleString(localeForNumber)}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                  {(
+                                    cost.movement.unitPrice ??
+                                    cost.item.unitPrice ??
+                                    0
+                                  ).toLocaleString(localeForNumber, {
+                                    style: "currency",
+                                    currency: "BRL",
+                                  })}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                                  {cost.totalCost.toLocaleString(localeForNumber, {
+                                    style: "currency",
+                                    currency: "BRL",
+                                  })}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                  {format(new Date(cost.movement.date), "PP", {
+                                    locale: dateLocale,
+                                  })}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                  {cost.animalsPresent.length}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Per-Animal Breakdown */}
+                  {animalBreakdown.length > 0 && (
+                    <div>
+                      <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                        {t.locations.costs.perAnimalBreakdown}
+                      </h3>
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                          <thead className="bg-gray-50 dark:bg-gray-900">
+                            <tr>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                {t.locations.costs.animalCode}
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                {t.locations.costs.animalRegistration}
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                {t.locations.costs.totalAllocatedCost}
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                {t.locations.costs.consumptionPeriods}
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                {t.locations.costs.averageCostPerPeriod}
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                            {animalBreakdown.map((breakdown) => (
+                              <tr key={breakdown.animal.id}>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                  {breakdown.animal.code}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                  {breakdown.animal.registrationNumber}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                                  {breakdown.totalCost.toLocaleString(localeForNumber, {
+                                    style: "currency",
+                                    currency: "BRL",
+                                  })}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                  {breakdown.consumptionPeriods}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                  {breakdown.averageCostPerPeriod.toLocaleString(localeForNumber, {
+                                    style: "currency",
+                                    currency: "BRL",
+                                  })}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            );
+          })()}
+        </div>
+      )}
     </div>
   );
 }

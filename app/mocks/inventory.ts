@@ -67,6 +67,7 @@ export const mockInventoryItems: InventoryItem[] = [
     category: InventoryItemCategory.SUPPLEMENTS,
     unit: "kg",
     minimumStock: 100,
+    unitPrice: 2.2,
     supplierId: SUPPLIER_AGROFORNECEDORA,
     hasExpiration: false,
     companyId: COMPANY_ID,

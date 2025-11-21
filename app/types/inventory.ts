@@ -63,6 +63,7 @@ export interface InventoryMovement extends Record<string, unknown> {
   cashFlowId?: string;
   propertyId: string;
   companyId: string;
+  locationId?: string;
   expirationDate?: string;
   createdAt: string;
 }
@@ -78,6 +79,7 @@ export interface InventoryMovementFormData {
   cashFlowId?: string;
   propertyId: string;
   companyId: string;
+  locationId?: string;
   expirationDate?: string;
   createCashFlowTransaction?: boolean;
 }

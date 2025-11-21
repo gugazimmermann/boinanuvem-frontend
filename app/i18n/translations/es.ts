@@ -510,6 +510,36 @@ export const es = {
       files: "Anexos",
       filesHelper: "Archivos adjuntos a esta observación",
     },
+    costs: {
+      title: "Costos de Inventario",
+      description:
+        "Rastree los costos de consumo de inventario y calcule los costos por animal para esta ubicación",
+      totalCost: "Costo Total",
+      averageCostPerAnimal: "Costo Promedio por Animal",
+      consumptionRecords: "Registros de Consumo",
+      dateRange: "Rango de Fechas",
+      startDate: "Fecha de Inicio",
+      endDate: "Fecha Final",
+      applyFilter: "Aplicar Filtro",
+      clearFilter: "Limpiar Filtro",
+      consumptionHistory: "Historial de Consumo",
+      perAnimalBreakdown: "Desglose de Costos por Animal",
+      itemName: "Nombre del Artículo",
+      quantity: "Cantidad",
+      unitPrice: "Precio Unitario",
+      date: "Fecha",
+      animalsPresent: "Animales Presentes",
+      animalCode: "Código del Animal",
+      animalRegistration: "Registro",
+      totalAllocatedCost: "Costo Total Asignado",
+      consumptionPeriods: "Períodos de Consumo",
+      averageCostPerPeriod: "Costo Promedio por Período",
+      noConsumption: "No se encontraron registros de consumo",
+      noConsumptionDescription:
+        "Aún no hay registros de consumo de inventario para esta ubicación.",
+      noConsumptionWithFilter:
+        "No se encontraron registros de consumo para el rango de fechas seleccionado.",
+    },
   },
 
   employees: {
@@ -2132,6 +2162,21 @@ export const es = {
           cancel: "Cancelar",
         },
       },
+      costs: {
+        title: "Costos",
+        description: "Rastree los costos de consumo de inventario para este animal",
+        totalCost: "Costo Total",
+        costByLocation: "Costo por Ubicación",
+        consumptionHistory: "Historial de Consumo",
+        location: "Ubicación",
+        itemName: "Nombre del Artículo",
+        quantity: "Cantidad",
+        costPerAnimal: "Costo por Animal",
+        totalAllocatedCost: "Costo Total Asignado",
+        consumptionPeriods: "Períodos de Consumo",
+        noCosts: "No se registraron costos",
+        noCostsDescription: "Este animal aún no tiene costos de consumo de inventario registrados.",
+      },
     },
     observations: {
       birth: {
@@ -2945,6 +2990,16 @@ export const es = {
         question: "¿Cómo agrego observaciones a artículos de inventario?",
         answer:
           "En la página de detalles de cada artículo de inventario, puedes agregar, ver, editar y eliminar múltiples observaciones, cada una con sus propios archivos adjuntos (fotos, documentos). Esto ayuda a mantener un historial completo de notas y documentación para cada artículo de inventario. Las observaciones son útiles para registrar información importante como notas de calidad, registros de mantenimiento, comunicaciones con proveedores o cualquier otro detalle relevante sobre el artículo.",
+      },
+      locationInventoryCosts: {
+        question: "¿Cómo rastreo los costos de consumo de inventario por ubicación?",
+        answer:
+          "El sistema te permite rastrear el consumo de artículos de inventario (alimento, suplementos, vitaminas, sal, etc.) por ubicación y calcular el costo por animal. Al registrar un consumo de inventario, puedes opcionalmente especificar en qué ubicación ocurrió el consumo. En la página de detalles de cada ubicación, ve a la pestaña 'Costos de Inventario' para ver: el costo total de consumo para la ubicación, el historial de consumo con detalles de cada artículo, y el costo asignado por animal basado en la presencia de los animales en la ubicación en la fecha del consumo. Puedes filtrar por período usando las fechas de inicio y fin. El sistema calcula automáticamente el costo por animal dividiendo el costo total entre los animales presentes en la ubicación en cada fecha de consumo.",
+      },
+      animalInventoryCosts: {
+        question: "¿Cómo veo los costos de inventario por animal?",
+        answer:
+          "En la página de detalles de cada animal, ve a la pestaña 'Costos' para ver el costo total de consumo de inventario asignado a ese animal. El sistema muestra: el costo total del animal en todas las ubicaciones, un desglose por ubicación mostrando cuánto se gastó en cada una, y el historial detallado de todos los consumos que afectaron al animal. Puedes filtrar por período usando las fechas de inicio y fin. El sistema calcula automáticamente el costo asignado a cada animal basado en su presencia en la ubicación en cada fecha de consumo, dividiendo el costo equitativamente entre todos los animales presentes. Esto te permite saber exactamente cuánto costó cada animal en términos de consumo de inventario.",
       },
     },
   },

@@ -177,6 +177,12 @@ export default function Help() {
         answer: t.help.faqs.inventoryObservations.answer,
       },
       {
+        id: "location-inventory-costs",
+        category: "records",
+        question: t.help.faqs.locationInventoryCosts.question,
+        answer: t.help.faqs.locationInventoryCosts.answer,
+      },
+      {
         id: "cash-flow",
         category: "financial",
         question: t.help.faqs.cashFlow.question,
@@ -211,6 +217,12 @@ export default function Help() {
         category: "financial",
         question: t.help.faqs.inventoryFinancialIntegration.question,
         answer: t.help.faqs.inventoryFinancialIntegration.answer,
+      },
+      {
+        id: "animal-inventory-costs",
+        category: "financial",
+        question: t.help.faqs.animalInventoryCosts.question,
+        answer: t.help.faqs.animalInventoryCosts.answer,
       },
       {
         id: "reproductive-indexes",

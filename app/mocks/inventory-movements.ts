@@ -22,6 +22,11 @@ const VITAMINA_AD = "ii0e8400-e29b-41d4-a716-446655440014";
 const CASH_FLOW_RACAO = "cc0e8400-e29b-41d4-a716-446655440011";
 const CASH_FLOW_VACINA = "cc0e8400-e29b-41d4-a716-446655440012";
 
+// Location IDs from locations.ts
+const PASTO_NORTE = "660e8400-e29b-41d4-a716-446655440010";
+const PASTO_SUL = "660e8400-e29b-41d4-a716-446655440011";
+const CONFINAMENTO_PRINCIPAL = "660e8400-e29b-41d4-a716-446655440014";
+
 export const mockInventoryMovements: InventoryMovement[] = [
   {
     id: "im0e8400-e29b-41d4-a716-446655440010",
@@ -46,6 +51,7 @@ export const mockInventoryMovements: InventoryMovement[] = [
     description: "Consumo de ração para alimentação do rebanho",
     propertyId: FAZENDA_DO_JUCA,
     companyId: COMPANY_ID,
+    locationId: PASTO_NORTE,
     createdAt: "2025-11-15",
   },
   {
@@ -72,6 +78,7 @@ export const mockInventoryMovements: InventoryMovement[] = [
     description: "Aplicação de vacinas no rebanho",
     propertyId: FAZENDA_DO_JUCA,
     companyId: COMPANY_ID,
+    locationId: PASTO_NORTE,
     createdAt: "2025-11-20",
   },
   {
@@ -97,6 +104,7 @@ export const mockInventoryMovements: InventoryMovement[] = [
     description: "Uso de antibióticos para tratamento de animais",
     propertyId: FAZENDA_DO_JUCA,
     companyId: COMPANY_ID,
+    locationId: PASTO_SUL,
     createdAt: "2025-11-18",
   },
   {
@@ -121,6 +129,7 @@ export const mockInventoryMovements: InventoryMovement[] = [
     description: "Consumo de suplemento mineral",
     propertyId: FAZENDA_DO_JUCA,
     companyId: COMPANY_ID,
+    locationId: CONFINAMENTO_PRINCIPAL,
     createdAt: "2025-11-22",
   },
   {

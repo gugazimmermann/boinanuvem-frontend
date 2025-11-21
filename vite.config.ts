@@ -14,19 +14,30 @@ export default defineConfig(({ mode }) => {
       globals: true,
       environment: "jsdom",
       setupFiles: ["./vitest.setup.ts"],
+      onConsoleLog(log: string, type: "stdout" | "stderr") {
+        // Suppress known warnings that don't affect test functionality
+        if (
+          type === "stderr" &&
+          (log.includes("No `HydrateFallback` element provided") ||
+            log.includes("Not implemented: HTMLFormElement's requestSubmit() method"))
+        ) {
+          return false; // Suppress the log
+        }
+        return true; // Allow other logs
+      },
       coverage: {
         provider: "v8",
         reporter: ["text", "json", "html"],
-      exclude: [
-        "node_modules/",
-        "build/",
-        ".react-router/",
-        "**/*.config.{js,ts}",
-        "**/*.d.ts",
-        "**/types/**",
-        "**/root.tsx",
-        "**/translations/*.ts",
-      ],
+        exclude: [
+          "node_modules/",
+          "build/",
+          ".react-router/",
+          "**/*.config.{js,ts}",
+          "**/*.d.ts",
+          "**/types/**",
+          "**/root.tsx",
+          "**/translations/*.ts",
+        ],
       },
     },
   };

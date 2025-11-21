@@ -62,3 +62,17 @@ global.ResizeObserver = class ResizeObserver {
   unobserve() {}
 } as unknown as typeof ResizeObserver;
 
+// Suppress jsdom warnings about requestSubmit not being implemented
+// and React Router HydrateFallback warnings in test environment
+const originalError = console.error;
+console.error = (...args: unknown[]) => {
+  const message = typeof args[0] === "string" ? args[0] : "";
+  if (
+    message.includes("Not implemented: HTMLFormElement's requestSubmit() method") ||
+    message.includes("No `HydrateFallback` element provided to render during initial hydration")
+  ) {
+    return;
+  }
+  originalError(...args);
+};
+

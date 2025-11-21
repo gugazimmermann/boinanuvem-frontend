@@ -510,6 +510,35 @@ export const pt = {
       files: "Anexos",
       filesHelper: "Arquivos anexados a esta observação",
     },
+    costs: {
+      title: "Custos de Estoque",
+      description:
+        "Acompanhe os custos de consumo de estoque e calcule os custos por animal para esta localização",
+      totalCost: "Custo Total",
+      averageCostPerAnimal: "Custo Médio por Animal",
+      consumptionRecords: "Registros de Consumo",
+      dateRange: "Período",
+      startDate: "Data Inicial",
+      endDate: "Data Final",
+      applyFilter: "Aplicar Filtro",
+      clearFilter: "Limpar Filtro",
+      consumptionHistory: "Histórico de Consumo",
+      perAnimalBreakdown: "Detalhamento de Custos por Animal",
+      itemName: "Nome do Item",
+      quantity: "Quantidade",
+      unitPrice: "Preço Unitário",
+      date: "Data",
+      animalsPresent: "Animais Presentes",
+      animalCode: "Código do Animal",
+      animalRegistration: "Registro",
+      totalAllocatedCost: "Custo Total Alocado",
+      consumptionPeriods: "Períodos de Consumo",
+      averageCostPerPeriod: "Custo Médio por Período",
+      noConsumption: "Nenhum registro de consumo encontrado",
+      noConsumptionDescription:
+        "Ainda não há registros de consumo de estoque para esta localização.",
+      noConsumptionWithFilter: "Nenhum registro de consumo encontrado para o período selecionado.",
+    },
   },
 
   employees: {
@@ -2132,6 +2161,22 @@ export const pt = {
           cancel: "Cancelar",
         },
       },
+      costs: {
+        title: "Custos",
+        description: "Acompanhe os custos de consumo de estoque para este animal",
+        totalCost: "Custo Total",
+        costByLocation: "Custo por Localização",
+        consumptionHistory: "Histórico de Consumo",
+        location: "Localização",
+        itemName: "Nome do Item",
+        quantity: "Quantidade",
+        costPerAnimal: "Custo por Animal",
+        totalAllocatedCost: "Custo Total Alocado",
+        consumptionPeriods: "Períodos de Consumo",
+        noCosts: "Nenhum custo registrado",
+        noCostsDescription:
+          "Este animal ainda não possui custos de consumo de estoque registrados.",
+      },
     },
     observations: {
       birth: {
@@ -2945,6 +2990,16 @@ export const pt = {
         question: "Como adicionar observações a itens de estoque?",
         answer:
           "Na página de detalhes de cada item de estoque, você pode adicionar, visualizar, editar e excluir múltiplas observações, cada uma com seus próprios anexos de arquivos (fotos, documentos). Isso ajuda a manter um histórico completo de notas e documentação para cada item de estoque. As observações são úteis para registrar informações importantes como notas de qualidade, registros de manutenção, comunicações com fornecedores ou qualquer outro detalhe relevante sobre o item.",
+      },
+      locationInventoryCosts: {
+        question: "Como rastrear custos de consumo de estoque por localização?",
+        answer:
+          "O sistema permite rastrear o consumo de itens de estoque (rações, suplementos, vitaminas, sal, etc.) por localização e calcular o custo por animal. Ao registrar um consumo de estoque, você pode opcionalmente especificar em qual localização o consumo ocorreu. Na página de detalhes de cada localização, acesse a aba 'Custos de Estoque' para visualizar: o custo total de consumo na localização, o histórico de consumos com detalhes de cada item, e o custo alocado por animal baseado na presença dos animais na localização na data do consumo. Você pode filtrar por período usando as datas de início e fim. O sistema calcula automaticamente o custo por animal dividindo o custo total entre os animais presentes na localização na data de cada consumo.",
+      },
+      animalInventoryCosts: {
+        question: "Como visualizar o custo de estoque por animal?",
+        answer:
+          "Na página de detalhes de cada animal, acesse a aba 'Custos' para visualizar o custo total de consumo de estoque alocado àquele animal. O sistema mostra: o custo total do animal em todas as localizações, um breakdown por localização mostrando quanto foi gasto em cada uma, e o histórico detalhado de todos os consumos que afetaram o animal. Você pode filtrar por período usando as datas de início e fim. O sistema calcula automaticamente o custo alocado a cada animal baseado na presença dele na localização na data de cada consumo, dividindo o custo igualmente entre todos os animais presentes. Isso permite que você saiba exatamente quanto cada animal custou em termos de consumo de estoque.",
       },
     },
   },

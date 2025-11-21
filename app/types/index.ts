@@ -74,3 +74,9 @@ export type {
   InventoryMovementFormData,
 } from "./inventory";
 export { InventoryItemCategory, InventoryMovementType } from "./inventory";
+export type {
+  LocationConsumptionCost,
+  AnimalCostBreakdown,
+  AnimalTotalCost,
+  AnimalLocationCost,
+} from "./location-costs";

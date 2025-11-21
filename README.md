@@ -30,6 +30,14 @@ A modern, full-stack React application built with React Router v7, featuring a c
     - Cash flow transaction creation with payment method and bank account selection
     - Accounts payable creation with due date, payment method, and bank account
     - Seamless integration between inventory purchases and financial records
+  - **Location-Based Cost Tracking**: Track inventory consumption costs by location and calculate per-animal costs
+    - Optional location assignment when recording consumption movements
+    - Location cost analysis with total consumption costs, consumption history, and per-animal breakdown
+    - Animal cost tracking showing total cost per animal across all locations
+    - Time-weighted cost allocation based on animal presence in locations during consumption
+    - Date range filtering for cost analysis
+    - Cost breakdown by location for individual animals
+    - Detailed consumption history with item details and allocated costs
 - **Birth Records**: Track and manage animal births with parent relationships
   - Automatic purity calculation (PO, F1, F2, F3, F4, F5, PC) based on parent breeds
   - Birth date tracking and gender recording
@@ -223,6 +231,13 @@ A modern, full-stack React application built with React Router v7, featuring a c
   - Create, read, update, and delete operations
   - Transaction history
   - Detailed transaction views
+- **Inventory Cost Analysis**: Track and analyze inventory consumption costs
+  - Location-based cost tracking for inventory consumption
+  - Per-animal cost calculation based on location presence
+  - Time-weighted cost allocation using animal movement history
+  - Cost breakdown by location and consumption period
+  - Date range filtering for cost analysis
+  - Integration with animal movement tracking for accurate cost allocation
 
 ### Dashboard & Analytics
 - **Comprehensive Dashboard**: Overview with key metrics and statistics
@@ -238,13 +253,13 @@ A modern, full-stack React application built with React Router v7, featuring a c
   - System event tracking
   - Activity history viewing
 - **Help Center**: Comprehensive FAQ and help documentation
-  - **41+ FAQs** covering all major features and workflows
+  - **43+ FAQs** covering all major features and workflows
   - **9 Categories**: Getting Started, Animals, Locations, Relationships, Records, Financial, Analytics, Team, and Technical
   - **Quick Start Guide**: Step-by-step instructions for new users
   - **Contact Support**: Support channels and contact information
   - **Category Filtering**: Filter FAQs by category for easy navigation
   - **Fully Internationalized**: All help content available in Portuguese, English, and Spanish
-  - **Comprehensive Coverage**: FAQs for animal management, locations, employees, service providers, suppliers, buyers, observations, weighings (including session weighings), acquisitions, movements, inventory management (including observations and financial integration), financial management (including observations for cash flow, accounts payable, and accounts receivable), reproductive indexes, birth forecast, dashboard metrics, pasture planning, breeding season, search & filtering, data organization, and best practices
+  - **Comprehensive Coverage**: FAQs for animal management, locations, employees, service providers, suppliers, buyers, observations, weighings (including session weighings), acquisitions, movements, inventory management (including observations, financial integration, and location-based cost tracking), financial management (including observations for cash flow, accounts payable, and accounts receivable, and animal inventory costs), reproductive indexes, birth forecast, dashboard metrics, pasture planning, breeding season, search & filtering, data organization, and best practices
 
 ## 📋 Prerequisites
 
@@ -409,6 +424,12 @@ The application uses a service layer pattern to abstract data access and busines
     - Culling rate, intrauterine mortality index
     - Bull-to-cow ratio
     - Expected births forecast
+  - `location-costs.service.ts` - Inventory consumption cost tracking and analysis
+    - Location-based consumption cost calculation
+    - Per-animal cost allocation based on location presence
+    - Time-weighted cost distribution using animal movement history
+    - Cost breakdown by location and consumption period
+    - Date range filtering for cost analysis
 
 All services are exported through `app/services/index.ts` for centralized access. Services use mock data for development and can be easily replaced with API calls in production.
 

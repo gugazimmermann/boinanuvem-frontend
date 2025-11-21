@@ -10,6 +10,7 @@ import { addAccountsPayable } from "~/services/accounts-payable.service";
 import { getSuppliersByCompanyId } from "~/services/suppliers.service";
 import { getPropertiesByCompanyId } from "~/services/properties.service";
 import { getBankAccountsByCompanyId } from "~/services/bank-account.service";
+import { getLocationsByPropertyId } from "~/services/locations.service";
 import type {
   InventoryMovementFormData,
   CashFlowFormData,
@@ -117,6 +118,7 @@ export default function NewInventoryMovement() {
     description: string;
     supplierId: string;
     propertyId: string;
+    locationId: string;
     expirationDate: string;
     createCashFlowTransaction: boolean;
     paymentMethod: PaymentMethod;
@@ -133,6 +135,7 @@ export default function NewInventoryMovement() {
     description: "",
     supplierId: "",
     propertyId: properties[0]?.id || "",
+    locationId: "",
     expirationDate: "",
     createCashFlowTransaction: false,
     paymentMethod: PaymentMethod.PIX,
@@ -300,6 +303,7 @@ export default function NewInventoryMovement() {
         cashFlowId,
         propertyId: formData.propertyId,
         companyId,
+        locationId: formData.locationId || undefined,
         expirationDate: formData.expirationDate || undefined,
       };
 
@@ -441,7 +445,11 @@ export default function NewInventoryMovement() {
             <Select
               label={t.inventory.movements.table.property}
               value={formData.propertyId}
-              onChange={(e) => handleChange("propertyId", e.target.value)}
+              onChange={(e) => {
+                handleChange("propertyId", e.target.value);
+                // Reset location when property changes
+                handleChange("locationId", "");
+              }}
               options={[
                 { value: "", label: t.common.select },
                 ...properties.map((property: Property) => ({
@@ -453,6 +461,23 @@ export default function NewInventoryMovement() {
               disabled={isSubmitting}
               required
             />
+
+            {formData.type === InventoryMovementType.CONSUMPTION && formData.propertyId && (
+              <Select
+                label={t.locations.title}
+                value={formData.locationId}
+                onChange={(e) => handleChange("locationId", e.target.value)}
+                options={[
+                  { value: "", label: t.common.select },
+                  ...getLocationsByPropertyId(formData.propertyId).map((location) => ({
+                    value: location.id,
+                    label: location.name,
+                  })),
+                ]}
+                error={errors.locationId}
+                disabled={isSubmitting}
+              />
+            )}
 
             {item.hasExpiration && isPurchase && (
               <Input

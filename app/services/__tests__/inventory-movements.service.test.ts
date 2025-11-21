@@ -6,6 +6,8 @@ import {
   getMovementsBySupplierId,
   getMovementsByCashFlowId,
   getMovementsByPropertyId,
+  getMovementsByLocationId,
+  getConsumptionMovementsByLocationId,
   addInventoryMovement,
   updateInventoryMovement,
   deleteInventoryMovement,
@@ -59,6 +61,30 @@ describe("inventory-movements.service", () => {
         propertyId: "property-2",
         companyId: "company-1",
         createdAt: "2025-01-12",
+      },
+      {
+        id: "im0e8400-e29b-41d4-a716-446655440013",
+        itemId: "item-1",
+        type: InventoryMovementType.CONSUMPTION,
+        quantity: 30,
+        date: "2025-01-18",
+        description: "Consumption in location",
+        propertyId: "property-1",
+        companyId: "company-1",
+        locationId: "location-1",
+        createdAt: "2025-01-18",
+      },
+      {
+        id: "im0e8400-e29b-41d4-a716-446655440014",
+        itemId: "item-2",
+        type: InventoryMovementType.CONSUMPTION,
+        quantity: 20,
+        date: "2025-01-20",
+        description: "Another consumption in location",
+        propertyId: "property-1",
+        companyId: "company-1",
+        locationId: "location-1",
+        createdAt: "2025-01-20",
       }
     );
   });
@@ -143,6 +169,47 @@ describe("inventory-movements.service", () => {
     it("should return empty array when property has no movements", () => {
       const result = getMovementsByPropertyId("nonexistent-property");
       expect(result).toHaveLength(0);
+    });
+  });
+
+  describe("getMovementsByLocationId", () => {
+    it("should return movements for specific location", () => {
+      const result = getMovementsByLocationId("location-1");
+      expect(result.length).toBeGreaterThan(0);
+      expect(result.every((movement) => movement.locationId === "location-1")).toBe(true);
+    });
+
+    it("should return empty array when location has no movements", () => {
+      const result = getMovementsByLocationId("nonexistent-location");
+      expect(result).toHaveLength(0);
+    });
+
+    it("should only return movements with locationId set", () => {
+      const result = getMovementsByLocationId("location-1");
+      expect(result.every((movement) => movement.locationId === "location-1")).toBe(true);
+    });
+  });
+
+  describe("getConsumptionMovementsByLocationId", () => {
+    it("should return only consumption movements for specific location", () => {
+      const result = getConsumptionMovementsByLocationId("location-1");
+      expect(result.length).toBeGreaterThan(0);
+      expect(result.every((movement) => movement.locationId === "location-1")).toBe(true);
+      expect(result.every((movement) => movement.type === InventoryMovementType.CONSUMPTION)).toBe(
+        true
+      );
+    });
+
+    it("should return empty array when location has no consumption movements", () => {
+      const result = getConsumptionMovementsByLocationId("nonexistent-location");
+      expect(result).toHaveLength(0);
+    });
+
+    it("should not return purchase movements even if they have locationId", () => {
+      const result = getConsumptionMovementsByLocationId("location-1");
+      expect(result.every((movement) => movement.type === InventoryMovementType.CONSUMPTION)).toBe(
+        true
+      );
     });
   });
 

@@ -31,6 +31,16 @@ export function getMovementsByPropertyId(propertyId: string): InventoryMovement[
   return findByField(mockInventoryMovements, "propertyId", propertyId);
 }
 
+export function getMovementsByLocationId(locationId: string): InventoryMovement[] {
+  return findByField(mockInventoryMovements, "locationId", locationId);
+}
+
+export function getConsumptionMovementsByLocationId(locationId: string): InventoryMovement[] {
+  return mockInventoryMovements.filter(
+    (movement) => movement.locationId === locationId && movement.type === "consumption"
+  );
+}
+
 export function addInventoryMovement(data: InventoryMovementFormData): InventoryMovement {
   const { createCashFlowTransaction: _createCashFlowTransaction, ...movementData } = data;
   return createEntity(mockInventoryMovements, movementData, ID_PREFIX, DEFAULT_ID);

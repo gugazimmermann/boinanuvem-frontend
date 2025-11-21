@@ -509,6 +509,34 @@ export const en = {
       files: "Attachments",
       filesHelper: "Files attached to this observation",
     },
+    costs: {
+      title: "Inventory Costs",
+      description:
+        "Track inventory consumption costs and calculate per-animal costs for this location",
+      totalCost: "Total Cost",
+      averageCostPerAnimal: "Average Cost per Animal",
+      consumptionRecords: "Consumption Records",
+      dateRange: "Date Range",
+      startDate: "Start Date",
+      endDate: "End Date",
+      applyFilter: "Apply Filter",
+      clearFilter: "Clear Filter",
+      consumptionHistory: "Consumption History",
+      perAnimalBreakdown: "Per-Animal Cost Breakdown",
+      itemName: "Item Name",
+      quantity: "Quantity",
+      unitPrice: "Unit Price",
+      date: "Date",
+      animalsPresent: "Animals Present",
+      animalCode: "Animal Code",
+      animalRegistration: "Registration",
+      totalAllocatedCost: "Total Allocated Cost",
+      consumptionPeriods: "Consumption Periods",
+      averageCostPerPeriod: "Average Cost per Period",
+      noConsumption: "No consumption records found",
+      noConsumptionDescription: "There are no inventory consumption records for this location yet.",
+      noConsumptionWithFilter: "No consumption records found for the selected date range.",
+    },
   },
 
   employees: {
@@ -2115,6 +2143,21 @@ export const en = {
           cancel: "Cancel",
         },
       },
+      costs: {
+        title: "Costs",
+        description: "Track inventory consumption costs for this animal",
+        totalCost: "Total Cost",
+        costByLocation: "Cost by Location",
+        consumptionHistory: "Consumption History",
+        location: "Location",
+        itemName: "Item Name",
+        quantity: "Quantity",
+        costPerAnimal: "Cost per Animal",
+        totalAllocatedCost: "Total Allocated Cost",
+        consumptionPeriods: "Consumption Periods",
+        noCosts: "No costs recorded",
+        noCostsDescription: "This animal has no inventory consumption costs recorded yet.",
+      },
     },
     observations: {
       birth: {
@@ -2925,6 +2968,16 @@ export const en = {
         question: "How do I add observations to inventory items?",
         answer:
           "On each inventory item's details page, you can add, view, edit, and delete multiple observations, each with its own file attachments (photos, documents). This helps maintain a complete history of notes and documentation for each inventory item. Observations are useful for recording important information such as quality notes, maintenance records, supplier communications, or any other relevant details about the item.",
+      },
+      locationInventoryCosts: {
+        question: "How do I track inventory consumption costs by location?",
+        answer:
+          "The system allows you to track consumption of inventory items (feed, supplements, vitamins, salt, etc.) by location and calculate the cost per animal. When recording an inventory consumption, you can optionally specify which location the consumption occurred in. On each location's details page, go to the 'Inventory Costs' tab to view: the total consumption cost for the location, consumption history with details of each item, and cost allocated per animal based on animals' presence in the location on the consumption date. You can filter by period using start and end dates. The system automatically calculates the cost per animal by dividing the total cost among the animals present in the location on each consumption date.",
+      },
+      animalInventoryCosts: {
+        question: "How do I view inventory costs per animal?",
+        answer:
+          "On each animal's details page, go to the 'Costs' tab to view the total inventory consumption cost allocated to that animal. The system shows: the animal's total cost across all locations, a breakdown by location showing how much was spent in each one, and detailed history of all consumptions that affected the animal. You can filter by period using start and end dates. The system automatically calculates the cost allocated to each animal based on their presence in the location on each consumption date, dividing the cost equally among all animals present. This allows you to know exactly how much each animal cost in terms of inventory consumption.",
       },
     },
   },
