@@ -44,6 +44,7 @@ export const pt = {
     records: "Registros",
     births: "Nascimento",
     acquisitions: "Aquisição",
+    deaths: "Óbitos",
     weighings: "Pesagem",
     medicineAdministrations: "Controle Sanitário",
     breedings: "Cobertura",
@@ -2386,6 +2387,25 @@ export const pt = {
     },
   },
 
+  deaths: {
+    new: {
+      title: "Registrar Óbito",
+      description: "Preencha os dados do óbito do animal",
+      addButton: "Registrar Óbito",
+      deathInfoTitle: "Dados do Óbito",
+      animalLabel: "Animal",
+      dateLabel: "Data do Óbito",
+      causeLabel: "Causa da Morte",
+      causePlaceholder: "Ex: Doença, Acidente, etc.",
+      observationLabel: "Observação",
+      observationPlaceholder: "Observações sobre o óbito (opcional)",
+      searchPlaceholder: "Buscar por código ou registro",
+      animalAlreadyDead: "Este animal já possui registro de óbito",
+      success: "Óbito registrado com sucesso!",
+      error: "Erro ao registrar óbito. Tente novamente.",
+    },
+  },
+
   weighings: {
     new: {
       title: "Registrar Pesagem",
@@ -3066,6 +3086,11 @@ export const pt = {
         question: "Como registrar uma aquisição?",
         answer:
           "Acesse 'Registros' > 'Aquisição' e clique em 'Novo'. Selecione o animal adquirido (ou cadastre um novo), informe a data da aquisição, o preço pago e o fornecedor. Você pode adicionar observações sobre a aquisição. O sistema mantém um histórico completo de todas as aquisições, facilitando o controle de investimentos e origem dos animais.",
+      },
+      recordDeath: {
+        question: "Como registrar um óbito?",
+        answer:
+          "Vá até 'Registros' > 'Óbitos' e clique em 'Novo'. Selecione o animal que faleceu, informe a data do óbito e a causa da morte. Você pode adicionar observações sobre o óbito. Ao registrar o óbito, o sistema automaticamente atualiza o status do animal para 'inativo', removendo-o das listas de animais ativos. O animal permanece acessível para referências históricas, como informações de pai/mãe em nascimentos. O sistema impede o registro de óbitos duplicados para o mesmo animal.",
       },
       animalMovements: {
         question: "Como registrar movimentações de animais?",

@@ -26,6 +26,7 @@ export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
     subItems: [
       { translationKey: "births", path: ROUTES.BIRTHS_NEW, icon: "👶" },
       { translationKey: "acquisitions", path: ROUTES.ACQUISITIONS_NEW, icon: "🛒" },
+      { translationKey: "deaths", path: ROUTES.DEATHS_NEW, icon: "💀" },
       { translationKey: "weighings", path: ROUTES.WEIGHINGS_NEW, icon: "⚖️" },
       {
         translationKey: "medicineAdministrations",

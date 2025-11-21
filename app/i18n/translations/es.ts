@@ -45,6 +45,7 @@ export const es = {
     records: "Registros",
     births: "Nacimiento",
     acquisitions: "Adquisición",
+    deaths: "Muertes",
     weighings: "Pesaje",
     medicineAdministrations: "Control Sanitario",
     breedings: "Monta",
@@ -2386,6 +2387,25 @@ export const es = {
     },
   },
 
+  deaths: {
+    new: {
+      title: "Registrar Muerte",
+      description: "Complete los datos de la muerte del animal",
+      addButton: "Registrar Muerte",
+      deathInfoTitle: "Datos de la Muerte",
+      animalLabel: "Animal",
+      dateLabel: "Fecha de Muerte",
+      causeLabel: "Causa de la Muerte",
+      causePlaceholder: "Ej: Enfermedad, Accidente, etc.",
+      observationLabel: "Observación",
+      observationPlaceholder: "Observaciones sobre la muerte (opcional)",
+      searchPlaceholder: "Buscar por código o registro",
+      animalAlreadyDead: "Este animal ya tiene un registro de muerte",
+      success: "¡Muerte registrada con éxito!",
+      error: "Error al registrar muerte. Intente nuevamente.",
+    },
+  },
+
   weighings: {
     new: {
       title: "Registrar Pesaje",
@@ -3066,6 +3086,11 @@ export const es = {
         question: "¿Cómo registro una adquisición?",
         answer:
           "Ve a 'Registros' > 'Adquisición' y haz clic en 'Nuevo'. Selecciona el animal adquirido (o registra uno nuevo), ingresa la fecha de adquisición, el precio pagado y el proveedor. Puedes agregar observaciones sobre la adquisición. El sistema mantiene un historial completo de todas las adquisiciones, facilitando el control de inversiones y origen de los animales.",
+      },
+      recordDeath: {
+        question: "¿Cómo registro una muerte de animal?",
+        answer:
+          "Ve a 'Registros' > 'Muertes' y haz clic en 'Nuevo'. Selecciona el animal que falleció, ingresa la fecha de muerte y la causa de la muerte. Puedes agregar observaciones sobre la muerte. Al registrar una muerte, el sistema actualiza automáticamente el estado del animal a 'inactivo', eliminándolo de las listas de animales activos. El animal permanece accesible para referencias históricas, como información de padre/madre en nacimientos. El sistema previene registros de muerte duplicados para el mismo animal.",
       },
       animalMovements: {
         question: "¿Cómo registro movimientos de animales?",

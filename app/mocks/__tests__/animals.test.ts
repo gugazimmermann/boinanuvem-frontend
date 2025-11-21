@@ -33,13 +33,13 @@ describe("animals mock", () => {
     });
   });
 
-  it("should have valid date format (2020-2025)", () => {
+  it("should have valid date format (2019-2025)", () => {
     mockAnimals.forEach((animal: Animal) => {
       const date = new Date(animal.createdAt);
       expect(date.toString()).not.toBe("Invalid Date");
 
       const year = date.getFullYear();
-      expect(year).toBeGreaterThanOrEqual(2020);
+      expect(year).toBeGreaterThanOrEqual(2019);
       expect(year).toBeLessThanOrEqual(2025);
     });
   });

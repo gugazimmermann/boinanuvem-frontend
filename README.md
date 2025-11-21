@@ -50,6 +50,12 @@ A modern, full-stack React application built with React Router v7, featuring a c
   - Purchase price tracking
   - Supplier relationship management
   - Acquisition date and details recording
+- **Deaths**: Record and manage animal deaths with comprehensive tracking
+  - Death date and cause of death recording
+  - Optional observation notes for detailed information
+  - Automatic animal status update to inactive upon death registration
+  - Prevents duplicate death records for the same animal
+  - Dead animals excluded from active lists but remain accessible for historical references
 - **Weighings**: 
   - Track animal weight measurements over time with trend analysis
   - **Session Weighings**: Register multiple weighings in a single session without page navigation
@@ -302,13 +308,13 @@ A modern, full-stack React application built with React Router v7, featuring a c
   - System event tracking
   - Activity history viewing
 - **Help Center**: Comprehensive FAQ and help documentation
-  - **43+ FAQs** covering all major features and workflows
+  - **44+ FAQs** covering all major features and workflows
   - **9 Categories**: Getting Started, Animals, Locations, Relationships, Records, Financial, Analytics, Team, and Technical
   - **Quick Start Guide**: Step-by-step instructions for new users
   - **Contact Support**: Support channels and contact information
   - **Category Filtering**: Filter FAQs by category for easy navigation
   - **Fully Internationalized**: All help content available in Portuguese, English, and Spanish
-  - **Comprehensive Coverage**: FAQs for animal management, locations, employees, service providers, suppliers, buyers, observations, weighings (including session weighings), acquisitions, movements, inventory management (including observations, financial integration, and location-based cost tracking), financial management (including observations for cash flow, accounts payable, and accounts receivable, and animal inventory costs), reproductive indexes, birth forecast, dashboard metrics, pasture planning, breeding season, search & filtering, data organization, and best practices
+  - **Comprehensive Coverage**: FAQs for animal management, locations, employees, service providers, suppliers, buyers, observations, weighings (including session weighings), acquisitions, deaths, movements, inventory management (including observations, financial integration, and location-based cost tracking), financial management (including observations for cash flow, accounts payable, and accounts receivable, and animal inventory costs), reproductive indexes, birth forecast, dashboard metrics, pasture planning, breeding season, search & filtering, data organization, and best practices
 
 ## 📋 Prerequisites
 
@@ -442,6 +448,7 @@ The application uses a service layer pattern to abstract data access and busines
   - `births.service.ts` - Birth record management with purity calculation
   - `weighings.service.ts` - Weight measurement tracking
   - `acquisitions.service.ts` - Animal acquisition records
+  - `deaths.service.ts` - Animal death record management
   - `breedings.service.ts` - Breeding record management
   - `sanitary-controls.service.ts` - Sanitary control record management (medicine/vaccine administration)
 
@@ -490,6 +497,7 @@ The application includes a comprehensive mock data system for development and te
 - **Mock Data Files**: Located in `app/mocks/` directory
   - `animals.ts` - Animal mock data with relationships
   - `births.ts` - Birth records with parent relationships
+  - `deaths.ts` - Death records with cause and observation tracking
   - `breedings.ts` - Breeding records with confirmation status
   - `weighings.ts` - Weight measurement records
   - `acquisitions.ts` - Acquisition records

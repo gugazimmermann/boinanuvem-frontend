@@ -135,6 +135,12 @@ export default function Help() {
         answer: t.help.faqs.recordAcquisition.answer,
       },
       {
+        id: "record-death",
+        category: "records",
+        question: t.help.faqs.recordDeath.question,
+        answer: t.help.faqs.recordDeath.answer,
+      },
+      {
         id: "animal-movements",
         category: "records",
         question: t.help.faqs.animalMovements.question,

@@ -45,6 +45,7 @@ export const en = {
     records: "Records",
     births: "Birth",
     acquisitions: "Acquisition",
+    deaths: "Deaths",
     weighings: "Weighing",
     medicineAdministrations: "Sanitary Control",
     breedings: "Breeding",
@@ -2365,6 +2366,25 @@ export const en = {
     },
   },
 
+  deaths: {
+    new: {
+      title: "Register Death",
+      description: "Fill in the animal death data",
+      addButton: "Register Death",
+      deathInfoTitle: "Death Data",
+      animalLabel: "Animal",
+      dateLabel: "Death Date",
+      causeLabel: "Cause of Death",
+      causePlaceholder: "e.g., Disease, Accident, etc.",
+      observationLabel: "Observation",
+      observationPlaceholder: "Observations about the death (optional)",
+      searchPlaceholder: "Search by code or registration",
+      animalAlreadyDead: "This animal already has a death record",
+      success: "Death registered successfully!",
+      error: "Error registering death. Please try again.",
+    },
+  },
+
   weighings: {
     new: {
       title: "Register Weighing",
@@ -3044,6 +3064,11 @@ export const en = {
         question: "How do I record an acquisition?",
         answer:
           "Go to 'Records' > 'Acquisition' and click 'New'. Select the acquired animal (or register a new one), enter the acquisition date, price paid, and supplier. You can add observations about the acquisition. The system maintains a complete history of all acquisitions, making it easier to control investments and animal origins.",
+      },
+      recordDeath: {
+        question: "How do I record an animal death?",
+        answer:
+          "Go to 'Records' > 'Deaths' and click 'New'. Select the animal that died, enter the death date and cause of death. You can add observations about the death. When recording a death, the system automatically updates the animal's status to 'inactive', removing it from active animal lists. The animal remains accessible for historical references, such as parent information in births. The system prevents duplicate death records for the same animal.",
       },
       animalMovements: {
         question: "How do I record animal movements?",
