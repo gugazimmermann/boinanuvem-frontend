@@ -1,14 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
+import type { RouteObject } from "react-router";
 import type { ComponentProps } from "react";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
 import { AuthProvider } from "~/contexts/auth-context";
-import Login from "../login";
+import Login, { loader as loginLoader } from "../login";
 import { ROUTES } from "~/routes.config";
 import { AuthInput, AuthButton } from "~/components/site/ui";
 import type { TeamUser } from "~/types";
+import { getUserById } from "~/services/users.service";
 
 const mockNavigate = vi.fn();
 
@@ -63,23 +65,31 @@ vi.mock("~/components/site/ui", () => ({
 }));
 
 describe("Login", () => {
-  const createRouter = () => {
-    if (typeof window !== "undefined") {
+  const createRouter = (isAuthenticated = false, includeLoader = false) => {
+    if (isAuthenticated && typeof window !== "undefined") {
       localStorage.setItem("currentUserId", "test-user-id");
+    } else if (typeof window !== "undefined") {
+      localStorage.removeItem("currentUserId");
     }
+    const routeConfig: RouteObject = {
+      path: "/login",
+      element: (
+        <LanguageProvider>
+          <ThemeProvider>
+            <AuthProvider>
+              <Login />
+            </AuthProvider>
+          </ThemeProvider>
+        </LanguageProvider>
+      ),
+      ...(includeLoader && { loader: loginLoader }),
+    };
     return createMemoryRouter(
       [
+        routeConfig,
         {
-          path: "/login",
-          element: (
-            <LanguageProvider>
-              <ThemeProvider>
-                <AuthProvider>
-                  <Login />
-                </AuthProvider>
-              </ThemeProvider>
-            </LanguageProvider>
-          ),
+          path: ROUTES.DASHBOARD,
+          element: <div data-testid="dashboard-page">Dashboard</div>,
         },
       ],
       {
@@ -93,6 +103,7 @@ describe("Login", () => {
       localStorage.clear();
     }
     vi.clearAllMocks();
+    vi.mocked(getUserById).mockReturnValue(mockUser);
   });
 
   it("should render login form", () => {
@@ -155,5 +166,14 @@ describe("Login", () => {
 
   it("should have correct meta function", () => {
     expect(Login).toBeDefined();
+  });
+
+  it("should redirect to dashboard when user is already authenticated", async () => {
+    const router = createRouter(true, true);
+    render(<RouterProvider router={router} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("dashboard-page")).toBeInTheDocument();
+    });
   });
 });

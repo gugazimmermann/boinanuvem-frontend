@@ -19,6 +19,7 @@ import {
 } from "../components/site/utils";
 import { BRAZILIAN_STATES } from "../utils/brazilian-states";
 import { useTranslation } from "../i18n/use-translation";
+import { requireGuest, useRequireGuest } from "../utils/route-guard";
 
 export function meta() {
   return [
@@ -30,7 +31,12 @@ export function meta() {
   ];
 }
 
+export async function loader() {
+  return requireGuest();
+}
+
 export default function Register() {
+  useRequireGuest();
   const t = useTranslation();
   const [step, setStep] = useState<1 | 2>(1);
   const [companyErrors, setCompanyErrors] = useState<Record<string, string>>({});

@@ -1,8 +1,10 @@
-import { redirect } from "react-router";
+import { useEffect } from "react";
+import { redirect, useNavigate } from "react-router";
 import { ROUTES } from "~/routes.config";
 import { getUserById } from "~/services/users.service";
 import { getRouteAction, getRoutePermission } from "./route-permissions";
 import type { PermissionAction, UserPermissions } from "~/types/permissions";
+import { useAuth } from "~/contexts/auth-context";
 
 const CURRENT_USER_ID_KEY = "currentUserId";
 
@@ -126,4 +128,28 @@ export function requireMainUser(redirectTo: string = ROUTES.DASHBOARD) {
 
     return null;
   };
+}
+
+export async function requireGuest() {
+  // Check if we're in a browser environment
+  if (typeof window !== "undefined") {
+    const userId = localStorage.getItem(CURRENT_USER_ID_KEY);
+    if (userId) {
+      throw redirect(ROUTES.DASHBOARD);
+    }
+  }
+  // On server-side, allow the route to render
+  // Client-side auth context will handle redirect if needed
+  return null;
+}
+
+export function useRequireGuest() {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(ROUTES.DASHBOARD, { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 }

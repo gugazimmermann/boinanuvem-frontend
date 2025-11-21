@@ -6,6 +6,7 @@ import { COLORS } from "../components/site/constants";
 import { ROUTES } from "../routes.config";
 import { authenticateUser } from "../services/users.service";
 import { useAuth } from "../contexts/auth-context";
+import { requireGuest, useRequireGuest } from "../utils/route-guard";
 
 export function meta() {
   return [
@@ -17,7 +18,12 @@ export function meta() {
   ];
 }
 
+export async function loader() {
+  return requireGuest();
+}
+
 export default function Login() {
+  useRequireGuest();
   const navigate = useNavigate();
   const { login } = useAuth();
   const [email, setEmail] = useState("");

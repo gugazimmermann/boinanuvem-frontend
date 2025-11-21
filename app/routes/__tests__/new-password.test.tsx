@@ -1,12 +1,45 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
+import type { RouteObject } from "react-router";
 import type { ComponentProps } from "react";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
-import NewPassword, { meta } from "../new-password";
+import { AuthProvider } from "~/contexts/auth-context";
+import NewPassword, { meta, loader as newPasswordLoader } from "../new-password";
 import { ROUTES } from "~/routes.config";
+import type { TeamUser } from "~/types";
+import { getUserById } from "~/services/users.service";
 import { AuthInput, AuthButton } from "~/components/site/ui";
+
+const mockNavigate = vi.fn();
+
+const mockUser: TeamUser = {
+  id: "test-user-id",
+  name: "Test User",
+  email: "test@example.com",
+  phone: "1234567890",
+  status: "active",
+  mainUser: false,
+  companyId: "company-id",
+  createdAt: "2025-01-01",
+  permissions: {} as never,
+};
+
+vi.mock("react-router", async () => {
+  const actual = await vi.importActual("react-router");
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
+
+vi.mock("~/services/users.service", () => ({
+  getUserById: vi.fn((id: string) => {
+    if (id === "test-user-id") return mockUser;
+    return null;
+  }),
+}));
 
 vi.mock("~/components/site/auth-layout", () => ({
   AuthLayout: ({ children }: { children: React.ReactNode }) => (
@@ -55,18 +88,31 @@ vi.mock("~/components/site/ui", () => ({
 }));
 
 describe("NewPassword", () => {
-  const createRouter = () => {
+  const createRouter = (isAuthenticated = false, includeLoader = false) => {
+    if (isAuthenticated && typeof window !== "undefined") {
+      localStorage.setItem("currentUserId", "test-user-id");
+    } else if (typeof window !== "undefined") {
+      localStorage.removeItem("currentUserId");
+    }
+    const routeConfig: RouteObject = {
+      path: "/new-password",
+      element: (
+        <LanguageProvider>
+          <ThemeProvider>
+            <AuthProvider>
+              <NewPassword />
+            </AuthProvider>
+          </ThemeProvider>
+        </LanguageProvider>
+      ),
+      ...(includeLoader && { loader: newPasswordLoader }),
+    };
     return createMemoryRouter(
       [
+        routeConfig,
         {
-          path: "/new-password",
-          element: (
-            <LanguageProvider>
-              <ThemeProvider>
-                <NewPassword />
-              </ThemeProvider>
-            </LanguageProvider>
-          ),
+          path: ROUTES.DASHBOARD,
+          element: <div data-testid="dashboard-page">Dashboard</div>,
         },
       ],
       {
@@ -74,6 +120,15 @@ describe("NewPassword", () => {
       }
     );
   };
+
+  beforeEach(() => {
+    if (typeof window !== "undefined") {
+      localStorage.clear();
+    }
+    vi.clearAllMocks();
+    mockNavigate.mockClear();
+    vi.mocked(getUserById).mockReturnValue(mockUser);
+  });
 
   it("should render new password form", () => {
     const router = createRouter();
@@ -179,5 +234,14 @@ describe("NewPassword", () => {
     render(<RouterProvider router={router} />);
 
     expect(screen.getByText("Não recebeu o código?")).toBeInTheDocument();
+  });
+
+  it("should redirect to dashboard when user is already authenticated", async () => {
+    const router = createRouter(true, true);
+    render(<RouterProvider router={router} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("dashboard-page")).toBeInTheDocument();
+    });
   });
 });

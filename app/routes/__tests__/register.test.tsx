@@ -1,11 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
+import type { RouteObject } from "react-router";
 import type { ComponentProps } from "react";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
-import Register, { meta } from "../register";
+import { AuthProvider } from "~/contexts/auth-context";
+import Register, { meta, loader as registerLoader } from "../register";
 import { ROUTES } from "~/routes.config";
+import type { TeamUser } from "~/types";
+import { getUserById } from "~/services/users.service";
 import { AuthInput, AuthButton, AuthSelect } from "~/components/site/ui";
 import type {
   UseCNPJLookupOptions,
@@ -16,6 +20,35 @@ import type {
   CEPData,
 } from "~/types";
 import type { AddressFormData, CompanyFormData } from "~/types";
+
+const mockNavigate = vi.fn();
+
+const mockUser: TeamUser = {
+  id: "test-user-id",
+  name: "Test User",
+  email: "test@example.com",
+  phone: "1234567890",
+  status: "active",
+  mainUser: false,
+  companyId: "company-id",
+  createdAt: "2025-01-01",
+  permissions: {} as never,
+};
+
+vi.mock("react-router", async () => {
+  const actual = await vi.importActual("react-router");
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
+
+vi.mock("~/services/users.service", () => ({
+  getUserById: vi.fn((id: string) => {
+    if (id === "test-user-id") return mockUser;
+    return null;
+  }),
+}));
 
 vi.mock("~/components/site/auth-layout", () => ({
   AuthLayout: ({ children }: { children: React.ReactNode }) => (
@@ -164,18 +197,31 @@ vi.mock("~/utils/brazilian-states", () => ({
 }));
 
 describe("Register", () => {
-  const createRouter = () => {
+  const createRouter = (isAuthenticated = false, includeLoader = false) => {
+    if (isAuthenticated && typeof window !== "undefined") {
+      localStorage.setItem("currentUserId", "test-user-id");
+    } else if (typeof window !== "undefined") {
+      localStorage.removeItem("currentUserId");
+    }
+    const routeConfig: RouteObject = {
+      path: "/register",
+      element: (
+        <LanguageProvider>
+          <ThemeProvider>
+            <AuthProvider>
+              <Register />
+            </AuthProvider>
+          </ThemeProvider>
+        </LanguageProvider>
+      ),
+      ...(includeLoader && { loader: registerLoader }),
+    };
     return createMemoryRouter(
       [
+        routeConfig,
         {
-          path: "/register",
-          element: (
-            <LanguageProvider>
-              <ThemeProvider>
-                <Register />
-              </ThemeProvider>
-            </LanguageProvider>
-          ),
+          path: ROUTES.DASHBOARD,
+          element: <div data-testid="dashboard-page">Dashboard</div>,
         },
       ],
       {
@@ -185,7 +231,12 @@ describe("Register", () => {
   };
 
   beforeEach(() => {
+    if (typeof window !== "undefined") {
+      localStorage.clear();
+    }
     vi.clearAllMocks();
+    mockNavigate.mockClear();
+    vi.mocked(getUserById).mockReturnValue(mockUser);
     mockUseCNPJLookup.mockReturnValue({
       data: null,
       loading: false,
@@ -1442,5 +1493,14 @@ describe("Register", () => {
       fireEvent.submit(form);
       expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
     }
+  });
+
+  it("should redirect to dashboard when user is already authenticated", async () => {
+    const router = createRouter(true, true);
+    render(<RouterProvider router={router} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("dashboard-page")).toBeInTheDocument();
+    });
   });
 });

@@ -2,6 +2,7 @@ import { AuthLayout } from "../components/site/auth-layout";
 import { AuthInput, AuthButton } from "../components/site/ui";
 import { COLORS } from "../components/site/constants";
 import { ROUTES } from "../routes.config";
+import { requireGuest, useRequireGuest } from "../utils/route-guard";
 
 export function meta() {
   return [
@@ -13,7 +14,12 @@ export function meta() {
   ];
 }
 
+export async function loader() {
+  return requireGuest();
+}
+
 export default function ForgotPassword() {
+  useRequireGuest();
   return (
     <AuthLayout>
       <div className="w-full max-w-sm mx-auto overflow-hidden bg-white rounded-lg shadow-md">
