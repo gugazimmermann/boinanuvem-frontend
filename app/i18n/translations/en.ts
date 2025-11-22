@@ -132,6 +132,8 @@ export const en = {
       recentBreedings: "Recent Breedings",
       recentSales: "Recent Sales",
       noRecentSales: "No recent sales",
+      noRecentBirths: "No recent births",
+      noRecentBreedings: "No recent breedings",
     },
     financial: {
       monthlyIncome: "Monthly Income",
@@ -152,6 +154,7 @@ export const en = {
       breedingsThisMonth: "Breedings this month",
       salesThisMonth: "Sales this month",
       animalsSold: "animals sold",
+      animal: (count: number) => (count === 1 ? "animal" : "animals"),
     },
     charts: {
       weightTrends: "Weight Trends",
@@ -2462,6 +2465,11 @@ export const en = {
       pricePerAnimal: "Price per animal",
       transportationFee: "Transportation Fee",
       additionalFees: "Additional Fees",
+      fees: "Fees and Charges",
+      addFee: "Add Fee",
+      feeName: "Fee Name",
+      feeNamePlaceholder: "Ex: Transportation Fee",
+      feeAmount: "Amount",
       animals: "Animals",
       searchAnimals: "Search animals...",
       noAnimals: "No animals found",

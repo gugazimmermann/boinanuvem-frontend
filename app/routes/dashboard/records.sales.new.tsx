@@ -150,11 +150,7 @@ export default function NewSale() {
 
   const toggleAnimalSelection = (animalId: string) => {
     if (isAnimalSold(animalId)) {
-      showAlert(
-        t.sales?.errors?.animalAlreadySold ||
-          "Este animal já foi vendido e não pode ser selecionado",
-        "error"
-      );
+      showAlert(t.sales.errors.animalAlreadySold, "error");
       return;
     }
 
@@ -252,68 +248,60 @@ export default function NewSale() {
     const newErrors: Record<string, string> = {};
 
     if (!formData.propertyId) {
-      newErrors.propertyId = t.sales?.errors?.propertyRequired || "Propriedade é obrigatória";
+      newErrors.propertyId = t.sales.errors.propertyRequired;
     }
     if (!formData.buyerId) {
-      newErrors.buyerId = t.sales?.errors?.buyerRequired || "Comprador é obrigatório";
+      newErrors.buyerId = t.sales.errors.buyerRequired;
     }
     if (!formData.saleDate) {
-      newErrors.saleDate = t.sales?.errors?.saleDateRequired || "Data da venda é obrigatória";
+      newErrors.saleDate = t.sales.errors.saleDateRequired;
     } else {
       const saleDate = new Date(formData.saleDate);
       const today = new Date();
       today.setHours(23, 59, 59, 999);
       if (saleDate > today) {
-        newErrors.saleDate =
-          t.sales?.errors?.saleDateFuture || "A data da venda não pode ser no futuro";
+        newErrors.saleDate = t.sales.errors.saleDateFuture;
       }
     }
     if (!formData.saleType) {
-      newErrors.saleType = t.sales?.errors?.saleTypeRequired || "Tipo de venda é obrigatório";
+      newErrors.saleType = t.sales.errors.saleTypeRequired;
     }
     if (!formData.pricingMode) {
-      newErrors.pricingMode =
-        t.sales?.errors?.pricingModeRequired || "Modo de precificação é obrigatório";
+      newErrors.pricingMode = t.sales.errors.pricingModeRequired;
     }
     if (!formData.paymentMethod) {
-      newErrors.paymentMethod =
-        t.sales?.errors?.paymentMethodRequired || "Método de pagamento é obrigatório";
+      newErrors.paymentMethod = t.sales.errors.paymentMethodRequired;
     }
     if (formData.selectedAnimalIds.length === 0) {
-      newErrors.selectedAnimalIds =
-        t.sales?.errors?.animalsRequired || "Selecione pelo menos um animal";
+      newErrors.selectedAnimalIds = t.sales.errors.animalsRequired;
     } else {
       const soldAnimals = checkForSoldAnimals(formData.selectedAnimalIds);
       if (soldAnimals.length > 0) {
-        newErrors.selectedAnimalIds =
-          t.sales?.errors?.animalAlreadySold || "Um ou mais animais selecionados já foram vendidos";
+        newErrors.selectedAnimalIds = t.sales.errors.animalAlreadySold;
       }
     }
 
     if (formData.pricingMode === PricingModeEnum.TOTAL) {
       if (!formData.totalPrice) {
-        newErrors.totalPrice = t.sales?.errors?.totalPriceRequired || "Preço total é obrigatório";
+        newErrors.totalPrice = t.sales.errors.totalPriceRequired;
       } else {
         const totalPriceNum =
           parseFloat(formData.totalPrice.replace(/[^\d,.-]/g, "").replace(",", ".")) || 0;
         if (totalPriceNum <= 0) {
-          newErrors.totalPrice =
-            t.sales?.errors?.totalPriceInvalid || "Preço total deve ser maior que zero";
+          newErrors.totalPrice = t.sales.errors.totalPriceInvalid;
         }
       }
     } else if (formData.pricingMode === PricingModeEnum.INDIVIDUAL) {
       for (const item of formData.saleItems) {
         if (!item.price || parseFloat(item.price.replace(/[^\d,.-]/g, "").replace(",", ".")) <= 0) {
-          newErrors[`price_${item.animalId}`] =
-            t.sales?.errors?.priceRequired || "Preço é obrigatório para cada animal";
+          newErrors[`price_${item.animalId}`] = t.sales.errors.priceRequired;
         }
       }
     }
 
     for (const item of formData.saleItems) {
       if (!item.weight || parseFloat(item.weight) <= 0) {
-        newErrors[`weight_${item.animalId}`] =
-          t.sales?.errors?.weightRequired || "Peso é obrigatório para cada animal";
+        newErrors[`weight_${item.animalId}`] = t.sales.errors.weightRequired;
       }
     }
 
@@ -325,10 +313,7 @@ export default function NewSale() {
     e.preventDefault();
 
     if (!validateForm()) {
-      showAlert(
-        t.sales?.errors?.validationFailed || "Por favor, corrija os erros no formulário",
-        "error"
-      );
+      showAlert(t.sales.errors.validationFailed, "error");
       return;
     }
 
@@ -366,12 +351,12 @@ export default function NewSale() {
       };
 
       addSale(saleData);
-      showAlert(t.sales?.success?.created || "Venda registrada com sucesso", "success");
+      showAlert(t.sales.success.created, "success");
       setTimeout(() => {
         navigate(ROUTES.SALES);
       }, 1500);
     } catch {
-      showAlert(t.sales?.errors?.createFailed || "Erro ao registrar venda", "error");
+      showAlert(t.sales.errors.createFailed, "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -423,19 +408,15 @@ export default function NewSale() {
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            {t.sales?.new?.title || "Nova Venda"}
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            {t.sales?.new?.description || "Registre uma nova venda de animais"}
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t.sales.new.title}</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">{t.sales.new.description}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t.sales?.form?.property || "Propriedade"} <span className="text-red-500">*</span>
+                {t.sales.form.property} <span className="text-red-500">*</span>
               </label>
               <Select
                 value={formData.propertyId}
@@ -443,7 +424,7 @@ export default function NewSale() {
                 disabled={isSubmitting}
                 className={errors.propertyId ? "border-red-500" : ""}
                 options={[
-                  { value: "", label: t.sales?.form?.selectProperty || "Selecione a propriedade" },
+                  { value: "", label: t.sales.form.selectProperty },
                   ...properties.map((property) => ({
                     value: property.id,
                     label: property.name,
@@ -458,7 +439,7 @@ export default function NewSale() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t.sales?.form?.buyer || "Comprador"} <span className="text-red-500">*</span>
+                {t.sales.form.buyer} <span className="text-red-500">*</span>
               </label>
               <Select
                 value={formData.buyerId}
@@ -466,7 +447,7 @@ export default function NewSale() {
                 disabled={isSubmitting}
                 className={errors.buyerId ? "border-red-500" : ""}
                 options={[
-                  { value: "", label: t.sales?.form?.selectBuyer || "Selecione o comprador" },
+                  { value: "", label: t.sales.form.selectBuyer },
                   ...buyers.map((buyer) => ({
                     value: buyer.id,
                     label: buyer.name,
@@ -479,7 +460,7 @@ export default function NewSale() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t.sales?.form?.saleDate || "Data da Venda"} <span className="text-red-500">*</span>
+                {t.sales.form.saleDate} <span className="text-red-500">*</span>
               </label>
               <Input
                 type="date"
@@ -493,7 +474,7 @@ export default function NewSale() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t.sales?.form?.saleType || "Tipo de Venda"} <span className="text-red-500">*</span>
+                {t.sales.form.saleType} <span className="text-red-500">*</span>
               </label>
               <Select
                 value={formData.saleType}
@@ -501,18 +482,18 @@ export default function NewSale() {
                 disabled={isSubmitting}
                 className={errors.saleType ? "border-red-500" : ""}
                 options={[
-                  { value: "", label: t.sales?.form?.selectSaleType || "Selecione o tipo" },
+                  { value: "", label: t.sales.form.selectSaleType },
                   {
                     value: SaleTypeEnum.SLAUGHTERHOUSE,
-                    label: t.sales?.saleTypes?.slaughterhouse || "Frigorífico",
+                    label: t.sales.saleTypes.slaughterhouse,
                   },
                   {
                     value: SaleTypeEnum.OTHER_FARM,
-                    label: t.sales?.saleTypes?.otherFarm || "Outra Propriedade",
+                    label: t.sales.saleTypes.otherFarm,
                   },
                   {
                     value: SaleTypeEnum.AUCTION,
-                    label: t.sales?.saleTypes?.auction || "Leilão",
+                    label: t.sales.saleTypes.auction,
                   },
                 ]}
                 showPlaceholder={false}
@@ -522,8 +503,7 @@ export default function NewSale() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t.sales?.form?.pricingMode || "Modo de Precificação"}{" "}
-                <span className="text-red-500">*</span>
+                {t.sales.form.pricingMode} <span className="text-red-500">*</span>
               </label>
               <Select
                 value={formData.pricingMode}
@@ -531,14 +511,14 @@ export default function NewSale() {
                 disabled={isSubmitting}
                 className={errors.pricingMode ? "border-red-500" : ""}
                 options={[
-                  { value: "", label: t.sales?.form?.selectPricingMode || "Selecione o modo" },
+                  { value: "", label: t.sales.form.selectPricingMode },
                   {
                     value: PricingModeEnum.INDIVIDUAL,
-                    label: t.sales?.pricingModes?.individual || "Individual",
+                    label: t.sales.pricingModes.individual,
                   },
                   {
                     value: PricingModeEnum.TOTAL,
-                    label: t.sales?.pricingModes?.total || "Preço Total",
+                    label: t.sales.pricingModes.total,
                   },
                 ]}
                 showPlaceholder={false}
@@ -550,8 +530,7 @@ export default function NewSale() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t.sales?.form?.paymentMethod || "Método de Pagamento"}{" "}
-                <span className="text-red-500">*</span>
+                {t.sales.form.paymentMethod} <span className="text-red-500">*</span>
               </label>
               <Select
                 value={formData.paymentMethod}
@@ -559,14 +538,14 @@ export default function NewSale() {
                 disabled={isSubmitting}
                 className={errors.paymentMethod ? "border-red-500" : ""}
                 options={[
-                  { value: "", label: t.sales?.form?.selectPaymentMethod || "Selecione o método" },
+                  { value: "", label: t.sales.form.selectPaymentMethod },
                   {
                     value: SalePaymentMethodEnum.CASH_FLOW,
-                    label: t.sales?.paymentMethods?.cashFlow || "À Vista (Fluxo de Caixa)",
+                    label: t.sales.paymentMethods.cashFlow,
                   },
                   {
                     value: SalePaymentMethodEnum.ACCOUNTS_RECEIVABLE,
-                    label: t.sales?.paymentMethods?.accountsReceivable || "A Receber",
+                    label: t.sales.paymentMethods.accountsReceivable,
                   },
                 ]}
                 showPlaceholder={false}
@@ -580,7 +559,7 @@ export default function NewSale() {
           {formData.pricingMode === PricingModeEnum.TOTAL && (
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t.sales?.form?.totalPrice || "Preço Total"} <span className="text-red-500">*</span>
+                {t.sales.form.totalPrice} <span className="text-red-500">*</span>
               </label>
               <Input
                 type="text"
@@ -595,7 +574,7 @@ export default function NewSale() {
               )}
               {formData.selectedAnimalIds.length > 0 && formData.totalPrice && (
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  {t.sales?.form?.pricePerAnimal || "Preço por animal"}:{" "}
+                  {t.sales.form.pricePerAnimal}:{" "}
                   {formatCurrency(
                     (parseFloat(formData.totalPrice.replace(/[^\d,.-]/g, "").replace(",", ".")) ||
                       0) / formData.selectedAnimalIds.length,
@@ -609,7 +588,7 @@ export default function NewSale() {
           <div>
             <div className="flex items-center justify-between mb-4">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {((t.sales?.form as Record<string, unknown>)?.fees as string) || "Taxas e Encargos"}
+                {t.sales.form.fees}
               </label>
               <Button
                 type="button"
@@ -618,8 +597,7 @@ export default function NewSale() {
                 disabled={isSubmitting}
                 className="text-sm"
               >
-                +{" "}
-                {((t.sales?.form as Record<string, unknown>)?.addFee as string) || "Adicionar Taxa"}
+                + {t.sales.form.addFee}
               </Button>
             </div>
             {formData.fees.length > 0 && (
@@ -631,24 +609,19 @@ export default function NewSale() {
                   >
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        {((t.sales?.form as Record<string, unknown>)?.feeName as string) ||
-                          "Nome da Taxa"}
+                        {t.sales.form.feeName}
                       </label>
                       <Input
                         type="text"
                         value={fee.name}
                         onChange={(e) => updateFee(fee.id, "name", e.target.value)}
                         disabled={isSubmitting}
-                        placeholder={
-                          ((t.sales?.form as Record<string, unknown>)
-                            ?.feeNamePlaceholder as string) || "Ex: Taxa de Transporte"
-                        }
+                        placeholder={t.sales.form.feeNamePlaceholder}
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        {((t.sales?.form as Record<string, unknown>)?.feeAmount as string) ||
-                          "Valor"}
+                        {t.sales.form.feeAmount}
                       </label>
                       <Input
                         type="text"
@@ -675,19 +648,19 @@ export default function NewSale() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {t.sales?.form?.animals || "Animais"} <span className="text-red-500">*</span>
+              {t.sales.form.animals} <span className="text-red-500">*</span>
             </label>
             <Input
               type="text"
               value={animalSearch}
               onChange={(e) => setAnimalSearch(e.target.value)}
-              placeholder={t.sales?.form?.searchAnimals || "Buscar animais..."}
+              placeholder={t.sales.form.searchAnimals}
               disabled={isSubmitting}
             />
             <div className="mt-2 border border-gray-300 dark:border-gray-600 rounded-md max-h-48 overflow-y-auto">
               {filteredAnimals.length === 0 ? (
                 <p className="text-sm text-gray-500 dark:text-gray-400 p-4">
-                  {t.sales?.form?.noAnimals || "Nenhum animal encontrado"}
+                  {t.sales.form.noAnimals}
                 </p>
               ) : (
                 <div className="space-y-1 p-2">
@@ -718,7 +691,7 @@ export default function NewSale() {
                             </span>
                             {isSold && (
                               <span className="text-xs px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded">
-                                {t.sales?.form?.sold || "Vendido"}
+                                {t.sales.form.sold}
                               </span>
                             )}
                           </div>
@@ -740,7 +713,7 @@ export default function NewSale() {
           {formData.selectedAnimalIds.length > 0 && (
             <div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                {t.sales?.form?.saleItems || "Itens da Venda"}
+                {t.sales.form.saleItems}
               </h3>
               <div className="space-y-4">
                 {formData.saleItems.map((item) => {
@@ -763,8 +736,7 @@ export default function NewSale() {
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            {t.sales?.form?.weight || "Peso (kg)"}{" "}
-                            <span className="text-red-500">*</span>
+                            {t.sales.form.weight} <span className="text-red-500">*</span>
                           </label>
                           <Input
                             type="number"
@@ -785,8 +757,7 @@ export default function NewSale() {
                         {formData.pricingMode === PricingModeEnum.INDIVIDUAL && (
                           <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                              {t.sales?.form?.price || "Preço"}{" "}
-                              <span className="text-red-500">*</span>
+                              {t.sales.form.price} <span className="text-red-500">*</span>
                             </label>
                             <Input
                               type="text"
@@ -808,7 +779,7 @@ export default function NewSale() {
                         {formData.pricingMode === PricingModeEnum.TOTAL && (
                           <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                              {t.sales?.form?.price || "Preço"}
+                              {t.sales.form.price}
                             </label>
                             <Input
                               type="text"
@@ -817,15 +788,14 @@ export default function NewSale() {
                               className="bg-gray-100 dark:bg-gray-700"
                             />
                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                              {t.sales?.form?.calculatedAutomatically ||
-                                "Calculado automaticamente"}
+                              {t.sales.form.calculatedAutomatically}
                             </p>
                           </div>
                         )}
                         {formData.saleType === SaleTypeEnum.SLAUGHTERHOUSE && (
                           <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                              {t.sales?.form?.carcassWeight || "Peso da Carcaça (kg)"}
+                              {t.sales.form.carcassWeight}
                             </label>
                             <Input
                               type="number"
@@ -848,7 +818,7 @@ export default function NewSale() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {t.sales?.form?.observation || "Observações"}
+              {t.sales.form.observation}
             </label>
             <textarea
               value={formData.observation}
@@ -862,7 +832,7 @@ export default function NewSale() {
           <div className="bg-gray-50 dark:bg-gray-900/50 rounded-md p-4">
             <div className="flex justify-between items-center">
               <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                {t.sales?.form?.total || "Total"}
+                {t.sales.form.total}
               </span>
               <span className="text-xl font-bold text-gray-900 dark:text-gray-100">
                 {formatCurrency(calculateTotal(), language)}
@@ -880,9 +850,7 @@ export default function NewSale() {
               {t.common?.cancel || "Cancelar"}
             </Button>
             <Button type="submit" variant="primary" disabled={isSubmitting}>
-              {isSubmitting
-                ? t.common?.saving || "Salvando..."
-                : t.sales?.form?.submit || "Registrar Venda"}
+              {isSubmitting ? t.common?.saving || "Salvando..." : t.sales.form.submit}
             </Button>
           </div>
         </form>

@@ -132,6 +132,8 @@ export const es = {
       recentBreedings: "Montas Recientes",
       recentSales: "Ventas Recientes",
       noRecentSales: "No hay ventas recientes",
+      noRecentBirths: "No hay nacimientos recientes",
+      noRecentBreedings: "No hay montas recientes",
     },
     financial: {
       monthlyIncome: "Ingresos Mensuales",
@@ -152,6 +154,7 @@ export const es = {
       breedingsThisMonth: "Montas este mes",
       salesThisMonth: "Ventas este mes",
       animalsSold: "animales vendidos",
+      animal: (count: number) => (count === 1 ? "animal" : "animales"),
     },
     charts: {
       weightTrends: "Tendencias de Peso",
@@ -2483,6 +2486,11 @@ export const es = {
       pricePerAnimal: "Precio por animal",
       transportationFee: "Tarifa de Transporte",
       additionalFees: "Tarifas Adicionales",
+      fees: "Tarifas y Cargos",
+      addFee: "Agregar Tarifa",
+      feeName: "Nombre de la Tarifa",
+      feeNamePlaceholder: "Ej: Tarifa de Transporte",
+      feeAmount: "Valor",
       animals: "Animales",
       searchAnimals: "Buscar animales...",
       noAnimals: "No se encontraron animales",

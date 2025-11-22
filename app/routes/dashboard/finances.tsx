@@ -523,21 +523,20 @@ export default function FinancesDashboard() {
 
       <div className="mb-6">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-          {t.financesDashboard.salesAnalytics?.title || "Análise de Vendas"}
+          {t.financesDashboard.salesAnalytics.title}
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.financesDashboard.salesAnalytics?.totalSales || "Total de Vendas"}
+                  {t.financesDashboard.salesAnalytics.totalSales}
                 </p>
                 <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
                   {salesMetrics.totalSales}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {salesMetrics.totalAnimalsSold}{" "}
-                  {t.financesDashboard.salesAnalytics?.animalsSold || "animais"}
+                  {salesMetrics.totalAnimalsSold} {t.financesDashboard.salesAnalytics.animalsSold}
                 </p>
               </div>
               <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center">
@@ -550,13 +549,13 @@ export default function FinancesDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.financesDashboard.salesAnalytics?.totalRevenue || "Receita Total"}
+                  {t.financesDashboard.salesAnalytics.totalRevenue}
                 </p>
                 <p className="text-xl font-bold text-green-600 dark:text-green-400 mt-1">
                   {formatCurrency(salesMetrics.totalRevenue)}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {t.financesDashboard.salesAnalytics?.averagePricePerHead || "Média/cabeça"}:{" "}
+                  {t.financesDashboard.salesAnalytics.averagePricePerHead}:{" "}
                   {formatCurrency(salesMetrics.averagePricePerHead)}
                 </p>
               </div>
@@ -570,14 +569,14 @@ export default function FinancesDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.financesDashboard.salesAnalytics?.averagePricePerKg || "Preço Médio/kg"}
+                  {t.financesDashboard.salesAnalytics.averagePricePerKg}
                 </p>
                 <p className="text-xl font-bold text-blue-600 dark:text-blue-400 mt-1">
                   {formatCurrency(salesMetrics.averagePricePerKg)}
                 </p>
                 {salesMetrics.averageCarcassValue && (
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {t.financesDashboard.salesAnalytics?.averageCarcassValue || "Carcaça média"}:{" "}
+                    {t.financesDashboard.salesAnalytics.averageCarcassValue}:{" "}
                     {salesMetrics.averageCarcassValue.toFixed(1)} kg
                   </p>
                 )}
@@ -592,7 +591,7 @@ export default function FinancesDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.financesDashboard.salesAnalytics?.profitability || "Lucratividade"}
+                  {t.financesDashboard.salesAnalytics.profitability}
                 </p>
                 <p
                   className={`text-xl font-bold mt-1 ${
@@ -605,7 +604,7 @@ export default function FinancesDashboard() {
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {salesMetrics.profitability.averageProfitMargin.toFixed(2)}%{" "}
-                  {t.financesDashboard.salesAnalytics?.profitMargin || "margem"}
+                  {t.financesDashboard.salesAnalytics.profitMargin}
                 </p>
               </div>
               <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
@@ -618,7 +617,7 @@ export default function FinancesDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
             <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-              {t.financesDashboard.salesAnalytics?.salesByType || "Vendas por Tipo"}
+              {t.financesDashboard.salesAnalytics.salesByType}
             </h3>
             {(() => {
               const salesByType = salesData.reduce(
@@ -661,7 +660,7 @@ export default function FinancesDashboard() {
                     <Bar
                       dataKey="revenue"
                       fill={chartColors.income}
-                      name={t.financesDashboard.salesAnalytics?.revenue || "Receita"}
+                      name={t.financesDashboard.salesAnalytics.revenue}
                     />
                   </BarChart>
                 </ResponsiveContainer>
@@ -675,13 +674,12 @@ export default function FinancesDashboard() {
 
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
             <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-              {t.financesDashboard.salesAnalytics?.profitabilityBreakdown ||
-                "Análise de Lucratividade"}
+              {t.financesDashboard.salesAnalytics.profitabilityBreakdown}
             </h3>
             <div className="space-y-4">
               <div>
                 <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.financesDashboard.salesAnalytics?.totalCost || "Custo Total"}
+                  {t.financesDashboard.salesAnalytics.totalCost}
                 </p>
                 <p className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-1">
                   {formatCurrency(salesMetrics.profitability.totalCost)}
@@ -689,7 +687,7 @@ export default function FinancesDashboard() {
               </div>
               <div>
                 <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.financesDashboard.salesAnalytics?.totalSalePrice || "Preço Total de Venda"}
+                  {t.financesDashboard.salesAnalytics.totalSalePrice}
                 </p>
                 <p className="text-lg font-bold text-green-600 dark:text-green-400 mt-1">
                   {formatCurrency(salesMetrics.profitability.totalSalePrice)}
@@ -697,7 +695,7 @@ export default function FinancesDashboard() {
               </div>
               <div>
                 <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.financesDashboard.salesAnalytics?.averageRoi || "ROI Médio"}
+                  {t.financesDashboard.salesAnalytics.averageRoi}
                 </p>
                 <p
                   className={`text-lg font-bold mt-1 ${
@@ -711,7 +709,7 @@ export default function FinancesDashboard() {
               </div>
               <div>
                 <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.financesDashboard.salesAnalytics?.averageCostPerKg || "Custo Médio/kg"}
+                  {t.financesDashboard.salesAnalytics.averageCostPerKg}
                 </p>
                 <p className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-1">
                   {formatCurrency(salesMetrics.profitability.averageCostPerKg)}

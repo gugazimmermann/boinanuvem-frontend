@@ -42,13 +42,15 @@ import { getSalesMetrics } from "~/services/sales-analytics.service";
 import { AreaType } from "~/types";
 import { AccountsPayableStatus, AccountsReceivableStatus } from "~/types";
 import { ROUTES } from "~/routes.config";
+import { translations } from "~/i18n/translations";
 
 export function meta() {
+  const t = translations.pt;
   return [
-    { title: "Dashboard - Boi na Nuvem" },
+    { title: t.dashboard.meta.title },
     {
       name: "description",
-      content: "Painel de controle do Boi na Nuvem",
+      content: t.dashboard.meta.description,
     },
   ];
 }
@@ -317,7 +319,7 @@ export default function Dashboard() {
       activityList.push({
         type: "sale",
         date: sale.saleDate,
-        title: t.dashboard.recentActivities.newSaleRegistered || "Nova venda registrada",
+        title: t.dashboard.recentActivities.newSaleRegistered,
         icon: "💵",
         color: "green",
       });
@@ -648,14 +650,13 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.dashboard.additionalStats.salesThisMonth || "Vendas este mês"}
+                  {t.dashboard.additionalStats.salesThisMonth}
                 </p>
                 <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
                   {salesThisMonth}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {salesMetrics.totalAnimalsSold}{" "}
-                  {t.dashboard.additionalStats.animalsSold || "animais vendidos"}
+                  {salesMetrics.totalAnimalsSold} {t.dashboard.additionalStats.animalsSold}
                 </p>
               </div>
               <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center">
@@ -767,20 +768,20 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.dashboard.financial.totalSalesRevenue || "Receita Total de Vendas"}
+                  {t.dashboard.financial.totalSalesRevenue}
                 </p>
                 <p className="text-xl font-bold text-green-600 dark:text-green-400 mt-1">
                   {formatCurrency(salesMetrics.totalRevenue)}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {t.dashboard.financial.averagePricePerKg || "Preço médio/kg"}:{" "}
+                  {t.dashboard.financial.averagePricePerKg}:{" "}
                   {formatCurrency(salesMetrics.averagePricePerKg)}
                 </p>
                 <Link
                   to={ROUTES.SALES}
                   className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-1 inline-block"
                 >
-                  {t.dashboard.financial.viewSales || "Ver vendas"}
+                  {t.dashboard.financial.viewSales}
                 </Link>
               </div>
               <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
@@ -925,7 +926,7 @@ export default function Dashboard() {
               ))
             ) : (
               <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
-                No recent activities
+                {t.dashboard.recentActivities.noActivities}
               </p>
             )}
           </div>
@@ -964,7 +965,7 @@ export default function Dashboard() {
                 ))
               ) : (
                 <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
-                  No recent births
+                  {t.dashboard.sections.noRecentBirths}
                 </p>
               )}
             </div>
@@ -1002,7 +1003,7 @@ export default function Dashboard() {
                 ))
               ) : (
                 <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
-                  No recent breedings
+                  {t.dashboard.sections.noRecentBreedings}
                 </p>
               )}
             </div>
@@ -1011,7 +1012,7 @@ export default function Dashboard() {
 
         <div>
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-            {t.dashboard.sections.recentSales || "Vendas Recentes"}
+            {t.dashboard.sections.recentSales}
           </h2>
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
             <div className="space-y-3">
@@ -1034,15 +1035,16 @@ export default function Dashboard() {
                         {formatCurrency(sale.totalPrice)}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {sale.saleItems.length} {sale.saleItems.length === 1 ? "animal" : "animais"}{" "}
-                        • {formatRelativeTime(sale.saleDate, t)}
+                        {sale.saleItems.length}{" "}
+                        {t.dashboard.additionalStats.animal(sale.saleItems.length)} •{" "}
+                        {formatRelativeTime(sale.saleDate, t)}
                       </p>
                     </div>
                   </div>
                 ))
               ) : (
                 <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
-                  {t.dashboard.sections.noRecentSales || "Nenhuma venda recente"}
+                  {t.dashboard.sections.noRecentSales}
                 </p>
               )}
             </div>
