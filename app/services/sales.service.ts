@@ -11,6 +11,7 @@ import {
 } from "./accounts-receivable.service";
 import { CashFlowCategory, PaymentMethod } from "~/types";
 import { AccountsReceivableStatus } from "~/types";
+import { getTotalFees } from "~/utils/fees";
 
 const ID_PREFIX = "sa0e8400-e29b-41d4-a716";
 const DEFAULT_ID = "sa0e8400-e29b-41d4-a716-446655440009";
@@ -69,7 +70,8 @@ export function addSale(data: SaleFormData): Sale {
   });
 
   // Create financial record based on payment method
-  const totalAmount = data.totalPrice + (data.transportationFee || 0) + (data.additionalFees || 0);
+  const totalFees = getTotalFees(data.fees, data.transportationFee, data.additionalFees);
+  const totalAmount = data.totalPrice + totalFees;
   const animalCodes = data.saleItems
     .map((item) => {
       const animal = getAnimalById(item.animalId);
@@ -142,10 +144,12 @@ export function updateSale(saleId: string, data: Partial<SaleFormData>): boolean
 
   // Handle payment method change
   if (data.paymentMethod && data.paymentMethod !== existingSale.paymentMethod) {
-    const totalAmount =
-      (data.totalPrice || existingSale.totalPrice) +
-      (data.transportationFee || existingSale.transportationFee || 0) +
-      (data.additionalFees || existingSale.additionalFees || 0);
+    const totalFees = getTotalFees(
+      data.fees || existingSale.fees,
+      data.transportationFee || existingSale.transportationFee,
+      data.additionalFees || existingSale.additionalFees
+    );
+    const totalAmount = (data.totalPrice || existingSale.totalPrice) + totalFees;
 
     const animalCodes = (data.saleItems || existingSale.saleItems)
       .map((item) => {
@@ -214,10 +218,12 @@ export function updateSale(saleId: string, data: Partial<SaleFormData>): boolean
       data.transportationFee !== undefined ||
       data.additionalFees !== undefined
     ) {
-      const totalAmount =
-        (data.totalPrice || existingSale.totalPrice) +
-        (data.transportationFee || existingSale.transportationFee || 0) +
-        (data.additionalFees || existingSale.additionalFees || 0);
+      const totalFees = getTotalFees(
+        data.fees || existingSale.fees,
+        data.transportationFee || existingSale.transportationFee,
+        data.additionalFees || existingSale.additionalFees
+      );
+      const totalAmount = (data.totalPrice || existingSale.totalPrice) + totalFees;
 
       if (existingSale.linkedCashFlowId) {
         updateCashFlow(existingSale.linkedCashFlowId, { amount: totalAmount });

@@ -8,6 +8,7 @@ import {
 } from "~/utils/profitability";
 import type { Sale, SaleType } from "~/types";
 import { differenceInMonths, parseISO } from "date-fns";
+import { getTotalFees } from "~/utils/fees";
 
 export interface SalesMetrics {
   totalSales: number;
@@ -73,7 +74,8 @@ export function getSalesMetrics(companyId: string, filters?: SalesFilters): Sale
 
   const totalSales = sales.length;
   const totalRevenue = sales.reduce((sum, sale) => {
-    return sum + sale.totalPrice + (sale.transportationFee || 0) + (sale.additionalFees || 0);
+    const totalFees = getTotalFees(sale.fees, sale.transportationFee, sale.additionalFees);
+    return sum + sale.totalPrice + totalFees;
   }, 0);
 
   let totalWeight = 0;
@@ -116,12 +118,15 @@ export function getSalesMetrics(companyId: string, filters?: SalesFilters): Sale
 
       const birth = getBirthByAnimalId(animal.id);
       const acquisition = getAcquisitionByAnimalId(animal.id);
+      const acquisitionItem = acquisition?.acquisitionItems.find(
+        (item) => item.animalId === animal.id
+      );
 
       let birthDate: string | undefined;
       if (birth) {
         birthDate = birth.birthDate;
-      } else if (acquisition?.birthDate) {
-        birthDate = acquisition.birthDate;
+      } else if (acquisitionItem?.birthDate) {
+        birthDate = acquisitionItem.birthDate;
       } else if (acquisition?.acquisitionDate) {
         // Estimate birth date as 2 years before acquisition (typical for purchased animals)
         const acqDate = parseISO(acquisition.acquisitionDate);

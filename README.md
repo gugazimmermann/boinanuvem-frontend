@@ -46,27 +46,41 @@ A modern, full-stack React application built with React Router v7, featuring a c
   - Automatic purity calculation (PO, F1, F2, F3, F4, F5, PC) based on parent breeds
   - Birth date tracking and gender recording
   - Parent-child relationship management
-- **Acquisitions**: Record and manage animal acquisitions with pricing and supplier information
-  - Purchase price tracking
-  - Supplier relationship management
-  - Acquisition date and details recording
+- **Acquisitions**: Comprehensive animal acquisition management system with batch processing and profitability tracking
+  - **Batch Acquisitions**: Register multiple animals in a single acquisition transaction
+  - **Flexible Pricing Modes**: Individual pricing per animal or total lot price with automatic equal distribution
+  - **Cost Per Arroba Calculation**: Automatic calculation of cost per arroba at acquisition (1 arroba = 30 kg)
+  - **Flexible Fee System**: Add multiple custom fees/taxes (transportation, handling, and any additional fees) with custom names and amounts
+  - **Supplier Management**: Link acquisitions to suppliers from the suppliers registry
+  - **Payment Methods**: Choose between cash flow (immediate payment) or accounts payable (deferred payment)
+  - **Financial Integration**: Automatic creation of cash flow transactions or accounts payable records linked to acquisitions
+  - **Profitability Tracking**: Base cost per arroba stored for each animal, used for profitability calculations at sale
+  - **Acquisition List Page**: Full list view of all acquisitions with filtering, search, and sorting capabilities
+  - **Cost Distribution**: Total acquisition costs (including fees) automatically distributed evenly among animals in batch acquisitions
+  - **Acquisition History**: Complete history of all acquisitions accessible from animal details pages
 - **Deaths**: Record and manage animal deaths with comprehensive tracking
   - Death date and cause of death recording
   - Optional observation notes for detailed information
   - Automatic animal status update to inactive upon death registration
   - Prevents duplicate death records for the same animal
   - Dead animals excluded from active lists but remain accessible for historical references
-- **Sales**: Complete animal sales management system
+- **Sales**: Complete animal sales management system with profitability analysis
   - Register sales of one or multiple animals simultaneously
   - Flexible pricing modes: individual per animal or total lot price with automatic equal distribution
   - Support for different sale types: slaughterhouses, other farms, and auctions
   - Buyer information linked to suppliers/clients registry
-  - Sale date, weight of each animal at sale, and optional transportation/additional fees
+  - Sale date, weight of each animal at sale
+  - **Flexible Fee System**: Add multiple custom fees/taxes (transportation, handling, and any additional fees) with custom names and amounts
   - Automatic animal status update to 'Sold' upon sale completion
   - Sold animals removed from active animal lists but remain accessible for historical references
   - Automatic financial integration: creates cash flow transaction or accounts receivable based on payment method
   - Full sale history tracking for each animal
-  - Profitability calculation: compares sale price against accumulated costs (acquisition, inventory consumption, etc.)
+  - **Enhanced Profitability Calculation**: Comprehensive profitability analysis including:
+    - Acquisition cost per arroba (from purchase)
+    - Sale arroba value (sale price / sale weight in arrobas)
+    - Spread per arroba (profit or loss per arroba)
+    - Total spread (total profit or loss for the transaction)
+    - Comparison against accumulated costs (acquisition, inventory consumption, etc.)
   - Comprehensive sales analytics: price per kilogram, price per head, carcass value, age at sale, profitability metrics
   - Filtering capabilities: by buyer, category, date range, or batch
 - **Weighings**: 
@@ -321,13 +335,13 @@ A modern, full-stack React application built with React Router v7, featuring a c
   - System event tracking
   - Activity history viewing
 - **Help Center**: Comprehensive FAQ and help documentation
-  - **49+ FAQs** covering all major features and workflows
+  - **53+ FAQs** covering all major features and workflows
   - **9 Categories**: Getting Started, Animals, Locations, Relationships, Records, Financial, Analytics, Team, and Technical
   - **Quick Start Guide**: Step-by-step instructions for new users
   - **Contact Support**: Support channels and contact information
   - **Category Filtering**: Filter FAQs by category for easy navigation
   - **Fully Internationalized**: All help content available in Portuguese, English, and Spanish
-  - **Comprehensive Coverage**: FAQs for animal management, locations, employees, service providers, suppliers, buyers, observations, weighings (including session weighings), acquisitions, deaths, sales (including pricing modes, payment methods, and profitability), movements, inventory management (including observations, financial integration, and location-based cost tracking), financial management (including observations for cash flow, accounts payable, and accounts receivable, and animal inventory costs), reproductive indexes, birth forecast, dashboard metrics, pasture planning, breeding season, search & filtering, data organization, and best practices
+  - **Comprehensive Coverage**: FAQs for animal management, locations, employees, service providers, suppliers, buyers, observations, weighings (including session weighings), acquisitions (including batch acquisitions, cost per arroba, and profitability spread), deaths, sales (including pricing modes, payment methods, flexible fees, and profitability), movements, inventory management (including observations, financial integration, and location-based cost tracking), financial management (including observations for cash flow, accounts payable, and accounts receivable, and animal inventory costs), reproductive indexes, birth forecast, dashboard metrics, pasture planning, breeding season, search & filtering, data organization, and best practices
 
 ## 📋 Prerequisites
 

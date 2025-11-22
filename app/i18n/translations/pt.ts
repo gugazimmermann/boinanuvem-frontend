@@ -3271,7 +3271,7 @@ export const pt = {
       recordAcquisition: {
         question: "Como registrar uma aquisição?",
         answer:
-          "Acesse 'Registros' > 'Aquisição' e clique em 'Novo'. Selecione o animal adquirido (ou cadastre um novo), informe a data da aquisição, o preço pago e o fornecedor. Você pode adicionar observações sobre a aquisição. O sistema mantém um histórico completo de todas as aquisições, facilitando o controle de investimentos e origem dos animais.",
+          "Acesse 'Registros' > 'Aquisições' e clique em 'Adicionar Aquisição'. Preencha as informações obrigatórias: propriedade, fornecedor, data da aquisição, modo de precificação (individual por animal ou preço total do lote) e método de pagamento (à vista ou a pagar). Selecione um ou mais animais para adquirir. Para cada animal, informe o peso no momento da aquisição. Se usar precificação individual, informe o preço de cada animal. Se usar preço total, informe o valor total e o sistema distribuirá automaticamente igualmente entre os animais. Você pode adicionar múltiplas taxas personalizadas (transporte, manuseio, impostos, etc.) com nomes e valores específicos. O sistema calcula automaticamente o custo por arroba de cada animal (1 arroba = 30 kg), que será usado para cálculos de rentabilidade na venda. Ao salvar, o sistema criará automaticamente uma transação de fluxo de caixa ou conta a pagar conforme o método de pagamento escolhido, e vinculará o registro financeiro à aquisição.",
       },
       recordDeath: {
         question: "Como registrar um óbito?",
@@ -3426,7 +3426,27 @@ export const pt = {
       saleProfitability: {
         question: "Como visualizar a rentabilidade das vendas?",
         answer:
-          "Na página de detalhes de cada venda, você pode visualizar a rentabilidade de cada animal vendido. O sistema calcula automaticamente: custo total acumulado do animal (incluindo aquisição, consumo de estoque por localização, etc.), preço de venda, lucro, margem de lucro, custo por kg, preço por kg e ROI (retorno sobre investimento). Essas métricas ajudam você a avaliar a performance financeira de cada animal e tomar decisões informadas sobre futuras vendas. No dashboard financeiro, você também pode ver análises agregadas de rentabilidade de todas as vendas.",
+          "Na página de detalhes de cada venda e na página de detalhes de cada animal (aba 'Vendas'), você pode visualizar a rentabilidade completa de cada animal vendido. O sistema calcula automaticamente: custo total acumulado do animal (incluindo aquisição, consumo de estoque por localização, etc.), preço de venda, lucro, margem de lucro, custo por kg, preço por kg e ROI (retorno sobre investimento). Para animais adquiridos, o sistema também mostra: valor da arroba na aquisição, valor da arroba na venda, spread por arroba (diferença entre os valores) e spread total (lucro ou prejuízo total por arroba). Essas métricas ajudam você a avaliar a performance financeira de cada animal e tomar decisões informadas sobre futuras vendas. No dashboard financeiro, você também pode ver análises agregadas de rentabilidade de todas as vendas.",
+      },
+      acquisitionPricingModes: {
+        question: "Como funcionam os modos de precificação de aquisições?",
+        answer:
+          "O sistema oferece dois modos de precificação para aquisições: 'Individual' e 'Preço Total'. No modo Individual, você define o preço de cada animal separadamente. No modo Preço Total, você informa o valor total do lote e o sistema distribui automaticamente esse valor igualmente entre todos os animais selecionados, incluindo as taxas adicionais. Isso é útil quando você adquire um lote por um valor total negociado. O sistema calcula automaticamente o custo por arroba de cada animal baseado no preço distribuído e no peso informado.",
+      },
+      acquisitionPaymentMethods: {
+        question: "Como funcionam os métodos de pagamento nas aquisições?",
+        answer:
+          "Ao registrar uma aquisição, você pode escolher entre dois métodos de pagamento: 'À Vista (Fluxo de Caixa)' ou 'A Pagar'. Se escolher 'À Vista', o sistema criará automaticamente uma transação de fluxo de caixa (saída) com o valor total da aquisição. Se escolher 'A Pagar', o sistema criará uma conta a pagar com o valor total da aquisição. Em ambos os casos, o registro financeiro será vinculado à aquisição e você poderá acessá-lo diretamente da página de detalhes da aquisição. Isso permite um controle financeiro integrado e automático.",
+      },
+      flexibleFees: {
+        question: "Como adicionar taxas personalizadas em aquisições e vendas?",
+        answer:
+          "Tanto em aquisições quanto em vendas, você pode adicionar múltiplas taxas personalizadas com nomes e valores específicos. Clique no botão '+ Adicionar Taxa' e preencha o nome da taxa (ex: 'Taxa de Transporte', 'Imposto ICMS', 'Taxa de Manuseio') e o valor. Você pode adicionar quantas taxas forem necessárias. Todas as taxas são somadas ao valor total da transação e distribuídas automaticamente entre os animais quando aplicável. Isso permite flexibilidade total para registrar todos os custos adicionais relacionados à aquisição ou venda.",
+      },
+      costPerArroba: {
+        question: "O que é custo por arroba e como é calculado?",
+        answer:
+          "O custo por arroba é uma métrica importante na pecuária brasileira (1 arroba = 30 kg). Na aquisição, o sistema calcula automaticamente o custo por arroba de cada animal dividindo o custo total do animal (preço + taxas distribuídas) pelo peso em arrobas. Este valor é armazenado e usado posteriormente para calcular a rentabilidade na venda. Na venda, o sistema calcula o valor da arroba na venda (preço de venda / peso em arrobas) e compara com o valor da arroba na aquisição, calculando o spread por arroba (diferença entre os valores). Isso permite avaliar a rentabilidade de forma padronizada, independente do peso do animal.",
       },
     },
   },

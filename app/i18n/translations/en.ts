@@ -3249,7 +3249,7 @@ export const en = {
       recordAcquisition: {
         question: "How do I record an acquisition?",
         answer:
-          "Go to 'Records' > 'Acquisition' and click 'New'. Select the acquired animal (or register a new one), enter the acquisition date, price paid, and supplier. You can add observations about the acquisition. The system maintains a complete history of all acquisitions, making it easier to control investments and animal origins.",
+          "Go to 'Records' > 'Acquisitions' and click 'Add Acquisition'. Fill in the required information: property, supplier, acquisition date, pricing mode (individual per animal or total lot price) and payment method (cash or payable). Select one or more animals to acquire. For each animal, enter the weight at the time of acquisition. If using individual pricing, enter the price for each animal. If using total price, enter the total value and the system will automatically distribute it equally among the animals. You can add multiple custom fees (transportation, handling, taxes, etc.) with specific names and amounts. The system automatically calculates the cost per arroba for each animal (1 arroba = 30 kg), which will be used for profitability calculations at sale. When saving, the system will automatically create a cash flow transaction or accounts payable according to the chosen payment method, and link the financial record to the acquisition.",
       },
       recordDeath: {
         question: "How do I record an animal death?",
@@ -3389,7 +3389,7 @@ export const en = {
       recordSale: {
         question: "How do I register an animal sale?",
         answer:
-          "Go to 'Records' > 'Sales' and click 'Add Sale'. Fill in the required information: property, buyer, sale date, sale type (slaughterhouse, other farm, or auction), pricing mode (individual per animal or total lot price) and payment method (cash or receivable). Select one or more animals to sell. For each animal, enter the weight at the time of sale. If using individual pricing, enter the price for each animal. If using total price, enter the total value and the system will automatically distribute it equally among the animals. You can add transportation fees and additional fees, and include observations. When saving, the system will automatically update the animals' status to 'sold', create a cash flow transaction or accounts receivable according to the chosen payment method, and calculate the profitability of each animal.",
+          "Go to 'Records' > 'Sales' and click 'Add Sale'. Fill in the required information: property, buyer, sale date, sale type (slaughterhouse, other farm, or auction), pricing mode (individual per animal or total lot price) and payment method (cash or receivable). Select one or more animals to sell. For each animal, enter the weight at the time of sale. If using individual pricing, enter the price for each animal. If using total price, enter the total value and the system will automatically distribute it equally among the animals. You can add multiple custom fees (transportation, handling, taxes, etc.) with specific names and amounts, and include observations. When saving, the system will automatically update the animals' status to 'sold', create a cash flow transaction or accounts receivable according to the chosen payment method, and calculate the profitability of each animal including the spread per arroba (difference between the arroba value at sale and acquisition).",
       },
       salePricingModes: {
         question: "How do sale pricing modes work?",
@@ -3404,7 +3404,27 @@ export const en = {
       saleProfitability: {
         question: "How do I view sale profitability?",
         answer:
-          "On each sale's details page, you can view the profitability of each animal sold. The system automatically calculates: total accumulated cost of the animal (including acquisition, inventory consumption by location, etc.), sale price, profit, profit margin, cost per kg, price per kg, and ROI (return on investment). These metrics help you evaluate the financial performance of each animal and make informed decisions about future sales. In the financial dashboard, you can also see aggregated profitability analyses of all sales.",
+          "On each sale's details page and on each animal's details page ('Sales' tab), you can view the complete profitability of each animal sold. The system automatically calculates: total accumulated cost of the animal (including acquisition, inventory consumption by location, etc.), sale price, profit, profit margin, cost per kg, price per kg, and ROI (return on investment). For acquired animals, the system also shows: acquisition arroba value, sale arroba value, spread per arroba (difference between values), and total spread (total profit or loss per arroba). These metrics help you evaluate the financial performance of each animal and make informed decisions about future sales. In the financial dashboard, you can also see aggregated profitability analyses of all sales.",
+      },
+      acquisitionPricingModes: {
+        question: "How do acquisition pricing modes work?",
+        answer:
+          "The system offers two pricing modes for acquisitions: 'Individual' and 'Total Price'. In Individual mode, you define the price of each animal separately. In Total Price mode, you enter the total lot value and the system automatically distributes this value equally among all selected animals, including additional fees. This is useful when you acquire a lot for a negotiated total value. The system automatically calculates the cost per arroba for each animal based on the distributed price and the entered weight.",
+      },
+      acquisitionPaymentMethods: {
+        question: "How do payment methods work in acquisitions?",
+        answer:
+          "When registering an acquisition, you can choose between two payment methods: 'Cash (Cash Flow)' or 'Payable'. If you choose 'Cash', the system will automatically create a cash flow transaction (outflow) with the total acquisition amount. If you choose 'Payable', the system will create an accounts payable with the total acquisition amount. In both cases, the financial record will be linked to the acquisition and you can access it directly from the acquisition details page. This allows integrated and automatic financial control.",
+      },
+      flexibleFees: {
+        question: "How do I add custom fees in acquisitions and sales?",
+        answer:
+          "Both in acquisitions and sales, you can add multiple custom fees with specific names and amounts. Click the '+ Add Fee' button and fill in the fee name (e.g., 'Transportation Fee', 'ICMS Tax', 'Handling Fee') and the amount. You can add as many fees as needed. All fees are added to the total transaction value and automatically distributed among animals when applicable. This provides complete flexibility to record all additional costs related to the acquisition or sale.",
+      },
+      costPerArroba: {
+        question: "What is cost per arroba and how is it calculated?",
+        answer:
+          "Cost per arroba is an important metric in Brazilian livestock farming (1 arroba = 30 kg). At acquisition, the system automatically calculates the cost per arroba for each animal by dividing the total animal cost (price + distributed fees) by the weight in arrobas. This value is stored and used later to calculate profitability at sale. At sale, the system calculates the sale arroba value (sale price / weight in arrobas) and compares it with the acquisition arroba value, calculating the spread per arroba (difference between values). This allows evaluating profitability in a standardized way, regardless of the animal's weight.",
       },
     },
   },

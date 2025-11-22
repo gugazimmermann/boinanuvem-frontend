@@ -299,7 +299,10 @@ export default function AnimalDetails() {
 
   const birth = animal ? getBirthByAnimalId(animal.id) : null;
   const acquisition = animal ? getAcquisitionByAnimalId(animal.id) : null;
-  const isMale = birth?.gender === "male" || acquisition?.gender === "male";
+  const acquisitionItem = acquisition?.acquisitionItems.find(
+    (item) => item.animalId === animal?.id
+  );
+  const isMale = birth?.gender === "male" || acquisitionItem?.gender === "male";
 
   useEffect(() => {
     if (isMale && activeTab === "breeding") {
@@ -372,7 +375,7 @@ export default function AnimalDetails() {
   }, [sortedWeighings]);
 
   const calculateAge = () => {
-    const referenceDate = birth?.birthDate || acquisition?.birthDate;
+    const referenceDate = birth?.birthDate || acquisitionItem?.birthDate;
     if (!referenceDate) return null;
     const today = new Date();
     const ref = new Date(referenceDate);
@@ -1054,7 +1057,7 @@ export default function AnimalDetails() {
                 </div>
               )}
 
-              {(birth?.gender || acquisition?.gender) && (
+              {(birth?.gender || acquisitionItem?.gender) && (
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between">
                     <div>
@@ -1064,14 +1067,16 @@ export default function AnimalDetails() {
                       <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
                         {
                           t.animals.gender[
-                            (birth?.gender || acquisition?.gender) as "male" | "female"
+                            (birth?.gender || acquisitionItem?.gender) as "male" | "female"
                           ]
                         }
                       </p>
                     </div>
                     <div className="w-10 h-10 bg-pink-100 dark:bg-pink-900/30 rounded-lg flex items-center justify-center">
                       <span className="text-lg">
-                        {birth?.gender === "male" || acquisition?.gender === "male" ? "♂" : "♀"}
+                        {birth?.gender === "male" || acquisitionItem?.gender === "male"
+                          ? "♂"
+                          : "♀"}
                       </span>
                     </div>
                   </div>
@@ -1667,19 +1672,49 @@ export default function AnimalDetails() {
                     </p>
                   </div>
                 )}
-                {acquisition?.price && (
-                  <div>
-                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                      {t.animals.details.price}
-                    </p>
-                    <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
-                      R${" "}
-                      {acquisition.price.toLocaleString(localeForNumber, {
-                        minimumFractionDigits: 2,
-                      })}
-                    </p>
-                  </div>
-                )}
+                {(() => {
+                  const acquisitionItem = acquisition?.acquisitionItems.find(
+                    (item) => item.animalId === animal.id
+                  );
+                  return acquisitionItem ? (
+                    <>
+                      <div>
+                        <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                          {"Custo de Aquisição"}
+                        </p>
+                        <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
+                          {acquisitionItem.price.toLocaleString(localeForNumber, {
+                            style: "currency",
+                            currency: "BRL",
+                          })}
+                        </p>
+                      </div>
+                      {acquisitionItem.weight > 0 && (
+                        <>
+                          <div>
+                            <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                              {"Peso na Aquisição"}
+                            </p>
+                            <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
+                              {acquisitionItem.weight} kg
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                              {"Custo por Arroba"}
+                            </p>
+                            <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
+                              {acquisitionItem.costPerArroba.toLocaleString(localeForNumber, {
+                                style: "currency",
+                                currency: "BRL",
+                              })}
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </>
+                  ) : null;
+                })()}
                 <div>
                   <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
                     {t.animals.details.properties}
@@ -1735,14 +1770,14 @@ export default function AnimalDetails() {
                     </div>
                   </div>
                 )}
-                {(birth?.motherId || acquisition?.motherId) && (
+                {(birth?.motherId || acquisitionItem?.motherId) && (
                   <div>
                     <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                       {t.animals.details.mother}
                     </p>
                     <div className="mt-1 space-y-1">
                       {(() => {
-                        const motherId = birth?.motherId || acquisition?.motherId;
+                        const motherId = birth?.motherId || acquisitionItem?.motherId;
                         const mother = motherId ? getAnimalById(motherId) : null;
                         const motherBirth = motherId ? getBirthByAnimalId(motherId) : null;
                         return mother ? (
@@ -1777,14 +1812,14 @@ export default function AnimalDetails() {
                     </div>
                   </div>
                 )}
-                {(birth?.fatherId || acquisition?.fatherId) && (
+                {(birth?.fatherId || acquisitionItem?.fatherId) && (
                   <div>
                     <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                       {t.animals.details.father}
                     </p>
                     <div className="mt-1 space-y-1">
                       {(() => {
-                        const fatherId = birth?.fatherId || acquisition?.fatherId;
+                        const fatherId = birth?.fatherId || acquisitionItem?.fatherId;
                         const father = fatherId ? getAnimalById(fatherId) : null;
                         const fatherBirth = fatherId ? getBirthByAnimalId(fatherId) : null;
                         return father ? (
@@ -1822,8 +1857,8 @@ export default function AnimalDetails() {
                 {!birth?.purity &&
                   !birth?.motherId &&
                   !birth?.fatherId &&
-                  !acquisition?.motherId &&
-                  !acquisition?.fatherId && (
+                  !acquisitionItem?.motherId &&
+                  !acquisitionItem?.fatherId && (
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       {t.animals.details.noGenealogy}
                     </p>
@@ -3477,6 +3512,60 @@ export default function AnimalDetails() {
                                 />
                               </div>
                             </div>
+                            {profitability.acquisitionArrobaValue !== undefined &&
+                              profitability.saleArrobaValue !== undefined && (
+                                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                                  <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
+                                    {"Análise de Spread (Arroba)"}
+                                  </h4>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    <div>
+                                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                        {"Valor Arroba na Aquisição"}
+                                      </p>
+                                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mt-1">
+                                        {formatCurrency(profitability.acquisitionArrobaValue)}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                        {"Valor Arroba na Venda"}
+                                      </p>
+                                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mt-1">
+                                        {formatCurrency(profitability.saleArrobaValue)}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                        {"Spread por Arroba"}
+                                      </p>
+                                      <p
+                                        className={`text-sm font-semibold mt-1 ${
+                                          (profitability.spreadPerArroba || 0) >= 0
+                                            ? "text-green-600 dark:text-green-400"
+                                            : "text-red-600 dark:text-red-400"
+                                        }`}
+                                      >
+                                        {formatCurrency(profitability.spreadPerArroba || 0)}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                        {"Spread Total"}
+                                      </p>
+                                      <p
+                                        className={`text-sm font-semibold mt-1 ${
+                                          (profitability.totalSpread || 0) >= 0
+                                            ? "text-green-600 dark:text-green-400"
+                                            : "text-red-600 dark:text-red-400"
+                                        }`}
+                                      >
+                                        {formatCurrency(profitability.totalSpread || 0)}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
                           </div>
                         </div>
                       ))}

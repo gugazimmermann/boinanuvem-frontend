@@ -75,8 +75,10 @@ describe("sales.service", () => {
         pricingMode: PricingMode.INDIVIDUAL,
         paymentMethod: SalePaymentMethod.CASH_FLOW,
         totalPrice: 5000,
-        transportationFee: 200,
-        additionalFees: 100,
+        fees: [
+          { id: "fee-1", name: "Transport", amount: 200 },
+          { id: "fee-2", name: "Additional", amount: 100 },
+        ],
         saleItems: [
           { animalId: "animal-1", price: 2500, weight: 400 },
           { animalId: "animal-2", price: 2500, weight: 400 },
@@ -97,8 +99,7 @@ describe("sales.service", () => {
         pricingMode: PricingMode.TOTAL,
         paymentMethod: SalePaymentMethod.ACCOUNTS_RECEIVABLE,
         totalPrice: 3000,
-        transportationFee: 0,
-        additionalFees: 0,
+        fees: [],
         saleItems: [{ animalId: "animal-sold", price: 3000, weight: 350 }],
         linkedCashFlowId: undefined,
         linkedAccountsReceivableId: "ar-1",
@@ -116,8 +117,10 @@ describe("sales.service", () => {
         pricingMode: PricingMode.INDIVIDUAL,
         paymentMethod: SalePaymentMethod.CASH_FLOW,
         totalPrice: 2000,
-        transportationFee: 100,
-        additionalFees: 50,
+        fees: [
+          { id: "fee-1", name: "Transport", amount: 100 },
+          { id: "fee-2", name: "Additional", amount: 50 },
+        ],
         saleItems: [{ animalId: "animal-1", price: 2000, weight: 300 }],
         linkedCashFlowId: "cashflow-2",
         linkedAccountsReceivableId: undefined,
@@ -247,8 +250,10 @@ describe("sales.service", () => {
         pricingMode: PricingMode.INDIVIDUAL,
         paymentMethod: SalePaymentMethod.CASH_FLOW,
         totalPrice: 4000,
-        transportationFee: 150,
-        additionalFees: 50,
+        fees: [
+          { id: "fee-1", name: "Transport", amount: 150 },
+          { id: "fee-2", name: "Additional", amount: 50 },
+        ],
         saleItems: [
           { animalId: "animal-1", price: 2000, weight: 400 },
           { animalId: "animal-2", price: 2000, weight: 400 },
@@ -275,8 +280,7 @@ describe("sales.service", () => {
         pricingMode: PricingMode.TOTAL,
         paymentMethod: SalePaymentMethod.ACCOUNTS_RECEIVABLE,
         totalPrice: 5000,
-        transportationFee: 0,
-        additionalFees: 0,
+        fees: [],
         saleItems: [{ animalId: "animal-1", price: 5000, weight: 400 }],
         observation: "New sale AR",
       };
@@ -365,7 +369,8 @@ describe("sales.service", () => {
 
       updateSale(sale.id, { totalPrice: 6000 });
 
-      expect(mockUpdateCashFlow).toHaveBeenCalledWith(sale.linkedCashFlowId, { amount: 6300 }); // 6000 + 200 + 100
+      // 6000 + fees (200 + 100)
+      expect(mockUpdateCashFlow).toHaveBeenCalledWith(sale.linkedCashFlowId, { amount: 6300 });
     });
   });
 

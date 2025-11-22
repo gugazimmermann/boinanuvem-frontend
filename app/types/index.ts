@@ -14,7 +14,8 @@ export type { Birth, BirthFormData } from "./birth";
 export type { Death, DeathFormData } from "./death";
 export type { Breeding, BreedingFormData, BreedingMethod } from "./breeding";
 export { BirthPurity } from "./birth";
-export type { Acquisition, AcquisitionFormData } from "./acquisition";
+export type { Acquisition, AcquisitionFormData, AcquisitionItem } from "./acquisition";
+export { AcquisitionPaymentMethod } from "./acquisition";
 export type { Sale, SaleFormData, SaleItem } from "./sale";
 export { SaleType, PricingMode, SalePaymentMethod } from "./sale";
 export type { UserRole, UserFormData, TeamUser } from "./user";
@@ -83,3 +84,4 @@ export type {
   AnimalTotalCost,
   AnimalLocationCost,
 } from "./location-costs";
+export type { Fee } from "./fee";

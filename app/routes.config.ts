@@ -259,6 +259,14 @@ export function getSaleViewRoute(saleId: string): string {
   return `/dashboard/registros/vendas/${saleId}`;
 }
 
+export function getAcquisitionEditRoute(acquisitionId: string): string {
+  return `/dashboard/registros/aquisicoes/${acquisitionId}/editar`;
+}
+
+export function getAcquisitionViewRoute(acquisitionId: string): string {
+  return `/dashboard/registros/aquisicoes/${acquisitionId}`;
+}
+
 export const ROUTE_NAMES = {
   HOME: "",
   LOGIN: "entrar",

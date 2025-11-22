@@ -2,134 +2,111 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router";
 import { Input, Select, Button, Alert } from "~/components/ui";
 import { useTranslation } from "~/i18n";
+import { useLanguage } from "~/contexts/language-context";
 import { ROUTES } from "~/routes.config";
+import { formatCurrency } from "~/utils/currency";
 import { addAcquisition } from "~/services/acquisitions.service";
 import { addAnimal } from "~/services/animals.service";
 import { addWeighing } from "~/services/weighings.service";
+import { getSuppliersByCompanyId } from "~/services/suppliers.service";
+import { getPropertiesByCompanyId } from "~/services/properties.service";
 import { getBirthByAnimalId, calculatePurity } from "~/services/births.service";
-import type { AcquisitionFormData, AnimalFormData, WeighingFormData, Property } from "~/types";
-import { AnimalBreed } from "~/types";
+import type {
+  AcquisitionFormData,
+  AcquisitionItem,
+  AnimalFormData,
+  WeighingFormData,
+} from "~/types";
+import {
+  PricingMode,
+  AcquisitionPaymentMethod,
+  AnimalBreed,
+  PricingMode as PricingModeEnum,
+  AcquisitionPaymentMethod as AcquisitionPaymentMethodEnum,
+} from "~/types";
 import { mockCompanies } from "~/mocks/companies";
-import { getAnimalsByCompanyId } from "~/services/animals.service";
-import { mockProperties } from "~/mocks/properties";
-import { mockEmployees } from "~/mocks/employees";
-import { mockServiceProviders } from "~/mocks/service-providers";
-import { mockBuyers } from "~/mocks/buyers";
+import { calculateAcquisitionCostPerArroba } from "~/services/acquisitions.service";
+
+const ARROBA_KG = 30; // 1 arroba = 30 kg
 
 export function meta() {
   return [
-    { title: "Registrar Aquisição - Boi na Nuvem" },
+    { title: "Nova Aquisição - Boi na Nuvem" },
     {
       name: "description",
-      content: "Registrar nova aquisição de animal",
+      content: "Registrar nova aquisição de animais",
     },
   ];
 }
 
+export async function loader({ request }: { request: Request }) {
+  const { createRouteGuard } = await import("~/utils/route-guard");
+  return createRouteGuard(undefined, "add")({ request });
+}
+
 export default function NewAcquisition() {
   const t = useTranslation();
+  const { language } = useLanguage();
   const navigate = useNavigate();
   const company = mockCompanies[0];
   const companyId = company?.id || "";
 
   const today = new Date().toISOString().split("T")[0];
 
-  const [sellerSearch, setSellerSearch] = useState("");
-  const [motherSearch, setMotherSearch] = useState("");
-  const [fatherSearch, setFatherSearch] = useState("");
+  const [supplierSearch, setSupplierSearch] = useState("");
 
-  const animals = useMemo(() => getAnimalsByCompanyId(companyId), [companyId]);
-  const femaleAnimals = useMemo(() => {
-    return animals.filter((animal) => {
-      const birth = getBirthByAnimalId(animal.id);
-      return birth?.gender === "female";
-    });
-  }, [animals]);
-  const maleAnimals = useMemo(() => {
-    return animals.filter((animal) => {
-      const birth = getBirthByAnimalId(animal.id);
-      return birth?.gender === "male";
-    });
-  }, [animals]);
+  const suppliers = useMemo(() => getSuppliersByCompanyId(companyId), [companyId]);
+  const properties = useMemo(() => getPropertiesByCompanyId(companyId), [companyId]);
 
-  const filteredFemaleAnimals = useMemo(() => {
-    if (!motherSearch.trim()) return femaleAnimals;
-    const searchLower = motherSearch.toLowerCase();
-    return femaleAnimals.filter(
-      (animal) =>
-        animal.code.toLowerCase().includes(searchLower) ||
-        animal.registrationNumber.toLowerCase().includes(searchLower)
+  const filteredSuppliers = useMemo(() => {
+    if (!supplierSearch.trim()) return suppliers;
+    const searchLower = supplierSearch.toLowerCase();
+    return suppliers.filter(
+      (supplier) =>
+        supplier.code?.toLowerCase().includes(searchLower) ||
+        supplier.name.toLowerCase().includes(searchLower) ||
+        supplier.cnpj?.toLowerCase().includes(searchLower) ||
+        supplier.cpf?.toLowerCase().includes(searchLower)
     );
-  }, [femaleAnimals, motherSearch]);
-
-  const filteredMaleAnimals = useMemo(() => {
-    if (!fatherSearch.trim()) return maleAnimals;
-    const searchLower = fatherSearch.toLowerCase();
-    return maleAnimals.filter(
-      (animal) =>
-        animal.code.toLowerCase().includes(searchLower) ||
-        animal.registrationNumber.toLowerCase().includes(searchLower)
-    );
-  }, [maleAnimals, fatherSearch]);
-
-  const sellers = useMemo(() => {
-    return mockBuyers.filter((buyer) => buyer.companyId === companyId && buyer.status === "active");
-  }, [companyId]);
-
-  const filteredSellers = useMemo(() => {
-    if (!sellerSearch.trim()) return sellers;
-    const searchLower = sellerSearch.toLowerCase();
-    return sellers.filter(
-      (seller) =>
-        seller.code?.toLowerCase().includes(searchLower) ||
-        seller.name.toLowerCase().includes(searchLower) ||
-        seller.cnpj?.toLowerCase().includes(searchLower) ||
-        seller.cpf?.toLowerCase().includes(searchLower)
-    );
-  }, [sellers, sellerSearch]);
+  }, [suppliers, supplierSearch]);
 
   const [formData, setFormData] = useState<{
-    code: string;
-    registrationNumber: string;
     propertyId: string;
+    supplierId: string;
     acquisitionDate: string;
-    breed: string;
-    gender: "male" | "female" | "";
-    sellerId: string;
-    price: string;
+    pricingMode: PricingMode | "";
+    paymentMethod: AcquisitionPaymentMethod | "";
+    totalPrice: string;
+    fees: Array<{ id: string; name: string; amount: string }>;
+    selectedAnimalIds: string[];
+    acquisitionItems: Array<{
+      animalId: string;
+      code: string;
+      registrationNumber: string;
+      price: string;
+      weight: string;
+      breed: string;
+      gender: "male" | "female" | "";
+      birthDate: string;
+      motherId: string;
+      fatherId: string;
+      motherRegistrationNumber: string;
+      fatherRegistrationNumber: string;
+      purity?: string;
+      birthObservation: string;
+    }>;
     observation: string;
-    birthDate: string;
-    motherId: string;
-    fatherId: string;
-    motherRegistrationNumber: string;
-    fatherRegistrationNumber: string;
-    birthObservation: string;
-    weighingDate: string;
-    weight: string;
-    employeeIds: string[];
-    serviceProviderIds: string[];
-    weighingObservation: string;
   }>({
-    code: "",
-    registrationNumber: "",
-    propertyId: "",
+    propertyId: properties[0]?.id || "",
+    supplierId: "",
     acquisitionDate: today,
-    breed: "",
-    gender: "",
-    sellerId: "",
-    price: "",
+    pricingMode: "",
+    paymentMethod: "",
+    totalPrice: "",
+    fees: [],
+    selectedAnimalIds: [],
+    acquisitionItems: [],
     observation: "",
-    birthDate: "",
-    motherId: "",
-    fatherId: "",
-    motherRegistrationNumber: "",
-    fatherRegistrationNumber: "",
-    birthObservation: "",
-    weighingDate: today,
-    weight: "",
-    employeeIds: [],
-    serviceProviderIds: [],
-    weighingObservation: "",
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -160,51 +137,169 @@ export default function NewAcquisition() {
     }
   };
 
-  const toggleSelection = (field: "employeeIds" | "serviceProviderIds", id: string) => {
+  const addNewAnimalItem = () => {
+    const newItem = {
+      animalId: "",
+      code: "",
+      registrationNumber: "",
+      price: "",
+      weight: "",
+      breed: "",
+      gender: "" as "male" | "female" | "",
+      birthDate: "",
+      motherId: "",
+      fatherId: "",
+      motherRegistrationNumber: "",
+      fatherRegistrationNumber: "",
+      birthObservation: "",
+    };
+    setFormData((prev) => ({
+      ...prev,
+      acquisitionItems: [...prev.acquisitionItems, newItem],
+    }));
+  };
+
+  const removeAnimalItem = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      acquisitionItems: prev.acquisitionItems.filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleAcquisitionItemChange = (index: number, field: string, value: string) => {
     setFormData((prev) => {
-      const currentIds = prev[field];
-      const newIds = currentIds.includes(id)
-        ? currentIds.filter((itemId) => itemId !== id)
-        : [...currentIds, id];
-      return { ...prev, [field]: newIds };
+      const newItems = [...prev.acquisitionItems];
+      newItems[index] = { ...newItems[index], [field]: value };
+      return { ...prev, acquisitionItems: newItems };
     });
   };
 
-  const employees = useMemo(() => {
-    return mockEmployees.filter((emp) => emp.companyId === companyId && emp.status === "active");
-  }, [companyId]);
+  // Calculate total price when pricing mode is total
+  const handleTotalPriceChange = (value: string) => {
+    setFormData((prev) => {
+      const newTotalPrice = value;
+      let newItems = [...prev.acquisitionItems];
 
-  const serviceProviders = useMemo(() => {
-    return mockServiceProviders.filter(
-      (sp) => sp.companyId === companyId && sp.status === "active"
-    );
-  }, [companyId]);
+      if (
+        prev.pricingMode === PricingModeEnum.TOTAL &&
+        newTotalPrice &&
+        prev.acquisitionItems.length > 0
+      ) {
+        const totalPriceNum =
+          parseFloat(newTotalPrice.replace(/[^\d,.-]/g, "").replace(",", ".")) || 0;
+        const pricePerAnimal = totalPriceNum / prev.acquisitionItems.length;
 
-  const validate = (): boolean => {
+        newItems = prev.acquisitionItems.map((item) => ({
+          ...item,
+          price: pricePerAnimal.toFixed(2),
+        }));
+      }
+
+      return { ...prev, totalPrice: newTotalPrice, acquisitionItems: newItems };
+    });
+  };
+
+  // Recalculate prices when pricing mode changes
+  const handlePricingModeChange = (value: PricingMode) => {
+    setFormData((prev) => {
+      let newItems = [...prev.acquisitionItems];
+      let newTotalPrice = prev.totalPrice;
+
+      if (value === PricingModeEnum.TOTAL && prev.totalPrice && prev.acquisitionItems.length > 0) {
+        const totalPriceNum =
+          parseFloat(prev.totalPrice.replace(/[^\d,.-]/g, "").replace(",", ".")) || 0;
+        const pricePerAnimal = totalPriceNum / prev.acquisitionItems.length;
+        newItems = prev.acquisitionItems.map((item) => ({
+          ...item,
+          price: pricePerAnimal.toFixed(2),
+        }));
+      } else if (value === PricingModeEnum.INDIVIDUAL) {
+        // Clear individual prices when switching to individual mode
+        newItems = prev.acquisitionItems.map((item) => ({ ...item, price: "" }));
+        newTotalPrice = "";
+      }
+
+      return { ...prev, pricingMode: value, acquisitionItems: newItems, totalPrice: newTotalPrice };
+    });
+  };
+
+  const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.code?.trim()) {
-      newErrors.code = t.profile.errors.required(t.animals.table.code);
+    if (!formData.propertyId) {
+      newErrors.propertyId =
+        (((t.acquisitions as Record<string, unknown>)?.errors as Record<string, unknown>)
+          ?.propertyRequired as string) || "Propriedade é obrigatória";
     }
-    if (!formData.registrationNumber?.trim()) {
-      newErrors.registrationNumber = t.profile.errors.required(
-        t.animals.new.registrationNumberLabel
-      );
+    if (!formData.supplierId) {
+      newErrors.supplierId =
+        (((t.acquisitions as Record<string, unknown>)?.errors as Record<string, unknown>)
+          ?.supplierRequired as string) || "Fornecedor é obrigatório";
     }
-    if (!formData.propertyId?.trim()) {
-      newErrors.propertyId = t.animals.new.propertyRequired;
+    if (!formData.acquisitionDate) {
+      newErrors.acquisitionDate =
+        (((t.acquisitions as Record<string, unknown>)?.errors as Record<string, unknown>)
+          ?.acquisitionDateRequired as string) || "Data da aquisição é obrigatória";
     }
-    if (!formData.acquisitionDate?.trim()) {
-      newErrors.acquisitionDate = t.profile.errors.required(
-        t.acquisitions.new.acquisitionDateLabel
-      );
+    if (!formData.pricingMode) {
+      newErrors.pricingMode =
+        (((t.acquisitions as Record<string, unknown>)?.errors as Record<string, unknown>)
+          ?.pricingModeRequired as string) || "Modo de precificação é obrigatório";
     }
-    if (!formData.breed?.trim()) {
-      newErrors.breed = t.profile.errors.required(t.acquisitions.new.breedLabel);
+    if (!formData.paymentMethod) {
+      newErrors.paymentMethod =
+        (((t.acquisitions as Record<string, unknown>)?.errors as Record<string, unknown>)
+          ?.paymentMethodRequired as string) || "Método de pagamento é obrigatório";
     }
-    if (!formData.gender?.trim()) {
-      newErrors.gender = t.profile.errors.required(t.acquisitions.new.genderLabel);
+    if (formData.acquisitionItems.length === 0) {
+      newErrors.acquisitionItems =
+        (((t.acquisitions as Record<string, unknown>)?.errors as Record<string, unknown>)
+          ?.animalsRequired as string) || "Adicione pelo menos um animal";
     }
+
+    // Validate each acquisition item
+    formData.acquisitionItems.forEach((item, index) => {
+      if (!item.code?.trim()) {
+        newErrors[`code_${index}`] = t.profile.errors.required(t.animals.table.code);
+      }
+      if (!item.registrationNumber?.trim()) {
+        newErrors[`registrationNumber_${index}`] = t.profile.errors.required(
+          t.animals.new.registrationNumberLabel
+        );
+      }
+      if (!item.weight || parseFloat(item.weight) <= 0) {
+        newErrors[`weight_${index}`] =
+          (((t.acquisitions as Record<string, unknown>)?.errors as Record<string, unknown>)
+            ?.weightRequired as string) || "Peso é obrigatório";
+      }
+      if (!item.breed?.trim()) {
+        newErrors[`breed_${index}`] = t.profile.errors.required(t.acquisitions.new.breedLabel);
+      }
+      if (!item.gender?.trim()) {
+        newErrors[`gender_${index}`] = t.profile.errors.required(t.acquisitions.new.genderLabel);
+      }
+      if (formData.pricingMode === PricingModeEnum.TOTAL) {
+        if (!formData.totalPrice) {
+          newErrors.totalPrice =
+            (((t.acquisitions as Record<string, unknown>)?.errors as Record<string, unknown>)
+              ?.totalPriceRequired as string) || "Preço total é obrigatório";
+        } else {
+          const totalPriceNum =
+            parseFloat(formData.totalPrice.replace(/[^\d,.-]/g, "").replace(",", ".")) || 0;
+          if (totalPriceNum <= 0) {
+            newErrors.totalPrice =
+              (((t.acquisitions as Record<string, unknown>)?.errors as Record<string, unknown>)
+                ?.totalPriceInvalid as string) || "Preço total deve ser maior que zero";
+          }
+        }
+      } else if (formData.pricingMode === PricingModeEnum.INDIVIDUAL) {
+        if (!item.price || parseFloat(item.price.replace(/[^\d,.-]/g, "").replace(",", ".")) <= 0) {
+          newErrors[`price_${index}`] =
+            (((t.acquisitions as Record<string, unknown>)?.errors as Record<string, unknown>)
+              ?.priceRequired as string) || "Preço é obrigatório para cada animal";
+        }
+      }
+    });
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -212,480 +307,758 @@ export default function NewAcquisition() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return;
+
+    if (!validateForm()) {
+      showAlert(
+        (((t.acquisitions as Record<string, unknown>)?.errors as Record<string, unknown>)
+          ?.validationFailed as string) || "Por favor, corrija os erros no formulário",
+        "error"
+      );
+      return;
+    }
 
     setIsSubmitting(true);
-    try {
-      const animalData: AnimalFormData = {
-        code: formData.code,
-        registrationNumber: formData.registrationNumber,
-        acquisitionDate: formData.acquisitionDate,
-        status: "active",
-        companyId,
-        propertyId: formData.propertyId,
-      };
-      const newAnimal = addAnimal(animalData);
 
-      let purity = undefined;
-      if (
-        formData.motherId ||
-        formData.fatherId ||
-        formData.motherRegistrationNumber ||
-        formData.fatherRegistrationNumber
-      ) {
-        const motherBirth = formData.motherId ? getBirthByAnimalId(formData.motherId) : undefined;
-        const fatherBirth = formData.fatherId ? getBirthByAnimalId(formData.fatherId) : undefined;
-        const motherBreed = motherBirth?.breed;
-        const fatherBreed = fatherBirth?.breed;
-        purity = calculatePurity(motherBirth, fatherBirth, motherBreed, fatherBreed);
+    try {
+      // Create animals and acquisition items
+      const acquisitionItems: AcquisitionItem[] = [];
+
+      for (const item of formData.acquisitionItems) {
+        // Create animal
+        const animalData: AnimalFormData = {
+          code: item.code,
+          registrationNumber: item.registrationNumber,
+          acquisitionDate: formData.acquisitionDate,
+          status: "active",
+          companyId,
+          propertyId: formData.propertyId,
+        };
+        const newAnimal = addAnimal(animalData);
+
+        // Calculate purity if parent info is provided
+        let purity = undefined;
+        if (
+          item.motherId ||
+          item.fatherId ||
+          item.motherRegistrationNumber ||
+          item.fatherRegistrationNumber
+        ) {
+          const motherBirth = item.motherId ? getBirthByAnimalId(item.motherId) : undefined;
+          const fatherBirth = item.fatherId ? getBirthByAnimalId(item.fatherId) : undefined;
+          const motherBreed = motherBirth?.breed;
+          const fatherBreed = fatherBirth?.breed;
+          purity = calculatePurity(motherBirth, fatherBirth, motherBreed, fatherBreed);
+        }
+
+        // Calculate price
+        const price =
+          formData.pricingMode === PricingModeEnum.TOTAL
+            ? parseFloat(formData.totalPrice.replace(/[^\d,.-]/g, "").replace(",", ".")) /
+              formData.acquisitionItems.length
+            : parseFloat(item.price.replace(/[^\d,.-]/g, "").replace(",", ".")) || 0;
+
+        const weight = parseFloat(item.weight) || 0;
+
+        // Create acquisition item
+        acquisitionItems.push({
+          animalId: newAnimal.id,
+          price,
+          weight,
+          costPerArroba: calculateAcquisitionCostPerArroba(weight, price),
+          breed: item.breed ? (item.breed as AnimalBreed) : undefined,
+          gender: item.gender ? (item.gender as "male" | "female") : undefined,
+          birthDate: item.birthDate || undefined,
+          motherId: item.motherId || undefined,
+          fatherId: item.fatherId || undefined,
+          motherRegistrationNumber: item.motherRegistrationNumber || undefined,
+          fatherRegistrationNumber: item.fatherRegistrationNumber || undefined,
+          purity,
+          birthObservation: item.birthObservation || undefined,
+        });
+
+        // Create weighing if weight is provided
+        if (weight > 0) {
+          const weighingData: WeighingFormData = {
+            animalId: newAnimal.id,
+            date: formData.acquisitionDate,
+            weight,
+            employeeIds: [],
+            serviceProviderIds: [],
+            companyId,
+          };
+          addWeighing(weighingData);
+        }
       }
+
+      // Calculate total price
+      const totalPrice = acquisitionItems.reduce((sum, item) => sum + item.price, 0);
+      const fees = formData.fees
+        .filter((fee) => fee.name.trim() && fee.amount)
+        .map((fee) => ({
+          id: fee.id,
+          name: fee.name.trim(),
+          amount: parseFloat(fee.amount.replace(/[^\d,.-]/g, "").replace(",", ".")) || 0,
+        }));
 
       const acquisitionData: AcquisitionFormData = {
-        animalId: newAnimal.id,
-        acquisitionDate: formData.acquisitionDate,
-        breed: formData.breed ? (formData.breed as AnimalBreed) : undefined,
-        gender: formData.gender ? (formData.gender as "male" | "female") : undefined,
-        sellerId: formData.sellerId || undefined,
-        price: formData.price ? parseFloat(formData.price) : undefined,
-        observation: formData.observation || undefined,
-        birthDate: formData.birthDate || undefined,
-        motherId: formData.motherId || undefined,
-        fatherId: formData.fatherId || undefined,
-        motherRegistrationNumber: formData.motherRegistrationNumber || undefined,
-        fatherRegistrationNumber: formData.fatherRegistrationNumber || undefined,
-        purity,
-        birthObservation: formData.birthObservation || undefined,
         companyId,
+        propertyId: formData.propertyId,
+        supplierId: formData.supplierId,
+        acquisitionDate: formData.acquisitionDate,
+        pricingMode: formData.pricingMode as PricingMode,
+        paymentMethod: formData.paymentMethod as AcquisitionPaymentMethod,
+        totalPrice,
+        fees: fees.length > 0 ? fees : undefined,
+        acquisitionItems,
+        observation: formData.observation || undefined,
       };
+
       addAcquisition(acquisitionData);
-
-      if (formData.weight && formData.weighingDate) {
-        const weighingData: WeighingFormData = {
-          animalId: newAnimal.id,
-          date: formData.weighingDate,
-          weight: parseFloat(formData.weight),
-          employeeIds: formData.employeeIds,
-          serviceProviderIds: formData.serviceProviderIds,
-          observation: formData.weighingObservation || undefined,
-          companyId,
-        };
-        addWeighing(weighingData);
-      }
-
-      showAlert(t.acquisitions.new.success, "success");
+      showAlert(
+        (((t.acquisitions as Record<string, unknown>)?.success as Record<string, unknown>)
+          ?.created as string) || "Aquisição registrada com sucesso",
+        "success"
+      );
       setTimeout(() => {
-        navigate(ROUTES.ANIMALS);
+        navigate(ROUTES.ACQUISITIONS);
       }, 1500);
-    } catch (error) {
-      console.error("Error adding acquisition:", error);
-      showAlert(t.acquisitions.new.error, "error");
+    } catch {
+      showAlert(
+        (((t.acquisitions as Record<string, unknown>)?.errors as Record<string, unknown>)
+          ?.createFailed as string) || "Erro ao registrar aquisição",
+        "error"
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const addFee = () => {
+    setFormData((prev) => ({
+      ...prev,
+      fees: [
+        ...prev.fees,
+        {
+          id: `fee-${Date.now()}-${Math.random()}`,
+          name: "",
+          amount: "",
+        },
+      ],
+    }));
+  };
+
+  const removeFee = (feeId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      fees: prev.fees.filter((fee) => fee.id !== feeId),
+    }));
+  };
+
+  const updateFee = (feeId: string, field: "name" | "amount", value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      fees: prev.fees.map((fee) => (fee.id === feeId ? { ...fee, [field]: value } : fee)),
+    }));
+  };
+
+  const calculateTotal = () => {
+    const itemsTotal = formData.acquisitionItems.reduce((sum, item) => {
+      const price = parseFloat(item.price.replace(/[^\d,.-]/g, "").replace(",", ".")) || 0;
+      return sum + price;
+    }, 0);
+    const feesTotal = formData.fees.reduce((sum, fee) => {
+      const amount = parseFloat(fee.amount.replace(/[^\d,.-]/g, "").replace(",", ".")) || 0;
+      return sum + amount;
+    }, 0);
+    return itemsTotal + feesTotal;
+  };
+
   return (
     <div className="space-y-6">
-      {alertMessage && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-          <Alert title={alertMessage.title} variant={alertMessage.variant} />
-        </div>
-      )}
-
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {t.acquisitions.new.title}
-          </h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {t.acquisitions.new.description}
-          </p>
-        </div>
-        <Button variant="outline" onClick={() => navigate(ROUTES.ANIMALS)} disabled={isSubmitting}>
-          {t.common.back}
-        </Button>
-      </div>
+      {alertMessage && <Alert variant={alertMessage.variant} title={alertMessage.title} />}
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            {t.acquisitions?.new?.title || "Nova Aquisição"}
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            {t.acquisitions?.new?.description || "Registre uma nova aquisição de animais"}
+          </p>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-4">
-            <div className="border-b border-gray-200 dark:border-gray-700 pb-4">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                {t.acquisitions.new.animalInfoTitle}
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Input
-                  label={t.animals.table.code}
-                  value={formData.code}
-                  onChange={(e) => handleChange("code", e.target.value)}
-                  error={errors.code}
-                  disabled={isSubmitting}
-                  required
-                />
-                <Input
-                  label={t.animals.new.registrationNumberLabel}
-                  value={formData.registrationNumber}
-                  onChange={(e) => handleChange("registrationNumber", e.target.value)}
-                  error={errors.registrationNumber}
-                  disabled={isSubmitting}
-                  className="md:col-span-2"
-                  required
-                />
-              </div>
-              <div className="mt-4">
-                <Select
-                  label={t.animals.new.propertyLabel}
-                  value={formData.propertyId}
-                  onChange={(e) => handleChange("propertyId", e.target.value)}
-                  error={errors.propertyId}
-                  disabled={isSubmitting}
-                  required
-                  options={[
-                    { value: "", label: "-" },
-
-                    ...mockProperties.map((property: Property) => ({
-                      value: property.id,
-                      label: property.name,
-                    })),
-                  ]}
-                />
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {((t.acquisitions?.new as Record<string, unknown>)?.property as string) ||
+                  "Propriedade"}{" "}
+                <span className="text-red-500">*</span>
+              </label>
+              <Select
+                value={formData.propertyId}
+                onChange={(e) => handleChange("propertyId", e.target.value)}
+                disabled={isSubmitting}
+                className={errors.propertyId ? "border-red-500" : ""}
+                options={[
+                  {
+                    value: "",
+                    label:
+                      ((t.acquisitions?.new as Record<string, unknown>)
+                        ?.selectProperty as string) || "Selecione a propriedade",
+                  },
+                  ...properties.map((property) => ({
+                    value: property.id,
+                    label: property.name,
+                  })),
+                ]}
+                showPlaceholder={false}
+              />
+              {errors.propertyId && (
+                <p className="text-red-500 text-sm mt-1">{errors.propertyId}</p>
+              )}
             </div>
 
-            <div className="border-b border-gray-200 dark:border-gray-700 pb-4">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                {t.acquisitions.new.acquisitionInfoTitle}
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label={t.acquisitions.new.acquisitionDateLabel}
-                  type="date"
-                  value={formData.acquisitionDate}
-                  onChange={(e) => handleChange("acquisitionDate", e.target.value)}
-                  error={errors.acquisitionDate}
-                  disabled={isSubmitting}
-                  required
-                />
-                <Select
-                  label={t.acquisitions.new.genderLabel}
-                  value={formData.gender}
-                  onChange={(e) => handleChange("gender", e.target.value)}
-                  error={errors.gender}
-                  disabled={isSubmitting}
-                  required
-                  options={[
-                    { value: "", label: "-" },
-                    { value: "male", label: t.animals.gender.male },
-                    { value: "female", label: t.animals.gender.female },
-                  ]}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                <Select
-                  label={t.acquisitions.new.breedLabel}
-                  value={formData.breed}
-                  onChange={(e) => handleChange("breed", e.target.value)}
-                  error={errors.breed}
-                  disabled={isSubmitting}
-                  required
-                  options={[
-                    { value: "", label: "-" },
-                    ...Object.values(AnimalBreed).map((breed) => ({
-                      value: breed,
-                      label: t.animals.breeds[breed] || breed,
-                    })),
-                  ]}
-                />
-                <Input
-                  label={t.acquisitions.new.priceLabel}
-                  type="number"
-                  step="0.01"
-                  value={formData.price}
-                  onChange={(e) => handleChange("price", e.target.value)}
-                  error={errors.price}
-                  disabled={isSubmitting}
-                  placeholder="0.00"
-                />
-              </div>
-
-              <div className="mt-4">
-                <div className="space-y-2">
-                  <Input
-                    label={t.acquisitions.new.sellerLabel}
-                    value={sellerSearch}
-                    onChange={(e) => setSellerSearch(e.target.value)}
-                    placeholder={t.acquisitions.new.searchPlaceholder}
-                    disabled={isSubmitting}
-                  />
-                  <Select
-                    value={formData.sellerId}
-                    onChange={(e) => handleChange("sellerId", e.target.value)}
-                    error={errors.sellerId}
-                    disabled={isSubmitting}
-                    options={[
-                      { value: "", label: "-" },
-                      ...filteredSellers.map((seller) => ({
-                        value: seller.id,
-                        label: `${seller.code} | ${seller.name}`,
-                      })),
-                    ]}
-                  />
-                </div>
-              </div>
-
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {t.acquisitions.new.observationLabel}
-                </label>
-                <textarea
-                  value={formData.observation}
-                  onChange={(e) => handleChange("observation", e.target.value)}
-                  disabled={isSubmitting}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200"
-                  placeholder={t.acquisitions.new.observationPlaceholder}
-                />
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {((t.acquisitions?.new as Record<string, unknown>)?.supplier as string) ||
+                  "Fornecedor"}{" "}
+                <span className="text-red-500">*</span>
+              </label>
+              <Input
+                type="text"
+                value={supplierSearch}
+                onChange={(e) => setSupplierSearch(e.target.value)}
+                placeholder={
+                  ((t.acquisitions?.new as Record<string, unknown>)?.searchSupplier as string) ||
+                  "Buscar fornecedor..."
+                }
+                disabled={isSubmitting}
+                className="mb-2"
+              />
+              <Select
+                value={formData.supplierId}
+                onChange={(e) => handleChange("supplierId", e.target.value)}
+                disabled={isSubmitting}
+                className={errors.supplierId ? "border-red-500" : ""}
+                options={[
+                  {
+                    value: "",
+                    label:
+                      ((t.acquisitions?.new as Record<string, unknown>)
+                        ?.selectSupplier as string) || "Selecione o fornecedor",
+                  },
+                  ...filteredSuppliers.map((supplier) => ({
+                    value: supplier.id,
+                    label: `${supplier.code} | ${supplier.name}`,
+                  })),
+                ]}
+                showPlaceholder={false}
+              />
+              {errors.supplierId && (
+                <p className="text-red-500 text-sm mt-1">{errors.supplierId}</p>
+              )}
             </div>
 
-            <div className="border-b border-gray-200 dark:border-gray-700 pb-4">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                {t.acquisitions.new.birthInfoTitle}
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label={t.acquisitions.new.birthDateLabel}
-                  type="date"
-                  value={formData.birthDate}
-                  onChange={(e) => handleChange("birthDate", e.target.value)}
-                  error={errors.birthDate}
-                  disabled={isSubmitting}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                <div className="space-y-2">
-                  <Input
-                    label={t.acquisitions.new.motherFromPropertyLabel}
-                    value={motherSearch}
-                    onChange={(e) => setMotherSearch(e.target.value)}
-                    placeholder={t.births.new.searchPlaceholder}
-                    disabled={isSubmitting}
-                  />
-                  <Select
-                    value={formData.motherId}
-                    onChange={(e) => {
-                      handleChange("motherId", e.target.value);
-                      if (e.target.value) {
-                        handleChange("motherRegistrationNumber", "");
-                      }
-                    }}
-                    error={errors.motherId}
-                    disabled={isSubmitting}
-                    options={[
-                      { value: "", label: "-" },
-                      ...filteredFemaleAnimals.map((animal) => ({
-                        value: animal.id,
-                        label: `${animal.code} | ${animal.registrationNumber}`,
-                      })),
-                    ]}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Input
-                    label={t.acquisitions.new.fatherFromPropertyLabel}
-                    value={fatherSearch}
-                    onChange={(e) => setFatherSearch(e.target.value)}
-                    placeholder={t.births.new.searchPlaceholder}
-                    disabled={isSubmitting}
-                  />
-                  <Select
-                    value={formData.fatherId}
-                    onChange={(e) => {
-                      handleChange("fatherId", e.target.value);
-                      if (e.target.value) {
-                        handleChange("fatherRegistrationNumber", "");
-                      }
-                    }}
-                    error={errors.fatherId}
-                    disabled={isSubmitting}
-                    options={[
-                      { value: "", label: "-" },
-                      ...filteredMaleAnimals.map((animal) => ({
-                        value: animal.id,
-                        label: `${animal.code} | ${animal.registrationNumber}`,
-                      })),
-                    ]}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                <Input
-                  label={t.acquisitions.new.motherRegistrationNumberLabel}
-                  value={formData.motherRegistrationNumber}
-                  onChange={(e) => {
-                    handleChange("motherRegistrationNumber", e.target.value);
-                    if (e.target.value) {
-                      handleChange("motherId", "");
-                    }
-                  }}
-                  error={errors.motherRegistrationNumber}
-                  disabled={isSubmitting}
-                  placeholder={t.acquisitions.new.motherRegistrationNumberPlaceholder}
-                />
-                <Input
-                  label={t.acquisitions.new.fatherRegistrationNumberLabel}
-                  value={formData.fatherRegistrationNumber}
-                  onChange={(e) => {
-                    handleChange("fatherRegistrationNumber", e.target.value);
-                    if (e.target.value) {
-                      handleChange("fatherId", "");
-                    }
-                  }}
-                  error={errors.fatherRegistrationNumber}
-                  disabled={isSubmitting}
-                  placeholder={t.acquisitions.new.fatherRegistrationNumberPlaceholder}
-                />
-              </div>
-
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {t.acquisitions.new.birthObservationLabel}
-                </label>
-                <textarea
-                  value={formData.birthObservation}
-                  onChange={(e) => handleChange("birthObservation", e.target.value)}
-                  disabled={isSubmitting}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200"
-                  placeholder={t.acquisitions.new.birthObservationPlaceholder}
-                />
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {((t.acquisitions?.new as Record<string, unknown>)?.acquisitionDate as string) ||
+                  "Data da Aquisição"}{" "}
+                <span className="text-red-500">*</span>
+              </label>
+              <Input
+                type="date"
+                value={formData.acquisitionDate}
+                onChange={(e) => handleChange("acquisitionDate", e.target.value)}
+                disabled={isSubmitting}
+                className={errors.acquisitionDate ? "border-red-500" : ""}
+              />
+              {errors.acquisitionDate && (
+                <p className="text-red-500 text-sm mt-1">{errors.acquisitionDate}</p>
+              )}
             </div>
 
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-6 mt-6">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                {t.acquisitions.new.weighingInfoTitle}
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label={t.acquisitions.new.weighingDateLabel}
-                  type="date"
-                  value={formData.weighingDate}
-                  onChange={(e) => handleChange("weighingDate", e.target.value)}
-                  error={errors.weighingDate}
-                  disabled={isSubmitting}
-                />
-                <Input
-                  label={t.acquisitions.new.weightLabel}
-                  type="number"
-                  step="0.01"
-                  value={formData.weight}
-                  onChange={(e) => handleChange("weight", e.target.value)}
-                  error={errors.weight}
-                  disabled={isSubmitting}
-                  placeholder="0.00"
-                />
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {((t.acquisitions?.new as Record<string, unknown>)?.pricingMode as string) ||
+                  "Modo de Precificação"}{" "}
+                <span className="text-red-500">*</span>
+              </label>
+              <Select
+                value={formData.pricingMode}
+                onChange={(e) => handlePricingModeChange(e.target.value as PricingMode)}
+                disabled={isSubmitting}
+                className={errors.pricingMode ? "border-red-500" : ""}
+                options={[
+                  {
+                    value: "",
+                    label:
+                      ((t.acquisitions?.new as Record<string, unknown>)
+                        ?.selectPricingMode as string) || "Selecione o modo",
+                  },
+                  {
+                    value: PricingModeEnum.INDIVIDUAL,
+                    label:
+                      ((
+                        (t.acquisitions as Record<string, unknown>)?.pricingModes as Record<
+                          string,
+                          unknown
+                        >
+                      )?.individual as string) || "Individual",
+                  },
+                  {
+                    value: PricingModeEnum.TOTAL,
+                    label:
+                      ((
+                        (t.acquisitions as Record<string, unknown>)?.pricingModes as Record<
+                          string,
+                          unknown
+                        >
+                      )?.total as string) || "Preço Total",
+                  },
+                ]}
+                showPlaceholder={false}
+              />
+              {errors.pricingMode && (
+                <p className="text-red-500 text-sm mt-1">{errors.pricingMode}</p>
+              )}
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {t.acquisitions.new.employeesLabel}
-                  </label>
-                  <div className="border border-gray-300 dark:border-gray-600 rounded-md p-4 max-h-48 overflow-y-auto">
-                    {employees.length === 0 ? (
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {t.acquisitions.new.noEmployees}
-                      </p>
-                    ) : (
-                      <div className="space-y-2">
-                        {employees.map((employee) => (
-                          <label
-                            key={employee.id}
-                            className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={formData.employeeIds.includes(employee.id)}
-                              onChange={() => toggleSelection("employeeIds", employee.id)}
-                              disabled={isSubmitting}
-                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-                            />
-                            <span className="text-sm text-gray-900 dark:text-gray-100">
-                              {employee.name}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {t.acquisitions.new.serviceProvidersLabel}
-                  </label>
-                  <div className="border border-gray-300 dark:border-gray-600 rounded-md p-4 max-h-48 overflow-y-auto">
-                    {serviceProviders.length === 0 ? (
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {t.acquisitions.new.noServiceProviders}
-                      </p>
-                    ) : (
-                      <div className="space-y-2">
-                        {serviceProviders.map((provider) => (
-                          <label
-                            key={provider.id}
-                            className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={formData.serviceProviderIds.includes(provider.id)}
-                              onChange={() => toggleSelection("serviceProviderIds", provider.id)}
-                              disabled={isSubmitting}
-                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-                            />
-                            <span className="text-sm text-gray-900 dark:text-gray-100">
-                              {provider.name}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {t.acquisitions.new.weighingObservationLabel}
-                </label>
-                <textarea
-                  value={formData.weighingObservation}
-                  onChange={(e) => handleChange("weighingObservation", e.target.value)}
-                  disabled={isSubmitting}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200"
-                  placeholder={t.acquisitions.new.weighingObservationPlaceholder}
-                />
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {((t.acquisitions?.new as Record<string, unknown>)?.paymentMethod as string) ||
+                  "Método de Pagamento"}{" "}
+                <span className="text-red-500">*</span>
+              </label>
+              <Select
+                value={formData.paymentMethod}
+                onChange={(e) => handleChange("paymentMethod", e.target.value)}
+                disabled={isSubmitting}
+                className={errors.paymentMethod ? "border-red-500" : ""}
+                options={[
+                  {
+                    value: "",
+                    label:
+                      ((t.acquisitions?.new as Record<string, unknown>)
+                        ?.selectPaymentMethod as string) || "Selecione o método",
+                  },
+                  {
+                    value: AcquisitionPaymentMethodEnum.CASH_FLOW,
+                    label:
+                      ((
+                        (t.acquisitions as Record<string, unknown>)?.paymentMethods as Record<
+                          string,
+                          unknown
+                        >
+                      )?.cashFlow as string) || "À Vista (Fluxo de Caixa)",
+                  },
+                  {
+                    value: AcquisitionPaymentMethodEnum.ACCOUNTS_PAYABLE,
+                    label:
+                      ((
+                        (t.acquisitions as Record<string, unknown>)?.paymentMethods as Record<
+                          string,
+                          unknown
+                        >
+                      )?.accountsPayable as string) || "A Pagar",
+                  },
+                ]}
+                showPlaceholder={false}
+              />
+              {errors.paymentMethod && (
+                <p className="text-red-500 text-sm mt-1">{errors.paymentMethod}</p>
+              )}
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate(ROUTES.ANIMALS)}
+          {formData.pricingMode === PricingModeEnum.TOTAL && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {((t.acquisitions?.new as Record<string, unknown>)?.totalPrice as string) ||
+                  "Preço Total"}{" "}
+                <span className="text-red-500">*</span>
+              </label>
+              <Input
+                type="text"
+                value={formData.totalPrice}
+                onChange={(e) => handleTotalPriceChange(e.target.value)}
+                disabled={isSubmitting}
+                placeholder="0,00"
+                className={errors.totalPrice ? "border-red-500" : ""}
+              />
+              {errors.totalPrice && (
+                <p className="text-red-500 text-sm mt-1">{errors.totalPrice}</p>
+              )}
+              {formData.acquisitionItems.length > 0 && formData.totalPrice && (
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  {((t.acquisitions?.new as Record<string, unknown>)?.pricePerAnimal as string) ||
+                    "Preço por animal"}
+                  :{" "}
+                  {formatCurrency(
+                    (parseFloat(formData.totalPrice.replace(/[^\d,.-]/g, "").replace(",", ".")) ||
+                      0) / formData.acquisitionItems.length,
+                    language
+                  )}
+                </p>
+              )}
+            </div>
+          )}
+
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                {((t.acquisitions?.new as Record<string, unknown>)?.fees as string) ||
+                  "Taxas e Encargos"}
+              </label>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={addFee}
+                disabled={isSubmitting}
+                className="text-sm"
+              >
+                +{" "}
+                {((t.acquisitions?.new as Record<string, unknown>)?.addFee as string) ||
+                  "Adicionar Taxa"}
+              </Button>
+            </div>
+            {formData.fees.length > 0 && (
+              <div className="space-y-3">
+                {formData.fees.map((fee) => (
+                  <div
+                    key={fee.id}
+                    className="grid grid-cols-1 md:grid-cols-[2fr_1fr_auto] gap-3 items-end"
+                  >
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {((t.acquisitions?.new as Record<string, unknown>)?.feeName as string) ||
+                          "Nome da Taxa"}
+                      </label>
+                      <Input
+                        type="text"
+                        value={fee.name}
+                        onChange={(e) => updateFee(fee.id, "name", e.target.value)}
+                        disabled={isSubmitting}
+                        placeholder={
+                          ((t.acquisitions?.new as Record<string, unknown>)
+                            ?.feeNamePlaceholder as string) || "Ex: Taxa de Transporte"
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {((t.acquisitions?.new as Record<string, unknown>)?.feeAmount as string) ||
+                          "Valor"}
+                      </label>
+                      <Input
+                        type="text"
+                        value={fee.amount}
+                        onChange={(e) => updateFee(fee.id, "amount", e.target.value)}
+                        disabled={isSubmitting}
+                        placeholder="0,00"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => removeFee(fee.id)}
+                      disabled={isSubmitting}
+                      className="mb-0"
+                    >
+                      {t.common.remove || "Remover"}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                {((t.acquisitions?.new as Record<string, unknown>)?.animals as string) || "Animais"}{" "}
+                <span className="text-red-500">*</span>
+              </label>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={addNewAnimalItem}
+                disabled={isSubmitting}
+              >
+                {((t.acquisitions?.new as Record<string, unknown>)?.addAnimal as string) ||
+                  "+ Adicionar Animal"}
+              </Button>
+            </div>
+            {errors.acquisitionItems && (
+              <p className="text-red-500 text-sm mb-2">{errors.acquisitionItems}</p>
+            )}
+
+            {formData.acquisitionItems.length > 0 && (
+              <div className="space-y-4">
+                {formData.acquisitionItems.map((item, index) => {
+                  const weight = parseFloat(item.weight) || 0;
+                  const price =
+                    parseFloat(item.price.replace(/[^\d,.-]/g, "").replace(",", ".")) || 0;
+                  const costPerArroba =
+                    weight > 0 ? calculateAcquisitionCostPerArroba(weight, price) : 0;
+
+                  return (
+                    <div
+                      key={index}
+                      className="border border-gray-300 dark:border-gray-600 rounded-md p-4"
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                          {((t.acquisitions?.new as Record<string, unknown>)?.animal as string) ||
+                            "Animal"}{" "}
+                          {index + 1}
+                        </h4>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => removeAnimalItem(index)}
+                          disabled={isSubmitting}
+                        >
+                          {t.common.remove || "Remover"}
+                        </Button>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            {t.animals.table.code} <span className="text-red-500">*</span>
+                          </label>
+                          <Input
+                            type="text"
+                            value={item.code}
+                            onChange={(e) =>
+                              handleAcquisitionItemChange(index, "code", e.target.value)
+                            }
+                            disabled={isSubmitting}
+                            className={errors[`code_${index}`] ? "border-red-500" : ""}
+                          />
+                          {errors[`code_${index}`] && (
+                            <p className="text-red-500 text-sm mt-1">{errors[`code_${index}`]}</p>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            {t.animals.new.registrationNumberLabel}{" "}
+                            <span className="text-red-500">*</span>
+                          </label>
+                          <Input
+                            type="text"
+                            value={item.registrationNumber}
+                            onChange={(e) =>
+                              handleAcquisitionItemChange(
+                                index,
+                                "registrationNumber",
+                                e.target.value
+                              )
+                            }
+                            disabled={isSubmitting}
+                            className={
+                              errors[`registrationNumber_${index}`] ? "border-red-500" : ""
+                            }
+                          />
+                          {errors[`registrationNumber_${index}`] && (
+                            <p className="text-red-500 text-sm mt-1">
+                              {errors[`registrationNumber_${index}`]}
+                            </p>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            {((t.acquisitions?.new as Record<string, unknown>)?.weight as string) ||
+                              "Peso (kg)"}{" "}
+                            <span className="text-red-500">*</span>
+                          </label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={item.weight}
+                            onChange={(e) =>
+                              handleAcquisitionItemChange(index, "weight", e.target.value)
+                            }
+                            disabled={isSubmitting}
+                            className={errors[`weight_${index}`] ? "border-red-500" : ""}
+                          />
+                          {errors[`weight_${index}`] && (
+                            <p className="text-red-500 text-sm mt-1">{errors[`weight_${index}`]}</p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            {t.acquisitions.new.breedLabel} <span className="text-red-500">*</span>
+                          </label>
+                          <Select
+                            value={item.breed}
+                            onChange={(e) =>
+                              handleAcquisitionItemChange(index, "breed", e.target.value)
+                            }
+                            disabled={isSubmitting}
+                            className={errors[`breed_${index}`] ? "border-red-500" : ""}
+                            options={[
+                              { value: "", label: "-" },
+                              ...Object.values(AnimalBreed).map((breed) => ({
+                                value: breed,
+                                label: t.animals.breeds[breed] || breed,
+                              })),
+                            ]}
+                            showPlaceholder={false}
+                          />
+                          {errors[`breed_${index}`] && (
+                            <p className="text-red-500 text-sm mt-1">{errors[`breed_${index}`]}</p>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            {t.acquisitions.new.genderLabel} <span className="text-red-500">*</span>
+                          </label>
+                          <Select
+                            value={item.gender}
+                            onChange={(e) =>
+                              handleAcquisitionItemChange(index, "gender", e.target.value)
+                            }
+                            disabled={isSubmitting}
+                            className={errors[`gender_${index}`] ? "border-red-500" : ""}
+                            options={[
+                              { value: "", label: "-" },
+                              { value: "male", label: t.animals.gender.male },
+                              { value: "female", label: t.animals.gender.female },
+                            ]}
+                            showPlaceholder={false}
+                          />
+                          {errors[`gender_${index}`] && (
+                            <p className="text-red-500 text-sm mt-1">{errors[`gender_${index}`]}</p>
+                          )}
+                        </div>
+
+                        {formData.pricingMode === PricingModeEnum.INDIVIDUAL && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              {((t.acquisitions?.new as Record<string, unknown>)
+                                ?.price as string) || "Preço"}{" "}
+                              <span className="text-red-500">*</span>
+                            </label>
+                            <Input
+                              type="text"
+                              value={item.price}
+                              onChange={(e) =>
+                                handleAcquisitionItemChange(index, "price", e.target.value)
+                              }
+                              disabled={isSubmitting}
+                              placeholder="0,00"
+                              className={errors[`price_${index}`] ? "border-red-500" : ""}
+                            />
+                            {errors[`price_${index}`] && (
+                              <p className="text-red-500 text-sm mt-1">
+                                {errors[`price_${index}`]}
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        {formData.pricingMode === PricingModeEnum.TOTAL && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              {((t.acquisitions?.new as Record<string, unknown>)
+                                ?.price as string) || "Preço"}
+                            </label>
+                            <Input
+                              type="text"
+                              value={item.price}
+                              disabled
+                              className="bg-gray-100 dark:bg-gray-700"
+                            />
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              {((t.acquisitions?.new as Record<string, unknown>)
+                                ?.calculatedAutomatically as string) || "Calculado automaticamente"}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {weight > 0 && price > 0 && (
+                        <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md">
+                          <p className="text-sm text-gray-700 dark:text-gray-300">
+                            <strong>
+                              {((t.acquisitions?.new as Record<string, unknown>)
+                                ?.costPerArroba as string) || "Custo por Arroba"}
+                              :
+                            </strong>{" "}
+                            {formatCurrency(costPerArroba, language)}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {((t.acquisitions?.new as Record<string, unknown>)
+                              ?.weightInArrobas as string) || "Peso em arrobas"}
+                            : {(weight / ARROBA_KG).toFixed(2)}
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            {t.acquisitions.new.birthDateLabel}
+                          </label>
+                          <Input
+                            type="date"
+                            value={item.birthDate}
+                            onChange={(e) =>
+                              handleAcquisitionItemChange(index, "birthDate", e.target.value)
+                            }
+                            disabled={isSubmitting}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {((t.acquisitions?.new as Record<string, unknown>)?.observation as string) ||
+                "Observações"}
+            </label>
+            <textarea
+              value={formData.observation}
+              onChange={(e) => handleChange("observation", e.target.value)}
               disabled={isSubmitting}
-            >
-              {t.common.cancel}
-            </Button>
-            <Button type="submit" variant="primary" disabled={isSubmitting}>
-              {isSubmitting ? t.common.loading : t.acquisitions.new.addButton}
-            </Button>
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200"
+            />
+          </div>
+
+          <div className="flex justify-between items-center pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              {((t.acquisitions?.new as Record<string, unknown>)?.total as string) || "Total"}:{" "}
+              {formatCurrency(calculateTotal(), language)}
+            </div>
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => navigate(ROUTES.ACQUISITIONS)}
+                disabled={isSubmitting}
+              >
+                {t.common.cancel}
+              </Button>
+              <Button type="submit" variant="primary" disabled={isSubmitting}>
+                {isSubmitting
+                  ? t.common.loading || "Salvando..."
+                  : t.acquisitions?.new?.addButton || "Registrar Aquisição"}
+              </Button>
+            </div>
           </div>
         </form>
       </div>

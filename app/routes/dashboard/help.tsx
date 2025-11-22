@@ -279,6 +279,30 @@ export default function Help() {
         answer: t.help.faqs.saleProfitability.answer,
       },
       {
+        id: "acquisition-pricing-modes",
+        category: "records",
+        question: t.help.faqs.acquisitionPricingModes.question,
+        answer: t.help.faqs.acquisitionPricingModes.answer,
+      },
+      {
+        id: "acquisition-payment-methods",
+        category: "financial",
+        question: t.help.faqs.acquisitionPaymentMethods.question,
+        answer: t.help.faqs.acquisitionPaymentMethods.answer,
+      },
+      {
+        id: "flexible-fees",
+        category: "records",
+        question: t.help.faqs.flexibleFees.question,
+        answer: t.help.faqs.flexibleFees.answer,
+      },
+      {
+        id: "cost-per-arroba",
+        category: "analytics",
+        question: t.help.faqs.costPerArroba.question,
+        answer: t.help.faqs.costPerArroba.answer,
+      },
+      {
         id: "reproductive-indexes",
         category: "analytics",
         question: t.help.faqs.reproductiveIndexes.question,

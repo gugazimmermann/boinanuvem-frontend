@@ -1,8 +1,16 @@
 import type { Acquisition, AcquisitionFormData } from "~/types";
-import { AnimalBreed, BirthPurity } from "~/types";
+import { AnimalBreed, BirthPurity, PricingMode, AcquisitionPaymentMethod } from "~/types";
 import { mockAnimals } from "./animals";
 import { mockBirths } from "./births";
 import { generateAcquisitionId } from "~/services/acquisitions.service";
+
+const ARROBA_KG = 30; // 1 arroba = 30 kg
+
+function calculateCostPerArroba(weightInKg: number, costPerAnimal: number): number {
+  if (weightInKg <= 0) return 0;
+  const arrobas = weightInKg / ARROBA_KG;
+  return arrobas > 0 ? costPerAnimal / arrobas : 0;
+}
 
 export type { Acquisition, AcquisitionFormData };
 
@@ -53,93 +61,148 @@ function initializeAcquisitions(): void {
   // Select a subset of these animals to have acquisitions (about 20-30% of non-founder animals)
   const animalsToAcquire = animalsWithoutBirths.filter((_, index) => index % 4 === 0);
 
-  animalsToAcquire.forEach((animal, index) => {
-    const breed = breeds[index % breeds.length];
-    // Use more realistic gender distribution (slightly more males in acquisitions)
-    const gender = Math.random() < 0.55 ? "male" : "female";
-    const sellerId = suppliers[index % suppliers.length];
-    // More realistic price range: R$ 2,000 to R$ 12,000
-    const price = 2000 + Math.floor(Math.random() * 10000);
+  // Group animals into batch acquisitions (some single, some multiple)
+  let acquisitionIndex = 0;
+  for (
+    let i = 0;
+    i < animalsToAcquire.length;
+    i += Math.random() < 0.7 ? 1 : Math.floor(Math.random() * 3) + 2
+  ) {
+    const animalsInAcquisition = animalsToAcquire.slice(
+      i,
+      Math.min(
+        i + (Math.random() < 0.7 ? 1 : Math.floor(Math.random() * 3) + 2),
+        animalsToAcquire.length
+      )
+    );
 
-    let motherId: string | undefined;
-    let fatherId: string | undefined;
-    let motherRegistrationNumber: string | undefined;
-    let fatherRegistrationNumber: string | undefined;
-    let birthDate: string | undefined;
-    let purity: BirthPurity | undefined;
+    if (animalsInAcquisition.length === 0) continue;
 
-    if (index % 3 === 0) {
-      const samePropertyAnimals = mockAnimals.filter((a) => a.propertyId === animal.propertyId);
-      if (samePropertyAnimals.length > 0) {
-        const parentIndex = index % samePropertyAnimals.length;
-        if (parentIndex < samePropertyAnimals.length - 1) {
-          motherId = samePropertyAnimals[parentIndex]?.id;
-          fatherId = samePropertyAnimals[parentIndex + 1]?.id;
-          motherRegistrationNumber = samePropertyAnimals[parentIndex]?.registrationNumber;
-          fatherRegistrationNumber = samePropertyAnimals[parentIndex + 1]?.registrationNumber;
+    const firstAnimal = animalsInAcquisition[0];
+    const propertyId = firstAnimal.propertyId;
+    const supplierId = suppliers[acquisitionIndex % suppliers.length];
+    const acquisitionDate = firstAnimal.acquisitionDate || firstAnimal.createdAt;
 
-          const acquisitionDate = new Date(animal.acquisitionDate!);
-          const birthYear = acquisitionDate.getFullYear() - 2 - (index % 2);
-          const birthMonth = String((index % 12) + 1).padStart(2, "0");
-          const birthDay = String((index % 28) + 1).padStart(2, "0");
-          birthDate = `${birthYear}-${birthMonth}-${birthDay}`;
+    // Determine pricing mode (more likely to be total for batch acquisitions)
+    const pricingMode =
+      animalsInAcquisition.length > 1 && Math.random() < 0.6
+        ? PricingMode.TOTAL
+        : PricingMode.INDIVIDUAL;
 
-          const motherBirth = motherId
-            ? mockBirths.find((b) => b.animalId === motherId)
-            : undefined;
-          const fatherBirth = fatherId
-            ? mockBirths.find((b) => b.animalId === fatherId)
-            : undefined;
+    // Determine payment method
+    const paymentMethod =
+      Math.random() < 0.7
+        ? AcquisitionPaymentMethod.CASH_FLOW
+        : AcquisitionPaymentMethod.ACCOUNTS_PAYABLE;
 
-          if (motherBirth && fatherBirth) {
-            if (
-              motherBirth.purity === BirthPurity.PO &&
-              fatherBirth.purity === BirthPurity.PO &&
-              motherBirth.breed === fatherBirth.breed
-            ) {
-              purity = BirthPurity.PO;
-            } else if (
-              motherBirth.purity === BirthPurity.PO &&
-              fatherBirth.purity === BirthPurity.PO
-            ) {
+    // Calculate prices and weights
+    const acquisitionItems = animalsInAcquisition.map((animal, itemIndex) => {
+      const breed = breeds[(acquisitionIndex + itemIndex) % breeds.length];
+      const gender = Math.random() < 0.55 ? "male" : "female";
+      // More realistic price range: R$ 2,000 to R$ 12,000
+      const price = 2000 + Math.floor(Math.random() * 10000);
+      // Weight range: 200-500 kg
+      const weight = 200 + Math.floor(Math.random() * 300);
+
+      let motherId: string | undefined;
+      let fatherId: string | undefined;
+      let motherRegistrationNumber: string | undefined;
+      let fatherRegistrationNumber: string | undefined;
+      let birthDate: string | undefined;
+      let purity: BirthPurity | undefined;
+
+      if ((acquisitionIndex + itemIndex) % 3 === 0) {
+        const samePropertyAnimals = mockAnimals.filter((a) => a.propertyId === animal.propertyId);
+        if (samePropertyAnimals.length > 0) {
+          const parentIndex = (acquisitionIndex + itemIndex) % samePropertyAnimals.length;
+          if (parentIndex < samePropertyAnimals.length - 1) {
+            motherId = samePropertyAnimals[parentIndex]?.id;
+            fatherId = samePropertyAnimals[parentIndex + 1]?.id;
+            motherRegistrationNumber = samePropertyAnimals[parentIndex]?.registrationNumber;
+            fatherRegistrationNumber = samePropertyAnimals[parentIndex + 1]?.registrationNumber;
+
+            const acqDate = new Date(acquisitionDate);
+            const birthYear = acqDate.getFullYear() - 2 - ((acquisitionIndex + itemIndex) % 2);
+            const birthMonth = String(((acquisitionIndex + itemIndex) % 12) + 1).padStart(2, "0");
+            const birthDay = String(((acquisitionIndex + itemIndex) % 28) + 1).padStart(2, "0");
+            birthDate = `${birthYear}-${birthMonth}-${birthDay}`;
+
+            const motherBirth = motherId
+              ? mockBirths.find((b) => b.animalId === motherId)
+              : undefined;
+            const fatherBirth = fatherId
+              ? mockBirths.find((b) => b.animalId === fatherId)
+              : undefined;
+
+            if (motherBirth && fatherBirth) {
+              if (
+                motherBirth.purity === BirthPurity.PO &&
+                fatherBirth.purity === BirthPurity.PO &&
+                motherBirth.breed === fatherBirth.breed
+              ) {
+                purity = BirthPurity.PO;
+              } else if (
+                motherBirth.purity === BirthPurity.PO &&
+                fatherBirth.purity === BirthPurity.PO
+              ) {
+                purity = BirthPurity.F1;
+              } else {
+                purity = BirthPurity.F2;
+              }
+            } else if (motherBirth || fatherBirth) {
               purity = BirthPurity.F1;
             } else {
-              purity = BirthPurity.F2;
+              purity = BirthPurity.PO;
             }
-          } else if (motherBirth || fatherBirth) {
-            purity = BirthPurity.F1;
-          } else {
-            purity = BirthPurity.PO;
           }
         }
       }
-    }
 
-    // Acquisition date should be close to animal creation date
-    const acquisitionDate = animal.createdAt;
+      const costPerArroba = calculateCostPerArroba(weight, price);
+
+      return {
+        animalId: animal.id,
+        price,
+        weight,
+        costPerArroba,
+        breed,
+        gender: gender as "male" | "female",
+        birthDate,
+        motherId,
+        fatherId,
+        motherRegistrationNumber,
+        fatherRegistrationNumber,
+        purity,
+        birthObservation: birthDate ? "Data de nascimento informada pelo vendedor" : undefined,
+      };
+    });
+
+    // Calculate total price
+    const totalPrice = acquisitionItems.reduce((sum, item) => sum + item.price, 0);
+    const transportationFee = Math.random() < 0.5 ? Math.floor(Math.random() * 1000) : undefined;
+    const handlingFee = Math.random() < 0.3 ? Math.floor(Math.random() * 500) : undefined;
 
     acquisitions.push({
-      id: generateAcquisitionId(index),
-      animalId: animal.id,
-      acquisitionDate,
-      breed,
-      gender,
-      sellerId,
-      price,
-      observation: purity
-        ? "Aquisição com genealogia parcial registrada"
-        : "Aquisição de animal para o rebanho",
-      birthDate,
-      motherId,
-      fatherId,
-      motherRegistrationNumber,
-      fatherRegistrationNumber,
-      purity,
-      birthObservation: birthDate ? "Data de nascimento informada pelo vendedor" : undefined,
-      createdAt: acquisitionDate,
+      id: generateAcquisitionId(acquisitionIndex),
       companyId: COMPANY_ID,
+      propertyId,
+      supplierId,
+      acquisitionDate,
+      pricingMode,
+      paymentMethod,
+      totalPrice,
+      transportationFee,
+      handlingFee,
+      acquisitionItems,
+      observation:
+        animalsInAcquisition.length > 1
+          ? `Aquisição de lote com ${animalsInAcquisition.length} animais`
+          : "Aquisição de animal para o rebanho",
+      createdAt: acquisitionDate,
     });
-  });
+
+    acquisitionIndex++;
+  }
 }
 
 initializeAcquisitions();

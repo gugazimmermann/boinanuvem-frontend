@@ -80,8 +80,7 @@ export default function EditSale() {
     pricingMode: PricingMode | "";
     paymentMethod: SalePaymentMethod | "";
     totalPrice: string;
-    transportationFee: string;
-    additionalFees: string;
+    fees: Array<{ id: string; name: string; amount: string }>;
     selectedAnimalIds: string[];
     saleItems: Array<{ animalId: string; price: string; weight: string; carcassWeight?: string }>;
     observation: string;
@@ -93,8 +92,7 @@ export default function EditSale() {
     pricingMode: "",
     paymentMethod: "",
     totalPrice: "",
-    transportationFee: "",
-    additionalFees: "",
+    fees: [],
     selectedAnimalIds: [],
     saleItems: [],
     observation: "",
@@ -102,6 +100,33 @@ export default function EditSale() {
 
   useEffect(() => {
     if (sale) {
+      // Migrate legacy fees to new format if needed
+      const fees =
+        sale.fees && sale.fees.length > 0
+          ? sale.fees.map((fee) => ({
+              id: fee.id,
+              name: fee.name,
+              amount: fee.amount.toString(),
+            }))
+          : (() => {
+              const legacyFees: Array<{ id: string; name: string; amount: string }> = [];
+              if (sale.transportationFee) {
+                legacyFees.push({
+                  id: `fee-${Date.now()}-transport`,
+                  name: "Taxa de Transporte",
+                  amount: sale.transportationFee.toString(),
+                });
+              }
+              if (sale.additionalFees) {
+                legacyFees.push({
+                  id: `fee-${Date.now()}-additional`,
+                  name: "Taxas Adicionais",
+                  amount: sale.additionalFees.toString(),
+                });
+              }
+              return legacyFees;
+            })();
+
       setFormData({
         propertyId: sale.propertyId,
         buyerId: sale.buyerId,
@@ -110,8 +135,7 @@ export default function EditSale() {
         pricingMode: sale.pricingMode,
         paymentMethod: sale.paymentMethod,
         totalPrice: sale.totalPrice.toString(),
-        transportationFee: sale.transportationFee?.toString() || "",
-        additionalFees: sale.additionalFees?.toString() || "",
+        fees,
         selectedAnimalIds: sale.saleItems.map((item) => item.animalId),
         saleItems: sale.saleItems.map((item) => ({
           animalId: item.animalId,
@@ -358,12 +382,13 @@ export default function EditSale() {
       }));
 
       const totalPrice = saleItems.reduce((sum, item) => sum + item.price, 0);
-      const transportationFee = formData.transportationFee
-        ? parseFloat(formData.transportationFee.replace(/[^\d,.-]/g, "").replace(",", "."))
-        : undefined;
-      const additionalFees = formData.additionalFees
-        ? parseFloat(formData.additionalFees.replace(/[^\d,.-]/g, "").replace(",", "."))
-        : undefined;
+      const fees = formData.fees
+        .filter((fee) => fee.name.trim() && fee.amount)
+        .map((fee) => ({
+          id: fee.id,
+          name: fee.name.trim(),
+          amount: parseFloat(fee.amount.replace(/[^\d,.-]/g, "").replace(",", ".")) || 0,
+        }));
 
       const saleData: Partial<SaleFormData> = {
         propertyId: formData.propertyId,
@@ -373,8 +398,7 @@ export default function EditSale() {
         pricingMode: formData.pricingMode as PricingMode,
         paymentMethod: formData.paymentMethod as SalePaymentMethod,
         totalPrice,
-        transportationFee,
-        additionalFees,
+        fees: fees.length > 0 ? fees : undefined,
         saleItems,
         observation: formData.observation || undefined,
       };
@@ -395,16 +419,44 @@ export default function EditSale() {
     }
   };
 
+  const addFee = () => {
+    setFormData((prev) => ({
+      ...prev,
+      fees: [
+        ...prev.fees,
+        {
+          id: `fee-${Date.now()}-${Math.random()}`,
+          name: "",
+          amount: "",
+        },
+      ],
+    }));
+  };
+
+  const removeFee = (feeId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      fees: prev.fees.filter((fee) => fee.id !== feeId),
+    }));
+  };
+
+  const updateFee = (feeId: string, field: "name" | "amount", value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      fees: prev.fees.map((fee) => (fee.id === feeId ? { ...fee, [field]: value } : fee)),
+    }));
+  };
+
   const calculateTotal = () => {
     const itemsTotal = formData.saleItems.reduce((sum, item) => {
       const price = parseFloat(item.price.replace(/[^\d,.-]/g, "").replace(",", ".")) || 0;
       return sum + price;
     }, 0);
-    const transportation =
-      parseFloat(formData.transportationFee.replace(/[^\d,.-]/g, "").replace(",", ".")) || 0;
-    const additional =
-      parseFloat(formData.additionalFees.replace(/[^\d,.-]/g, "").replace(",", ".")) || 0;
-    return itemsTotal + transportation + additional;
+    const feesTotal = formData.fees.reduce((sum, fee) => {
+      const amount = parseFloat(fee.amount.replace(/[^\d,.-]/g, "").replace(",", ".")) || 0;
+      return sum + amount;
+    }, 0);
+    return itemsTotal + feesTotal;
   };
 
   if (!sale) {
@@ -611,32 +663,71 @@ export default function EditSale() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t.sales?.form?.transportationFee || "Taxa de Transporte"}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                {((t.sales?.form as Record<string, unknown>)?.fees as string) || "Taxas e Encargos"}
               </label>
-              <Input
-                type="text"
-                value={formData.transportationFee}
-                onChange={(e) => handleChange("transportationFee", e.target.value)}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={addFee}
                 disabled={isSubmitting}
-                placeholder="0,00"
-              />
+                className="text-sm"
+              >
+                +{" "}
+                {((t.sales?.form as Record<string, unknown>)?.addFee as string) || "Adicionar Taxa"}
+              </Button>
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t.sales?.form?.additionalFees || "Taxas Adicionais"}
-              </label>
-              <Input
-                type="text"
-                value={formData.additionalFees}
-                onChange={(e) => handleChange("additionalFees", e.target.value)}
-                disabled={isSubmitting}
-                placeholder="0,00"
-              />
-            </div>
+            {formData.fees.length > 0 && (
+              <div className="space-y-3">
+                {formData.fees.map((fee) => (
+                  <div
+                    key={fee.id}
+                    className="grid grid-cols-1 md:grid-cols-[2fr_1fr_auto] gap-3 items-end"
+                  >
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {((t.sales?.form as Record<string, unknown>)?.feeName as string) ||
+                          "Nome da Taxa"}
+                      </label>
+                      <Input
+                        type="text"
+                        value={fee.name}
+                        onChange={(e) => updateFee(fee.id, "name", e.target.value)}
+                        disabled={isSubmitting}
+                        placeholder={
+                          ((t.sales?.form as Record<string, unknown>)
+                            ?.feeNamePlaceholder as string) || "Ex: Taxa de Transporte"
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {((t.sales?.form as Record<string, unknown>)?.feeAmount as string) ||
+                          "Valor"}
+                      </label>
+                      <Input
+                        type="text"
+                        value={fee.amount}
+                        onChange={(e) => updateFee(fee.id, "amount", e.target.value)}
+                        disabled={isSubmitting}
+                        placeholder="0,00"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => removeFee(fee.id)}
+                      disabled={isSubmitting}
+                      className="mb-0"
+                    >
+                      {t.common.remove || "Remover"}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div>

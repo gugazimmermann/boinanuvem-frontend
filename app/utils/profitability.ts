@@ -2,6 +2,8 @@ import { getAnimalTotalCost } from "~/services/location-costs.service";
 import { getAcquisitionByAnimalId } from "~/services/acquisitions.service";
 import { getBirthByAnimalId } from "~/services/births.service";
 
+const ARROBA_KG = 30; // 1 arroba = 30 kg
+
 export interface AnimalProfitability {
   animalId: string;
   totalCost: number;
@@ -11,6 +13,10 @@ export interface AnimalProfitability {
   costPerKg: number;
   pricePerKg: number;
   roi: number; // Return on Investment (percentage)
+  acquisitionArrobaValue?: number; // Cost per arroba at acquisition
+  saleArrobaValue?: number; // Price per arroba at sale
+  spreadPerArroba?: number; // Profit/loss per arroba (sale - acquisition)
+  totalSpread?: number; // Total spread (spreadPerArroba * saleArrobas)
 }
 
 /**
@@ -31,15 +37,37 @@ export function calculateAnimalProfitability(
   const costData = getAnimalTotalCost(animalId, undefined, saleDate);
   const totalCost = costData?.totalCost || 0;
 
-  // Add acquisition cost if available
+  // Get acquisition data for this animal
   const acquisition = getAcquisitionByAnimalId(animalId);
-  const acquisitionCost = acquisition?.price || 0;
+  const acquisitionItem = acquisition?.acquisitionItems.find((item) => item.animalId === animalId);
+  const acquisitionCost = acquisitionItem?.price || 0;
 
   // If animal was born on the property, check birth costs (could be zero or minimal)
   const birth = getBirthByAnimalId(animalId);
   const birthCost = birth ? 0 : 0; // Births typically don't have direct costs
 
   const totalAccumulatedCost = totalCost + acquisitionCost + birthCost;
+
+  // Calculate arroba-based metrics if acquisition data is available
+  let acquisitionArrobaValue: number | undefined;
+  let saleArrobaValue: number | undefined;
+  let spreadPerArroba: number | undefined;
+  let totalSpread: number | undefined;
+
+  if (acquisitionItem && acquisitionItem.weight > 0) {
+    // Calculate acquisition arroba value (cost per arroba at acquisition)
+    acquisitionArrobaValue = acquisitionItem.costPerArroba;
+
+    // Calculate sale arroba value (price per arroba at sale)
+    const saleArrobas = saleWeight / ARROBA_KG;
+    saleArrobaValue = saleArrobas > 0 ? salePrice / saleArrobas : 0;
+
+    // Calculate spread per arroba
+    spreadPerArroba = saleArrobaValue - acquisitionArrobaValue;
+
+    // Calculate total spread
+    totalSpread = spreadPerArroba * saleArrobas;
+  }
 
   // Calculate metrics
   const profit = salePrice - totalAccumulatedCost;
@@ -57,6 +85,10 @@ export function calculateAnimalProfitability(
     costPerKg,
     pricePerKg,
     roi,
+    acquisitionArrobaValue,
+    saleArrobaValue,
+    spreadPerArroba,
+    totalSpread,
   };
 }
 
@@ -71,6 +103,10 @@ export function calculateAggregatedProfitability(profitabilities: AnimalProfitab
   averageCostPerKg: number;
   averagePricePerKg: number;
   averageRoi: number;
+  averageAcquisitionArrobaValue?: number;
+  averageSaleArrobaValue?: number;
+  averageSpreadPerArroba?: number;
+  totalSpread?: number;
 } {
   if (profitabilities.length === 0) {
     return {
@@ -95,6 +131,28 @@ export function calculateAggregatedProfitability(profitabilities: AnimalProfitab
     profitabilities.reduce((sum, p) => sum + p.pricePerKg, 0) / profitabilities.length;
   const averageRoi = profitabilities.reduce((sum, p) => sum + p.roi, 0) / profitabilities.length;
 
+  // Calculate spread metrics
+  const spreadProfitabilities = profitabilities.filter(
+    (p) => p.acquisitionArrobaValue !== undefined && p.saleArrobaValue !== undefined
+  );
+  let averageAcquisitionArrobaValue: number | undefined;
+  let averageSaleArrobaValue: number | undefined;
+  let averageSpreadPerArroba: number | undefined;
+  let totalSpread: number | undefined;
+
+  if (spreadProfitabilities.length > 0) {
+    averageAcquisitionArrobaValue =
+      spreadProfitabilities.reduce((sum, p) => sum + (p.acquisitionArrobaValue || 0), 0) /
+      spreadProfitabilities.length;
+    averageSaleArrobaValue =
+      spreadProfitabilities.reduce((sum, p) => sum + (p.saleArrobaValue || 0), 0) /
+      spreadProfitabilities.length;
+    averageSpreadPerArroba =
+      spreadProfitabilities.reduce((sum, p) => sum + (p.spreadPerArroba || 0), 0) /
+      spreadProfitabilities.length;
+    totalSpread = spreadProfitabilities.reduce((sum, p) => sum + (p.totalSpread || 0), 0);
+  }
+
   return {
     totalCost,
     totalSalePrice,
@@ -103,5 +161,9 @@ export function calculateAggregatedProfitability(profitabilities: AnimalProfitab
     averageCostPerKg,
     averagePricePerKg,
     averageRoi,
+    averageAcquisitionArrobaValue,
+    averageSaleArrobaValue,
+    averageSpreadPerArroba,
+    totalSpread,
   };
 }

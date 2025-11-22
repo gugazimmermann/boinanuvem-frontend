@@ -105,11 +105,16 @@ function generateWeighingsForAnimal(
 
   const birth = getBirthByAnimalId(animal.id);
   const acquisition = getAcquisitionByAnimalId(animal.id);
-  const gender = birth?.gender || acquisition?.gender;
-  const breed = birth?.breed || acquisition?.breed;
-  const referenceDate = birth?.birthDate || acquisition?.birthDate || animal.createdAt;
+  const acquisitionItem = acquisition?.acquisitionItems.find((item) => item.animalId === animal.id);
+  const gender = birth?.gender || acquisitionItem?.gender;
+  const breed = birth?.breed || acquisitionItem?.breed;
+  const referenceDate =
+    birth?.birthDate ||
+    acquisitionItem?.birthDate ||
+    acquisition?.acquisitionDate ||
+    animal.createdAt;
 
-  if (!referenceDate) return weighings;
+  if (!referenceDate || typeof referenceDate !== "string") return weighings;
 
   const ageInMonths = calculateAgeInMonths(referenceDate);
 
@@ -178,8 +183,8 @@ function generateWeighingsForAnimal(
     }
 
     // Calculate weight based on age at weighing time
-    const ageAtWeighing = calculateAgeInMonths(referenceDate, weighingDate);
-    const weight = getWeightForAge(ageAtWeighing, gender, breed);
+    const ageAtWeighing = calculateAgeInMonths(referenceDate as string, weighingDate);
+    const weight = getWeightForAge(ageAtWeighing, gender as "male" | "female" | undefined, breed);
 
     const numEmployees = (i % 2) + 1;
     const employeeIds = employees.slice(0, numEmployees);

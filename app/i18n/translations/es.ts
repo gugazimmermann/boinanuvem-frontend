@@ -3271,7 +3271,7 @@ export const es = {
       recordAcquisition: {
         question: "¿Cómo registro una adquisición?",
         answer:
-          "Ve a 'Registros' > 'Adquisición' y haz clic en 'Nuevo'. Selecciona el animal adquirido (o registra uno nuevo), ingresa la fecha de adquisición, el precio pagado y el proveedor. Puedes agregar observaciones sobre la adquisición. El sistema mantiene un historial completo de todas las adquisiciones, facilitando el control de inversiones y origen de los animales.",
+          "Ve a 'Registros' > 'Adquisiciones' y haz clic en 'Agregar Adquisición'. Completa la información requerida: propiedad, proveedor, fecha de adquisición, modo de fijación de precios (individual por animal o precio total del lote) y método de pago (efectivo o por pagar). Selecciona uno o más animales para adquirir. Para cada animal, ingresa el peso en el momento de la adquisición. Si usas fijación de precios individual, ingresa el precio de cada animal. Si usas precio total, ingresa el valor total y el sistema lo distribuirá automáticamente por igual entre los animales. Puedes agregar múltiples tarifas personalizadas (transporte, manejo, impuestos, etc.) con nombres y montos específicos. El sistema calcula automáticamente el costo por arroba de cada animal (1 arroba = 30 kg), que se utilizará para cálculos de rentabilidad en la venta. Al guardar, el sistema creará automáticamente una transacción de flujo de caja o cuenta por pagar según el método de pago elegido, y vinculará el registro financiero a la adquisición.",
       },
       recordDeath: {
         question: "¿Cómo registro una muerte de animal?",
@@ -3411,7 +3411,7 @@ export const es = {
       recordSale: {
         question: "¿Cómo registro una venta de animales?",
         answer:
-          "Ve a 'Registros' > 'Ventas' y haz clic en 'Agregar Venta'. Completa la información requerida: propiedad, comprador, fecha de venta, tipo de venta (frigorífico, otra propiedad o subasta), modo de fijación de precios (individual por animal o precio total del lote) y método de pago (efectivo o por cobrar). Selecciona uno o más animales para vender. Para cada animal, ingresa el peso en el momento de la venta. Si usas fijación de precios individual, ingresa el precio de cada animal. Si usas precio total, ingresa el valor total y el sistema lo distribuirá automáticamente por igual entre los animales. Puedes agregar tarifas de transporte y tarifas adicionales, e incluir observaciones. Al guardar, el sistema actualizará automáticamente el estado de los animales a 'vendido', creará una transacción de flujo de caja o cuenta por cobrar según el método de pago elegido, y calculará la rentabilidad de cada animal.",
+          "Ve a 'Registros' > 'Ventas' y haz clic en 'Agregar Venta'. Completa la información requerida: propiedad, comprador, fecha de venta, tipo de venta (frigorífico, otra propiedad o subasta), modo de fijación de precios (individual por animal o precio total del lote) y método de pago (efectivo o por cobrar). Selecciona uno o más animales para vender. Para cada animal, ingresa el peso en el momento de la venta. Si usas fijación de precios individual, ingresa el precio de cada animal. Si usas precio total, ingresa el valor total y el sistema lo distribuirá automáticamente por igual entre los animales. Puedes agregar múltiples tarifas personalizadas (transporte, manejo, impuestos, etc.) con nombres y montos específicos, e incluir observaciones. Al guardar, el sistema actualizará automáticamente el estado de los animales a 'vendido', creará una transacción de flujo de caja o cuenta por cobrar según el método de pago elegido, y calculará la rentabilidad de cada animal incluyendo el spread por arroba (diferencia entre el valor de la arroba en la venta y en la adquisición).",
       },
       salePricingModes: {
         question: "¿Cómo funcionan los modos de fijación de precios de ventas?",
@@ -3426,7 +3426,27 @@ export const es = {
       saleProfitability: {
         question: "¿Cómo veo la rentabilidad de las ventas?",
         answer:
-          "En la página de detalles de cada venta, puedes ver la rentabilidad de cada animal vendido. El sistema calcula automáticamente: costo total acumulado del animal (incluyendo adquisición, consumo de inventario por ubicación, etc.), precio de venta, ganancia, margen de ganancia, costo por kg, precio por kg y ROI (retorno sobre inversión). Estas métricas te ayudan a evaluar el rendimiento financiero de cada animal y tomar decisiones informadas sobre futuras ventas. En el panel financiero, también puedes ver análisis agregados de rentabilidad de todas las ventas.",
+          "En la página de detalles de cada venta y en la página de detalles de cada animal (pestaña 'Ventas'), puedes ver la rentabilidad completa de cada animal vendido. El sistema calcula automáticamente: costo total acumulado del animal (incluyendo adquisición, consumo de inventario por ubicación, etc.), precio de venta, ganancia, margen de ganancia, costo por kg, precio por kg y ROI (retorno sobre inversión). Para animales adquiridos, el sistema también muestra: valor de la arroba en la adquisición, valor de la arroba en la venta, spread por arroba (diferencia entre valores) y spread total (ganancia o pérdida total por arroba). Estas métricas te ayudan a evaluar el rendimiento financiero de cada animal y tomar decisiones informadas sobre futuras ventas. En el panel financiero, también puedes ver análisis agregados de rentabilidad de todas las ventas.",
+      },
+      acquisitionPricingModes: {
+        question: "¿Cómo funcionan los modos de fijación de precios de adquisiciones?",
+        answer:
+          "El sistema ofrece dos modos de fijación de precios para adquisiciones: 'Individual' y 'Precio Total'. En el modo Individual, defines el precio de cada animal por separado. En el modo Precio Total, ingresas el valor total del lote y el sistema distribuye automáticamente este valor por igual entre todos los animales seleccionados, incluyendo las tarifas adicionales. Esto es útil cuando adquieres un lote por un valor total negociado. El sistema calcula automáticamente el costo por arroba de cada animal basado en el precio distribuido y el peso ingresado.",
+      },
+      acquisitionPaymentMethods: {
+        question: "¿Cómo funcionan los métodos de pago en las adquisiciones?",
+        answer:
+          "Al registrar una adquisición, puedes elegir entre dos métodos de pago: 'Efectivo (Flujo de Caja)' o 'Por Pagar'. Si eliges 'Efectivo', el sistema creará automáticamente una transacción de flujo de caja (salida) con el monto total de la adquisición. Si eliges 'Por Pagar', el sistema creará una cuenta por pagar con el monto total de la adquisición. En ambos casos, el registro financiero será vinculado a la adquisición y podrás accederlo directamente desde la página de detalles de la adquisición. Esto permite un control financiero integrado y automático.",
+      },
+      flexibleFees: {
+        question: "¿Cómo agrego tarifas personalizadas en adquisiciones y ventas?",
+        answer:
+          "Tanto en adquisiciones como en ventas, puedes agregar múltiples tarifas personalizadas con nombres y montos específicos. Haz clic en el botón '+ Agregar Tarifa' y completa el nombre de la tarifa (ej: 'Tarifa de Transporte', 'Impuesto ICMS', 'Tarifa de Manejo') y el monto. Puedes agregar tantas tarifas como necesites. Todas las tarifas se suman al valor total de la transacción y se distribuyen automáticamente entre los animales cuando es aplicable. Esto proporciona flexibilidad total para registrar todos los costos adicionales relacionados con la adquisición o venta.",
+      },
+      costPerArroba: {
+        question: "¿Qué es el costo por arroba y cómo se calcula?",
+        answer:
+          "El costo por arroba es una métrica importante en la ganadería brasileña (1 arroba = 30 kg). En la adquisición, el sistema calcula automáticamente el costo por arroba de cada animal dividiendo el costo total del animal (precio + tarifas distribuidas) por el peso en arrobas. Este valor se almacena y se usa posteriormente para calcular la rentabilidad en la venta. En la venta, el sistema calcula el valor de la arroba en la venta (precio de venta / peso en arrobas) y lo compara con el valor de la arroba en la adquisición, calculando el spread por arroba (diferencia entre valores). Esto permite evaluar la rentabilidad de forma estandarizada, independientemente del peso del animal.",
       },
     },
   },

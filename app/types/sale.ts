@@ -14,6 +14,8 @@ export enum SalePaymentMethod {
   ACCOUNTS_RECEIVABLE = "accounts_receivable",
 }
 
+import type { Fee } from "./fee";
+
 export interface SaleItem {
   animalId: string;
   price: number;
@@ -31,6 +33,8 @@ export interface Sale extends Record<string, unknown> {
   pricingMode: PricingMode;
   paymentMethod: SalePaymentMethod;
   totalPrice: number;
+  fees?: Fee[];
+  // Legacy fields for backward compatibility
   transportationFee?: number;
   additionalFees?: number;
   saleItems: SaleItem[];
@@ -49,6 +53,8 @@ export interface SaleFormData {
   pricingMode: PricingMode;
   paymentMethod: SalePaymentMethod;
   totalPrice: number;
+  fees?: Fee[];
+  // Legacy fields for backward compatibility
   transportationFee?: number;
   additionalFees?: number;
   saleItems: SaleItem[];

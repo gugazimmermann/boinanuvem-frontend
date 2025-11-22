@@ -20,6 +20,7 @@ import { getAnimalById } from "~/services/animals.service";
 import { calculateAnimalProfitability } from "~/utils/profitability";
 import { formatCurrency } from "~/utils/currency";
 import { SaleType as SaleTypeEnum, SalePaymentMethod as SalePaymentMethodEnum } from "~/types";
+import { getTotalFees } from "~/utils/fees";
 import { useState } from "react";
 import { Link } from "react-router";
 
@@ -105,7 +106,8 @@ export default function SaleDetails() {
   const buyer = getBuyerById(sale.buyerId);
   const property = getPropertyById(sale.propertyId);
 
-  const totalAmount = sale.totalPrice + (sale.transportationFee || 0) + (sale.additionalFees || 0);
+  const totalFees = getTotalFees(sale.fees, sale.transportationFee, sale.additionalFees);
+  const totalAmount = sale.totalPrice + totalFees;
 
   return (
     <div className="space-y-6">
@@ -371,26 +373,39 @@ export default function SaleDetails() {
                 {formatCurrency(sale.totalPrice, language)}
               </span>
             </div>
-            {sale.transportationFee && (
-              <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">
-                  {t.sales?.details?.transportationFee || "Taxa de Transporte"}:
-                </span>
-                <span className="text-gray-900 dark:text-gray-100">
-                  {formatCurrency(sale.transportationFee, language)}
-                </span>
-              </div>
-            )}
-            {sale.additionalFees && (
-              <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">
-                  {t.sales?.details?.additionalFees || "Taxas Adicionais"}:
-                </span>
-                <span className="text-gray-900 dark:text-gray-100">
-                  {formatCurrency(sale.additionalFees, language)}
-                </span>
-              </div>
-            )}
+            {sale.fees && sale.fees.length > 0
+              ? sale.fees.map((fee) => (
+                  <div key={fee.id} className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">{fee.name}:</span>
+                    <span className="text-gray-900 dark:text-gray-100">
+                      {formatCurrency(fee.amount, language)}
+                    </span>
+                  </div>
+                ))
+              : // Legacy support: show old fields if fees array doesn't exist
+                (() => {
+                  const legacyFees: Array<{ name: string; amount: number }> = [];
+                  if (sale.transportationFee) {
+                    legacyFees.push({
+                      name: t.sales?.details?.transportationFee || "Taxa de Transporte",
+                      amount: sale.transportationFee,
+                    });
+                  }
+                  if (sale.additionalFees) {
+                    legacyFees.push({
+                      name: t.sales?.details?.additionalFees || "Taxas Adicionais",
+                      amount: sale.additionalFees,
+                    });
+                  }
+                  return legacyFees.map((fee, index) => (
+                    <div key={`legacy-${index}`} className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">{fee.name}:</span>
+                      <span className="text-gray-900 dark:text-gray-100">
+                        {formatCurrency(fee.amount, language)}
+                      </span>
+                    </div>
+                  ));
+                })()}
             <div className="flex justify-between text-lg font-bold border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
               <span className="text-gray-900 dark:text-gray-100">
                 {t.sales?.details?.total || "Total"}:
