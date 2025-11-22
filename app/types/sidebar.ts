@@ -9,6 +9,7 @@ export interface SidebarSubItemConfig {
     animals: string;
     births: string;
     acquisitions: string;
+    sales: string;
     deaths: string;
     weighings: string;
     medicineAdministrations: string;

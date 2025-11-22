@@ -22,6 +22,7 @@ export interface UserPermissions {
     births: ResourcePermissions;
     acquisitions: ResourcePermissions;
     weighings: ResourcePermissions;
+    sales: ResourcePermissions;
   };
   breedings: {
     breedings: ResourcePermissions;
@@ -103,6 +104,12 @@ export const defaultPermissions: UserPermissions = {
       remove: false,
     },
     weighings: {
+      view: false,
+      add: false,
+      edit: false,
+      remove: false,
+    },
+    sales: {
       view: false,
       add: false,
       edit: false,

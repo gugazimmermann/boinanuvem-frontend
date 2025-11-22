@@ -49,6 +49,10 @@ export const ROUTES = {
   ACQUISITIONS_NEW: "/dashboard/registros/aquisicoes/novo",
   ACQUISITIONS_EDIT: "/dashboard/registros/aquisicoes/:acquisitionId/editar",
   ACQUISITIONS_VIEW: "/dashboard/registros/aquisicoes/:acquisitionId",
+  SALES: "/dashboard/registros/vendas",
+  SALES_NEW: "/dashboard/registros/vendas/novo",
+  SALES_EDIT: "/dashboard/registros/vendas/:saleId/editar",
+  SALES_VIEW: "/dashboard/registros/vendas/:saleId",
   DEATHS_NEW: "/dashboard/registros/obitos/novo",
   WEIGHINGS_NEW: "/dashboard/registros/pesagens/novo",
   MEDICINE_ADMINISTRATIONS_NEW: "/dashboard/registros/controle-sanitario/novo",
@@ -247,6 +251,14 @@ export function getBankAccountViewRoute(bankAccountId: string): string {
   return `/dashboard/contas-bancarias/${bankAccountId}`;
 }
 
+export function getSaleEditRoute(saleId: string): string {
+  return `/dashboard/registros/vendas/${saleId}/editar`;
+}
+
+export function getSaleViewRoute(saleId: string): string {
+  return `/dashboard/registros/vendas/${saleId}`;
+}
+
 export const ROUTE_NAMES = {
   HOME: "",
   LOGIN: "entrar",
@@ -298,6 +310,10 @@ export const ROUTE_NAMES = {
   ACQUISITIONS_NEW: "registros/aquisicoes/novo",
   ACQUISITIONS_EDIT: "registros/aquisicoes/:acquisitionId/editar",
   ACQUISITIONS_VIEW: "registros/aquisicoes/:acquisitionId",
+  SALES: "registros/vendas",
+  SALES_NEW: "registros/vendas/novo",
+  SALES_EDIT: "registros/vendas/:saleId/editar",
+  SALES_VIEW: "registros/vendas/:saleId",
   DEATHS_NEW: "registros/obitos/novo",
   WEIGHINGS_NEW: "registros/pesagens/novo",
   MEDICINE_ADMINISTRATIONS_NEW: "registros/controle-sanitario/novo",

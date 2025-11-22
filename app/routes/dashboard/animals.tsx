@@ -134,7 +134,8 @@ export default function Animals() {
     const matchesFilter =
       activeFilter === "all" ||
       (activeFilter === "active" && animal.status === "active") ||
-      (activeFilter === "inactive" && animal.status === "inactive");
+      (activeFilter === "inactive" && animal.status === "inactive") ||
+      (activeFilter === "sold" && animal.status === "sold");
 
     return matchesSearch && matchesFilter;
   });
@@ -412,12 +413,18 @@ export default function Animals() {
       key: "status",
       label: t.animals.table.status,
       sortable: true,
-      render: (_, row) => (
-        <StatusBadge
-          label={row.status === "active" ? t.animals.table.active : t.animals.table.inactive}
-          variant={row.status === "active" ? "success" : "default"}
-        />
-      ),
+      render: (_, row) => {
+        let label: string = t.animals.table.active;
+        let variant: "success" | "default" | "warning" = "success";
+        if (row.status === "inactive") {
+          label = t.animals.table.inactive;
+          variant = "default";
+        } else if (row.status === "sold") {
+          label = t.animals.table.sold || "Vendido";
+          variant = "warning";
+        }
+        return <StatusBadge label={label} variant={variant} />;
+      },
     },
     {
       key: "actions",
@@ -478,6 +485,12 @@ export default function Animals() {
       value: "inactive",
       active: activeFilter === "inactive",
       onClick: () => setActiveFilter("inactive"),
+    },
+    {
+      label: t.animals.filters.sold || "Vendidos",
+      value: "sold",
+      active: activeFilter === "sold",
+      onClick: () => setActiveFilter("sold"),
     },
   ];
 

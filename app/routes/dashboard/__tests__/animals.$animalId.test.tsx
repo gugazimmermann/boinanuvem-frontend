@@ -72,9 +72,9 @@ vi.mock("~/mocks/weighings", async () => {
   return actual;
 });
 
-const mockGetWeighingsByAnimalId = vi.fn(() => []);
+const mockGetWeighingsByAnimalId = vi.hoisted(() => vi.fn(() => []));
 vi.mock("~/services/weighings.service", () => ({
-  getWeighingsByAnimalId: () => mockGetWeighingsByAnimalId(),
+  getWeighingsByAnimalId: (...args: unknown[]) => mockGetWeighingsByAnimalId(...args),
 }));
 
 vi.mock("~/mocks/animal-observations", async () => {

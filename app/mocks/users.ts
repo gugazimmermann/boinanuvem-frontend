@@ -18,6 +18,7 @@ const fullPermissions: UserPermissions = {
     births: { view: true, add: true, edit: true, remove: true },
     acquisitions: { view: true, add: true, edit: true, remove: true },
     weighings: { view: true, add: true, edit: true, remove: true },
+    sales: { view: true, add: true, edit: true, remove: true },
   },
   breedings: {
     breedings: { view: true, add: true, edit: true, remove: true },
@@ -49,6 +50,7 @@ const managerPermissions: UserPermissions = {
     births: { view: true, add: true, edit: true, remove: false },
     acquisitions: { view: true, add: true, edit: true, remove: false },
     weighings: { view: true, add: true, edit: true, remove: false },
+    sales: { view: true, add: true, edit: true, remove: false },
   },
   breedings: {
     breedings: { view: true, add: true, edit: true, remove: false },
@@ -80,6 +82,7 @@ const regularUserPermissions: UserPermissions = {
     births: { view: true, add: true, edit: false, remove: false },
     acquisitions: { view: true, add: true, edit: false, remove: false },
     weighings: { view: true, add: true, edit: false, remove: false },
+    sales: { view: true, add: true, edit: false, remove: false },
   },
   breedings: {
     breedings: { view: true, add: true, edit: false, remove: false },
@@ -111,6 +114,7 @@ const inactiveUserPermissions: UserPermissions = {
     births: { view: true, add: false, edit: false, remove: false },
     acquisitions: { view: true, add: false, edit: false, remove: false },
     weighings: { view: true, add: false, edit: false, remove: false },
+    sales: { view: true, add: false, edit: false, remove: false },
   },
   breedings: {
     breedings: { view: true, add: false, edit: false, remove: false },
@@ -142,6 +146,7 @@ const pendingUserPermissions: UserPermissions = {
     births: { view: false, add: false, edit: false, remove: false },
     acquisitions: { view: false, add: false, edit: false, remove: false },
     weighings: { view: false, add: false, edit: false, remove: false },
+    sales: { view: false, add: false, edit: false, remove: false },
   },
   breedings: {
     breedings: { view: false, add: false, edit: false, remove: false },

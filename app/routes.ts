@@ -65,6 +65,10 @@ export default [
     route(ROUTE_NAMES.BIRTHS_NEW, "routes/dashboard/records.births.new.tsx"),
     route(ROUTE_NAMES.ACQUISITIONS, "routes/dashboard/records.acquisitions.tsx"),
     route(ROUTE_NAMES.ACQUISITIONS_NEW, "routes/dashboard/records.acquisitions.new.tsx"),
+    route(ROUTE_NAMES.SALES, "routes/dashboard/records.sales.tsx"),
+    route(ROUTE_NAMES.SALES_NEW, "routes/dashboard/records.sales.new.tsx"),
+    route(ROUTE_NAMES.SALES_EDIT, "routes/dashboard/records.sales.edit.$saleId.tsx"),
+    route(ROUTE_NAMES.SALES_VIEW, "routes/dashboard/records.sales.$saleId.tsx"),
     route(ROUTE_NAMES.DEATHS_NEW, "routes/dashboard/records.deaths.new.tsx"),
     route(ROUTE_NAMES.WEIGHINGS_NEW, "routes/dashboard/records.weighings.new.tsx"),
     route(

@@ -26,6 +26,8 @@ import { getAccountsPayableByCompanyId } from "~/services/accounts-payable.servi
 import { getAccountsReceivableByCompanyId } from "~/services/accounts-receivable.service";
 import { getSupplierById } from "~/services/suppliers.service";
 import { getBuyerById } from "~/services/buyers.service";
+import { getSalesByCompanyId } from "~/services/sales.service";
+import { getSalesMetrics } from "~/services/sales-analytics.service";
 import type { AccountsPayable, AccountsReceivable } from "~/types";
 import { AccountsPayableStatus, AccountsReceivableStatus } from "~/types";
 
@@ -80,6 +82,8 @@ export default function FinancesDashboard() {
     () => getAccountsReceivableByCompanyId(companyId),
     [companyId]
   );
+  const salesData = useMemo(() => getSalesByCompanyId(companyId), [companyId]);
+  const salesMetrics = useMemo(() => getSalesMetrics(companyId), [companyId]);
 
   const currentDate = useMemo(() => new Date(), []);
   const currentMonthStart = useMemo(() => startOfMonth(currentDate), [currentDate]);
@@ -512,6 +516,208 @@ export default function FinancesDashboard() {
             </div>
             <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
               <span className="text-lg">⚠️</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Sales Analytics Section */}
+      <div className="mb-6">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          {t.financesDashboard.salesAnalytics?.title || "Análise de Vendas"}
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  {t.financesDashboard.salesAnalytics?.totalSales || "Total de Vendas"}
+                </p>
+                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                  {salesMetrics.totalSales}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {salesMetrics.totalAnimalsSold}{" "}
+                  {t.financesDashboard.salesAnalytics?.animalsSold || "animais"}
+                </p>
+              </div>
+              <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center">
+                <span className="text-lg">💵</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  {t.financesDashboard.salesAnalytics?.totalRevenue || "Receita Total"}
+                </p>
+                <p className="text-xl font-bold text-green-600 dark:text-green-400 mt-1">
+                  {formatCurrency(salesMetrics.totalRevenue)}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {t.financesDashboard.salesAnalytics?.averagePricePerHead || "Média/cabeça"}:{" "}
+                  {formatCurrency(salesMetrics.averagePricePerHead)}
+                </p>
+              </div>
+              <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                <span className="text-lg">💰</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  {t.financesDashboard.salesAnalytics?.averagePricePerKg || "Preço Médio/kg"}
+                </p>
+                <p className="text-xl font-bold text-blue-600 dark:text-blue-400 mt-1">
+                  {formatCurrency(salesMetrics.averagePricePerKg)}
+                </p>
+                {salesMetrics.averageCarcassValue && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {t.financesDashboard.salesAnalytics?.averageCarcassValue || "Carcaça média"}:{" "}
+                    {salesMetrics.averageCarcassValue.toFixed(1)} kg
+                  </p>
+                )}
+              </div>
+              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                <span className="text-lg">⚖️</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  {t.financesDashboard.salesAnalytics?.profitability || "Lucratividade"}
+                </p>
+                <p
+                  className={`text-xl font-bold mt-1 ${
+                    salesMetrics.profitability.totalProfit >= 0
+                      ? "text-green-600 dark:text-green-400"
+                      : "text-red-600 dark:text-red-400"
+                  }`}
+                >
+                  {formatCurrency(salesMetrics.profitability.totalProfit)}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {salesMetrics.profitability.averageProfitMargin.toFixed(2)}%{" "}
+                  {t.financesDashboard.salesAnalytics?.profitMargin || "margem"}
+                </p>
+              </div>
+              <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                <span className="text-lg">📊</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
+              {t.financesDashboard.salesAnalytics?.salesByType || "Vendas por Tipo"}
+            </h3>
+            {(() => {
+              const salesByType = salesData.reduce(
+                (acc, sale) => {
+                  if (!acc[sale.saleType]) {
+                    acc[sale.saleType] = { count: 0, revenue: 0 };
+                  }
+                  acc[sale.saleType].count += 1;
+                  acc[sale.saleType].revenue +=
+                    sale.totalPrice + (sale.transportationFee || 0) + (sale.additionalFees || 0);
+                  return acc;
+                },
+                {} as Record<string, { count: number; revenue: number }>
+              );
+
+              const chartData = Object.entries(salesByType).map(([type, data]) => ({
+                name: t.sales.saleTypes[type as keyof typeof t.sales.saleTypes] || type,
+                count: data.count,
+                revenue: data.revenue,
+              }));
+
+              return chartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={gridColor} opacity={0.3} />
+                    <XAxis dataKey="name" tick={{ fill: textColor, fontSize: 12 }} />
+                    <YAxis
+                      tick={{ fill: textColor, fontSize: 12 }}
+                      tickFormatter={(value) => `${value}`}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: isDark ? "#1f2937" : "#ffffff",
+                        border: `1px solid ${gridColor}`,
+                        borderRadius: "8px",
+                      }}
+                      formatter={(value: number) => formatCurrency(value)}
+                    />
+                    <Legend />
+                    <Bar
+                      dataKey="revenue"
+                      fill={chartColors.income}
+                      name={t.financesDashboard.salesAnalytics?.revenue || "Receita"}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">
+                  {t.financesDashboard.tables.noData}
+                </p>
+              );
+            })()}
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
+              {t.financesDashboard.salesAnalytics?.profitabilityBreakdown ||
+                "Análise de Lucratividade"}
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  {t.financesDashboard.salesAnalytics?.totalCost || "Custo Total"}
+                </p>
+                <p className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-1">
+                  {formatCurrency(salesMetrics.profitability.totalCost)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  {t.financesDashboard.salesAnalytics?.totalSalePrice || "Preço Total de Venda"}
+                </p>
+                <p className="text-lg font-bold text-green-600 dark:text-green-400 mt-1">
+                  {formatCurrency(salesMetrics.profitability.totalSalePrice)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  {t.financesDashboard.salesAnalytics?.averageRoi || "ROI Médio"}
+                </p>
+                <p
+                  className={`text-lg font-bold mt-1 ${
+                    salesMetrics.profitability.averageRoi >= 0
+                      ? "text-green-600 dark:text-green-400"
+                      : "text-red-600 dark:text-red-400"
+                  }`}
+                >
+                  {salesMetrics.profitability.averageRoi.toFixed(2)}%
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  {t.financesDashboard.salesAnalytics?.averageCostPerKg || "Custo Médio/kg"}
+                </p>
+                <p className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-1">
+                  {formatCurrency(salesMetrics.profitability.averageCostPerKg)}
+                </p>
+              </div>
             </div>
           </div>
         </div>

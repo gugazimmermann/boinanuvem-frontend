@@ -255,6 +255,30 @@ export default function Help() {
         answer: t.help.faqs.medicineDuringWeighing.answer,
       },
       {
+        id: "record-sale",
+        category: "records",
+        question: t.help.faqs.recordSale.question,
+        answer: t.help.faqs.recordSale.answer,
+      },
+      {
+        id: "sale-pricing-modes",
+        category: "records",
+        question: t.help.faqs.salePricingModes.question,
+        answer: t.help.faqs.salePricingModes.answer,
+      },
+      {
+        id: "sale-payment-methods",
+        category: "financial",
+        question: t.help.faqs.salePaymentMethods.question,
+        answer: t.help.faqs.salePaymentMethods.answer,
+      },
+      {
+        id: "sale-profitability",
+        category: "analytics",
+        question: t.help.faqs.saleProfitability.question,
+        answer: t.help.faqs.saleProfitability.answer,
+      },
+      {
         id: "reproductive-indexes",
         category: "analytics",
         question: t.help.faqs.reproductiveIndexes.question,

@@ -32,7 +32,7 @@ export default function EditAnimal() {
     code: string;
     registrationNumber: string;
     acquisitionDate: string;
-    status: "active" | "inactive";
+    status: "active" | "inactive" | "sold";
     propertyId: string;
   }>({
     code: "",

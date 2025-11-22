@@ -37,6 +37,8 @@ import { getBreedingsByCompanyId } from "~/services/breedings.service";
 import { getEmployeesByCompanyId } from "~/services/employees.service";
 import { getSuppliersByCompanyId } from "~/services/suppliers.service";
 import { getBuyersByCompanyId } from "~/services/buyers.service";
+import { getSalesByCompanyId } from "~/services/sales.service";
+import { getSalesMetrics } from "~/services/sales-analytics.service";
 import { AreaType } from "~/types";
 import { AccountsPayableStatus, AccountsReceivableStatus } from "~/types";
 import { ROUTES } from "~/routes.config";
@@ -211,6 +213,23 @@ export default function Dashboard() {
   const births = useMemo(() => getBirthsByCompanyId(companyId), [companyId]);
   const breedings = useMemo(() => getBreedingsByCompanyId(companyId), [companyId]);
 
+  // Sales data
+  const sales = useMemo(() => getSalesByCompanyId(companyId), [companyId]);
+  const salesMetrics = useMemo(() => getSalesMetrics(companyId), [companyId]);
+
+  const salesThisMonth = useMemo(() => {
+    return sales.filter((sale) => {
+      const saleDate = parseISO(sale.saleDate);
+      return saleDate >= currentMonthStart && saleDate <= currentMonthEnd;
+    }).length;
+  }, [sales, currentMonthStart, currentMonthEnd]);
+
+  const recentSales = useMemo(() => {
+    return [...sales]
+      .sort((a, b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime())
+      .slice(0, 10);
+  }, [sales]);
+
   const birthsThisMonth = useMemo(() => {
     return births.filter((birth) => {
       const birthDate = parseISO(birth.birthDate);
@@ -304,10 +323,21 @@ export default function Dashboard() {
       });
     });
 
+    // Sales
+    sales.forEach((sale) => {
+      activityList.push({
+        type: "sale",
+        date: sale.saleDate,
+        title: t.dashboard.recentActivities.newSaleRegistered || "Nova venda registrada",
+        icon: "💵",
+        color: "green",
+      });
+    });
+
     return activityList
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 10);
-  }, [animals, births, allWeighings, breedings, cashFlowData, t]);
+  }, [animals, births, allWeighings, breedings, cashFlowData, sales, t]);
 
   // Charts data
   const weightTrendData = useMemo(() => {
@@ -627,6 +657,26 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  {t.dashboard.additionalStats.salesThisMonth || "Vendas este mês"}
+                </p>
+                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                  {salesThisMonth}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {salesMetrics.totalAnimalsSold}{" "}
+                  {t.dashboard.additionalStats.animalsSold || "animais vendidos"}
+                </p>
+              </div>
+              <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center">
+                <span className="text-lg">💵</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -724,6 +774,32 @@ export default function Dashboard() {
               </div>
               <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
                 <span className="text-lg">📥</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  {t.dashboard.financial.totalSalesRevenue || "Receita Total de Vendas"}
+                </p>
+                <p className="text-xl font-bold text-green-600 dark:text-green-400 mt-1">
+                  {formatCurrency(salesMetrics.totalRevenue)}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {t.dashboard.financial.averagePricePerKg || "Preço médio/kg"}:{" "}
+                  {formatCurrency(salesMetrics.averagePricePerKg)}
+                </p>
+                <Link
+                  to={ROUTES.SALES}
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-1 inline-block"
+                >
+                  {t.dashboard.financial.viewSales || "Ver vendas"}
+                </Link>
+              </div>
+              <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                <span className="text-lg">💰</span>
               </div>
             </div>
           </div>
@@ -873,8 +949,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Recent Births & Breedings Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Recent Births, Breedings & Sales Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div>
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
             {t.dashboard.sections.recentBirths}
@@ -945,6 +1021,46 @@ export default function Dashboard() {
               ) : (
                 <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
                   No recent breedings
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            {t.dashboard.sections.recentSales || "Vendas Recentes"}
+          </h2>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+            <div className="space-y-3">
+              {recentSales.length > 0 ? (
+                recentSales.map((sale, index) => (
+                  <div
+                    key={sale.id}
+                    className={`flex items-center space-x-3 ${
+                      index < recentSales.length - 1
+                        ? "pb-3 border-b border-gray-200 dark:border-gray-700"
+                        : ""
+                    }`}
+                  >
+                    <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center">
+                      <span className="text-sm">💵</span>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-medium text-gray-900 dark:text-gray-100">
+                        {format(parseISO(sale.saleDate), "dd/MM/yyyy")} •{" "}
+                        {formatCurrency(sale.totalPrice)}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {sale.saleItems.length} {sale.saleItems.length === 1 ? "animal" : "animais"}{" "}
+                        • {formatRelativeTime(sale.saleDate, t)}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                  {t.dashboard.sections.noRecentSales || "Nenhuma venda recente"}
                 </p>
               )}
             </div>

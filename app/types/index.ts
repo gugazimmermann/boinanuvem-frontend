@@ -15,6 +15,8 @@ export type { Death, DeathFormData } from "./death";
 export type { Breeding, BreedingFormData, BreedingMethod } from "./breeding";
 export { BirthPurity } from "./birth";
 export type { Acquisition, AcquisitionFormData } from "./acquisition";
+export type { Sale, SaleFormData, SaleItem } from "./sale";
+export { SaleType, PricingMode, SalePaymentMethod } from "./sale";
 export type { UserRole, UserFormData, TeamUser } from "./user";
 export type { Company, CompanyFormData } from "./company";
 export type { AddressFormData, CEPData, CNPJData } from "./address";

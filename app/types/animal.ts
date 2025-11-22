@@ -26,7 +26,7 @@ export interface Animal extends Record<string, unknown> {
   code: string;
   registrationNumber: string;
   acquisitionDate?: string;
-  status: "active" | "inactive";
+  status: "active" | "inactive" | "sold";
   createdAt: string;
   companyId: string;
   propertyId: string;
@@ -36,7 +36,7 @@ export interface AnimalFormData {
   code: string;
   registrationNumber: string;
   acquisitionDate?: string;
-  status: "active" | "inactive";
+  status: "active" | "inactive" | "sold";
   companyId: string;
   propertyId: string;
 }

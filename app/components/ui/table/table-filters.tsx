@@ -29,7 +29,15 @@ export function TableFilters({
   const hasFilters = filters.length > 0;
   const hasSearch = Boolean(search);
 
-  if (!hasFilters && !hasSearch && !selectedCountLabel && !selectedActionButton) {
+  if (
+    !hasFilters &&
+    !hasSearch &&
+    !selectedCountLabel &&
+    !selectedActionButton &&
+    !rightContent &&
+    !middleContent &&
+    !belowContent
+  ) {
     return null;
   }
 

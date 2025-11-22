@@ -1,0 +1,266 @@
+import type { Sale, SaleFormData } from "~/types";
+import { SalePaymentMethod } from "~/types";
+import { mockSales } from "~/mocks/sales";
+import { findById, findByField, createEntity, updateEntity, deleteEntity } from "./base-service";
+import { updateAnimal, getAnimalById } from "./animals.service";
+import { addCashFlow, deleteCashFlow, updateCashFlow } from "./cash-flow.service";
+import {
+  addAccountsReceivable,
+  deleteAccountsReceivable,
+  updateAccountsReceivable,
+} from "./accounts-receivable.service";
+import { CashFlowCategory, PaymentMethod } from "~/types";
+import { AccountsReceivableStatus } from "~/types";
+
+const ID_PREFIX = "sa0e8400-e29b-41d4-a716";
+const DEFAULT_ID = "sa0e8400-e29b-41d4-a716-446655440009";
+
+export function getSaleById(saleId: string | undefined): Sale | undefined {
+  return findById(mockSales, saleId);
+}
+
+export function getSalesByCompanyId(companyId: string): Sale[] {
+  return findByField(mockSales, "companyId", companyId);
+}
+
+export function getSalesByBuyerId(buyerId: string): Sale[] {
+  return findByField(mockSales, "buyerId", buyerId);
+}
+
+export function getSalesByAnimalId(animalId: string): Sale[] {
+  if (!animalId) return [];
+  return mockSales.filter((sale) => sale.saleItems.some((item) => item.animalId === animalId));
+}
+
+/**
+ * Checks if an animal is already sold
+ * @param animalId - The ID of the animal to check
+ * @returns true if the animal is already sold, false otherwise
+ */
+export function isAnimalSold(animalId: string): boolean {
+  if (!animalId) return false;
+  const animal = getAnimalById(animalId);
+  return animal?.status === "sold";
+}
+
+export function getSalesByDateRange(companyId: string, startDate: string, endDate: string): Sale[] {
+  return getSalesByCompanyId(companyId).filter((sale) => {
+    const saleDate = new Date(sale.saleDate);
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    return saleDate >= start && saleDate <= end;
+  });
+}
+
+export function getSalesBySaleType(companyId: string, saleType: string): Sale[] {
+  return getSalesByCompanyId(companyId).filter((sale) => sale.saleType === saleType);
+}
+
+export function addSale(data: SaleFormData): Sale {
+  // Create the sale record
+  const sale = createEntity(mockSales, data, ID_PREFIX, DEFAULT_ID);
+
+  // Update all animals to "sold" status
+  data.saleItems.forEach((item) => {
+    const animal = getAnimalById(item.animalId);
+    if (animal) {
+      updateAnimal(item.animalId, { status: "sold" });
+    }
+  });
+
+  // Create financial record based on payment method
+  const totalAmount = data.totalPrice + (data.transportationFee || 0) + (data.additionalFees || 0);
+  const animalCodes = data.saleItems
+    .map((item) => {
+      const animal = getAnimalById(item.animalId);
+      return animal?.code || item.animalId;
+    })
+    .join(", ");
+
+  if (data.paymentMethod === SalePaymentMethod.CASH_FLOW) {
+    const cashFlow = addCashFlow({
+      companyId: data.companyId,
+      type: "income",
+      amount: totalAmount,
+      date: data.saleDate,
+      description: `Venda de animais: ${animalCodes}`,
+      category: CashFlowCategory.CATTLE_SALES,
+      paymentMethod: PaymentMethod.CASH,
+      status: "completed",
+      buyerId: data.buyerId,
+      propertyId: data.propertyId,
+    });
+    sale.linkedCashFlowId = cashFlow.id;
+  } else {
+    const accountsReceivable = addAccountsReceivable({
+      companyId: data.companyId,
+      buyerId: data.buyerId,
+      amount: totalAmount,
+      dueDate: data.saleDate,
+      description: `Venda de animais: ${animalCodes}`,
+      category: CashFlowCategory.CATTLE_SALES,
+      paymentMethod: PaymentMethod.CASH,
+      status: AccountsReceivableStatus.UNPAID,
+      propertyId: data.propertyId,
+    });
+    sale.linkedAccountsReceivableId = accountsReceivable.id;
+  }
+
+  // Update the sale with the linked financial record ID
+  updateEntity(mockSales, sale.id, sale);
+
+  return sale;
+}
+
+export function updateSale(saleId: string, data: Partial<SaleFormData>): boolean {
+  const existingSale = getSaleById(saleId);
+  if (!existingSale) return false;
+
+  // Get previous animal IDs
+  const previousAnimalIds = existingSale.saleItems.map((item) => item.animalId);
+  const newAnimalIds = data.saleItems
+    ? data.saleItems.map((item) => item.animalId)
+    : previousAnimalIds;
+
+  // Revert status for animals removed from sale
+  const removedAnimalIds = previousAnimalIds.filter((id) => !newAnimalIds.includes(id));
+  removedAnimalIds.forEach((animalId) => {
+    const animal = getAnimalById(animalId);
+    if (animal) {
+      // Revert to previous status (default to active)
+      updateAnimal(animalId, { status: "active" });
+    }
+  });
+
+  // Update status for new animals added to sale
+  if (data.saleItems) {
+    const addedAnimalIds = newAnimalIds.filter((id) => !previousAnimalIds.includes(id));
+    addedAnimalIds.forEach((animalId) => {
+      updateAnimal(animalId, { status: "sold" });
+    });
+  }
+
+  // Handle payment method change
+  if (data.paymentMethod && data.paymentMethod !== existingSale.paymentMethod) {
+    const totalAmount =
+      (data.totalPrice || existingSale.totalPrice) +
+      (data.transportationFee || existingSale.transportationFee || 0) +
+      (data.additionalFees || existingSale.additionalFees || 0);
+
+    const animalCodes = (data.saleItems || existingSale.saleItems)
+      .map((item) => {
+        const animal = getAnimalById(item.animalId);
+        return animal?.code || item.animalId;
+      })
+      .join(", ");
+
+    // Delete old financial record
+    if (existingSale.linkedCashFlowId) {
+      deleteCashFlow(existingSale.linkedCashFlowId);
+    }
+    if (existingSale.linkedAccountsReceivableId) {
+      deleteAccountsReceivable(existingSale.linkedAccountsReceivableId);
+    }
+
+    // Create new financial record
+    let linkedCashFlowId: string | undefined;
+    let linkedAccountsReceivableId: string | undefined;
+
+    if (data.paymentMethod === SalePaymentMethod.CASH_FLOW) {
+      const cashFlow = addCashFlow({
+        companyId: existingSale.companyId,
+        type: "income",
+        amount: totalAmount,
+        date: data.saleDate || existingSale.saleDate,
+        description: `Venda de animais: ${animalCodes}`,
+        category: CashFlowCategory.CATTLE_SALES,
+        paymentMethod: PaymentMethod.CASH,
+        status: "completed",
+        buyerId: data.buyerId || existingSale.buyerId,
+        propertyId: data.propertyId || existingSale.propertyId,
+      });
+      linkedCashFlowId = cashFlow.id;
+      linkedAccountsReceivableId = undefined;
+    } else {
+      const accountsReceivable = addAccountsReceivable({
+        companyId: existingSale.companyId,
+        buyerId: data.buyerId || existingSale.buyerId,
+        amount: totalAmount,
+        dueDate: data.saleDate || existingSale.saleDate,
+        description: `Venda de animais: ${animalCodes}`,
+        category: CashFlowCategory.CATTLE_SALES,
+        paymentMethod: PaymentMethod.CASH,
+        status: AccountsReceivableStatus.UNPAID,
+        propertyId: data.propertyId || existingSale.propertyId,
+      });
+      linkedAccountsReceivableId = accountsReceivable.id;
+      linkedCashFlowId = undefined;
+    }
+
+    // Update sale with new financial record IDs using updateEntity
+    const updateData: Partial<SaleFormData> & {
+      linkedCashFlowId?: string;
+      linkedAccountsReceivableId?: string;
+    } = {
+      ...data,
+      linkedCashFlowId,
+      linkedAccountsReceivableId,
+    };
+    return updateEntity(mockSales, saleId, updateData);
+  } else {
+    // Update existing financial record if amount changed
+    if (
+      data.totalPrice !== undefined ||
+      data.transportationFee !== undefined ||
+      data.additionalFees !== undefined
+    ) {
+      const totalAmount =
+        (data.totalPrice || existingSale.totalPrice) +
+        (data.transportationFee || existingSale.transportationFee || 0) +
+        (data.additionalFees || existingSale.additionalFees || 0);
+
+      if (existingSale.linkedCashFlowId) {
+        updateCashFlow(existingSale.linkedCashFlowId, { amount: totalAmount });
+      }
+      if (existingSale.linkedAccountsReceivableId) {
+        updateAccountsReceivable(existingSale.linkedAccountsReceivableId, {
+          amount: totalAmount,
+        });
+      }
+    }
+
+    // Update sale with new data
+    return updateEntity(mockSales, saleId, data);
+  }
+
+  return true;
+}
+
+export function deleteSale(saleId: string): boolean {
+  const sale = getSaleById(saleId);
+  if (!sale) return false;
+
+  // Revert all animal statuses to previous state (default to active)
+  sale.saleItems.forEach((item) => {
+    const animal = getAnimalById(item.animalId);
+    if (animal) {
+      updateAnimal(item.animalId, { status: "active" });
+    }
+  });
+
+  // Delete linked financial records
+  if (sale.linkedCashFlowId) {
+    deleteCashFlow(sale.linkedCashFlowId);
+  }
+  if (sale.linkedAccountsReceivableId) {
+    deleteAccountsReceivable(sale.linkedAccountsReceivableId);
+  }
+
+  // Delete the sale
+  return deleteEntity(mockSales, saleId);
+}
+
+export function generateSaleId(index: number): string {
+  const base = 446655440100 + index;
+  return `${ID_PREFIX}-${base.toString().padStart(12, "0")}`;
+}

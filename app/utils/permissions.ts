@@ -17,6 +17,7 @@ const fullPermissions: UserPermissions = {
     births: { view: true, add: true, edit: true, remove: true },
     acquisitions: { view: true, add: true, edit: true, remove: true },
     weighings: { view: true, add: true, edit: true, remove: true },
+    sales: { view: true, add: true, edit: true, remove: true },
   },
   breedings: {
     breedings: { view: true, add: true, edit: true, remove: true },
@@ -60,6 +61,7 @@ export function usePermissions() {
         births: { view: false, add: false, edit: false, remove: false },
         acquisitions: { view: false, add: false, edit: false, remove: false },
         weighings: { view: false, add: false, edit: false, remove: false },
+        sales: { view: false, add: false, edit: false, remove: false },
       },
       breedings: {
         breedings: { view: false, add: false, edit: false, remove: false },

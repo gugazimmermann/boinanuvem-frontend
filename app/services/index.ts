@@ -13,6 +13,7 @@ export * from "./service-providers.service";
 export * from "./births.service";
 export * from "./weighings.service";
 export * from "./acquisitions.service";
+export * from "./sales.service";
 export * from "./deaths.service";
 export * from "./breedings.service";
 export * from "./sanitary-controls.service";

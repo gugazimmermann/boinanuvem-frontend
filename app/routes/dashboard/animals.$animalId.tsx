@@ -57,6 +57,10 @@ import {
 } from "~/services/breedings.service";
 import { getAnimalMovementsByAnimalId } from "~/services/animal-movements.service";
 import { getLocationById } from "~/services/locations.service";
+import { getSalesByAnimalId } from "~/services/sales.service";
+import { getBuyerById } from "~/services/buyers.service";
+import { calculateAnimalProfitability } from "~/utils/profitability";
+import { getSaleViewRoute } from "~/routes.config";
 import type { Breeding, Birth } from "~/types";
 import type { AnimalObservation } from "~/types/animal-observation";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
@@ -227,6 +231,7 @@ export default function AnimalDetails() {
     | "breeding"
     | "sanitaryControl"
     | "costs"
+    | "sales"
   >("dashboard");
 
   // Redirect non-main users away from activities tab
@@ -884,6 +889,24 @@ export default function AnimalDetails() {
             }
           >
             {t.animals.details.costs?.title || "Costs"}
+          </button>
+          <button
+            onClick={() => setActiveTab("sales")}
+            className={`
+              py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
+              ${
+                activeTab === "sales"
+                  ? "dark:text-blue-400"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+              }
+            `}
+            style={
+              activeTab === "sales"
+                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
+                : undefined
+            }
+          >
+            {t.animals.details.tabs.sales || "Vendas"}
           </button>
           {isMainUser() && (
             <button
@@ -3294,6 +3317,178 @@ export default function AnimalDetails() {
                       <p className="text-sm mt-2">
                         {t.animals.details.costs?.noCostsDescription ||
                           "This animal has no inventory consumption costs recorded yet."}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </>
+            );
+          })()}
+        </div>
+      )}
+
+      {activeTab === "sales" && animal && (
+        <div className="space-y-6">
+          {(() => {
+            const animalSales = getSalesByAnimalId(animal.id);
+            const salesWithDetails = animalSales
+              .map((sale) => {
+                const saleItem = sale.saleItems.find((item) => item.animalId === animal.id);
+                if (!saleItem) return null;
+
+                const profitability = calculateAnimalProfitability(
+                  animal.id,
+                  saleItem.price,
+                  sale.saleDate,
+                  saleItem.weight
+                );
+
+                const buyer = getBuyerById(sale.buyerId);
+
+                return {
+                  sale,
+                  saleItem,
+                  profitability,
+                  buyer,
+                };
+              })
+              .filter(Boolean) as Array<{
+              sale: (typeof animalSales)[0];
+              saleItem: (typeof animalSales)[0]["saleItems"][0];
+              profitability: ReturnType<typeof calculateAnimalProfitability>;
+              buyer: ReturnType<typeof getBuyerById>;
+            }>;
+
+            const formatCurrency = (value: number) => {
+              return new Intl.NumberFormat(localeForNumber, {
+                style: "currency",
+                currency: "BRL",
+              }).format(value);
+            };
+
+            return (
+              <>
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
+                    {t.animals.details.tabs.sales || "Vendas"}
+                  </h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                    {t.animals.details.sales?.description || "Histórico de vendas deste animal"}
+                  </p>
+
+                  {salesWithDetails.length > 0 ? (
+                    <div className="space-y-6">
+                      {salesWithDetails.map(({ sale, saleItem, profitability, buyer }) => (
+                        <div
+                          key={sale.id}
+                          className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            <div>
+                              <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100">
+                                {format(new Date(sale.saleDate), "PP", { locale: dateLocale })}
+                              </h3>
+                              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                {buyer?.name || t.common.notAvailable}
+                              </p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              onClick={() => navigate(getSaleViewRoute(sale.id))}
+                            >
+                              {t.common.view || "Ver"}
+                            </Button>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div>
+                              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                {t.sales.details.price || "Preço"}
+                              </p>
+                              <p className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-1">
+                                {formatCurrency(saleItem.price)}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                {t.sales.details.weight || "Peso"}
+                              </p>
+                              <p className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-1">
+                                {saleItem.weight} kg
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                {t.sales.details.pricePerKg || "Preço/kg"}
+                              </p>
+                              <p className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-1">
+                                {formatCurrency(profitability.pricePerKg)}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                {t.sales.details.profit || "Lucro"}
+                              </p>
+                              <p
+                                className={`text-lg font-bold mt-1 ${
+                                  profitability.profit >= 0
+                                    ? "text-green-600 dark:text-green-400"
+                                    : "text-red-600 dark:text-red-400"
+                                }`}
+                              >
+                                {formatCurrency(profitability.profit)}
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                {profitability.profitMargin.toFixed(2)}%{" "}
+                                {t.sales.details.profitMargin || "margem"}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                  {t.sales.details.cost || "Custo Total"}
+                                </p>
+                                <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
+                                  {formatCurrency(profitability.totalCost)}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                  {t.sales.details.saleType || "Tipo de Venda"}
+                                </p>
+                                <StatusBadge
+                                  label={
+                                    sale.saleType === "slaughterhouse"
+                                      ? t.sales.saleTypes?.slaughterhouse || "Frigorífico"
+                                      : sale.saleType === "auction"
+                                        ? t.sales.saleTypes?.auction || "Leilão"
+                                        : t.sales.saleTypes?.otherFarm || "Outra Propriedade"
+                                  }
+                                  variant={
+                                    sale.saleType === "slaughterhouse"
+                                      ? "danger"
+                                      : sale.saleType === "auction"
+                                        ? "warning"
+                                        : "info"
+                                  }
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                      <p className="font-medium">
+                        {t.animals.details.sales?.noSales || "Nenhuma venda registrada"}
+                      </p>
+                      <p className="text-sm mt-2">
+                        {t.animals.details.sales?.noSalesDescription ||
+                          "Este animal ainda não foi vendido."}
                       </p>
                     </div>
                   )}

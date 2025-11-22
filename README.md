@@ -56,6 +56,19 @@ A modern, full-stack React application built with React Router v7, featuring a c
   - Automatic animal status update to inactive upon death registration
   - Prevents duplicate death records for the same animal
   - Dead animals excluded from active lists but remain accessible for historical references
+- **Sales**: Complete animal sales management system
+  - Register sales of one or multiple animals simultaneously
+  - Flexible pricing modes: individual per animal or total lot price with automatic equal distribution
+  - Support for different sale types: slaughterhouses, other farms, and auctions
+  - Buyer information linked to suppliers/clients registry
+  - Sale date, weight of each animal at sale, and optional transportation/additional fees
+  - Automatic animal status update to 'Sold' upon sale completion
+  - Sold animals removed from active animal lists but remain accessible for historical references
+  - Automatic financial integration: creates cash flow transaction or accounts receivable based on payment method
+  - Full sale history tracking for each animal
+  - Profitability calculation: compares sale price against accumulated costs (acquisition, inventory consumption, etc.)
+  - Comprehensive sales analytics: price per kilogram, price per head, carcass value, age at sale, profitability metrics
+  - Filtering capabilities: by buyer, category, date range, or batch
 - **Weighings**: 
   - Track animal weight measurements over time with trend analysis
   - **Session Weighings**: Register multiple weighings in a single session without page navigation
@@ -308,13 +321,13 @@ A modern, full-stack React application built with React Router v7, featuring a c
   - System event tracking
   - Activity history viewing
 - **Help Center**: Comprehensive FAQ and help documentation
-  - **44+ FAQs** covering all major features and workflows
+  - **49+ FAQs** covering all major features and workflows
   - **9 Categories**: Getting Started, Animals, Locations, Relationships, Records, Financial, Analytics, Team, and Technical
   - **Quick Start Guide**: Step-by-step instructions for new users
   - **Contact Support**: Support channels and contact information
   - **Category Filtering**: Filter FAQs by category for easy navigation
   - **Fully Internationalized**: All help content available in Portuguese, English, and Spanish
-  - **Comprehensive Coverage**: FAQs for animal management, locations, employees, service providers, suppliers, buyers, observations, weighings (including session weighings), acquisitions, deaths, movements, inventory management (including observations, financial integration, and location-based cost tracking), financial management (including observations for cash flow, accounts payable, and accounts receivable, and animal inventory costs), reproductive indexes, birth forecast, dashboard metrics, pasture planning, breeding season, search & filtering, data organization, and best practices
+  - **Comprehensive Coverage**: FAQs for animal management, locations, employees, service providers, suppliers, buyers, observations, weighings (including session weighings), acquisitions, deaths, sales (including pricing modes, payment methods, and profitability), movements, inventory management (including observations, financial integration, and location-based cost tracking), financial management (including observations for cash flow, accounts payable, and accounts receivable, and animal inventory costs), reproductive indexes, birth forecast, dashboard metrics, pasture planning, breeding season, search & filtering, data organization, and best practices
 
 ## 📋 Prerequisites
 
@@ -451,6 +464,8 @@ The application uses a service layer pattern to abstract data access and busines
   - `deaths.service.ts` - Animal death record management
   - `breedings.service.ts` - Breeding record management
   - `sanitary-controls.service.ts` - Sanitary control record management (medicine/vaccine administration)
+  - `sales.service.ts` - Animal sales management with financial integration
+  - `sales-analytics.service.ts` - Sales metrics and profitability calculations
 
 - **Movement Services**: 
   - `animal-movements.service.ts` - Animal movement tracking between properties/locations
@@ -528,6 +543,7 @@ The application includes a comprehensive mock data system for development and te
   - `accounts-payable.ts` - Accounts payable records
   - `accounts-receivable.ts` - Accounts receivable records
   - `bank-accounts.ts` - Bank account records
+  - `sales.ts` - Animal sales records
 
 - **Mock Data Features**:
   - **Realistic and Consistent Data**: Mock data spans 2020-2025 with higher density in recent years
@@ -866,6 +882,7 @@ UserPermissions
 │   ├── births (view, add, edit, remove)
 │   ├── acquisitions (view, add, edit, remove)
 │   ├── weighings (view, add, edit, remove)
+│   ├── sales (view, add, edit, remove)
 │   └── sanitaryControl (view, add, edit, remove)
 ├── breedings/
 │   ├── breedings (view, add, edit, remove)

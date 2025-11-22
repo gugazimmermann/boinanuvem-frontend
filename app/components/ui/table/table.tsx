@@ -179,7 +179,11 @@ export function Table<T extends Record<string, unknown>>({
               </div>
             </div>
           </div>
-          {filters && filters.length > 0 && (
+          {((filters && filters.length > 0) ||
+            rightContent ||
+            additionalContent ||
+            middleContent ||
+            belowContent) && (
             <div className="mt-3">
               <TableFilters
                 filters={filters}

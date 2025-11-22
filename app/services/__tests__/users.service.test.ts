@@ -177,6 +177,7 @@ describe("users.service", () => {
           births: { view: false, add: false, edit: false, remove: false },
           acquisitions: { view: false, add: false, edit: false, remove: false },
           weighings: { view: false, add: false, edit: false, remove: false },
+          sales: { view: false, add: false, edit: false, remove: false },
         },
         breedings: {
           breedings: { view: false, add: false, edit: false, remove: false },
