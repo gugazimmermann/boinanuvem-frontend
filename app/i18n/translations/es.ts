@@ -3154,6 +3154,8 @@ export const es = {
       locations: "Ubicaciones",
       people: "Relaciones",
       records: "Registros",
+      breedings: "Cubriciones",
+      inventory: "Inventario",
       financial: "Financiero",
       analytics: "Análisis",
       team: "Equipo",
