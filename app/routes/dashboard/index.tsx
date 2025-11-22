@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { Link } from "react-router";
 import {
   format,
   startOfMonth,
@@ -13,16 +12,20 @@ import {
 import {
   LineChart,
   Line,
+  AreaChart,
+  Area,
+  PieChart,
+  Pie,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer,
 } from "recharts";
 import { useTranslation } from "~/i18n";
 import { useTheme } from "~/contexts/theme-context";
-import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
+import { StatCard, ChartWrapper, getTooltipStyle, getChartColors } from "~/components/dashboard";
 import { mockProperties } from "~/mocks/properties";
 import { mockLocations } from "~/mocks/locations";
 import { mockCompanies } from "~/mocks/companies";
@@ -388,13 +391,41 @@ export default function Dashboard() {
     return months;
   }, [cashFlowData, currentDate]);
 
-  const chartColors = {
-    grid: isDark ? "#374151" : "#e5e7eb",
-    text: isDark ? "#9ca3af" : "#6b7280",
-    lineIncome: "#10b981",
-    lineExpenses: "#ef4444",
-    lineWeight: "#3b82f6",
-  };
+  const chartColors = getChartColors(isDark);
+
+  // Animal distribution by status
+  const animalDistributionByStatus = useMemo(() => {
+    const statusCounts: Record<string, number> = {};
+    animals.forEach((animal) => {
+      statusCounts[animal.status] = (statusCounts[animal.status] || 0) + 1;
+    });
+    return Object.entries(statusCounts).map(([name, value]) => ({ name, value }));
+  }, [animals]);
+
+  // Sales trends over time
+  const salesTrendData = useMemo(() => {
+    const months = [];
+    for (let i = 5; i >= 0; i--) {
+      const monthDate = subMonths(currentDate, i);
+      const monthStart = startOfMonth(monthDate);
+      const monthEnd = endOfMonth(monthDate);
+
+      const monthSales = sales.filter((sale) => {
+        const saleDate = parseISO(sale.saleDate);
+        return saleDate >= monthStart && saleDate <= monthEnd;
+      });
+
+      const revenue = monthSales.reduce((sum, sale) => sum + sale.totalPrice, 0);
+      const count = monthSales.length;
+
+      months.push({
+        month: format(monthDate, "MMM"),
+        revenue: Math.round(revenue),
+        count,
+      });
+    }
+    return months;
+  }, [sales, currentDate]);
 
   return (
     <div>
@@ -407,263 +438,98 @@ export default function Dashboard() {
           {t.dashboard.sections.livestockOverview}
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.dashboard.stats.properties}
-                </p>
-                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                  {totalProperties}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {totalAreaInHectares.toFixed(1)} {t.dashboard.stats.hectares}
-                </p>
-              </div>
-              <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                <span className="text-lg">🏡</span>
-              </div>
-            </div>
-          </div>
+          <StatCard
+            title={t.dashboard.stats.properties}
+            value={totalProperties}
+            subtitle={`${totalAreaInHectares.toFixed(1)} ${t.dashboard.stats.hectares}`}
+            icon={<span className="text-lg">🏡</span>}
+          />
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.dashboard.stats.locations}
-                </p>
-                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                  {totalLocations}
-                </p>
-              </div>
-              <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
-                <span className="text-lg">📍</span>
-              </div>
-            </div>
-          </div>
+          <StatCard
+            title={t.dashboard.stats.locations}
+            value={totalLocations}
+            icon={<span className="text-lg">📍</span>}
+          />
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.dashboard.stats.totalAnimals}
-                </p>
-                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                  {totalAnimals.toLocaleString()}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {activeAnimals} {t.dashboard.stats.active}
-                </p>
-              </div>
-              <div
-                className="w-10 h-10 dark:bg-blue-900/30 rounded-lg flex items-center justify-center"
-                style={{ backgroundColor: `${DASHBOARD_COLORS.primaryLight}40` }}
-              >
-                <span className="text-lg">🐄</span>
-              </div>
-            </div>
-          </div>
+          <StatCard
+            title={t.dashboard.stats.totalAnimals}
+            value={totalAnimals.toLocaleString()}
+            subtitle={`${activeAnimals} ${t.dashboard.stats.active}`}
+            icon={<span className="text-lg">🐄</span>}
+          />
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.properties.table.uas}
-                </p>
-                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                  {animalUnits.toFixed(2)}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {(totalWeight / 1000).toFixed(1)} {t.dashboard.stats.totalWeight}
-                </p>
-              </div>
-              <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
-                <span className="text-lg">📊</span>
-              </div>
-            </div>
-          </div>
+          <StatCard
+            title={t.properties.table.uas}
+            value={animalUnits.toFixed(2)}
+            subtitle={`${(totalWeight / 1000).toFixed(1)} ${t.dashboard.stats.totalWeight}`}
+            icon={<span className="text-lg">📊</span>}
+          />
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.properties.table.stockingRate}
-                </p>
-                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                  {stockingRate.toFixed(2)}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {t.dashboard.stats.uaPerHa}
-                </p>
-              </div>
-              <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
-                <span className="text-lg">🌱</span>
-              </div>
-            </div>
-          </div>
+          <StatCard
+            title={t.properties.table.stockingRate}
+            value={stockingRate.toFixed(2)}
+            subtitle={t.dashboard.stats.uaPerHa}
+            icon={<span className="text-lg">🌱</span>}
+          />
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.dashboard.stats.density}
-                </p>
-                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                  {totalAreaInHectares > 0 ? (totalAnimals / totalAreaInHectares).toFixed(2) : 0}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {t.dashboard.stats.animalsPerHa}
-                </p>
-              </div>
-              <div className="w-10 h-10 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg flex items-center justify-center">
-                <span className="text-lg">📈</span>
-              </div>
-            </div>
-          </div>
+          <StatCard
+            title={t.dashboard.stats.density}
+            value={totalAreaInHectares > 0 ? (totalAnimals / totalAreaInHectares).toFixed(2) : 0}
+            subtitle={t.dashboard.stats.animalsPerHa}
+            icon={<span className="text-lg">📈</span>}
+          />
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.dashboard.stats.averageWeight}
-                </p>
-                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                  {totalAnimals > 0 ? (totalWeight / totalAnimals).toFixed(0) : 0}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {t.dashboard.stats.kgPerAnimal}
-                </p>
-              </div>
-              <div className="w-10 h-10 bg-teal-100 dark:bg-teal-900/30 rounded-lg flex items-center justify-center">
-                <span className="text-lg">⚖️</span>
-              </div>
-            </div>
-          </div>
+          <StatCard
+            title={t.dashboard.stats.averageWeight}
+            value={totalAnimals > 0 ? (totalWeight / totalAnimals).toFixed(0) : 0}
+            subtitle={t.dashboard.stats.kgPerAnimal}
+            icon={<span className="text-lg">⚖️</span>}
+          />
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.dashboard.stats.expectedBirths}
-                </p>
-                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                  {nextMonthExpected}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {t.dashboard.stats.nextMonth} • {nextThreeMonthsTotal}{" "}
-                  {t.dashboard.stats.nextThreeMonths}
-                </p>
-                <Link
-                  to={ROUTES.BIRTH_FORECAST}
-                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-1 inline-block"
-                >
-                  {t.dashboard.stats.viewForecast}
-                </Link>
-              </div>
-              <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center">
-                <span className="text-lg">📅</span>
-              </div>
-            </div>
-          </div>
+          <StatCard
+            title={t.dashboard.stats.expectedBirths}
+            value={nextMonthExpected}
+            subtitle={`${t.dashboard.stats.nextMonth} • ${nextThreeMonthsTotal} ${t.dashboard.stats.nextThreeMonths}`}
+            icon={<span className="text-lg">📅</span>}
+            link={{ to: ROUTES.BIRTH_FORECAST, text: t.dashboard.stats.viewForecast }}
+          />
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.dashboard.additionalStats.employees}
-                </p>
-                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                  {employees.length}
-                </p>
-              </div>
-              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                <span className="text-lg">👥</span>
-              </div>
-            </div>
-          </div>
+          <StatCard
+            title={t.dashboard.additionalStats.employees}
+            value={employees.length}
+            icon={<span className="text-lg">👥</span>}
+          />
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.dashboard.additionalStats.suppliers}
-                </p>
-                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                  {suppliers.length}
-                </p>
-              </div>
-              <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-                <span className="text-lg">🏭</span>
-              </div>
-            </div>
-          </div>
+          <StatCard
+            title={t.dashboard.additionalStats.suppliers}
+            value={suppliers.length}
+            icon={<span className="text-lg">🏭</span>}
+          />
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.dashboard.additionalStats.buyers}
-                </p>
-                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                  {buyers.length}
-                </p>
-              </div>
-              <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
-                <span className="text-lg">🛒</span>
-              </div>
-            </div>
-          </div>
+          <StatCard
+            title={t.dashboard.additionalStats.buyers}
+            value={buyers.length}
+            icon={<span className="text-lg">🛒</span>}
+          />
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.dashboard.additionalStats.birthsThisMonth}
-                </p>
-                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                  {birthsThisMonth}
-                </p>
-              </div>
-              <div className="w-10 h-10 bg-pink-100 dark:bg-pink-900/30 rounded-lg flex items-center justify-center">
-                <span className="text-lg">👶</span>
-              </div>
-            </div>
-          </div>
+          <StatCard
+            title={t.dashboard.additionalStats.birthsThisMonth}
+            value={birthsThisMonth}
+            icon={<span className="text-lg">👶</span>}
+          />
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.dashboard.additionalStats.breedingsThisMonth}
-                </p>
-                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                  {breedingsThisMonth}
-                </p>
-              </div>
-              <div className="w-10 h-10 bg-rose-100 dark:bg-rose-900/30 rounded-lg flex items-center justify-center">
-                <span className="text-lg">💑</span>
-              </div>
-            </div>
-          </div>
+          <StatCard
+            title={t.dashboard.additionalStats.breedingsThisMonth}
+            value={breedingsThisMonth}
+            icon={<span className="text-lg">💑</span>}
+          />
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.dashboard.additionalStats.salesThisMonth}
-                </p>
-                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                  {salesThisMonth}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {salesMetrics.totalAnimalsSold} {t.dashboard.additionalStats.animalsSold}
-                </p>
-              </div>
-              <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center">
-                <span className="text-lg">💵</span>
-              </div>
-            </div>
-          </div>
+          <StatCard
+            title={t.dashboard.additionalStats.salesThisMonth}
+            value={salesThisMonth}
+            subtitle={`${salesMetrics.totalAnimalsSold} ${t.dashboard.additionalStats.animalsSold}`}
+            icon={<span className="text-lg">💵</span>}
+          />
         </div>
       </div>
 
@@ -672,123 +538,50 @@ export default function Dashboard() {
           {t.dashboard.sections.financialOverview}
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.dashboard.financial.monthlyIncome}
-                </p>
-                <p className="text-xl font-bold text-green-600 dark:text-green-400 mt-1">
-                  {formatCurrency(totalIncome)}
-                </p>
-              </div>
-              <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                <span className="text-lg">📈</span>
-              </div>
-            </div>
-          </div>
+          <StatCard
+            title={t.dashboard.financial.monthlyIncome}
+            value={formatCurrency(totalIncome)}
+            valueColor="green"
+            icon={<span className="text-lg">📈</span>}
+          />
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.dashboard.financial.monthlyExpenses}
-                </p>
-                <p className="text-xl font-bold text-red-600 dark:text-red-400 mt-1">
-                  {formatCurrency(totalExpenses)}
-                </p>
-              </div>
-              <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
-                <span className="text-lg">📉</span>
-              </div>
-            </div>
-          </div>
+          <StatCard
+            title={t.dashboard.financial.monthlyExpenses}
+            value={formatCurrency(totalExpenses)}
+            valueColor="red"
+            icon={<span className="text-lg">📉</span>}
+          />
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.dashboard.financial.netCashFlow}
-                </p>
-                <p
-                  className={`text-xl font-bold mt-1 ${
-                    netCashFlow >= 0
-                      ? "text-green-600 dark:text-green-400"
-                      : "text-red-600 dark:text-red-400"
-                  }`}
-                >
-                  {formatCurrency(netCashFlow)}
-                </p>
-              </div>
-              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                <span className="text-lg">💰</span>
-              </div>
-            </div>
-          </div>
+          <StatCard
+            title={t.dashboard.financial.netCashFlow}
+            value={formatCurrency(netCashFlow)}
+            valueColor={netCashFlow >= 0 ? "green" : "red"}
+            icon={<span className="text-lg">💰</span>}
+          />
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.dashboard.financial.accountsPayable}
-                </p>
-                <p className="text-xl font-bold text-orange-600 dark:text-orange-400 mt-1">
-                  {formatCurrency(totalAccountsPayable)}
-                </p>
-              </div>
-              <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
-                <span className="text-lg">📤</span>
-              </div>
-            </div>
-          </div>
+          <StatCard
+            title={t.dashboard.financial.accountsPayable}
+            value={formatCurrency(totalAccountsPayable)}
+            valueColor="orange"
+            icon={<span className="text-lg">📤</span>}
+          />
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.dashboard.financial.accountsReceivable}
-                </p>
-                <p className="text-xl font-bold text-blue-600 dark:text-blue-400 mt-1">
-                  {formatCurrency(totalAccountsReceivable)}
-                </p>
-                <Link
-                  to={ROUTES.FINANCES_DASHBOARD}
-                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-1 inline-block"
-                >
-                  {t.dashboard.financial.viewFinances}
-                </Link>
-              </div>
-              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                <span className="text-lg">📥</span>
-              </div>
-            </div>
-          </div>
+          <StatCard
+            title={t.dashboard.financial.accountsReceivable}
+            value={formatCurrency(totalAccountsReceivable)}
+            valueColor="blue"
+            icon={<span className="text-lg">📥</span>}
+            link={{ to: ROUTES.FINANCES_DASHBOARD, text: t.dashboard.financial.viewFinances }}
+          />
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.dashboard.financial.totalSalesRevenue}
-                </p>
-                <p className="text-xl font-bold text-green-600 dark:text-green-400 mt-1">
-                  {formatCurrency(salesMetrics.totalRevenue)}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {t.dashboard.financial.averagePricePerKg}:{" "}
-                  {formatCurrency(salesMetrics.averagePricePerKg)}
-                </p>
-                <Link
-                  to={ROUTES.SALES}
-                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-1 inline-block"
-                >
-                  {t.dashboard.financial.viewSales}
-                </Link>
-              </div>
-              <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                <span className="text-lg">💰</span>
-              </div>
-            </div>
-          </div>
+          <StatCard
+            title={t.dashboard.financial.totalSalesRevenue}
+            value={formatCurrency(salesMetrics.totalRevenue)}
+            valueColor="green"
+            subtitle={`${t.dashboard.financial.averagePricePerKg}: ${formatCurrency(salesMetrics.averagePricePerKg)}`}
+            icon={<span className="text-lg">💰</span>}
+            link={{ to: ROUTES.SALES, text: t.dashboard.financial.viewSales }}
+          />
         </div>
       </div>
 
@@ -797,87 +590,133 @@ export default function Dashboard() {
           {t.dashboard.sections.charts}
         </h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              {t.dashboard.charts.weightTrends}
-            </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={weightTrendData}>
-                <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
-                <XAxis dataKey="month" stroke={chartColors.text} style={{ fontSize: "12px" }} />
-                <YAxis
-                  stroke={chartColors.text}
-                  style={{ fontSize: "12px" }}
-                  label={{
-                    value: t.dashboard.charts.averageWeight,
-                    angle: -90,
-                    position: "insideLeft",
-                    style: { fill: chartColors.text, fontSize: "12px" },
-                  }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: isDark ? "#1f2937" : "#ffffff",
-                    border: `1px solid ${chartColors.grid}`,
-                    borderRadius: "6px",
-                  }}
-                  labelStyle={{ color: chartColors.text }}
-                />
-                <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
-                <Line
-                  type="monotone"
-                  dataKey="averageWeight"
-                  stroke={chartColors.lineWeight}
-                  strokeWidth={2}
-                  name={t.dashboard.charts.averageWeight}
-                  dot={{ fill: chartColors.lineWeight, r: 4 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          <ChartWrapper
+            title={t.dashboard.charts.weightTrends}
+            isEmpty={weightTrendData.length === 0}
+            emptyMessage="No data available"
+          >
+            <LineChart data={weightTrendData}>
+              <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
+              <XAxis dataKey="month" tick={{ fill: chartColors.text, fontSize: 12 }} />
+              <YAxis
+                tick={{ fill: chartColors.text, fontSize: 12 }}
+                label={{
+                  value: t.dashboard.charts.averageWeight,
+                  angle: -90,
+                  position: "insideLeft",
+                  style: { fill: chartColors.text, fontSize: "12px" },
+                }}
+              />
+              <Tooltip
+                {...getTooltipStyle(isDark)}
+                formatter={(value: number) => [`${value} kg`, t.dashboard.charts.averageWeight]}
+              />
+              <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
+              <Line
+                type="monotone"
+                dataKey="averageWeight"
+                stroke={chartColors.weight}
+                strokeWidth={2}
+                name={t.dashboard.charts.averageWeight}
+                dot={{ fill: chartColors.weight, r: 4 }}
+              />
+            </LineChart>
+          </ChartWrapper>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              {t.dashboard.charts.financialTrends}
-            </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={financialTrendData}>
-                <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
-                <XAxis dataKey="month" stroke={chartColors.text} style={{ fontSize: "12px" }} />
-                <YAxis
-                  stroke={chartColors.text}
-                  style={{ fontSize: "12px" }}
-                  tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: isDark ? "#1f2937" : "#ffffff",
-                    border: `1px solid ${chartColors.grid}`,
-                    borderRadius: "6px",
-                  }}
-                  labelStyle={{ color: chartColors.text }}
-                  formatter={(value: number) => formatCurrency(value)}
-                />
-                <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
-                <Line
-                  type="monotone"
-                  dataKey="income"
-                  stroke={chartColors.lineIncome}
-                  strokeWidth={2}
-                  name={t.dashboard.charts.income}
-                  dot={{ fill: chartColors.lineIncome, r: 4 }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="expenses"
-                  stroke={chartColors.lineExpenses}
-                  strokeWidth={2}
-                  name={t.dashboard.charts.expenses}
-                  dot={{ fill: chartColors.lineExpenses, r: 4 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          <ChartWrapper
+            title={t.dashboard.charts.financialTrends}
+            isEmpty={financialTrendData.length === 0}
+            emptyMessage="No data available"
+          >
+            <LineChart data={financialTrendData}>
+              <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
+              <XAxis dataKey="month" tick={{ fill: chartColors.text, fontSize: 12 }} />
+              <YAxis
+                tick={{ fill: chartColors.text, fontSize: 12 }}
+                tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+              />
+              <Tooltip
+                {...getTooltipStyle(isDark)}
+                formatter={(value: number) => formatCurrency(value)}
+              />
+              <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
+              <Line
+                type="monotone"
+                dataKey="income"
+                stroke={chartColors.income}
+                strokeWidth={2}
+                name={t.dashboard.charts.income}
+                dot={{ fill: chartColors.income, r: 4 }}
+              />
+              <Line
+                type="monotone"
+                dataKey="expenses"
+                stroke={chartColors.expense}
+                strokeWidth={2}
+                name={t.dashboard.charts.expenses}
+                dot={{ fill: chartColors.expense, r: 4 }}
+              />
+            </LineChart>
+          </ChartWrapper>
+
+          <ChartWrapper
+            title="Sales Trends"
+            isEmpty={salesTrendData.length === 0}
+            emptyMessage="No sales data available"
+          >
+            <AreaChart data={salesTrendData}>
+              <defs>
+                <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={chartColors.income} stopOpacity={0.8} />
+                  <stop offset="95%" stopColor={chartColors.income} stopOpacity={0.1} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
+              <XAxis dataKey="month" tick={{ fill: chartColors.text, fontSize: 12 }} />
+              <YAxis
+                tick={{ fill: chartColors.text, fontSize: 12 }}
+                tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+              />
+              <Tooltip
+                {...getTooltipStyle(isDark)}
+                formatter={(value: number) => formatCurrency(value)}
+              />
+              <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
+              <Area
+                type="monotone"
+                dataKey="revenue"
+                stroke={chartColors.income}
+                fillOpacity={1}
+                fill="url(#colorRevenue)"
+                name="Revenue"
+              />
+            </AreaChart>
+          </ChartWrapper>
+
+          <ChartWrapper
+            title="Animal Distribution by Status"
+            isEmpty={animalDistributionByStatus.length === 0}
+            emptyMessage="No animal data available"
+          >
+            <PieChart>
+              <Pie
+                data={animalDistributionByStatus}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percent }) => `${name}: ${((percent || 0) * 100).toFixed(0)}%`}
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                {animalDistributionByStatus.map((entry, index) => {
+                  const colors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
+                  return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />;
+                })}
+              </Pie>
+              <Tooltip {...getTooltipStyle(isDark)} />
+            </PieChart>
+          </ChartWrapper>
         </div>
       </div>
 

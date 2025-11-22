@@ -41,6 +41,11 @@ export function meta() {
   ];
 }
 
+export async function loader({ request }: { request: Request }) {
+  const { createRouteGuard } = await import("~/utils/route-guard");
+  return createRouteGuard(undefined, "view")({ request });
+}
+
 export default function MovementDetails() {
   const { movementId } = useParams<{ movementId: string }>();
   const navigate = useNavigate();

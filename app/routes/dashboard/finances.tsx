@@ -20,6 +20,13 @@ import {
 } from "recharts";
 import { useTranslation } from "~/i18n";
 import { useTheme } from "~/contexts/theme-context";
+import {
+  StatCard,
+  ChartWrapper,
+  getTooltipStyle,
+  getChartColors,
+  getPieChartColors,
+} from "~/components/dashboard";
 import { mockCompanies } from "~/mocks/companies";
 import { getCashFlowByCompanyId } from "~/services/cash-flow.service";
 import { getAccountsPayableByCompanyId } from "~/services/accounts-payable.service";
@@ -382,34 +389,9 @@ export default function FinancesDashboard() {
     });
   }, [overduePayable, overdueReceivable]);
 
-  const textColor = isDark ? "#e5e7eb" : "#374151";
-  const gridColor = isDark ? "#374151" : "#e5e7eb";
-  const chartColors = isDark
-    ? {
-        income: "#10b981",
-        expense: "#ef4444",
-        net: "#3b82f6",
-        paid: "#10b981",
-        unpaid: "#f59e0b",
-        overdue: "#ef4444",
-        partial: "#6366f1",
-      }
-    : {
-        income: "#059669",
-        expense: "#dc2626",
-        net: "#2563eb",
-        paid: "#059669",
-        unpaid: "#d97706",
-        overdue: "#dc2626",
-        partial: "#4f46e5",
-      };
-
-  const pieColors = [
-    chartColors.paid,
-    chartColors.unpaid,
-    chartColors.overdue,
-    chartColors.partial,
-  ];
+  const chartColors = getChartColors(isDark);
+  const pieColors = getPieChartColors(chartColors);
+  const tooltipStyle = getTooltipStyle(isDark);
 
   return (
     <div>
@@ -418,107 +400,47 @@ export default function FinancesDashboard() {
       </h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                {t.financesDashboard.cards.totalIncome}
-              </p>
-              <p className="text-xl font-bold text-green-600 dark:text-green-400 mt-1">
-                {formatCurrency(totalIncome)}
-              </p>
-            </div>
-            <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-              <span className="text-lg">📈</span>
-            </div>
-          </div>
-        </div>
+        <StatCard
+          title={t.financesDashboard.cards.totalIncome}
+          value={formatCurrency(totalIncome)}
+          valueColor="green"
+          icon={<span className="text-lg">📈</span>}
+        />
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                {t.financesDashboard.cards.totalExpenses}
-              </p>
-              <p className="text-xl font-bold text-red-600 dark:text-red-400 mt-1">
-                {formatCurrency(totalExpenses)}
-              </p>
-            </div>
-            <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
-              <span className="text-lg">📉</span>
-            </div>
-          </div>
-        </div>
+        <StatCard
+          title={t.financesDashboard.cards.totalExpenses}
+          value={formatCurrency(totalExpenses)}
+          valueColor="red"
+          icon={<span className="text-lg">📉</span>}
+        />
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                {t.financesDashboard.cards.netCashFlow}
-              </p>
-              <p
-                className={`text-xl font-bold mt-1 ${
-                  netCashFlow >= 0
-                    ? "text-green-600 dark:text-green-400"
-                    : "text-red-600 dark:text-red-400"
-                }`}
-              >
-                {formatCurrency(netCashFlow)}
-              </p>
-            </div>
-            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-              <span className="text-lg">💰</span>
-            </div>
-          </div>
-        </div>
+        <StatCard
+          title={t.financesDashboard.cards.netCashFlow}
+          value={formatCurrency(netCashFlow)}
+          valueColor={netCashFlow >= 0 ? "green" : "red"}
+          icon={<span className="text-lg">💰</span>}
+        />
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                {t.financesDashboard.cards.accountsPayable}
-              </p>
-              <p className="text-xl font-bold text-orange-600 dark:text-orange-400 mt-1">
-                {formatCurrency(totalAccountsPayable)}
-              </p>
-            </div>
-            <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
-              <span className="text-lg">📤</span>
-            </div>
-          </div>
-        </div>
+        <StatCard
+          title={t.financesDashboard.cards.accountsPayable}
+          value={formatCurrency(totalAccountsPayable)}
+          valueColor="orange"
+          icon={<span className="text-lg">📤</span>}
+        />
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                {t.financesDashboard.cards.accountsReceivable}
-              </p>
-              <p className="text-xl font-bold text-blue-600 dark:text-blue-400 mt-1">
-                {formatCurrency(totalAccountsReceivable)}
-              </p>
-            </div>
-            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-              <span className="text-lg">📥</span>
-            </div>
-          </div>
-        </div>
+        <StatCard
+          title={t.financesDashboard.cards.accountsReceivable}
+          value={formatCurrency(totalAccountsReceivable)}
+          valueColor="blue"
+          icon={<span className="text-lg">📥</span>}
+        />
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                {t.financesDashboard.cards.overdue}
-              </p>
-              <p className="text-xl font-bold text-red-600 dark:text-red-400 mt-1">
-                {formatCurrency(totalOverdue)}
-              </p>
-            </div>
-            <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
-              <span className="text-lg">⚠️</span>
-            </div>
-          </div>
-        </div>
+        <StatCard
+          title={t.financesDashboard.cards.overdue}
+          value={formatCurrency(totalOverdue)}
+          valueColor="red"
+          icon={<span className="text-lg">⚠️</span>}
+        />
       </div>
 
       <div className="mb-6">
@@ -642,21 +564,17 @@ export default function FinancesDashboard() {
               return chartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={gridColor} opacity={0.3} />
-                    <XAxis dataKey="name" tick={{ fill: textColor, fontSize: 12 }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
+                    <XAxis dataKey="name" tick={{ fill: chartColors.text, fontSize: 12 }} />
                     <YAxis
-                      tick={{ fill: textColor, fontSize: 12 }}
+                      tick={{ fill: chartColors.text, fontSize: 12 }}
                       tickFormatter={(value) => `${value}`}
                     />
                     <Tooltip
-                      contentStyle={{
-                        backgroundColor: isDark ? "#1f2937" : "#ffffff",
-                        border: `1px solid ${gridColor}`,
-                        borderRadius: "8px",
-                      }}
+                      {...tooltipStyle}
                       formatter={(value: number) => formatCurrency(value)}
                     />
-                    <Legend />
+                    <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
                     <Bar
                       dataKey="revenue"
                       fill={chartColors.income}
@@ -721,189 +639,153 @@ export default function FinancesDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-            {t.financesDashboard.charts.incomeVsExpenses}
-          </h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={monthlyData}>
-              <CartesianGrid strokeDasharray="3 3" stroke={gridColor} opacity={0.3} />
-              <XAxis dataKey="month" tick={{ fill: textColor, fontSize: 12 }} />
-              <YAxis
-                tick={{ fill: textColor, fontSize: 12 }}
-                tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: isDark ? "#1f2937" : "#ffffff",
-                  border: `1px solid ${gridColor}`,
-                  borderRadius: "8px",
-                }}
-                formatter={(value: number) => formatCurrency(value)}
-              />
-              <Legend />
-              <Line
-                type="monotone"
-                dataKey="income"
-                stroke={chartColors.income}
-                strokeWidth={2}
-                name={t.financesDashboard.charts.income}
-              />
-              <Line
-                type="monotone"
-                dataKey="expenses"
-                stroke={chartColors.expense}
-                strokeWidth={2}
-                name={t.financesDashboard.charts.expenses}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+        <ChartWrapper
+          title={t.financesDashboard.charts.incomeVsExpenses}
+          isEmpty={monthlyData.length === 0}
+          emptyMessage={t.financesDashboard.tables.noData}
+        >
+          <LineChart data={monthlyData}>
+            <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
+            <XAxis dataKey="month" tick={{ fill: chartColors.text, fontSize: 12 }} />
+            <YAxis
+              tick={{ fill: chartColors.text, fontSize: 12 }}
+              tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+            />
+            <Tooltip {...tooltipStyle} formatter={(value: number) => formatCurrency(value)} />
+            <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
+            <Line
+              type="monotone"
+              dataKey="income"
+              stroke={chartColors.income}
+              strokeWidth={2}
+              name={t.financesDashboard.charts.income}
+            />
+            <Line
+              type="monotone"
+              dataKey="expenses"
+              stroke={chartColors.expense}
+              strokeWidth={2}
+              name={t.financesDashboard.charts.expenses}
+            />
+          </LineChart>
+        </ChartWrapper>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-            {t.financesDashboard.charts.monthlyCashFlow}
-          </h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={monthlyData}>
-              <defs>
-                <linearGradient id="colorNet" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={chartColors.net} stopOpacity={0.8} />
-                  <stop offset="95%" stopColor={chartColors.net} stopOpacity={0.1} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke={gridColor} opacity={0.3} />
-              <XAxis dataKey="month" tick={{ fill: textColor, fontSize: 12 }} />
-              <YAxis
-                tick={{ fill: textColor, fontSize: 12 }}
-                tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: isDark ? "#1f2937" : "#ffffff",
-                  border: `1px solid ${gridColor}`,
-                  borderRadius: "8px",
-                }}
-                formatter={(value: number) => formatCurrency(value)}
-              />
-              <Area
-                type="monotone"
-                dataKey="net"
-                stroke={chartColors.net}
-                fillOpacity={1}
-                fill="url(#colorNet)"
-                name={t.financesDashboard.charts.netCashFlow}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+        <ChartWrapper
+          title={t.financesDashboard.charts.monthlyCashFlow}
+          isEmpty={monthlyData.length === 0}
+          emptyMessage={t.financesDashboard.tables.noData}
+        >
+          <AreaChart data={monthlyData}>
+            <defs>
+              <linearGradient id="colorNet" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={chartColors.net} stopOpacity={0.8} />
+                <stop offset="95%" stopColor={chartColors.net} stopOpacity={0.1} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
+            <XAxis dataKey="month" tick={{ fill: chartColors.text, fontSize: 12 }} />
+            <YAxis
+              tick={{ fill: chartColors.text, fontSize: 12 }}
+              tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+            />
+            <Tooltip {...tooltipStyle} formatter={(value: number) => formatCurrency(value)} />
+            <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
+            <Area
+              type="monotone"
+              dataKey="net"
+              stroke={chartColors.net}
+              fillOpacity={1}
+              fill="url(#colorNet)"
+              name={t.financesDashboard.charts.netCashFlow}
+            />
+          </AreaChart>
+        </ChartWrapper>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-            {t.financesDashboard.charts.cashFlowByCategory}
-          </h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={categoryData} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke={gridColor} opacity={0.3} />
-              <XAxis
-                type="number"
-                tick={{ fill: textColor, fontSize: 12 }}
-                tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
-              />
-              <YAxis
-                type="category"
-                dataKey="name"
-                tick={{ fill: textColor, fontSize: 11 }}
-                width={120}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: isDark ? "#1f2937" : "#ffffff",
-                  border: `1px solid ${gridColor}`,
-                  borderRadius: "8px",
-                }}
-                formatter={(value: number) => formatCurrency(value)}
-              />
-              <Legend />
-              <Bar
-                dataKey="income"
-                fill={chartColors.income}
-                name={t.financesDashboard.charts.income}
-              />
-              <Bar
-                dataKey="expenses"
-                fill={chartColors.expense}
-                name={t.financesDashboard.charts.expenses}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        <ChartWrapper
+          title={t.financesDashboard.charts.cashFlowByCategory}
+          isEmpty={categoryData.length === 0}
+          emptyMessage={t.financesDashboard.tables.noData}
+        >
+          <BarChart data={categoryData} layout="vertical">
+            <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
+            <XAxis
+              type="number"
+              tick={{ fill: chartColors.text, fontSize: 12 }}
+              tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+            />
+            <YAxis
+              type="category"
+              dataKey="name"
+              tick={{ fill: chartColors.text, fontSize: 11 }}
+              width={120}
+            />
+            <Tooltip {...tooltipStyle} formatter={(value: number) => formatCurrency(value)} />
+            <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
+            <Bar
+              dataKey="income"
+              fill={chartColors.income}
+              name={t.financesDashboard.charts.income}
+            />
+            <Bar
+              dataKey="expenses"
+              fill={chartColors.expense}
+              name={t.financesDashboard.charts.expenses}
+            />
+          </BarChart>
+        </ChartWrapper>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-            {t.financesDashboard.charts.paymentStatus}
-          </h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={statusData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, percent }) => `${name}: ${((percent || 0) * 100).toFixed(0)}%`}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {statusData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: isDark ? "#1f2937" : "#ffffff",
-                  border: `1px solid ${gridColor}`,
-                  borderRadius: "8px",
-                }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
+        <ChartWrapper
+          title={t.financesDashboard.charts.paymentStatus}
+          isEmpty={statusData.length === 0}
+          emptyMessage={t.financesDashboard.tables.noData}
+        >
+          <PieChart>
+            <Pie
+              data={statusData}
+              cx="50%"
+              cy="50%"
+              labelLine={false}
+              label={({ name, percent }) => `${name}: ${((percent || 0) * 100).toFixed(0)}%`}
+              outerRadius={80}
+              fill="#8884d8"
+              dataKey="value"
+            >
+              {statusData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} />
+              ))}
+            </Pie>
+            <Tooltip {...tooltipStyle} />
+          </PieChart>
+        </ChartWrapper>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-            {t.financesDashboard.charts.expenseCategories}
-          </h2>
-          <ResponsiveContainer width="100%" height={400}>
-            <BarChart data={expenseCategoriesData} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke={gridColor} opacity={0.3} />
-              <XAxis
-                type="number"
-                tick={{ fill: textColor, fontSize: 12 }}
-                tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
-              />
-              <YAxis
-                type="category"
-                dataKey="name"
-                tick={{ fill: textColor, fontSize: 11 }}
-                width={150}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: isDark ? "#1f2937" : "#ffffff",
-                  border: `1px solid ${gridColor}`,
-                  borderRadius: "8px",
-                }}
-                formatter={(value: number) => formatCurrency(value)}
-              />
-              <Bar
-                dataKey="value"
-                fill={chartColors.expense}
-                name={t.financesDashboard.charts.expenses}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        <ChartWrapper
+          title={t.financesDashboard.charts.expenseCategories}
+          isEmpty={expenseCategoriesData.length === 0}
+          emptyMessage={t.financesDashboard.tables.noData}
+          height={400}
+        >
+          <BarChart data={expenseCategoriesData} layout="vertical">
+            <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
+            <XAxis
+              type="number"
+              tick={{ fill: chartColors.text, fontSize: 12 }}
+              tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+            />
+            <YAxis
+              type="category"
+              dataKey="name"
+              tick={{ fill: chartColors.text, fontSize: 11 }}
+              width={150}
+            />
+            <Tooltip {...tooltipStyle} formatter={(value: number) => formatCurrency(value)} />
+            <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
+            <Bar
+              dataKey="value"
+              fill={chartColors.expense}
+              name={t.financesDashboard.charts.expenses}
+            />
+          </BarChart>
+        </ChartWrapper>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">

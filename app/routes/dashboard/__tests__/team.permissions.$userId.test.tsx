@@ -89,6 +89,11 @@ describe("TeamPermissions", () => {
         births: { view: false, add: false, edit: false, remove: false },
         acquisitions: { view: false, add: false, edit: false, remove: false },
         weighings: { view: false, add: false, edit: false, remove: false },
+        sales: { view: false, add: false, edit: false, remove: false },
+        deaths: { view: false, add: false, edit: false, remove: false },
+        sanitaryControls: { view: false, add: false, edit: false, remove: false },
+        locationMovements: { view: false, add: false, edit: false, remove: false },
+        animalMovements: { view: false, add: false, edit: false, remove: false },
       },
       breedings: {
         breedings: { view: false, add: false, edit: false, remove: false },

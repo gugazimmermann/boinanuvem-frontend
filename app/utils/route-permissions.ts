@@ -45,7 +45,6 @@ const ROUTE_PERMISSION_MAP: Record<string, string> = {
   [ROUTES.ANIMALS_NEW]: "registration.animals",
   [ROUTES.ANIMALS_EDIT]: "registration.animals",
   [ROUTES.ANIMALS_VIEW]: "registration.animals",
-  [ROUTES.ANIMALS_MOVEMENT_NEW]: "registration.animals",
 
   [ROUTES.BIRTHS]: "records.births",
   [ROUTES.BIRTHS_NEW]: "records.births",
@@ -57,13 +56,29 @@ const ROUTE_PERMISSION_MAP: Record<string, string> = {
   [ROUTES.ACQUISITIONS_EDIT]: "records.acquisitions",
   [ROUTES.ACQUISITIONS_VIEW]: "records.acquisitions",
 
+  [ROUTES.SALES]: "records.sales",
+  [ROUTES.SALES_NEW]: "records.sales",
+  [ROUTES.SALES_EDIT]: "records.sales",
+  [ROUTES.SALES_VIEW]: "records.sales",
+
+  [ROUTES.DEATHS_NEW]: "records.deaths",
+
   [ROUTES.WEIGHINGS_NEW]: "records.weighings",
+
+  [ROUTES.MEDICINE_ADMINISTRATIONS_NEW]: "records.sanitaryControls",
+
+  [ROUTES.MOVEMENTS_NEW]: "records.locationMovements",
+  [ROUTES.MOVEMENTS_VIEW]: "records.locationMovements",
+
+  [ROUTES.ANIMALS_MOVEMENT_NEW]: "records.animalMovements",
 
   [ROUTES.BREEDINGS_NEW]: "breedings.breedings",
   [ROUTES.BREEDINGS_UNCONFIRMED]: "breedings.unconfirmedBreedings",
   [ROUTES.BREEDINGS_PREGNANT]: "breedings.pregnantCows",
   [ROUTES.REPRODUCTIVE_INDEXES]: "breedings.reproductiveIndexes",
   [ROUTES.BIRTH_FORECAST]: "breedings.birthForecast",
+
+  [ROUTES.OBSERVATIONS_VIEW]: "registration.animals",
 
   [ROUTES.CASH_FLOW]: "finances.cashFlow",
   [ROUTES.CASH_FLOW_NEW]: "finances.cashFlow",

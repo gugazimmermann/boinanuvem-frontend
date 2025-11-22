@@ -105,11 +105,11 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip as RechartsTooltip,
+  Tooltip,
   Legend,
-  ResponsiveContainer,
 } from "recharts";
 import { useTheme } from "~/contexts/theme-context";
+import { ChartWrapper, getTooltipStyle, getChartColors } from "~/components/dashboard";
 import { AccountsPayableStatus, AccountsReceivableStatus } from "~/types";
 import { ReproductiveIndexes } from "~/components/dashboard/reproductive-indexes/reproductive-indexes";
 
@@ -313,19 +313,8 @@ function PropertyFinanceDashboard({ propertyId }: PropertyFinanceDashboardProps)
       .sort((a, b) => b.value - a.value);
   }, [cashFlowData, t]);
 
-  const textColor = isDark ? "#e5e7eb" : "#374151";
-  const gridColor = isDark ? "#374151" : "#e5e7eb";
-  const chartColors = isDark
-    ? {
-        income: "#10b981",
-        expense: "#ef4444",
-        net: "#3b82f6",
-      }
-    : {
-        income: "#059669",
-        expense: "#dc2626",
-        net: "#2563eb",
-      };
+  const chartColors = getChartColors(isDark);
+  const tooltipStyle = getTooltipStyle(isDark);
 
   return (
     <div className="space-y-6">
@@ -434,119 +423,97 @@ function PropertyFinanceDashboard({ propertyId }: PropertyFinanceDashboardProps)
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-            {t.financesDashboard.charts.incomeVsExpenses}
-          </h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={monthlyData}>
-              <CartesianGrid strokeDasharray="3 3" stroke={gridColor} opacity={0.3} />
-              <XAxis dataKey="month" tick={{ fill: textColor, fontSize: 12 }} />
-              <YAxis
-                tick={{ fill: textColor, fontSize: 12 }}
-                tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
-              />
-              <RechartsTooltip
-                contentStyle={{
-                  backgroundColor: isDark ? "#1f2937" : "#ffffff",
-                  border: `1px solid ${gridColor}`,
-                  borderRadius: "8px",
-                }}
-                formatter={(value: number) => formatCurrency(value)}
-              />
-              <Legend />
-              <Line
-                type="monotone"
-                dataKey="income"
-                stroke={chartColors.income}
-                strokeWidth={2}
-                name={t.financesDashboard.charts.income}
-              />
-              <Line
-                type="monotone"
-                dataKey="expenses"
-                stroke={chartColors.expense}
-                strokeWidth={2}
-                name={t.financesDashboard.charts.expenses}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+        <ChartWrapper
+          title={t.financesDashboard.charts.incomeVsExpenses}
+          isEmpty={monthlyData.length === 0}
+          emptyMessage="No data available"
+        >
+          <LineChart data={monthlyData}>
+            <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
+            <XAxis dataKey="month" tick={{ fill: chartColors.text, fontSize: 12 }} />
+            <YAxis
+              tick={{ fill: chartColors.text, fontSize: 12 }}
+              tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+            />
+            <Tooltip {...tooltipStyle} formatter={(value: number) => formatCurrency(value)} />
+            <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
+            <Line
+              type="monotone"
+              dataKey="income"
+              stroke={chartColors.income}
+              strokeWidth={2}
+              name={t.financesDashboard.charts.income}
+            />
+            <Line
+              type="monotone"
+              dataKey="expenses"
+              stroke={chartColors.expense}
+              strokeWidth={2}
+              name={t.financesDashboard.charts.expenses}
+            />
+          </LineChart>
+        </ChartWrapper>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-            {t.financesDashboard.charts.monthlyCashFlow}
-          </h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={monthlyData}>
-              <defs>
-                <linearGradient id="colorNet" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={chartColors.net} stopOpacity={0.8} />
-                  <stop offset="95%" stopColor={chartColors.net} stopOpacity={0.1} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke={gridColor} opacity={0.3} />
-              <XAxis dataKey="month" tick={{ fill: textColor, fontSize: 12 }} />
-              <YAxis
-                tick={{ fill: textColor, fontSize: 12 }}
-                tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
-              />
-              <RechartsTooltip
-                contentStyle={{
-                  backgroundColor: isDark ? "#1f2937" : "#ffffff",
-                  border: `1px solid ${gridColor}`,
-                  borderRadius: "8px",
-                }}
-                formatter={(value: number) => formatCurrency(value)}
-              />
-              <Area
-                type="monotone"
-                dataKey="net"
-                stroke={chartColors.net}
-                fillOpacity={1}
-                fill="url(#colorNet)"
-                name={t.financesDashboard.charts.netCashFlow}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+        <ChartWrapper
+          title={t.financesDashboard.charts.monthlyCashFlow}
+          isEmpty={monthlyData.length === 0}
+          emptyMessage="No data available"
+        >
+          <AreaChart data={monthlyData}>
+            <defs>
+              <linearGradient id="colorNet" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={chartColors.net} stopOpacity={0.8} />
+                <stop offset="95%" stopColor={chartColors.net} stopOpacity={0.1} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
+            <XAxis dataKey="month" tick={{ fill: chartColors.text, fontSize: 12 }} />
+            <YAxis
+              tick={{ fill: chartColors.text, fontSize: 12 }}
+              tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+            />
+            <Tooltip {...tooltipStyle} formatter={(value: number) => formatCurrency(value)} />
+            <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
+            <Area
+              type="monotone"
+              dataKey="net"
+              stroke={chartColors.net}
+              fillOpacity={1}
+              fill="url(#colorNet)"
+              name={t.financesDashboard.charts.netCashFlow}
+            />
+          </AreaChart>
+        </ChartWrapper>
 
-        {expenseCategoriesData.length > 0 && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 lg:col-span-2">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-              {t.financesDashboard.charts.expenseCategories}
-            </h2>
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={expenseCategoriesData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke={gridColor} opacity={0.3} />
-                <XAxis
-                  type="number"
-                  tick={{ fill: textColor, fontSize: 12 }}
-                  tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
-                />
-                <YAxis
-                  type="category"
-                  dataKey="name"
-                  tick={{ fill: textColor, fontSize: 11 }}
-                  width={150}
-                />
-                <RechartsTooltip
-                  contentStyle={{
-                    backgroundColor: isDark ? "#1f2937" : "#ffffff",
-                    border: `1px solid ${gridColor}`,
-                    borderRadius: "8px",
-                  }}
-                  formatter={(value: number) => formatCurrency(value)}
-                />
-                <Bar
-                  dataKey="value"
-                  fill={chartColors.expense}
-                  name={t.financesDashboard.charts.expenses}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        )}
+        <ChartWrapper
+          title={t.financesDashboard.charts.expenseCategories}
+          isEmpty={expenseCategoriesData.length === 0}
+          emptyMessage="No data available"
+          height={400}
+          className="lg:col-span-2"
+        >
+          <BarChart data={expenseCategoriesData} layout="vertical">
+            <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
+            <XAxis
+              type="number"
+              tick={{ fill: chartColors.text, fontSize: 12 }}
+              tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+            />
+            <YAxis
+              type="category"
+              dataKey="name"
+              tick={{ fill: chartColors.text, fontSize: 11 }}
+              width={150}
+            />
+            <Tooltip {...tooltipStyle} formatter={(value: number) => formatCurrency(value)} />
+            <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
+            <Bar
+              dataKey="value"
+              fill={chartColors.expense}
+              name={t.financesDashboard.charts.expenses}
+            />
+          </BarChart>
+        </ChartWrapper>
       </div>
     </div>
   );

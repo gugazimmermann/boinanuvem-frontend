@@ -141,10 +141,16 @@ type PermissionResource =
   | "serviceProvider"
   | "supplier"
   | "buyer"
+  | "inventory"
   | "animals"
   | "births"
   | "acquisitions"
   | "weighings"
+  | "sales"
+  | "deaths"
+  | "sanitaryControls"
+  | "locationMovements"
+  | "animalMovements"
   | "breedings"
   | "unconfirmedBreedings"
   | "pregnantCows"
@@ -330,13 +336,59 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
         setData(userData);
         setOriginalData(userData);
         const userPermissions = user.permissions as UserPermissions | undefined;
-        setPermissions(userPermissions || defaultPermissions);
+        setPermissions(
+          userPermissions
+            ? {
+                ...defaultPermissions,
+                ...userPermissions,
+                registration: {
+                  ...defaultPermissions.registration,
+                  ...userPermissions.registration,
+                },
+                records: {
+                  ...defaultPermissions.records,
+                  ...userPermissions.records,
+                },
+                breedings: {
+                  ...defaultPermissions.breedings,
+                  ...userPermissions.breedings,
+                },
+                finances: {
+                  ...defaultPermissions.finances,
+                  ...userPermissions.finances,
+                },
+              }
+            : defaultPermissions
+        );
       }
     } else {
       setData(mainUserData);
       setOriginalData(mainUserData);
       const mainUserPermissions = mainUser?.permissions as UserPermissions | undefined;
-      setPermissions(mainUserPermissions || defaultPermissions);
+      setPermissions(
+        mainUserPermissions
+          ? {
+              ...defaultPermissions,
+              ...mainUserPermissions,
+              registration: {
+                ...defaultPermissions.registration,
+                ...mainUserPermissions.registration,
+              },
+              records: {
+                ...defaultPermissions.records,
+                ...mainUserPermissions.records,
+              },
+              breedings: {
+                ...defaultPermissions.breedings,
+                ...mainUserPermissions.breedings,
+              },
+              finances: {
+                ...defaultPermissions.finances,
+                ...mainUserPermissions.finances,
+              },
+            }
+          : defaultPermissions
+      );
     }
   }, [userId, mainUserData, mainUser]);
 
@@ -706,13 +758,23 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
                   "serviceProvider",
                   "supplier",
                   "buyer",
+                  "inventory",
                   "animals",
                 ] as PermissionResource[],
               },
               {
                 section: "records" as PermissionSection,
                 sectionLabel: t.team.permissions.records || "Registros",
-                resources: ["births", "acquisitions", "weighings"] as PermissionResource[],
+                resources: [
+                  "births",
+                  "acquisitions",
+                  "weighings",
+                  "sales",
+                  "deaths",
+                  "sanitaryControls",
+                  "locationMovements",
+                  "animalMovements",
+                ] as PermissionResource[],
               },
               {
                 section: "breedings" as PermissionSection,

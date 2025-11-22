@@ -30,6 +30,11 @@ import { mockCompanies } from "~/mocks/companies";
 import { mockEmployees } from "~/mocks/employees";
 import { mockServiceProviders } from "~/mocks/service-providers";
 
+export async function loader({ request }: { request: Request }) {
+  const { createRouteGuard } = await import("~/utils/route-guard");
+  return createRouteGuard(undefined, "add")({ request });
+}
+
 export function meta() {
   return [
     { title: "Registrar Pesagem - Boi na Nuvem" },

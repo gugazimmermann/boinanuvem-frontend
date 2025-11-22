@@ -9,18 +9,16 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import { enUS } from "date-fns/locale/en-US";
 import { es } from "date-fns/locale/es";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
+import { ChartWrapper, getTooltipStyle, getChartColors, StatCard } from "~/components/dashboard";
+import { useTheme } from "~/contexts/theme-context";
 
 const ALL_PROPERTIES_ID = "all";
+
+export async function loader({ request }: { request: Request }) {
+  const { createRouteGuard } = await import("~/utils/route-guard");
+  return createRouteGuard(undefined, "view")({ request });
+}
 
 export function meta() {
   const t = translations.pt;
@@ -36,6 +34,10 @@ export function meta() {
 export default function BirthForecastPage() {
   const t = useTranslation();
   const { language } = useLanguage();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+  const chartColors = getChartColors(isDark);
+  const tooltipStyle = getTooltipStyle(isDark);
   const company = mockCompanies[0];
   const properties = company ? getPropertiesByCompanyId(company.id) : [];
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>(
@@ -144,108 +146,54 @@ export default function BirthForecastPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              {t.birthForecast.summary.total}
-            </h3>
-            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-              <span className="text-lg">📊</span>
-            </div>
-          </div>
-          <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-            {summaryStats.total}
-          </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {t.birthForecast.summary.totalDescription}
-          </p>
-        </div>
+        <StatCard
+          title={t.birthForecast.summary.total}
+          value={summaryStats.total}
+          subtitle={t.birthForecast.summary.totalDescription}
+          icon={<span className="text-lg">📊</span>}
+        />
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              {t.birthForecast.summary.nextMonth}
-            </h3>
-            <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-              <span className="text-lg">📅</span>
-            </div>
-          </div>
-          <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-            {summaryStats.nextMonth}
-          </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {t.birthForecast.summary.nextMonthDescription}
-          </p>
-        </div>
+        <StatCard
+          title={t.birthForecast.summary.nextMonth}
+          value={summaryStats.nextMonth}
+          subtitle={t.birthForecast.summary.nextMonthDescription}
+          icon={<span className="text-lg">📅</span>}
+        />
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              {t.birthForecast.summary.average}
-            </h3>
-            <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-              <span className="text-lg">📈</span>
-            </div>
-          </div>
-          <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-            {summaryStats.average}
-          </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {t.birthForecast.summary.averageDescription}
-          </p>
-        </div>
+        <StatCard
+          title={t.birthForecast.summary.average}
+          value={summaryStats.average}
+          subtitle={t.birthForecast.summary.averageDescription}
+          icon={<span className="text-lg">📈</span>}
+        />
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              {t.birthForecast.summary.peakMonth}
-            </h3>
-            <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
-              <span className="text-lg">🔺</span>
-            </div>
-          </div>
-          {summaryStats.peakMonth ? (
-            <>
-              <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                {summaryStats.peakMonth.count}
-              </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 capitalize">
-                {summaryStats.peakMonth.month}
-              </p>
-            </>
-          ) : (
-            <p className="text-lg text-gray-500 dark:text-gray-400">-</p>
-          )}
-        </div>
+        <StatCard
+          title={t.birthForecast.summary.peakMonth}
+          value={summaryStats.peakMonth ? summaryStats.peakMonth.count : "-"}
+          subtitle={summaryStats.peakMonth ? summaryStats.peakMonth.month : ""}
+          icon={<span className="text-lg">🔺</span>}
+        />
       </div>
 
-      {expectedBirthsData.length > 0 ? (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-            {t.birthForecast.chart.title}
-          </h3>
-          <ResponsiveContainer width="100%" height={400}>
-            <BarChart data={expectedBirthsData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <RechartsTooltip />
-              <Legend />
-              <Bar
-                dataKey="expectedBirths"
-                fill="#10b981"
-                name={t.birthForecast.chart.expectedBirths}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      ) : (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-          <p className="text-gray-600 dark:text-gray-400 text-center py-8">
-            {t.birthForecast.emptyState.noData}
-          </p>
-        </div>
-      )}
+      <ChartWrapper
+        title={t.birthForecast.chart.title}
+        isEmpty={expectedBirthsData.length === 0}
+        emptyMessage={t.birthForecast.emptyState.noData}
+        height={400}
+      >
+        <BarChart data={expectedBirthsData}>
+          <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
+          <XAxis dataKey="month" tick={{ fill: chartColors.text, fontSize: 12 }} />
+          <YAxis tick={{ fill: chartColors.text, fontSize: 12 }} />
+          <Tooltip {...tooltipStyle} />
+          <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
+          <Bar
+            dataKey="expectedBirths"
+            fill={chartColors.income}
+            name={t.birthForecast.chart.expectedBirths}
+          />
+        </BarChart>
+      </ChartWrapper>
     </div>
   );
 }

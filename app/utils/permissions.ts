@@ -18,6 +18,10 @@ const fullPermissions: UserPermissions = {
     acquisitions: { view: true, add: true, edit: true, remove: true },
     weighings: { view: true, add: true, edit: true, remove: true },
     sales: { view: true, add: true, edit: true, remove: true },
+    deaths: { view: true, add: true, edit: true, remove: true },
+    sanitaryControls: { view: true, add: true, edit: true, remove: true },
+    locationMovements: { view: true, add: true, edit: true, remove: true },
+    animalMovements: { view: true, add: true, edit: true, remove: true },
   },
   breedings: {
     breedings: { view: true, add: true, edit: true, remove: true },
@@ -62,6 +66,10 @@ export function usePermissions() {
         acquisitions: { view: false, add: false, edit: false, remove: false },
         weighings: { view: false, add: false, edit: false, remove: false },
         sales: { view: false, add: false, edit: false, remove: false },
+        deaths: { view: false, add: false, edit: false, remove: false },
+        sanitaryControls: { view: false, add: false, edit: false, remove: false },
+        locationMovements: { view: false, add: false, edit: false, remove: false },
+        animalMovements: { view: false, add: false, edit: false, remove: false },
       },
       breedings: {
         breedings: { view: false, add: false, edit: false, remove: false },

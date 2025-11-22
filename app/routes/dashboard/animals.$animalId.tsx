@@ -298,9 +298,8 @@ export default function AnimalDetails() {
 
   const birth = animal ? getBirthByAnimalId(animal.id) : null;
   const acquisition = animal ? getAcquisitionByAnimalId(animal.id) : null;
-  const acquisitionItem = acquisition?.acquisitionItems.find(
-    (item) => item.animalId === animal?.id
-  );
+  const acquisitionItem =
+    acquisition?.acquisitionItems?.find((item) => item.animalId === animal?.id) || null;
   const isMale = birth?.gender === "male" || acquisitionItem?.gender === "male";
 
   useEffect(() => {

@@ -28,6 +28,11 @@ export function meta() {
   ];
 }
 
+export async function loader({ request }: { request: Request }) {
+  const { createRouteGuard } = await import("~/utils/route-guard");
+  return createRouteGuard(undefined, "add")({ request });
+}
+
 export default function NewMovement() {
   const { propertyId } = useParams<{ propertyId: string }>();
   const navigate = useNavigate();

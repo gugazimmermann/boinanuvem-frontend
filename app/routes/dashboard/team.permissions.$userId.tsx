@@ -24,6 +24,11 @@ type PermissionResource =
   | "births"
   | "acquisitions"
   | "weighings"
+  | "sales"
+  | "deaths"
+  | "sanitaryControls"
+  | "locationMovements"
+  | "animalMovements"
   | "breedings"
   | "unconfirmedBreedings"
   | "pregnantCows"
@@ -151,7 +156,30 @@ export default function TeamPermissions() {
       if (foundUser) {
         setUser(foundUser);
         const userPermissions = foundUser.permissions as UserPermissions | undefined;
-        setPermissions(userPermissions || defaultPermissions);
+        setPermissions(
+          userPermissions
+            ? {
+                ...defaultPermissions,
+                ...userPermissions,
+                registration: {
+                  ...defaultPermissions.registration,
+                  ...userPermissions.registration,
+                },
+                records: {
+                  ...defaultPermissions.records,
+                  ...userPermissions.records,
+                },
+                breedings: {
+                  ...defaultPermissions.breedings,
+                  ...userPermissions.breedings,
+                },
+                finances: {
+                  ...defaultPermissions.finances,
+                  ...userPermissions.finances,
+                },
+              }
+            : defaultPermissions
+        );
       } else {
         showAlert(t.team.permissions.userNotFound, "error");
         setTimeout(() => {
@@ -253,7 +281,16 @@ export default function TeamPermissions() {
     {
       section: "records",
       sectionLabel: t.team.permissions.records,
-      resources: ["births", "acquisitions", "weighings"],
+      resources: [
+        "births",
+        "acquisitions",
+        "weighings",
+        "sales",
+        "deaths",
+        "sanitaryControls",
+        "locationMovements",
+        "animalMovements",
+      ],
     },
     {
       section: "breedings",

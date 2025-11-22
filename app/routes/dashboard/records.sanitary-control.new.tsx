@@ -29,6 +29,11 @@ export function meta() {
   ];
 }
 
+export async function loader({ request }: { request: Request }) {
+  const { createRouteGuard } = await import("~/utils/route-guard");
+  return createRouteGuard(undefined, "add")({ request });
+}
+
 export default function NewSanitaryControl() {
   const t = useTranslation();
   const navigate = useNavigate();

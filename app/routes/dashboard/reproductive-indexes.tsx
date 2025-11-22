@@ -32,12 +32,18 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip as RechartsTooltip,
+  Tooltip,
   Legend,
-  ResponsiveContainer,
 } from "recharts";
+import { ChartWrapper, getTooltipStyle, getChartColors } from "~/components/dashboard";
+import { useTheme } from "~/contexts/theme-context";
 
 const ALL_PROPERTIES_ID = "all";
+
+export async function loader({ request }: { request: Request }) {
+  const { createRouteGuard } = await import("~/utils/route-guard");
+  return createRouteGuard(undefined, "view")({ request });
+}
 
 export function meta() {
   const t = translations.pt;
@@ -211,6 +217,10 @@ function aggregateAnnualCullingRates(cullingRates: CullingRateResult[]): Array<{
 export default function ReproductiveIndexesPage() {
   const t = useTranslation();
   const { language } = useLanguage();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+  const chartColors = getChartColors(isDark);
+  const tooltipStyle = getTooltipStyle(isDark);
   const company = mockCompanies[0];
   const properties = useMemo(
     () => (company ? getPropertiesByCompanyId(company.id) : []),
@@ -617,73 +627,65 @@ export default function ReproductiveIndexesPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {monthlyBirthRateData.length > 0 && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                  {t.reproductiveIndexes.charts.monthlyBirthRate}
-                </h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={monthlyBirthRateData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <RechartsTooltip />
-                    <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="rate"
-                      stroke="#3b82f6"
-                      name={t.reproductiveIndexes.charts.birthRate}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            )}
+            <ChartWrapper
+              title={t.reproductiveIndexes.charts.monthlyBirthRate}
+              isEmpty={monthlyBirthRateData.length === 0}
+              emptyMessage="No data available"
+            >
+              <LineChart data={monthlyBirthRateData}>
+                <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
+                <XAxis dataKey="month" tick={{ fill: chartColors.text, fontSize: 12 }} />
+                <YAxis tick={{ fill: chartColors.text, fontSize: 12 }} />
+                <Tooltip {...tooltipStyle} />
+                <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
+                <Line
+                  type="monotone"
+                  dataKey="rate"
+                  stroke={chartColors.net}
+                  strokeWidth={2}
+                  name={t.reproductiveIndexes.charts.birthRate}
+                />
+              </LineChart>
+            </ChartWrapper>
 
-            {annualCullingRateData.length > 0 && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                  {t.reproductiveIndexes.charts.annualCullingRate}
-                </h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={annualCullingRateData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="year" />
-                    <YAxis />
-                    <RechartsTooltip />
-                    <Legend />
-                    <Bar
-                      dataKey="rate"
-                      fill="#ef4444"
-                      name={t.reproductiveIndexes.charts.cullingRate}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
+            <ChartWrapper
+              title={t.reproductiveIndexes.charts.annualCullingRate}
+              isEmpty={annualCullingRateData.length === 0}
+              emptyMessage="No data available"
+            >
+              <BarChart data={annualCullingRateData}>
+                <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
+                <XAxis dataKey="year" tick={{ fill: chartColors.text, fontSize: 12 }} />
+                <YAxis tick={{ fill: chartColors.text, fontSize: 12 }} />
+                <Tooltip {...tooltipStyle} />
+                <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
+                <Bar
+                  dataKey="rate"
+                  fill={chartColors.expense}
+                  name={t.reproductiveIndexes.charts.cullingRate}
+                />
+              </BarChart>
+            </ChartWrapper>
           </div>
 
-          {expectedBirthsData.length > 0 && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                {t.reproductiveIndexes.charts.expectedFutureBirths}
-              </h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={expectedBirthsData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <RechartsTooltip />
-                  <Legend />
-                  <Bar
-                    dataKey="expectedBirths"
-                    fill="#10b981"
-                    name={t.reproductiveIndexes.charts.expectedBirths}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
+          <ChartWrapper
+            title={t.reproductiveIndexes.charts.expectedFutureBirths}
+            isEmpty={expectedBirthsData.length === 0}
+            emptyMessage="No data available"
+          >
+            <BarChart data={expectedBirthsData}>
+              <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
+              <XAxis dataKey="month" tick={{ fill: chartColors.text, fontSize: 12 }} />
+              <YAxis tick={{ fill: chartColors.text, fontSize: 12 }} />
+              <Tooltip {...tooltipStyle} />
+              <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
+              <Bar
+                dataKey="expectedBirths"
+                fill={chartColors.income}
+                name={t.reproductiveIndexes.charts.expectedBirths}
+              />
+            </BarChart>
+          </ChartWrapper>
         </div>
       ) : (
         selectedPropertyId && <ReproductiveIndexes propertyId={selectedPropertyId} />

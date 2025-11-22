@@ -38,6 +38,11 @@ export function meta() {
   ];
 }
 
+export async function loader({ request }: { request: Request }) {
+  const { createRouteGuard } = await import("~/utils/route-guard");
+  return createRouteGuard(undefined, "view")({ request });
+}
+
 export default function UnconfirmedBreedings() {
   const t = useTranslation();
   const { language } = useLanguage();

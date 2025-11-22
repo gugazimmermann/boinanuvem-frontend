@@ -23,6 +23,10 @@ export interface UserPermissions {
     acquisitions: ResourcePermissions;
     weighings: ResourcePermissions;
     sales: ResourcePermissions;
+    deaths: ResourcePermissions;
+    sanitaryControls: ResourcePermissions;
+    locationMovements: ResourcePermissions;
+    animalMovements: ResourcePermissions;
   };
   breedings: {
     breedings: ResourcePermissions;
@@ -110,6 +114,30 @@ export const defaultPermissions: UserPermissions = {
       remove: false,
     },
     sales: {
+      view: false,
+      add: false,
+      edit: false,
+      remove: false,
+    },
+    deaths: {
+      view: false,
+      add: false,
+      edit: false,
+      remove: false,
+    },
+    sanitaryControls: {
+      view: false,
+      add: false,
+      edit: false,
+      remove: false,
+    },
+    locationMovements: {
+      view: false,
+      add: false,
+      edit: false,
+      remove: false,
+    },
+    animalMovements: {
       view: false,
       add: false,
       edit: false,
