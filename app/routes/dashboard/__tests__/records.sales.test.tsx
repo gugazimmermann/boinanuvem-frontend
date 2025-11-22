@@ -318,7 +318,6 @@ describe("Sales", () => {
       fireEvent.click(saleRow);
       expect(mockNavigate).toHaveBeenCalled();
     } else {
-      // If row not found, test still passes (might be due to filtering)
       expect(true).toBe(true);
     }
   });
@@ -332,7 +331,6 @@ describe("Sales", () => {
       fireEvent.click(editButtons[0]);
       expect(mockNavigate).toHaveBeenCalled();
     } else {
-      // If no edit buttons found, test still passes (might be permission-based)
       expect(true).toBe(true);
     }
   });
@@ -355,7 +353,6 @@ describe("Sales", () => {
         { timeout: 1000 }
       );
     } else {
-      // If no delete buttons found, test still passes (might be permission-based)
       expect(true).toBe(true);
     }
   });
@@ -378,10 +375,8 @@ describe("Sales", () => {
         { timeout: 1000 }
       );
 
-      // Check if delete was called (might not be called if modal didn't appear)
       expect(mockDeleteSale).toHaveBeenCalledTimes(0);
     } else {
-      // If no delete buttons found, test still passes
       expect(true).toBe(true);
     }
   });

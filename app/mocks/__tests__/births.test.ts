@@ -75,13 +75,10 @@ describe("births mock", () => {
   });
 
   it("should have births with mother/father relationships for non-founders", () => {
-    // Check if any births have parent relationships
-    // Note: Births from breedings are added lazily, so we check if they exist
     const _nonFounderBirths = mockBirths.filter(
       (birth: Birth) => birth.motherId !== undefined || birth.fatherId !== undefined
     );
-    // It's acceptable if there are no non-founder births yet (they're added lazily)
-    // But we should have some births total
+
     expect(mockBirths.length).toBeGreaterThan(0);
   });
 

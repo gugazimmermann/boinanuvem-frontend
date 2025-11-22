@@ -182,7 +182,6 @@ export default function NewAccountsPayable() {
       };
       const newTransaction = addAccountsPayable(transactionData);
 
-      // Create observation if provided
       if (formData.observation?.trim()) {
         const fileIds = observationFiles.map(
           (_, index) => `file-accountspayable-obs-${Date.now()}-${index}`

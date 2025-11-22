@@ -33,11 +33,6 @@ export function getSalesByAnimalId(animalId: string): Sale[] {
   return mockSales.filter((sale) => sale.saleItems.some((item) => item.animalId === animalId));
 }
 
-/**
- * Checks if an animal is already sold
- * @param animalId - The ID of the animal to check
- * @returns true if the animal is already sold, false otherwise
- */
 export function isAnimalSold(animalId: string): boolean {
   if (!animalId) return false;
   const animal = getAnimalById(animalId);
@@ -58,10 +53,8 @@ export function getSalesBySaleType(companyId: string, saleType: string): Sale[] 
 }
 
 export function addSale(data: SaleFormData): Sale {
-  // Create the sale record
   const sale = createEntity(mockSales, data, ID_PREFIX, DEFAULT_ID);
 
-  // Update all animals to "sold" status
   data.saleItems.forEach((item) => {
     const animal = getAnimalById(item.animalId);
     if (animal) {
@@ -69,7 +62,6 @@ export function addSale(data: SaleFormData): Sale {
     }
   });
 
-  // Create financial record based on payment method
   const totalFees = getTotalFees(data.fees, data.transportationFee, data.additionalFees);
   const totalAmount = data.totalPrice + totalFees;
   const animalCodes = data.saleItems
@@ -108,7 +100,6 @@ export function addSale(data: SaleFormData): Sale {
     sale.linkedAccountsReceivableId = accountsReceivable.id;
   }
 
-  // Update the sale with the linked financial record ID
   updateEntity(mockSales, sale.id, sale);
 
   return sale;
@@ -118,23 +109,19 @@ export function updateSale(saleId: string, data: Partial<SaleFormData>): boolean
   const existingSale = getSaleById(saleId);
   if (!existingSale) return false;
 
-  // Get previous animal IDs
   const previousAnimalIds = existingSale.saleItems.map((item) => item.animalId);
   const newAnimalIds = data.saleItems
     ? data.saleItems.map((item) => item.animalId)
     : previousAnimalIds;
 
-  // Revert status for animals removed from sale
   const removedAnimalIds = previousAnimalIds.filter((id) => !newAnimalIds.includes(id));
   removedAnimalIds.forEach((animalId) => {
     const animal = getAnimalById(animalId);
     if (animal) {
-      // Revert to previous status (default to active)
       updateAnimal(animalId, { status: "active" });
     }
   });
 
-  // Update status for new animals added to sale
   if (data.saleItems) {
     const addedAnimalIds = newAnimalIds.filter((id) => !previousAnimalIds.includes(id));
     addedAnimalIds.forEach((animalId) => {
@@ -142,7 +129,6 @@ export function updateSale(saleId: string, data: Partial<SaleFormData>): boolean
     });
   }
 
-  // Handle payment method change
   if (data.paymentMethod && data.paymentMethod !== existingSale.paymentMethod) {
     const totalFees = getTotalFees(
       data.fees || existingSale.fees,
@@ -158,7 +144,6 @@ export function updateSale(saleId: string, data: Partial<SaleFormData>): boolean
       })
       .join(", ");
 
-    // Delete old financial record
     if (existingSale.linkedCashFlowId) {
       deleteCashFlow(existingSale.linkedCashFlowId);
     }
@@ -166,7 +151,6 @@ export function updateSale(saleId: string, data: Partial<SaleFormData>): boolean
       deleteAccountsReceivable(existingSale.linkedAccountsReceivableId);
     }
 
-    // Create new financial record
     let linkedCashFlowId: string | undefined;
     let linkedAccountsReceivableId: string | undefined;
 
@@ -201,7 +185,6 @@ export function updateSale(saleId: string, data: Partial<SaleFormData>): boolean
       linkedCashFlowId = undefined;
     }
 
-    // Update sale with new financial record IDs using updateEntity
     const updateData: Partial<SaleFormData> & {
       linkedCashFlowId?: string;
       linkedAccountsReceivableId?: string;
@@ -212,7 +195,6 @@ export function updateSale(saleId: string, data: Partial<SaleFormData>): boolean
     };
     return updateEntity(mockSales, saleId, updateData);
   } else {
-    // Update existing financial record if amount changed
     if (
       data.totalPrice !== undefined ||
       data.transportationFee !== undefined ||
@@ -235,7 +217,6 @@ export function updateSale(saleId: string, data: Partial<SaleFormData>): boolean
       }
     }
 
-    // Update sale with new data
     return updateEntity(mockSales, saleId, data);
   }
 
@@ -246,7 +227,6 @@ export function deleteSale(saleId: string): boolean {
   const sale = getSaleById(saleId);
   if (!sale) return false;
 
-  // Revert all animal statuses to previous state (default to active)
   sale.saleItems.forEach((item) => {
     const animal = getAnimalById(item.animalId);
     if (animal) {
@@ -254,7 +234,6 @@ export function deleteSale(saleId: string): boolean {
     }
   });
 
-  // Delete linked financial records
   if (sale.linkedCashFlowId) {
     deleteCashFlow(sale.linkedCashFlowId);
   }
@@ -262,7 +241,6 @@ export function deleteSale(saleId: string): boolean {
     deleteAccountsReceivable(sale.linkedAccountsReceivableId);
   }
 
-  // Delete the sale
   return deleteEntity(mockSales, saleId);
 }
 

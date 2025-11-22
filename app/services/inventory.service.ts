@@ -38,19 +38,17 @@ export function getInventoryItemsByCategory(category: string, companyId: string)
 export function getCurrentStock(itemId: string, propertyId?: string): number {
   const movements = getMovementsByItemId(itemId);
 
-  // Filter by property if specified
   const filteredMovements = propertyId
     ? movements.filter((m) => m.propertyId === propertyId)
     : movements;
 
-  // Sort movements by date (chronological order) to ensure accurate stock calculation
   const sortedMovements = [...filteredMovements].sort((a, b) => {
     const dateA = new Date(a.date).getTime();
     const dateB = new Date(b.date).getTime();
     if (dateA !== dateB) {
       return dateA - dateB;
     }
-    // If same date, sort by creation time for consistency
+
     return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
   });
 
@@ -62,7 +60,6 @@ export function getCurrentStock(itemId: string, propertyId?: string): number {
         stock += movement.quantity;
         break;
       case "adjustment":
-        // Adjustments can be positive or negative
         stock += movement.quantity;
         break;
       case "consumption":
@@ -70,8 +67,6 @@ export function getCurrentStock(itemId: string, propertyId?: string): number {
         stock -= movement.quantity;
         break;
       case "transfer":
-        // Transfer out decreases, transfer in increases
-        // For simplicity, we'll treat as consumption for now
         stock -= movement.quantity;
         break;
     }

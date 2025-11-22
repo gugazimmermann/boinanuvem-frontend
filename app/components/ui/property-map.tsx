@@ -33,7 +33,6 @@ export function PropertyMap({
       .then((L) => {
         if (!mounted || !mapRef.current) return;
 
-        // Fix Leaflet icon paths for webpack/vite
         const LeafletIcon = L.default.Icon.Default;
         if (LeafletIcon.prototype && "_getIconUrl" in LeafletIcon.prototype) {
           delete (LeafletIcon.prototype as { _getIconUrl?: unknown })._getIconUrl;

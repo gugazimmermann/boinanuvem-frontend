@@ -131,15 +131,13 @@ export function requireMainUser(redirectTo: string = ROUTES.DASHBOARD) {
 }
 
 export async function requireGuest() {
-  // Check if we're in a browser environment
   if (typeof window !== "undefined") {
     const userId = localStorage.getItem(CURRENT_USER_ID_KEY);
     if (userId) {
       throw redirect(ROUTES.DASHBOARD);
     }
   }
-  // On server-side, allow the route to render
-  // Client-side auth context will handle redirect if needed
+
   return null;
 }
 

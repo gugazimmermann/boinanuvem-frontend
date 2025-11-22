@@ -127,7 +127,7 @@ describe("SidebarItem", () => {
       const link = screen.getByText("Test Item").closest("a");
       if (link) {
         await user.click(link);
-        // Should not throw error when onItemClick is undefined
+
         expect(link).toBeInTheDocument();
       }
     });
@@ -149,7 +149,7 @@ describe("SidebarItem", () => {
       const link = screen.getByText("Test Item").closest("a");
       if (link) {
         await user.click(link);
-        // onItemClick should be called to close sidebar on mobile
+
         expect(handleItemClick).toHaveBeenCalled();
       }
     });

@@ -34,7 +34,7 @@ export interface Sale extends Record<string, unknown> {
   paymentMethod: SalePaymentMethod;
   totalPrice: number;
   fees?: Fee[];
-  // Legacy fields for backward compatibility
+
   transportationFee?: number;
   additionalFees?: number;
   saleItems: SaleItem[];
@@ -54,7 +54,7 @@ export interface SaleFormData {
   paymentMethod: SalePaymentMethod;
   totalPrice: number;
   fees?: Fee[];
-  // Legacy fields for backward compatibility
+
   transportationFee?: number;
   additionalFees?: number;
   saleItems: SaleItem[];

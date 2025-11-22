@@ -361,37 +361,28 @@ describe("EditInventoryItem", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    // Wait for the form to be rendered and category to be set
     await waitFor(
       () => {
         const categorySelect = screen.queryByTestId("select-Category");
-        // Category should be set to MEDICINES
+
         expect(categorySelect).toBeTruthy();
       },
       { timeout: 2000 }
     );
 
-    // The usage method section should appear when category is MEDICINES
-    // However, the mock Select component might not properly reflect the value
-    // So we check if the section exists OR if the category is properly set
     const usageMethodSection = await screen
       .findByText(/método de uso|usage method/i, {}, { timeout: 3000 })
       .catch(() => null);
 
     if (usageMethodSection) {
-      // If section exists, verify fields are populated
       const usageAmountInput =
         screen.queryByLabelText(/^quantidade$/i) || screen.queryByLabelText(/^amount$/i);
       if (usageAmountInput && usageAmountInput.getAttribute("type") === "number") {
         expect(usageAmountInput).toHaveValue("1");
       }
     } else {
-      // If section doesn't exist, at least verify the category is MEDICINES
-      // This might happen if the conditional rendering isn't working in the test
       const categorySelect = screen.queryByTestId("select-Category");
       expect(categorySelect).toBeTruthy();
-      // The test passes if category is set, even if usage method section doesn't render
-      // (this could be a limitation of the test environment)
     }
   });
 
@@ -424,12 +415,11 @@ describe("EditInventoryItem", () => {
       usageUnit: "dose",
       usageBasis: "per_animal",
     };
-    // Use mockReturnValue instead of mockReturnValueOnce to ensure it's used
+
     vi.mocked(getInventoryItemById).mockReturnValue(medicineItem);
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    // Wait for the form to be rendered and useEffect to populate formData
     await waitFor(
       () => {
         const form = screen.queryByRole("form") || document.querySelector("form");
@@ -438,18 +428,16 @@ describe("EditInventoryItem", () => {
       { timeout: 2000 }
     );
 
-    // Wait for category to be set to MEDICINES (from useEffect)
     await waitFor(
       () => {
         const categorySelect = screen.queryByTestId("select-Category") as HTMLSelectElement | null;
         expect(categorySelect).toBeTruthy();
-        // The select should have the MEDICINES value
+
         expect(categorySelect?.value).toBe(InventoryItemCategory.MEDICINES);
       },
       { timeout: 2000 }
     );
 
-    // Give a moment for formData to be fully initialized with usage method values
     await new Promise((resolve) => setTimeout(resolve, 300));
 
     const form = screen.queryByRole("form") || document.querySelector("form");
@@ -461,13 +449,9 @@ describe("EditInventoryItem", () => {
       () => {
         expect(updateInventoryItem).toHaveBeenCalled();
         const callArgs = vi.mocked(updateInventoryItem).mock.calls[0][1];
-        // Category should be MEDICINES
+
         expect(callArgs.category).toBe(InventoryItemCategory.MEDICINES);
-        // The component conditionally includes usage method fields only if:
-        // 1. category is MEDICINES or VACCINES (✓)
-        // 2. AND formData.usageAmount/formData.usageUnit/formData.usageBasis have values
-        // Since the item has these values (1, "dose", "per_animal") and useEffect should populate formData,
-        // they should be included. The component checks if the strings are not empty.
+
         if (callArgs.usageAmount !== undefined) {
           expect(callArgs.usageAmount).toBe(1);
         }

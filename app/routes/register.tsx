@@ -2,7 +2,6 @@ import { useState, useCallback } from "react";
 import { AuthLayout } from "../components/site/auth-layout";
 import { AuthInput, AuthButton, AuthSelect } from "../components/site/ui";
 import { Alert } from "../components/ui";
-import { COLORS } from "../components/site/constants";
 import { ROUTES } from "../routes.config";
 import { useCNPJLookup, type CNPJData, useCEPLookup, type CEPData } from "../components/site/hooks";
 import {
@@ -307,13 +306,10 @@ export default function Register() {
           <Alert title={alertMessage.title} variant={alertMessage.variant} />
         </div>
       )}
-      <div className="w-full max-w-2xl mx-auto overflow-hidden bg-white rounded-lg shadow-md">
+      <div className="w-full max-w-2xl mx-auto overflow-hidden bg-white dark:bg-gray-800 rounded-lg shadow-md">
         <div className="px-6 py-4">
           <div className="flex justify-center mx-auto mb-4">
-            <div
-              className="w-auto h-7 sm:h-8 flex items-center text-2xl font-bold"
-              style={{ color: COLORS.secondary }}
-            >
+            <div className="w-auto h-7 sm:h-8 flex items-center text-2xl font-bold text-secondary dark:text-secondary-light">
               Boi na Nuvem
             </div>
           </div>
@@ -322,15 +318,21 @@ export default function Register() {
             <div className="flex items-center">
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  step >= 1 ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-500"
+                  step >= 1
+                    ? "bg-blue-500 dark:bg-blue-600 text-white"
+                    : "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
                 }`}
               >
                 1
               </div>
-              <div className={`w-16 h-1 mx-2 ${step >= 2 ? "bg-blue-500" : "bg-gray-200"}`} />
+              <div
+                className={`w-16 h-1 mx-2 ${step >= 2 ? "bg-blue-500 dark:bg-blue-600" : "bg-gray-200 dark:bg-gray-700"}`}
+              />
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  step >= 2 ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-500"
+                  step >= 2
+                    ? "bg-blue-500 dark:bg-blue-600 text-white"
+                    : "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
                 }`}
               >
                 2
@@ -338,11 +340,11 @@ export default function Register() {
             </div>
           </div>
 
-          <h3 className="mt-3 text-xl font-medium text-center text-gray-600">
+          <h3 className="mt-3 text-xl font-medium text-center text-gray-600 dark:text-gray-300">
             {step === 1 ? "Dados da Empresa" : "Dados do Usuário"}
           </h3>
 
-          <p className="mt-1 text-center text-gray-500">
+          <p className="mt-1 text-center text-gray-500 dark:text-gray-400">
             {step === 1 ? "Preencha os dados da sua empresa" : "Preencha seus dados pessoais"}
           </p>
 
@@ -710,12 +712,12 @@ export default function Register() {
           </form>
         </div>
 
-        <div className="flex items-center justify-center py-4 text-center bg-gray-50">
-          <span className="text-sm text-gray-600">Já tem uma conta? </span>
+        <div className="flex items-center justify-center py-4 text-center bg-gray-50 dark:bg-gray-900">
+          <span className="text-sm text-gray-600 dark:text-gray-400">Já tem uma conta? </span>
 
           <a
             href={ROUTES.LOGIN}
-            className="mx-2 text-sm font-bold text-blue-500 hover:underline transition-colors cursor-pointer"
+            className="mx-2 text-sm font-bold text-blue-500 dark:text-blue-400 hover:underline transition-colors cursor-pointer"
           >
             Entrar
           </a>

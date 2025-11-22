@@ -150,7 +150,6 @@ export default function Sales() {
 
     const matchesProperty = propertyFilter === "all" || sale.propertyId === propertyFilter;
 
-    // Date range filter
     let matchesDateRange = true;
     if (startDate || endDate) {
       const saleDate = new Date(sale.saleDate);
@@ -241,7 +240,6 @@ export default function Sales() {
               ? t.sales?.saleTypes?.auction || "Leilão"
               : t.sales?.saleTypes?.otherFarm || "Outra Propriedade";
 
-        // Custom colors: Slaughterhouse (red), Auction (purple), Other Farm (yellow)
         if (row.saleType === SaleTypeEnum.SLAUGHTERHOUSE) {
           return <StatusBadge label={typeLabel} variant="danger" />;
         } else if (row.saleType === SaleTypeEnum.AUCTION) {
@@ -289,7 +287,6 @@ export default function Sales() {
             ? t.sales?.paymentMethods?.cashFlow || "À Vista"
             : t.sales?.paymentMethods?.accountsReceivable || "A Receber";
 
-        // Custom colors: Cash flow (green), Accounts receivable (orange)
         if (row.paymentMethod === "cash_flow") {
           return <StatusBadge label={methodLabel} variant="success" />;
         } else {

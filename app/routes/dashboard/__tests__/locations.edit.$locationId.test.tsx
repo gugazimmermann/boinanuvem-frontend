@@ -178,7 +178,6 @@ describe("EditLocation", () => {
     clearLocalStorage();
     vi.mocked(getLocationById).mockReturnValue(mockLocation);
 
-    // Default: main user with all permissions
     const mockMainUser = createMockMainUser();
     vi.mocked(getUserById).mockReturnValue(mockMainUser);
   });

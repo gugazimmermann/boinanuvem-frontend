@@ -88,7 +88,7 @@ describe("fees utility", () => {
         { id: "fee-1", name: "Transport", amount: 100 },
         { id: "fee-2", name: "Handling", amount: 50 },
       ];
-      expect(getTotalFees(fees, 200, 100, 75)).toBe(150); // Uses fees array, ignores legacy
+      expect(getTotalFees(fees, 200, 100, 75)).toBe(150);
     });
 
     it("should fall back to legacy fields when fees array is empty", () => {
@@ -108,7 +108,7 @@ describe("fees utility", () => {
 
     it("should handle mixed scenarios", () => {
       const fees: Fee[] = [{ id: "fee-1", name: "Custom", amount: 30 }];
-      // Should use fees array even if legacy fields exist
+
       expect(getTotalFees(fees, 100, 50, 25)).toBe(30);
     });
 

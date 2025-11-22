@@ -154,7 +154,6 @@ export default function NewAccountsReceivable() {
       };
       const newTransaction = addAccountsReceivable(transactionData);
 
-      // Create observation if provided
       if (formData.observation?.trim()) {
         const fileIds = observationFiles.map(
           (_, index) => `file-accountsreceivable-obs-${Date.now()}-${index}`

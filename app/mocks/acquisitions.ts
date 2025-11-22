@@ -4,7 +4,7 @@ import { mockAnimals } from "./animals";
 import { mockBirths } from "./births";
 import { generateAcquisitionId } from "~/services/acquisitions.service";
 
-const ARROBA_KG = 30; // 1 arroba = 30 kg
+const ARROBA_KG = 30;
 
 function calculateCostPerArroba(weightInKg: number, costPerAnimal: number): number {
   if (weightInKg <= 0) return 0;
@@ -36,13 +36,10 @@ const breeds = [
 const acquisitions: Acquisition[] = [];
 
 function initializeAcquisitions(): void {
-  // Only create acquisitions for animals that don't have birth records
-  // And that were created after the founder period (not in first 15 of each property)
   const animalsWithoutBirths = mockAnimals.filter((animal) => {
     const birth = mockBirths.find((b) => b.animalId === animal.id);
     if (birth) return false;
 
-    // Skip founder animals (first 15 of each property) - they should have births
     const code = animal.code;
     if (code.startsWith("FJ")) {
       const num = parseInt(code.substring(2));
@@ -58,10 +55,8 @@ function initializeAcquisitions(): void {
     return true;
   });
 
-  // Select a subset of these animals to have acquisitions (about 20-30% of non-founder animals)
   const animalsToAcquire = animalsWithoutBirths.filter((_, index) => index % 4 === 0);
 
-  // Group animals into batch acquisitions (some single, some multiple)
   let acquisitionIndex = 0;
   for (
     let i = 0;
@@ -83,25 +78,22 @@ function initializeAcquisitions(): void {
     const supplierId = suppliers[acquisitionIndex % suppliers.length];
     const acquisitionDate = firstAnimal.acquisitionDate || firstAnimal.createdAt;
 
-    // Determine pricing mode (more likely to be total for batch acquisitions)
     const pricingMode =
       animalsInAcquisition.length > 1 && Math.random() < 0.6
         ? PricingMode.TOTAL
         : PricingMode.INDIVIDUAL;
 
-    // Determine payment method
     const paymentMethod =
       Math.random() < 0.7
         ? AcquisitionPaymentMethod.CASH_FLOW
         : AcquisitionPaymentMethod.ACCOUNTS_PAYABLE;
 
-    // Calculate prices and weights
     const acquisitionItems = animalsInAcquisition.map((animal, itemIndex) => {
       const breed = breeds[(acquisitionIndex + itemIndex) % breeds.length];
       const gender = Math.random() < 0.55 ? "male" : "female";
-      // More realistic price range: R$ 2,000 to R$ 12,000
+
       const price = 2000 + Math.floor(Math.random() * 10000);
-      // Weight range: 200-500 kg
+
       const weight = 200 + Math.floor(Math.random() * 300);
 
       let motherId: string | undefined;
@@ -177,7 +169,6 @@ function initializeAcquisitions(): void {
       };
     });
 
-    // Calculate total price
     const totalPrice = acquisitionItems.reduce((sum, item) => sum + item.price, 0);
     const transportationFee = Math.random() < 0.5 ? Math.floor(Math.random() * 1000) : undefined;
     const handlingFee = Math.random() < 0.3 ? Math.floor(Math.random() * 500) : undefined;

@@ -60,10 +60,8 @@ describe("Sidebar", () => {
       const { container, rerender } = render(<Sidebar isOpen={false} />, { wrapper });
       const sidebar = container.querySelector("aside");
 
-      // When closed, should have -translate-x-full on mobile
       expect(sidebar).toHaveClass("-translate-x-full");
 
-      // When open, should have translate-x-0
       rerender(<Sidebar isOpen={true} />);
       expect(sidebar).toHaveClass("translate-x-0");
     });
@@ -71,8 +69,7 @@ describe("Sidebar", () => {
     it("should accept onClose prop", () => {
       const handleClose = vi.fn();
       render(<Sidebar onClose={handleClose} />, { wrapper });
-      // onClose is passed to SidebarItem, so we test it indirectly
-      // The prop is accepted without error
+
       expect(handleClose).toBeDefined();
     });
 
@@ -80,7 +77,6 @@ describe("Sidebar", () => {
       const { container } = render(<Sidebar />, { wrapper });
       const sidebar = container.querySelector("aside");
 
-      // Should be fixed on mobile, static on desktop
       expect(sidebar).toHaveClass("fixed", "sm:static");
     });
 
@@ -88,7 +84,6 @@ describe("Sidebar", () => {
       const { container } = render(<Sidebar isOpen={false} />, { wrapper });
       const sidebar = container.querySelector("aside");
 
-      // Should have transform and transition classes
       expect(sidebar).toHaveClass(
         "transform",
         "transition-transform",
@@ -102,9 +97,7 @@ describe("Sidebar", () => {
       const { container } = render(<Sidebar isOpen={true} onClose={handleClose} />, { wrapper });
       const sidebar = container.querySelector("aside");
 
-      // Sidebar should render with onClose prop
       expect(sidebar).toBeInTheDocument();
-      // The onClose callback is passed down to items (tested in sidebar-item tests)
     });
 
     it("should have correct z-index classes (z-50 on mobile, z-auto on desktop)", () => {

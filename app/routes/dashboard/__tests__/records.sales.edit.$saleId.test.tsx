@@ -334,8 +334,6 @@ describe("EditSale", () => {
     render(<RouterProvider router={router} />);
 
     await waitFor(() => {
-      // Animals already in the sale (animal-1, animal-2) should be selectable
-      // even though they have status "sold"
       const checkboxes = screen.queryAllByRole("checkbox");
       expect(checkboxes.length).toBeGreaterThanOrEqual(0);
     });
@@ -346,7 +344,6 @@ describe("EditSale", () => {
     render(<RouterProvider router={router} />);
 
     await waitFor(() => {
-      // animal-sold should be disabled because it's not in the current sale
       const checkboxes = screen.queryAllByRole("checkbox");
       expect(checkboxes.length).toBeGreaterThanOrEqual(0);
     });
@@ -394,7 +391,7 @@ describe("EditSale", () => {
       ) as HTMLButtonElement | undefined;
       if (submitButton) {
         fireEvent.click(submitButton);
-        // Validation errors might be shown
+
         const errors = screen.queryAllByText(/required|obrigatório/i);
         expect(errors.length >= 0).toBeTruthy();
       }

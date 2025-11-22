@@ -1,6 +1,6 @@
 import { useState, memo } from "react";
 import { Section, Heading, Button } from "./ui";
-import { PRICING_PLANS, COLORS } from "./constants";
+import { PRICING_PLANS } from "./constants";
 import { ROUTES } from "../../routes.config";
 
 export const Pricing = memo(function Pricing() {
@@ -9,16 +9,14 @@ export const Pricing = memo(function Pricing() {
   return (
     <Section
       id="section-pricing"
-      style={{
-        background: `linear-gradient(180deg, white 0%, ${COLORS.bgLightSecondary} 30%, ${COLORS.bgLightTertiary} 60%, white 100%)`,
-      }}
+      className="bg-gradient-to-b from-white via-gray-50 to-white dark:from-gray-950 dark:via-gray-900 dark:to-gray-950"
     >
       <div className="text-center mb-12">
         <Heading level={2} color="secondary" className="mb-4">
-          Planos que <span style={{ color: COLORS.primary }}>cabem no seu bolso</span> sem
-          comprometer qualidade
+          Planos que <span className="text-primary">cabem no seu bolso</span> sem comprometer
+          qualidade
         </Heading>
-        <p className="text-xl text-gray-600 leading-relaxed">
+        <p className="text-xl text-gray-600 dark:text-gray-300 leading-relaxed">
           Opções flexíveis de preços para diferentes tamanhos de propriedade
           <br />
           Garanta eficiência e economia sem abrir mão de funcionalidades essenciais.
@@ -26,19 +24,16 @@ export const Pricing = memo(function Pricing() {
       </div>
 
       <div className="flex justify-center mb-8">
-        <div className="inline-flex rounded-full border-2 border-gray-300 p-1 bg-white">
+        <div className="inline-flex rounded-full border-2 border-gray-300 dark:border-gray-700 p-1 bg-white dark:bg-gray-800">
           {(["Mensal", "Anual"] as const).map((label, index) => {
             const isActive = (index === 0 && isMonthly) || (index === 1 && !isMonthly);
             return (
               <button
                 key={label}
                 onClick={() => setIsMonthly(index === 0)}
-                className="px-6 py-2 rounded-full transition font-medium cursor-pointer"
-                style={
-                  isActive
-                    ? { backgroundColor: COLORS.primary, color: "white" }
-                    : { color: COLORS.textMedium }
-                }
+                className={`px-6 py-2 rounded-full transition font-medium cursor-pointer ${
+                  isActive ? "bg-primary text-white" : "text-gray-600 dark:text-gray-400"
+                }`}
               >
                 {label}
               </button>
@@ -51,35 +46,19 @@ export const Pricing = memo(function Pricing() {
         {PRICING_PLANS.map((plan, index) => {
           const price = isMonthly ? plan.monthlyPrice : plan.annualPrice;
           const period = isMonthly ? "mês" : "ano";
-          const borderColor = plan.popular ? COLORS.primary : COLORS.bgLightSecondary;
           const buttonVariant = plan.popular ? "primary" : "secondary";
 
           return (
             <div
               key={index}
-              className={`relative p-8 rounded-2xl ${plan.popular ? "shadow-lg" : ""}`}
-              style={
+              className={`relative p-8 rounded-2xl ${plan.popular ? "shadow-lg" : ""} ${
                 plan.popular
-                  ? {
-                      backgroundColor: "white",
-                      border: "2px solid",
-                      borderColor: COLORS.primary,
-                    }
-                  : {
-                      backgroundColor: COLORS.bgLightTertiary,
-                      border: "1px solid",
-                      borderColor: COLORS.bgLightSecondary,
-                    }
-              }
+                  ? "bg-white dark:bg-gray-800 border-2 border-primary"
+                  : "bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700"
+              }`}
             >
               {plan.popular && (
-                <span
-                  className="absolute -top-4 left-8 px-3 py-1 rounded-full text-sm border-2 font-medium text-white"
-                  style={{
-                    backgroundColor: COLORS.primary,
-                    borderColor: COLORS.primary,
-                  }}
-                >
+                <span className="absolute -top-4 left-8 px-3 py-1 rounded-full text-sm border-2 font-medium text-white bg-primary border-primary">
                   Mais Popular
                 </span>
               )}
@@ -88,28 +67,28 @@ export const Pricing = memo(function Pricing() {
                   <Heading level={3} color="secondary" className="mb-2">
                     {plan.name}
                   </Heading>
-                  <p className="text-gray-600 text-sm">{plan.description}</p>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">{plan.description}</p>
                 </div>
                 <div className="text-right">
-                  <div className="text-4xl font-bold" style={{ color: COLORS.primary }}>
-                    {price}
-                  </div>
-                  <div className="text-sm text-gray-500">por {period}</div>
+                  <div className="text-4xl font-bold text-primary">{price}</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">por {period}</div>
                 </div>
               </div>
-              <div className="mb-6 border-t-2 pt-5" style={{ borderColor }}>
-                <p className="font-bold mb-3 text-lg" style={{ color: COLORS.textDark }}>
-                  Inclui:
-                </p>
+              <div
+                className={`mb-6 border-t-2 pt-5 ${
+                  plan.popular ? "border-primary" : "border-gray-200 dark:border-gray-700"
+                }`}
+              >
+                <p className="font-bold mb-3 text-lg text-gray-900 dark:text-gray-100">Inclui:</p>
                 <ul className="space-y-2">
                   {plan.features.map((feature, idx) => {
                     const [firstWord, ...rest] = feature.split(" ");
                     return (
-                      <li key={idx} className="flex items-center text-gray-700">
-                        <span className="mr-2" style={{ color: COLORS.primary }}>
-                          ✓
-                        </span>
-                        <strong style={{ color: COLORS.textDark }}>{firstWord}</strong>{" "}
+                      <li key={idx} className="flex items-center text-gray-700 dark:text-gray-300">
+                        <span className="mr-2 text-primary">✓</span>
+                        <strong className="text-gray-900 dark:text-gray-100">
+                          {firstWord}
+                        </strong>{" "}
                         {rest.join(" ")}
                       </li>
                     );

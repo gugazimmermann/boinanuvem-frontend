@@ -16,14 +16,8 @@ import { getTotalFees } from "~/utils/fees";
 const ID_PREFIX = "ac0e8400-e29b-41d4-a716";
 const DEFAULT_ID = "ac0e8400-e29b-41d4-a716-446655440009";
 
-const ARROBA_KG = 30; // 1 arroba = 30 kg
+const ARROBA_KG = 30;
 
-/**
- * Calculates cost per arroba for an animal
- * @param weightInKg - Weight of the animal in kilograms
- * @param costPerAnimal - Total cost allocated to this animal
- * @returns Cost per arroba
- */
 export function calculateAcquisitionCostPerArroba(
   weightInKg: number,
   costPerAnimal: number
@@ -66,15 +60,12 @@ export function getAcquisitionsByDateRange(
 }
 
 export function addAcquisition(data: AcquisitionFormData): Acquisition {
-  // Calculate total cost including fees
   const totalFees = getTotalFees(data.fees, data.transportationFee, undefined, data.handlingFee);
   const totalCost = data.totalPrice + totalFees;
   const animalCount = data.acquisitionItems.length;
 
-  // Distribute cost evenly per animal
   const costPerAnimal = animalCount > 0 ? totalCost / animalCount : 0;
 
-  // Calculate cost per arroba for each animal and update items
   const updatedItems = data.acquisitionItems.map((item) => {
     const costPerArroba = calculateAcquisitionCostPerArroba(item.weight, costPerAnimal);
     return {
@@ -84,7 +75,6 @@ export function addAcquisition(data: AcquisitionFormData): Acquisition {
     };
   });
 
-  // Create acquisition with updated items
   const acquisitionData: AcquisitionFormData = {
     ...data,
     acquisitionItems: updatedItems,
@@ -92,7 +82,6 @@ export function addAcquisition(data: AcquisitionFormData): Acquisition {
 
   const acquisition = createEntity(mockAcquisitions, acquisitionData, ID_PREFIX, DEFAULT_ID);
 
-  // Create financial record based on payment method
   const animalCodes = data.acquisitionItems
     .map((item) => {
       const animal = getAnimalById(item.animalId);
@@ -129,7 +118,6 @@ export function addAcquisition(data: AcquisitionFormData): Acquisition {
     acquisition.linkedAccountsPayableId = accountsPayable.id;
   }
 
-  // Update the acquisition with the linked financial record ID
   updateEntity(mockAcquisitions, acquisition.id, acquisition);
 
   return acquisition;
@@ -142,7 +130,6 @@ export function updateAcquisition(
   const existingAcquisition = getAcquisitionById(acquisitionId);
   if (!existingAcquisition) return false;
 
-  // Recalculate costs if items or prices changed
   let updatedItems = data.acquisitionItems || existingAcquisition.acquisitionItems;
   const totalFees = getTotalFees(
     data.fees || existingAcquisition.fees,
@@ -171,7 +158,6 @@ export function updateAcquisition(
     });
   }
 
-  // Handle payment method change
   if (data.paymentMethod && data.paymentMethod !== existingAcquisition.paymentMethod) {
     const animalCodes = updatedItems
       .map((item) => {
@@ -180,7 +166,6 @@ export function updateAcquisition(
       })
       .join(", ");
 
-    // Delete old financial record
     if (existingAcquisition.linkedCashFlowId) {
       deleteCashFlow(existingAcquisition.linkedCashFlowId);
     }
@@ -188,7 +173,6 @@ export function updateAcquisition(
       deleteAccountsPayable(existingAcquisition.linkedAccountsPayableId);
     }
 
-    // Create new financial record
     let linkedCashFlowId: string | undefined;
     let linkedAccountsPayableId: string | undefined;
 
@@ -223,7 +207,6 @@ export function updateAcquisition(
       linkedCashFlowId = undefined;
     }
 
-    // Update acquisition with new financial record IDs
     const updateData: Partial<AcquisitionFormData> & {
       linkedCashFlowId?: string;
       linkedAccountsPayableId?: string;
@@ -236,7 +219,6 @@ export function updateAcquisition(
     };
     return updateEntity(mockAcquisitions, acquisitionId, updateData);
   } else {
-    // Update existing financial record if amount changed
     if (
       data.totalPrice !== undefined ||
       data.fees !== undefined ||
@@ -261,7 +243,6 @@ export function updateAcquisition(
       }
     }
 
-    // Update acquisition with new data
     const updateData: Partial<AcquisitionFormData> & {
       acquisitionItems?: typeof updatedItems;
     } = {
@@ -276,7 +257,6 @@ export function deleteAcquisition(acquisitionId: string): boolean {
   const acquisition = getAcquisitionById(acquisitionId);
   if (!acquisition) return false;
 
-  // Delete linked financial records
   if (acquisition.linkedCashFlowId) {
     deleteCashFlow(acquisition.linkedCashFlowId);
   }
@@ -284,7 +264,6 @@ export function deleteAcquisition(acquisitionId: string): boolean {
     deleteAccountsPayable(acquisition.linkedAccountsPayableId);
   }
 
-  // Delete the acquisition
   return deleteEntity(mockAcquisitions, acquisitionId);
 }
 

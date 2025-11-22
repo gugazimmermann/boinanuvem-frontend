@@ -34,7 +34,7 @@ export interface Acquisition extends Record<string, unknown> {
   paymentMethod: AcquisitionPaymentMethod;
   totalPrice: number;
   fees?: Fee[];
-  // Legacy fields for backward compatibility
+
   transportationFee?: number;
   handlingFee?: number;
   acquisitionItems: AcquisitionItem[];
@@ -53,7 +53,7 @@ export interface AcquisitionFormData {
   paymentMethod: AcquisitionPaymentMethod;
   totalPrice: number;
   fees?: Fee[];
-  // Legacy fields for backward compatibility
+
   transportationFee?: number;
   handlingFee?: number;
   acquisitionItems: AcquisitionItem[];

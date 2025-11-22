@@ -235,9 +235,8 @@ describe("NewSale", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    // Sold animals should be disabled
     const checkboxes = screen.queryAllByRole("checkbox");
-    // Check if sold animals are disabled
+
     expect(checkboxes.length).toBeGreaterThanOrEqual(0);
   });
 

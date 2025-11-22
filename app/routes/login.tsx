@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { AuthLayout } from "../components/site/auth-layout";
 import { AuthInput, AuthButton } from "../components/site/ui";
-import { COLORS } from "../components/site/constants";
 import { ROUTES } from "../routes.config";
 import { authenticateUser } from "../services/users.service";
 import { useAuth } from "../contexts/auth-context";
@@ -66,24 +65,25 @@ export default function Login() {
 
   return (
     <AuthLayout>
-      <div className="w-full max-w-sm mx-auto overflow-hidden bg-white rounded-lg shadow-md">
+      <div className="w-full max-w-sm mx-auto overflow-hidden bg-white dark:bg-gray-800 rounded-lg shadow-md">
         <div className="px-6 py-4">
           <div className="flex justify-center mx-auto mb-4">
-            <div
-              className="w-auto h-7 sm:h-8 flex items-center text-2xl font-bold"
-              style={{ color: COLORS.secondary }}
-            >
+            <div className="w-auto h-7 sm:h-8 flex items-center text-2xl font-bold text-secondary dark:text-secondary-light">
               Boi na Nuvem
             </div>
           </div>
 
-          <h3 className="mt-3 text-xl font-medium text-center text-gray-600">Bem-vindo de volta</h3>
+          <h3 className="mt-3 text-xl font-medium text-center text-gray-600 dark:text-gray-300">
+            Bem-vindo de volta
+          </h3>
 
-          <p className="mt-1 text-center text-gray-500">Faça login ou crie uma conta</p>
+          <p className="mt-1 text-center text-gray-500 dark:text-gray-400">
+            Faça login ou crie uma conta
+          </p>
 
           <form className="mt-6" onSubmit={handleSubmit}>
             {error && (
-              <div className="mb-4 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg">
+              <div className="mb-4 p-3 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                 {error}
               </div>
             )}
@@ -122,7 +122,7 @@ export default function Login() {
             <div className="flex items-center justify-between mt-4">
               <a
                 href={ROUTES.FORGOT_PASSWORD}
-                className="text-sm text-gray-600 hover:text-gray-500 transition-colors cursor-pointer"
+                className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 transition-colors cursor-pointer"
               >
                 Esqueceu a senha?
               </a>
@@ -134,12 +134,12 @@ export default function Login() {
           </form>
         </div>
 
-        <div className="flex items-center justify-center py-4 text-center bg-gray-50">
-          <span className="text-sm text-gray-600">Não tem uma conta? </span>
+        <div className="flex items-center justify-center py-4 text-center bg-gray-50 dark:bg-gray-900">
+          <span className="text-sm text-gray-600 dark:text-gray-400">Não tem uma conta? </span>
 
           <a
             href={ROUTES.REGISTER}
-            className="mx-2 text-sm font-bold text-blue-500 hover:underline transition-colors cursor-pointer"
+            className="mx-2 text-sm font-bold text-blue-500 dark:text-blue-400 hover:underline transition-colors cursor-pointer"
           >
             Registrar
           </a>

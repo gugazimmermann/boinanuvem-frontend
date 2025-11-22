@@ -13,15 +13,10 @@ import { getLocationById } from "./locations.service";
 import { mockAnimalMovements } from "~/mocks/animal-movements";
 import { mockInventoryMovements } from "~/mocks/inventory-movements";
 
-/**
- * Determines which animals were in a location on a specific date
- * by checking the most recent animal movement before or on that date
- */
 export function getAnimalsInLocationOnDate(locationId: string, date: string): Animal[] {
   const animals: Animal[] = [];
   const targetDate = new Date(date);
 
-  // Get all unique animal IDs that have been in this location
   const animalIdsInLocation = new Set<string>();
   mockAnimalMovements.forEach((movement) => {
     if (movement.locationId === locationId) {
@@ -29,16 +24,13 @@ export function getAnimalsInLocationOnDate(locationId: string, date: string): An
     }
   });
 
-  // For each animal, find the most recent movement before or on the target date
   for (const animalId of animalIdsInLocation) {
     const animalMovements = getAnimalMovementsByAnimalId(animalId);
 
-    // Filter movements before or on target date and sort by date descending
     const movementsBeforeDate = animalMovements
       .filter((m) => new Date(m.date) <= targetDate)
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    // If the most recent movement before/on date has this location, animal was present
     if (movementsBeforeDate.length > 0) {
       const mostRecentMovement = movementsBeforeDate[0];
       if (mostRecentMovement.locationId === locationId) {
@@ -53,9 +45,6 @@ export function getAnimalsInLocationOnDate(locationId: string, date: string): An
   return animals;
 }
 
-/**
- * Gets all consumption movements for a location with calculated costs
- */
 export function getLocationConsumptionCosts(
   locationId: string,
   startDate?: string,
@@ -63,7 +52,6 @@ export function getLocationConsumptionCosts(
 ): LocationConsumptionCost[] {
   const movements = getConsumptionMovementsByLocationId(locationId);
 
-  // Filter by date range if provided
   let filteredMovements = movements;
   if (startDate || endDate) {
     filteredMovements = movements.filter((movement) => {
@@ -83,11 +71,9 @@ export function getLocationConsumptionCosts(
       const item = getInventoryItemById(movement.itemId);
       if (!item) return null;
 
-      // Use unitPrice from movement if available, otherwise fall back to item's unitPrice
       const unitPrice = movement.unitPrice ?? item.unitPrice ?? 0;
       const totalCost = movement.quantity * unitPrice;
 
-      // Get animals present on consumption date
       const animalsPresent = getAnimalsInLocationOnDate(locationId, movement.date);
 
       return {
@@ -100,9 +86,6 @@ export function getLocationConsumptionCosts(
     .filter((cost): cost is LocationConsumptionCost => cost !== null);
 }
 
-/**
- * Gets total cost of all consumption in a location
- */
 export function getTotalLocationCost(
   locationId: string,
   startDate?: string,
@@ -112,9 +95,6 @@ export function getTotalLocationCost(
   return costs.reduce((total, cost) => total + cost.totalCost, 0);
 }
 
-/**
- * Gets per-animal cost breakdown with time-weighted allocation
- */
 export function getAnimalCostBreakdown(
   locationId: string,
   startDate?: string,
@@ -122,7 +102,6 @@ export function getAnimalCostBreakdown(
 ): AnimalCostBreakdown[] {
   const consumptionCosts = getLocationConsumptionCosts(locationId, startDate, endDate);
 
-  // Track costs per animal
   const animalCosts = new Map<string, { animal: Animal; totalCost: number; periods: number }>();
 
   for (const cost of consumptionCosts) {
@@ -144,7 +123,6 @@ export function getAnimalCostBreakdown(
     }
   }
 
-  // Convert to array and calculate averages
   return Array.from(animalCosts.values()).map(({ animal, totalCost, periods }) => ({
     animal,
     totalCost,
@@ -153,9 +131,6 @@ export function getAnimalCostBreakdown(
   }));
 }
 
-/**
- * Calculates total cost allocated to a specific animal in a specific location
- */
 export function getAnimalCostByLocation(
   animalId: string,
   locationId: string,
@@ -166,10 +141,8 @@ export function getAnimalCostByLocation(
   let totalCost = 0;
 
   for (const cost of consumptionCosts) {
-    // Check if this animal was present in the location on the consumption date
     const wasPresent = cost.animalsPresent.some((animal) => animal.id === animalId);
     if (wasPresent) {
-      // Divide cost equally among all animals present
       const costPerAnimal =
         cost.animalsPresent.length > 0 ? cost.totalCost / cost.animalsPresent.length : 0;
       totalCost += costPerAnimal;
@@ -179,24 +152,18 @@ export function getAnimalCostByLocation(
   return totalCost;
 }
 
-/**
- * Gets cost breakdown for an animal grouped by location
- */
 export function getAnimalCostBreakdownByLocation(
   animalId: string,
   startDate?: string,
   endDate?: string
 ): AnimalLocationCost[] {
-  // Get all consumption movements with locationId
   const consumptionMovements = mockInventoryMovements.filter(
     (m) => m.type === "consumption" && m.locationId && m.locationId.trim() !== ""
   );
 
-  // Group by location
   const locationCosts = new Map<string, LocationConsumptionCost[]>();
 
   for (const movement of consumptionMovements) {
-    // Filter by date range if provided
     if (startDate || endDate) {
       const movementDate = new Date(movement.date);
       if (startDate && movementDate < new Date(startDate)) continue;
@@ -206,7 +173,6 @@ export function getAnimalCostBreakdownByLocation(
     const locationId = movement.locationId!;
     const locationConsumptionCosts = getLocationConsumptionCosts(locationId, startDate, endDate);
 
-    // Filter to only include costs where this animal was present
     const relevantCosts = locationConsumptionCosts.filter((cost) =>
       cost.animalsPresent.some((animal) => animal.id === animalId)
     );
@@ -221,7 +187,6 @@ export function getAnimalCostBreakdownByLocation(
     }
   }
 
-  // Convert to AnimalLocationCost array
   return Array.from(locationCosts.entries()).map(([locationId, consumptionDetails]) => {
     const location = getLocationById(locationId);
     const totalCost = consumptionDetails.reduce((sum, cost) => {
@@ -244,9 +209,6 @@ export function getAnimalCostBreakdownByLocation(
   });
 }
 
-/**
- * Gets total cost for an animal across all locations
- */
 export function getAnimalTotalCost(
   animalId: string,
   startDate?: string,

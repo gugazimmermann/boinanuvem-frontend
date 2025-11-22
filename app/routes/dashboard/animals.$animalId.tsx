@@ -234,7 +234,6 @@ export default function AnimalDetails() {
     | "sales"
   >("dashboard");
 
-  // Redirect non-main users away from activities tab
   useEffect(() => {
     if (activeTab === "activities" && !isMainUser()) {
       setActiveTab("dashboard");
@@ -457,8 +456,6 @@ export default function AnimalDetails() {
     });
   }, [sonsBirths, sonsSortState, localeForDateTime]);
 
-  // All hooks must be called before any early returns
-  // Reproductive Statistics
   const company = mockCompanies[0];
   const companyId = company?.id || "";
   const allCompanyBirths = useMemo(() => getBirthsByCompanyId(companyId), [companyId]);
@@ -483,7 +480,6 @@ export default function AnimalDetails() {
       ? Math.round(calvingIntervals.reduce((a, b) => a + b, 0) / calvingIntervals.length)
       : null;
 
-  // Location & Property Information
   const animalMovements = useMemo(
     () => (animal ? getAnimalMovementsByAnimalId(animal.id) : []),
     [animal]
@@ -507,7 +503,6 @@ export default function AnimalDetails() {
     return differenceInDays(today, movementDate);
   }, [currentMovement]);
 
-  // Cost Information
   const animalCostData = useMemo(() => {
     if (!animal) return null;
     return getAnimalTotalCost(animal.id, costsStartDate || undefined, costsEndDate || undefined);
@@ -515,7 +510,6 @@ export default function AnimalDetails() {
   const totalCost = animalCostData?.totalCost || 0;
   const costPerKg = currentWeight > 0 ? totalCost / currentWeight : 0;
 
-  // Weighing Statistics
   const firstWeighing =
     sortedWeighings.length > 0 ? sortedWeighings[sortedWeighings.length - 1] : null;
   const weightGainSinceFirst =
@@ -528,7 +522,6 @@ export default function AnimalDetails() {
     return monthsDiff > 0 ? (weightGainSinceFirst / monthsDiff).toFixed(2) : null;
   }, [firstWeighing, lastWeighing, weightGainSinceFirst]);
 
-  // Weight Trend Chart Data
   const weightChartData = useMemo(() => {
     return sortedWeighings
       .slice()
@@ -663,7 +656,6 @@ export default function AnimalDetails() {
 
   const genealogyTree = buildGenealogyTree(animal.id);
 
-  // Recent Activity
   const recentWeighings = sortedWeighings.slice(0, 5);
   const recentBreedingsList = breedings.slice(0, 5);
   const recentMovementsList = sortedMovements.slice(0, 5);
@@ -936,7 +928,6 @@ export default function AnimalDetails() {
 
       {activeTab === "dashboard" && (
         <div className="space-y-6">
-          {/* Key Metrics */}
           <div>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
               {t.dashboard.title}
@@ -1010,7 +1001,6 @@ export default function AnimalDetails() {
             </div>
           </div>
 
-          {/* Additional Metrics */}
           <div>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
               {t.animals.details.dashboard.additionalMetrics}
@@ -1103,7 +1093,6 @@ export default function AnimalDetails() {
             </div>
           </div>
 
-          {/* Reproductive Statistics */}
           {(!isMale && (birthsAsMother.length > 0 || breedings.length > 0)) ||
           (isMale && (sonsBirths.length > 0 || breedings.length > 0)) ? (
             <div>
@@ -1214,7 +1203,6 @@ export default function AnimalDetails() {
             </div>
           ) : null}
 
-          {/* Location & Property Information */}
           <div>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
               {t.animals.details.dashboard.locationProperty}
@@ -1306,7 +1294,6 @@ export default function AnimalDetails() {
             </div>
           </div>
 
-          {/* Cost Information */}
           {animalCostData && (
             <div>
               <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
@@ -1350,7 +1337,6 @@ export default function AnimalDetails() {
             </div>
           )}
 
-          {/* Weighing Statistics */}
           {weighings.length > 0 && (
             <div>
               <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
@@ -1442,7 +1428,6 @@ export default function AnimalDetails() {
             </div>
           )}
 
-          {/* Weight Trend Chart */}
           {weightChartData.length > 1 && (
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
@@ -1482,7 +1467,6 @@ export default function AnimalDetails() {
             </div>
           )}
 
-          {/* Recent Activity */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
               {t.animals.details.dashboard.recentActivity}
@@ -3136,7 +3120,6 @@ export default function AnimalDetails() {
               costsEndDate || undefined
             );
 
-            // Flatten all consumption details for the detailed history table
             const allConsumptionDetails = animalCostData.locationBreakdown.flatMap((location) =>
               location.consumptionDetails.map((detail) => ({
                 ...detail,
@@ -3160,7 +3143,6 @@ export default function AnimalDetails() {
                       "Track inventory consumption costs for this animal"}
                   </p>
 
-                  {/* Date Range Filter */}
                   <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -3198,7 +3180,6 @@ export default function AnimalDetails() {
                     </div>
                   </div>
 
-                  {/* Summary Card */}
                   <div className="mb-6">
                     <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
                       <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
@@ -3217,7 +3198,6 @@ export default function AnimalDetails() {
                     </div>
                   </div>
 
-                  {/* Cost by Location Table */}
                   {animalCostData.locationBreakdown.length > 0 && (
                     <div className="mb-6">
                       <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-4">
@@ -3277,7 +3257,6 @@ export default function AnimalDetails() {
                     </div>
                   )}
 
-                  {/* Detailed Consumption History */}
                   {allConsumptionDetails.length > 0 && (
                     <div>
                       <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-4">

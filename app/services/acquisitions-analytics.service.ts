@@ -97,7 +97,6 @@ export function getAcquisitionsMetrics(
   const averageWeightAtAcquisition =
     totalAnimalsAcquired > 0 ? totalWeight / totalAnimalsAcquired : 0;
 
-  // Calculate cost evolution over time (group by month)
   const costEvolutionMap = new Map<
     string,
     { totalCost: number; costPerArroba: number; count: number }

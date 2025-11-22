@@ -89,7 +89,6 @@ describe("Navbar", () => {
       render(<Navbar onToggleSidebar={handleToggle} />, { wrapper });
       const hamburgerButton = screen.getByLabelText("Toggle sidebar");
 
-      // Button should be visible on mobile but hidden on desktop
       expect(hamburgerButton).toHaveClass("sm:hidden");
     });
 

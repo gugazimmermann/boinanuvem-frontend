@@ -23,12 +23,8 @@ const breeds = [
   AnimalBreed.SIMENTAL,
 ];
 
-// Create and export mockBirths early to avoid circular dependency issues
-// It will be populated as the module evaluates
-// Export early - this ensures the binding exists when breedings.ts imports it
 export const mockBirths: Birth[] = [];
 
-// Use the same array reference
 const births = mockBirths;
 
 const FAZENDA_DO_JUCA_ID = "550e8400-e29b-41d4-a716-446655440010";
@@ -39,8 +35,6 @@ const fazendaAnimals = mockAnimals.filter((a) => a.code.startsWith("FJ"));
 const chacaraAnimals = mockAnimals.filter((a) => a.code.startsWith("CJ"));
 const sitioAnimals = mockAnimals.filter((a) => a.code.startsWith("SL"));
 
-// Founder animals: first 15 animals in each property should have birth records
-// These are the original herd animals
 const founderCounts = {
   fazenda: 15,
   chacara: 15,
@@ -49,10 +43,9 @@ const founderCounts = {
 
 let birthIndex = 0;
 
-// Helper to get realistic birth date (can be before createdAt for older animals)
 function getFounderBirthDate(createdAt: string, _index: number): string {
   const created = new Date(createdAt);
-  // Founders might be older when registered, so birth date can be 0-5 years before creation
+
   const yearsBefore = Math.floor(Math.random() * 6);
   const birthDate = new Date(created);
   birthDate.setFullYear(birthDate.getFullYear() - yearsBefore);
@@ -121,8 +114,6 @@ for (let i = 0; i < founderCounts.sitio; i++) {
   });
 }
 
-// mockBirths is already exported above and populated here
-
 function addBirthsFromBreedingsForProperty(
   propertyId: string,
   propertyAnimals: typeof mockAnimals,
@@ -130,7 +121,7 @@ function addBirthsFromBreedingsForProperty(
   breedings: Breeding[]
 ): number {
   let currentBirthIndex = startBirthIndex;
-  const today = new Date("2025-11-21"); // Today is November 21, 2025
+  const today = new Date("2025-11-21");
   const twoYearsAgo = new Date(today);
   twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
 
@@ -166,11 +157,9 @@ function addBirthsFromBreedingsForProperty(
         (globalIndex % 10 === 8 && globalIndex % 2 === 0);
 
       if (shouldCreateBirth) {
-        // Gestation period is approximately 280-290 days (9-9.5 months)
         const birthDate = new Date(breedingDate);
         birthDate.setDate(birthDate.getDate() + 280 + Math.floor(Math.random() * 20) - 10);
 
-        // Don't create births in the future (beyond today)
         if (birthDate > today) {
           return;
         }
@@ -215,12 +204,10 @@ function addBirthsFromBreedingsForProperty(
           }
         }
 
-        // Generate new animal ID for this birth
         const newAnimalId = `bb0e8400-e29b-41d4-a716-${(446655440200 + currentBirthIndex)
           .toString()
           .padStart(12, "0")}`;
 
-        // Determine gender more realistically (slightly more males born)
         const genderRandom = Math.random();
         const gender = genderRandom < 0.52 ? "male" : "female";
 
@@ -247,15 +234,10 @@ function addBirthsFromBreedingsForProperty(
   return currentBirthIndex;
 }
 
-export function addBirthsFromBreedings() {
-  // Lazy import to avoid circular dependency
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { mockBreedings } = require("./breedings");
+export async function addBirthsFromBreedings() {
+  const { mockBreedings } = await import("./breedings");
 
-  // Safety check: ensure mockBreedings is available and initialized
   if (!mockBreedings || !Array.isArray(mockBreedings) || mockBreedings.length === 0) {
-    // If breedings aren't ready yet, return early
-    // This will be called again when breedings are initialized
     return;
   }
 
@@ -263,7 +245,7 @@ export function addBirthsFromBreedings() {
   const sitioAnimals = mockAnimals.filter((a) => a.code.startsWith("SL"));
   const chacaraAnimals = mockAnimals.filter((a) => a.code.startsWith("CJ"));
 
-  let birthIndex = 15 + 15 + 15; // 45 founder animals total
+  let birthIndex = 15 + 15 + 15;
 
   birthIndex = addBirthsFromBreedingsForProperty(
     FAZENDA_DO_JUCA_ID,
@@ -281,6 +263,3 @@ export function addBirthsFromBreedings() {
 
   addBirthsFromBreedingsForProperty(CHACARA_DO_JUCA_ID, chacaraAnimals, birthIndex, mockBreedings);
 }
-
-// Don't call addBirthsFromBreedings at module load time
-// It will be called from breedings.ts after breedings are initialized

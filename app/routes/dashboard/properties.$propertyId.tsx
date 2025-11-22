@@ -632,7 +632,6 @@ export default function PropertyDetails() {
   >(null);
   const financeItemsPerPage = 10;
 
-  // Redirect non-main users away from activities tab
   useEffect(() => {
     if (activeTab === "activities" && !isMainUser()) {
       setSearchParams({ tab: "information" });
@@ -1191,7 +1190,6 @@ export default function PropertyDetails() {
             </div>
           </div>
 
-          {/* Related Entities Section */}
           <div>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
               {t.properties.details.relatedEntities}

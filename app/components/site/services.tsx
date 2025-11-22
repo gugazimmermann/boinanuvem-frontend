@@ -16,9 +16,7 @@ export const Services = memo(function Services() {
   return (
     <Section
       id="section-services"
-      style={{
-        background: `linear-gradient(180deg, white 0%, ${COLORS.bgLight} 20%, white 100%)`,
-      }}
+      className="bg-gradient-to-b from-white via-gray-50 to-white dark:from-gray-950 dark:via-gray-900 dark:to-gray-950"
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center mb-16">
         <div className="flex items-center justify-center order-2 md:order-1">
@@ -42,28 +40,17 @@ export const Services = memo(function Services() {
             <div
               key={index}
               className={`cursor-pointer p-6 rounded-lg transition ${
-                activeTab === index ? "border-l-4" : "hover:opacity-80"
+                activeTab === index ? "border-l-4 border-primary" : "hover:opacity-80"
+              } ${
+                activeTab === index ? "bg-gray-100 dark:bg-gray-800" : "bg-gray-50 dark:bg-gray-900"
               }`}
-              style={
-                activeTab === index
-                  ? {
-                      backgroundColor: COLORS.bgLightSecondary,
-                      borderColor: COLORS.primary,
-                    }
-                  : { backgroundColor: COLORS.bgLight }
-              }
               onClick={() => handleTabClick(index)}
             >
               <Heading level={4} color="secondary" className="mb-2">
                 {item.title}
               </Heading>
-              <p className="text-gray-600 leading-relaxed">{item.content}</p>
-              {activeTab === index && (
-                <div
-                  className="mt-4 h-1 rounded-full w-full"
-                  style={{ backgroundColor: COLORS.primary }}
-                />
-              )}
+              <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{item.content}</p>
+              {activeTab === index && <div className="mt-4 h-1 rounded-full w-full bg-primary" />}
             </div>
           ))}
         </div>
@@ -72,9 +59,9 @@ export const Services = memo(function Services() {
       <div className="mt-24">
         <div className="text-center mb-12">
           <Heading level={2} color="secondary" className="mb-4">
-            Por que <span style={{ color: COLORS.primary }}>Escolher</span> o Boi na Nuvem
+            Por que <span className="text-primary">Escolher</span> o Boi na Nuvem
           </Heading>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">
             Tecnologia de ponta, integração completa, ferramentas poderosas e suporte excepcional.
             Transforme a gestão da sua fazenda com soluções digitais modernas.
           </p>
@@ -83,15 +70,15 @@ export const Services = memo(function Services() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {FEATURES.map((feature, index) => {
             const isEven = index % 2 === 0;
-            const backgroundColor = isEven ? COLORS.bgLightSecondary : COLORS.bgLightTertiary;
             const badgeColor = isEven ? COLORS.primary : COLORS.secondary;
             const buttonVariant = isEven ? "primary" : "secondary";
 
             return (
               <div
                 key={index}
-                className="p-8 rounded-2xl relative overflow-hidden"
-                style={{ backgroundColor }}
+                className={`p-8 rounded-2xl relative overflow-hidden ${
+                  isEven ? "bg-gray-100 dark:bg-gray-800" : "bg-gray-50 dark:bg-gray-900"
+                }`}
               >
                 <Badge color={badgeColor} className="mb-4">
                   {feature.badge}
@@ -99,7 +86,9 @@ export const Services = memo(function Services() {
                 <Heading level={3} color="dark" className="mb-4">
                   {feature.title}
                 </Heading>
-                <p className="text-gray-600 mb-6 leading-relaxed">{feature.content}</p>
+                <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
+                  {feature.content}
+                </p>
                 <Button href="#" variant={buttonVariant} size="md">
                   {feature.button}
                 </Button>

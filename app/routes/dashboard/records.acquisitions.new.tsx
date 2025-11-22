@@ -27,7 +27,7 @@ import {
 import { mockCompanies } from "~/mocks/companies";
 import { calculateAcquisitionCostPerArroba } from "~/services/acquisitions.service";
 
-const ARROBA_KG = 30; // 1 arroba = 30 kg
+const ARROBA_KG = 30;
 
 export function meta() {
   return [
@@ -174,7 +174,6 @@ export default function NewAcquisition() {
     });
   };
 
-  // Calculate total price when pricing mode is total
   const handleTotalPriceChange = (value: string) => {
     setFormData((prev) => {
       const newTotalPrice = value;
@@ -199,7 +198,6 @@ export default function NewAcquisition() {
     });
   };
 
-  // Recalculate prices when pricing mode changes
   const handlePricingModeChange = (value: PricingMode) => {
     setFormData((prev) => {
       let newItems = [...prev.acquisitionItems];
@@ -214,7 +212,6 @@ export default function NewAcquisition() {
           price: pricePerAnimal.toFixed(2),
         }));
       } else if (value === PricingModeEnum.INDIVIDUAL) {
-        // Clear individual prices when switching to individual mode
         newItems = prev.acquisitionItems.map((item) => ({ ...item, price: "" }));
         newTotalPrice = "";
       }
@@ -257,7 +254,6 @@ export default function NewAcquisition() {
           ?.animalsRequired as string) || "Adicione pelo menos um animal";
     }
 
-    // Validate each acquisition item
     formData.acquisitionItems.forEach((item, index) => {
       if (!item.code?.trim()) {
         newErrors[`code_${index}`] = t.profile.errors.required(t.animals.table.code);
@@ -320,11 +316,9 @@ export default function NewAcquisition() {
     setIsSubmitting(true);
 
     try {
-      // Create animals and acquisition items
       const acquisitionItems: AcquisitionItem[] = [];
 
       for (const item of formData.acquisitionItems) {
-        // Create animal
         const animalData: AnimalFormData = {
           code: item.code,
           registrationNumber: item.registrationNumber,
@@ -335,7 +329,6 @@ export default function NewAcquisition() {
         };
         const newAnimal = addAnimal(animalData);
 
-        // Calculate purity if parent info is provided
         let purity = undefined;
         if (
           item.motherId ||
@@ -350,7 +343,6 @@ export default function NewAcquisition() {
           purity = calculatePurity(motherBirth, fatherBirth, motherBreed, fatherBreed);
         }
 
-        // Calculate price
         const price =
           formData.pricingMode === PricingModeEnum.TOTAL
             ? parseFloat(formData.totalPrice.replace(/[^\d,.-]/g, "").replace(",", ".")) /
@@ -359,7 +351,6 @@ export default function NewAcquisition() {
 
         const weight = parseFloat(item.weight) || 0;
 
-        // Create acquisition item
         acquisitionItems.push({
           animalId: newAnimal.id,
           price,
@@ -376,7 +367,6 @@ export default function NewAcquisition() {
           birthObservation: item.birthObservation || undefined,
         });
 
-        // Create weighing if weight is provided
         if (weight > 0) {
           const weighingData: WeighingFormData = {
             animalId: newAnimal.id,
@@ -390,7 +380,6 @@ export default function NewAcquisition() {
         }
       }
 
-      // Calculate total price
       const totalPrice = acquisitionItems.reduce((sum, item) => sum + item.price, 0);
       const fees = formData.fees
         .filter((fee) => fee.name.trim() && fee.amount)

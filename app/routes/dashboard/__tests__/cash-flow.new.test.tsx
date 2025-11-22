@@ -280,22 +280,16 @@ describe("NewCashFlow", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    // Fill required fields
     const descriptionInput = screen.getByTestId("input-Description");
     const amountInput = screen.getByTestId("input-Amount");
     const dateInput = screen.getByTestId("input-Date");
     const selects = screen.getAllByTestId("select-select");
 
-    // Find Type select (regular select, not Select component - doesn't have data-testid)
     const allSelects = screen.getAllByRole("combobox");
     const typeSelect = allSelects.find(
       (select) => !select.hasAttribute("data-testid")
     ) as HTMLSelectElement;
 
-    // Find selects by their label attribute or position
-    // Category is typically the first select with "select-select" that has Category options
-    // Payment Method is typically the second select with "select-select" in the grid
-    // Property is typically after Category and Payment Method
     const categorySelect = selects.find((select) => {
       const label = select.getAttribute("label");
       return label === "Category" || select.querySelector('option[value="cattle_sales"]') !== null;
@@ -314,29 +308,24 @@ describe("NewCashFlow", () => {
         return label === "Property";
       }) as HTMLSelectElement) || selects[0];
 
-    // Set all required fields
     await act(async () => {
       fireEvent.change(descriptionInput, { target: { value: "Test description" } });
       fireEvent.change(amountInput, { target: { value: "1000" } });
       fireEvent.change(dateInput, { target: { value: "2024-01-15" } });
 
-      // Set Type first (this affects Category options)
       fireEvent.change(typeSelect, { target: { value: "income" } });
     });
 
-    // Wait for form state to update after Type change
     await waitFor(() => {
       expect(categorySelect).toBeInTheDocument();
     });
 
     await act(async () => {
-      // Now set Category, Payment Method, and Property
       fireEvent.change(categorySelect, { target: { value: "cattle_sales" } });
       fireEvent.change(paymentMethodSelect, { target: { value: "cash" } });
       fireEvent.change(propertySelect, { target: { value: "prop-1" } });
     });
 
-    // Find and fill observation textarea
     const textareas = screen.queryAllByRole("textbox");
     const observationTextarea = textareas.find(
       (textarea) => (textarea as HTMLTextAreaElement).rows === 4
@@ -350,7 +339,6 @@ describe("NewCashFlow", () => {
       });
     }
 
-    // Submit form
     await act(async () => {
       const submitButton = screen.getByTestId("submit-button");
       fireEvent.click(submitButton);
@@ -371,22 +359,16 @@ describe("NewCashFlow", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    // Fill required fields
     const descriptionInput = screen.getByTestId("input-Description");
     const amountInput = screen.getByTestId("input-Amount");
     const dateInput = screen.getByTestId("input-Date");
     const selects = screen.getAllByTestId("select-select");
 
-    // Find Type select (regular select, not Select component - doesn't have data-testid)
     const allSelects = screen.getAllByRole("combobox");
     const typeSelect = allSelects.find(
       (select) => !select.hasAttribute("data-testid")
     ) as HTMLSelectElement;
 
-    // Find selects by their label attribute or position
-    // Category is typically the first select with "select-select" that has Category options
-    // Payment Method is typically the second select with "select-select" in the grid
-    // Property is typically after Category and Payment Method
     const categorySelect = selects.find((select) => {
       const label = select.getAttribute("label");
       return label === "Category" || select.querySelector('option[value="cattle_sales"]') !== null;
@@ -413,7 +395,6 @@ describe("NewCashFlow", () => {
     fireEvent.change(paymentMethodSelect, { target: { value: "cash" } });
     fireEvent.change(propertySelect, { target: { value: "prop-1" } });
 
-    // Submit form without observation
     const submitButton = screen.getByTestId("submit-button");
     fireEvent.click(submitButton);
 
@@ -427,22 +408,16 @@ describe("NewCashFlow", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    // Fill required fields
     const descriptionInput = screen.getByTestId("input-Description");
     const amountInput = screen.getByTestId("input-Amount");
     const dateInput = screen.getByTestId("input-Date");
     const selects = screen.getAllByTestId("select-select");
 
-    // Find Type select (regular select, not Select component - doesn't have data-testid)
     const allSelects = screen.getAllByRole("combobox");
     const typeSelect = allSelects.find(
       (select) => !select.hasAttribute("data-testid")
     ) as HTMLSelectElement;
 
-    // Find selects by their label attribute or position
-    // Category is typically the first select with "select-select" that has Category options
-    // Payment Method is typically the second select with "select-select" in the grid
-    // Property is typically after Category and Payment Method
     const categorySelect = selects.find((select) => {
       const label = select.getAttribute("label");
       return label === "Category" || select.querySelector('option[value="cattle_sales"]') !== null;
@@ -469,7 +444,6 @@ describe("NewCashFlow", () => {
     fireEvent.change(paymentMethodSelect, { target: { value: "cash" } });
     fireEvent.change(propertySelect, { target: { value: "prop-1" } });
 
-    // Find and fill observation textarea
     const textareas = screen.queryAllByRole("textbox");
     const observationTextarea = textareas.find(
       (textarea) => (textarea as HTMLTextAreaElement).rows === 4
@@ -481,14 +455,12 @@ describe("NewCashFlow", () => {
       });
     }
 
-    // Upload file
     const fileUpload = screen.getByTestId("file-upload");
     const file = new File(["test content"], "test.txt", { type: "text/plain" });
     fireEvent.change(fileUpload, {
       target: { files: [file] },
     });
 
-    // Submit form
     const submitButton = screen.getByTestId("submit-button");
     fireEvent.click(submitButton);
 

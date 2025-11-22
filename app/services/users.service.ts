@@ -55,12 +55,10 @@ export async function authenticateUser(email: string, password: string): Promise
     return null;
   }
 
-  // Only allow active users to login
   if (user.status !== "active") {
     return null;
   }
 
-  // Validate password using bcryptjs
   if (!user.password) {
     return null;
   }

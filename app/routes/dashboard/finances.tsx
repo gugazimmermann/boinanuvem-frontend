@@ -521,7 +521,6 @@ export default function FinancesDashboard() {
         </div>
       </div>
 
-      {/* Sales Analytics Section */}
       <div className="mb-6">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
           {t.financesDashboard.salesAnalytics?.title || "Análise de Vendas"}

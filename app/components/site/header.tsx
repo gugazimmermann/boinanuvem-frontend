@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { NAV_LINKS, COLORS } from "./constants";
+import { NAV_LINKS } from "./constants";
 import { Button } from "./ui";
 import { useSmoothScroll } from "./hooks";
 import { ROUTES } from "../../routes.config";
@@ -10,13 +10,12 @@ export const Header = memo(function Header() {
   useSmoothScroll();
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+    <header className="sticky top-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm">
       <div className="container mx-auto px-4 max-w-7xl">
         <div className="flex items-center justify-between py-4">
           <a
             href={ROUTES.HOME}
-            className="text-2xl font-bold cursor-pointer"
-            style={{ color: COLORS.secondary }}
+            className="text-2xl font-bold cursor-pointer text-secondary dark:text-secondary-light"
           >
             Boi na Nuvem
           </a>
@@ -26,8 +25,7 @@ export const Header = memo(function Header() {
               <a
                 key={link.href}
                 href={link.href}
-                className="transition hover:opacity-80 cursor-pointer"
-                style={{ color: COLORS.textDark }}
+                className="transition hover:opacity-80 cursor-pointer text-gray-800 dark:text-gray-200"
               >
                 {link.label}
               </a>
@@ -38,7 +36,10 @@ export const Header = memo(function Header() {
             <Button href={ROUTES.LOGIN} size="sm" variant="primary">
               Começar
             </Button>
-            <button className="md:hidden cursor-pointer" aria-label={t.common.toggleMenu}>
+            <button
+              className="md:hidden cursor-pointer text-gray-800 dark:text-gray-200"
+              aria-label={t.common.toggleMenu}
+            >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"

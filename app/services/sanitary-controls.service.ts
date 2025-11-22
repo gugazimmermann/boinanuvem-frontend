@@ -29,7 +29,6 @@ export function deleteSanitaryControl(id: string): boolean {
   return deleteEntity(mockSanitaryControls, id);
 }
 
-// Legacy exports for backward compatibility
 export const getMedicineAdministrationById = getSanitaryControlById;
 export const getMedicineAdministrationsByAnimalId = getSanitaryControlsByAnimalId;
 export const getMedicineAdministrationsByCompanyId = getSanitaryControlsByCompanyId;

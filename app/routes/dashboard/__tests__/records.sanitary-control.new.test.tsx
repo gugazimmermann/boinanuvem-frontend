@@ -317,7 +317,6 @@ describe("NewSanitaryControl", () => {
     mockGetAnimalMovementsByAnimalId.mockReturnValue([]);
 
     mockGetInventoryItemsByCategory.mockImplementation((category: string, companyId: string) => {
-      // Category can be enum value "medicines" or "vaccines" (lowercase)
       if ((category === "medicines" || category === "MEDICINES") && companyId === "company-1") {
         return [
           {
@@ -445,7 +444,6 @@ describe("NewSanitaryControl", () => {
       }
     });
 
-    // Select a medicine
     const medicineSelect =
       screen.queryByTestId("select-Selecionar Medicamento/Vacina") ||
       screen.queryByTestId("select-Select Medicine/Vaccine");
@@ -475,7 +473,6 @@ describe("NewSanitaryControl", () => {
       }
     });
 
-    // Select a medicine
     const medicineSelect =
       screen.queryByTestId("select-Selecionar Medicamento/Vacina") ||
       screen.queryByTestId("select-Select Medicine/Vaccine");
@@ -546,8 +543,6 @@ describe("NewSanitaryControl", () => {
       }
     });
 
-    // Medicines section should be visible (it's always rendered, not conditional on animal selection)
-    // Verify medicines service is called (may be called with enum values)
     await waitFor(
       () => {
         expect(mockGetInventoryItemsByCategory).toHaveBeenCalled();
@@ -555,7 +550,6 @@ describe("NewSanitaryControl", () => {
       { timeout: 2000 }
     );
 
-    // Check that the form has the medicines section (it should always be present)
     const form = screen.queryByRole("form") || document.querySelector("form");
     expect(form).toBeInTheDocument();
   });
@@ -564,7 +558,6 @@ describe("NewSanitaryControl", () => {
     const router = createRouter({ animalId: "animal-1" });
     render(<RouterProvider router={router} />);
 
-    // The animal should be pre-selected
     const checkboxes = screen.getAllByRole("checkbox");
     const animalCheckbox = checkboxes.find((cb) => (cb as HTMLInputElement).checked === true);
     expect(animalCheckbox || true).toBeTruthy();
@@ -584,7 +577,6 @@ describe("NewSanitaryControl", () => {
       }
     });
 
-    // Select a weight-based medicine
     const medicineSelect =
       screen.queryByTestId("select-Selecionar Medicamento/Vacina") ||
       screen.queryByTestId("select-Select Medicine/Vaccine");
@@ -593,15 +585,13 @@ describe("NewSanitaryControl", () => {
       fireEvent.change(medicineSelect, { target: { value: "medicine-1" } });
 
       await waitFor(() => {
-        // Medicine with per_kg basis and 0.5 ml per kg
-        // Animal weight is 500kg, so dosage should be 250ml
         expect(mockGetWeighingsByAnimalId).toHaveBeenCalledWith("animal-1");
       });
     }
   });
 
   it("should validate stock availability", async () => {
-    mockGetCurrentStock.mockReturnValue(0); // No stock available
+    mockGetCurrentStock.mockReturnValue(0);
 
     const router = createRouter();
     render(<RouterProvider router={router} />);
@@ -658,7 +648,6 @@ describe("NewSanitaryControl", () => {
       }
     });
 
-    // Verify that inventory services are called to check for medicines
     await waitFor(() => {
       expect(mockGetInventoryItemsByCategory).toHaveBeenCalled();
     });
@@ -712,7 +701,6 @@ describe("NewSanitaryControl", () => {
         !(cb as HTMLInputElement).closest("label")?.textContent?.includes("Service Provider")
     );
 
-    // Find the checkbox for animal-1
     const animal1Checkbox = animalCheckboxes.find((cb) =>
       (cb as HTMLInputElement).closest("label")?.textContent?.includes("A001")
     );
@@ -733,16 +721,13 @@ describe("NewSanitaryControl", () => {
         !(cb as HTMLInputElement).closest("label")?.textContent?.includes("Service Provider")
     );
 
-    // Get all animal labels
     const animalLabels = animalCheckboxes.map((cb) => {
       const label = (cb as HTMLInputElement).closest("label");
       return label?.textContent || "";
     });
 
-    // Find the index of animal-2 (A002)
     const animal2Index = animalLabels.findIndex((text) => text.includes("A002"));
 
-    // If animal-2 is found, it should be at the top (index 0 or very early)
     if (animal2Index >= 0) {
       expect(animal2Index).toBeLessThan(animalLabels.length);
     }
@@ -759,7 +744,6 @@ describe("NewSanitaryControl", () => {
         !(cb as HTMLInputElement).closest("label")?.textContent?.includes("Service Provider")
     );
 
-    // Both animals should be checked
     const checkedCount = animalCheckboxes.filter((cb) => (cb as HTMLInputElement).checked).length;
 
     expect(checkedCount).toBeGreaterThanOrEqual(2);

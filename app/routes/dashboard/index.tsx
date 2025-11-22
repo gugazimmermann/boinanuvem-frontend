@@ -148,7 +148,6 @@ export default function Dashboard() {
 
   const nextThreeMonthsTotal = expectedBirthsForecast.total;
 
-  // Financial data
   const cashFlowData = useMemo(() => getCashFlowByCompanyId(companyId), [companyId]);
   const accountsPayableData = useMemo(() => getAccountsPayableByCompanyId(companyId), [companyId]);
   const accountsReceivableData = useMemo(
@@ -204,16 +203,13 @@ export default function Dashboard() {
     }, 0);
   }, [accountsReceivableData]);
 
-  // Additional stats
   const employees = useMemo(() => getEmployeesByCompanyId(companyId), [companyId]);
   const suppliers = useMemo(() => getSuppliersByCompanyId(companyId), [companyId]);
   const buyers = useMemo(() => getBuyersByCompanyId(companyId), [companyId]);
 
-  // Births and breedings
   const births = useMemo(() => getBirthsByCompanyId(companyId), [companyId]);
   const breedings = useMemo(() => getBreedingsByCompanyId(companyId), [companyId]);
 
-  // Sales data
   const sales = useMemo(() => getSalesByCompanyId(companyId), [companyId]);
   const salesMetrics = useMemo(() => getSalesMetrics(companyId), [companyId]);
 
@@ -256,7 +252,6 @@ export default function Dashboard() {
       .slice(0, 10);
   }, [breedings]);
 
-  // Activity feed
   const allWeighings = useMemo(() => getWeighingsByCompanyId(companyId), [companyId]);
 
   const activities = useMemo(() => {
@@ -268,7 +263,6 @@ export default function Dashboard() {
       color: string;
     }> = [];
 
-    // Animal registrations
     animals.forEach((animal) => {
       activityList.push({
         type: "animal",
@@ -279,7 +273,6 @@ export default function Dashboard() {
       });
     });
 
-    // Births
     births.forEach((birth) => {
       activityList.push({
         type: "birth",
@@ -290,7 +283,6 @@ export default function Dashboard() {
       });
     });
 
-    // Weighings
     allWeighings.forEach((weighing) => {
       activityList.push({
         type: "weighing",
@@ -301,7 +293,6 @@ export default function Dashboard() {
       });
     });
 
-    // Breedings
     breedings.forEach((breeding) => {
       activityList.push({
         type: "breeding",
@@ -312,7 +303,6 @@ export default function Dashboard() {
       });
     });
 
-    // Financial transactions
     cashFlowData.forEach((transaction) => {
       activityList.push({
         type: "transaction",
@@ -323,7 +313,6 @@ export default function Dashboard() {
       });
     });
 
-    // Sales
     sales.forEach((sale) => {
       activityList.push({
         type: "sale",
@@ -339,7 +328,6 @@ export default function Dashboard() {
       .slice(0, 10);
   }, [animals, births, allWeighings, breedings, cashFlowData, sales, t]);
 
-  // Charts data
   const weightTrendData = useMemo(() => {
     const months = [];
     for (let i = 5; i >= 0; i--) {
@@ -412,7 +400,6 @@ export default function Dashboard() {
         {t.dashboard.title}
       </h1>
 
-      {/* Livestock Overview Section */}
       <div className="mb-8">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
           {t.dashboard.sections.livestockOverview}
@@ -577,7 +564,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Additional Stats */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div>
@@ -680,7 +666,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Financial Overview Section */}
       <div className="mb-8">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
           {t.dashboard.sections.financialOverview}
@@ -806,7 +791,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Charts Section */}
       <div className="mb-8">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
           {t.dashboard.sections.charts}
@@ -896,7 +880,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Recent Activity Section */}
       <div className="mb-8">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
           {t.dashboard.recentActivities.title}
@@ -949,7 +932,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Recent Births, Breedings & Sales Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div>
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">

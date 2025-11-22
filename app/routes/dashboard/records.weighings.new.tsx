@@ -426,7 +426,6 @@ export default function NewWeighing() {
     [t]
   );
 
-  // Get available medicines and vaccines
   const availableMedicines = useMemo(() => {
     return getInventoryItemsByCategory(InventoryItemCategory.MEDICINES, companyId);
   }, [companyId]);
@@ -439,7 +438,6 @@ export default function NewWeighing() {
     return [...availableMedicines, ...availableVaccines];
   }, [availableMedicines, availableVaccines]);
 
-  // Get animal's current location and property
   const animalLocationInfo = useMemo(() => {
     if (!formData.animalId) return { locationId: undefined, propertyId: undefined };
     const animal = getAnimalById(formData.animalId);
@@ -460,7 +458,6 @@ export default function NewWeighing() {
     };
   }, [formData.animalId]);
 
-  // Calculate dosage function
   const calculateDosage = (item: InventoryItem, weight: number): number => {
     if (!item.usageAmount || !item.usageBasis) return 0;
     if (item.usageBasis === "per_kg") {
@@ -472,7 +469,6 @@ export default function NewWeighing() {
     return 0;
   };
 
-  // Get unit label helper
   const getUnitLabel = (unit: string, quantity: number = 1): string => {
     const unitMap: Record<
       string,
@@ -522,7 +518,7 @@ export default function NewWeighing() {
   const handleChange = (field: keyof typeof formData, value: string | string[]) => {
     setFormData((prev) => {
       const newData = { ...prev, [field]: value };
-      // Recalculate dosages when weight changes
+
       if (field === "weight" && prev.appliedMedicines.length > 0) {
         const weight = parseFloat(value as string) || 0;
         newData.appliedMedicines = prev.appliedMedicines.map((applied) => {
@@ -562,7 +558,6 @@ export default function NewWeighing() {
     const item = getInventoryItemById(itemId);
     if (!item) return;
 
-    // Check if already added
     if (formData.appliedMedicines.some((m) => m.itemId === itemId)) {
       setSelectedMedicineId("");
       return;
@@ -615,7 +610,6 @@ export default function NewWeighing() {
       }
     }
 
-    // Validate stock for applied medicines
     if (formData.appliedMedicines.length > 0 && animalLocationInfo.propertyId) {
       for (const applied of formData.appliedMedicines) {
         const item = getInventoryItemById(applied.itemId);
@@ -662,7 +656,6 @@ export default function NewWeighing() {
       };
       const newWeighing = addWeighing(weighingData);
 
-      // Create inventory consumption movements for applied medicines/vaccines
       if (formData.appliedMedicines.length > 0 && animalLocationInfo.propertyId) {
         for (const applied of formData.appliedMedicines) {
           const item = getInventoryItemById(applied.itemId);

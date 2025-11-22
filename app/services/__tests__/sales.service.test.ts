@@ -328,7 +328,7 @@ describe("sales.service", () => {
 
     it("should revert animal status when animal is removed from sale", () => {
       const sale = mockSales[0];
-      const newSaleItems = sale.saleItems.slice(0, 1); // Remove one animal
+      const newSaleItems = sale.saleItems.slice(0, 1);
 
       updateSale(sale.id, { saleItems: newSaleItems });
 
@@ -337,17 +337,16 @@ describe("sales.service", () => {
 
     it("should update animal status to sold when animal is added to sale", () => {
       const sale = mockSales[0];
-      // Add a new animal that's not already in the sale
+
       const newSaleItems = [...sale.saleItems, { animalId: "animal-3", price: 1500, weight: 350 }];
 
       updateSale(sale.id, { saleItems: newSaleItems });
 
-      // Should update the newly added animal
       expect(mockUpdateAnimal).toHaveBeenCalledWith("animal-3", { status: "sold" });
     });
 
     it("should change payment method from cash flow to accounts receivable", () => {
-      const sale = mockSales[0]; // Has cash flow
+      const sale = mockSales[0];
 
       updateSale(sale.id, { paymentMethod: SalePaymentMethod.ACCOUNTS_RECEIVABLE });
 
@@ -356,7 +355,7 @@ describe("sales.service", () => {
     });
 
     it("should change payment method from accounts receivable to cash flow", () => {
-      const sale = mockSales[1]; // Has accounts receivable
+      const sale = mockSales[1];
 
       updateSale(sale.id, { paymentMethod: SalePaymentMethod.CASH_FLOW });
 
@@ -365,11 +364,10 @@ describe("sales.service", () => {
     });
 
     it("should update financial record amount when total price changes", () => {
-      const sale = mockSales[0]; // Has cash flow
+      const sale = mockSales[0];
 
       updateSale(sale.id, { totalPrice: 6000 });
 
-      // 6000 + fees (200 + 100)
       expect(mockUpdateCashFlow).toHaveBeenCalledWith(sale.linkedCashFlowId, { amount: 6300 });
     });
   });
@@ -398,7 +396,7 @@ describe("sales.service", () => {
     });
 
     it("should delete linked cash flow when sale is deleted", () => {
-      const sale = mockSales[0]; // Has cash flow
+      const sale = mockSales[0];
 
       deleteSale(sale.id);
 
@@ -406,7 +404,7 @@ describe("sales.service", () => {
     });
 
     it("should delete linked accounts receivable when sale is deleted", () => {
-      const sale = mockSales[1]; // Has accounts receivable
+      const sale = mockSales[1];
 
       deleteSale(sale.id);
 

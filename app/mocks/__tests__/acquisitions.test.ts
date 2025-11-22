@@ -39,7 +39,6 @@ describe("acquisitions mock", () => {
       expect(typeof acquisition.companyId).toBe("string");
       expect(typeof acquisition.propertyId).toBe("string");
 
-      // Validate acquisition items
       acquisition.acquisitionItems.forEach((item) => {
         expect(item).toHaveProperty("animalId");
         expect(item).toHaveProperty("price");
@@ -107,8 +106,7 @@ describe("acquisitions mock", () => {
         expect(item.animalId.length).toBeGreaterThan(0);
       });
     });
-    // Note: Animal IDs may not be unique across acquisitions since the same animal
-    // could theoretically be in multiple acquisitions (though unlikely in practice)
+
     expect(animalIds.length).toBeGreaterThan(0);
   });
 

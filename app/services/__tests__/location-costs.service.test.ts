@@ -71,7 +71,6 @@ describe("location-costs.service", () => {
     mockLocations.length = 0;
     mockAnimals.length = 0;
 
-    // Setup mock inventory items
     mockInventoryItems.push({
       id: "item-1",
       code: "ITEM001",
@@ -86,7 +85,6 @@ describe("location-costs.service", () => {
       createdAt: "2025-01-01",
     });
 
-    // Setup mock animals
     mockAnimals.push(
       {
         id: "animal-1",
@@ -108,7 +106,6 @@ describe("location-costs.service", () => {
       }
     );
 
-    // Setup mock locations
     mockLocations.push({
       id: "location-1",
       code: "LOC001",
@@ -121,7 +118,6 @@ describe("location-costs.service", () => {
       createdAt: "2025-01-01",
     });
 
-    // Setup mock animal movements
     mockAnimalMovements.push(
       {
         id: "am-1",
@@ -147,7 +143,6 @@ describe("location-costs.service", () => {
       }
     );
 
-    // Setup mock inventory movements
     mockInventoryMovements.push(
       {
         id: "im-1",
@@ -175,7 +170,6 @@ describe("location-costs.service", () => {
       }
     );
 
-    // Setup service mocks
     mockGetInventoryItemById.mockImplementation((id: string) => {
       return mockInventoryItems.find((item) => item.id === id);
     });
@@ -215,7 +209,7 @@ describe("location-costs.service", () => {
 
     it("should handle animals moved to different location", () => {
       const result = getAnimalsInLocationOnDate("location-1", "2025-01-25");
-      // animal-1 was moved to location-2 on 2025-01-20, so should not be in location-1 on 2025-01-25
+
       expect(result.some((animal) => animal.id === "animal-1")).toBe(false);
     });
   });
@@ -224,7 +218,7 @@ describe("location-costs.service", () => {
     it("should return consumption costs with calculated totals", () => {
       const result = getLocationConsumptionCosts("location-1");
       expect(result.length).toBeGreaterThan(0);
-      expect(result[0].totalCost).toBe(100 * 2.5); // quantity * unitPrice
+      expect(result[0].totalCost).toBe(100 * 2.5);
       expect(result[0].item).toBeDefined();
       expect(result[0].animalsPresent.length).toBeGreaterThan(0);
     });
@@ -232,12 +226,12 @@ describe("location-costs.service", () => {
     it("should use item unitPrice when movement unitPrice is not set", () => {
       mockInventoryMovements[0].unitPrice = undefined;
       const result = getLocationConsumptionCosts("location-1");
-      expect(result[0].totalCost).toBe(100 * 2.5); // Uses item's unitPrice
+      expect(result[0].totalCost).toBe(100 * 2.5);
     });
 
     it("should filter by date range when provided", () => {
       const result = getLocationConsumptionCosts("location-1", "2025-01-16", "2025-01-20");
-      expect(result.length).toBe(1); // Only the second consumption
+      expect(result.length).toBe(1);
       expect(result[0].movement.date).toBe("2025-01-18");
     });
 
@@ -250,7 +244,7 @@ describe("location-costs.service", () => {
   describe("getTotalLocationCost", () => {
     it("should calculate total cost for location", () => {
       const result = getTotalLocationCost("location-1");
-      expect(result).toBe(100 * 2.5 + 50 * 2.5); // Both consumptions
+      expect(result).toBe(100 * 2.5 + 50 * 2.5);
     });
 
     it("should return 0 when location has no consumption", () => {
@@ -260,7 +254,7 @@ describe("location-costs.service", () => {
 
     it("should filter by date range when provided", () => {
       const result = getTotalLocationCost("location-1", "2025-01-16", "2025-01-20");
-      expect(result).toBe(50 * 2.5); // Only the second consumption
+      expect(result).toBe(50 * 2.5);
     });
   });
 
@@ -275,9 +269,9 @@ describe("location-costs.service", () => {
 
     it("should divide costs equally among animals present", () => {
       const result = getAnimalCostBreakdown("location-1");
-      // Both animals were present, so each should get half of the total cost
+
       const totalCost = 100 * 2.5 + 50 * 2.5;
-      const costPerAnimal = totalCost / 2; // 2 animals present
+      const costPerAnimal = totalCost / 2;
       const animal1Cost = result.find((r) => r.animal.id === "animal-1");
       expect(animal1Cost?.totalCost).toBe(costPerAnimal);
     });
@@ -304,7 +298,7 @@ describe("location-costs.service", () => {
 
     it("should divide cost equally among animals present", () => {
       const totalCost = 100 * 2.5 + 50 * 2.5;
-      const costPerAnimal = totalCost / 2; // 2 animals present
+      const costPerAnimal = totalCost / 2;
       const result = getAnimalCostByLocation("animal-1", "location-1");
       expect(result).toBe(costPerAnimal);
     });
@@ -357,7 +351,7 @@ describe("location-costs.service", () => {
 
     it("should filter by date range when provided", () => {
       const result = getAnimalTotalCost("animal-1", "2025-01-16", "2025-01-20");
-      expect(result.consumptionPeriods).toBe(1); // Only one consumption in date range
+      expect(result.consumptionPeriods).toBe(1);
     });
   });
 });

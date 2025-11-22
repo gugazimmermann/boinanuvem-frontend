@@ -17,7 +17,6 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const location = useLocation();
   const { canView } = usePermissions();
 
-  // Initialize expanded state: expand the item that has an active sub-item
   const getInitialExpandedItem = () => {
     for (const item of SIDEBAR_ITEMS) {
       if (item.subItems?.some((subItem) => location.pathname === subItem.path)) {
@@ -33,21 +32,17 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     setExpandedItemKey((current) => (current === translationKey ? null : translationKey));
   };
 
-  // Filter sidebar items based on permissions
   const filteredItems = useMemo(() => {
     return SIDEBAR_ITEMS.filter((item) => {
-      // Dashboard is always visible
       if (item.translationKey === "dashboard") {
         return true;
       }
 
-      // Filter sub-items based on view permissions
       if (item.subItems && item.subItems.length > 0) {
         const visibleSubItems = item.subItems.filter((subItem) => {
-          // Check if route has permission mapping
           const permissionPath = getRoutePermission(subItem.path);
           if (!permissionPath) {
-            return true; // Allow routes not in permission map
+            return true;
           }
 
           const [section, ...resourceParts] = permissionPath.split(".");
@@ -55,21 +50,18 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           return canView(section as keyof UserPermissions, resource);
         });
 
-        // Only show parent item if it has at least one visible sub-item
         return visibleSubItems.length > 0;
       }
 
-      // For items without sub-items, check permission directly
       const permissionPath = getRoutePermission(item.path);
       if (!permissionPath) {
-        return true; // Allow routes not in permission map
+        return true;
       }
 
       const [section, ...resourceParts] = permissionPath.split(".");
       const resource = resourceParts.join(".");
       return canView(section as keyof UserPermissions, resource);
     }).map((item) => {
-      // Filter sub-items for items that have them
       if (item.subItems && item.subItems.length > 0) {
         const visibleSubItems = item.subItems.filter((subItem) => {
           const permissionPath = getRoutePermission(subItem.path);

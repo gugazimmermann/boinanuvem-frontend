@@ -517,7 +517,7 @@ export default function ServiceProviderDetails() {
 
   useEffect(() => {
     const tab = searchParams.get("tab");
-    // Redirect non-main users away from activities tab
+
     if (tab === "activities" && !isMainUser()) {
       setActiveTab("info");
       setSearchParams({ tab: "info" });

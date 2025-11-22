@@ -376,7 +376,6 @@ describe("Inventory", () => {
       fireEvent.change(propertySelect, { target: { value: "property-1" } });
       expect(propertySelect).toHaveValue("property-1");
     } else {
-      // Property filter might be rendered differently, just verify table renders
       expect(screen.getByTestId("table")).toBeInTheDocument();
     }
   });

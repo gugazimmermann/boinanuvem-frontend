@@ -227,7 +227,7 @@ describe("NewDeath", () => {
     const submitButton = screen.queryByTestId("submit-button") as HTMLButtonElement | null;
     if (submitButton && !submitButton.disabled) {
       fireEvent.click(submitButton);
-      // Wait for validation to run
+
       await waitFor(() => {
         expect(submitButton).toBeInTheDocument();
       });
@@ -241,7 +241,6 @@ describe("NewDeath", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    // Fill in form fields
     const animalSelect = screen.queryByTestId("select-select");
     if (animalSelect) {
       fireEvent.change(animalSelect, { target: { value: "animal-1" } });
@@ -257,7 +256,6 @@ describe("NewDeath", () => {
       fireEvent.change(causeInput, { target: { value: "Disease" } });
     }
 
-    // Submit the form
     const form = document.querySelector("form");
     if (form) {
       fireEvent.submit(form);
@@ -301,18 +299,14 @@ describe("NewDeath", () => {
       fireEvent.change(causeInput, { target: { value: "Disease" } });
     }
 
-    // Submit the form
     const form = document.querySelector("form");
     if (form) {
-      // Clear any previous calls
       vi.mocked(addDeath).mockClear();
 
       fireEvent.submit(form);
 
       await waitFor(
         () => {
-          // Should show validation error for duplicate death
-          // The validation should prevent submission, so addDeath should NOT be called
           expect(addDeath).not.toHaveBeenCalled();
         },
         { timeout: 3000 }
@@ -335,7 +329,7 @@ describe("NewDeath", () => {
 
     if (cancelButton) {
       fireEvent.click(cancelButton);
-      // Navigation is mocked, so we just verify the button exists
+
       expect(cancelButton).toBeInTheDocument();
     }
   });

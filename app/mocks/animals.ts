@@ -7,7 +7,6 @@ const FAZENDA_DO_JUCA = "550e8400-e29b-41d4-a716-446655440010";
 const SITIO_LIMOEIRO = "550e8400-e29b-41d4-a716-446655440011";
 const CHACARA_DO_JUCA = "550e8400-e29b-41d4-a716-446655440012";
 
-// Today is November 21, 2025
 const _TODAY = new Date("2025-11-21");
 
 function generateAnimalId(index: number): string {
@@ -32,34 +31,24 @@ function _getRandomDateBetween(startDate: Date, endDate: Date): string {
 }
 
 function getDateForAnimalIndex(index: number, total: number, _startYear: number = 2020): string {
-  // Distribute animals across years 2020-2025
-  // More recent animals (higher index) are more likely to be in recent years
   const years = [2020, 2021, 2022, 2023, 2024, 2025];
-  const progress = index / total; // 0 to 1
+  const progress = index / total;
 
-  // Weight towards recent years for higher indices
   let yearIndex: number;
   if (progress < 0.1) {
-    // First 10%: mostly 2020-2021
     yearIndex = Math.floor(Math.random() * 2);
   } else if (progress < 0.3) {
-    // Next 20%: mostly 2021-2022
     yearIndex = 1 + Math.floor(Math.random() * 2);
   } else if (progress < 0.5) {
-    // Next 20%: mostly 2022-2023
     yearIndex = 2 + Math.floor(Math.random() * 2);
   } else if (progress < 0.7) {
-    // Next 20%: mostly 2023-2024
     yearIndex = 3 + Math.floor(Math.random() * 2);
   } else if (progress < 0.9) {
-    // Next 20%: mostly 2024-2025
     yearIndex = 4 + Math.floor(Math.random() * 2);
   } else {
-    // Last 10%: mostly 2025
     yearIndex = 4 + Math.floor(Math.random() * 2);
   }
 
-  // Ensure yearIndex is within bounds
   yearIndex = Math.max(0, Math.min(yearIndex, years.length - 1));
   const year = years[yearIndex];
   const month = Math.floor(Math.random() * 12) + 1;
@@ -69,8 +58,6 @@ function getDateForAnimalIndex(index: number, total: number, _startYear: number 
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
-// Increase to ~300 animals total
-// Fazenda: 180, Chácara: 60, Sítio: 60
 const fazendaAnimals: Animal[] = [];
 for (let i = 0; i < 180; i++) {
   const createdAt = getDateForAnimalIndex(i, 180);
@@ -116,7 +103,6 @@ for (let i = 0; i < 60; i++) {
   });
 }
 
-// Special animal with observations (keep existing one but update date)
 const animalWithObservations: Animal = {
   id: "660e8400-e29b-41d4-a716-446655440001",
   code: "FJ001",

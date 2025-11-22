@@ -8,7 +8,6 @@ describe("deaths mock", () => {
   });
 
   it("should have valid death structure when deaths exist", () => {
-    // Since mockDeaths starts empty, we'll test the structure when items are added
     const testDeath: Death = {
       id: "de0e8400-e29b-41d4-a716-446655440001",
       animalId: "animal-1",

@@ -135,7 +135,6 @@ const mockUserLogs: ActivityLogEntry[] = generateUserLogs();
 type PermissionSection = "registration" | "records" | "breedings" | "finances";
 
 type PermissionResource =
-  // Registration
   | "property"
   | "location"
   | "employee"
@@ -143,17 +142,14 @@ type PermissionResource =
   | "supplier"
   | "buyer"
   | "animals"
-  // Records
   | "births"
   | "acquisitions"
   | "weighings"
-  // Breedings
   | "breedings"
   | "unconfirmedBreedings"
   | "pregnantCows"
   | "reproductiveIndexes"
   | "birthForecast"
-  // Finances
   | "cashFlow"
   | "accountsPayable"
   | "accountsReceivable"
@@ -302,14 +298,12 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
     }, 3000);
   };
 
-  // Reset to "data" tab if permissions tab is selected but userId is not provided
   useEffect(() => {
     if (!userId && activeSubTab === "permissions") {
       setActiveSubTab("data");
     }
   }, [userId, activeSubTab]);
 
-  // Redirect non-main users away from logs tab
   useEffect(() => {
     if (activeSubTab === "logs" && !isMainUser()) {
       setActiveSubTab("data");

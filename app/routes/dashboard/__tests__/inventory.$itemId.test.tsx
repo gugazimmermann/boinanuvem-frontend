@@ -618,7 +618,7 @@ describe("InventoryItemDetails", () => {
 
     const usageMethodText =
       screen.queryByText(/usage method/i) || screen.queryByText(/método de uso/i);
-    // Usage method should not be displayed for FEED items
+
     expect(usageMethodText).toBeFalsy();
   });
 });

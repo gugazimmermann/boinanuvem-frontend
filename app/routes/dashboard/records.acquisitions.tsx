@@ -173,7 +173,6 @@ export default function Acquisitions() {
     const matchesProperty = propertyFilter === "all" || acquisition.propertyId === propertyFilter;
     const matchesSupplier = supplierFilter === "all" || acquisition.supplierId === supplierFilter;
 
-    // Date range filter
     let matchesDateRange = true;
     if (startDate || endDate) {
       const acquisitionDate = new Date(acquisition.acquisitionDate);
@@ -328,7 +327,6 @@ export default function Acquisitions() {
                 >
               )?.accountsPayable as string) || "A Pagar";
 
-        // Custom colors: Cash flow (green), Accounts payable (orange)
         if (row.paymentMethod === AcquisitionPaymentMethod.CASH_FLOW) {
           return <StatusBadge label={methodLabel} variant="success" />;
         } else {

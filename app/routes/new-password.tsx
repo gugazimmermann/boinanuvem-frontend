@@ -1,6 +1,5 @@
 import { AuthLayout } from "../components/site/auth-layout";
 import { AuthInput, AuthButton } from "../components/site/ui";
-import { COLORS } from "../components/site/constants";
 import { ROUTES } from "../routes.config";
 import { requireGuest, useRequireGuest } from "../utils/route-guard";
 
@@ -22,20 +21,19 @@ export default function NewPassword() {
   useRequireGuest();
   return (
     <AuthLayout>
-      <div className="w-full max-w-sm mx-auto overflow-hidden bg-white rounded-lg shadow-md">
+      <div className="w-full max-w-sm mx-auto overflow-hidden bg-white dark:bg-gray-800 rounded-lg shadow-md">
         <div className="px-6 py-4">
           <div className="flex justify-center mx-auto mb-4">
-            <div
-              className="w-auto h-7 sm:h-8 flex items-center text-2xl font-bold"
-              style={{ color: COLORS.secondary }}
-            >
+            <div className="w-auto h-7 sm:h-8 flex items-center text-2xl font-bold text-secondary dark:text-secondary-light">
               Boi na Nuvem
             </div>
           </div>
 
-          <h3 className="mt-3 text-xl font-medium text-center text-gray-600">Nova Senha</h3>
+          <h3 className="mt-3 text-xl font-medium text-center text-gray-600 dark:text-gray-300">
+            Nova Senha
+          </h3>
 
-          <p className="mt-1 text-center text-gray-500">
+          <p className="mt-1 text-center text-gray-500 dark:text-gray-400">
             Digite o código recebido e sua nova senha
           </p>
 
@@ -77,12 +75,12 @@ export default function NewPassword() {
           </form>
         </div>
 
-        <div className="flex items-center justify-center py-4 text-center bg-gray-50">
-          <span className="text-sm text-gray-600">Não recebeu o código? </span>
+        <div className="flex items-center justify-center py-4 text-center bg-gray-50 dark:bg-gray-900">
+          <span className="text-sm text-gray-600 dark:text-gray-400">Não recebeu o código? </span>
 
           <a
             href={ROUTES.FORGOT_PASSWORD}
-            className="mx-2 text-sm font-bold text-blue-500 hover:underline transition-colors cursor-pointer"
+            className="mx-2 text-sm font-bold text-blue-500 dark:text-blue-400 hover:underline transition-colors cursor-pointer"
           >
             Reenviar
           </a>

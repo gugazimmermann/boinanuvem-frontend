@@ -186,7 +186,6 @@ export default function NewInventoryItem() {
       newErrors.expirationDate = t.inventory.new.expirationDateRequired;
     }
 
-    // Validate usage method if category is medicines or vaccines
     if (
       (formData.category === InventoryItemCategory.MEDICINES ||
         formData.category === InventoryItemCategory.VACCINES) &&
@@ -345,7 +344,6 @@ export default function NewInventoryItem() {
         addInventoryMovement(movementData);
       }
 
-      // Create observation if provided
       if (formData.observation?.trim()) {
         const fileIds = observationFiles.map(
           (_, index) => `file-inventory-obs-${Date.now()}-${index}`

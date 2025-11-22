@@ -10,8 +10,6 @@ import { mockProperties } from "~/mocks/properties";
 import { mockSuppliers } from "~/mocks/suppliers";
 
 export function meta() {
-  // Note: Meta function runs at build time, so we can't use hooks here
-  // Using default Portuguese for meta tags
   return [
     { title: "Editar Item de Estoque - Boi na Nuvem" },
     {
@@ -145,7 +143,6 @@ export default function EditInventoryItem() {
       newErrors.expirationDate = t.inventory.new.expirationDateRequired;
     }
 
-    // Validate usage method if category is medicines or vaccines
     if (
       (formData.category === InventoryItemCategory.MEDICINES ||
         formData.category === InventoryItemCategory.VACCINES) &&
@@ -249,21 +246,20 @@ export default function EditInventoryItem() {
   }));
 
   const unitOptions = [
-    // Weight units
     { value: "unidade", label: t.inventory.units.unit },
     { value: "g", label: t.inventory.units.gram },
     { value: "kg", label: t.inventory.units.kg },
     { value: "tonelada", label: t.inventory.units.ton },
-    // Volume units
+
     { value: "ml", label: t.inventory.units.milliliter },
     { value: "L", label: t.inventory.units.liter },
-    // Length units
+
     { value: "cm", label: t.inventory.units.centimeter },
     { value: "m", label: t.inventory.units.meter },
-    // Area units
+
     { value: "m2", label: t.inventory.units.squareMeter },
     { value: "ha", label: t.inventory.units.hectare },
-    // Count/Container units
+
     { value: "saco", label: t.inventory.units.bag },
     { value: "frasco", label: t.inventory.units.bottle },
     { value: "dose", label: t.inventory.units.dose },

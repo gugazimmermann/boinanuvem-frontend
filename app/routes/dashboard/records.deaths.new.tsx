@@ -38,7 +38,6 @@ export default function NewDeath() {
 
   const [animalSearch, setAnimalSearch] = useState("");
 
-  // Only show active animals (exclude inactive/dead animals)
   const animals = useMemo(() => {
     return getAnimalsByCompanyId(companyId).filter((animal) => animal.status === "active");
   }, [companyId]);
@@ -113,7 +112,6 @@ export default function NewDeath() {
     if (!formData.animalId?.trim()) {
       newErrors.animalId = t.profile.errors.required(t.deaths.new.animalLabel);
     } else {
-      // Check if animal already has a death record
       const existingDeath = getDeathByAnimalId(formData.animalId);
       if (existingDeath) {
         newErrors.animalId = t.deaths.new.animalAlreadyDead;
@@ -147,7 +145,6 @@ export default function NewDeath() {
       };
       addDeath(deathData);
 
-      // Update animal status to inactive
       updateAnimal(formData.animalId, { status: "inactive" });
 
       showAlert(t.deaths.new.success, "success");

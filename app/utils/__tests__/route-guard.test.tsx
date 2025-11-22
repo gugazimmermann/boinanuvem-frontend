@@ -52,7 +52,6 @@ describe("requireGuest", () => {
       await requireGuest();
       expect.fail("should have thrown redirect");
     } catch (error) {
-      // React Router redirect throws a Response object
       expect(error).toBeDefined();
       if (error instanceof Response) {
         expect(error.status).toBe(302);
@@ -80,15 +79,13 @@ describe("requireGuest", () => {
   });
 
   it("should handle server-side rendering gracefully", async () => {
-    // Mock window as undefined to simulate server-side
     const originalWindow = global.window;
-    // @ts-expect-error - intentionally setting to undefined for test
-    delete global.window;
+
+    delete (global as { window?: typeof global.window }).window;
 
     const result = await requireGuest();
     expect(result).toBeNull();
 
-    // Restore window
     global.window = originalWindow;
   });
 });

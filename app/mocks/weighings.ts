@@ -23,7 +23,6 @@ const serviceProviders = [
   "880e8400-e29b-41d4-a716-446655440011",
 ];
 
-// Today is November 21, 2025
 const TODAY = new Date("2025-11-21");
 
 function calculateAgeInMonths(referenceDate: string, targetDate: Date = TODAY): number {
@@ -31,7 +30,7 @@ function calculateAgeInMonths(referenceDate: string, targetDate: Date = TODAY): 
   const months =
     (targetDate.getFullYear() - ref.getFullYear()) * 12 + (targetDate.getMonth() - ref.getMonth());
   const days = targetDate.getDate() - ref.getDate();
-  // Add partial month if more than half the month has passed
+
   return days > 15 ? months + 1 : months;
 }
 
@@ -40,46 +39,32 @@ function getWeightForAge(
   gender: "male" | "female" | undefined,
   breed: string | undefined
 ): number {
-  // Base weight curves for cattle (in kg)
-  // Calves: 30-40kg at birth, grow rapidly in first year
-  // Yearlings: 200-350kg depending on breed and gender
-  // Adults: 400-800kg depending on breed and gender
-
   let baseWeight: number;
 
   if (ageInMonths <= 0) {
-    // Newborn
     baseWeight = 30 + Math.random() * 10;
   } else if (ageInMonths < 3) {
-    // 0-3 months: rapid growth
     baseWeight = 40 + ageInMonths * 25;
   } else if (ageInMonths < 6) {
-    // 3-6 months: continued rapid growth
     baseWeight = 115 + (ageInMonths - 3) * 20;
   } else if (ageInMonths < 12) {
-    // 6-12 months: steady growth
     baseWeight = 175 + (ageInMonths - 6) * 15;
   } else if (ageInMonths < 24) {
-    // 12-24 months: slower growth
     baseWeight = 265 + (ageInMonths - 12) * 12;
   } else if (ageInMonths < 36) {
-    // 24-36 months: approaching adult weight
     baseWeight = 409 + (ageInMonths - 24) * 8;
   } else {
-    // 36+ months: adult weight
     baseWeight = 505 + (ageInMonths - 36) * 2;
-    // Cap at reasonable maximum
+
     baseWeight = Math.min(baseWeight, 800);
   }
 
-  // Gender adjustment: males are typically 15-20% heavier
   if (gender === "male") {
     baseWeight *= 1.17;
   } else if (gender === "female") {
     baseWeight *= 0.98;
   }
 
-  // Breed adjustment (some breeds are larger)
   if (breed) {
     const largeBreeds = ["ANGUS", "HEREFORD", "SIMENTAL", "GIROLANDO"];
     const mediumBreeds = ["NELORE", "BRAHMAN", "CANCHIM"];
@@ -92,7 +77,6 @@ function getWeightForAge(
     }
   }
 
-  // Add some natural variation (±5%)
   const variation = 1 + (Math.random() - 0.5) * 0.1;
   return Math.round(baseWeight * variation);
 }
@@ -118,27 +102,19 @@ function generateWeighingsForAnimal(
 
   const ageInMonths = calculateAgeInMonths(referenceDate);
 
-  // Determine number of weighings based on age and animal index
-  // Younger animals and more recent animals get more weighings
   let numWeighings: number;
   if (ageInMonths < 6) {
-    // Very young: monthly weighings
     numWeighings = Math.min(ageInMonths + 1, 6);
   } else if (ageInMonths < 12) {
-    // 6-12 months: every 2-3 months
     numWeighings = 3 + Math.floor((ageInMonths - 6) / 2);
   } else if (ageInMonths < 24) {
-    // 12-24 months: every 3-4 months
     numWeighings = 6 + Math.floor((ageInMonths - 12) / 3);
   } else {
-    // Adults: 4-8 weighings total, more recent animals have more
     numWeighings = 4 + Math.min(Math.floor(animalIndex % 5), 4);
   }
 
-  // Ensure at least 2 weighings
   numWeighings = Math.max(2, Math.min(numWeighings, 12));
 
-  // Last weighing should be recent (within last 90 days for active animals, or older for inactive)
   const lastWeighingDaysAgo =
     animal.status === "active"
       ? Math.floor(Math.random() * 90)
@@ -146,43 +122,35 @@ function generateWeighingsForAnimal(
   const lastWeighingDate = new Date(TODAY);
   lastWeighingDate.setDate(lastWeighingDate.getDate() - lastWeighingDaysAgo);
 
-  // Ensure last weighing is not before animal was born/acquired
   const minDate = new Date(referenceDate);
   if (lastWeighingDate < minDate) {
-    lastWeighingDate.setTime(minDate.getTime() + 30 * 24 * 60 * 60 * 1000); // At least 30 days after birth
+    lastWeighingDate.setTime(minDate.getTime() + 30 * 24 * 60 * 60 * 1000);
   }
 
   for (let i = 0; i < numWeighings; i++) {
     const weighingDate = new Date(lastWeighingDate);
 
-    // Space weighings: more frequent when younger
     let daysBack: number;
     if (i === 0) {
       daysBack = 0;
     } else if (ageInMonths < 6) {
-      // Monthly for young animals
       daysBack = i * 30;
     } else if (ageInMonths < 12) {
-      // Every 2-3 months
       daysBack = i * (60 + Math.floor(Math.random() * 30));
     } else {
-      // Every 3-4 months for older animals
       daysBack = i * (90 + Math.floor(Math.random() * 30));
     }
 
     weighingDate.setDate(weighingDate.getDate() - daysBack);
 
-    // Ensure weighing date is not before animal was born/acquired
     if (weighingDate < minDate) {
       weighingDate.setTime(minDate.getTime() + 30 * 24 * 60 * 60 * 1000);
     }
 
-    // Don't create weighings in the future
     if (weighingDate > TODAY) {
       continue;
     }
 
-    // Calculate weight based on age at weighing time
     const ageAtWeighing = calculateAgeInMonths(referenceDate as string, weighingDate);
     const weight = getWeightForAge(ageAtWeighing, gender as "male" | "female" | undefined, breed);
 

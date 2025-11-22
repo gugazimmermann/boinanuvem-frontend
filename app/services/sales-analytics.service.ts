@@ -41,10 +41,9 @@ function filterSales(sales: Sale[], filters?: SalesFilters): Sale[] {
   let filtered = [...sales];
 
   if (filters?.startDate && filters?.endDate) {
-    // Filter by date range directly on the sales array
     const start = new Date(filters.startDate);
     const end = new Date(filters.endDate);
-    // Set end date to end of day for inclusive comparison
+
     end.setHours(23, 59, 59, 999);
 
     filtered = filtered.filter((sale) => {
@@ -93,7 +92,6 @@ export function getSalesMetrics(companyId: string, filters?: SalesFilters): Sale
         carcassCount++;
       }
 
-      // Calculate profitability for this animal
       const profitability = calculateAnimalProfitability(
         item.animalId,
         item.price,
@@ -108,7 +106,6 @@ export function getSalesMetrics(companyId: string, filters?: SalesFilters): Sale
   const averagePricePerHead = totalAnimalsSold > 0 ? totalRevenue / totalAnimalsSold : 0;
   const averageCarcassValue = carcassCount > 0 ? totalCarcassWeight / carcassCount : undefined;
 
-  // Calculate average age at sale
   let totalAgeInMonths = 0;
   let ageCount = 0;
   sales.forEach((sale) => {
@@ -128,7 +125,6 @@ export function getSalesMetrics(companyId: string, filters?: SalesFilters): Sale
       } else if (acquisitionItem?.birthDate) {
         birthDate = acquisitionItem.birthDate;
       } else if (acquisition?.acquisitionDate) {
-        // Estimate birth date as 2 years before acquisition (typical for purchased animals)
         const acqDate = parseISO(acquisition.acquisitionDate);
         const estBirthDate = new Date(acqDate);
         estBirthDate.setFullYear(estBirthDate.getFullYear() - 2);
@@ -189,7 +185,7 @@ export function getSalesByBuyer(
   filters?: SalesFilters
 ): Sale[] {
   let sales = getSalesByBuyerId(buyerId);
-  // Filter by company to ensure we only get sales for the correct company
+
   sales = sales.filter((sale) => sale.companyId === companyId);
   sales = filterSales(sales, filters);
   return sales;

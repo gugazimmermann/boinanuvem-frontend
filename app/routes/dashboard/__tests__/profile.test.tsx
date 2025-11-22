@@ -80,7 +80,6 @@ describe("Profile", () => {
     clearLocalStorage();
     vi.clearAllMocks();
 
-    // Default: main user with all permissions
     mockUsePermissions.mockReturnValue({
       canView: () => true,
       canAdd: () => true,
@@ -219,8 +218,6 @@ describe("Profile", () => {
     const router = createRouter("/dashboard/profile?tab=user", "main-user-id");
     render(<RouterProvider router={router} />);
 
-    // The logs tab should be accessible for main users
-    // Note: This test depends on UserProfile component implementation
     expect(screen.getByTestId("user-profile")).toBeInTheDocument();
   });
 
@@ -236,8 +233,6 @@ describe("Profile", () => {
     const router = createRouter("/dashboard/profile?tab=user", "non-main-user-id");
     render(<RouterProvider router={router} />);
 
-    // The logs tab should not be accessible for non-main users
-    // Note: This test depends on UserProfile component implementation
     expect(screen.getByTestId("user-profile")).toBeInTheDocument();
   });
 
@@ -250,8 +245,6 @@ describe("Profile", () => {
       isMainUser: () => false,
     });
 
-    // Note: The actual redirect happens in UserProfile component
-    // This test verifies the component renders correctly
     const router = createRouter("/dashboard/profile?tab=user&subTab=logs", "non-main-user-id");
     render(<RouterProvider router={router} />);
 

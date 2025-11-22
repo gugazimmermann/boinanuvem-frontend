@@ -1,6 +1,6 @@
 import { useState, useCallback, memo } from "react";
 import { Section, Heading } from "./ui";
-import { FAQS, COLORS } from "./constants";
+import { FAQS } from "./constants";
 
 export const FAQs = memo(function FAQs() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -12,16 +12,14 @@ export const FAQs = memo(function FAQs() {
   return (
     <Section
       id="section-faqs"
-      style={{
-        background: `linear-gradient(180deg, white 0%, ${COLORS.bgLightTertiary} 30%, ${COLORS.bgLightSecondary} 60%, white 100%)`,
-      }}
+      className="bg-gradient-to-b from-white via-gray-50 to-white dark:from-gray-950 dark:via-gray-900 dark:to-gray-950"
     >
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         <div>
           <Heading level={2} color="secondary" className="mb-4">
-            Perguntas <span style={{ color: COLORS.primary }}>Frequentes</span>
+            Perguntas <span className="text-primary">Frequentes</span>
           </Heading>
-          <p className="text-xl text-gray-600 mb-8 leading-relaxed">
+          <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
             Tire suas dúvidas sobre o Boi na Nuvem. Encontre respostas para as principais perguntas
             sobre nosso sistema de gestão para fazendas de gado de corte.
           </p>
@@ -34,20 +32,28 @@ export const FAQs = memo(function FAQs() {
             />
           </div>
         </div>
-        <div className="bg-white p-8 rounded-2xl border border-gray-200">
+        <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl border border-gray-200 dark:border-gray-700">
           {FAQS.map((faq, index) => (
             <div key={index} className="mb-4 last:mb-0">
               <button
                 onClick={() => toggleFaq(index)}
                 className="w-full flex justify-between items-center py-4 text-left hover:opacity-80 transition cursor-pointer"
               >
-                <span className="font-semibold text-gray-800">{faq.question}</span>
-                <span className="text-xl text-gray-500 ml-4">{openFaq === index ? "−" : "+"}</span>
+                <span className="font-semibold text-gray-800 dark:text-gray-200">
+                  {faq.question}
+                </span>
+                <span className="text-xl text-gray-500 dark:text-gray-400 ml-4">
+                  {openFaq === index ? "−" : "+"}
+                </span>
               </button>
               {openFaq === index && (
-                <div className="pb-4 text-gray-600 leading-relaxed">{faq.answer}</div>
+                <div className="pb-4 text-gray-600 dark:text-gray-300 leading-relaxed">
+                  {faq.answer}
+                </div>
               )}
-              {index < FAQS.length - 1 && <div className="border-t border-gray-200" />}
+              {index < FAQS.length - 1 && (
+                <div className="border-t border-gray-200 dark:border-gray-700" />
+              )}
             </div>
           ))}
         </div>

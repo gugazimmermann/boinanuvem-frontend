@@ -7,10 +7,8 @@ import { mockLocations } from "./locations";
 
 export type { LocationObservation, LocationObservationFormData };
 
-// Today is November 21, 2025
 const TODAY = new Date("2025-11-21");
 
-// Helper to generate realistic dates
 function getRealisticDate(index: number, total: number): string {
   const years = [2020, 2021, 2022, 2023, 2024, 2025];
   const progress = index / total;
@@ -386,7 +384,6 @@ const baseObservations: LocationObservation[] = [
   },
 ];
 
-// Generate dates for all observations
 const observationsWithDates = baseObservations.map((obs, index) => {
   const newDate = getRealisticDate(index, baseObservations.length);
   return {
@@ -395,7 +392,6 @@ const observationsWithDates = baseObservations.map((obs, index) => {
   };
 });
 
-// Generate additional observations for more locations
 const additionalObservations: LocationObservation[] = [];
 const userIds = ["user-001", "user-002", "user-003"];
 
@@ -417,7 +413,6 @@ const locationObservationTemplates = [
   "Verificação de segurança. Cercas e portões em bom estado.",
 ];
 
-// Generate 30 more observations
 for (let i = 0; i < 30; i++) {
   const location = mockLocations[Math.floor(Math.random() * mockLocations.length)];
   if (!location) continue;

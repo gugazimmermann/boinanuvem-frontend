@@ -160,8 +160,8 @@ describe("sales-analytics.service", () => {
       const metrics = getSalesMetrics("company-1");
 
       expect(metrics.totalSales).toBe(2);
-      expect(metrics.totalRevenue).toBe(8300); // 5000+200+100 + 3000+0+0
-      expect(metrics.totalAnimalsSold).toBe(3); // 2 + 1
+      expect(metrics.totalRevenue).toBe(8300);
+      expect(metrics.totalAnimalsSold).toBe(3);
     });
 
     it("should filter sales by date range", () => {
@@ -171,7 +171,7 @@ describe("sales-analytics.service", () => {
       });
 
       expect(metrics.totalSales).toBe(1);
-      expect(metrics.totalRevenue).toBe(5300); // 5000+200+100
+      expect(metrics.totalRevenue).toBe(5300);
     });
 
     it("should filter sales by buyer", () => {
@@ -200,19 +200,19 @@ describe("sales-analytics.service", () => {
 
     it("should calculate average price per kg", () => {
       const metrics = getSalesMetrics("company-1");
-      // Total revenue: 8300, Total weight: 400+400+350 = 1150
+
       expect(metrics.averagePricePerKg).toBeCloseTo(8300 / 1150, 2);
     });
 
     it("should calculate average price per head", () => {
       const metrics = getSalesMetrics("company-1");
-      // Total revenue: 8300, Total animals: 3
+
       expect(metrics.averagePricePerHead).toBeCloseTo(8300 / 3, 2);
     });
 
     it("should calculate average carcass value when available", () => {
       const metrics = getSalesMetrics("company-1");
-      // Only first sale has carcass weights: 240 + 240 = 480, count = 2
+
       expect(metrics.averageCarcassValue).toBe(240);
     });
 
@@ -220,7 +220,7 @@ describe("sales-analytics.service", () => {
       const metrics = getSalesMetrics("company-1", {
         saleType: SaleType.AUCTION,
       });
-      // Auction sale has no carcass weight
+
       expect(metrics.averageCarcassValue).toBeUndefined();
     });
 

@@ -202,7 +202,6 @@ export default function SaleDetails() {
             <p className="text-gray-900 dark:text-gray-100">{formatDate(sale.saleDate)}</p>
           </div>
 
-          {/* Financial Record Links */}
           {sale.linkedCashFlowId && (
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -305,7 +304,6 @@ export default function SaleDetails() {
                       </span>
                     </div>
                   </div>
-                  {/* Profitability Section */}
                   <div className="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
                     <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
                       {t.sales?.details?.profitability || "Rentabilidade"}
@@ -382,8 +380,7 @@ export default function SaleDetails() {
                     </span>
                   </div>
                 ))
-              : // Legacy support: show old fields if fees array doesn't exist
-                (() => {
+              : (() => {
                   const legacyFees: Array<{ name: string; amount: number }> = [];
                   if (sale.transportationFee) {
                     legacyFees.push({

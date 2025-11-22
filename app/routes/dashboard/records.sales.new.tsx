@@ -50,7 +50,6 @@ export default function NewSale() {
     [companyId]
   );
 
-  // Check for already sold animals
   const checkForSoldAnimals = (animalIds: string[]): string[] => {
     return animalIds.filter((id) => isAnimalSold(id));
   };
@@ -106,7 +105,6 @@ export default function NewSale() {
     variant: "success" | "error" | "warning" | "info";
   } | null>(null);
 
-  // Initialize sale items when animals are selected
   useMemo(() => {
     if (formData.selectedAnimalIds.length > 0 && formData.saleItems.length === 0) {
       const items = formData.selectedAnimalIds.map((animalId) => {
@@ -151,7 +149,6 @@ export default function NewSale() {
   };
 
   const toggleAnimalSelection = (animalId: string) => {
-    // Prevent selecting already sold animals
     if (isAnimalSold(animalId)) {
       showAlert(
         t.sales?.errors?.animalAlreadySold ||
@@ -205,7 +202,6 @@ export default function NewSale() {
     }));
   };
 
-  // Calculate total price when pricing mode is total
   const handleTotalPriceChange = (value: string) => {
     setFormData((prev) => {
       const newTotalPrice = value;
@@ -230,7 +226,6 @@ export default function NewSale() {
     });
   };
 
-  // Recalculate prices when pricing mode changes
   const handlePricingModeChange = (value: PricingMode) => {
     setFormData((prev) => {
       let newItems = [...prev.saleItems];
@@ -245,7 +240,6 @@ export default function NewSale() {
           price: pricePerAnimal.toFixed(2),
         }));
       } else if (value === PricingModeEnum.INDIVIDUAL) {
-        // Clear individual prices when switching to individual mode
         newItems = prev.saleItems.map((item) => ({ ...item, price: "" }));
         newTotalPrice = "";
       }
@@ -266,10 +260,9 @@ export default function NewSale() {
     if (!formData.saleDate) {
       newErrors.saleDate = t.sales?.errors?.saleDateRequired || "Data da venda é obrigatória";
     } else {
-      // Validate that sale date is not in the future
       const saleDate = new Date(formData.saleDate);
       const today = new Date();
-      today.setHours(23, 59, 59, 999); // End of today
+      today.setHours(23, 59, 59, 999);
       if (saleDate > today) {
         newErrors.saleDate =
           t.sales?.errors?.saleDateFuture || "A data da venda não pode ser no futuro";
@@ -290,7 +283,6 @@ export default function NewSale() {
       newErrors.selectedAnimalIds =
         t.sales?.errors?.animalsRequired || "Selecione pelo menos um animal";
     } else {
-      // Check if any selected animals are already sold
       const soldAnimals = checkForSoldAnimals(formData.selectedAnimalIds);
       if (soldAnimals.length > 0) {
         newErrors.selectedAnimalIds =

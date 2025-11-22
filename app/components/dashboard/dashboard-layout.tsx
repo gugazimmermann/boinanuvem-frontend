@@ -17,7 +17,6 @@ export function DashboardLayout() {
     }
   }, [isAuthenticated, navigate]);
 
-  // Close sidebar when clicking outside on mobile
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -32,7 +31,7 @@ export function DashboardLayout() {
 
     if (isSidebarOpen) {
       document.addEventListener("mousedown", handleClickOutside);
-      // Prevent body scroll when sidebar is open on mobile
+
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
@@ -56,7 +55,6 @@ export function DashboardLayout() {
     <div className="min-h-screen bg-gray-100 dark:bg-gray-950">
       <Navbar onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
       <div className="flex h-[calc(100vh-3rem)]">
-        {/* Overlay backdrop for mobile */}
         {isSidebarOpen && (
           <div
             className="fixed top-12 left-0 right-0 bottom-0 bg-black/20 backdrop-blur-sm z-40 sm:hidden"

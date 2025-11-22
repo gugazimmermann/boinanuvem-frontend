@@ -26,22 +26,17 @@ const FAZENDA_DO_JUCA_ID = "550e8400-e29b-41d4-a716-446655440010";
 const SITIO_LIMOEIRO_ID = "550e8400-e29b-41d4-a716-446655440011";
 const CHACARA_DO_JUCA_ID = "550e8400-e29b-41d4-a716-446655440012";
 
-// We'll filter animals by gender inside the function using lazy require
-// to avoid circular dependency with births.ts
 const allAnimals = mockAnimals;
 
 const allBreedings: Breeding[] = [];
 
-// Today is November 21, 2025
 const TODAY = new Date("2025-11-21");
 
 function generateBreedingsForProperty(propertyId: string, startBreedingIndex: number): number {
-  // Safety check: if mockBirths is not available yet, return early
   if (!mockBirths || !Array.isArray(mockBirths)) {
     return startBreedingIndex;
   }
 
-  // Filter animals by property and gender
   const propertyAnimals = allAnimals.filter((animal) => animal.propertyId === propertyId);
   const femaleAnimals = propertyAnimals.filter((animal) => {
     const birth = mockBirths.find((b) => b.animalId === animal.id);
@@ -56,16 +51,12 @@ function generateBreedingsForProperty(propertyId: string, startBreedingIndex: nu
   twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
 
   femaleAnimals.forEach((animal, cowIndex) => {
-    // Only create breedings for active female animals
     if (animal.status !== "active") return;
 
-    // Double-check it's a female (should already be filtered, but be safe)
     const animalBirth = mockBirths.find((b) => b.animalId === animal.id);
     const isFemale = animalBirth?.gender === "female";
     if (!isFemale) return;
 
-    // Determine number of breedings: most cows have 1-2 breedings in last 2 years
-    // Some active breeding cows have 3
     let numBreedings = 1;
     const rand = cowIndex % 10;
     if (rand >= 6 && rand < 9) {
@@ -80,22 +71,19 @@ function generateBreedingsForProperty(propertyId: string, startBreedingIndex: nu
       let breedingDate: Date;
 
       if (b === 0) {
-        // Most recent breeding: within last 18 months
         const monthsAgo = Math.floor(Math.random() * 18);
         breedingDate = new Date(TODAY);
         breedingDate.setMonth(breedingDate.getMonth() - monthsAgo);
         breedingDate.setDate(breedingDate.getDate() + Math.floor(Math.random() * 30) - 15);
 
-        // Don't create breedings in the future
         if (breedingDate > TODAY) {
           breedingDate = new Date(TODAY);
           breedingDate.setDate(breedingDate.getDate() - Math.floor(Math.random() * 30));
         }
       } else {
-        // Previous breedings: 12-15 months apart (realistic calving interval)
         const previousDate = breedingDates[b - 1];
         const minMonthsBefore = 12;
-        const maxMonthsBefore = 15; // More realistic interval
+        const maxMonthsBefore = 15;
         const monthsBefore =
           minMonthsBefore + Math.floor(Math.random() * (maxMonthsBefore - minMonthsBefore + 1));
 
@@ -103,7 +91,6 @@ function generateBreedingsForProperty(propertyId: string, startBreedingIndex: nu
         breedingDate.setMonth(breedingDate.getMonth() - monthsBefore);
         breedingDate.setDate(breedingDate.getDate() + Math.floor(Math.random() * 30) - 15);
 
-        // Don't go too far back
         if (breedingDate < twoYearsAgo) {
           const maxDate = new Date(previousDate);
           maxDate.setMonth(maxDate.getMonth() - 12);
@@ -177,17 +164,12 @@ function generateBreedingsForProperty(propertyId: string, startBreedingIndex: nu
   return breedingIndex;
 }
 
-// Lazy initialization function
 let breedingsInitialized = false;
 
 function initializeBreedings() {
-  // Check if already initialized
   if (breedingsInitialized) return;
 
-  // Safety check: ensure mockBirths is available and has data
-  // During circular dependency resolution, mockBirths might be undefined
   if (!mockBirths || !Array.isArray(mockBirths) || mockBirths.length === 0) {
-    // Try again later - this will be called when mockBirths is populated
     return;
   }
 
@@ -202,10 +184,8 @@ function initializeBreedings() {
   generateBreedingsForProperty(CHACARA_DO_JUCA_ID, breedingIndex);
 }
 
-// Create a proxy that initializes breedings on first access
 const _breedingsProxy = new Proxy(allBreedings, {
   get(target, prop) {
-    // Initialize on any meaningful access
     initializeBreedings();
     return Reflect.get(target, prop);
   },
@@ -223,30 +203,25 @@ const _breedingsProxy = new Proxy(allBreedings, {
   },
 });
 
-// Call addBirthsFromBreedings after breedings are initialized
-// This ensures mockBreedings is available when births.ts tries to use it
 let birthsInitialized = false;
 function initializeBirthsFromBreedings() {
   if (birthsInitialized) return;
   birthsInitialized = true;
 
-  try {
-    // Force initialization of breedings by accessing length
-    void allBreedings.length;
+  void (async () => {
+    try {
+      void allBreedings.length;
 
-    // Now safely call addBirthsFromBreedings
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { addBirthsFromBreedings } = require("./births");
-    if (typeof addBirthsFromBreedings === "function") {
-      addBirthsFromBreedings();
+      const { addBirthsFromBreedings } = await import("./births");
+      if (typeof addBirthsFromBreedings === "function") {
+        await addBirthsFromBreedings();
+      }
+    } catch {
+      birthsInitialized = false;
     }
-  } catch {
-    // Ignore errors during initialization - will retry on next access
-    birthsInitialized = false;
-  }
+  })();
 }
 
-// Enhanced proxy that also initializes births when breedings are accessed
 const enhancedProxy = new Proxy(allBreedings, {
   get(target, prop) {
     initializeBreedings();

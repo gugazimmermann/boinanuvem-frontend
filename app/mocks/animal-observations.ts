@@ -6,10 +6,8 @@ import { mockAnimalMovements } from "./animal-movements";
 
 export type { AnimalObservation, AnimalObservationFormData };
 
-// Today is November 21, 2025
 const TODAY = new Date("2025-11-21");
 
-// Helper to generate realistic dates
 function getRealisticDate(index: number, total: number): string {
   const years = [2020, 2021, 2022, 2023, 2024, 2025];
   const progress = index / total;
@@ -152,21 +150,17 @@ const baseObservations: AnimalObservation[] = [
   },
 ];
 
-// Generate additional observations for more animals
 const additionalObservations: AnimalObservation[] = [];
 const userIds = ["user-001", "user-002", "user-003"];
 
-// Generate observations for random animals (about 50-60 observations total)
 for (let i = 0; i < 50; i++) {
   const animal = mockAnimals[Math.floor(Math.random() * mockAnimals.length)];
   if (!animal) continue;
 
-  // Sometimes align observation with weighing or movement
   let observationDate: string;
   const alignWithEvent = Math.random() < 0.3;
 
   if (alignWithEvent) {
-    // Align with weighing
     const animalWeighings = mockWeighings.filter((w) => w.animalId === animal.id);
     if (animalWeighings.length > 0) {
       const weighing = animalWeighings[Math.floor(Math.random() * animalWeighings.length)];
@@ -174,7 +168,6 @@ for (let i = 0; i < 50; i++) {
       weighingDate.setHours(weighingDate.getHours() + Math.floor(Math.random() * 8));
       observationDate = weighingDate.toISOString();
     } else {
-      // Align with movement
       const animalMovements = mockAnimalMovements.filter((m) => m.animalIds.includes(animal.id));
       if (animalMovements.length > 0) {
         const movement = animalMovements[Math.floor(Math.random() * animalMovements.length)];
@@ -189,7 +182,6 @@ for (let i = 0; i < 50; i++) {
     observationDate = getRealisticDate(i, 50);
   }
 
-  // Don't create observations in the future
   if (new Date(observationDate) > TODAY) {
     const daysAgo = Math.floor(Math.random() * 30);
     const date = new Date(TODAY);

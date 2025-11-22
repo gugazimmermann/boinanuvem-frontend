@@ -38,7 +38,6 @@ export default function NewSanitaryControl() {
 
   const today = new Date().toISOString().split("T")[0];
 
-  // Get animalIds from location state if coming from animal details page
   const preSelectedAnimalIds = useMemo(() => {
     const state = location.state as { animalId?: string; animalIds?: string[] } | null;
     if (state?.animalIds) return state.animalIds;
@@ -61,7 +60,6 @@ export default function NewSanitaryControl() {
   const filteredAnimals = useMemo(() => {
     let filtered = animals;
 
-    // Filter by search if provided
     if (animalSearch.trim()) {
       const searchLower = animalSearch.toLowerCase();
       filtered = animals.filter(
@@ -71,7 +69,6 @@ export default function NewSanitaryControl() {
       );
     }
 
-    // Sort so pre-selected animals appear first
     if (preSelectedAnimalIds.length > 0) {
       filtered = [...filtered].sort((a, b) => {
         const aIsSelected = preSelectedAnimalIds.includes(a.id);
@@ -110,14 +107,12 @@ export default function NewSanitaryControl() {
   } | null>(null);
   const [selectedMedicineId, setSelectedMedicineId] = useState<string>("");
 
-  // Get available medicines and vaccines
   const availableMedicinesVaccines = useMemo(() => {
     const medicines = getInventoryItemsByCategory(InventoryItemCategory.MEDICINES, companyId);
     const vaccines = getInventoryItemsByCategory(InventoryItemCategory.VACCINES, companyId);
     return [...medicines, ...vaccines];
   }, [companyId]);
 
-  // Get animal location info helper function
   const getAnimalLocationInfo = (animalId: string): { locationId: string; propertyId: string } => {
     const animal = getAnimalById(animalId);
     if (!animal) return { locationId: "", propertyId: "" };
@@ -145,7 +140,6 @@ export default function NewSanitaryControl() {
     };
   };
 
-  // Get animal's latest weight helper function
   const getAnimalLatestWeight = (animalId: string): number => {
     const weighings = getWeighingsByAnimalId(animalId);
     if (weighings.length === 0) return 0;
@@ -155,7 +149,6 @@ export default function NewSanitaryControl() {
     return sortedWeighings[0]?.weight || 0;
   };
 
-  // Calculate dosage function
   const calculateDosage = (item: InventoryItem, weight: number): number => {
     if (!item.usageAmount || !item.usageBasis) return 0;
     if (item.usageBasis === "per_kg") {
@@ -167,7 +160,6 @@ export default function NewSanitaryControl() {
     return 0;
   };
 
-  // Get unit label helper
   const getUnitLabel = (unit: string, quantity: number = 1): string => {
     const unitMap: Record<
       string,
@@ -249,14 +241,11 @@ export default function NewSanitaryControl() {
     const item = getInventoryItemById(itemId);
     if (!item) return;
 
-    // Check if already added
     if (formData.appliedMedicines.some((m) => m.itemId === itemId)) {
       setSelectedMedicineId("");
       return;
     }
 
-    // Only pre-fill quantity if there's exactly one animal selected
-    // For multiple animals, each will have its own dosage calculated on submit
     let quantity = 1;
     if (formData.animalIds.length === 1) {
       const animalWeight = getAnimalLatestWeight(formData.animalIds[0]);
@@ -305,7 +294,6 @@ export default function NewSanitaryControl() {
         "Pelo menos um medicamento ou vacina deve ser aplicado";
     }
 
-    // Validate stock for applied medicines for each animal's location
     if (formData.appliedMedicines.length > 0 && formData.animalIds.length > 0) {
       for (const animalId of formData.animalIds) {
         const locationInfo = getAnimalLocationInfo(animalId);
@@ -334,7 +322,6 @@ export default function NewSanitaryControl() {
 
     setIsSubmitting(true);
     try {
-      // Create one administration record per animal
       for (const animalId of formData.animalIds) {
         const animalWeight = getAnimalLatestWeight(animalId);
         const appliedMedicinesData = formData.appliedMedicines.map((applied) => {
@@ -358,7 +345,6 @@ export default function NewSanitaryControl() {
         };
         addSanitaryControl(administrationData);
 
-        // Create inventory consumption movements for applied medicines/vaccines
         const locationInfo = getAnimalLocationInfo(animalId);
         if (formData.appliedMedicines.length > 0 && locationInfo.propertyId) {
           for (const applied of formData.appliedMedicines) {
@@ -552,7 +538,7 @@ export default function NewSanitaryControl() {
                       {formData.appliedMedicines.map((applied) => {
                         const item = getInventoryItemById(applied.itemId);
                         if (!item) return null;
-                        // Calculate average dosage for display (or use first animal's weight)
+
                         const avgWeight =
                           formData.animalIds.length > 0
                             ? formData.animalIds.reduce(
@@ -561,7 +547,7 @@ export default function NewSanitaryControl() {
                               ) / formData.animalIds.length
                             : 0;
                         const calculatedDosage = calculateDosage(item, avgWeight);
-                        // Get minimum stock across all selected animals' locations
+
                         const stocks = formData.animalIds
                           .map((animalId) => {
                             const locationInfo = getAnimalLocationInfo(animalId);
@@ -571,7 +557,7 @@ export default function NewSanitaryControl() {
                           })
                           .filter((stock) => stock >= 0);
                         const currentStock = stocks.length > 0 ? Math.min(...stocks) : 0;
-                        // Check if there's an error for any animal
+
                         const hasError =
                           formData.animalIds.some(
                             (animalId) => errors[`medicine_${applied.itemId}_${animalId}`]

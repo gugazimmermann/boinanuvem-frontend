@@ -71,7 +71,6 @@ describe("DashboardLayout", () => {
 
   describe("Mobile sidebar functionality", () => {
     afterEach(() => {
-      // Reset body overflow after each test
       document.body.style.overflow = "";
     });
 
@@ -79,7 +78,7 @@ describe("DashboardLayout", () => {
       render(<DashboardLayout />, { wrapper });
       const hamburgerButton = screen.getByLabelText("Toggle sidebar");
       expect(hamburgerButton).toBeInTheDocument();
-      // Check that it has sm:hidden class (visible on mobile, hidden on desktop)
+
       expect(hamburgerButton).toHaveClass("sm:hidden");
     });
 
@@ -89,14 +88,11 @@ describe("DashboardLayout", () => {
       const hamburgerButton = screen.getByLabelText("Toggle sidebar");
       const sidebar = container.querySelector("aside");
 
-      // Sidebar should be closed initially (translate-x-full on mobile)
       expect(sidebar).toHaveClass("-translate-x-full");
 
-      // Click hamburger button to open
       await user.click(hamburgerButton);
       expect(sidebar).toHaveClass("translate-x-0");
 
-      // Click again to close
       await user.click(hamburgerButton);
       expect(sidebar).toHaveClass("-translate-x-full");
     });
@@ -106,14 +102,11 @@ describe("DashboardLayout", () => {
       const { container } = render(<DashboardLayout />, { wrapper });
       const hamburgerButton = screen.getByLabelText("Toggle sidebar");
 
-      // Overlay should not be visible initially
       const overlayBefore = container.querySelector('[aria-hidden="true"]');
       expect(overlayBefore).not.toBeInTheDocument();
 
-      // Open sidebar
       await user.click(hamburgerButton);
 
-      // Overlay should be visible
       const overlay = container.querySelector('[aria-hidden="true"]');
       expect(overlay).toBeInTheDocument();
       expect(overlay).toHaveClass("backdrop-blur-sm", "bg-black/20", "sm:hidden");
@@ -125,11 +118,9 @@ describe("DashboardLayout", () => {
       const hamburgerButton = screen.getByLabelText("Toggle sidebar");
       const sidebar = container.querySelector("aside");
 
-      // Open sidebar
       await user.click(hamburgerButton);
       expect(sidebar).toHaveClass("translate-x-0");
 
-      // Click overlay to close
       const overlay = container.querySelector('[aria-hidden="true"]');
       if (overlay) {
         await user.click(overlay);
@@ -142,11 +133,9 @@ describe("DashboardLayout", () => {
       render(<DashboardLayout />, { wrapper });
       const hamburgerButton = screen.getByLabelText("Toggle sidebar");
 
-      // Open sidebar
       await user.click(hamburgerButton);
       expect(document.body.style.overflow).toBe("hidden");
 
-      // Close sidebar
       await user.click(hamburgerButton);
       expect(document.body.style.overflow).toBe("");
     });
@@ -158,11 +147,9 @@ describe("DashboardLayout", () => {
       const sidebar = container.querySelector("aside");
       const main = container.querySelector("main");
 
-      // Open sidebar
       await user.click(hamburgerButton);
       expect(sidebar).toHaveClass("translate-x-0");
 
-      // Click outside (on main content)
       if (main) {
         await user.click(main);
         expect(sidebar).toHaveClass("-translate-x-full");
@@ -175,11 +162,9 @@ describe("DashboardLayout", () => {
       const hamburgerButton = screen.getByLabelText("Toggle sidebar");
       const sidebar = container.querySelector("aside");
 
-      // Open sidebar
       await user.click(hamburgerButton);
       expect(sidebar).toHaveClass("translate-x-0");
 
-      // Click hamburger button - should close, not stay open
       await user.click(hamburgerButton);
       expect(sidebar).toHaveClass("-translate-x-full");
     });
@@ -188,7 +173,6 @@ describe("DashboardLayout", () => {
       const { container } = render(<DashboardLayout />, { wrapper });
       const sidebar = container.querySelector("aside");
 
-      // On desktop, sidebar should have static positioning and always be visible
       expect(sidebar).toHaveClass("sm:static", "sm:translate-x-0");
     });
   });

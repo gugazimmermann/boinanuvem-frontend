@@ -263,19 +263,17 @@ describe("NewAccountsReceivable", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    // Fill required fields
     const descriptionInput = screen.getByTestId("input-Description");
     const amountInput = screen.getByTestId("input-Amount");
     const dueDateInput = screen.getByTestId("input-Due Date");
     const selects = screen.getAllByTestId("select-select");
-    const propertySelect = selects[0]; // Property is always the first select
+    const propertySelect = selects[0];
 
     fireEvent.change(descriptionInput, { target: { value: "Test description" } });
     fireEvent.change(amountInput, { target: { value: "1000" } });
     fireEvent.change(dueDateInput, { target: { value: "2024-12-31" } });
     fireEvent.change(propertySelect, { target: { value: "prop-1" } });
 
-    // Find and fill observation textarea
     const textareas = screen.queryAllByRole("textbox");
     const observationTextarea = textareas.find(
       (textarea) => (textarea as HTMLTextAreaElement).rows === 4
@@ -287,7 +285,6 @@ describe("NewAccountsReceivable", () => {
       });
     }
 
-    // Submit form
     const submitButton = screen.getByTestId("submit-button");
     fireEvent.click(submitButton);
 
@@ -306,19 +303,17 @@ describe("NewAccountsReceivable", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    // Fill required fields
     const descriptionInput = screen.getByTestId("input-Description");
     const amountInput = screen.getByTestId("input-Amount");
     const dueDateInput = screen.getByTestId("input-Due Date");
     const selects = screen.getAllByTestId("select-select");
-    const propertySelect = selects[0]; // Property is always the first select
+    const propertySelect = selects[0];
 
     fireEvent.change(descriptionInput, { target: { value: "Test description" } });
     fireEvent.change(amountInput, { target: { value: "1000" } });
     fireEvent.change(dueDateInput, { target: { value: "2024-12-31" } });
     fireEvent.change(propertySelect, { target: { value: "prop-1" } });
 
-    // Submit form without observation
     const submitButton = screen.getByTestId("submit-button");
     fireEvent.click(submitButton);
 
@@ -332,19 +327,17 @@ describe("NewAccountsReceivable", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    // Fill required fields
     const descriptionInput = screen.getByTestId("input-Description");
     const amountInput = screen.getByTestId("input-Amount");
     const dueDateInput = screen.getByTestId("input-Due Date");
     const selects = screen.getAllByTestId("select-select");
-    const propertySelect = selects[0]; // Property is always the first select
+    const propertySelect = selects[0];
 
     fireEvent.change(descriptionInput, { target: { value: "Test description" } });
     fireEvent.change(amountInput, { target: { value: "1000" } });
     fireEvent.change(dueDateInput, { target: { value: "2024-12-31" } });
     fireEvent.change(propertySelect, { target: { value: "prop-1" } });
 
-    // Find and fill observation textarea
     const textareas = screen.queryAllByRole("textbox");
     const observationTextarea = textareas.find(
       (textarea) => (textarea as HTMLTextAreaElement).rows === 4
@@ -356,14 +349,12 @@ describe("NewAccountsReceivable", () => {
       });
     }
 
-    // Upload file
     const fileUpload = screen.getByTestId("file-upload");
     const file = new File(["test content"], "test.txt", { type: "text/plain" });
     fireEvent.change(fileUpload, {
       target: { files: [file] },
     });
 
-    // Submit form
     const submitButton = screen.getByTestId("submit-button");
     fireEvent.click(submitButton);
 

@@ -510,7 +510,7 @@ export default function SupplierDetails() {
 
   useEffect(() => {
     const tab = searchParams.get("tab");
-    // Redirect non-main users away from activities tab
+
     if (tab === "activities" && !isMainUser()) {
       setActiveTab("info");
       setSearchParams({ tab: "info" });
@@ -2064,21 +2064,20 @@ export default function SupplierDetails() {
                       plural?: keyof typeof t.inventory.units;
                     }
                   > = {
-                    // Weight units
                     unidade: { singular: "unit", plural: "unitPlural" },
                     g: { singular: "gram" },
                     kg: { singular: "kg" },
                     tonelada: { singular: "ton", plural: "tonPlural" },
-                    // Volume units
+
                     ml: { singular: "milliliter" },
                     L: { singular: "liter" },
-                    // Length units
+
                     cm: { singular: "centimeter", plural: "centimeterPlural" },
                     m: { singular: "meter", plural: "meterPlural" },
-                    // Area units
+
                     m2: { singular: "squareMeter", plural: "squareMeterPlural" },
                     ha: { singular: "hectare", plural: "hectarePlural" },
-                    // Count/Container units
+
                     saco: { singular: "bag", plural: "bagPlural" },
                     frasco: { singular: "bottle", plural: "bottlePlural" },
                     dose: { singular: "dose", plural: "dosePlural" },

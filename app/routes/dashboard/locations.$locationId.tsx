@@ -158,7 +158,7 @@ export default function LocationDetails() {
 
   useEffect(() => {
     const tab = searchParams.get("tab");
-    // Redirect non-main users away from activities tab
+
     if (tab === "activities" && !isMainUser()) {
       setActiveTab("information");
       setSearchParams({ tab: "information" });
@@ -2140,7 +2140,6 @@ export default function LocationDetails() {
                     {t.locations.costs.description}
                   </p>
 
-                  {/* Date Range Filter */}
                   <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <Input
@@ -2172,7 +2171,6 @@ export default function LocationDetails() {
                     </div>
                   </div>
 
-                  {/* Summary Cards */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
                       <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
@@ -2206,7 +2204,6 @@ export default function LocationDetails() {
                     </div>
                   </div>
 
-                  {/* Consumption History Table */}
                   <div className="mb-6">
                     <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-4">
                       {t.locations.costs.consumptionHistory}
@@ -2286,7 +2283,6 @@ export default function LocationDetails() {
                     )}
                   </div>
 
-                  {/* Per-Animal Breakdown */}
                   {animalBreakdown.length > 0 && (
                     <div>
                       <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-4">

@@ -28,12 +28,12 @@ export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
       { translationKey: "acquisitions", path: ROUTES.ACQUISITIONS_NEW, icon: "🛒" },
       { translationKey: "sales", path: ROUTES.SALES, icon: "💰" },
       { translationKey: "deaths", path: ROUTES.DEATHS_NEW, icon: "💀" },
-      { translationKey: "weighings", path: ROUTES.WEIGHINGS_NEW, icon: "⚖️" },
       {
         translationKey: "medicineAdministrations",
         path: ROUTES.MEDICINE_ADMINISTRATIONS_NEW,
         icon: "💉",
       },
+      { translationKey: "weighings", path: ROUTES.WEIGHINGS_NEW, icon: "⚖️" },
     ],
   },
   {
@@ -54,11 +54,11 @@ export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
     path: "#",
     icon: "💰",
     subItems: [
-      { translationKey: "financesDashboard", path: ROUTES.FINANCES_DASHBOARD, icon: "📊" },
       { translationKey: "cashFlow", path: ROUTES.CASH_FLOW, icon: "💵" },
       { translationKey: "accountsPayable", path: ROUTES.ACCOUNTS_PAYABLE, icon: "📤" },
       { translationKey: "accountsReceivable", path: ROUTES.ACCOUNTS_RECEIVABLE, icon: "📥" },
       { translationKey: "bankAccounts", path: ROUTES.BANK_ACCOUNTS, icon: "🏦" },
+      { translationKey: "financesDashboard", path: ROUTES.FINANCES_DASHBOARD, icon: "📊" },
     ],
   },
 ];

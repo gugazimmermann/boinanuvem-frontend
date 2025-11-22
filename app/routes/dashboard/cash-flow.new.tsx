@@ -184,7 +184,6 @@ export default function NewCashFlow() {
       };
       const newTransaction = addCashFlow(transactionData);
 
-      // Create observation if provided
       if (formData.observation?.trim()) {
         const fileIds = observationFiles.map(
           (_, index) => `file-cashflow-obs-${Date.now()}-${index}`

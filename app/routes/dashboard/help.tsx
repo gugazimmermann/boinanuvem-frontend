@@ -493,7 +493,6 @@ export default function Help() {
           </div>
         </div>
 
-        {/* Contact Support Section */}
         <div className="mt-16 max-w-4xl mx-auto">
           <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
             <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">

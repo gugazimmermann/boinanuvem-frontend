@@ -7,7 +7,6 @@ import { generateUUID } from "~/utils/uuid";
 
 export type { AnimalMovement };
 
-// Today is November 21, 2025
 const TODAY = new Date("2025-11-21");
 
 const COMPANY_ID = "550e8400-e29b-41d4-a716-446655440000";
@@ -112,8 +111,6 @@ function createMovement(
   };
 }
 
-// Generate movements for each property
-// Animals should have multiple movements over time (rotation, management, etc.)
 function generateMovementsForProperty(
   propertyId: string,
   animals: typeof fazendaAnimals,
@@ -121,22 +118,18 @@ function generateMovementsForProperty(
   _startDate: Date
 ) {
   animals.forEach((animal) => {
-    // Each animal should have 2-5 movements over time
     const numMovements = 2 + Math.floor(Math.random() * 4);
     const animalCreatedDate = new Date(animal.createdAt);
 
-    // First movement: shortly after animal creation (within 30 days)
     const firstMovementDate = new Date(animalCreatedDate);
     firstMovementDate.setDate(firstMovementDate.getDate() + Math.floor(Math.random() * 30));
 
-    // Ensure first movement is not in the future
     if (firstMovementDate > TODAY) {
       firstMovementDate.setTime(
         TODAY.getTime() - Math.floor(Math.random() * 90) * 24 * 60 * 60 * 1000
       );
     }
 
-    // Ensure first movement is after animal creation
     if (firstMovementDate < animalCreatedDate) {
       firstMovementDate.setTime(animalCreatedDate.getTime() + 7 * 24 * 60 * 60 * 1000);
     }
@@ -144,17 +137,14 @@ function generateMovementsForProperty(
     let currentDate = new Date(firstMovementDate);
 
     for (let i = 0; i < numMovements; i++) {
-      // Space movements: 30-180 days apart
       if (i > 0) {
         const daysBetween = 30 + Math.floor(Math.random() * 150);
         currentDate = new Date(currentDate);
         currentDate.setDate(currentDate.getDate() + daysBetween);
       }
 
-      // Don't create movements in the future
       if (currentDate > TODAY) break;
 
-      // Don't create movements before animal was created
       if (currentDate < animalCreatedDate) {
         currentDate = new Date(animalCreatedDate);
         currentDate.setDate(currentDate.getDate() + 7);
@@ -164,10 +154,8 @@ function generateMovementsForProperty(
       const locationId = getRandomElement(locations);
       const dateStr = currentDate.toISOString().split("T")[0];
 
-      // Sometimes move animals in groups (batches)
       const moveInBatch = Math.random() < 0.3 && i === 0;
       if (moveInBatch) {
-        // Find other animals from same property to move together
         const batchSize = Math.min(3 + Math.floor(Math.random() * 5), animals.length);
         const batchStart = Math.floor(Math.random() * Math.max(0, animals.length - batchSize));
         const batchAnimals = animals.slice(batchStart, batchStart + batchSize);
@@ -188,16 +176,12 @@ function generateMovementsForProperty(
 
 const startDate = new Date("2020-01-01");
 
-// Generate movements for Fazenda do Juca
 generateMovementsForProperty(FAZENDA_DO_JUCA, fazendaAnimals, fazendaLocations, startDate);
 
-// Generate movements for Sítio Limoeiro
 generateMovementsForProperty(SITIO_LIMOEIRO, sitioAnimals, sitioLocations, startDate);
 
-// Generate movements for Chácara do Juca
 generateMovementsForProperty(CHACARA_DO_JUCA, chacaraAnimals, chacaraLocations, startDate);
 
-// Sort movements by date (most recent first)
 mockAnimalMovements.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
 export { mockAnimalMovements };

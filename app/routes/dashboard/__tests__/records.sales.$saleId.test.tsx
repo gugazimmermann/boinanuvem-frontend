@@ -208,7 +208,6 @@ describe("SaleDetails", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    // Should render the heading
     const heading = screen.getByRole("heading", { level: 1 });
     expect(heading).toBeInTheDocument();
   });
@@ -217,11 +216,9 @@ describe("SaleDetails", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    // Should display sale details like property, buyer, etc.
     const heading = screen.getByRole("heading", { level: 1 });
     expect(heading).toBeInTheDocument();
 
-    // Should have edit/delete buttons
     const buttons = screen.getAllByRole("button");
     expect(buttons.length).toBeGreaterThan(0);
   });
@@ -230,13 +227,9 @@ describe("SaleDetails", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    // Profitability metrics should be calculated and displayed
-    // The component renders sale items with profitability data
     const heading = screen.getByRole("heading", { level: 1 });
     expect(heading).toBeInTheDocument();
 
-    // Check that profitability calculation was called (mocked)
-    // The actual metrics would be in the rendered content
     const saleItemsHeading = screen.getByRole("heading", { level: 2 });
     expect(saleItemsHeading).toBeInTheDocument();
   });
@@ -245,7 +238,6 @@ describe("SaleDetails", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    // Should show link to cash flow (since linkedCashFlowId is set)
     const link = screen.getByRole("link");
     expect(link).toBeInTheDocument();
   });

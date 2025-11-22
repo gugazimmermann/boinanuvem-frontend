@@ -46,8 +46,6 @@ const isExpiringSoon = (expirationDate?: string, daysThreshold: number = 30): bo
 };
 
 export function meta() {
-  // Note: Meta function runs at build time, so we can't use hooks here
-  // Using default Portuguese for meta tags
   return [
     { title: "Detalhes do Item de Estoque - Boi na Nuvem" },
     {
@@ -106,21 +104,20 @@ export default function InventoryItemDetails() {
       string,
       { singular: keyof typeof t.inventory.units; plural?: keyof typeof t.inventory.units }
     > = {
-      // Weight units
       unidade: { singular: "unit", plural: "unitPlural" },
       g: { singular: "gram" },
       kg: { singular: "kg" },
       tonelada: { singular: "ton", plural: "tonPlural" },
-      // Volume units
+
       ml: { singular: "milliliter" },
       L: { singular: "liter" },
-      // Length units
+
       cm: { singular: "centimeter", plural: "centimeterPlural" },
       m: { singular: "meter", plural: "meterPlural" },
-      // Area units
+
       m2: { singular: "squareMeter", plural: "squareMeterPlural" },
       ha: { singular: "hectare", plural: "hectarePlural" },
-      // Count/Container units
+
       saco: { singular: "bag", plural: "bagPlural" },
       frasco: { singular: "bottle", plural: "bottlePlural" },
       dose: { singular: "dose", plural: "dosePlural" },

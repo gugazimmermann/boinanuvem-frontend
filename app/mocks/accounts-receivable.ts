@@ -5,7 +5,6 @@ import { mockProperties } from "./properties";
 
 export type { AccountsReceivable, AccountsReceivableFormData };
 
-// Today is November 21, 2025
 const TODAY = new Date("2025-11-21");
 
 const COMPANY_ID = "550e8400-e29b-41d4-a716-446655440000";
@@ -19,7 +18,6 @@ const BANK_ACCOUNT_CEF = mockBankAccounts[2].id;
 const PROPERTY_1 = mockProperties[0]?.id || "";
 const PROPERTY_2 = mockProperties[1]?.id || "";
 
-// Helper to generate realistic dates across 2020-2025
 function getRealisticDate(index: number, total: number): string {
   const years = [2020, 2021, 2022, 2023, 2024, 2025];
   const progress = index / total;
@@ -544,13 +542,11 @@ const accountsReceivableTransactions: AccountsReceivable[] = [
   },
 ];
 
-// Generate dates for all transactions
 const transactionsWithDates = accountsReceivableTransactions.map((transaction, index) => {
   const newDate = getRealisticDate(index, accountsReceivableTransactions.length);
   const dueDate = new Date(newDate);
-  dueDate.setDate(dueDate.getDate() + (15 + Math.floor(Math.random() * 15))); // Due 15-30 days after creation
+  dueDate.setDate(dueDate.getDate() + (15 + Math.floor(Math.random() * 15)));
 
-  // If paid, payment date should be between creation and due date (or slightly after)
   let paidDate: string | undefined;
   if (transaction.status === AccountsReceivableStatus.PAID && transaction.paidDate) {
     const paymentDaysAfter = Math.floor(Math.random() * 35);
@@ -575,7 +571,6 @@ const transactionsWithDates = accountsReceivableTransactions.map((transaction, i
   };
 });
 
-// Sort by due date (most recent first)
 transactionsWithDates.sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime());
 
 export const mockAccountsReceivable: AccountsReceivable[] = transactionsWithDates;

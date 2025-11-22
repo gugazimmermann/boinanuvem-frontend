@@ -296,10 +296,9 @@ describe("NewInventoryItem", () => {
     const categorySelect = screen.queryByTestId("select-Category");
     if (categorySelect) {
       fireEvent.change(categorySelect, { target: { value: InventoryItemCategory.FEED } });
-      // Wait a bit to ensure fields are not rendered
+
       await waitFor(
         () => {
-          // Check for usage method section specifically, not just any "amount" or "unit" field
           const usageMethodSection = screen.queryByText(/método de uso|usage method/i);
           const usageAmountInput =
             screen.queryByLabelText(/^quantidade$/i) || screen.queryByLabelText(/^amount$/i);
@@ -307,9 +306,9 @@ describe("NewInventoryItem", () => {
             screen.queryByLabelText(/^unidade$/i) || screen.queryByLabelText(/^unit$/i);
           const usageBasisSelect =
             screen.queryByLabelText(/^base$/i) || screen.queryByLabelText(/^basis$/i);
-          // Usage method section should not be present for FEED category
+
           expect(usageMethodSection).toBeFalsy();
-          // These specific fields should not be present
+
           expect(usageAmountInput).toBeFalsy();
           expect(usageUnitSelect).toBeFalsy();
           expect(usageBasisSelect).toBeFalsy();
@@ -412,7 +411,7 @@ describe("NewInventoryItem", () => {
       await waitFor(() => {
         expect(addInventoryItem).toHaveBeenCalled();
         const callArgs = vi.mocked(addInventoryItem).mock.calls[0][0];
-        // Usage method fields are optional, so check if they exist
+
         if (callArgs.usageAmount !== undefined) {
           expect(callArgs.usageAmount).toBe(1);
         }
