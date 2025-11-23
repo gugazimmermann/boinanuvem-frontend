@@ -9,7 +9,7 @@ interface DropdownMenuItemProps {
 
 export function DropdownMenuItem({ href, onClick, children }: DropdownMenuItemProps) {
   const className =
-    "block px-4 py-2 text-sm text-gray-600 dark:text-gray-300 capitalize transition-colors duration-300 transform hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer";
+    "block w-full px-4 py-2 text-sm text-gray-600 dark:text-gray-300 capitalize transition-colors duration-300 transform hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-left";
 
   const handleClick = () => {
     if (onClick) {
@@ -27,7 +27,7 @@ export function DropdownMenuItem({ href, onClick, children }: DropdownMenuItemPr
 
   if (onClick) {
     return (
-      <button onClick={onClick} className={className}>
+      <button type="button" onClick={onClick} className={className}>
         {children}
       </button>
     );
