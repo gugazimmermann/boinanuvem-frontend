@@ -340,6 +340,22 @@ export default function Register() {
             </div>
           </div>
 
+          <div className="mb-4 p-4 rounded-lg bg-gradient-to-r from-primary/10 via-secondary/10 to-primary/10 dark:from-primary/20 dark:via-secondary/20 dark:to-primary/20 border border-primary/20 dark:border-primary/30">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl mt-0.5">🎁</span>
+              <div>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
+                  Teste Grátis por 14 dias no Plano Avançado
+                </p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  Você começará com acesso completo ao plano Avançado por 14 dias. Após esse
+                  período, você poderá escolher o plano que melhor se adequa às suas necessidades e
+                  começar a pagar.
+                </p>
+              </div>
+            </div>
+          </div>
+
           <h3 className="mt-3 text-xl font-medium text-center text-gray-600 dark:text-gray-300">
             {step === 1 ? "Dados da Empresa" : "Dados do Usuário"}
           </h3>

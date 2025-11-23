@@ -37,7 +37,7 @@ export function Hero() {
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-            <Button href={ROUTES.LOGIN} size="lg" variant="primary">
+            <Button href={ROUTES.REGISTER} size="lg" variant="primary">
               ⭐ Começar Agora - Grátis
             </Button>
             <Button href="#section-services" size="lg" variant="outline">

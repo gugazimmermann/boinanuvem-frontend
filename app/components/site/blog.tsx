@@ -65,7 +65,7 @@ export function Blog() {
           <br />
           Com ferramentas intuitivas e suporte especializado.
         </p>
-        <Button href={ROUTES.LOGIN} variant="primary" size="lg">
+        <Button href={ROUTES.REGISTER} variant="primary" size="lg">
           Começar Agora →
         </Button>
       </div>

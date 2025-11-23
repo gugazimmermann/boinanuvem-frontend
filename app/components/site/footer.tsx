@@ -1,4 +1,5 @@
 import { FOOTER_SECTIONS } from "./constants";
+import { ROUTES } from "../../routes.config";
 
 export function Footer() {
   return (
@@ -26,8 +27,27 @@ export function Footer() {
           ))}
         </div>
 
-        <div className="border-t border-gray-200 dark:border-gray-800 pt-4 text-center text-xs text-gray-500 dark:text-gray-400">
-          <p>Copyrights © {new Date().getFullYear()} All Rights Reserved by Boi na Nuvem</p>
+        <div className="border-t border-gray-200 dark:border-gray-800 pt-4">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-2">
+            <p className="text-xs text-gray-500 dark:text-gray-400 text-center md:text-left">
+              Copyrights © {new Date().getFullYear()} All Rights Reserved by Boi na Nuvem
+            </p>
+            <div className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400">
+              <a
+                href={ROUTES.TERMS}
+                className="hover:text-gray-900 dark:hover:text-gray-200 transition-colors cursor-pointer"
+              >
+                Termos
+              </a>
+              <span className="text-gray-300 dark:text-gray-600">|</span>
+              <a
+                href={ROUTES.PRIVACY}
+                className="hover:text-gray-900 dark:hover:text-gray-200 transition-colors cursor-pointer"
+              >
+                Privacidade
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </footer>

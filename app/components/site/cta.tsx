@@ -1,5 +1,6 @@
 import { Section, Heading, Button, Badge } from "./ui";
 import { COLORS } from "./constants";
+import { ROUTES } from "../../routes.config";
 
 export function CTA() {
   return (
@@ -16,7 +17,7 @@ export function CTA() {
           intuitivo e poderoso, desenvolvido especialmente para otimizar a administração da sua
           propriedade e aumentar a produtividade do seu rebanho.
         </p>
-        <Button href="#" size="lg" variant="primary">
+        <Button href={ROUTES.REGISTER} size="lg" variant="primary">
           Começar Agora
         </Button>
       </div>

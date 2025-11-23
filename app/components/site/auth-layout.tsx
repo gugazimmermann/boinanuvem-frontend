@@ -37,14 +37,14 @@ export function AuthLayout({ children }: AuthLayoutProps) {
             </p>
             <div className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400">
               <a
-                href="#"
+                href={ROUTES.TERMS}
                 className="hover:text-gray-900 dark:hover:text-gray-200 transition-colors cursor-pointer"
               >
                 Termos
               </a>
               <span className="text-gray-300 dark:text-gray-600">|</span>
               <a
-                href="#"
+                href={ROUTES.PRIVACY}
                 className="hover:text-gray-900 dark:hover:text-gray-200 transition-colors cursor-pointer"
               >
                 Privacidade
