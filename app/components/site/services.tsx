@@ -18,6 +18,16 @@ export const Services = memo(function Services() {
       id="section-services"
       className="bg-gradient-to-b from-white via-gray-50 to-white dark:from-gray-950 dark:via-gray-900 dark:to-gray-950"
     >
+      <div className="text-center mb-12">
+        <Heading level={2} color="secondary" className="mb-4">
+          Funcionalidades <span className="text-primary">Completas</span>
+        </Heading>
+        <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">
+          Explore todas as áreas de gestão disponíveis no Boi na Nuvem. Clique em cada
+          funcionalidade para saber mais detalhes.
+        </p>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center mb-16">
         <div className="flex items-center justify-center order-2 md:order-1">
           {activeTab === 0 ? (
@@ -25,8 +35,8 @@ export const Services = memo(function Services() {
               <img
                 src="/images/livestock.png"
                 alt="Gestão de Propriedades e Pastos"
-                className="rounded-2xl"
-                style={{ maxWidth: "400px", width: "100%", height: "auto", objectFit: "contain" }}
+                className="rounded-2xl shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl"
+                style={{ maxWidth: "450px", width: "100%", height: "auto", objectFit: "contain" }}
               />
             </div>
           ) : (
@@ -35,22 +45,43 @@ export const Services = memo(function Services() {
             </div>
           )}
         </div>
-        <div className="space-y-6 order-1 md:order-2">
+        <div className="space-y-4 order-1 md:order-2 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
           {SERVICES.map((item, index) => (
             <div
               key={index}
-              className={`cursor-pointer p-6 rounded-lg transition ${
-                activeTab === index ? "border-l-4 border-primary" : "hover:opacity-80"
+              className={`cursor-pointer p-6 rounded-xl transition-all duration-300 ${
+                activeTab === index
+                  ? "border-l-4 border-primary shadow-lg scale-[1.02]"
+                  : "hover:shadow-md hover:scale-[1.01] hover:border-l-2 hover:border-primary/30"
               } ${
-                activeTab === index ? "bg-gray-100 dark:bg-gray-800" : "bg-gray-50 dark:bg-gray-900"
+                activeTab === index
+                  ? "bg-gray-100 dark:bg-gray-800"
+                  : "bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700"
               }`}
               onClick={() => handleTabClick(index)}
             >
-              <Heading level={4} color="secondary" className="mb-2">
-                {item.title}
-              </Heading>
-              <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{item.content}</p>
-              {activeTab === index && <div className="mt-4 h-1 rounded-full w-full bg-primary" />}
+              <div className="flex items-start gap-3">
+                <div
+                  className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                    activeTab === index
+                      ? "bg-primary text-white"
+                      : "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
+                  }`}
+                >
+                  {index + 1}
+                </div>
+                <div className="flex-1">
+                  <Heading level={4} color="secondary" className="mb-2">
+                    {item.title}
+                  </Heading>
+                  <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-sm">
+                    {item.content}
+                  </p>
+                  {activeTab === index && (
+                    <div className="mt-4 h-1 rounded-full w-full bg-primary" />
+                  )}
+                </div>
+              </div>
             </div>
           ))}
         </div>

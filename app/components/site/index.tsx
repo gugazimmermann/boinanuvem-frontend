@@ -1,8 +1,10 @@
 export { AuthLayout } from "./auth-layout";
 export { Header } from "./header";
 export { Hero } from "./hero";
+export { Statistics } from "./statistics";
 export { TrustedBy } from "./trusted-by";
 export { Services } from "./services";
+export { FeatureHighlights } from "./feature-highlights";
 export { Examples } from "./examples";
 export { Pricing } from "./pricing";
 export { FAQs } from "./faqs";
