@@ -42,10 +42,15 @@ export const AuthSelect = forwardRef<HTMLSelectElement, AuthSelectProps>(
     const selectId = id || generatedId;
     const hasError = Boolean(error);
     const displayText = error || helperText;
+    const ariaLabel = selectProps["aria-label"] as string | undefined;
+    const testId = ariaLabel ? `auth-select-${ariaLabel.replace(/\s+/g, "-")}` : undefined;
 
     const selectStyles = [baseSelectStyles, hasError && errorSelectStyles, selectClassName]
       .filter(Boolean)
       .join(" ");
+
+    // Use generated testid if aria-label is provided, otherwise allow data-testid from props
+    const finalTestId = testId;
 
     return (
       <div className={className}>
@@ -61,6 +66,7 @@ export const AuthSelect = forwardRef<HTMLSelectElement, AuthSelectProps>(
             id={selectId}
             className={selectStyles}
             aria-invalid={hasError}
+            data-testid={finalTestId}
             {...selectProps}
           >
             <option value="">Selecione...</option>

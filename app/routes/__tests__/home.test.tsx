@@ -8,8 +8,10 @@ import Home, { meta } from "../home";
 vi.mock("~/components/site", () => ({
   Header: () => <div data-testid="header">Header</div>,
   Hero: () => <div data-testid="hero">Hero</div>,
+  Statistics: () => <div data-testid="statistics">Statistics</div>,
   TrustedBy: () => <div data-testid="trusted-by">TrustedBy</div>,
   Services: () => <div data-testid="services">Services</div>,
+  FeatureHighlights: () => <div data-testid="feature-highlights">FeatureHighlights</div>,
   Examples: () => <div data-testid="examples">Examples</div>,
   Pricing: () => <div data-testid="pricing">Pricing</div>,
   FAQs: () => <div data-testid="faqs">FAQs</div>,
@@ -46,8 +48,10 @@ describe("Home", () => {
 
     expect(screen.getByTestId("header")).toBeInTheDocument();
     expect(screen.getByTestId("hero")).toBeInTheDocument();
+    expect(screen.getByTestId("statistics")).toBeInTheDocument();
     expect(screen.getByTestId("trusted-by")).toBeInTheDocument();
     expect(screen.getByTestId("services")).toBeInTheDocument();
+    expect(screen.getByTestId("feature-highlights")).toBeInTheDocument();
     expect(screen.getByTestId("examples")).toBeInTheDocument();
     expect(screen.getByTestId("pricing")).toBeInTheDocument();
     expect(screen.getByTestId("faqs")).toBeInTheDocument();
@@ -64,7 +68,7 @@ describe("Home", () => {
     expect(metaData[1]).toEqual({
       name: "description",
       content:
-        "Boi na Nuvem - Sistema completo de gestão para fazendas de gado de corte. Gerencie propriedades, pastos, animais, pesos, nascimentos e muito mais.",
+        "Boi na Nuvem - Sistema completo de gestão para fazendas de gado de corte. Gerencie propriedades, pastos, animais, pesos, nascimentos, finanças, estoque, vendas e muito mais. Dashboard interativo, análises avançadas e relatórios detalhados.",
     });
   });
 
@@ -75,8 +79,10 @@ describe("Home", () => {
     const components = [
       "header",
       "hero",
+      "statistics",
       "trusted-by",
       "services",
+      "feature-highlights",
       "examples",
       "pricing",
       "faqs",

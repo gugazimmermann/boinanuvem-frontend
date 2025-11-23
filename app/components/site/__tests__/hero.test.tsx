@@ -5,25 +5,25 @@ import { Hero } from "../hero";
 describe("Hero", () => {
   it("should render hero section", () => {
     render(<Hero />);
-    expect(screen.getByText(/Gerencie sua fazenda/i)).toBeInTheDocument();
+    expect(screen.getByText(/Transforme sua fazenda/i)).toBeInTheDocument();
   });
 
   it("should render heading", () => {
     render(<Hero />);
     expect(
-      screen.getByText(/Gerencie sua fazenda de gado de corte com tecnologia de ponta/i)
+      screen.getByText(/Transforme sua fazenda de gado de corte com tecnologia de ponta/i)
     ).toBeInTheDocument();
   });
 
   it("should render description", () => {
     render(<Hero />);
-    expect(screen.getByText(/Sistema completo de gestão/i)).toBeInTheDocument();
+    expect(screen.getByText(/Sistema completo e integrado/i)).toBeInTheDocument();
   });
 
   it("should render CTA buttons", () => {
     render(<Hero />);
     expect(screen.getByText(/Começar Agora/i)).toBeInTheDocument();
-    expect(screen.getByText(/Fale Conosco/i)).toBeInTheDocument();
+    expect(screen.getByText(/Conhecer Funcionalidades/i)).toBeInTheDocument();
   });
 
   it("should render image", () => {

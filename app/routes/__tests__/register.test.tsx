@@ -437,7 +437,7 @@ describe("Register", () => {
     fireEvent.change(screen.getByPlaceholderText("Cidade"), {
       target: { value: "Test City" },
     });
-    fireEvent.change(screen.getByTestId("auth-select-Estado"), {
+    fireEvent.change(screen.getByTestId("auth-select-State"), {
       target: { value: "SC" },
     });
 
@@ -475,7 +475,7 @@ describe("Register", () => {
     fireEvent.change(screen.getByPlaceholderText("Cidade"), {
       target: { value: "Test City" },
     });
-    fireEvent.change(screen.getByTestId("auth-select-Estado"), {
+    fireEvent.change(screen.getByTestId("auth-select-State"), {
       target: { value: "SC" },
     });
 
@@ -516,7 +516,7 @@ describe("Register", () => {
     fireEvent.change(screen.getByPlaceholderText("Cidade"), {
       target: { value: "Test City" },
     });
-    fireEvent.change(screen.getByTestId("auth-select-Estado"), {
+    fireEvent.change(screen.getByTestId("auth-select-State"), {
       target: { value: "SC" },
     });
     fireEvent.click(screen.getByText("Próximo"));
@@ -554,7 +554,7 @@ describe("Register", () => {
     fireEvent.change(screen.getByPlaceholderText("Cidade"), {
       target: { value: "Test City" },
     });
-    fireEvent.change(screen.getByTestId("auth-select-Estado"), {
+    fireEvent.change(screen.getByTestId("auth-select-State"), {
       target: { value: "SC" },
     });
     fireEvent.click(screen.getByText("Próximo"));
@@ -601,7 +601,7 @@ describe("Register", () => {
     fireEvent.change(screen.getByPlaceholderText("Cidade"), {
       target: { value: "Test City" },
     });
-    fireEvent.change(screen.getByTestId("auth-select-Estado"), {
+    fireEvent.change(screen.getByTestId("auth-select-State"), {
       target: { value: "SC" },
     });
     fireEvent.click(screen.getByText("Próximo"));
@@ -673,7 +673,7 @@ describe("Register", () => {
     fireEvent.change(screen.getByPlaceholderText("Cidade"), {
       target: { value: "Test City" },
     });
-    fireEvent.change(screen.getByTestId("auth-select-Estado"), {
+    fireEvent.change(screen.getByTestId("auth-select-State"), {
       target: { value: "SC" },
     });
     fireEvent.click(screen.getByText("Próximo"));
@@ -718,7 +718,7 @@ describe("Register", () => {
     fireEvent.change(screen.getByPlaceholderText("Cidade"), {
       target: { value: "Test City" },
     });
-    fireEvent.change(screen.getByTestId("auth-select-Estado"), {
+    fireEvent.change(screen.getByTestId("auth-select-State"), {
       target: { value: "SC" },
     });
 
@@ -756,7 +756,7 @@ describe("Register", () => {
     fireEvent.change(screen.getByPlaceholderText("Cidade"), {
       target: { value: "Test City" },
     });
-    fireEvent.change(screen.getByTestId("auth-select-Estado"), {
+    fireEvent.change(screen.getByTestId("auth-select-State"), {
       target: { value: "SC" },
     });
 
@@ -794,7 +794,7 @@ describe("Register", () => {
     fireEvent.change(screen.getByPlaceholderText("Cidade"), {
       target: { value: "Test City" },
     });
-    fireEvent.change(screen.getByTestId("auth-select-Estado"), {
+    fireEvent.change(screen.getByTestId("auth-select-State"), {
       target: { value: "SC" },
     });
 
@@ -884,7 +884,7 @@ describe("Register", () => {
     fireEvent.change(screen.getByPlaceholderText("Cidade"), {
       target: { value: "Test City" },
     });
-    fireEvent.change(screen.getByTestId("auth-select-Estado"), {
+    fireEvent.change(screen.getByTestId("auth-select-State"), {
       target: { value: "SC" },
     });
   };
@@ -1133,7 +1133,7 @@ describe("Register", () => {
     fireEvent.change(cityInputs[cityInputs.length - 1], {
       target: { value: "User City" },
     });
-    const stateSelects = screen.getAllByTestId("auth-select-Estado");
+    const stateSelects = screen.getAllByTestId("auth-select-State");
     fireEvent.change(stateSelects[stateSelects.length - 1], {
       target: { value: "PR" },
     });
