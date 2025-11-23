@@ -6,6 +6,8 @@ import {
 } from "./births.service";
 import { getAnimalsByPropertyId, getAnimalById } from "./animals.service";
 import { getBirthByAnimalId } from "./births.service";
+import { getWeighingsByAnimalId } from "./weighings.service";
+import { getDeathsByCompanyId, getDeathByAnimalId } from "./deaths.service";
 import type { Breeding } from "~/types";
 
 export interface FertilityRateResult {
@@ -78,6 +80,45 @@ export interface ExpectedBirthsForecastResult {
     expectedBirths: number;
   }>;
   total: number;
+}
+
+export interface WeaningRateResult {
+  rate: number;
+  weanedCalves: number;
+  exposedFemales: number;
+}
+
+export interface WeaningRatioResult {
+  ratio: number;
+  weanedCalfWeight: number;
+  motherWeight: number;
+  pairs: number;
+}
+
+export interface KgWeanedCalfPerExposedCowResult {
+  kgPerExposedCow: number;
+  totalWeanedWeight: number;
+  weanedCalves: number;
+  exposedFemales: number;
+}
+
+export interface MortalityRateResult {
+  rate: number;
+  deadAnimals: number;
+  totalAnimals: number;
+  period?: { startDate?: string; endDate?: string };
+}
+
+export interface CalfMortalityRateResult {
+  rate: number;
+  deadCalves: number;
+  totalCalves: number;
+  monthly?: Array<{
+    month: string;
+    rate: number;
+    deadCalves: number;
+    totalCalves: number;
+  }>;
 }
 export function getFertilityRate(
   propertyId: string,
@@ -550,5 +591,433 @@ export function getExpectedBirthsForecast(
   return {
     monthly,
     total,
+  };
+}
+
+export function getWeaningRate(
+  propertyId: string,
+  period?: { startDate?: string; endDate?: string }
+): WeaningRateResult {
+  const breedings = getBreedingsByPropertyId(propertyId);
+  const births = getBirthsByPropertyId(propertyId);
+  const animals = getAnimalsByPropertyId(propertyId);
+
+  const animal = animals[0];
+  const companyId = animal?.companyId || "550e8400-e29b-41d4-a716-446655440000";
+  const allCompanyBirths = getBirthsByCompanyId(companyId);
+
+  // Get exposed females from breedings
+  const exposedAnimalIds = new Set(breedings.map((b) => b.animalId));
+  const exposedFemales = Array.from(exposedAnimalIds).filter((animalId) => {
+    const animal = getAnimalById(animalId);
+    if (!animal) return false;
+    const birth = getBirthByAnimalId(animalId);
+    if (birth?.gender === "female") return true;
+    // Check if animal has given birth (is a mother)
+    const birthsAsMother = allCompanyBirths.filter((b) => b.motherId === animalId);
+    return birthsAsMother.length > 0;
+  });
+
+  // Filter by period if provided
+  let filteredBreedings = breedings;
+  if (period?.startDate || period?.endDate) {
+    filteredBreedings = breedings.filter((b) => {
+      const breedingDate = new Date(b.date).getTime();
+      if (period.startDate) {
+        const start = new Date(period.startDate).getTime();
+        if (breedingDate < start) return false;
+      }
+      if (period.endDate) {
+        const end = new Date(period.endDate).getTime();
+        if (breedingDate > end) return false;
+      }
+      return true;
+    });
+  }
+
+  // Find calves born from exposed females in the breeding season
+  // Calves are considered weaned if they are at least 6 months old (180 days)
+  const today = new Date();
+  const weaningAgeDays = 180; // 6 months
+
+  const weanedCalves: string[] = [];
+  const breedingSeasonFemales = new Set(filteredBreedings.map((b) => b.animalId));
+
+  births.forEach((birth) => {
+    if (!birth.motherId) return;
+    const mother = getAnimalById(birth.motherId);
+    if (!mother || mother.propertyId !== propertyId) return;
+
+    // Check if mother was exposed in the breeding season
+    if (!breedingSeasonFemales.has(birth.motherId)) return;
+
+    // Check if calf is old enough to be weaned (at least 6 months)
+    const birthDate = new Date(birth.birthDate);
+    const ageInDays = Math.floor((today.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24));
+    if (ageInDays >= weaningAgeDays) {
+      // Check if calf is still alive (not dead or sold)
+      const calf = getAnimalById(birth.animalId);
+      if (calf && calf.status !== "sold") {
+        const death = getDeathByAnimalId(birth.animalId);
+        if (!death) {
+          weanedCalves.push(birth.animalId);
+        }
+      }
+    }
+  });
+
+  const rate = exposedFemales.length > 0 ? (weanedCalves.length / exposedFemales.length) * 100 : 0;
+
+  return {
+    rate: Math.round(rate * 100) / 100,
+    weanedCalves: weanedCalves.length,
+    exposedFemales: exposedFemales.length,
+  };
+}
+
+export function getWeaningRatio(
+  propertyId: string,
+  period?: { startDate?: string; endDate?: string }
+): WeaningRatioResult {
+  const breedings = getBreedingsByPropertyId(propertyId);
+  const births = getBirthsByPropertyId(propertyId);
+
+  // Filter by period if provided
+  let filteredBreedings = breedings;
+  if (period?.startDate || period?.endDate) {
+    filteredBreedings = breedings.filter((b) => {
+      const breedingDate = new Date(b.date).getTime();
+      if (period.startDate) {
+        const start = new Date(period.startDate).getTime();
+        if (breedingDate < start) return false;
+      }
+      if (period.endDate) {
+        const end = new Date(period.endDate).getTime();
+        if (breedingDate > end) return false;
+      }
+      return true;
+    });
+  }
+
+  const today = new Date();
+  const weaningAgeDays = 180; // 6 months
+  const breedingSeasonFemales = new Set(filteredBreedings.map((b) => b.animalId));
+
+  let totalWeanedCalfWeight = 0;
+  let totalMotherWeight = 0;
+  let pairs = 0;
+
+  births.forEach((birth) => {
+    if (!birth.motherId) return;
+    const mother = getAnimalById(birth.motherId);
+    if (!mother || mother.propertyId !== propertyId) return;
+
+    if (!breedingSeasonFemales.has(birth.motherId)) return;
+
+    const birthDate = new Date(birth.birthDate);
+    const ageInDays = Math.floor((today.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24));
+    if (ageInDays >= weaningAgeDays) {
+      const calf = getAnimalById(birth.animalId);
+      if (calf && calf.status !== "sold") {
+        const death = getDeathByAnimalId(birth.animalId);
+        if (!death) {
+          // Get calf's latest weight
+          const calfWeighings = getWeighingsByAnimalId(birth.animalId);
+          if (calfWeighings.length > 0) {
+            const latestCalfWeighing = calfWeighings.sort(
+              (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+            )[0];
+            const calfWeight = latestCalfWeighing.weight;
+
+            // Get mother's latest weight
+            const motherWeighings = getWeighingsByAnimalId(birth.motherId);
+            if (motherWeighings.length > 0) {
+              const latestMotherWeighing = motherWeighings.sort(
+                (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+              )[0];
+              const motherWeight = latestMotherWeighing.weight;
+
+              totalWeanedCalfWeight += calfWeight;
+              totalMotherWeight += motherWeight;
+              pairs++;
+            }
+          }
+        }
+      }
+    }
+  });
+
+  const ratio = totalMotherWeight > 0 ? (totalWeanedCalfWeight / totalMotherWeight) * 100 : 0;
+
+  return {
+    ratio: Math.round(ratio * 100) / 100,
+    weanedCalfWeight: totalWeanedCalfWeight,
+    motherWeight: totalMotherWeight,
+    pairs,
+  };
+}
+
+export function getKgWeanedCalfPerExposedCow(
+  propertyId: string,
+  period?: { startDate?: string; endDate?: string }
+): KgWeanedCalfPerExposedCowResult {
+  const breedings = getBreedingsByPropertyId(propertyId);
+  const births = getBirthsByPropertyId(propertyId);
+  const animals = getAnimalsByPropertyId(propertyId);
+
+  const animal = animals[0];
+  const companyId = animal?.companyId || "550e8400-e29b-41d4-a716-446655440000";
+  const allCompanyBirths = getBirthsByCompanyId(companyId);
+
+  // Get exposed females
+  const exposedAnimalIds = new Set(breedings.map((b) => b.animalId));
+  const exposedFemales = Array.from(exposedAnimalIds).filter((animalId) => {
+    const animal = getAnimalById(animalId);
+    if (!animal) return false;
+    const birth = getBirthByAnimalId(animalId);
+    if (birth?.gender === "female") return true;
+    const birthsAsMother = allCompanyBirths.filter((b) => b.motherId === animalId);
+    return birthsAsMother.length > 0;
+  });
+
+  // Filter by period if provided
+  let filteredBreedings = breedings;
+  if (period?.startDate || period?.endDate) {
+    filteredBreedings = breedings.filter((b) => {
+      const breedingDate = new Date(b.date).getTime();
+      if (period.startDate) {
+        const start = new Date(period.startDate).getTime();
+        if (breedingDate < start) return false;
+      }
+      if (period.endDate) {
+        const end = new Date(period.endDate).getTime();
+        if (breedingDate > end) return false;
+      }
+      return true;
+    });
+  }
+
+  const today = new Date();
+  const weaningAgeDays = 180; // 6 months
+  const breedingSeasonFemales = new Set(filteredBreedings.map((b) => b.animalId));
+
+  let totalWeanedWeight = 0;
+  let weanedCalvesCount = 0;
+
+  births.forEach((birth) => {
+    if (!birth.motherId) return;
+    const mother = getAnimalById(birth.motherId);
+    if (!mother || mother.propertyId !== propertyId) return;
+
+    if (!breedingSeasonFemales.has(birth.motherId)) return;
+
+    const birthDate = new Date(birth.birthDate);
+    const ageInDays = Math.floor((today.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24));
+    if (ageInDays >= weaningAgeDays) {
+      const calf = getAnimalById(birth.animalId);
+      if (calf && calf.status !== "sold") {
+        const death = getDeathByAnimalId(birth.animalId);
+        if (!death) {
+          const calfWeighings = getWeighingsByAnimalId(birth.animalId);
+          if (calfWeighings.length > 0) {
+            const latestCalfWeighing = calfWeighings.sort(
+              (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+            )[0];
+            totalWeanedWeight += latestCalfWeighing.weight;
+            weanedCalvesCount++;
+          }
+        }
+      }
+    }
+  });
+
+  const avgWeanedWeight = weanedCalvesCount > 0 ? totalWeanedWeight / weanedCalvesCount : 0;
+  const totalWeanedWeightFromCalves = weanedCalvesCount * avgWeanedWeight;
+  const kgPerExposedCow =
+    exposedFemales.length > 0 ? totalWeanedWeightFromCalves / exposedFemales.length : 0;
+
+  return {
+    kgPerExposedCow: Math.round(kgPerExposedCow * 100) / 100,
+    totalWeanedWeight: totalWeanedWeightFromCalves,
+    weanedCalves: weanedCalvesCount,
+    exposedFemales: exposedFemales.length,
+  };
+}
+
+export function getMortalityRate(
+  propertyId: string,
+  period?: { startDate?: string; endDate?: string }
+): MortalityRateResult {
+  const animals = getAnimalsByPropertyId(propertyId);
+  const animal = animals[0];
+  const companyId = animal?.companyId || "550e8400-e29b-41d4-a716-446655440000";
+  const deaths = getDeathsByCompanyId(companyId);
+
+  // Filter deaths by property
+  const propertyDeaths = deaths.filter((death) => {
+    const deadAnimal = getAnimalById(death.animalId);
+    return deadAnimal?.propertyId === propertyId;
+  });
+
+  // Filter by period if provided
+  let filteredDeaths = propertyDeaths;
+  if (period?.startDate || period?.endDate) {
+    filteredDeaths = propertyDeaths.filter((death) => {
+      const deathDate = new Date(death.date).getTime();
+      if (period.startDate) {
+        const start = new Date(period.startDate).getTime();
+        if (deathDate < start) return false;
+      }
+      if (period.endDate) {
+        const end = new Date(period.endDate).getTime();
+        if (deathDate > end) return false;
+      }
+      return true;
+    });
+  }
+
+  // Calculate total animals in the period
+  // For period-based calculation, we need animals that existed during the period
+  let totalAnimals = animals.length;
+  if (period?.startDate || period?.endDate) {
+    // Count animals that existed during the period
+    totalAnimals = animals.filter((animal) => {
+      const animalDate = animal.acquisitionDate || animal.createdAt;
+      if (!animalDate) return true;
+      const date = new Date(animalDate).getTime();
+      if (period.startDate) {
+        const start = new Date(period.startDate).getTime();
+        if (date > start) return false; // Animal acquired after period start
+      }
+      if (period.endDate) {
+        // Include animals that existed at any point during the period
+        return true;
+      }
+      return true;
+    }).length;
+  }
+
+  const deadAnimals = filteredDeaths.length;
+  const rate = totalAnimals > 0 ? (deadAnimals / totalAnimals) * 100 : 0;
+
+  return {
+    rate: Math.round(rate * 100) / 100,
+    deadAnimals,
+    totalAnimals,
+    period,
+  };
+}
+
+export function getCalfMortalityRate(
+  propertyId: string,
+  period?: { startDate?: string; endDate?: string }
+): CalfMortalityRateResult {
+  const births = getBirthsByPropertyId(propertyId);
+  const animals = getAnimalsByPropertyId(propertyId);
+  const animal = animals[0];
+  const companyId = animal?.companyId || "550e8400-e29b-41d4-a716-446655440000";
+  const deaths = getDeathsByCompanyId(companyId);
+
+  // Filter deaths by property and identify calf deaths (animals that died before 12 months)
+  const calfAgeMonths = 12;
+  const calfAgeDays = calfAgeMonths * 30;
+
+  const propertyDeaths = deaths.filter((death) => {
+    const deadAnimal = getAnimalById(death.animalId);
+    if (!deadAnimal || deadAnimal.propertyId !== propertyId) return false;
+
+    // Check if animal was a calf when it died
+    const birth = getBirthByAnimalId(death.animalId);
+    if (!birth) return false;
+
+    const birthDate = new Date(birth.birthDate);
+    const deathDate = new Date(death.date);
+    const ageInDays = Math.floor(
+      (deathDate.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    return ageInDays <= calfAgeDays;
+  });
+
+  // Filter by period if provided
+  let filteredDeaths = propertyDeaths;
+  if (period?.startDate || period?.endDate) {
+    filteredDeaths = propertyDeaths.filter((death) => {
+      const deathDate = new Date(death.date).getTime();
+      if (period.startDate) {
+        const start = new Date(period.startDate).getTime();
+        if (deathDate < start) return false;
+      }
+      if (period.endDate) {
+        const end = new Date(period.endDate).getTime();
+        if (deathDate > end) return false;
+      }
+      return true;
+    });
+  }
+
+  // Count total calves born in the period
+  let totalCalves = births.length;
+  if (period?.startDate || period?.endDate) {
+    totalCalves = births.filter((birth) => {
+      const birthDate = new Date(birth.birthDate).getTime();
+      if (period.startDate) {
+        const start = new Date(period.startDate).getTime();
+        if (birthDate < start) return false;
+      }
+      if (period.endDate) {
+        const end = new Date(period.endDate).getTime();
+        if (birthDate > end) return false;
+      }
+      return true;
+    }).length;
+  }
+
+  const deadCalves = filteredDeaths.length;
+  const rate = totalCalves > 0 ? (deadCalves / totalCalves) * 100 : 0;
+
+  // Calculate monthly breakdown
+  const monthly: CalfMortalityRateResult["monthly"] = [];
+  if (births.length > 0) {
+    const monthlyData = new Map<string, { dead: number; total: number }>();
+
+    births.forEach((birth) => {
+      const birthDate = new Date(birth.birthDate);
+      const monthKey = `${birthDate.getFullYear()}-${String(birthDate.getMonth() + 1).padStart(2, "0")}`;
+
+      const existing = monthlyData.get(monthKey) || { dead: 0, total: 0 };
+      existing.total++;
+
+      // Check if this calf died
+      const death = deaths.find((d) => d.animalId === birth.animalId);
+      if (death) {
+        const deathDate = new Date(death.date);
+        const ageInDays = Math.floor(
+          (deathDate.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24)
+        );
+        if (ageInDays <= calfAgeDays) {
+          existing.dead++;
+        }
+      }
+
+      monthlyData.set(monthKey, existing);
+    });
+
+    monthlyData.forEach((data, monthKey) => {
+      monthly.push({
+        month: monthKey,
+        rate: data.total > 0 ? (data.dead / data.total) * 100 : 0,
+        deadCalves: data.dead,
+        totalCalves: data.total,
+      });
+    });
+
+    monthly.sort((a, b) => a.month.localeCompare(b.month));
+  }
+
+  return {
+    rate: Math.round(rate * 100) / 100,
+    deadCalves,
+    totalCalves,
+    monthly: monthly.length > 0 ? monthly : undefined,
   };
 }
