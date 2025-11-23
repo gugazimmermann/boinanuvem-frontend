@@ -418,11 +418,11 @@ export default function NewInventoryItem() {
   const usageBasisOptions = [
     {
       value: "per_animal",
-      label: t.inventory.new.usageBasisOptions?.perAnimal || "por animal",
+      label: t.inventory.new.usageBasisOptions.perAnimal,
     },
     {
       value: "per_kg",
-      label: t.inventory.new.usageBasisOptions?.perKg || "por kg",
+      label: t.inventory.new.usageBasisOptions.perKg,
     },
   ];
 

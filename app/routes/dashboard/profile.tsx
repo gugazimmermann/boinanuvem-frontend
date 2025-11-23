@@ -38,7 +38,7 @@ export default function Profile() {
       <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">{t.profile.title}</h1>
 
       <div className="mb-4 border-b border-gray-200 dark:border-gray-700">
-        <nav className="flex space-x-8" aria-label="Tabs">
+        <nav className="flex space-x-8" aria-label={t.common.ariaLabels.tabs}>
           {isMainUser && (
             <button
               onClick={() => {

@@ -369,7 +369,7 @@ export default function Register() {
                     <AuthInput
                       type="text"
                       placeholder="CNPJ"
-                      aria-label="CNPJ"
+                      aria-label={t.common.ariaLabels.cnpj}
                       className="mt-0"
                       value={companyData.cnpj}
                       onChange={(e) => handleCompanyDataChange("cnpj", e.target.value)}
@@ -381,7 +381,7 @@ export default function Register() {
                     <AuthInput
                       type="text"
                       placeholder="Razão Social"
-                      aria-label="Razão Social"
+                      aria-label={t.common.ariaLabels.companyName}
                       className="mt-0"
                       value={companyData.companyName}
                       onChange={(e) => handleCompanyDataChange("companyName", e.target.value)}
@@ -396,7 +396,7 @@ export default function Register() {
                     <AuthInput
                       type="email"
                       placeholder="Email"
-                      aria-label="Email"
+                      aria-label={t.common.ariaLabels.email}
                       className="mt-0"
                       value={companyData.email}
                       onChange={(e) => handleCompanyDataChange("email", e.target.value)}
@@ -408,7 +408,7 @@ export default function Register() {
                     <AuthInput
                       type="tel"
                       placeholder="Telefone"
-                      aria-label="Telefone"
+                      aria-label={t.common.ariaLabels.phone}
                       className="mt-0"
                       value={companyData.phone}
                       onChange={(e) => handleCompanyDataChange("phone", e.target.value)}
@@ -423,7 +423,7 @@ export default function Register() {
                     <AuthInput
                       type="text"
                       placeholder="CEP"
-                      aria-label="CEP"
+                      aria-label={t.common.ariaLabels.zipCode}
                       className="mt-0"
                       value={companyData.zipCode}
                       onChange={(e) => handleCompanyDataChange("zipCode", e.target.value)}
@@ -431,14 +431,14 @@ export default function Register() {
                       required
                     />
                     {companyZipCodeLoading && (
-                      <p className="mt-1 text-xs text-blue-500">Searching address...</p>
+                      <p className="mt-1 text-xs text-blue-500">{t.common.searchingAddress}</p>
                     )}
                   </div>
                   <div className="md:col-span-2">
                     <AuthInput
                       type="text"
                       placeholder="Rua"
-                      aria-label="Rua"
+                      aria-label={t.common.ariaLabels.street}
                       className="mt-0"
                       value={companyData.street}
                       onChange={(e) => handleCompanyDataChange("street", e.target.value)}
@@ -453,7 +453,7 @@ export default function Register() {
                     <AuthInput
                       type="text"
                       placeholder="Número"
-                      aria-label="Número"
+                      aria-label={t.common.ariaLabels.number}
                       className="mt-0"
                       value={companyData.number}
                       onChange={(e) => handleCompanyDataChange("number", e.target.value)}
@@ -463,7 +463,7 @@ export default function Register() {
                     <AuthInput
                       type="text"
                       placeholder="Complemento"
-                      aria-label="Complemento"
+                      aria-label={t.common.ariaLabels.complement}
                       className="mt-0"
                       value={companyData.complement}
                       onChange={(e) => handleCompanyDataChange("complement", e.target.value)}
@@ -476,7 +476,7 @@ export default function Register() {
                     <AuthInput
                       type="text"
                       placeholder="Bairro"
-                      aria-label="Bairro"
+                      aria-label={t.common.ariaLabels.neighborhood}
                       className="mt-0"
                       value={companyData.neighborhood}
                       onChange={(e) => handleCompanyDataChange("neighborhood", e.target.value)}
@@ -488,7 +488,7 @@ export default function Register() {
                     <AuthInput
                       type="text"
                       placeholder="Cidade"
-                      aria-label="Cidade"
+                      aria-label={t.common.ariaLabels.city}
                       className="mt-0"
                       value={companyData.city}
                       onChange={(e) => handleCompanyDataChange("city", e.target.value)}
@@ -498,7 +498,7 @@ export default function Register() {
                   </div>
                   <div>
                     <AuthSelect
-                      aria-label="Estado"
+                      aria-label={t.common.ariaLabels.state}
                       className="mt-0"
                       value={companyData.state}
                       onChange={(e) => handleCompanyDataChange("state", e.target.value)}
@@ -519,7 +519,7 @@ export default function Register() {
                     <AuthInput
                       type="text"
                       placeholder="Nome"
-                      aria-label="Nome"
+                      aria-label={t.common.ariaLabels.name}
                       className="mt-0"
                       value={userData.name}
                       onChange={(e) => setUserData((prev) => ({ ...prev, name: e.target.value }))}
@@ -529,7 +529,7 @@ export default function Register() {
                     <AuthInput
                       type="text"
                       placeholder="CPF"
-                      aria-label="CPF"
+                      aria-label={t.common.ariaLabels.cpf}
                       className="mt-0"
                       value={userData.cpf}
                       onChange={(e) =>
@@ -544,7 +544,7 @@ export default function Register() {
                     <AuthInput
                       type="email"
                       placeholder="Email"
-                      aria-label="Email"
+                      aria-label={t.common.ariaLabels.email}
                       className="mt-0"
                       value={userData.email}
                       onChange={(e) => setUserData((prev) => ({ ...prev, email: e.target.value }))}
@@ -554,7 +554,7 @@ export default function Register() {
                     <AuthInput
                       type="tel"
                       placeholder="Telefone"
-                      aria-label="Telefone"
+                      aria-label={t.common.ariaLabels.phone}
                       className="mt-0"
                       value={userData.phone}
                       onChange={(e) =>
@@ -569,7 +569,7 @@ export default function Register() {
                     <AuthInput
                       type="text"
                       placeholder="CEP"
-                      aria-label="CEP"
+                      aria-label={t.common.ariaLabels.zipCode}
                       className="mt-0"
                       value={userData.zipCode}
                       onChange={(e) =>
@@ -578,14 +578,14 @@ export default function Register() {
                       error={userZipCodeError || undefined}
                     />
                     {userZipCodeLoading && (
-                      <p className="mt-1 text-xs text-blue-500">Searching address...</p>
+                      <p className="mt-1 text-xs text-blue-500">{t.common.searchingAddress}</p>
                     )}
                   </div>
                   <div className="md:col-span-2">
                     <AuthInput
                       type="text"
                       placeholder="Rua"
-                      aria-label="Rua"
+                      aria-label={t.common.ariaLabels.street}
                       className="mt-0"
                       value={userData.street}
                       onChange={(e) => setUserData((prev) => ({ ...prev, street: e.target.value }))}
@@ -598,7 +598,7 @@ export default function Register() {
                     <AuthInput
                       type="text"
                       placeholder="Número"
-                      aria-label="Número"
+                      aria-label={t.common.ariaLabels.number}
                       className="mt-0"
                       value={userData.number}
                       onChange={(e) => setUserData((prev) => ({ ...prev, number: e.target.value }))}
@@ -608,7 +608,7 @@ export default function Register() {
                     <AuthInput
                       type="text"
                       placeholder="Complemento"
-                      aria-label="Complemento"
+                      aria-label={t.common.ariaLabels.complement}
                       className="mt-0"
                       value={userData.complement}
                       onChange={(e) =>
@@ -623,7 +623,7 @@ export default function Register() {
                     <AuthInput
                       type="text"
                       placeholder="Bairro"
-                      aria-label="Bairro"
+                      aria-label={t.common.ariaLabels.neighborhood}
                       className="mt-0"
                       value={userData.neighborhood}
                       onChange={(e) =>
@@ -635,7 +635,7 @@ export default function Register() {
                     <AuthInput
                       type="text"
                       placeholder="Cidade"
-                      aria-label="Cidade"
+                      aria-label={t.common.ariaLabels.city}
                       className="mt-0"
                       value={userData.city}
                       onChange={(e) => setUserData((prev) => ({ ...prev, city: e.target.value }))}
@@ -643,7 +643,7 @@ export default function Register() {
                   </div>
                   <div>
                     <AuthSelect
-                      aria-label="Estado"
+                      aria-label={t.common.ariaLabels.state}
                       className="mt-0"
                       value={userData.state}
                       onChange={(e) => setUserData((prev) => ({ ...prev, state: e.target.value }))}

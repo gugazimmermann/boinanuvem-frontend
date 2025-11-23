@@ -381,7 +381,7 @@ export default function LocationDetails() {
       </div>
 
       <div className="mb-4 border-b border-gray-200 dark:border-gray-700">
-        <nav className="flex space-x-8" aria-label="Tabs">
+        <nav className="flex space-x-8" aria-label={t.common.ariaLabels.tabs}>
           <button
             onClick={() => {
               setActiveTab("information");
@@ -506,7 +506,7 @@ export default function LocationDetails() {
                 : undefined
             }
           >
-            {t.locations.details.tabs.observations || "Observações"}
+            {t.locations.details.tabs.observations}
           </button>
           {isMainUser() && (
             <button
@@ -1463,7 +1463,7 @@ export default function LocationDetails() {
           const columns: TableColumn<LocationObservation>[] = [
             {
               key: "date",
-              label: t.locations.details.observationDate || "Data",
+              label: t.locations.details.observationDate,
               sortable: true,
               render: (_, row) => (
                 <span className="text-gray-700 dark:text-gray-300">
@@ -1473,7 +1473,7 @@ export default function LocationDetails() {
             },
             {
               key: "observation",
-              label: t.locations.details.observation || "Observação",
+              label: t.locations.details.observation,
               sortable: true,
               render: (_, row) => {
                 const truncated =
@@ -1489,7 +1489,7 @@ export default function LocationDetails() {
             },
             {
               key: "files",
-              label: t.locations.details.files || "Anexos",
+              label: t.locations.details.files,
               sortable: false,
               render: (_, row) => {
                 if (!row.fileIds || row.fileIds.length === 0) {
@@ -1521,7 +1521,7 @@ export default function LocationDetails() {
 
           const headerActions: TableAction[] = [
             {
-              label: t.locations.details.addObservation || "Adicionar Observação",
+              label: t.locations.details.addObservation,
               variant: "primary",
               leftIcon: (
                 <svg
@@ -1555,7 +1555,7 @@ export default function LocationDetails() {
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100">
-                      {t.locations.details.newObservation || "Nova Observação"}
+                      {t.locations.details.newObservation}
                     </h3>
                     <button
                       onClick={() => {
@@ -1583,8 +1583,7 @@ export default function LocationDetails() {
                   <form onSubmit={handleSubmitObservation} className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        {t.locations.details.observation || "Observação"}{" "}
-                        <span className="text-red-500">*</span>
+                        {t.locations.details.observation} <span className="text-red-500">*</span>
                       </label>
                       <textarea
                         value={observationText}
@@ -1601,7 +1600,7 @@ export default function LocationDetails() {
                     </div>
 
                     <FileUpload
-                      label={t.locations.details.files || "Anexos"}
+                      label={t.locations.details.files}
                       files={observationFiles}
                       onChange={setObservationFiles}
                       disabled={isSubmittingObservation}
@@ -1638,7 +1637,7 @@ export default function LocationDetails() {
                   columns={columns}
                   data={paginatedObservations as (LocationObservation & Record<string, unknown>)[]}
                   header={{
-                    title: t.locations.details.tabs.observations || "Observações",
+                    title: t.locations.details.tabs.observations,
                     badge: {
                       label: `${filteredObservations.length} ${filteredObservations.length !== 1 ? t.locations.details.tabs.observations : t.locations.details.observation}`,
                       variant: "primary",
@@ -1649,7 +1648,7 @@ export default function LocationDetails() {
                     actions: headerActions,
                   }}
                   search={{
-                    placeholder: t.locations.details.searchObservations || "Buscar observações...",
+                    placeholder: t.locations.details.searchObservations,
                     value: searchValue,
                     onChange: (value) => {
                       setSearchValue(value);
@@ -1670,7 +1669,7 @@ export default function LocationDetails() {
                     setCurrentPage(1);
                   }}
                   emptyState={{
-                    title: t.locations.details.noObservations || "Nenhuma observação registrada",
+                    title: t.locations.details.noObservations,
                     description: searchValue
                       ? typeof t.locations.details.noObservationsWithSearch === "function"
                         ? t.locations.details.noObservationsWithSearch(searchValue)
@@ -1686,7 +1685,7 @@ export default function LocationDetails() {
                       : undefined,
                     clearSearchLabel: searchValue ? t.common.clearSearch : undefined,
                     onAddNew: () => setShowObservationForm(true),
-                    addNewLabel: t.locations.details.addObservation || "Adicionar Observação",
+                    addNewLabel: t.locations.details.addObservation,
                   }}
                   onRowClick={(row) =>
                     navigate(`${getObservationViewRoute(row.id)}?fromLocation=${location.id}`)
@@ -1971,7 +1970,7 @@ export default function LocationDetails() {
             },
             {
               key: "observation",
-              label: t.properties.details.movements.observation || "Observação",
+              label: t.properties.details.movements.observation,
               sortable: false,
               render: (_, row) => {
                 const observation =
@@ -1992,7 +1991,7 @@ export default function LocationDetails() {
             },
             {
               key: "files",
-              label: t.properties.details.movements.files || "Anexos",
+              label: t.properties.details.movements.files,
               sortable: false,
               render: (_, row) => {
                 const fileIds =

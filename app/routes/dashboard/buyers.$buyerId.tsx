@@ -326,7 +326,7 @@ function BuyerFinanceDashboard({ buyerId }: BuyerFinanceDashboardProps) {
               <XAxis dataKey="month" tick={{ fill: textColor, fontSize: 12 }} />
               <YAxis
                 tick={{ fill: textColor, fontSize: 12 }}
-                tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+                tickFormatter={(value) => t.common.currency.formatShort(value)}
               />
               <Tooltip
                 contentStyle={{
@@ -371,7 +371,7 @@ function BuyerFinanceDashboard({ buyerId }: BuyerFinanceDashboardProps) {
               <XAxis dataKey="month" tick={{ fill: textColor, fontSize: 12 }} />
               <YAxis
                 tick={{ fill: textColor, fontSize: 12 }}
-                tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+                tickFormatter={(value) => t.common.currency.formatShort(value)}
               />
               <Tooltip
                 contentStyle={{
@@ -404,7 +404,7 @@ function BuyerFinanceDashboard({ buyerId }: BuyerFinanceDashboardProps) {
                 <XAxis
                   type="number"
                   tick={{ fill: textColor, fontSize: 12 }}
-                  tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+                  tickFormatter={(value) => t.common.currency.formatShort(value)}
                 />
                 <YAxis
                   type="category"
@@ -666,7 +666,7 @@ export default function BuyerDetails() {
       </div>
 
       <div className="mb-4 border-b border-gray-200 dark:border-gray-700">
-        <nav className="flex space-x-8" aria-label="Tabs">
+        <nav className="flex space-x-8" aria-label={t.common.ariaLabels.tabs}>
           <button
             onClick={() => {
               setActiveTab("info");
@@ -707,7 +707,7 @@ export default function BuyerDetails() {
                 : undefined
             }
           >
-            {t.buyers.details.tabs.observations || "Observações"}
+            {t.buyers.details.tabs.observations}
           </button>
           <button
             onClick={() => {
@@ -1013,7 +1013,7 @@ export default function BuyerDetails() {
           const columns: TableColumn<BuyerObservation>[] = [
             {
               key: "date",
-              label: t.buyers.details.observationDate || "Data",
+              label: t.buyers.details.observationDate,
               sortable: true,
               render: (_, row) => (
                 <span className="text-gray-700 dark:text-gray-300">
@@ -1023,7 +1023,7 @@ export default function BuyerDetails() {
             },
             {
               key: "observation",
-              label: t.buyers.details.observation || "Observação",
+              label: t.buyers.details.observation,
               sortable: true,
               render: (_, row) => {
                 const truncated =
@@ -1039,7 +1039,7 @@ export default function BuyerDetails() {
             },
             {
               key: "files",
-              label: t.buyers.details.files || "Anexos",
+              label: t.buyers.details.files,
               sortable: false,
               render: (_, row) => {
                 if (!row.fileIds || row.fileIds.length === 0) {
@@ -1071,7 +1071,7 @@ export default function BuyerDetails() {
 
           const headerActions: TableAction[] = [
             {
-              label: t.buyers.details.addObservation || "Adicionar Observação",
+              label: t.buyers.details.addObservation,
               variant: "primary",
               leftIcon: (
                 <svg
@@ -1105,7 +1105,7 @@ export default function BuyerDetails() {
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100">
-                      {t.buyers.details.newObservation || "Nova Observação"}
+                      {t.buyers.details.newObservation}
                     </h3>
                     <button
                       onClick={() => {
@@ -1133,8 +1133,7 @@ export default function BuyerDetails() {
                   <form onSubmit={handleSubmitObservation} className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        {t.buyers.details.observation || "Observação"}{" "}
-                        <span className="text-red-500">*</span>
+                        {t.buyers.details.observation} <span className="text-red-500">*</span>
                       </label>
                       <textarea
                         value={observationText}
@@ -1151,7 +1150,7 @@ export default function BuyerDetails() {
                     </div>
 
                     <FileUpload
-                      label={t.buyers.details.files || "Anexos"}
+                      label={t.buyers.details.files}
                       files={observationFiles}
                       onChange={setObservationFiles}
                       disabled={isSubmittingObservation}
@@ -1188,7 +1187,7 @@ export default function BuyerDetails() {
                   columns={columns}
                   data={paginatedObservations as (BuyerObservation & Record<string, unknown>)[]}
                   header={{
-                    title: t.buyers.details.tabs.observations || "Observações",
+                    title: t.buyers.details.tabs.observations,
                     badge: {
                       label: `${filteredObservations.length} ${filteredObservations.length !== 1 ? t.buyers.details.tabs.observations : t.buyers.details.observation}`,
                       variant: "primary",
@@ -1199,7 +1198,7 @@ export default function BuyerDetails() {
                     actions: headerActions,
                   }}
                   search={{
-                    placeholder: t.buyers.details.searchObservations || "Buscar observações...",
+                    placeholder: t.buyers.details.searchObservations,
                     value: searchValue,
                     onChange: (value) => {
                       setSearchValue(value);
@@ -1220,7 +1219,7 @@ export default function BuyerDetails() {
                     setCurrentPage(1);
                   }}
                   emptyState={{
-                    title: t.buyers.details.noObservations || "Nenhuma observação registrada",
+                    title: t.buyers.details.noObservations,
                     description: searchValue
                       ? typeof t.buyers.details.noObservationsWithSearch === "function"
                         ? t.buyers.details.noObservationsWithSearch(searchValue)
@@ -1236,7 +1235,7 @@ export default function BuyerDetails() {
                       : undefined,
                     clearSearchLabel: searchValue ? t.common.clearSearch : undefined,
                     onAddNew: () => setShowObservationForm(true),
-                    addNewLabel: t.buyers.details.addObservation || "Adicionar Observação",
+                    addNewLabel: t.buyers.details.addObservation,
                   }}
                   onRowClick={(row) =>
                     navigate(`${getObservationViewRoute(row.id)}?fromBuyer=${buyer.id}`)
@@ -1865,7 +1864,7 @@ export default function BuyerDetails() {
                             </div>
                             <div className="flex flex-col">
                               <span className="text-gray-500 dark:text-gray-400 text-xs">
-                                {t.common.total || "Total"}
+                                {t.common.total}
                               </span>
                               <span
                                 className={`font-semibold ${

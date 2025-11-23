@@ -287,7 +287,7 @@ export default function EmployeeDetails() {
       </div>
 
       <div className="mb-4 border-b border-gray-200 dark:border-gray-700">
-        <nav className="flex space-x-8" aria-label="Tabs">
+        <nav className="flex space-x-8" aria-label={t.common.ariaLabels.tabs}>
           <button
             onClick={() => {
               setActiveTab("info");
@@ -349,7 +349,7 @@ export default function EmployeeDetails() {
                 : undefined
             }
           >
-            {t.employees.details.tabs.observations || "Observações"}
+            {t.employees.details.tabs.observations}
           </button>
           <button
             onClick={() => {
@@ -876,7 +876,7 @@ export default function EmployeeDetails() {
             },
             {
               key: "observation",
-              label: t.properties.details.movements.observation || "Observação",
+              label: t.properties.details.movements.observation,
               sortable: false,
               render: (_, row) => {
                 const observation =
@@ -897,7 +897,7 @@ export default function EmployeeDetails() {
             },
             {
               key: "files",
-              label: t.properties.details.movements.files || "Anexos",
+              label: t.properties.details.movements.files,
               sortable: false,
               render: (_, row) => {
                 const fileIds =
@@ -1088,7 +1088,7 @@ export default function EmployeeDetails() {
           const columns: TableColumn<EmployeeObservation>[] = [
             {
               key: "date",
-              label: t.employees.details.observationDate || "Data",
+              label: t.employees.details.observationDate,
               sortable: true,
               render: (_, row) => (
                 <span className="text-gray-700 dark:text-gray-300">
@@ -1098,7 +1098,7 @@ export default function EmployeeDetails() {
             },
             {
               key: "observation",
-              label: t.employees.details.observation || "Observação",
+              label: t.employees.details.observation,
               sortable: true,
               render: (_, row) => {
                 const truncated =
@@ -1114,7 +1114,7 @@ export default function EmployeeDetails() {
             },
             {
               key: "files",
-              label: t.employees.details.files || "Anexos",
+              label: t.employees.details.files,
               sortable: false,
               render: (_, row) => {
                 if (!row.fileIds || row.fileIds.length === 0) {
@@ -1146,7 +1146,7 @@ export default function EmployeeDetails() {
 
           const headerActions: TableAction[] = [
             {
-              label: t.employees.details.addObservation || "Adicionar Observação",
+              label: t.employees.details.addObservation,
               variant: "primary",
               leftIcon: (
                 <svg
@@ -1180,7 +1180,7 @@ export default function EmployeeDetails() {
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100">
-                      {t.employees.details.newObservation || "Nova Observação"}
+                      {t.employees.details.newObservation}
                     </h3>
                     <button
                       onClick={() => {
@@ -1208,8 +1208,7 @@ export default function EmployeeDetails() {
                   <form onSubmit={handleSubmitObservation} className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        {t.employees.details.observation || "Observação"}{" "}
-                        <span className="text-red-500">*</span>
+                        {t.employees.details.observation} <span className="text-red-500">*</span>
                       </label>
                       <textarea
                         value={observationText}
@@ -1226,7 +1225,7 @@ export default function EmployeeDetails() {
                     </div>
 
                     <FileUpload
-                      label={t.employees.details.files || "Anexos"}
+                      label={t.employees.details.files}
                       files={observationFiles}
                       onChange={setObservationFiles}
                       disabled={isSubmittingObservation}
@@ -1263,7 +1262,7 @@ export default function EmployeeDetails() {
                   columns={columns}
                   data={paginatedObservations as (EmployeeObservation & Record<string, unknown>)[]}
                   header={{
-                    title: t.employees.details.tabs.observations || "Observações",
+                    title: t.employees.details.tabs.observations,
                     badge: {
                       label: `${filteredObservations.length} ${filteredObservations.length !== 1 ? t.employees.details.tabs.observations : t.employees.details.observation}`,
                       variant: "primary",
@@ -1274,7 +1273,7 @@ export default function EmployeeDetails() {
                     actions: headerActions,
                   }}
                   search={{
-                    placeholder: t.employees.details.searchObservations || "Buscar observações...",
+                    placeholder: t.employees.details.searchObservations,
                     value: searchValue,
                     onChange: (value) => {
                       setSearchValue(value);
@@ -1295,7 +1294,7 @@ export default function EmployeeDetails() {
                     setCurrentPage(1);
                   }}
                   emptyState={{
-                    title: t.employees.details.noObservations || "Nenhuma observação registrada",
+                    title: t.employees.details.noObservations,
                     description: searchValue
                       ? typeof t.employees.details.noObservationsWithSearch === "function"
                         ? t.employees.details.noObservationsWithSearch(searchValue)
@@ -1311,7 +1310,7 @@ export default function EmployeeDetails() {
                       : undefined,
                     clearSearchLabel: searchValue ? t.common.clearSearch : undefined,
                     onAddNew: () => setShowObservationForm(true),
-                    addNewLabel: t.employees.details.addObservation || "Adicionar Observação",
+                    addNewLabel: t.employees.details.addObservation,
                   }}
                   onRowClick={(row) =>
                     navigate(`${getObservationViewRoute(row.id)}?fromEmployee=${employee.id}`)
@@ -1896,7 +1895,7 @@ export default function EmployeeDetails() {
                     </div>
                     <div className="flex flex-col">
                       <span className="text-gray-500 dark:text-gray-400 text-xs">
-                        {t.common.total || "Total"}
+                        {t.common.total}
                       </span>
                       <span
                         className={`font-semibold ${

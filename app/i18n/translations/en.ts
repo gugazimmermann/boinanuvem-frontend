@@ -34,6 +34,30 @@ export const en = {
     edit: "Edit",
     delete: "Delete",
     saving: "Saving...",
+    emailRequired: "Email is required",
+    searchingAddress: "Searching address...",
+    ariaLabels: {
+      tabs: "Tabs",
+      email: "Email",
+      password: "Password",
+      cnpj: "CNPJ",
+      companyName: "Company Name",
+      phone: "Phone",
+      zipCode: "Zip Code",
+      street: "Street",
+      number: "Number",
+      complement: "Complement",
+      neighborhood: "Neighborhood",
+      city: "City",
+      state: "State",
+      name: "Name",
+      cpf: "CPF",
+    },
+    currency: {
+      symbol: "R$",
+      formatShort: (value: number) => `R$ ${(value / 1000).toFixed(0)}k`,
+    },
+    itemNotFound: "Item not found",
   },
 
   sidebar: {
@@ -163,6 +187,12 @@ export const en = {
       income: "Income",
       expenses: "Expenses",
       month: "Month",
+      animalDistributionByStatus: "Animal Distribution by Status",
+      salesTrends: "Sales Trends",
+      revenue: "Revenue",
+      noData: "No data available",
+      noAnimalData: "No animal data available",
+      noSalesData: "No sales data available",
     },
   },
 
@@ -2261,6 +2291,7 @@ export const en = {
         consumptionPeriods: "Consumption Periods",
         noCosts: "No costs recorded",
         noCostsDescription: "This animal has no inventory consumption costs recorded yet.",
+        acquisitionCost: "Acquisition Cost",
       },
       sales: {
         description: "Sales history for this animal",
@@ -2867,6 +2898,7 @@ export const en = {
       cullingRate: "Culling Rate (%)",
       expectedFutureBirths: "Expected Future Births",
       expectedBirths: "Expected Births",
+      noData: "No data available",
     },
   },
 
@@ -3498,6 +3530,7 @@ export const en = {
       income: "Income",
       expenses: "Expenses",
       netCashFlow: "Net",
+      noData: "No data available",
     },
     tables: {
       recentTransactions: "Recent Transactions",

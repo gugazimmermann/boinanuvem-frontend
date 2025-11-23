@@ -113,9 +113,9 @@ export default function Sales() {
     const success = deleteSale(selectedSale.id);
     if (success) {
       setSales(sales.filter((s) => s.id !== selectedSale.id));
-      showAlert(t.sales?.success?.deleted || "Venda excluída com sucesso", "success");
+      showAlert(t.sales?.success?.deleted, "success");
     } else {
-      showAlert(t.sales?.errors?.deleteFailed || "Erro ao excluir venda", "error");
+      showAlert(t.sales?.errors?.deleteFailed, "error");
     }
     setSelectedSale(null);
   };
@@ -213,7 +213,7 @@ export default function Sales() {
   const columns: TableColumn<Sale>[] = [
     {
       key: "saleDate",
-      label: t.sales?.table?.saleDate || "Data da Venda",
+      label: t.sales?.table?.saleDate,
       sortable: true,
       render: (_, row) => (
         <span className="text-gray-700 dark:text-gray-300">{formatDate(row.saleDate)}</span>
@@ -221,7 +221,7 @@ export default function Sales() {
     },
     {
       key: "buyer",
-      label: t.sales?.table?.buyer || "Comprador",
+      label: t.sales?.table?.buyer,
       sortable: false,
       render: (_, row) => {
         const buyer = getBuyerById(row.buyerId);
@@ -230,15 +230,15 @@ export default function Sales() {
     },
     {
       key: "saleType",
-      label: t.sales?.table?.saleType || "Tipo",
+      label: t.sales?.table?.saleType,
       sortable: true,
       render: (_, row) => {
         const typeLabel =
           row.saleType === SaleTypeEnum.SLAUGHTERHOUSE
-            ? t.sales?.saleTypes?.slaughterhouse || "Frigorífico"
+            ? t.sales?.saleTypes?.slaughterhouse
             : row.saleType === SaleTypeEnum.AUCTION
-              ? t.sales?.saleTypes?.auction || "Leilão"
-              : t.sales?.saleTypes?.otherFarm || "Outra Propriedade";
+              ? t.sales?.saleTypes?.auction
+              : t.sales?.saleTypes?.otherFarm;
 
         if (row.saleType === SaleTypeEnum.SLAUGHTERHOUSE) {
           return <StatusBadge label={typeLabel} variant="danger" />;
@@ -255,7 +255,7 @@ export default function Sales() {
     },
     {
       key: "animals",
-      label: t.sales?.table?.animals || "Animais",
+      label: t.sales?.table?.animals,
       sortable: false,
       render: (_, row) => {
         const animalCodes = row.saleItems
@@ -269,7 +269,7 @@ export default function Sales() {
     },
     {
       key: "totalPrice",
-      label: t.sales?.table?.totalPrice || "Valor Total",
+      label: t.sales?.table?.totalPrice,
       sortable: true,
       render: (_, row) => (
         <span className="text-gray-700 dark:text-gray-300 font-medium">
@@ -279,13 +279,13 @@ export default function Sales() {
     },
     {
       key: "paymentMethod",
-      label: t.sales?.table?.paymentMethod || "Pagamento",
+      label: t.sales?.table?.paymentMethod,
       sortable: false,
       render: (_, row) => {
         const methodLabel =
           row.paymentMethod === "cash_flow"
             ? t.sales?.paymentMethods?.cashFlow || "À Vista"
-            : t.sales?.paymentMethods?.accountsReceivable || "A Receber";
+            : t.sales?.paymentMethods?.accountsReceivable;
 
         if (row.paymentMethod === "cash_flow") {
           return <StatusBadge label={methodLabel} variant="success" />;
@@ -320,7 +320,7 @@ export default function Sales() {
   const headerActions: TableAction[] = canAdd("records", "sales")
     ? [
         {
-          label: t.sales?.addSale || "Adicionar Venda",
+          label: t.sales?.addSale,
           variant: "primary",
           leftIcon: (
             <svg
@@ -356,12 +356,12 @@ export default function Sales() {
         columns={columns}
         data={paginatedData}
         header={{
-          title: t.sales?.title || "Vendas",
+          title: t.sales?.title,
           badge: {
             label: t.sales?.badge?.sales?.(filteredData.length) || `${filteredData.length} vendas`,
             variant: "primary",
           },
-          description: t.sales?.description || "Gerencie todas as vendas de animais",
+          description: t.sales?.description,
           actions: headerActions,
         }}
         filters={filters}
@@ -386,7 +386,7 @@ export default function Sales() {
               ))}
             </select>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap ml-2">
-              {t.sales?.filters?.startDate || "Data Inicial"}:
+              {t.sales?.filters?.startDate}:
             </label>
             <input
               type="date"
@@ -398,7 +398,7 @@ export default function Sales() {
               className="px-3 py-2 bg-white border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200 text-sm"
             />
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-              {t.sales?.filters?.endDate || "Data Final"}:
+              {t.sales?.filters?.endDate}:
             </label>
             <input
               type="date"
@@ -412,7 +412,7 @@ export default function Sales() {
           </div>
         }
         search={{
-          placeholder: t.sales?.searchPlaceholder || "Buscar vendas...",
+          placeholder: t.sales?.searchPlaceholder,
           value: searchValue,
           onChange: setSearchValue,
         }}
@@ -426,20 +426,20 @@ export default function Sales() {
         onSort={handleSort}
         onRowClick={(row) => navigate(getSaleViewRoute(row.id))}
         emptyState={{
-          title: t.sales?.emptyState?.title || "Nenhuma venda encontrada",
+          title: t.sales?.emptyState?.title,
           description: searchValue
             ? t.sales?.emptyState?.descriptionWithSearch?.(searchValue) ||
               `Sua busca "${searchValue}" não encontrou vendas. Tente novamente ou limpe a busca.`
-            : t.sales?.emptyState?.description || "Comece adicionando uma nova venda",
+            : t.sales?.emptyState?.description,
           onClearSearch: () => {
             setSearchValue("");
             setPropertyFilter("all");
             setStartDate("");
             setEndDate("");
           },
-          clearSearchLabel: t.common?.clearSearch || "Limpar busca",
+          clearSearchLabel: t.common?.clearSearch,
           onAddNew: () => navigate(ROUTES.SALES_NEW),
-          addNewLabel: t.sales?.addSale || "Adicionar Venda",
+          addNewLabel: t.sales?.addSale,
         }}
       />
 
@@ -456,10 +456,10 @@ export default function Sales() {
           setSelectedSale(null);
         }}
         onConfirm={handleDeleteSale}
-        title={t.sales?.deleteModal?.title || "Excluir Venda"}
-        message={t.sales?.deleteModal?.message || "Tem certeza que deseja excluir esta venda?"}
-        confirmLabel={t.sales?.deleteModal?.confirm || "Excluir"}
-        cancelLabel={t.sales?.deleteModal?.cancel || "Cancelar"}
+        title={t.sales?.deleteModal?.title}
+        message={t.sales?.deleteModal?.message}
+        confirmLabel={t.sales?.deleteModal?.confirm}
+        cancelLabel={t.sales?.deleteModal?.cancel}
         variant="danger"
       />
     </div>

@@ -339,7 +339,7 @@ function ServiceProviderFinanceDashboard({
               <XAxis dataKey="month" tick={{ fill: textColor, fontSize: 12 }} />
               <YAxis
                 tick={{ fill: textColor, fontSize: 12 }}
-                tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+                tickFormatter={(value) => t.common.currency.formatShort(value)}
               />
               <Tooltip
                 contentStyle={{
@@ -384,7 +384,7 @@ function ServiceProviderFinanceDashboard({
               <XAxis dataKey="month" tick={{ fill: textColor, fontSize: 12 }} />
               <YAxis
                 tick={{ fill: textColor, fontSize: 12 }}
-                tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+                tickFormatter={(value) => t.common.currency.formatShort(value)}
               />
               <Tooltip
                 contentStyle={{
@@ -417,7 +417,7 @@ function ServiceProviderFinanceDashboard({
                 <XAxis
                   type="number"
                   tick={{ fill: textColor, fontSize: 12 }}
-                  tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+                  tickFormatter={(value) => t.common.currency.formatShort(value)}
                 />
                 <YAxis
                   type="category"
@@ -697,7 +697,7 @@ export default function ServiceProviderDetails() {
       </div>
 
       <div className="mb-4 border-b border-gray-200 dark:border-gray-700">
-        <nav className="flex space-x-8" aria-label="Tabs">
+        <nav className="flex space-x-8" aria-label={t.common.ariaLabels.tabs}>
           <button
             onClick={() => {
               setActiveTab("info");
@@ -759,7 +759,7 @@ export default function ServiceProviderDetails() {
                 : undefined
             }
           >
-            {t.serviceProviders.details.tabs.observations || "Observações"}
+            {t.serviceProviders.details.tabs.observations}
           </button>
           <button
             onClick={() => {
@@ -1303,7 +1303,7 @@ export default function ServiceProviderDetails() {
             },
             {
               key: "observation",
-              label: t.properties.details.movements.observation || "Observação",
+              label: t.properties.details.movements.observation,
               sortable: false,
               render: (_, row) => {
                 const observation =
@@ -1324,7 +1324,7 @@ export default function ServiceProviderDetails() {
             },
             {
               key: "files",
-              label: t.properties.details.movements.files || "Anexos",
+              label: t.properties.details.movements.files,
               sortable: false,
               render: (_, row) => {
                 const fileIds =
@@ -1519,7 +1519,7 @@ export default function ServiceProviderDetails() {
           const columns: TableColumn<ServiceProviderObservation>[] = [
             {
               key: "date",
-              label: t.serviceProviders.details.observationDate || "Data",
+              label: t.serviceProviders.details.observationDate,
               sortable: true,
               render: (_, row) => (
                 <span className="text-gray-700 dark:text-gray-300">
@@ -1529,7 +1529,7 @@ export default function ServiceProviderDetails() {
             },
             {
               key: "observation",
-              label: t.serviceProviders.details.observation || "Observação",
+              label: t.serviceProviders.details.observation,
               sortable: true,
               render: (_, row) => {
                 const truncated =
@@ -1545,7 +1545,7 @@ export default function ServiceProviderDetails() {
             },
             {
               key: "files",
-              label: t.serviceProviders.details.files || "Anexos",
+              label: t.serviceProviders.details.files,
               sortable: false,
               render: (_, row) => {
                 if (!row.fileIds || row.fileIds.length === 0) {
@@ -1577,7 +1577,7 @@ export default function ServiceProviderDetails() {
 
           const headerActions: TableAction[] = [
             {
-              label: t.serviceProviders.details.addObservation || "Adicionar Observação",
+              label: t.serviceProviders.details.addObservation,
               variant: "primary",
               leftIcon: (
                 <svg
@@ -1611,7 +1611,7 @@ export default function ServiceProviderDetails() {
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100">
-                      {t.serviceProviders.details.newObservation || "Nova Observação"}
+                      {t.serviceProviders.details.newObservation}
                     </h3>
                     <button
                       onClick={() => {
@@ -1639,7 +1639,7 @@ export default function ServiceProviderDetails() {
                   <form onSubmit={handleSubmitObservation} className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        {t.serviceProviders.details.observation || "Observação"}{" "}
+                        {t.serviceProviders.details.observation}{" "}
                         <span className="text-red-500">*</span>
                       </label>
                       <textarea
@@ -1657,7 +1657,7 @@ export default function ServiceProviderDetails() {
                     </div>
 
                     <FileUpload
-                      label={t.serviceProviders.details.files || "Anexos"}
+                      label={t.serviceProviders.details.files}
                       files={observationFiles}
                       onChange={setObservationFiles}
                       disabled={isSubmittingObservation}
@@ -1697,7 +1697,7 @@ export default function ServiceProviderDetails() {
                       Record<string, unknown>)[]
                   }
                   header={{
-                    title: t.serviceProviders.details.tabs.observations || "Observações",
+                    title: t.serviceProviders.details.tabs.observations,
                     badge: {
                       label: `${filteredObservations.length} ${filteredObservations.length !== 1 ? t.serviceProviders.details.tabs.observations : t.serviceProviders.details.observation}`,
                       variant: "primary",
@@ -1708,8 +1708,7 @@ export default function ServiceProviderDetails() {
                     actions: headerActions,
                   }}
                   search={{
-                    placeholder:
-                      t.serviceProviders.details.searchObservations || "Buscar observações...",
+                    placeholder: t.serviceProviders.details.searchObservations,
                     value: searchValue,
                     onChange: (value) => {
                       setSearchValue(value);
@@ -1730,8 +1729,7 @@ export default function ServiceProviderDetails() {
                     setCurrentPage(1);
                   }}
                   emptyState={{
-                    title:
-                      t.serviceProviders.details.noObservations || "Nenhuma observação registrada",
+                    title: t.serviceProviders.details.noObservations,
                     description: searchValue
                       ? typeof t.serviceProviders.details.noObservationsWithSearch === "function"
                         ? t.serviceProviders.details.noObservationsWithSearch(searchValue)
@@ -1747,8 +1745,7 @@ export default function ServiceProviderDetails() {
                       : undefined,
                     clearSearchLabel: searchValue ? t.common.clearSearch : undefined,
                     onAddNew: () => setShowObservationForm(true),
-                    addNewLabel:
-                      t.serviceProviders.details.addObservation || "Adicionar Observação",
+                    addNewLabel: t.serviceProviders.details.addObservation,
                   }}
                   onRowClick={(row) =>
                     navigate(
@@ -2399,7 +2396,7 @@ export default function ServiceProviderDetails() {
                             </div>
                             <div className="flex flex-col">
                               <span className="text-gray-500 dark:text-gray-400 text-xs">
-                                {t.common.total || "Total"}
+                                {t.common.total}
                               </span>
                               <span
                                 className={`font-semibold ${

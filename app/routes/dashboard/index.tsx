@@ -25,6 +25,10 @@ import {
 } from "recharts";
 import { useTranslation } from "~/i18n";
 import { useTheme } from "~/contexts/theme-context";
+import { useLanguage } from "~/contexts/language-context";
+import { ptBR } from "date-fns/locale/pt-BR";
+import { enUS } from "date-fns/locale/en-US";
+import { es } from "date-fns/locale/es";
 import { StatCard, ChartWrapper, getTooltipStyle, getChartColors } from "~/components/dashboard";
 import { mockProperties } from "~/mocks/properties";
 import { mockLocations } from "~/mocks/locations";
@@ -84,7 +88,19 @@ const formatRelativeTime = (dateString: string, t: ReturnType<typeof useTranslat
 export default function Dashboard() {
   const t = useTranslation();
   const { theme } = useTheme();
+  const { language } = useLanguage();
   const isDark = theme === "dark";
+
+  const dateLocale = useMemo(() => {
+    switch (language) {
+      case "en":
+        return enUS;
+      case "es":
+        return es;
+      default:
+        return ptBR;
+    }
+  }, [language]);
 
   const company = mockCompanies[0];
   const companyId = company?.id || "";
@@ -355,12 +371,12 @@ export default function Dashboard() {
       const avgWeight = count > 0 ? totalWeight / count : 0;
 
       months.push({
-        month: format(monthDate, "MMM"),
+        month: format(monthDate, "MMM", { locale: dateLocale }),
         averageWeight: Math.round(avgWeight),
       });
     }
     return months;
-  }, [allWeighings, currentDate]);
+  }, [allWeighings, currentDate, dateLocale]);
 
   const financialTrendData = useMemo(() => {
     const months = [];
@@ -383,13 +399,13 @@ export default function Dashboard() {
         .reduce((sum, t) => sum + t.amount, 0);
 
       months.push({
-        month: format(monthDate, "MMM"),
+        month: format(monthDate, "MMM", { locale: dateLocale }),
         income: Math.round(income),
         expenses: Math.round(expenses),
       });
     }
     return months;
-  }, [cashFlowData, currentDate]);
+  }, [cashFlowData, currentDate, dateLocale]);
 
   const chartColors = getChartColors(isDark);
 
@@ -399,8 +415,18 @@ export default function Dashboard() {
     animals.forEach((animal) => {
       statusCounts[animal.status] = (statusCounts[animal.status] || 0) + 1;
     });
-    return Object.entries(statusCounts).map(([name, value]) => ({ name, value }));
-  }, [animals]);
+
+    const statusTranslations: Record<string, string> = {
+      active: t.animals.table.active,
+      inactive: t.animals.table.inactive,
+      sold: t.animals.table.sold,
+    };
+
+    return Object.entries(statusCounts).map(([status, value]) => ({
+      name: statusTranslations[status] || status,
+      value,
+    }));
+  }, [animals, t]);
 
   // Sales trends over time
   const salesTrendData = useMemo(() => {
@@ -419,13 +445,13 @@ export default function Dashboard() {
       const count = monthSales.length;
 
       months.push({
-        month: format(monthDate, "MMM"),
+        month: format(monthDate, "MMM", { locale: dateLocale }),
         revenue: Math.round(revenue),
         count,
       });
     }
     return months;
-  }, [sales, currentDate]);
+  }, [sales, currentDate, dateLocale]);
 
   return (
     <div>
@@ -593,7 +619,7 @@ export default function Dashboard() {
           <ChartWrapper
             title={t.dashboard.charts.weightTrends}
             isEmpty={weightTrendData.length === 0}
-            emptyMessage="No data available"
+            emptyMessage={t.dashboard.charts.noData}
           >
             <LineChart data={weightTrendData}>
               <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
@@ -626,14 +652,14 @@ export default function Dashboard() {
           <ChartWrapper
             title={t.dashboard.charts.financialTrends}
             isEmpty={financialTrendData.length === 0}
-            emptyMessage="No data available"
+            emptyMessage={t.dashboard.charts.noData}
           >
             <LineChart data={financialTrendData}>
               <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
               <XAxis dataKey="month" tick={{ fill: chartColors.text, fontSize: 12 }} />
               <YAxis
                 tick={{ fill: chartColors.text, fontSize: 12 }}
-                tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+                tickFormatter={(value) => t.common.currency.formatShort(value)}
               />
               <Tooltip
                 {...getTooltipStyle(isDark)}
@@ -660,9 +686,9 @@ export default function Dashboard() {
           </ChartWrapper>
 
           <ChartWrapper
-            title="Sales Trends"
+            title={t.dashboard.charts.salesTrends}
             isEmpty={salesTrendData.length === 0}
-            emptyMessage="No sales data available"
+            emptyMessage={t.dashboard.charts.noSalesData}
           >
             <AreaChart data={salesTrendData}>
               <defs>
@@ -675,7 +701,7 @@ export default function Dashboard() {
               <XAxis dataKey="month" tick={{ fill: chartColors.text, fontSize: 12 }} />
               <YAxis
                 tick={{ fill: chartColors.text, fontSize: 12 }}
-                tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+                tickFormatter={(value) => t.common.currency.formatShort(value)}
               />
               <Tooltip
                 {...getTooltipStyle(isDark)}
@@ -688,15 +714,15 @@ export default function Dashboard() {
                 stroke={chartColors.income}
                 fillOpacity={1}
                 fill="url(#colorRevenue)"
-                name="Revenue"
+                name={t.dashboard.charts.revenue}
               />
             </AreaChart>
           </ChartWrapper>
 
           <ChartWrapper
-            title="Animal Distribution by Status"
+            title={t.dashboard.charts.animalDistributionByStatus}
             isEmpty={animalDistributionByStatus.length === 0}
-            emptyMessage="No animal data available"
+            emptyMessage={t.dashboard.charts.noAnimalData}
           >
             <PieChart>
               <Pie

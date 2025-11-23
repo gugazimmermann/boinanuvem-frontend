@@ -332,7 +332,7 @@ function SupplierFinanceDashboard({ supplierId }: SupplierFinanceDashboardProps)
               <XAxis dataKey="month" tick={{ fill: textColor, fontSize: 12 }} />
               <YAxis
                 tick={{ fill: textColor, fontSize: 12 }}
-                tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+                tickFormatter={(value) => t.common.currency.formatShort(value)}
               />
               <RechartsTooltip
                 contentStyle={{
@@ -377,7 +377,7 @@ function SupplierFinanceDashboard({ supplierId }: SupplierFinanceDashboardProps)
               <XAxis dataKey="month" tick={{ fill: textColor, fontSize: 12 }} />
               <YAxis
                 tick={{ fill: textColor, fontSize: 12 }}
-                tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+                tickFormatter={(value) => t.common.currency.formatShort(value)}
               />
               <RechartsTooltip
                 contentStyle={{
@@ -410,7 +410,7 @@ function SupplierFinanceDashboard({ supplierId }: SupplierFinanceDashboardProps)
                 <XAxis
                   type="number"
                   tick={{ fill: textColor, fontSize: 12 }}
-                  tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+                  tickFormatter={(value) => t.common.currency.formatShort(value)}
                 />
                 <YAxis
                   type="category"
@@ -687,7 +687,7 @@ export default function SupplierDetails() {
       </div>
 
       <div className="mb-4 border-b border-gray-200 dark:border-gray-700">
-        <nav className="flex space-x-8" aria-label="Tabs">
+        <nav className="flex space-x-8" aria-label={t.common.ariaLabels.tabs}>
           <button
             onClick={() => {
               setActiveTab("info");
@@ -728,7 +728,7 @@ export default function SupplierDetails() {
                 : undefined
             }
           >
-            {t.suppliers.details.tabs.observations || "Observações"}
+            {t.suppliers.details.tabs.observations}
           </button>
           <button
             onClick={() => {
@@ -771,7 +771,7 @@ export default function SupplierDetails() {
                 : undefined
             }
           >
-            {t.suppliers.details.tabs.inventory || "Estoque"}
+            {t.suppliers.details.tabs.inventory}
           </button>
           {isMainUser() && (
             <button
@@ -1067,7 +1067,7 @@ export default function SupplierDetails() {
           const columns: TableColumn<SupplierObservation>[] = [
             {
               key: "date",
-              label: t.suppliers.details.observationDate || "Data",
+              label: t.suppliers.details.observationDate,
               sortable: true,
               render: (_, row) => (
                 <span className="text-gray-700 dark:text-gray-300">
@@ -1077,7 +1077,7 @@ export default function SupplierDetails() {
             },
             {
               key: "observation",
-              label: t.suppliers.details.observation || "Observação",
+              label: t.suppliers.details.observation,
               sortable: true,
               render: (_, row) => {
                 const truncated =
@@ -1093,7 +1093,7 @@ export default function SupplierDetails() {
             },
             {
               key: "files",
-              label: t.suppliers.details.files || "Anexos",
+              label: t.suppliers.details.files,
               sortable: false,
               render: (_, row) => {
                 if (!row.fileIds || row.fileIds.length === 0) {
@@ -1125,7 +1125,7 @@ export default function SupplierDetails() {
 
           const headerActions: TableAction[] = [
             {
-              label: t.suppliers.details.addObservation || "Adicionar Observação",
+              label: t.suppliers.details.addObservation,
               variant: "primary",
               leftIcon: (
                 <svg
@@ -1159,7 +1159,7 @@ export default function SupplierDetails() {
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100">
-                      {t.suppliers.details.newObservation || "Nova Observação"}
+                      {t.suppliers.details.newObservation}
                     </h3>
                     <button
                       onClick={() => {
@@ -1187,8 +1187,7 @@ export default function SupplierDetails() {
                   <form onSubmit={handleSubmitObservation} className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        {t.suppliers.details.observation || "Observação"}{" "}
-                        <span className="text-red-500">*</span>
+                        {t.suppliers.details.observation} <span className="text-red-500">*</span>
                       </label>
                       <textarea
                         value={observationText}
@@ -1205,7 +1204,7 @@ export default function SupplierDetails() {
                     </div>
 
                     <FileUpload
-                      label={t.suppliers.details.files || "Anexos"}
+                      label={t.suppliers.details.files}
                       files={observationFiles}
                       onChange={setObservationFiles}
                       disabled={isSubmittingObservation}
@@ -1242,7 +1241,7 @@ export default function SupplierDetails() {
                   columns={columns}
                   data={paginatedObservations as (SupplierObservation & Record<string, unknown>)[]}
                   header={{
-                    title: t.suppliers.details.tabs.observations || "Observações",
+                    title: t.suppliers.details.tabs.observations,
                     badge: {
                       label: `${filteredObservations.length} ${filteredObservations.length !== 1 ? t.suppliers.details.tabs.observations : t.suppliers.details.observation}`,
                       variant: "primary",
@@ -1253,7 +1252,7 @@ export default function SupplierDetails() {
                     actions: headerActions,
                   }}
                   search={{
-                    placeholder: t.suppliers.details.searchObservations || "Buscar observações...",
+                    placeholder: t.suppliers.details.searchObservations,
                     value: searchValue,
                     onChange: (value) => {
                       setSearchValue(value);
@@ -1274,7 +1273,7 @@ export default function SupplierDetails() {
                     setCurrentPage(1);
                   }}
                   emptyState={{
-                    title: t.suppliers.details.noObservations || "Nenhuma observação registrada",
+                    title: t.suppliers.details.noObservations,
                     description: searchValue
                       ? typeof t.suppliers.details.noObservationsWithSearch === "function"
                         ? t.suppliers.details.noObservationsWithSearch(searchValue)
@@ -1290,7 +1289,7 @@ export default function SupplierDetails() {
                       : undefined,
                     clearSearchLabel: searchValue ? t.common.clearSearch : undefined,
                     onAddNew: () => setShowObservationForm(true),
-                    addNewLabel: t.suppliers.details.addObservation || "Adicionar Observação",
+                    addNewLabel: t.suppliers.details.addObservation,
                   }}
                   onRowClick={(row) =>
                     navigate(`${getObservationViewRoute(row.id)}?fromSupplier=${supplier.id}`)
@@ -1930,7 +1929,7 @@ export default function SupplierDetails() {
                             </div>
                             <div className="flex flex-col">
                               <span className="text-gray-500 dark:text-gray-400 text-xs">
-                                {t.common.total || "Total"}
+                                {t.common.total}
                               </span>
                               <span
                                 className={`font-semibold ${
@@ -2147,7 +2146,7 @@ export default function SupplierDetails() {
                 columns={inventoryColumns}
                 data={paginatedInventoryItems}
                 header={{
-                  title: t.suppliers.details.tabs.inventory || "Estoque",
+                  title: t.suppliers.details.tabs.inventory,
                   badge: {
                     label: `${filteredInventoryItems.length} ${filteredInventoryItems.length !== 1 ? "itens" : "item"}`,
                     variant: "primary",

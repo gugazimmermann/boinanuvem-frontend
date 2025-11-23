@@ -426,14 +426,14 @@ function PropertyFinanceDashboard({ propertyId }: PropertyFinanceDashboardProps)
         <ChartWrapper
           title={t.financesDashboard.charts.incomeVsExpenses}
           isEmpty={monthlyData.length === 0}
-          emptyMessage="No data available"
+          emptyMessage={t.financesDashboard.charts.noData}
         >
           <LineChart data={monthlyData}>
             <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
             <XAxis dataKey="month" tick={{ fill: chartColors.text, fontSize: 12 }} />
             <YAxis
               tick={{ fill: chartColors.text, fontSize: 12 }}
-              tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+              tickFormatter={(value) => t.common.currency.formatShort(value)}
             />
             <Tooltip {...tooltipStyle} formatter={(value: number) => formatCurrency(value)} />
             <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
@@ -457,7 +457,7 @@ function PropertyFinanceDashboard({ propertyId }: PropertyFinanceDashboardProps)
         <ChartWrapper
           title={t.financesDashboard.charts.monthlyCashFlow}
           isEmpty={monthlyData.length === 0}
-          emptyMessage="No data available"
+          emptyMessage={t.financesDashboard.charts.noData}
         >
           <AreaChart data={monthlyData}>
             <defs>
@@ -470,7 +470,7 @@ function PropertyFinanceDashboard({ propertyId }: PropertyFinanceDashboardProps)
             <XAxis dataKey="month" tick={{ fill: chartColors.text, fontSize: 12 }} />
             <YAxis
               tick={{ fill: chartColors.text, fontSize: 12 }}
-              tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+              tickFormatter={(value) => t.common.currency.formatShort(value)}
             />
             <Tooltip {...tooltipStyle} formatter={(value: number) => formatCurrency(value)} />
             <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
@@ -488,7 +488,7 @@ function PropertyFinanceDashboard({ propertyId }: PropertyFinanceDashboardProps)
         <ChartWrapper
           title={t.financesDashboard.charts.expenseCategories}
           isEmpty={expenseCategoriesData.length === 0}
-          emptyMessage="No data available"
+          emptyMessage={t.financesDashboard.charts.noData}
           height={400}
           className="lg:col-span-2"
         >
@@ -497,7 +497,7 @@ function PropertyFinanceDashboard({ propertyId }: PropertyFinanceDashboardProps)
             <XAxis
               type="number"
               tick={{ fill: chartColors.text, fontSize: 12 }}
-              tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+              tickFormatter={(value) => t.common.currency.formatShort(value)}
             />
             <YAxis
               type="category"
@@ -800,7 +800,7 @@ export default function PropertyDetails() {
       </div>
 
       <div className="mb-4 border-b border-gray-200 dark:border-gray-700">
-        <nav className="flex space-x-8" aria-label="Tabs">
+        <nav className="flex space-x-8" aria-label={t.common.ariaLabels.tabs}>
           <button
             onClick={() => {
               setSearchParams({});
@@ -3044,7 +3044,7 @@ export default function PropertyDetails() {
             },
             {
               key: "observation",
-              label: t.properties.details.movements.observation || "Observação",
+              label: t.properties.details.movements.observation,
               sortable: false,
               render: (_, row) => {
                 const observation =
@@ -3065,7 +3065,7 @@ export default function PropertyDetails() {
             },
             {
               key: "files",
-              label: t.properties.details.movements.files || "Anexos",
+              label: t.properties.details.movements.files,
               sortable: false,
               render: (_, row) => {
                 const fileIds =
@@ -3871,7 +3871,7 @@ export default function PropertyDetails() {
                             </div>
                             <div className="flex flex-col">
                               <span className="text-gray-500 dark:text-gray-400 text-xs">
-                                {t.common.total || "Total"}
+                                {t.common.total}
                               </span>
                               <span
                                 className={`font-semibold ${

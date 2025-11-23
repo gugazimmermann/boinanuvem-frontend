@@ -328,7 +328,7 @@ export default function MovementDetails() {
         {movement.observation && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-              {t.properties.details.movements.observation || "Observação"}
+              {t.properties.details.movements.observation}
             </h2>
             <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
               {movement.observation}
@@ -339,7 +339,7 @@ export default function MovementDetails() {
         {movement.fileIds && movement.fileIds.length > 0 && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-              {t.properties.details.movements.files || "Anexos"}
+              {t.properties.details.movements.files}
             </h2>
             <div className="space-y-2">
               {movement.fileIds.map((fileId) => (
@@ -366,7 +366,7 @@ export default function MovementDetails() {
                         {fileId}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {t.properties.details.movements.file || "Arquivo"}
+                        {t.properties.details.movements.file}
                       </p>
                     </div>
                   </div>
@@ -396,7 +396,7 @@ export default function MovementDetails() {
       {isAnimalMovement && animals.length > 0 && (
         <div className="w-full">
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-            {t.animals.title || "Animais"} ({animals.length})
+            {t.animals.title} ({animals.length})
           </h2>
           {(() => {
             const columns: TableColumn<Animal>[] = [

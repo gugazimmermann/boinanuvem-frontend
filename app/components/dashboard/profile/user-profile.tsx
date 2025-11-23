@@ -764,7 +764,7 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
               },
               {
                 section: "records" as PermissionSection,
-                sectionLabel: t.team.permissions.records || "Registros",
+                sectionLabel: t.team.permissions.records,
                 resources: [
                   "births",
                   "acquisitions",
@@ -778,7 +778,7 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
               },
               {
                 section: "breedings" as PermissionSection,
-                sectionLabel: t.team.permissions.breedings || "Reprodução",
+                sectionLabel: t.team.permissions.breedings,
                 resources: [
                   "breedings",
                   "unconfirmedBreedings",
@@ -789,7 +789,7 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
               },
               {
                 section: "finances" as PermissionSection,
-                sectionLabel: t.team.permissions.finances || "Finanças",
+                sectionLabel: t.team.permissions.finances,
                 resources: [
                   "cashFlow",
                   "accountsPayable",

@@ -287,7 +287,7 @@ export default function NewWeighing() {
     () => [
       {
         key: "animal",
-        label: t.weighings.new.animalLabel || "Animal",
+        label: t.weighings.new.animalLabel,
         sortable: true,
         render: (_value, weighing) => (
           <div>
@@ -302,7 +302,7 @@ export default function NewWeighing() {
       },
       {
         key: "weight",
-        label: t.weighings.new.weightLabel || "Peso (kg)",
+        label: t.weighings.new.weightLabel,
         sortable: true,
         render: (_value, weighing) => (
           <span className="font-medium text-gray-900 dark:text-gray-100">
@@ -419,7 +419,7 @@ export default function NewWeighing() {
       },
       {
         key: "observation",
-        label: t.weighings.new.observationLabel || "Observação",
+        label: t.weighings.new.observationLabel,
         sortable: true,
         render: (_value, weighing) => (
           <span className="text-gray-700 dark:text-gray-300 max-w-xs truncate block">
@@ -621,8 +621,7 @@ export default function NewWeighing() {
         if (item) {
           const currentStock = getCurrentStock(applied.itemId, animalLocationInfo.propertyId);
           if (currentStock < applied.quantity) {
-            newErrors[`medicine_${applied.itemId}`] =
-              t.weighings.new.insufficientStock || "Estoque insuficiente";
+            newErrors[`medicine_${applied.itemId}`] = t.weighings.new.insufficientStock;
           }
         }
       }
@@ -673,7 +672,7 @@ export default function NewWeighing() {
               propertyId: animalLocationInfo.propertyId,
               locationId: animalLocationInfo.locationId,
               companyId,
-              description: t.weighings.new.appliedDuringWeighing || "Aplicado durante pesagem",
+              description: t.weighings.new.appliedDuringWeighing,
               unitPrice: item.unitPrice,
             });
           }
@@ -836,7 +835,7 @@ export default function NewWeighing() {
             {formData.animalId && formData.weight && parseFloat(formData.weight) > 0 && (
               <div className="border-t border-b border-gray-200 dark:border-gray-700 pt-4 pb-4 mt-4">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                  {t.weighings.new.medicinesVaccinesTitle || "Medicamentos e Vacinas"}
+                  {t.weighings.new.medicinesVaccinesTitle}
                 </h2>
 
                 {availableMedicinesVaccines.length === 0 ? (
@@ -878,7 +877,7 @@ export default function NewWeighing() {
                                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
                                     <div>
                                       <span className="text-gray-600 dark:text-gray-400">
-                                        {t.weighings.new.calculatedDosage || "Dosagem Calculada"}:
+                                        {t.weighings.new.calculatedDosage}:
                                       </span>
                                       <span className="ml-2 font-medium text-gray-900 dark:text-gray-100">
                                         {calculatedDosage.toFixed(2)}{" "}
@@ -909,7 +908,7 @@ export default function NewWeighing() {
                                     </div>
                                     <div>
                                       <span className="text-gray-600 dark:text-gray-400">
-                                        {t.weighings.new.currentStock || "Estoque Atual"}:
+                                        {t.weighings.new.currentStock}:
                                       </span>
                                       <span
                                         className={`ml-2 font-medium ${
@@ -936,7 +935,7 @@ export default function NewWeighing() {
                                   disabled={isSubmitting}
                                   className="ml-4"
                                 >
-                                  {t.weighings.new.removeMedicineVaccine || "Remover"}
+                                  {t.weighings.new.removeMedicineVaccine}
                                 </Button>
                               </div>
                             </div>
@@ -947,9 +946,7 @@ export default function NewWeighing() {
 
                     <div>
                       <Select
-                        label={
-                          t.weighings.new.selectMedicineVaccine || "Selecionar Medicamento/Vacina"
-                        }
+                        label={t.weighings.new.selectMedicineVaccine}
                         value={selectedMedicineId}
                         onChange={(e) => {
                           const selectedId = e.target.value;

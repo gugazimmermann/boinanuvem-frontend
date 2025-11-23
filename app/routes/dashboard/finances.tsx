@@ -649,7 +649,7 @@ export default function FinancesDashboard() {
             <XAxis dataKey="month" tick={{ fill: chartColors.text, fontSize: 12 }} />
             <YAxis
               tick={{ fill: chartColors.text, fontSize: 12 }}
-              tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+              tickFormatter={(value) => t.common.currency.formatShort(value)}
             />
             <Tooltip {...tooltipStyle} formatter={(value: number) => formatCurrency(value)} />
             <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
@@ -686,7 +686,7 @@ export default function FinancesDashboard() {
             <XAxis dataKey="month" tick={{ fill: chartColors.text, fontSize: 12 }} />
             <YAxis
               tick={{ fill: chartColors.text, fontSize: 12 }}
-              tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+              tickFormatter={(value) => t.common.currency.formatShort(value)}
             />
             <Tooltip {...tooltipStyle} formatter={(value: number) => formatCurrency(value)} />
             <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
@@ -711,7 +711,7 @@ export default function FinancesDashboard() {
             <XAxis
               type="number"
               tick={{ fill: chartColors.text, fontSize: 12 }}
-              tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+              tickFormatter={(value) => t.common.currency.formatShort(value)}
             />
             <YAxis
               type="category"
@@ -769,7 +769,7 @@ export default function FinancesDashboard() {
             <XAxis
               type="number"
               tick={{ fill: chartColors.text, fontSize: 12 }}
-              tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+              tickFormatter={(value) => t.common.currency.formatShort(value)}
             />
             <YAxis
               type="category"

@@ -630,7 +630,7 @@ export default function ReproductiveIndexesPage() {
             <ChartWrapper
               title={t.reproductiveIndexes.charts.monthlyBirthRate}
               isEmpty={monthlyBirthRateData.length === 0}
-              emptyMessage="No data available"
+              emptyMessage={t.reproductiveIndexes.charts.noData}
             >
               <LineChart data={monthlyBirthRateData}>
                 <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
@@ -651,7 +651,7 @@ export default function ReproductiveIndexesPage() {
             <ChartWrapper
               title={t.reproductiveIndexes.charts.annualCullingRate}
               isEmpty={annualCullingRateData.length === 0}
-              emptyMessage="No data available"
+              emptyMessage={t.reproductiveIndexes.charts.noData}
             >
               <BarChart data={annualCullingRateData}>
                 <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
@@ -671,7 +671,7 @@ export default function ReproductiveIndexesPage() {
           <ChartWrapper
             title={t.reproductiveIndexes.charts.expectedFutureBirths}
             isEmpty={expectedBirthsData.length === 0}
-            emptyMessage="No data available"
+            emptyMessage={t.reproductiveIndexes.charts.noData}
           >
             <BarChart data={expectedBirthsData}>
               <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />

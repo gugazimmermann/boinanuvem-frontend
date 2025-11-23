@@ -390,7 +390,7 @@ export default function NewAnimalMovement() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {t.serviceProviders.table.name || "Prestadores de Serviço"}
+                  {t.serviceProviders.table.name}
                 </label>
                 <div className="border border-gray-300 dark:border-gray-600 rounded-md p-4 max-h-48 overflow-y-auto">
                   {sortedServiceProviders.length === 0 ? (
@@ -430,7 +430,7 @@ export default function NewAnimalMovement() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t.properties.details.movements.observation || "Observação"}
+                {t.properties.details.movements.observation}
               </label>
               <textarea
                 value={formData.observation}
@@ -451,7 +451,7 @@ export default function NewAnimalMovement() {
             </div>
 
             <FileUpload
-              label={t.properties.details.movements.files || "Anexos"}
+              label={t.properties.details.movements.files}
               files={files}
               onChange={setFiles}
               disabled={isSubmitting}

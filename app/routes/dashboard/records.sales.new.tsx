@@ -638,7 +638,7 @@ export default function NewSale() {
                       disabled={isSubmitting}
                       className="mb-0"
                     >
-                      {t.common.remove || "Remover"}
+                      {t.common.remove}
                     </Button>
                   </div>
                 ))}
@@ -847,10 +847,10 @@ export default function NewSale() {
               onClick={() => navigate(ROUTES.SALES)}
               disabled={isSubmitting}
             >
-              {t.common?.cancel || "Cancelar"}
+              {t.common?.cancel}
             </Button>
             <Button type="submit" variant="primary" disabled={isSubmitting}>
-              {isSubmitting ? t.common?.saving || "Salvando..." : t.sales.form.submit}
+              {isSubmitting ? t.common?.saving : t.sales.form.submit}
             </Button>
           </div>
         </form>

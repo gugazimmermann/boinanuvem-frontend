@@ -6,6 +6,7 @@ import { ROUTES } from "../routes.config";
 import { authenticateUser } from "../services/users.service";
 import { useAuth } from "../contexts/auth-context";
 import { requireGuest, useRequireGuest } from "../utils/route-guard";
+import { useTranslation } from "../i18n";
 
 export function meta() {
   return [
@@ -25,6 +26,7 @@ export default function Login() {
   useRequireGuest();
   const navigate = useNavigate();
   const { login } = useAuth();
+  const t = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -35,7 +37,7 @@ export default function Login() {
     setError("");
 
     if (!email.trim()) {
-      setError("Email é obrigatório");
+      setError(t.common.emailRequired);
       return;
     }
 
@@ -92,14 +94,14 @@ export default function Login() {
               <AuthInput
                 type="email"
                 placeholder="Email"
-                aria-label="Email"
+                aria-label={t.common.ariaLabels.email}
                 className="mt-0"
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
                   if (error) setError("");
                 }}
-                error={error && !email.trim() ? "Email é obrigatório" : undefined}
+                error={error && !email.trim() ? t.common.emailRequired : undefined}
               />
             </div>
 
@@ -107,7 +109,7 @@ export default function Login() {
               <AuthInput
                 type="password"
                 placeholder="Senha"
-                aria-label="Senha"
+                aria-label={t.common.ariaLabels.password}
                 className="mt-0"
                 showPasswordToggle
                 value={password}

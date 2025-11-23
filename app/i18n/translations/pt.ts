@@ -33,6 +33,30 @@ export const pt = {
     edit: "Editar",
     delete: "Excluir",
     saving: "Salvando...",
+    emailRequired: "Email é obrigatório",
+    searchingAddress: "Buscando endereço...",
+    ariaLabels: {
+      tabs: "Abas",
+      email: "Email",
+      password: "Senha",
+      cnpj: "CNPJ",
+      companyName: "Razão Social",
+      phone: "Telefone",
+      zipCode: "CEP",
+      street: "Rua",
+      number: "Número",
+      complement: "Complemento",
+      neighborhood: "Bairro",
+      city: "Cidade",
+      state: "Estado",
+      name: "Nome",
+      cpf: "CPF",
+    },
+    currency: {
+      symbol: "R$",
+      formatShort: (value: number) => `R$ ${(value / 1000).toFixed(0)}k`,
+    },
+    itemNotFound: "Item não encontrado",
   },
 
   sidebar: {
@@ -162,6 +186,12 @@ export const pt = {
       income: "Receita",
       expenses: "Despesas",
       month: "Mês",
+      animalDistributionByStatus: "Distribuição de Animais por Status",
+      salesTrends: "Tendências de Vendas",
+      revenue: "Receita",
+      noData: "Nenhum dado disponível",
+      noAnimalData: "Nenhum dado de animal disponível",
+      noSalesData: "Nenhum dado de venda disponível",
     },
   },
 
@@ -2280,6 +2310,7 @@ export const pt = {
         noCosts: "Nenhum custo registrado",
         noCostsDescription:
           "Este animal ainda não possui custos de consumo de estoque registrados.",
+        acquisitionCost: "Custo de Aquisição",
       },
       sales: {
         description: "Histórico de vendas deste animal",
@@ -2889,6 +2920,7 @@ export const pt = {
       cullingRate: "Taxa de Descarte (%)",
       expectedFutureBirths: "Nascimentos Esperados (Futuro)",
       expectedBirths: "Nascimentos Esperados",
+      noData: "Nenhum dado disponível",
     },
   },
 
@@ -3804,6 +3836,7 @@ export const pt = {
       income: "Receitas",
       expenses: "Despesas",
       netCashFlow: "Líquido",
+      noData: "Nenhum dado disponível",
     },
     tables: {
       recentTransactions: "Transações Recentes",

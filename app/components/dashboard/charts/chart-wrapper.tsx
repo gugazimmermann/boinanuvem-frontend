@@ -27,9 +27,7 @@ export function ChartWrapper({
       )}
       {isEmpty ? (
         <div className="flex items-center justify-center" style={{ height }}>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            {emptyMessage || "No data available"}
-          </p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{emptyMessage}</p>
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={height}>

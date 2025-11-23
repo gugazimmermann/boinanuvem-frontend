@@ -285,12 +285,11 @@ export default function NewSanitaryControl() {
     const newErrors: Record<string, string> = {};
 
     if (formData.animalIds.length === 0) {
-      newErrors.animalIds =
-        t.medicineAdministrations.new.errors?.animalRequired || "Selecione pelo menos um animal";
+      newErrors.animalIds = t.medicineAdministrations.new.errors?.animalRequired;
     }
 
     if (!formData.date) {
-      newErrors.date = t.medicineAdministrations.new.errors?.dateRequired || "Data é obrigatória";
+      newErrors.date = t.medicineAdministrations.new.errors?.dateRequired;
     }
 
     if (formData.appliedMedicines.length === 0) {
@@ -309,7 +308,7 @@ export default function NewSanitaryControl() {
               const currentStock = getCurrentStock(applied.itemId, locationInfo.propertyId);
               if (currentStock < applied.quantity) {
                 newErrors[`medicine_${applied.itemId}_${animalId}`] =
-                  t.medicineAdministrations.new.insufficientStock || "Estoque insuficiente";
+                  t.medicineAdministrations.new.insufficientStock;
               }
             }
           }
@@ -363,8 +362,7 @@ export default function NewSanitaryControl() {
                 propertyId: locationInfo.propertyId,
                 locationId: locationInfo.locationId ? locationInfo.locationId : undefined,
                 companyId,
-                description:
-                  t.medicineAdministrations.new.appliedDescription || "Aplicado ao animal",
+                description: t.medicineAdministrations.new.appliedDescription,
                 unitPrice: item.unitPrice,
               });
             }
@@ -375,8 +373,8 @@ export default function NewSanitaryControl() {
       const animalCount = formData.animalIds.length;
       const successMessage =
         animalCount === 1
-          ? t.medicineAdministrations.new.success || "Administração registrada com sucesso"
-          : `${animalCount} ${t.medicineAdministrations.new.successMultiple || "administrações registradas com sucesso"}`;
+          ? t.medicineAdministrations.new.success
+          : `${animalCount} ${t.medicineAdministrations.new.successMultiple}`;
 
       showAlert(successMessage, "success");
 
@@ -393,7 +391,7 @@ export default function NewSanitaryControl() {
       setErrors({});
     } catch (error) {
       console.error("Error adding medicine administration:", error);
-      showAlert(t.medicineAdministrations.new.error || "Erro ao registrar administração", "error");
+      showAlert(t.medicineAdministrations.new.error, "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -410,7 +408,7 @@ export default function NewSanitaryControl() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {t.medicineAdministrations.new.title || "Registrar Administração de Medicamento/Vacina"}
+            {t.medicineAdministrations.new.title}
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             {t.medicineAdministrations.new.description ||
@@ -427,7 +425,7 @@ export default function NewSanitaryControl() {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t.medicineAdministrations.new.animalsLabel || "Animais"}
+                {t.medicineAdministrations.new.animalsLabel}
                 {formData.animalIds.length > 0 && (
                   <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
                     ({formData.animalIds.length}{" "}
@@ -440,9 +438,7 @@ export default function NewSanitaryControl() {
                   type="text"
                   value={animalSearch}
                   onChange={(e) => setAnimalSearch(e.target.value)}
-                  placeholder={
-                    t.medicineAdministrations.new.searchAnimal || "Buscar por código ou registro..."
-                  }
+                  placeholder={t.medicineAdministrations.new.searchAnimal}
                   disabled={isSubmitting}
                 />
                 <div className="border border-gray-300 dark:border-gray-600 rounded-md max-h-48 overflow-y-auto">
@@ -504,7 +500,7 @@ export default function NewSanitaryControl() {
                         {animal.code}:{" "}
                         {weight > 0
                           ? `${weight.toFixed(2)} kg`
-                          : t.medicineAdministrations.new.noWeightRecorded || "Sem peso registrado"}
+                          : t.medicineAdministrations.new.noWeightRecorded}
                       </div>
                     );
                   })}
@@ -514,7 +510,7 @@ export default function NewSanitaryControl() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
-                label={t.medicineAdministrations.new.dateLabel || "Data"}
+                label={t.medicineAdministrations.new.dateLabel}
                 type="date"
                 value={formData.date}
                 onChange={(e) => handleChange("date", e.target.value)}
@@ -528,7 +524,7 @@ export default function NewSanitaryControl() {
           {formData.animalIds.length > 0 && (
             <div className="border-t border-b border-gray-200 dark:border-gray-700 pt-4 pb-4 mt-4">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                {t.medicineAdministrations.new.medicinesVaccinesTitle || "Medicamentos e Vacinas"}
+                {t.medicineAdministrations.new.medicinesVaccinesTitle}
               </h2>
 
               {availableMedicinesVaccines.length === 0 ? (
@@ -664,7 +660,7 @@ export default function NewSanitaryControl() {
                                 disabled={isSubmitting}
                                 className="ml-4"
                               >
-                                {t.medicineAdministrations.new.removeMedicineVaccine || "Remover"}
+                                {t.medicineAdministrations.new.removeMedicineVaccine}
                               </Button>
                             </div>
                           </div>
@@ -711,12 +707,12 @@ export default function NewSanitaryControl() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t.medicineAdministrations.new.employeesLabel || "Funcionários"}
+                {t.medicineAdministrations.new.employeesLabel}
               </label>
               <div className="border border-gray-300 dark:border-gray-600 rounded-md p-4 max-h-48 overflow-y-auto">
                 {employees.length === 0 ? (
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {t.medicineAdministrations.new.noEmployees || "Nenhum funcionário cadastrado"}
+                    {t.medicineAdministrations.new.noEmployees}
                   </p>
                 ) : (
                   <div className="space-y-2">
@@ -744,7 +740,7 @@ export default function NewSanitaryControl() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t.medicineAdministrations.new.serviceProvidersLabel || "Prestadores de Serviço"}
+                {t.medicineAdministrations.new.serviceProvidersLabel}
               </label>
               <div className="border border-gray-300 dark:border-gray-600 rounded-md p-4 max-h-48 overflow-y-auto">
                 {serviceProviders.length === 0 ? (
@@ -779,14 +775,12 @@ export default function NewSanitaryControl() {
 
           <div className="mt-4">
             <Input
-              label={t.medicineAdministrations.new.observationLabel || "Observação"}
+              label={t.medicineAdministrations.new.observationLabel}
               type="textarea"
               value={formData.observation}
               onChange={(e) => handleChange("observation", e.target.value)}
               disabled={isSubmitting}
-              placeholder={
-                t.medicineAdministrations.new.observationPlaceholder || "Observações adicionais..."
-              }
+              placeholder={t.medicineAdministrations.new.observationPlaceholder}
             />
           </div>
         </div>
@@ -801,7 +795,7 @@ export default function NewSanitaryControl() {
             {t.common.cancel}
           </Button>
           <Button type="submit" variant="primary" disabled={isSubmitting}>
-            {t.medicineAdministrations.new.addButton || "Registrar Administração"}
+            {t.medicineAdministrations.new.addButton}
           </Button>
         </div>
       </form>

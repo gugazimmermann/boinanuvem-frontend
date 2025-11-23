@@ -686,7 +686,7 @@ export default function EditSale() {
                       disabled={isSubmitting}
                       className="mb-0"
                     >
-                      {t.common.remove || "Remover"}
+                      {t.common.remove}
                     </Button>
                   </div>
                 ))}

@@ -34,6 +34,30 @@ export const es = {
     edit: "Editar",
     delete: "Eliminar",
     saving: "Guardando...",
+    emailRequired: "El email es obligatorio",
+    searchingAddress: "Buscando dirección...",
+    ariaLabels: {
+      tabs: "Pestañas",
+      email: "Email",
+      password: "Contraseña",
+      cnpj: "CNPJ",
+      companyName: "Razón Social",
+      phone: "Teléfono",
+      zipCode: "Código Postal",
+      street: "Calle",
+      number: "Número",
+      complement: "Complemento",
+      neighborhood: "Barrio",
+      city: "Ciudad",
+      state: "Estado",
+      name: "Nombre",
+      cpf: "CPF",
+    },
+    currency: {
+      symbol: "R$",
+      formatShort: (value: number) => `R$ ${(value / 1000).toFixed(0)}k`,
+    },
+    itemNotFound: "Artículo no encontrado",
   },
 
   sidebar: {
@@ -163,6 +187,12 @@ export const es = {
       income: "Ingresos",
       expenses: "Gastos",
       month: "Mes",
+      animalDistributionByStatus: "Distribución de Animales por Estado",
+      salesTrends: "Tendencias de Ventas",
+      revenue: "Ingresos",
+      noData: "No hay datos disponibles",
+      noAnimalData: "No hay datos de animales disponibles",
+      noSalesData: "No hay datos de ventas disponibles",
     },
   },
 
@@ -2280,6 +2310,7 @@ export const es = {
         consumptionPeriods: "Períodos de Consumo",
         noCosts: "No se registraron costos",
         noCostsDescription: "Este animal aún no tiene costos de consumo de inventario registrados.",
+        acquisitionCost: "Costo de Adquisición",
       },
       sales: {
         description: "Historial de ventas de este animal",
@@ -2889,6 +2920,7 @@ export const es = {
       cullingRate: "Tasa de Descarte (%)",
       expectedFutureBirths: "Nacimientos Esperados (Futuro)",
       expectedBirths: "Nacimientos Esperados",
+      noData: "No hay datos disponibles",
     },
   },
 
@@ -3488,6 +3520,7 @@ export const es = {
       income: "Ingresos",
       expenses: "Gastos",
       netCashFlow: "Neto",
+      noData: "No hay datos disponibles",
     },
     tables: {
       recentTransactions: "Transacciones Recientes",

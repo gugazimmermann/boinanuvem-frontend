@@ -574,7 +574,7 @@ export default function AnimalDetails() {
     e.preventDefault();
     if (!observationText.trim()) {
       setObservationAlert({
-        title: t.animals.details.observationRequired || "Por favor, insira uma observação",
+        title: t.animals.details.observationRequired,
         variant: "error",
       });
       setTimeout(() => setObservationAlert(null), 3000);
@@ -594,7 +594,7 @@ export default function AnimalDetails() {
       setObservations(getAnimalObservationsByAnimalId(animal.id));
 
       setObservationAlert({
-        title: t.animals.details.observationAdded || "Observação adicionada com sucesso!",
+        title: t.animals.details.observationAdded,
         variant: "success",
       });
       setTimeout(() => setObservationAlert(null), 3000);
@@ -605,7 +605,7 @@ export default function AnimalDetails() {
     } catch (error) {
       console.error("Error adding observation:", error);
       setObservationAlert({
-        title: t.animals.details.observationError || "Erro ao adicionar observação",
+        title: t.animals.details.observationError,
         variant: "error",
       });
       setTimeout(() => setObservationAlert(null), 3000);
@@ -737,7 +737,7 @@ export default function AnimalDetails() {
       </div>
 
       <div className="mb-4 border-b border-gray-200 dark:border-gray-700">
-        <nav className="flex space-x-8" aria-label="Tabs">
+        <nav className="flex space-x-8" aria-label={t.common.ariaLabels.tabs}>
           <button
             onClick={() => setActiveTab("dashboard")}
             className={`
@@ -809,7 +809,7 @@ export default function AnimalDetails() {
                   : undefined
               }
             >
-              {t.animals.details.tabs.breeding || "Cobertura"}
+              {t.animals.details.tabs.breeding}
             </button>
           )}
           <button
@@ -846,7 +846,7 @@ export default function AnimalDetails() {
                 : undefined
             }
           >
-            {t.animals.details.tabs.observations || "Observações"}
+            {t.animals.details.tabs.observations}
           </button>
           <button
             onClick={() => setActiveTab("sanitaryControl")}
@@ -864,7 +864,7 @@ export default function AnimalDetails() {
                 : undefined
             }
           >
-            {t.animals.details.tabs.sanitaryControl || "Controle Sanitário"}
+            {t.animals.details.tabs.sanitaryControl}
           </button>
           <button
             onClick={() => setActiveTab("costs")}
@@ -882,7 +882,7 @@ export default function AnimalDetails() {
                 : undefined
             }
           >
-            {t.animals.details.costs?.title || "Costs"}
+            {t.animals.details.costs?.title}
           </button>
           <button
             onClick={() => setActiveTab("sales")}
@@ -900,7 +900,7 @@ export default function AnimalDetails() {
                 : undefined
             }
           >
-            {t.animals.details.tabs.sales || "Vendas"}
+            {t.animals.details.tabs.sales}
           </button>
           {isMainUser() && (
             <button
@@ -1459,7 +1459,7 @@ export default function AnimalDetails() {
                     stroke={DASHBOARD_COLORS.primary}
                     strokeWidth={2}
                     dot={{ fill: DASHBOARD_COLORS.primary, r: 4 }}
-                    name="Weight (kg)"
+                    name={t.animals.table.weight}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -1663,7 +1663,7 @@ export default function AnimalDetails() {
                     <>
                       <div>
                         <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                          {"Custo de Aquisição"}
+                          {t.animals.details.costs.acquisitionCost}
                         </p>
                         <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
                           {acquisitionItem.price.toLocaleString(localeForNumber, {
@@ -2063,7 +2063,7 @@ export default function AnimalDetails() {
           {sonsWithAnimals.length > 0 && (
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-5 border border-gray-200 dark:border-gray-700">
               <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                {t.animals.details.sons || "Crias"}
+                {t.animals.details.sons}
               </h2>
               <Table<SonWithAnimal>
                 columns={[
@@ -2140,9 +2140,9 @@ export default function AnimalDetails() {
                 ]}
                 data={sonsWithAnimals}
                 header={{
-                  title: t.animals.details.sons || "Crias",
+                  title: t.animals.details.sons,
                   badge: {
-                    label: `${sonsWithAnimals.length} ${sonsWithAnimals.length !== 1 ? t.animals.details.sonsPlural || "crias" : t.animals.details.son || "cria"}`,
+                    label: `${sonsWithAnimals.length} ${sonsWithAnimals.length !== 1 ? t.animals.details.sonsPlural : t.animals.details.son}`,
                     variant: "primary",
                   },
                 }}
@@ -2319,7 +2319,7 @@ export default function AnimalDetails() {
           const columns: TableColumn<AnimalObservation>[] = [
             {
               key: "date",
-              label: t.animals.details.observationDate || "Data",
+              label: t.animals.details.observationDate,
               sortable: true,
               render: (_, row) => (
                 <span className="text-gray-700 dark:text-gray-300">
@@ -2329,7 +2329,7 @@ export default function AnimalDetails() {
             },
             {
               key: "observation",
-              label: t.animals.details.observation || "Observação",
+              label: t.animals.details.observation,
               sortable: true,
               render: (_, row) => {
                 const truncated =
@@ -2345,7 +2345,7 @@ export default function AnimalDetails() {
             },
             {
               key: "files",
-              label: t.animals.details.files || "Anexos",
+              label: t.animals.details.files,
               sortable: false,
               render: (_, row) => {
                 if (!row.fileIds || row.fileIds.length === 0) {
@@ -2377,7 +2377,7 @@ export default function AnimalDetails() {
 
           const headerActions: TableAction[] = [
             {
-              label: t.animals.details.addObservation || "Adicionar Observação",
+              label: t.animals.details.addObservation,
               variant: "primary",
               leftIcon: (
                 <svg
@@ -2411,7 +2411,7 @@ export default function AnimalDetails() {
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100">
-                      {t.animals.details.newObservation || "Nova Observação"}
+                      {t.animals.details.newObservation}
                     </h3>
                     <button
                       onClick={() => {
@@ -2439,8 +2439,7 @@ export default function AnimalDetails() {
                   <form onSubmit={handleSubmitObservation} className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        {t.animals.details.observation || "Observação"}{" "}
-                        <span className="text-red-500">*</span>
+                        {t.animals.details.observation} <span className="text-red-500">*</span>
                       </label>
                       <textarea
                         value={observationText}
@@ -2457,7 +2456,7 @@ export default function AnimalDetails() {
                     </div>
 
                     <FileUpload
-                      label={t.animals.details.files || "Anexos"}
+                      label={t.animals.details.files}
                       files={observationFiles}
                       onChange={setObservationFiles}
                       disabled={isSubmittingObservation}
@@ -2494,9 +2493,9 @@ export default function AnimalDetails() {
                   columns={columns}
                   data={paginatedObservations as (AnimalObservation & Record<string, unknown>)[]}
                   header={{
-                    title: t.animals.details.tabs.observations || "Observações",
+                    title: t.animals.details.tabs.observations,
                     badge: {
-                      label: `${filteredObservations.length} ${filteredObservations.length !== 1 ? t.animals.details.tabs.observations || "Observações" : t.animals.details.observation || "Observação"}`,
+                      label: `${filteredObservations.length} ${filteredObservations.length !== 1 ? t.animals.details.tabs.observations : t.animals.details.observation}`,
                       variant: "primary",
                     },
                     description:
@@ -2505,7 +2504,7 @@ export default function AnimalDetails() {
                     actions: headerActions,
                   }}
                   search={{
-                    placeholder: t.animals.details.searchObservations || "Buscar observações...",
+                    placeholder: t.animals.details.searchObservations,
                     value: observationsSearchValue,
                     onChange: (value) => {
                       setObservationsSearchValue(value);
@@ -2529,7 +2528,7 @@ export default function AnimalDetails() {
                     navigate(`${getObservationViewRoute(row.id)}?fromAnimal=${animal.id}`)
                   }
                   emptyState={{
-                    title: t.animals.details.noObservations || "Nenhuma observação registrada",
+                    title: t.animals.details.noObservations,
                     description: observationsSearchValue
                       ? typeof t.animals.details.noObservationsWithSearch === "function"
                         ? t.animals.details.noObservationsWithSearch(observationsSearchValue)
@@ -2545,7 +2544,7 @@ export default function AnimalDetails() {
                       : undefined,
                     clearSearchLabel: observationsSearchValue ? t.common.clearSearch : undefined,
                     onAddNew: () => setShowObservationForm(true),
-                    addNewLabel: t.animals.details.addObservation || "Adicionar Observação",
+                    addNewLabel: t.animals.details.addObservation,
                   }}
                 />
               )}
@@ -2568,8 +2567,7 @@ export default function AnimalDetails() {
             if (success) {
               setBreedings(getBreedingsByAnimalId(animal.id));
               setBreedingAlert({
-                title:
-                  t.animals.details.breeding.confirmSuccess || "Cobertura confirmada com sucesso!",
+                title: t.animals.details.breeding.confirmSuccess,
                 variant: "success",
               });
               setTimeout(() => setBreedingAlert(null), 3000);
@@ -2597,8 +2595,7 @@ export default function AnimalDetails() {
             if (success) {
               setBreedings(getBreedingsByAnimalId(animal.id));
               setBreedingAlert({
-                title:
-                  t.animals.details.breeding.discardSuccess || "Cobertura descartada com sucesso!",
+                title: t.animals.details.breeding.discardSuccess,
                 variant: "success",
               });
               setTimeout(() => setBreedingAlert(null), 3000);
@@ -2672,7 +2669,7 @@ export default function AnimalDetails() {
           const columns: TableColumn<Breeding>[] = [
             {
               key: "date",
-              label: t.animals.details.breeding.table.date || "Data da Cobertura",
+              label: t.animals.details.breeding.table.date,
               sortable: true,
               render: (_, row) => (
                 <span className="text-gray-700 dark:text-gray-300">{formatDate(row.date)}</span>
@@ -2680,7 +2677,7 @@ export default function AnimalDetails() {
             },
             {
               key: "method",
-              label: t.animals.details.breeding.table.method || "Método",
+              label: t.animals.details.breeding.table.method,
               sortable: true,
               render: (_, row) => (
                 <span className="text-gray-700 dark:text-gray-300">
@@ -2692,14 +2689,14 @@ export default function AnimalDetails() {
             },
             {
               key: "confirmed",
-              label: t.animals.details.breeding.table.status || "Status",
+              label: t.animals.details.breeding.table.status,
               sortable: true,
               render: (_, row) => (
                 <StatusBadge
                   label={
                     row.confirmed
-                      ? t.animals.details.breeding.table.confirmed || "Confirmada"
-                      : t.animals.details.breeding.table.unconfirmed || "Não Confirmada"
+                      ? t.animals.details.breeding.table.confirmed
+                      : t.animals.details.breeding.table.unconfirmed
                   }
                   variant={row.confirmed ? "success" : "warning"}
                 />
@@ -2707,7 +2704,7 @@ export default function AnimalDetails() {
             },
             {
               key: "daysSince",
-              label: t.animals.details.breeding.table.daysSince || "Dias desde a Cobertura",
+              label: t.animals.details.breeding.table.daysSince,
               sortable: false,
               render: (_, row) => {
                 const breedingDate = new Date(row.date);
@@ -2755,7 +2752,7 @@ export default function AnimalDetails() {
                       navigate(ROUTES.BIRTHS_NEW, { state });
                     }}
                   >
-                    {t.animals.details.breeding.registerBirthButton || "Registrar Nascimento"}
+                    {t.animals.details.breeding.registerBirthButton}
                   </Button>
                   {!row.confirmed && (
                     <>
@@ -2767,7 +2764,7 @@ export default function AnimalDetails() {
                           handleConfirmBreeding(row);
                         }}
                       >
-                        {t.animals.details.breeding.confirmButton || "Confirmar"}
+                        {t.animals.details.breeding.confirmButton}
                       </Button>
                       <Button
                         variant="danger"
@@ -2777,7 +2774,7 @@ export default function AnimalDetails() {
                           handleDiscardBreeding(row);
                         }}
                       >
-                        {t.animals.details.breeding.discardButton || "Descartar"}
+                        {t.animals.details.breeding.discardButton}
                       </Button>
                     </>
                   )}
@@ -2790,7 +2787,7 @@ export default function AnimalDetails() {
             ? []
             : [
                 {
-                  label: t.animals.details.breeding.registerButton || "Registrar Cobertura",
+                  label: t.animals.details.breeding.registerButton,
                   variant: "primary",
                   leftIcon: (
                     <svg
@@ -2827,9 +2824,9 @@ export default function AnimalDetails() {
                 columns={columns}
                 data={paginatedBreedings}
                 header={{
-                  title: t.animals.details.breeding.title || "Coberturas",
+                  title: t.animals.details.breeding.title,
                   badge: {
-                    label: `${breedings.length} ${breedings.length !== 1 ? t.animals.details.breeding.badge || "coberturas" : t.animals.details.breeding.badgeSingular || "cobertura"}`,
+                    label: `${breedings.length} ${breedings.length !== 1 ? t.animals.details.breeding.badge : t.animals.details.breeding.badgeSingular}`,
                     variant: "primary",
                   },
                   description:
@@ -2857,7 +2854,7 @@ export default function AnimalDetails() {
                         const route = getBreedingNewRoute([animal.id]);
                         navigate(route.pathname, { state: route.state });
                       },
-                  addNewLabel: t.animals.details.breeding.registerButton || "Registrar Cobertura",
+                  addNewLabel: t.animals.details.breeding.registerButton,
                 }}
               />
 
@@ -2868,15 +2865,15 @@ export default function AnimalDetails() {
                   setSelectedBreeding(null);
                 }}
                 onConfirm={handleConfirmBreedingSubmit}
-                title={t.animals.details.breeding.confirmModal.title || "Confirmar Cobertura"}
+                title={t.animals.details.breeding.confirmModal.title}
                 message={
                   selectedBreeding
                     ? t.animals.details.breeding.confirmModal.message(animal.code) ||
                       `Tem certeza que deseja confirmar a cobertura do animal "${animal.code}"?`
                     : ""
                 }
-                confirmLabel={t.animals.details.breeding.confirmModal.confirm || "Confirmar"}
-                cancelLabel={t.animals.details.breeding.confirmModal.cancel || "Cancelar"}
+                confirmLabel={t.animals.details.breeding.confirmModal.confirm}
+                cancelLabel={t.animals.details.breeding.confirmModal.cancel}
                 variant="info"
               />
 
@@ -2887,15 +2884,15 @@ export default function AnimalDetails() {
                   setSelectedBreeding(null);
                 }}
                 onConfirm={handleDiscardBreedingSubmit}
-                title={t.animals.details.breeding.discardModal.title || "Descartar Cobertura"}
+                title={t.animals.details.breeding.discardModal.title}
                 message={
                   selectedBreeding
                     ? t.animals.details.breeding.discardModal.message(animal.code) ||
                       `Tem certeza que deseja descartar a cobertura do animal "${animal.code}"? Esta ação não pode ser desfeita.`
                     : ""
                 }
-                confirmLabel={t.animals.details.breeding.discardModal.confirm || "Descartar"}
-                cancelLabel={t.animals.details.breeding.discardModal.cancel || "Cancelar"}
+                confirmLabel={t.animals.details.breeding.discardModal.confirm}
+                cancelLabel={t.animals.details.breeding.discardModal.cancel}
                 variant="danger"
               />
             </div>
@@ -2950,7 +2947,7 @@ export default function AnimalDetails() {
             },
             {
               key: "appliedMedicines",
-              label: t.animals.details.sanitaryControl?.appliedItems || "Itens Aplicados",
+              label: t.animals.details.sanitaryControl?.appliedItems,
               sortable: false,
               render: (_value, record) => {
                 if (!record) return <span className="text-sm text-gray-400">-</span>;
@@ -2964,7 +2961,7 @@ export default function AnimalDetails() {
                         const item = getInventoryItemById(applied.itemId);
                         return (
                           <div key={idx} className="text-sm text-gray-900 dark:text-gray-100">
-                            {item?.name || "Item não encontrado"}: {applied.quantity}{" "}
+                            {item?.name || t.common.itemNotFound}: {applied.quantity}{" "}
                             {item?.unit || ""}
                           </div>
                         );
@@ -2976,7 +2973,7 @@ export default function AnimalDetails() {
             },
             {
               key: "responsible",
-              label: t.animals.details.sanitaryControl?.responsible || "Responsável",
+              label: t.animals.details.sanitaryControl?.responsible,
               sortable: false,
               render: (_value, record) => {
                 if (!record) return <span className="text-sm text-gray-400">-</span>;
@@ -3010,7 +3007,7 @@ export default function AnimalDetails() {
             },
             {
               key: "observation",
-              label: t.animals.details.sanitaryControl?.observation || "Observação",
+              label: t.animals.details.sanitaryControl?.observation,
               sortable: false,
               render: (_value, record) => {
                 if (!record || !record.observation) {
@@ -3027,7 +3024,7 @@ export default function AnimalDetails() {
 
           const headerActions: TableAction[] = [
             {
-              label: t.animals.details.sanitaryControl?.addButton || "Registrar Controle Sanitário",
+              label: t.animals.details.sanitaryControl?.addButton,
               variant: "primary",
               leftIcon: (
                 <svg
@@ -3062,12 +3059,12 @@ export default function AnimalDetails() {
                 columns={columns}
                 data={paginatedSanitaryControls}
                 header={{
-                  title: t.animals.details.sanitaryControl?.title || "Controle Sanitário",
+                  title: t.animals.details.sanitaryControl?.title,
                   badge: {
                     label: `${sanitaryControls.length} ${
                       sanitaryControls.length !== 1
-                        ? t.animals.details.sanitaryControl?.badge || "registros"
-                        : t.animals.details.sanitaryControl?.badgeSingular || "registro"
+                        ? t.animals.details.sanitaryControl?.badge
+                        : t.animals.details.sanitaryControl?.badgeSingular
                     }`,
                     variant: "primary",
                   },
@@ -3102,8 +3099,7 @@ export default function AnimalDetails() {
                       navigate(route.pathname, { state: route.state });
                     }
                   },
-                  addNewLabel:
-                    t.animals.details.sanitaryControl?.addButton || "Registrar Controle Sanitário",
+                  addNewLabel: t.animals.details.sanitaryControl?.addButton,
                 }}
               />
             </div>
@@ -3135,7 +3131,7 @@ export default function AnimalDetails() {
               <>
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
                   <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-                    {t.animals.details.costs?.title || "Costs"}
+                    {t.animals.details.costs?.title}
                   </h2>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
                     {t.animals.details.costs?.description ||
@@ -3145,7 +3141,7 @@ export default function AnimalDetails() {
                   <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        {t.locations.costs.startDate || "Start Date"}
+                        {t.locations.costs.startDate}
                       </label>
                       <input
                         type="date"
@@ -3156,7 +3152,7 @@ export default function AnimalDetails() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        {t.locations.costs.endDate || "End Date"}
+                        {t.locations.costs.endDate}
                       </label>
                       <input
                         type="date"
@@ -3174,7 +3170,7 @@ export default function AnimalDetails() {
                         }}
                         disabled={!costsStartDate && !costsEndDate}
                       >
-                        {t.locations.costs.clearFilter || "Clear Filter"}
+                        {t.locations.costs.clearFilter}
                       </Button>
                     </div>
                   </div>
@@ -3182,7 +3178,7 @@ export default function AnimalDetails() {
                   <div className="mb-6">
                     <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
                       <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                        {t.animals.details.costs?.totalCost || "Total Cost"}
+                        {t.animals.details.costs?.totalCost}
                       </p>
                       <p className="text-2xl font-bold text-blue-900 dark:text-blue-100 mt-1">
                         {animalCostData.totalCost.toLocaleString(localeForNumber, {
@@ -3192,7 +3188,7 @@ export default function AnimalDetails() {
                       </p>
                       <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
                         {animalCostData.consumptionPeriods}{" "}
-                        {t.animals.details.costs?.consumptionPeriods || "consumption periods"}
+                        {t.animals.details.costs?.consumptionPeriods}
                       </p>
                     </div>
                   </div>
@@ -3200,20 +3196,20 @@ export default function AnimalDetails() {
                   {animalCostData.locationBreakdown.length > 0 && (
                     <div className="mb-6">
                       <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                        {t.animals.details.costs?.costByLocation || "Cost by Location"}
+                        {t.animals.details.costs?.costByLocation}
                       </h3>
                       <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                           <thead className="bg-gray-50 dark:bg-gray-900">
                             <tr>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                {t.animals.details.costs?.location || "Location"}
+                                {t.animals.details.costs?.location}
                               </th>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                {t.animals.details.costs?.totalAllocatedCost || "Total Cost"}
+                                {t.animals.details.costs?.totalAllocatedCost}
                               </th>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                {t.animals.details.costs?.consumptionPeriods || "Periods"}
+                                {t.animals.details.costs?.consumptionPeriods}
                               </th>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                 Actions
@@ -3259,29 +3255,29 @@ export default function AnimalDetails() {
                   {allConsumptionDetails.length > 0 && (
                     <div>
                       <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                        {t.animals.details.costs?.consumptionHistory || "Consumption History"}
+                        {t.animals.details.costs?.consumptionHistory}
                       </h3>
                       <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                           <thead className="bg-gray-50 dark:bg-gray-900">
                             <tr>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                {t.locations.costs.date || "Date"}
+                                {t.locations.costs.date}
                               </th>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                {t.animals.details.costs?.location || "Location"}
+                                {t.animals.details.costs?.location}
                               </th>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                {t.animals.details.costs?.itemName || "Item Name"}
+                                {t.animals.details.costs?.itemName}
                               </th>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                {t.animals.details.costs?.quantity || "Quantity"}
+                                {t.animals.details.costs?.quantity}
                               </th>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                {t.animals.details.costs?.costPerAnimal || "Cost per Animal"}
+                                {t.animals.details.costs?.costPerAnimal}
                               </th>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                {t.animals.details.costs?.totalAllocatedCost || "Your Cost"}
+                                {t.animals.details.costs?.totalAllocatedCost}
                               </th>
                             </tr>
                           </thead>
@@ -3324,9 +3320,7 @@ export default function AnimalDetails() {
 
                   {animalCostData.locationBreakdown.length === 0 && (
                     <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                      <p className="font-medium">
-                        {t.animals.details.costs?.noCosts || "No costs recorded"}
-                      </p>
+                      <p className="font-medium">{t.animals.details.costs?.noCosts}</p>
                       <p className="text-sm mt-2">
                         {t.animals.details.costs?.noCostsDescription ||
                           "This animal has no inventory consumption costs recorded yet."}
@@ -3383,10 +3377,10 @@ export default function AnimalDetails() {
               <>
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
                   <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-                    {t.animals.details.tabs.sales || "Vendas"}
+                    {t.animals.details.tabs.sales}
                   </h2>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-                    {t.animals.details.sales?.description || "Histórico de vendas deste animal"}
+                    {t.animals.details.sales?.description}
                   </p>
 
                   {salesWithDetails.length > 0 ? (
@@ -3409,14 +3403,14 @@ export default function AnimalDetails() {
                               variant="ghost"
                               onClick={() => navigate(getSaleViewRoute(sale.id))}
                             >
-                              {t.common.view || "Ver"}
+                              {t.common.view}
                             </Button>
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                             <div>
                               <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                                {t.sales.details.price || "Preço"}
+                                {t.sales.details.price}
                               </p>
                               <p className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-1">
                                 {formatCurrency(saleItem.price)}
@@ -3424,7 +3418,7 @@ export default function AnimalDetails() {
                             </div>
                             <div>
                               <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                                {t.sales.details.weight || "Peso"}
+                                {t.sales.details.weight}
                               </p>
                               <p className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-1">
                                 {saleItem.weight} kg
@@ -3432,7 +3426,7 @@ export default function AnimalDetails() {
                             </div>
                             <div>
                               <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                                {t.sales.details.pricePerKg || "Preço/kg"}
+                                {t.sales.details.pricePerKg}
                               </p>
                               <p className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-1">
                                 {formatCurrency(profitability.pricePerKg)}
@@ -3440,7 +3434,7 @@ export default function AnimalDetails() {
                             </div>
                             <div>
                               <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                                {t.sales.details.profit || "Lucro"}
+                                {t.sales.details.profit}
                               </p>
                               <p
                                 className={`text-lg font-bold mt-1 ${
@@ -3453,7 +3447,7 @@ export default function AnimalDetails() {
                               </p>
                               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                 {profitability.profitMargin.toFixed(2)}%{" "}
-                                {t.sales.details.profitMargin || "margem"}
+                                {t.sales.details.profitMargin}
                               </p>
                             </div>
                           </div>
@@ -3462,7 +3456,7 @@ export default function AnimalDetails() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div>
                                 <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                                  {t.sales.details.cost || "Custo Total"}
+                                  {t.sales.details.cost}
                                 </p>
                                 <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
                                   {formatCurrency(profitability.totalCost)}
@@ -3470,15 +3464,15 @@ export default function AnimalDetails() {
                               </div>
                               <div>
                                 <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                                  {t.sales.details.saleType || "Tipo de Venda"}
+                                  {t.sales.details.saleType}
                                 </p>
                                 <StatusBadge
                                   label={
                                     sale.saleType === "slaughterhouse"
-                                      ? t.sales.saleTypes?.slaughterhouse || "Frigorífico"
+                                      ? t.sales.saleTypes?.slaughterhouse
                                       : sale.saleType === "auction"
-                                        ? t.sales.saleTypes?.auction || "Leilão"
-                                        : t.sales.saleTypes?.otherFarm || "Outra Propriedade"
+                                        ? t.sales.saleTypes?.auction
+                                        : t.sales.saleTypes?.otherFarm
                                   }
                                   variant={
                                     sale.saleType === "slaughterhouse"
@@ -3550,9 +3544,7 @@ export default function AnimalDetails() {
                     </div>
                   ) : (
                     <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                      <p className="font-medium">
-                        {t.animals.details.sales?.noSales || "Nenhuma venda registrada"}
-                      </p>
+                      <p className="font-medium">{t.animals.details.sales?.noSales}</p>
                       <p className="text-sm mt-2">
                         {t.animals.details.sales?.noSalesDescription ||
                           "Este animal ainda não foi vendido."}
