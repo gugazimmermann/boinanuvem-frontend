@@ -26,6 +26,7 @@ import {
 } from "~/types";
 import { mockCompanies } from "~/mocks/companies";
 import { calculateAcquisitionCostPerArroba } from "~/services/acquisitions.service";
+import { FeeManager } from "~/components/dashboard/records/fee-manager";
 
 const ARROBA_KG = 30;
 
@@ -693,74 +694,32 @@ export default function NewAcquisition() {
             </div>
           )}
 
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {((t.acquisitions?.new as Record<string, unknown>)?.fees as string) ||
-                  "Taxas e Encargos"}
-              </label>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={addFee}
-                disabled={isSubmitting}
-                className="text-sm"
-              >
-                +{" "}
-                {((t.acquisitions?.new as Record<string, unknown>)?.addFee as string) ||
-                  "Adicionar Taxa"}
-              </Button>
-            </div>
-            {formData.fees.length > 0 && (
-              <div className="space-y-3">
-                {formData.fees.map((fee) => (
-                  <div
-                    key={fee.id}
-                    className="grid grid-cols-1 md:grid-cols-[2fr_1fr_auto] gap-3 items-end"
-                  >
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        {((t.acquisitions?.new as Record<string, unknown>)?.feeName as string) ||
-                          "Nome da Taxa"}
-                      </label>
-                      <Input
-                        type="text"
-                        value={fee.name}
-                        onChange={(e) => updateFee(fee.id, "name", e.target.value)}
-                        disabled={isSubmitting}
-                        placeholder={
-                          ((t.acquisitions?.new as Record<string, unknown>)
-                            ?.feeNamePlaceholder as string) || "Ex: Taxa de Transporte"
-                        }
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        {((t.acquisitions?.new as Record<string, unknown>)?.feeAmount as string) ||
-                          "Valor"}
-                      </label>
-                      <Input
-                        type="text"
-                        value={fee.amount}
-                        onChange={(e) => updateFee(fee.id, "amount", e.target.value)}
-                        disabled={isSubmitting}
-                        placeholder="0,00"
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => removeFee(fee.id)}
-                      disabled={isSubmitting}
-                      className="mb-0"
-                    >
-                      {t.common.remove || "Remover"}
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <FeeManager
+            fees={formData.fees}
+            onAddFee={addFee}
+            onRemoveFee={removeFee}
+            onUpdateFee={updateFee}
+            disabled={isSubmitting}
+            feesLabel={
+              ((t.acquisitions?.new as Record<string, unknown>)?.fees as string) ||
+              "Taxas e Encargos"
+            }
+            addFeeLabel={
+              ((t.acquisitions?.new as Record<string, unknown>)?.addFee as string) ||
+              "Adicionar Taxa"
+            }
+            feeNameLabel={
+              ((t.acquisitions?.new as Record<string, unknown>)?.feeName as string) ||
+              "Nome da Taxa"
+            }
+            feeNamePlaceholder={
+              ((t.acquisitions?.new as Record<string, unknown>)?.feeNamePlaceholder as string) ||
+              "Ex: Taxa de Transporte"
+            }
+            feeAmountLabel={
+              ((t.acquisitions?.new as Record<string, unknown>)?.feeAmount as string) || "Valor"
+            }
+          />
 
           <div>
             <div className="flex items-center justify-between mb-4">

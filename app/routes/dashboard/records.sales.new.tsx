@@ -17,6 +17,7 @@ import {
   SalePaymentMethod as SalePaymentMethodEnum,
 } from "~/types";
 import { mockCompanies } from "~/mocks/companies";
+import { FeeManager } from "~/components/dashboard/records/fee-manager";
 
 export function meta() {
   return [
@@ -585,66 +586,13 @@ export default function NewSale() {
             </div>
           )}
 
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t.sales.form.fees}
-              </label>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={addFee}
-                disabled={isSubmitting}
-                className="text-sm"
-              >
-                + {t.sales.form.addFee}
-              </Button>
-            </div>
-            {formData.fees.length > 0 && (
-              <div className="space-y-3">
-                {formData.fees.map((fee) => (
-                  <div
-                    key={fee.id}
-                    className="grid grid-cols-1 md:grid-cols-[2fr_1fr_auto] gap-3 items-end"
-                  >
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        {t.sales.form.feeName}
-                      </label>
-                      <Input
-                        type="text"
-                        value={fee.name}
-                        onChange={(e) => updateFee(fee.id, "name", e.target.value)}
-                        disabled={isSubmitting}
-                        placeholder={t.sales.form.feeNamePlaceholder}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        {t.sales.form.feeAmount}
-                      </label>
-                      <Input
-                        type="text"
-                        value={fee.amount}
-                        onChange={(e) => updateFee(fee.id, "amount", e.target.value)}
-                        disabled={isSubmitting}
-                        placeholder="0,00"
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => removeFee(fee.id)}
-                      disabled={isSubmitting}
-                      className="mb-0"
-                    >
-                      {t.common.remove}
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <FeeManager
+            fees={formData.fees}
+            onAddFee={addFee}
+            onRemoveFee={removeFee}
+            onUpdateFee={updateFee}
+            disabled={isSubmitting}
+          />
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

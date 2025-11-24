@@ -1,9 +1,5 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale/pt-BR";
-import { enUS } from "date-fns/locale/en-US";
-import { es } from "date-fns/locale/es";
 import {
   Table,
   StatusBadge,
@@ -13,11 +9,11 @@ import {
   type TableColumn,
   type TableAction,
   type TableFilter,
-  type SortDirection,
 } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
 import { formatCurrency } from "~/utils/currency";
+import { formatDate } from "~/utils/formatting";
 import { deleteAcquisition, getAcquisitionsByCompanyId } from "~/services/acquisitions.service";
 import { getSupplierById } from "~/services/suppliers.service";
 import { getPropertyById, getPropertiesByCompanyId } from "~/services/properties.service";
@@ -28,6 +24,11 @@ import { getTotalFees } from "~/utils/fees";
 import { mockCompanies } from "~/mocks/companies";
 import { ROUTES, getAcquisitionEditRoute, getAcquisitionViewRoute } from "~/routes.config";
 import { usePermissions } from "~/utils/permissions";
+import { useRecordList } from "~/hooks/use-record-list";
+import { useAlert } from "~/hooks/use-alert";
+import { useDeleteHandler } from "~/hooks/use-delete-handler";
+import { DateRangeFilter } from "~/components/dashboard/records/date-range-filter";
+import { PropertyFilter } from "~/components/dashboard/records/property-filter";
 
 export function meta() {
   return [
@@ -51,40 +52,9 @@ export default function Acquisitions() {
   const { canAdd, canEdit, canRemove } = usePermissions();
   const company = mockCompanies[0];
   const companyId = company?.id || "";
-  const [acquisitions, setAcquisitions] = useState<Acquisition[]>([
-    ...getAcquisitionsByCompanyId(companyId),
-  ]);
-  const [sortState, setSortState] = useState<{
-    column: string | null;
-    direction: SortDirection;
-  }>({ column: "acquisitionDate", direction: "desc" });
-
-  const [searchValue, setSearchValue] = useState("");
-  const [propertyFilter, setPropertyFilter] = useState<string>("all");
-  const [supplierFilter, setSupplierFilter] = useState<string>("all");
-  const [startDate, setStartDate] = useState<string>("");
-  const [endDate, setEndDate] = useState<string>("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [selectedAcquisition, setSelectedAcquisition] = useState<Acquisition | null>(null);
-  const [alertMessage, setAlertMessage] = useState<{
-    title: string;
-    variant: "success" | "error" | "warning" | "info";
-  } | null>(null);
-  const itemsPerPage = 10;
-
-  const dateLocale = useMemo(() => {
-    switch (language) {
-      case "en":
-        return enUS;
-      case "es":
-        return es;
-      default:
-        return ptBR;
-    }
-  }, [language]);
-
-  const localeForCurrency = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
+  const [acquisitions, setAcquisitions] = useState<Acquisition[]>(() =>
+    getAcquisitionsByCompanyId(companyId)
+  );
   const properties = useMemo(
     () => (company ? getPropertiesByCompanyId(company.id) : []),
     [company]
@@ -100,52 +70,54 @@ export default function Acquisitions() {
       .filter((s) => s !== undefined);
   }, [acquisitions]);
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const dateFormat =
-      language === "en" ? "MM/dd/yyyy" : language === "es" ? "dd/MM/yyyy" : "dd/MM/yyyy";
-    return format(date, dateFormat, { locale: dateLocale });
-  };
+  const [supplierFilter, setSupplierFilter] = useState<string>("all");
 
-  const showAlert = (
-    title: string,
-    variant: "success" | "error" | "warning" | "info" = "success"
-  ) => {
-    setAlertMessage({ title, variant });
-    setTimeout(() => {
-      setAlertMessage(null);
-    }, 3000);
-  };
+  const { alertMessage, showAlert } = useAlert();
 
-  const handleDeleteClick = (acquisition: Acquisition) => {
-    setSelectedAcquisition(acquisition);
-    setIsDeleteModalOpen(true);
-  };
-
-  const handleDeleteAcquisition = async () => {
-    if (!selectedAcquisition) return;
-    const success = deleteAcquisition(selectedAcquisition.id);
-    if (success) {
-      setAcquisitions(acquisitions.filter((a) => a.id !== selectedAcquisition.id));
-      showAlert(
+  const { handleDeleteClick, handleDelete, isDeleteModalOpen, handleCloseModal } = useDeleteHandler(
+    {
+      onDelete: (acquisition: Acquisition) => {
+        const success = deleteAcquisition(acquisition.id);
+        if (success) {
+          // Update the local state to reflect the deletion
+          setAcquisitions((prev) => prev.filter((a) => a.id !== acquisition.id));
+          return true;
+        }
+        return false;
+      },
+      onSuccess: () => {
+        showAlert(
+          (((t.acquisitions as Record<string, unknown>)?.success as Record<string, unknown>)
+            ?.deleted as string) || "Aquisição excluída com sucesso",
+          "success"
+        );
+      },
+      onError: () => {
+        showAlert(
+          (((t.acquisitions as Record<string, unknown>)?.errors as Record<string, unknown>)
+            ?.deleteFailed as string) || "Erro ao excluir aquisição",
+          "error"
+        );
+      },
+      showAlert,
+      successMessage:
         (((t.acquisitions as Record<string, unknown>)?.success as Record<string, unknown>)
           ?.deleted as string) || "Aquisição excluída com sucesso",
-        "success"
-      );
-    } else {
-      showAlert(
+      errorMessage:
         (((t.acquisitions as Record<string, unknown>)?.errors as Record<string, unknown>)
           ?.deleteFailed as string) || "Erro ao excluir aquisição",
-        "error"
-      );
     }
-    setSelectedAcquisition(null);
-  };
+  );
 
-  const filteredData = acquisitions.filter((acquisition) => {
-    const matchesSearch =
-      !searchValue ||
-      (() => {
+  const recordList = useRecordList({
+    data: acquisitions,
+    itemsPerPage: 10,
+    initialSortColumn: "acquisitionDate",
+    initialSortDirection: "desc",
+    language,
+    customFilter: (acquisition, searchValue, propertyFilter, dateRange) => {
+      // Search filter
+      if (searchValue) {
         const searchLower = searchValue.toLowerCase();
         const property = getPropertyById(acquisition.propertyId);
         const propertyName = property?.name?.toLowerCase() || "";
@@ -159,244 +131,233 @@ export default function Acquisitions() {
           .join(" ")
           .toLowerCase();
         const totalPrice = formatCurrency(acquisition.totalPrice, language).toLowerCase();
+        const observation = acquisition.observation?.toLowerCase() || "";
 
-        return (
-          propertyName.includes(searchLower) ||
-          supplierName.includes(searchLower) ||
-          animalCodes.includes(searchLower) ||
-          totalPrice.includes(searchLower) ||
-          acquisition.observation?.toLowerCase().includes(searchLower) ||
-          false
-        );
-      })();
-
-    const matchesProperty = propertyFilter === "all" || acquisition.propertyId === propertyFilter;
-    const matchesSupplier = supplierFilter === "all" || acquisition.supplierId === supplierFilter;
-
-    let matchesDateRange = true;
-    if (startDate || endDate) {
-      const acquisitionDate = new Date(acquisition.acquisitionDate);
-      if (startDate) {
-        const start = new Date(startDate);
-        start.setHours(0, 0, 0, 0);
-        if (acquisitionDate < start) {
-          matchesDateRange = false;
+        const searchText = `${propertyName} ${supplierName} ${animalCodes} ${totalPrice} ${observation}`;
+        if (!searchText.includes(searchLower)) {
+          return false;
         }
       }
-      if (endDate && matchesDateRange) {
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-        if (acquisitionDate > end) {
-          matchesDateRange = false;
+
+      // Property filter
+      if (propertyFilter !== "all" && acquisition.propertyId !== propertyFilter) {
+        return false;
+      }
+
+      // Supplier filter
+      if (supplierFilter !== "all" && acquisition.supplierId !== supplierFilter) {
+        return false;
+      }
+
+      // Date range filter
+      if (dateRange.startDate || dateRange.endDate) {
+        const acquisitionDate = new Date(acquisition.acquisitionDate);
+        if (dateRange.startDate) {
+          const start = new Date(dateRange.startDate);
+          start.setHours(0, 0, 0, 0);
+          if (acquisitionDate < start) {
+            return false;
+          }
+        }
+        if (dateRange.endDate) {
+          const end = new Date(dateRange.endDate);
+          end.setHours(23, 59, 59, 999);
+          if (acquisitionDate > end) {
+            return false;
+          }
         }
       }
-    }
 
-    return matchesSearch && matchesProperty && matchesSupplier && matchesDateRange;
+      return true;
+    },
+    dateField: "acquisitionDate",
+    propertyField: "propertyId",
+    properties,
   });
 
-  const sortedData = [...filteredData].sort((a, b) => {
-    if (!sortState.column || !sortState.direction) {
-      return 0;
-    }
+  const columns: TableColumn<Acquisition>[] = useMemo(
+    () => [
+      {
+        key: "acquisitionDate",
+        label:
+          (((t.acquisitions as Record<string, unknown>)?.table as Record<string, unknown>)
+            ?.acquisitionDate as string) || "Data da Aquisição",
+        sortable: true,
+        render: (_, row) => (
+          <span className="text-gray-700 dark:text-gray-300">
+            {formatDate(row.acquisitionDate, language)}
+          </span>
+        ),
+      },
+      {
+        key: "supplier",
+        label:
+          (((t.acquisitions as Record<string, unknown>)?.table as Record<string, unknown>)
+            ?.supplier as string) || "Fornecedor",
+        sortable: false,
+        render: (_, row) => {
+          const supplier = getSupplierById(row.supplierId);
+          return <span className="text-gray-700 dark:text-gray-300">{supplier?.name || "-"}</span>;
+        },
+      },
+      {
+        key: "animals",
+        label:
+          (((t.acquisitions as Record<string, unknown>)?.table as Record<string, unknown>)
+            ?.animals as string) || "Animais",
+        sortable: false,
+        render: (_, row) => {
+          const animalCodes = row.acquisitionItems
+            .map((item) => {
+              const animal = getAnimalById(item.animalId);
+              return animal?.code || "";
+            })
+            .join(", ");
+          return <span className="text-gray-700 dark:text-gray-300">{animalCodes || "-"}</span>;
+        },
+      },
+      {
+        key: "totalPrice",
+        label:
+          (((t.acquisitions as Record<string, unknown>)?.table as Record<string, unknown>)
+            ?.totalPrice as string) || "Valor Total",
+        sortable: true,
+        render: (_, row) => {
+          const totalFees = getTotalFees(
+            row.fees,
+            row.transportationFee,
+            undefined,
+            row.handlingFee
+          );
+          const totalCost = row.totalPrice + totalFees;
+          return (
+            <span className="text-gray-700 dark:text-gray-300 font-medium">
+              {formatCurrency(totalCost, language)}
+            </span>
+          );
+        },
+      },
+      {
+        key: "costPerArroba",
+        label:
+          (((t.acquisitions as Record<string, unknown>)?.table as Record<string, unknown>)
+            ?.costPerArroba as string) || "Custo por Arroba",
+        sortable: false,
+        render: (_, row) => {
+          if (row.acquisitionItems.length === 0) return <span>-</span>;
+          const avgCostPerArroba =
+            row.acquisitionItems.reduce((sum, item) => sum + item.costPerArroba, 0) /
+            row.acquisitionItems.length;
+          return (
+            <span className="text-gray-700 dark:text-gray-300">
+              {formatCurrency(avgCostPerArroba, language)}
+            </span>
+          );
+        },
+      },
+      {
+        key: "paymentMethod",
+        label:
+          (((t.acquisitions as Record<string, unknown>)?.table as Record<string, unknown>)
+            ?.paymentMethod as string) || "Pagamento",
+        sortable: false,
+        render: (_, row) => {
+          const methodLabel =
+            row.paymentMethod === AcquisitionPaymentMethod.CASH_FLOW
+              ? ((
+                  (t.acquisitions as Record<string, unknown>)?.paymentMethods as Record<
+                    string,
+                    unknown
+                  >
+                )?.cashFlow as string) || "À Vista"
+              : ((
+                  (t.acquisitions as Record<string, unknown>)?.paymentMethods as Record<
+                    string,
+                    unknown
+                  >
+                )?.accountsPayable as string) || "A Pagar";
 
-    let aValue: unknown = a[sortState.column];
-    let bValue: unknown = b[sortState.column];
-
-    if (sortState.column === "acquisitionDate") {
-      aValue = new Date(a.acquisitionDate).getTime();
-      bValue = new Date(b.acquisitionDate).getTime();
-    }
-
-    if (aValue == null && bValue == null) return 0;
-    if (aValue == null) return 1;
-    if (bValue == null) return -1;
-
-    let comparison = 0;
-    if (typeof aValue === "string" && typeof bValue === "string") {
-      comparison = aValue.localeCompare(bValue, localeForCurrency, {
-        sensitivity: "base",
-      });
-    } else if (typeof aValue === "number" && typeof bValue === "number") {
-      comparison = aValue - bValue;
-    } else {
-      comparison = String(aValue).localeCompare(String(bValue), localeForCurrency);
-    }
-
-    return sortState.direction === "asc" ? comparison : -comparison;
-  });
-
-  const paginatedData = sortedData.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+          if (row.paymentMethod === AcquisitionPaymentMethod.CASH_FLOW) {
+            return <StatusBadge label={methodLabel} variant="success" />;
+          } else {
+            return (
+              <div className="inline px-3 py-1 text-sm font-normal rounded-full text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30">
+                {methodLabel}
+              </div>
+            );
+          }
+        },
+      },
+      {
+        key: "actions",
+        label: "",
+        headerClassName: "relative",
+        render: (_, row) => (
+          <TableActionButtons
+            onEdit={() => {
+              navigate(getAcquisitionEditRoute(row.id));
+            }}
+            onDelete={() => {
+              handleDeleteClick(row);
+            }}
+            canEdit={canEdit("records", "acquisitions")}
+            canDelete={canRemove("records", "acquisitions")}
+          />
+        ),
+      },
+    ],
+    [t, language, navigate, handleDeleteClick, canEdit, canRemove]
   );
 
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-
-  const columns: TableColumn<Acquisition>[] = [
-    {
-      key: "acquisitionDate",
-      label:
-        (((t.acquisitions as Record<string, unknown>)?.table as Record<string, unknown>)
-          ?.acquisitionDate as string) || "Data da Aquisição",
-      sortable: true,
-      render: (_, row) => (
-        <span className="text-gray-700 dark:text-gray-300">{formatDate(row.acquisitionDate)}</span>
-      ),
-    },
-    {
-      key: "supplier",
-      label:
-        (((t.acquisitions as Record<string, unknown>)?.table as Record<string, unknown>)
-          ?.supplier as string) || "Fornecedor",
-      sortable: false,
-      render: (_, row) => {
-        const supplier = getSupplierById(row.supplierId);
-        return <span className="text-gray-700 dark:text-gray-300">{supplier?.name || "-"}</span>;
-      },
-    },
-    {
-      key: "animals",
-      label:
-        (((t.acquisitions as Record<string, unknown>)?.table as Record<string, unknown>)
-          ?.animals as string) || "Animais",
-      sortable: false,
-      render: (_, row) => {
-        const animalCodes = row.acquisitionItems
-          .map((item) => {
-            const animal = getAnimalById(item.animalId);
-            return animal?.code || "";
-          })
-          .join(", ");
-        return <span className="text-gray-700 dark:text-gray-300">{animalCodes || "-"}</span>;
-      },
-    },
-    {
-      key: "totalPrice",
-      label:
-        (((t.acquisitions as Record<string, unknown>)?.table as Record<string, unknown>)
-          ?.totalPrice as string) || "Valor Total",
-      sortable: true,
-      render: (_, row) => {
-        const totalFees = getTotalFees(row.fees, row.transportationFee, undefined, row.handlingFee);
-        const totalCost = row.totalPrice + totalFees;
-        return (
-          <span className="text-gray-700 dark:text-gray-300 font-medium">
-            {formatCurrency(totalCost, language)}
-          </span>
-        );
-      },
-    },
-    {
-      key: "costPerArroba",
-      label:
-        (((t.acquisitions as Record<string, unknown>)?.table as Record<string, unknown>)
-          ?.costPerArroba as string) || "Custo por Arroba",
-      sortable: false,
-      render: (_, row) => {
-        if (row.acquisitionItems.length === 0) return <span>-</span>;
-        const avgCostPerArroba =
-          row.acquisitionItems.reduce((sum, item) => sum + item.costPerArroba, 0) /
-          row.acquisitionItems.length;
-        return (
-          <span className="text-gray-700 dark:text-gray-300">
-            {formatCurrency(avgCostPerArroba, language)}
-          </span>
-        );
-      },
-    },
-    {
-      key: "paymentMethod",
-      label:
-        (((t.acquisitions as Record<string, unknown>)?.table as Record<string, unknown>)
-          ?.paymentMethod as string) || "Pagamento",
-      sortable: false,
-      render: (_, row) => {
-        const methodLabel =
-          row.paymentMethod === AcquisitionPaymentMethod.CASH_FLOW
-            ? ((
-                (t.acquisitions as Record<string, unknown>)?.paymentMethods as Record<
-                  string,
-                  unknown
+  const headerActions: TableAction[] = useMemo(
+    () =>
+      canAdd("records", "acquisitions")
+        ? [
+            {
+              label:
+                ((t.acquisitions?.new as Record<string, unknown>)?.addButton as string) ||
+                "Adicionar Aquisição",
+              variant: "primary",
+              leftIcon: (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="w-5 h-5"
                 >
-              )?.cashFlow as string) || "À Vista"
-            : ((
-                (t.acquisitions as Record<string, unknown>)?.paymentMethods as Record<
-                  string,
-                  unknown
-                >
-              )?.accountsPayable as string) || "A Pagar";
-
-        if (row.paymentMethod === AcquisitionPaymentMethod.CASH_FLOW) {
-          return <StatusBadge label={methodLabel} variant="success" />;
-        } else {
-          return (
-            <div className="inline px-3 py-1 text-sm font-normal rounded-full text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30">
-              {methodLabel}
-            </div>
-          );
-        }
-      },
-    },
-    {
-      key: "actions",
-      label: "",
-      headerClassName: "relative",
-      render: (_, row) => (
-        <TableActionButtons
-          onEdit={() => {
-            navigate(getAcquisitionEditRoute(row.id));
-          }}
-          onDelete={() => {
-            handleDeleteClick(row);
-          }}
-          canEdit={canEdit("records", "acquisitions")}
-          canDelete={canRemove("records", "acquisitions")}
-        />
-      ),
-    },
-  ];
-
-  const headerActions: TableAction[] = canAdd("records", "acquisitions")
-    ? [
-        {
-          label:
-            ((t.acquisitions?.new as Record<string, unknown>)?.addButton as string) ||
-            "Adicionar Aquisição",
-          variant: "primary",
-          leftIcon: (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className="w-5 h-5"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          ),
-          onClick: () => navigate(ROUTES.ACQUISITIONS_NEW),
-        },
-      ]
-    : [];
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              ),
+              onClick: () => navigate(ROUTES.ACQUISITIONS_NEW),
+            },
+          ]
+        : [],
+    [canAdd, t, navigate]
+  );
 
   const filters: TableFilter[] = [];
 
-  const handleSort = (column: string, direction: SortDirection) => {
-    setSortState({ column, direction });
-    setCurrentPage(1);
+  const handleSupplierFilterChange = (value: string) => {
+    setSupplierFilter(value);
+    recordList.setCurrentPage(1);
+  };
+
+  const clearAllFilters = () => {
+    recordList.clearAllFilters();
+    setSupplierFilter("all");
   };
 
   return (
     <div>
       <Table<Acquisition>
         columns={columns}
-        data={paginatedData}
+        data={recordList.paginatedData}
         header={{
           title: ((t.acquisitions as Record<string, unknown>)?.title as string) || "Aquisições",
           badge: {
@@ -404,7 +365,7 @@ export default function Acquisitions() {
               (
                 ((t.acquisitions as Record<string, unknown>)?.badge as Record<string, unknown>)
                   ?.acquisitions as ((n: number) => string) | undefined
-              )?.(filteredData.length) || `${filteredData.length} aquisições`,
+              )?.(recordList.filteredData.length) || `${recordList.filteredData.length} aquisições`,
             variant: "primary",
           },
           description:
@@ -415,24 +376,11 @@ export default function Acquisitions() {
         filters={filters}
         rightContent={
           <div className="flex items-center gap-2 flex-wrap">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-              {t.reproductiveIndexes.propertyLabel}:
-            </label>
-            <select
-              value={propertyFilter}
-              onChange={(e) => {
-                setPropertyFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-            >
-              <option value="all">{t.reproductiveIndexes.allProperties}</option>
-              {properties.map((property) => (
-                <option key={property.id} value={property.id}>
-                  {property.name}
-                </option>
-              ))}
-            </select>
+            <PropertyFilter
+              value={recordList.propertyFilter}
+              onChange={recordList.setPropertyFilter}
+              properties={properties}
+            />
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap ml-2">
               {(((t.acquisitions as Record<string, unknown>)?.filters as Record<string, unknown>)
                 ?.supplier as string) || "Fornecedor"}
@@ -440,10 +388,7 @@ export default function Acquisitions() {
             </label>
             <select
               value={supplierFilter}
-              onChange={(e) => {
-                setSupplierFilter(e.target.value);
-                setCurrentPage(1);
-              }}
+              onChange={(e) => handleSupplierFilterChange(e.target.value)}
               className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
             >
               <option value="all">
@@ -456,33 +401,11 @@ export default function Acquisitions() {
                 </option>
               ))}
             </select>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap ml-2">
-              {(((t.acquisitions as Record<string, unknown>)?.filters as Record<string, unknown>)
-                ?.startDate as string) || "Data Inicial"}
-              :
-            </label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => {
-                setStartDate(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="px-3 py-2 bg-white border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200 text-sm"
-            />
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-              {(((t.acquisitions as Record<string, unknown>)?.filters as Record<string, unknown>)
-                ?.endDate as string) || "Data Final"}
-              :
-            </label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => {
-                setEndDate(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="px-3 py-2 bg-white border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200 text-sm"
+            <DateRangeFilter
+              startDate={recordList.startDate}
+              endDate={recordList.endDate}
+              onStartDateChange={recordList.setStartDate}
+              onEndDateChange={recordList.setEndDate}
             />
           </div>
         }
@@ -490,37 +413,31 @@ export default function Acquisitions() {
           placeholder:
             ((t.acquisitions as Record<string, unknown>)?.searchPlaceholder as string) ||
             "Buscar aquisições...",
-          value: searchValue,
-          onChange: setSearchValue,
+          value: recordList.searchValue,
+          onChange: recordList.setSearchValue,
         }}
         pagination={{
-          currentPage,
-          totalPages: totalPages || 1,
-          onPageChange: setCurrentPage,
+          currentPage: recordList.currentPage,
+          totalPages: recordList.totalPages || 1,
+          onPageChange: recordList.setCurrentPage,
           showInfo: false,
         }}
-        sortState={sortState}
-        onSort={handleSort}
+        sortState={recordList.sortState}
+        onSort={recordList.handleSort}
         onRowClick={(row) => navigate(getAcquisitionViewRoute(row.id))}
         emptyState={{
           title:
             (((t.acquisitions as Record<string, unknown>)?.emptyState as Record<string, unknown>)
               ?.title as string) || "Nenhuma aquisição encontrada",
-          description: searchValue
+          description: recordList.searchValue
             ? (
                 ((t.acquisitions as Record<string, unknown>)?.emptyState as Record<string, unknown>)
                   ?.descriptionWithSearch as ((s: string) => string) | undefined
-              )?.(searchValue) ||
-              `Sua busca "${searchValue}" não encontrou aquisições. Tente novamente ou limpe a busca.`
+              )?.(recordList.searchValue) ||
+              `Sua busca "${recordList.searchValue}" não encontrou aquisições. Tente novamente ou limpe a busca.`
             : (((t.acquisitions as Record<string, unknown>)?.emptyState as Record<string, unknown>)
                 ?.description as string) || "Comece adicionando uma nova aquisição",
-          onClearSearch: () => {
-            setSearchValue("");
-            setPropertyFilter("all");
-            setSupplierFilter("all");
-            setStartDate("");
-            setEndDate("");
-          },
+          onClearSearch: clearAllFilters,
           clearSearchLabel: t.common?.clearSearch || "Limpar busca",
           onAddNew: () => navigate(ROUTES.ACQUISITIONS_NEW),
           addNewLabel:
@@ -537,11 +454,8 @@ export default function Acquisitions() {
 
       <ConfirmationModal
         isOpen={isDeleteModalOpen}
-        onClose={() => {
-          setIsDeleteModalOpen(false);
-          setSelectedAcquisition(null);
-        }}
-        onConfirm={handleDeleteAcquisition}
+        onClose={handleCloseModal}
+        onConfirm={handleDelete}
         title={
           (((t.acquisitions as Record<string, unknown>)?.deleteModal as Record<string, unknown>)
             ?.title as string) || "Excluir Aquisição"

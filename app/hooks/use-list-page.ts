@@ -11,6 +11,7 @@ export interface UseListPageOptions<T> {
   language?: Language;
   searchFields?: Array<keyof T | ((item: T) => string)>;
   customFilter?: (item: T, searchValue: string, activeFilter: string) => boolean;
+  dateFields?: Array<keyof T | string>;
 }
 
 export function useListPage<T extends Record<string, unknown>>(options: UseListPageOptions<T>) {
@@ -22,6 +23,7 @@ export function useListPage<T extends Record<string, unknown>>(options: UseListP
     language = "pt",
     searchFields = [],
     customFilter,
+    dateFields = [],
   } = options;
 
   const [searchValue, setSearchValue] = useState("");
@@ -83,6 +85,16 @@ export function useListPage<T extends Record<string, unknown>>(options: UseListP
         bValue = (bValue as { value?: number }).value;
       }
 
+      // Handle date fields - convert to timestamps for proper numeric comparison
+      if (dateFields.includes(sortState.column!) && (aValue || bValue)) {
+        if (typeof aValue === "string") {
+          aValue = new Date(aValue).getTime();
+        }
+        if (typeof bValue === "string") {
+          bValue = new Date(bValue).getTime();
+        }
+      }
+
       if (aValue == null && bValue == null) return 0;
       if (aValue == null) return 1;
       if (bValue == null) return -1;
@@ -100,7 +112,7 @@ export function useListPage<T extends Record<string, unknown>>(options: UseListP
 
       return sortState.direction === "asc" ? comparison : -comparison;
     });
-  }, [filteredData, sortState, localeForDateTime]);
+  }, [filteredData, sortState, localeForDateTime, dateFields]);
 
   const paginatedData = useMemo(() => {
     return sortedData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
