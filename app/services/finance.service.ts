@@ -2,9 +2,6 @@ import type { CashFlow, AccountsPayable, AccountsReceivable } from "~/types";
 import { AccountsPayableStatus, AccountsReceivableStatus } from "~/types";
 import { parseISO } from "date-fns";
 
-/**
- * Get transactions by status
- */
 export function getTransactionsByStatus<T extends AccountsPayable | AccountsReceivable>(
   transactions: T[],
   status: string
@@ -13,9 +10,6 @@ export function getTransactionsByStatus<T extends AccountsPayable | AccountsRece
   return transactions.filter((t) => t.status === status);
 }
 
-/**
- * Get transactions by type (for cash flow)
- */
 export function getCashFlowByType(
   transactions: CashFlow[],
   type: "all" | "income" | "expense"
@@ -24,9 +18,6 @@ export function getCashFlowByType(
   return transactions.filter((t) => t.type === type);
 }
 
-/**
- * Get overdue transactions
- */
 export function getOverdueTransactions<T extends AccountsPayable | AccountsReceivable>(
   transactions: T[]
 ): T[] {
@@ -47,9 +38,6 @@ export function getOverdueTransactions<T extends AccountsPayable | AccountsRecei
   });
 }
 
-/**
- * Get upcoming transactions within a date range
- */
 export function getUpcomingTransactionsByDays<T extends AccountsPayable | AccountsReceivable>(
   transactions: T[],
   days: number = 30
@@ -74,9 +62,6 @@ export function getUpcomingTransactionsByDays<T extends AccountsPayable | Accoun
   });
 }
 
-/**
- * Calculate status based on due date and payment
- */
 export function calculateTransactionStatus(
   dueDate: string,
   paidAmount?: number,
@@ -98,9 +83,6 @@ export function calculateTransactionStatus(
   return AccountsPayableStatus.PARTIAL;
 }
 
-/**
- * Aggregate transactions by month
- */
 export function aggregateByMonth<T extends CashFlow | AccountsPayable | AccountsReceivable>(
   transactions: T[]
 ): Record<string, T[]> {
@@ -108,7 +90,7 @@ export function aggregateByMonth<T extends CashFlow | AccountsPayable | Accounts
 
   transactions.forEach((transaction) => {
     const dateStr = ("date" in transaction ? transaction.date : transaction.dueDate) as string;
-    const monthKey = dateStr.substring(0, 7); // YYYY-MM
+    const monthKey = dateStr.substring(0, 7);
 
     if (!aggregated[monthKey]) {
       aggregated[monthKey] = [];
@@ -120,9 +102,6 @@ export function aggregateByMonth<T extends CashFlow | AccountsPayable | Accounts
   return aggregated;
 }
 
-/**
- * Aggregate transactions by category
- */
 export function aggregateByCategory(transactions: CashFlow[]): Record<string, CashFlow[]> {
   const aggregated: Record<string, CashFlow[]> = {};
 

@@ -62,9 +62,6 @@ export function isAnimalPregnant(animalId: string): boolean {
   return breedings.some((b) => b.confirmed === true);
 }
 
-/**
- * Get the most recent confirmed breeding for an animal
- */
 export function getMostRecentConfirmedBreeding(animalId: string): Breeding | undefined {
   const breedings = getBreedingsByAnimalId(animalId);
   const confirmedBreedings = breedings.filter((b) => b.confirmed === true);
@@ -82,7 +79,6 @@ export function getPregnantAnimals(companyId: string): string[] {
   const breedings = getBreedingsByCompanyId(companyId);
   const uniqueAnimalIds = new Set<string>();
 
-  // Only iterate once, collecting confirmed breeding animal IDs
   breedings.forEach((breeding) => {
     if (breeding.confirmed === true) {
       uniqueAnimalIds.add(breeding.animalId);
@@ -129,7 +125,6 @@ export function getPregnantCowsByPropertyId(propertyId: string): string[] {
   const breedings = getBreedingsByPropertyId(propertyId);
   const uniqueAnimalIds = new Set<string>();
 
-  // Only iterate once, collecting confirmed breeding animal IDs
   breedings.forEach((breeding) => {
     if (breeding.confirmed === true) {
       uniqueAnimalIds.add(breeding.animalId);
@@ -139,9 +134,6 @@ export function getPregnantCowsByPropertyId(propertyId: string): string[] {
   return Array.from(uniqueAnimalIds);
 }
 
-/**
- * Enrich a breeding with related animal, property, and birth data
- */
 export function enrichBreedingWithAnimalData(breeding: Breeding): Breeding & {
   animal?: Animal;
   property?: ReturnType<typeof getPropertyById>;

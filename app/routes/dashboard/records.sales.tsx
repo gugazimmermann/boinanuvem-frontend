@@ -64,7 +64,6 @@ export default function Sales() {
       onDelete: (sale: Sale) => {
         const success = deleteSale(sale.id);
         if (success) {
-          // Update the local state to reflect the deletion
           setSales((prev) => prev.filter((s) => s.id !== sale.id));
           return true;
         }
@@ -89,7 +88,6 @@ export default function Sales() {
     initialSortDirection: "desc",
     language,
     customFilter: (sale, searchValue, propertyFilter, dateRange) => {
-      // Search filter
       if (searchValue) {
         const searchLower = searchValue.toLowerCase();
         const property = getPropertyById(sale.propertyId);
@@ -112,12 +110,10 @@ export default function Sales() {
         }
       }
 
-      // Property filter
       if (propertyFilter !== "all" && sale.propertyId !== propertyFilter) {
         return false;
       }
 
-      // Date range filter
       if (dateRange.startDate || dateRange.endDate) {
         const saleDate = new Date(sale.saleDate);
         if (dateRange.startDate) {

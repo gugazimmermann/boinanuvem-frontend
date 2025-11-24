@@ -87,7 +87,6 @@ export default function AccountsPayableDetails() {
       fileIds: fileIds.length > 0 ? fileIds : undefined,
     });
 
-    // Refresh observations
     const updatedObservations = getAccountsPayableObservationsByAccountsPayableId(transaction.id);
     setObservations(updatedObservations);
   };

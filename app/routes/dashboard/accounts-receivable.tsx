@@ -75,7 +75,6 @@ export default function AccountsReceivable() {
 
   const { yearOptions, monthOptions } = useDateFilters();
 
-  // Use finance list hook
   const {
     searchValue,
     setSearchValue,

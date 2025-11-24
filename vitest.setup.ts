@@ -19,8 +19,8 @@ if (typeof globalWindow.window === "undefined") {
   (globalWindow as { window?: GlobalWindow }).window = globalThis as unknown as GlobalWindow;
 }
 
-// Mock requestIdleCallback for React's scheduler (if not already available)
-// React uses this for scheduling updates, so we need to provide a fallback
+
+
 const win = (globalWindow.window || globalThis) as GlobalWindow;
 if (typeof win.requestIdleCallback === "undefined") {
   win.requestIdleCallback = vi.fn((callback: IdleRequestCallback) => {
@@ -62,8 +62,8 @@ global.ResizeObserver = class ResizeObserver {
   unobserve() {}
 } as unknown as typeof ResizeObserver;
 
-// Suppress jsdom warnings about requestSubmit not being implemented
-// and React Router HydrateFallback warnings in test environment
+
+
 const originalError = console.error;
 console.error = (...args: unknown[]) => {
   const message = typeof args[0] === "string" ? args[0] : "";

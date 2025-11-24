@@ -18,7 +18,6 @@ export function useAnimalSearch({ companyId, gender, t }: UseAnimalSearchOptions
   const filteredAnimals = useMemo(() => {
     let animals = allAnimals;
 
-    // Filter by gender if specified
     if (gender) {
       animals = animals.filter((animal) => {
         const birth = getBirthByAnimalId(animal.id);
@@ -26,7 +25,6 @@ export function useAnimalSearch({ companyId, gender, t }: UseAnimalSearchOptions
       });
     }
 
-    // Filter by search value
     if (!searchValue.trim()) return animals;
     const searchLower = searchValue.toLowerCase();
     return animals.filter((animal) => {

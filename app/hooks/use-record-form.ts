@@ -32,7 +32,7 @@ export function useRecordForm<T extends Record<string, unknown>>(
   const handleChange = useCallback(
     (field: keyof T, value: unknown) => {
       setFormData((prev) => ({ ...prev, [field]: value }));
-      // Clear error for this field when user starts typing
+
       if (errors[field as string]) {
         setErrors((prev) => {
           const newErrors = { ...prev };

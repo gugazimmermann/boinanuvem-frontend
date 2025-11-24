@@ -60,7 +60,6 @@ export default function UnconfirmedBreedings() {
     [company]
   );
 
-  // Get fresh data and enrich it - refreshKey state change triggers re-render when breedings change
   const unconfirmedBreedings = getUnconfirmedBreedings(companyId);
   const enrichedBreedings = useMemo(() => {
     return unconfirmedBreedings.map((breeding) => enrichBreedingWithAnimalData(breeding));

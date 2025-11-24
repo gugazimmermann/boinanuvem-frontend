@@ -2,16 +2,10 @@ import { parseISO } from "date-fns";
 import type { AccountsPayable, AccountsReceivable, CashFlow } from "~/types";
 import { AccountsPayableStatus, AccountsReceivableStatus } from "~/types";
 
-/**
- * Calculate remaining amount for accounts payable or receivable
- */
 export function calculateRemainingAmount(amount: number, paidAmount?: number): number {
   return paidAmount ? amount - paidAmount : amount;
 }
 
-/**
- * Get status variant for badge display
- */
 export function getStatusVariant(status: string): "success" | "danger" | "warning" | "default" {
   switch (status) {
     case AccountsPayableStatus.PAID:
@@ -29,9 +23,6 @@ export function getStatusVariant(status: string): "success" | "danger" | "warnin
   }
 }
 
-/**
- * Check if a transaction is overdue
- */
 export function isOverdue(dueDate: string, status: string): boolean {
   const due = parseISO(dueDate);
   due.setHours(0, 0, 0, 0);
@@ -47,9 +38,6 @@ export function isOverdue(dueDate: string, status: string): boolean {
   return isUnpaidOrOverdue && due < today;
 }
 
-/**
- * Calculate totals for cash flow transactions
- */
 export function calculateCashFlowTotals(transactions: CashFlow[]): {
   income: number;
   expenses: number;
@@ -70,9 +58,6 @@ export function calculateCashFlowTotals(transactions: CashFlow[]): {
   };
 }
 
-/**
- * Calculate total for accounts payable or receivable
- */
 export function calculateAccountsTotal<T extends AccountsPayable | AccountsReceivable>(
   transactions: T[]
 ): number {
@@ -82,9 +67,6 @@ export function calculateAccountsTotal<T extends AccountsPayable | AccountsRecei
   }, 0);
 }
 
-/**
- * Calculate overdue total for accounts payable or receivable
- */
 export function calculateOverdueTotal<T extends AccountsPayable | AccountsReceivable>(
   transactions: T[]
 ): number {
@@ -100,9 +82,6 @@ export function calculateOverdueTotal<T extends AccountsPayable | AccountsReceiv
   }, 0);
 }
 
-/**
- * Filter transactions by date range
- */
 export function filterByDateRange<T extends { date?: string; dueDate?: string }>(
   transactions: T[],
   startDate?: Date,
@@ -135,9 +114,6 @@ export function filterByDateRange<T extends { date?: string; dueDate?: string }>
   });
 }
 
-/**
- * Format finance amount with type indicator
- */
 export function formatFinanceAmount(
   amount: number,
   type?: "income" | "expense",
@@ -156,9 +132,6 @@ export function formatFinanceAmount(
   return formatted;
 }
 
-/**
- * Get unpaid transactions (excluding paid)
- */
 export function getUnpaidTransactions<T extends AccountsPayable | AccountsReceivable>(
   transactions: T[]
 ): T[] {
@@ -173,9 +146,6 @@ export function getUnpaidTransactions<T extends AccountsPayable | AccountsReceiv
   );
 }
 
-/**
- * Get upcoming transactions within a date range
- */
 export function getUpcomingTransactions<T extends AccountsPayable | AccountsReceivable>(
   transactions: T[],
   days: number = 30

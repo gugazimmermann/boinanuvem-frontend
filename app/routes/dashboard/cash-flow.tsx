@@ -68,7 +68,6 @@ export default function CashFlow() {
   const localeForCurrency = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
   const { yearOptions, monthOptions } = useDateFilters();
 
-  // Use finance list hook
   const {
     searchValue,
     setSearchValue,
@@ -101,7 +100,6 @@ export default function CashFlow() {
     },
   });
 
-  // Calculate totals from filtered data
   const totalIncome = useMemo(
     () => filteredData.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0),
     [filteredData]

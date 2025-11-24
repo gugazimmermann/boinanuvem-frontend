@@ -82,7 +82,6 @@ export default function AccountsReceivableDetails() {
       fileIds: fileIds.length > 0 ? fileIds : undefined,
     });
 
-    // Refresh observations
     const updatedObservations = getAccountsReceivableObservationsByAccountsReceivableId(
       transaction.id
     );

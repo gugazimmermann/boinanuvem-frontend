@@ -11,15 +11,14 @@ import {
 import { AccountsPayableStatus, AccountsReceivableStatus } from "~/types";
 
 export interface FinanceCalculationsResult {
-  // Cash flow totals
   totalIncome: number;
   totalExpenses: number;
   netCashFlow: number;
-  // Accounts totals
+
   totalAccountsPayable: number;
   totalAccountsReceivable: number;
   totalOverdue: number;
-  // Filtered data
+
   unpaidPayable: AccountsPayable[];
   unpaidReceivable: AccountsReceivable[];
   overduePayable: AccountsPayable[];
@@ -28,9 +27,6 @@ export interface FinanceCalculationsResult {
   upcomingReceivables: AccountsReceivable[];
 }
 
-/**
- * Hook for finance calculations
- */
 export function useFinanceCalculations(
   cashFlowData: CashFlow[],
   accountsPayableData: AccountsPayable[],
@@ -40,7 +36,6 @@ export function useFinanceCalculations(
   const currentMonthStart = useMemo(() => startOfMonth(currentDate), [currentDate]);
   const currentMonthEnd = useMemo(() => endOfMonth(currentDate), [currentDate]);
 
-  // Current month cash flow
   const currentMonthCashFlow = useMemo(() => {
     return cashFlowData.filter((transaction) => {
       const transactionDate = parseISO(transaction.date);
@@ -48,14 +43,12 @@ export function useFinanceCalculations(
     });
   }, [cashFlowData, currentMonthStart, currentMonthEnd]);
 
-  // Cash flow totals
   const {
     income: totalIncome,
     expenses: totalExpenses,
     net: netCashFlow,
   } = useMemo(() => calculateCashFlowTotals(currentMonthCashFlow), [currentMonthCashFlow]);
 
-  // Accounts payable calculations
   const unpaidPayable = useMemo(
     () => getUnpaidTransactions(accountsPayableData),
     [accountsPayableData]
@@ -85,7 +78,6 @@ export function useFinanceCalculations(
     [accountsPayableData]
   );
 
-  // Accounts receivable calculations
   const unpaidReceivable = useMemo(
     () => getUnpaidTransactions(accountsReceivableData),
     [accountsReceivableData]
@@ -115,7 +107,6 @@ export function useFinanceCalculations(
     [accountsReceivableData]
   );
 
-  // Overdue totals
   const totalOverduePayable = useMemo(
     () => calculateOverdueTotal(accountsPayableData),
     [accountsPayableData]

@@ -10,7 +10,6 @@ import { LocationType, AreaType, InventoryMovementType } from "~/types";
 import { getMovementsByPropertyId } from "./inventory-movements.service";
 import { hasNitrogenContent, getNitrogenContent } from "./nitrogen-content.service";
 
-// Cache for production index results
 const indexCache = new Map<
   string,
   {
@@ -19,7 +18,7 @@ const indexCache = new Map<
   }
 >();
 
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL = 5 * 60 * 1000;
 
 function getCacheKey(
   functionName: string,
@@ -48,7 +47,7 @@ function setCachedResult<T>(key: string, result: T): void {
 }
 
 export interface AverageDailyGainResult {
-  adg: number; // kg/day
+  adg: number;
   initialWeight: number;
   finalWeight: number;
   days: number;
@@ -57,9 +56,9 @@ export interface AverageDailyGainResult {
 }
 
 export interface AverageDailyCarcassGainResult {
-  adc: number; // kg/day
+  adc: number;
   adg: number;
-  carcassYield: number; // percentage
+  carcassYield: number;
   initialWeight: number;
   finalWeight: number;
   days: number;
@@ -74,14 +73,14 @@ export interface DaysOnFeedResult {
 }
 
 export interface CarcassYieldResult {
-  yield: number; // percentage
+  yield: number;
   carcassWeight: number;
   liveWeight: number;
   count: number;
 }
 
 export interface SlaughterAgeResult {
-  averageAge: number; // days
+  averageAge: number;
   minAge: number;
   maxAge: number;
   count: number;
@@ -96,15 +95,15 @@ export interface ArrobaProductionPerHectareResult {
 
 export interface KgNitrogenPerAUResult {
   kgNitrogenPerAU: number;
-  totalNitrogen: number; // kg
+  totalNitrogen: number;
   animalUnits: number;
   areaInHectares: number;
 }
 
 export interface KgMeatPerKgNitrogenResult {
   kgMeatPerKgNitrogen: number;
-  totalWeightGain: number; // kg
-  totalNitrogen: number; // kg
+  totalWeightGain: number;
+  totalNitrogen: number;
 }
 
 function convertToHectares(value: number, type: AreaType): number {
@@ -128,7 +127,7 @@ function convertToHectares(value: number, type: AreaType): number {
 
 function calculateAnimalUnits(animals: Array<{ weight: number }>): number {
   const totalWeight = animals.reduce((sum, animal) => sum + animal.weight, 0);
-  return totalWeight > 0 ? totalWeight / 450 : 0; // 1 AU = 450 kg
+  return totalWeight > 0 ? totalWeight / 450 : 0;
 }
 
 export function getAverageDailyGain(
@@ -298,7 +297,7 @@ export function getDaysOnFeed(
         )[0];
         exitDate = new Date(sale.saleDate);
       } else {
-        exitDate = new Date(); // Still in confinement
+        exitDate = new Date();
       }
     }
 
@@ -580,13 +579,11 @@ export function getKgNitrogenPerAU(
 
   const animalUnits = calculateAnimalUnits(animalsWithWeights);
 
-  // Calculate total nitrogen from consumption movements
   const movements = getMovementsByPropertyId(propertyId);
   let filteredMovements = movements.filter(
     (movement) => movement.type === InventoryMovementType.CONSUMPTION
   );
 
-  // Filter by date period if provided
   if (period?.startDate || period?.endDate) {
     filteredMovements = filteredMovements.filter((movement) => {
       const movementDate = new Date(movement.date).getTime();
@@ -602,7 +599,6 @@ export function getKgNitrogenPerAU(
     });
   }
 
-  // Calculate total nitrogen from consumption movements
   let totalNitrogen = 0;
   filteredMovements.forEach((movement) => {
     if (hasNitrogenContent(movement.itemId)) {
@@ -642,13 +638,11 @@ export function getKgMeatPerKgNitrogen(
     totalWeightGain += result.finalWeight - result.initialWeight;
   });
 
-  // Calculate total nitrogen from consumption movements
   const movements = getMovementsByPropertyId(propertyId);
   let filteredMovements = movements.filter(
     (movement) => movement.type === InventoryMovementType.CONSUMPTION
   );
 
-  // Filter by date period if provided
   if (period?.startDate || period?.endDate) {
     filteredMovements = filteredMovements.filter((movement) => {
       const movementDate = new Date(movement.date).getTime();
@@ -664,7 +658,6 @@ export function getKgMeatPerKgNitrogen(
     });
   }
 
-  // Calculate total nitrogen from consumption movements
   let totalNitrogen = 0;
   filteredMovements.forEach((movement) => {
     if (hasNitrogenContent(movement.itemId)) {

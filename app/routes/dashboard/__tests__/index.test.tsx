@@ -187,7 +187,6 @@ describe("Dashboard", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    // Should use getWeighingsByCompanyId for batch query instead of individual calls
     expect(getWeighingsByCompanyId).toHaveBeenCalled();
   });
 
@@ -195,7 +194,6 @@ describe("Dashboard", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    // Check if skeleton screens are shown during calculation
     await waitFor(() => {
       const headings = screen.getAllByRole("heading");
       expect(headings.length).toBeGreaterThan(0);

@@ -21,12 +21,10 @@ export function getWeighingsByAnimalIds(animalIds: string[]): Map<string, Weighi
   const animalIdSet = new Set(animalIds);
   const weighingsMap = new Map<string, Weighing[]>();
 
-  // Initialize map with empty arrays for all animal IDs
   animalIds.forEach((id) => {
     weighingsMap.set(id, []);
   });
 
-  // Group weighings by animal ID
   mockWeighings.forEach((weighing) => {
     if (animalIdSet.has(weighing.animalId)) {
       const existing = weighingsMap.get(weighing.animalId) || [];

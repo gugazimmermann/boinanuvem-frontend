@@ -30,6 +30,8 @@ export interface InventoryItemFormProps {
         expirationDate: string;
         hasExpiration: string;
       };
+      categories: Record<string, string>;
+      units: Record<string, string>;
       new: {
         customCategoryLabel: string;
         unitPriceLabel: string;
@@ -43,6 +45,10 @@ export interface InventoryItemFormProps {
         usageBasis: string;
         nitrogenContent?: string;
         nitrogenContentLabel?: string;
+        usageBasisOptions: {
+          perAnimal: string;
+          perKg: string;
+        };
       };
       movements: {
         new: {
@@ -90,16 +96,21 @@ export function InventoryItemForm({
   observationFiles = [],
   onObservationFilesChange,
 }: InventoryItemFormProps) {
-  // Type assertion needed because translation object has all required properties at runtime
-  // but TypeScript can't infer the exact nested structure
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const categoryOptions = getInventoryCategoryOptions(t as any);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const unitOptions = getInventoryUnitOptions(t as any);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const usageUnitOptions = getUsageUnitOptions(t as any);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const usageBasisOptions = getUsageBasisOptions(t as any);
+  const categoryOptions = getInventoryCategoryOptions({
+    inventory: { categories: t.inventory.categories },
+  });
+
+  const unitOptions = getInventoryUnitOptions({
+    inventory: { units: t.inventory.units },
+  });
+
+  const usageUnitOptions = getUsageUnitOptions({
+    inventory: { units: t.inventory.units },
+  });
+
+  const usageBasisOptions = getUsageBasisOptions({
+    inventory: { new: { usageBasisOptions: t.inventory.new.usageBasisOptions } },
+  });
 
   const paymentMethodOptions = Object.values(PaymentMethod).map((method) => ({
     value: method,

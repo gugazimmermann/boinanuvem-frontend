@@ -79,7 +79,6 @@ export default function Acquisitions() {
       onDelete: (acquisition: Acquisition) => {
         const success = deleteAcquisition(acquisition.id);
         if (success) {
-          // Update the local state to reflect the deletion
           setAcquisitions((prev) => prev.filter((a) => a.id !== acquisition.id));
           return true;
         }
@@ -116,7 +115,6 @@ export default function Acquisitions() {
     initialSortDirection: "desc",
     language,
     customFilter: (acquisition, searchValue, propertyFilter, dateRange) => {
-      // Search filter
       if (searchValue) {
         const searchLower = searchValue.toLowerCase();
         const property = getPropertyById(acquisition.propertyId);
@@ -139,17 +137,14 @@ export default function Acquisitions() {
         }
       }
 
-      // Property filter
       if (propertyFilter !== "all" && acquisition.propertyId !== propertyFilter) {
         return false;
       }
 
-      // Supplier filter
       if (supplierFilter !== "all" && acquisition.supplierId !== supplierFilter) {
         return false;
       }
 
-      // Date range filter
       if (dateRange.startDate || dateRange.endDate) {
         const acquisitionDate = new Date(acquisition.acquisitionDate);
         if (dateRange.startDate) {

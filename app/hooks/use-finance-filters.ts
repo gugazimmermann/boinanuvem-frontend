@@ -25,9 +25,6 @@ export interface FinanceFilterConfig {
   enableTypeFilter?: boolean;
 }
 
-/**
- * Hook for filtering finance transactions
- */
 export function useFinanceFilters<T extends CashFlow | AccountsPayable | AccountsReceivable>(
   transactions: T[],
   options: FinanceFilterOptions,
@@ -46,7 +43,6 @@ export function useFinanceFilters<T extends CashFlow | AccountsPayable | Account
 
   const filteredData = useMemo(() => {
     return transactions.filter((transaction) => {
-      // Search filter
       let matchesSearch = true;
       if (searchValue) {
         const searchLower = searchValue.toLowerCase();
@@ -98,7 +94,6 @@ export function useFinanceFilters<T extends CashFlow | AccountsPayable | Account
           serviceProviderName.includes(searchLower);
       }
 
-      // Type filter (for cash flow)
       let matchesType = true;
       if (config.enableTypeFilter && "type" in transaction) {
         matchesType =
@@ -107,7 +102,6 @@ export function useFinanceFilters<T extends CashFlow | AccountsPayable | Account
           (activeFilter === "expense" && transaction.type === "expense");
       }
 
-      // Status filter (for accounts payable/receivable)
       let matchesStatus = true;
       if (!config.enableTypeFilter && "status" in transaction) {
         matchesStatus =
@@ -118,19 +112,15 @@ export function useFinanceFilters<T extends CashFlow | AccountsPayable | Account
           (activeFilter === "partial" && transaction.status === "partial");
       }
 
-      // Year filter
       const dateField = ("date" in transaction ? transaction.date : transaction.dueDate) as string;
       const matchesYear = selectedYear === "all" || dateField.startsWith(selectedYear);
 
-      // Month filter
       const monthStr = selectedMonth === "all" ? null : selectedMonth.padStart(2, "0");
       const matchesMonth =
         selectedMonth === "all" || (monthStr && dateField.substring(5, 7) === monthStr);
 
-      // Property filter
       const matchesProperty = propertyFilter === "all" || transaction.propertyId === propertyFilter;
 
-      // Supplier filter
       let matchesSupplier = true;
       if (config.enableSupplierFilter && selectedSupplier) {
         matchesSupplier =
@@ -138,7 +128,6 @@ export function useFinanceFilters<T extends CashFlow | AccountsPayable | Account
           ("supplierId" in transaction && transaction.supplierId === selectedSupplier);
       }
 
-      // Buyer filter
       let matchesBuyer = true;
       if (config.enableBuyerFilter && selectedBuyer) {
         matchesBuyer =

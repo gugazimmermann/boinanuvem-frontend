@@ -123,7 +123,6 @@ describe("useDashboardData", () => {
   it("should use batch weighing query for totalWeight calculation", () => {
     renderHook(() => useDashboardData(companyId));
 
-    // Should use getWeighingsByCompanyId instead of individual getWeighingsByAnimalId calls
     expect(getWeighingsByCompanyId).toHaveBeenCalledWith(companyId);
   });
 

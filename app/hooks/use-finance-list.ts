@@ -16,7 +16,6 @@ export interface UseFinanceListOptions<T> {
 }
 
 export interface UseFinanceListResult<T> {
-  // Filter state
   searchValue: string;
   setSearchValue: (value: string) => void;
   activeFilter: string;
@@ -31,30 +30,26 @@ export interface UseFinanceListResult<T> {
   setSelectedSupplier: (value: string) => void;
   selectedBuyer: string;
   setSelectedBuyer: (value: string) => void;
-  // Sort state
+
   sortState: SortState;
   handleSort: (column: string, direction: SortDirection) => void;
-  // Pagination state
+
   currentPage: number;
   setCurrentPage: (page: number) => void;
-  // Computed data
+
   filteredData: T[];
   sortedData: T[];
   paginatedData: T[];
   totalPages: number;
-  // Totals
+
   totalAmount: number;
 }
 
-/**
- * Combined hook for finance list operations (filtering, sorting, pagination)
- */
 export function useFinanceList<T extends CashFlow | AccountsPayable | AccountsReceivable>(
   options: UseFinanceListOptions<T>
 ): UseFinanceListResult<T> {
   const { data, initialSort, itemsPerPage = 10, filterConfig = {} } = options;
 
-  // Filter state
   const [searchValue, setSearchValue] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
   const [propertyFilter, setPropertyFilter] = useState("all");
@@ -63,15 +58,12 @@ export function useFinanceList<T extends CashFlow | AccountsPayable | AccountsRe
   const [selectedSupplier, setSelectedSupplier] = useState("all");
   const [selectedBuyer, setSelectedBuyer] = useState("all");
 
-  // Sort state
   const [sortState, setSortState] = useState<SortState>(
     initialSort || { column: null, direction: "asc" }
   );
 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Filter options
   const filterOptions: FinanceFilterOptions = useMemo(
     () => ({
       searchValue,
@@ -95,35 +87,28 @@ export function useFinanceList<T extends CashFlow | AccountsPayable | AccountsRe
     ]
   );
 
-  // Filtered data
   const filteredData = useFinanceFilters(data, filterOptions, filterConfig);
 
-  // Sorted data
   const sortedData = useFinanceSort(filteredData, sortState);
 
-  // Paginated data
   const paginatedData = useMemo(() => {
     return sortedData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   }, [sortedData, currentPage, itemsPerPage]);
 
-  // Total pages
   const totalPages = useMemo(
     () => Math.ceil(filteredData.length / itemsPerPage),
     [filteredData.length, itemsPerPage]
   );
 
-  // Total amount
   const totalAmount = useMemo(() => {
     return filteredData.reduce((sum, t) => sum + t.amount, 0);
   }, [filteredData]);
 
-  // Sort handler
   const handleSort = useCallback((column: string, direction: SortDirection) => {
     setSortState({ column, direction });
     setCurrentPage(1);
   }, []);
 
-  // Reset filters handler
   const resetFilters = useCallback(() => {
     setSearchValue("");
     setActiveFilter("all");

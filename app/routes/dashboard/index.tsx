@@ -212,7 +212,6 @@ export default function Dashboard() {
 
   const showAggregated = selectedPropertyId === ALL_PROPERTIES_ID;
 
-  // Prepare filters for dashboard data
   const dashboardFilters = useMemo(
     () => ({
       propertyId: selectedPropertyId !== ALL_PROPERTIES_ID ? selectedPropertyId : undefined,

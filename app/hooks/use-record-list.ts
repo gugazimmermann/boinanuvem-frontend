@@ -26,10 +26,8 @@ export function useRecordList<T extends Record<string, unknown>>(options: UseRec
 
   const dateRangeFilter = useDateRangeFilter();
 
-  // Create custom filter that combines search, property, and date range
   const combinedCustomFilter = useCallback(
     (item: T, searchValue: string, _activeFilter: string): boolean => {
-      // Apply property filter
       if (propertyField && propertyFilter !== "all") {
         const itemPropertyId = item[propertyField];
         if (String(itemPropertyId) !== propertyFilter) {
@@ -37,7 +35,6 @@ export function useRecordList<T extends Record<string, unknown>>(options: UseRec
         }
       }
 
-      // Apply date range filter
       if (dateField) {
         const dateValue = item[dateField];
         if (dateValue && typeof dateValue === "string") {
@@ -47,7 +44,6 @@ export function useRecordList<T extends Record<string, unknown>>(options: UseRec
         }
       }
 
-      // Apply custom filter if provided
       if (customFilter) {
         return customFilter(item, searchValue, propertyFilter, dateRangeFilter.dateRange);
       }
@@ -68,7 +64,6 @@ export function useRecordList<T extends Record<string, unknown>>(options: UseRec
     dateFields: dateField ? [dateField] : [],
   });
 
-  // Enhanced sorting for date fields
   const handleSort = useCallback(
     (column: string, direction: SortDirection) => {
       listPage.handleSort(column, direction);

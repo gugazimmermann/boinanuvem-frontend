@@ -13,11 +13,9 @@ import { getMovementsByItemId } from "./inventory-movements.service";
 const ID_PREFIX = "ii0e8400-e29b-41d4-a716";
 const DEFAULT_ID = "ii0e8400-e29b-41d4-a716-446655440010";
 
-// Cache for stock calculations
 const stockCache = new Map<string, { stock: number; timestamp: number }>();
-const CACHE_TTL = 60000; // 1 minute cache
+const CACHE_TTL = 60000;
 
-// Cache for filtered items
 const filteredItemsCache = new Map<string, { items: InventoryItem[]; timestamp: number }>();
 
 function getCacheKey(itemId: string, propertyId?: string): string {
@@ -142,7 +140,6 @@ export function getExpiringItems(companyId: string, daysThreshold: number = 30):
   return expiringItems;
 }
 
-// Clear cache when items or movements are modified
 export function clearInventoryCache(): void {
   stockCache.clear();
   filteredItemsCache.clear();

@@ -9,9 +9,6 @@ export interface SortState {
   direction: SortDirection;
 }
 
-/**
- * Hook for sorting finance transactions
- */
 export function useFinanceSort<T extends CashFlow | AccountsPayable | AccountsReceivable>(
   data: T[],
   sortState: SortState

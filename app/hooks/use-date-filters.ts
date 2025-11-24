@@ -7,9 +7,6 @@ export interface DateFilterOptions {
   label: string;
 }
 
-/**
- * Hook for generating year and month filter options
- */
 export function useDateFilters() {
   const { language } = useLanguage();
   const t = useTranslation();

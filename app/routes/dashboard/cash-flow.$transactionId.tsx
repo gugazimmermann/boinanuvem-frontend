@@ -81,7 +81,6 @@ export default function CashFlowDetails() {
       fileIds: fileIds.length > 0 ? fileIds : undefined,
     });
 
-    // Refresh observations
     const updatedObservations = getCashFlowObservationsByCashFlowId(transaction.id);
     setObservations(updatedObservations);
   };

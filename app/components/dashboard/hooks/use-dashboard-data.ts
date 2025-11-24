@@ -26,7 +26,6 @@ export interface DashboardFilters {
 }
 
 export function useDashboardData(companyId: string, filters?: DashboardFilters) {
-  // Get animals based on property filter
   const allAnimals = useMemo(() => {
     if (filters?.propertyId) {
       return getAnimalsByPropertyId(filters.propertyId);
@@ -44,10 +43,8 @@ export function useDashboardData(companyId: string, filters?: DashboardFilters) 
   const totalLocations = mockLocations.length;
 
   const totalWeight = useMemo(() => {
-    // Batch fetch all weighings for the company/property
     const allWeighingsData = getWeighingsByCompanyId(companyId);
 
-    // Filter by property if needed
     let filteredWeighings = allWeighingsData;
     if (filters?.propertyId) {
       const propertyAnimalIds = new Set(animals.map((a) => a.id));
@@ -56,7 +53,6 @@ export function useDashboardData(companyId: string, filters?: DashboardFilters) 
       );
     }
 
-    // Group weighings by animal ID and find the latest for each
     const lastWeighingByAnimal = new Map<string, { weight: number; date: string }>();
     filteredWeighings.forEach((weighing) => {
       const existing = lastWeighingByAnimal.get(weighing.animalId);
@@ -68,7 +64,6 @@ export function useDashboardData(companyId: string, filters?: DashboardFilters) 
       }
     });
 
-    // Sum up all the latest weights
     let weight = 0;
     lastWeighingByAnimal.forEach((weighing) => {
       weight += weighing.weight;
@@ -191,7 +186,6 @@ export function useDashboardData(companyId: string, filters?: DashboardFilters) 
   const suppliers = useMemo(() => getSuppliersByCompanyId(companyId), [companyId]);
   const buyers = useMemo(() => getBuyersByCompanyId(companyId), [companyId]);
 
-  // Get births with filters
   const births = useMemo(() => {
     const allBirths = filters?.propertyId
       ? getBirthsByPropertyId(filters.propertyId)
@@ -217,7 +211,6 @@ export function useDashboardData(companyId: string, filters?: DashboardFilters) 
     });
   }, [companyId, filters]);
 
-  // Get breedings with filters
   const breedings = useMemo(() => {
     const allBreedings = filters?.propertyId
       ? getBreedingsByPropertyId(filters.propertyId)
@@ -243,17 +236,14 @@ export function useDashboardData(companyId: string, filters?: DashboardFilters) 
     });
   }, [companyId, filters]);
 
-  // Get sales with filters
   const sales = useMemo(() => {
     const allSales = getSalesByCompanyId(companyId);
     let filtered = allSales;
 
-    // Filter by property
     if (filters?.propertyId) {
       filtered = filtered.filter((sale) => sale.propertyId === filters.propertyId);
     }
 
-    // Filter by date
     if (filters?.startDate || filters?.endDate) {
       filtered = filtered.filter((sale) => {
         const saleDate = parseISO(sale.saleDate);
@@ -321,11 +311,9 @@ export function useDashboardData(companyId: string, filters?: DashboardFilters) 
       .slice(0, 10);
   }, [breedings]);
 
-  // Get weighings with filters
   const allWeighings = useMemo(() => {
     const allWeighingsData = getWeighingsByCompanyId(companyId);
 
-    // Filter by property (through animals)
     let filtered = allWeighingsData;
     if (filters?.propertyId) {
       const propertyAnimalIds = new Set(
@@ -334,7 +322,6 @@ export function useDashboardData(companyId: string, filters?: DashboardFilters) 
       filtered = filtered.filter((weighing) => propertyAnimalIds.has(weighing.animalId));
     }
 
-    // Filter by date
     if (filters?.startDate || filters?.endDate) {
       filtered = filtered.filter((weighing) => {
         const weighingDate = parseISO(weighing.date);

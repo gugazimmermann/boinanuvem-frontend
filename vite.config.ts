@@ -15,15 +15,15 @@ export default defineConfig(({ mode }) => {
       environment: "jsdom",
       setupFiles: ["./vitest.setup.ts"],
       onConsoleLog(log: string, type: "stdout" | "stderr") {
-        // Suppress known warnings that don't affect test functionality
+        
         if (
           type === "stderr" &&
           (log.includes("No `HydrateFallback` element provided") ||
             log.includes("Not implemented: HTMLFormElement's requestSubmit() method"))
         ) {
-          return false; // Suppress the log
+          return false; 
         }
-        return true; // Allow other logs
+        return true; 
       },
       coverage: {
         provider: "v8",

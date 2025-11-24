@@ -73,7 +73,6 @@ export default function AccountsPayable() {
 
   const { yearOptions, monthOptions } = useDateFilters();
 
-  // Use finance list hook
   const {
     searchValue,
     setSearchValue,

@@ -17,9 +17,6 @@ export interface FinanceDetailCardProps {
   language?: Language;
 }
 
-/**
- * Reusable detail card component for finance transactions
- */
 export function FinanceDetailCard({ fields, language = "pt" }: FinanceDetailCardProps) {
   const renderValue = (field: DetailField) => {
     if (field.condition === false) return null;

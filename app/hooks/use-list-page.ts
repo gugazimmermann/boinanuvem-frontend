@@ -85,7 +85,6 @@ export function useListPage<T extends Record<string, unknown>>(options: UseListP
         bValue = (bValue as { value?: number }).value;
       }
 
-      // Handle date fields - convert to timestamps for proper numeric comparison
       if (dateFields.includes(sortState.column!) && (aValue || bValue)) {
         if (typeof aValue === "string") {
           aValue = new Date(aValue).getTime();

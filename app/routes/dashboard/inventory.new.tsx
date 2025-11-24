@@ -118,7 +118,6 @@ export default function NewInventoryItem() {
       };
       const newItem = addInventoryItem(itemData);
 
-      // Save nitrogen content if provided and category is FERTILIZER
       if (
         formData.category === InventoryItemCategory.FERTILIZER &&
         formData.nitrogenContent &&

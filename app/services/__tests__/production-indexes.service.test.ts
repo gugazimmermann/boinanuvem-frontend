@@ -38,8 +38,6 @@ describe("production-indexes.service", () => {
   };
 
   beforeEach(() => {
-    // Clear any caches by calling functions with different parameters
-    // This is a workaround since we don't expose cache clearing
     vi.clearAllMocks();
   });
 
@@ -53,7 +51,6 @@ describe("production-indexes.service", () => {
       const result1 = getAverageDailyGain(testPropertyId, testPeriod);
       const result2 = getAverageDailyGain(testPropertyId, testPeriod);
 
-      // Results should be the same (cached)
       expect(result1).toEqual(result2);
     });
 
@@ -64,7 +61,6 @@ describe("production-indexes.service", () => {
         endDate: "2023-12-31",
       });
 
-      // Results might be different (different cache key)
       expect(Array.isArray(result1)).toBe(true);
       expect(Array.isArray(result2)).toBe(true);
     });
@@ -189,7 +185,6 @@ describe("production-indexes.service", () => {
       const result1 = getAverageDailyGain(property1, testPeriod);
       const result2 = getAverageDailyGain(property2, testPeriod);
 
-      // Both should return arrays (may be different)
       expect(Array.isArray(result1)).toBe(true);
       expect(Array.isArray(result2)).toBe(true);
     });

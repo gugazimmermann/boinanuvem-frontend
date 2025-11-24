@@ -2,9 +2,6 @@ import type { Language } from "~/types";
 import { InventoryItemCategory, CashFlowCategory } from "~/types";
 import { formatDate } from "./formatting";
 
-/**
- * Get the translated label for an inventory unit
- */
 export function getUnitLabel(
   unit: string,
   quantity: number,
@@ -53,9 +50,6 @@ export function getUnitLabel(
   return translations.inventory.units[key] || unit;
 }
 
-/**
- * Check if an item is expiring soon
- */
 export function isExpiringSoon(expirationDate?: string, daysThreshold: number = 30): boolean {
   if (!expirationDate) return false;
   const today = new Date();
@@ -65,9 +59,6 @@ export function isExpiringSoon(expirationDate?: string, daysThreshold: number = 
   return diffDays >= 0 && diffDays <= daysThreshold;
 }
 
-/**
- * Get the cash flow category for an inventory item category
- */
 export function getCategoryForCashFlow(itemCategory: string): CashFlowCategory {
   switch (itemCategory) {
     case InventoryItemCategory.FEED:
@@ -84,9 +75,6 @@ export function getCategoryForCashFlow(itemCategory: string): CashFlowCategory {
   }
 }
 
-/**
- * Get inventory unit options for select dropdowns
- */
 export function getInventoryUnitOptions(translations: {
   inventory: {
     units: Record<string, string>;
@@ -118,9 +106,6 @@ export function getInventoryUnitOptions(translations: {
   ];
 }
 
-/**
- * Get usage unit options for medicines/vaccines
- */
 export function getUsageUnitOptions(translations: {
   inventory: {
     units: Record<string, string>;
@@ -141,9 +126,6 @@ export function getUsageUnitOptions(translations: {
   ];
 }
 
-/**
- * Get inventory category options for select dropdowns
- */
 export function getInventoryCategoryOptions(translations: {
   inventory: {
     categories: Record<string, string>;
@@ -160,9 +142,6 @@ export function getInventoryCategoryOptions(translations: {
   }));
 }
 
-/**
- * Get usage basis options for medicines/vaccines
- */
 export function getUsageBasisOptions(translations: {
   inventory: {
     new: {
@@ -185,9 +164,6 @@ export function getUsageBasisOptions(translations: {
   ];
 }
 
-/**
- * Format inventory date using the appropriate locale
- */
 export function formatInventoryDate(dateString: string, language: Language = "pt"): string {
   return formatDate(dateString, language);
 }

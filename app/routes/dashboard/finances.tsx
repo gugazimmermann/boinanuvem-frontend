@@ -84,7 +84,6 @@ export default function FinancesDashboard() {
 
   const currentDate = useMemo(() => new Date(), []);
 
-  // Use finance calculations hook
   const {
     totalIncome,
     totalExpenses,
@@ -253,7 +252,6 @@ export default function FinancesDashboard() {
     });
   }, [overduePayable, overdueReceivable]);
 
-  // Sort and limit upcoming payments/receivables
   const sortedUpcomingPayments = useMemo(
     () =>
       [...upcomingPayments]
