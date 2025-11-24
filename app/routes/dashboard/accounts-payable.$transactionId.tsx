@@ -1,9 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale/pt-BR";
-import { enUS } from "date-fns/locale/en-US";
-import { es } from "date-fns/locale/es";
+import { formatDate, formatCurrency, formatDateTime } from "~/utils/formatting";
 import {
   Button,
   StatusBadge,
@@ -29,24 +26,6 @@ import {
   addAccountsPayableObservation,
 } from "~/services/accounts-payable-observations.service";
 import type { AccountsPayableObservation } from "~/types/accounts-payable-observation";
-
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return format(date, "dd/MM/yyyy", { locale: ptBR });
-};
-
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(value);
-};
-
-const formatDateTime = (dateString: string, locale: string) => {
-  const date = new Date(dateString);
-  const dateLocale = locale === "en" ? enUS : locale === "es" ? es : ptBR;
-  return format(date, "dd/MM/yyyy HH:mm", { locale: dateLocale });
-};
 
 export function meta() {
   return [
@@ -238,14 +217,16 @@ export default function AccountsPayableDetails() {
               {t.accountsPayable.details.amount}
             </label>
             <p className="text-lg font-semibold text-red-600 dark:text-red-400">
-              {formatCurrency(transaction.amount)}
+              {formatCurrency(transaction.amount, language)}
             </p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
               {t.accountsPayable.details.dueDate}
             </label>
-            <p className="text-gray-900 dark:text-gray-100">{formatDate(transaction.dueDate)}</p>
+            <p className="text-gray-900 dark:text-gray-100">
+              {formatDate(transaction.dueDate, language)}
+            </p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
@@ -292,7 +273,9 @@ export default function AccountsPayableDetails() {
               <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                 {t.accountsPayable.details.paidDate}
               </label>
-              <p className="text-gray-900 dark:text-gray-100">{formatDate(transaction.paidDate)}</p>
+              <p className="text-gray-900 dark:text-gray-100">
+                {formatDate(transaction.paidDate, language)}
+              </p>
             </div>
           )}
           {transaction.paidAmount && (
@@ -301,7 +284,7 @@ export default function AccountsPayableDetails() {
                 {t.accountsPayable.details.paidAmount}
               </label>
               <p className="text-gray-900 dark:text-gray-100">
-                {formatCurrency(transaction.paidAmount)}
+                {formatCurrency(transaction.paidAmount, language)}
               </p>
             </div>
           )}
@@ -317,7 +300,9 @@ export default function AccountsPayableDetails() {
             <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
               {t.accountsPayable.details.createdAt}
             </label>
-            <p className="text-gray-900 dark:text-gray-100">{formatDate(transaction.createdAt)}</p>
+            <p className="text-gray-900 dark:text-gray-100">
+              {formatDate(transaction.createdAt, language)}
+            </p>
           </div>
         </div>
       </div>

@@ -265,8 +265,6 @@ export default function EditSale() {
           ...item,
           price: pricePerAnimal.toFixed(2),
         }));
-      } else if (value === PricingModeEnum.INDIVIDUAL) {
-        // No action needed - prices are already set individually
       }
 
       return { ...prev, pricingMode: value, saleItems: newItems, totalPrice: newTotalPrice };

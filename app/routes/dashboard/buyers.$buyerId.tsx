@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router";
 import { format, startOfMonth, endOfMonth, subMonths, parseISO } from "date-fns";
-import { ptBR } from "date-fns/locale/pt-BR";
+import { formatDate, formatDateTime, formatCurrency } from "~/utils/formatting";
 import {
   Button,
   StatusBadge,
@@ -65,13 +65,6 @@ import {
 import { useTheme } from "~/contexts/theme-context";
 import { AccountsReceivableStatus } from "~/types";
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(value);
-};
-
 const monthNames = [
   "Jan",
   "Fev",
@@ -89,9 +82,10 @@ const monthNames = [
 
 interface BuyerFinanceDashboardProps {
   buyerId: string;
+  language: "pt" | "en" | "es";
 }
 
-function BuyerFinanceDashboard({ buyerId }: BuyerFinanceDashboardProps) {
+function BuyerFinanceDashboard({ buyerId, language }: BuyerFinanceDashboardProps) {
   const t = useTranslation();
   const { theme } = useTheme();
   const isDark = theme === "dark";
@@ -235,7 +229,7 @@ function BuyerFinanceDashboard({ buyerId }: BuyerFinanceDashboardProps) {
                 {t.financesDashboard.cards.totalIncome}
               </p>
               <p className="text-xl font-bold text-green-600 dark:text-green-400 mt-1">
-                {formatCurrency(totalIncome)}
+                {formatCurrency(totalIncome, language)}
               </p>
             </div>
             <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
@@ -334,7 +328,7 @@ function BuyerFinanceDashboard({ buyerId }: BuyerFinanceDashboardProps) {
                   border: `1px solid ${gridColor}`,
                   borderRadius: "8px",
                 }}
-                formatter={(value: number) => formatCurrency(value)}
+                formatter={(value: number) => formatCurrency(value, language)}
               />
               <Legend />
               <Line
@@ -379,7 +373,7 @@ function BuyerFinanceDashboard({ buyerId }: BuyerFinanceDashboardProps) {
                   border: `1px solid ${gridColor}`,
                   borderRadius: "8px",
                 }}
-                formatter={(value: number) => formatCurrency(value)}
+                formatter={(value: number) => formatCurrency(value, language)}
               />
               <Area
                 type="monotone"
@@ -418,7 +412,7 @@ function BuyerFinanceDashboard({ buyerId }: BuyerFinanceDashboardProps) {
                     border: `1px solid ${gridColor}`,
                     borderRadius: "8px",
                   }}
-                  formatter={(value: number) => formatCurrency(value)}
+                  formatter={(value: number) => formatCurrency(value, language)}
                 />
                 <Bar
                   dataKey="value"
@@ -547,26 +541,6 @@ export default function BuyerDetails() {
       </div>
     );
   }
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat("pt-BR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    }).format(date);
-  };
-
-  const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat("pt-BR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(date);
-  };
 
   const handleSubmitObservation = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -837,7 +811,7 @@ export default function BuyerDetails() {
                     {t.buyers.details.createdAt}
                   </p>
                   <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
-                    {formatDate(buyer.createdAt)}
+                    {formatDate(buyer.createdAt, language)}
                   </p>
                 </div>
               </div>
@@ -961,7 +935,7 @@ export default function BuyerDetails() {
 
             if (observation.observation.toLowerCase().includes(searchLower)) return true;
 
-            const dateText = formatDateTime(observation.createdAt);
+            const dateText = formatDateTime(observation.createdAt, language);
             if (dateText.toLowerCase().includes(searchLower)) return true;
 
             return false;
@@ -1017,7 +991,7 @@ export default function BuyerDetails() {
               sortable: true,
               render: (_, row) => (
                 <span className="text-gray-700 dark:text-gray-300">
-                  {formatDateTime(row.createdAt)}
+                  {formatDateTime(row.createdAt, language)}
                 </span>
               ),
             },
@@ -1304,7 +1278,9 @@ export default function BuyerDetails() {
                 </nav>
               </div>
 
-              {financeSubTab === "dashboard" && <BuyerFinanceDashboard buyerId={buyer.id} />}
+              {financeSubTab === "dashboard" && (
+                <BuyerFinanceDashboard buyerId={buyer.id} language={language} />
+              )}
 
               {financeSubTab === "transactions" &&
                 (() => {
@@ -1363,18 +1339,6 @@ export default function BuyerDetails() {
                     ...cashFlowTransactions.map(normalizeCashFlow),
                     ...receivableTransactions.map(normalizeReceivable),
                   ];
-
-                  const formatDate = (dateString: string) => {
-                    const date = new Date(dateString);
-                    return format(date, "dd/MM/yyyy", { locale: ptBR });
-                  };
-
-                  const formatCurrency = (value: number) => {
-                    return new Intl.NumberFormat("pt-BR", {
-                      style: "currency",
-                      currency: "BRL",
-                    }).format(value);
-                  };
 
                   const handleDeleteFinanceClick = (transaction: UnifiedTransaction) => {
                     let originalTransaction: CashFlow | AccountsReceivable | null = null;
@@ -1448,7 +1412,7 @@ export default function BuyerDetails() {
                             transaction.paymentMethod
                           ]?.toLowerCase() || ""
                         : "";
-                      const amount = formatCurrency(transaction.amount).toLowerCase();
+                      const amount = formatCurrency(transaction.amount, language).toLowerCase();
 
                       let serviceProviderName = "";
                       if (transaction.serviceProviderId) {
@@ -1586,7 +1550,7 @@ export default function BuyerDetails() {
                               : "text-red-600 dark:text-red-400"
                           }`}
                         >
-                          {row.type === "income" ? "+" : "-"} {formatCurrency(row.amount)}
+                          {row.type === "income" ? "+" : "-"} {formatCurrency(row.amount, language)}
                         </span>
                       ),
                     },
@@ -1851,7 +1815,7 @@ export default function BuyerDetails() {
                                 {t.cashFlow.filters.income}
                               </span>
                               <span className="font-semibold text-green-600 dark:text-green-400">
-                                {formatCurrency(totalIncome)}
+                                {formatCurrency(totalIncome, language)}
                               </span>
                             </div>
                             <div className="flex flex-col">

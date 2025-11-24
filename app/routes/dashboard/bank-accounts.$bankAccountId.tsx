@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale/pt-BR";
+import { formatDate } from "~/utils/formatting";
 import {
   Button,
   StatusBadge,
@@ -32,11 +31,6 @@ import { getPropertyById } from "~/services/properties.service";
 import { mockSuppliers } from "~/mocks/suppliers";
 import { mockBuyers } from "~/mocks/buyers";
 import type { CashFlow } from "~/types";
-
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return format(date, "dd/MM/yyyy", { locale: ptBR });
-};
 
 export function meta() {
   return [
@@ -309,7 +303,7 @@ export default function BankAccountDetails() {
       label: t.cashFlow.table.date,
       sortable: true,
       render: (_, row) => (
-        <span className="text-gray-700 dark:text-gray-300">{formatDate(row.date)}</span>
+        <span className="text-gray-700 dark:text-gray-300">{formatDate(row.date, language)}</span>
       ),
     },
     {
@@ -489,7 +483,9 @@ export default function BankAccountDetails() {
             <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
               {t.bankAccounts.details.createdAt}
             </label>
-            <p className="text-gray-900 dark:text-gray-100">{formatDate(bankAccount.createdAt)}</p>
+            <p className="text-gray-900 dark:text-gray-100">
+              {formatDate(bankAccount.createdAt, language)}
+            </p>
           </div>
         </div>
       </div>

@@ -38,7 +38,6 @@ export default function Help() {
     [t]
   );
 
-  // Get all FAQ items from translations
   const faqItems = useMemo(() => {
     const faqs = t.help.faqs;
     return Object.entries(faqs).map(([id, faq]) => ({

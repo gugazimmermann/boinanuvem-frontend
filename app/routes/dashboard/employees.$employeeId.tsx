@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale/pt-BR";
+import { formatDate, formatDateTime, formatCurrency } from "~/utils/formatting";
 import {
   Button,
   StatusBadge,
@@ -166,26 +165,6 @@ export default function EmployeeDetails() {
       </div>
     );
   }
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat("pt-BR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    }).format(date);
-  };
-
-  const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat("pt-BR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(date);
-  };
 
   const handleSubmitObservation = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -474,7 +453,7 @@ export default function EmployeeDetails() {
                     {t.employees.details.createdAt}
                   </p>
                   <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
-                    {formatDate(employee.createdAt)}
+                    {formatDate(employee.createdAt, language)}
                   </p>
                 </div>
               </div>
@@ -605,17 +584,6 @@ export default function EmployeeDetails() {
             ...animalMovements.map((m) => ({ ...m, movementType: "animal" as const })),
           ];
 
-          const formatDate = (dateString: string) => {
-            const date = new Date(dateString);
-            return new Intl.DateTimeFormat("pt-BR", {
-              day: "2-digit",
-              month: "2-digit",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            }).format(date);
-          };
-
           const filteredMovements = movements.filter((movement) => {
             if (!searchValue) return true;
 
@@ -638,7 +606,7 @@ export default function EmployeeDetails() {
                 return true;
             }
 
-            const dateText = formatDate(movement.date);
+            const dateText = formatDate(movement.date, language);
             if (dateText.toLowerCase().includes(searchLower)) return true;
 
             const locationIds =
@@ -789,7 +757,9 @@ export default function EmployeeDetails() {
               label: t.properties.details.movements.table.date,
               sortable: true,
               render: (_, row) => (
-                <span className="text-gray-700 dark:text-gray-300">{formatDate(row.date)}</span>
+                <span className="text-gray-700 dark:text-gray-300">
+                  {formatDate(row.date, language)}
+                </span>
               ),
             },
             {
@@ -1030,7 +1000,7 @@ export default function EmployeeDetails() {
 
             if (observation.observation.toLowerCase().includes(searchLower)) return true;
 
-            const dateText = formatDateTime(observation.createdAt);
+            const dateText = formatDateTime(observation.createdAt, language);
             if (dateText.toLowerCase().includes(searchLower)) return true;
 
             return false;
@@ -1092,7 +1062,7 @@ export default function EmployeeDetails() {
               sortable: true,
               render: (_, row) => (
                 <span className="text-gray-700 dark:text-gray-300">
-                  {formatDateTime(row.createdAt)}
+                  {formatDateTime(row.createdAt, language)}
                 </span>
               ),
             },
@@ -1384,18 +1354,6 @@ export default function EmployeeDetails() {
             ...payableTransactions.map(normalizePayable),
           ];
 
-          const formatDate = (dateString: string) => {
-            const date = new Date(dateString);
-            return format(date, "dd/MM/yyyy", { locale: ptBR });
-          };
-
-          const formatCurrency = (value: number) => {
-            return new Intl.NumberFormat("pt-BR", {
-              style: "currency",
-              currency: "BRL",
-            }).format(value);
-          };
-
           const handleDeleteFinanceClick = (transaction: UnifiedTransaction) => {
             let originalTransaction: CashFlow | AccountsPayable | null = null;
             let transactionType: "cashFlow" | "payable" | null = null;
@@ -1618,7 +1576,9 @@ export default function EmployeeDetails() {
               label: t.cashFlow.table.date,
               sortable: true,
               render: (_, row) => (
-                <span className="text-gray-700 dark:text-gray-300">{formatDate(row.date)}</span>
+                <span className="text-gray-700 dark:text-gray-300">
+                  {formatDate(row.date, language)}
+                </span>
               ),
             },
             {

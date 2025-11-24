@@ -103,7 +103,6 @@ export function getAverageDailyGain(
     const weighings = getWeighingsByAnimalId(animal.id);
     if (weighings.length < 2) return;
 
-    // Filter by period if provided
     let filteredWeighings = weighings;
     if (period?.startDate || period?.endDate) {
       filteredWeighings = weighings.filter((weighing) => {
@@ -122,7 +121,6 @@ export function getAverageDailyGain(
 
     if (filteredWeighings.length < 2) return;
 
-    // Sort by date
     const sortedWeighings = [...filteredWeighings].sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
     );
@@ -160,7 +158,6 @@ export function getAverageDailyCarcassGain(
   const adgResults = getAverageDailyGain(propertyId, period);
   const results: AverageDailyCarcassGainResult[] = [];
 
-  // If no carcass yield provided, calculate from sales data
   let carcassYield = averageCarcassYield;
   if (!carcassYield) {
     const yieldResult = getCarcassYield(propertyId, period);
@@ -199,7 +196,6 @@ export function getDaysOnFeed(
     const movements = getAnimalMovementsByAnimalId(animal.id);
     if (movements.length === 0) return;
 
-    // Filter by period if provided
     let filteredMovements = movements;
     if (period?.startDate || period?.endDate) {
       filteredMovements = movements.filter((movement) => {
@@ -216,12 +212,10 @@ export function getDaysOnFeed(
       });
     }
 
-    // Sort by date
     const sortedMovements = [...filteredMovements].sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
     );
 
-    // Find entry into confinement
     let entryDate: Date | null = null;
     let exitDate: Date | null = null;
 
@@ -237,7 +231,6 @@ export function getDaysOnFeed(
       }
     }
 
-    // If still in confinement, use current date or sale date
     if (entryDate && !exitDate) {
       const sales = getSalesByAnimalId(animal.id);
       if (sales.length > 0) {
@@ -277,7 +270,6 @@ export function getCarcassYield(
   const allSales = getSalesByCompanyId(companyId);
   const sales: Sale[] = allSales.filter((sale) => sale.propertyId === propertyId);
 
-  // Filter by period if provided
   let filteredSales = sales;
   if (period?.startDate || period?.endDate) {
     filteredSales = sales.filter((sale) => {
@@ -328,7 +320,6 @@ export function getSlaughterAge(
   const allSales = getSalesByCompanyId(companyId);
   const sales: Sale[] = allSales.filter((sale) => sale.propertyId === propertyId);
 
-  // Filter by period if provided
   let filteredSales = sales;
   if (period?.startDate || period?.endDate) {
     filteredSales = sales.filter((sale: Sale) => {
@@ -401,14 +392,12 @@ export function getArrobaProductionPerHectare(
 
   const areaInHectares = convertToHectares(property.area.value, property.area.type);
 
-  // Get sales in the period
   const animals = getAnimalsByPropertyId(propertyId);
   const animal = animals[0];
   const companyId = animal?.companyId || "550e8400-e29b-41d4-a716-446655440000";
   const allSales = getSalesByCompanyId(companyId);
   const sales: Sale[] = allSales.filter((sale) => sale.propertyId === propertyId);
 
-  // Filter by period if provided
   let filteredSales = sales;
   if (period?.startDate || period?.endDate) {
     filteredSales = sales.filter((sale: Sale) => {
@@ -425,7 +414,6 @@ export function getArrobaProductionPerHectare(
     });
   }
 
-  // Calculate total arrobas (1 arroba = 30 kg)
   let totalArrobas = 0;
   filteredSales.forEach((sale: Sale) => {
     sale.saleItems.forEach((item) => {
@@ -459,14 +447,12 @@ export function getKgNitrogenPerAU(
 
   const areaInHectares = convertToHectares(property.area.value, property.area.type);
 
-  // Get animals and their weights
   const animals = getAnimalsByPropertyId(propertyId);
   const animalsWithWeights = animals
     .map((animal) => {
       const weighings = getWeighingsByAnimalId(animal.id);
       if (weighings.length === 0) return null;
 
-      // Filter by period if provided
       let filteredWeighings = weighings;
       if (period?.startDate || period?.endDate) {
         filteredWeighings = weighings.filter((weighing) => {
@@ -495,9 +481,6 @@ export function getKgNitrogenPerAU(
 
   const animalUnits = calculateAnimalUnits(animalsWithWeights);
 
-  // Note: Nitrogen application data would need to come from location observations
-  // or inventory movements. For now, we'll return a structure that can be populated
-  // when that data is available. This is a placeholder implementation.
   const totalNitrogen = 0; // TODO: Calculate from actual nitrogen application data
 
   const kgNitrogenPerAU = animalUnits > 0 ? totalNitrogen / animalUnits : 0;
@@ -514,7 +497,6 @@ export function getKgMeatPerKgNitrogen(
   propertyId: string,
   period?: { startDate?: string; endDate?: string }
 ): KgMeatPerKgNitrogenResult {
-  // Get weight gain from weighings
   const adgResults = getAverageDailyGain(propertyId, period);
   let totalWeightGain = 0;
 
@@ -522,9 +504,6 @@ export function getKgMeatPerKgNitrogen(
     totalWeightGain += result.finalWeight - result.initialWeight;
   });
 
-  // Note: Nitrogen application data would need to come from location observations
-  // or inventory movements. For now, we'll return a structure that can be populated
-  // when that data is available. This is a placeholder implementation.
   const totalNitrogen = 0; // TODO: Calculate from actual nitrogen application data
 
   const kgMeatPerKgNitrogen = totalNitrogen > 0 ? totalWeightGain / totalNitrogen : 0;

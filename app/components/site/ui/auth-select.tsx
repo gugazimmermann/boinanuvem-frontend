@@ -49,7 +49,6 @@ export const AuthSelect = forwardRef<HTMLSelectElement, AuthSelectProps>(
       .filter(Boolean)
       .join(" ");
 
-    // Use generated testid if aria-label is provided, otherwise allow data-testid from props
     const finalTestId = testId;
 
     return (

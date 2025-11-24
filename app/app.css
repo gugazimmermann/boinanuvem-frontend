@@ -26,7 +26,6 @@ body {
   @apply bg-white dark:bg-gray-950;
 }
 
-/* Cursor pointer for all clickable elements */
 a,
 button,
 [role="button"],
@@ -45,12 +44,10 @@ label[for],
   cursor: pointer;
 }
 
-/* Links should always have pointer cursor (including React Router Link) */
 a:not([disabled]):not([aria-disabled="true"]) {
   cursor: pointer;
 }
 
-/* Disabled elements should have not-allowed cursor */
 button:disabled,
 input:disabled,
 select:disabled,
@@ -61,7 +58,6 @@ a[aria-disabled="true"],
   cursor: not-allowed;
 }
 
-/* Custom scrollbar styling */
 .custom-scrollbar::-webkit-scrollbar {
   width: 8px;
 }

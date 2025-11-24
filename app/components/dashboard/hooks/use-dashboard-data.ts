@@ -22,7 +22,6 @@ import { ANIMAL_UNIT_WEIGHT_KG } from "~/utils/constants";
 export function useDashboardData(companyId: string) {
   const allAnimals = useMemo(() => getAnimalsByCompanyId(companyId), [companyId]);
 
-  // Filtrar apenas animais ativos para todos os cálculos
   const animals = useMemo(
     () => allAnimals.filter((animal) => animal.status === "active"),
     [allAnimals]

@@ -2,7 +2,6 @@ import { ROUTES } from "../routes.config";
 
 const SITE_URL = "https://boinanuvem.com.br";
 
-// Public routes that should be included in sitemap
 const publicRoutes = [
   { path: ROUTES.HOME, priority: "1.0", changefreq: "weekly" },
   { path: ROUTES.TERMS, priority: "0.5", changefreq: "monthly" },

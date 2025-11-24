@@ -113,17 +113,7 @@ import { ChartWrapper, getTooltipStyle, getChartColors } from "~/components/dash
 import { AccountsPayableStatus, AccountsReceivableStatus } from "~/types";
 import { ReproductiveIndexes } from "~/components/dashboard/reproductive-indexes/reproductive-indexes";
 
-const formatAreaType = (type: AreaType): string => {
-  const typeMap: Record<AreaType, string> = {
-    [AreaType.HECTARES]: "ha",
-    [AreaType.SQUARE_METERS]: "m²",
-    [AreaType.SQUARE_FEET]: "ft²",
-    [AreaType.ACRES]: "ac",
-    [AreaType.SQUARE_KILOMETERS]: "km²",
-    [AreaType.SQUARE_MILES]: "mi²",
-  };
-  return typeMap[type] || type;
-};
+import { formatAreaType } from "~/utils/formatting";
 
 const monthNames = [
   "Jan",
@@ -663,7 +653,6 @@ export default function PropertyDetails() {
   const locations = getLocationsByPropertyId(property.id);
   const locationsCount = locations.length;
   const allPropertyAnimals = getAnimalsByPropertyId(property.id);
-  // Filtrar apenas animais ativos para todos os cálculos
   const propertyAnimals = allPropertyAnimals.filter((animal) => animal.status === "active");
   const animalsCount = propertyAnimals.length;
 

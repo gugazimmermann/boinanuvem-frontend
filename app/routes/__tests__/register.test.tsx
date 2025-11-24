@@ -165,7 +165,6 @@ vi.mock("~/components/site/ui", async () => {
               placeholder="CEP"
               value={data.zipCode || ""}
               onChange={(e) => {
-                // Call the mocked maskCEP function so tests can verify it was called
                 const masked = mockMaskCEP(e.target.value);
                 onChange("zipCode", masked);
               }}
@@ -427,10 +426,8 @@ describe("Register", () => {
       name: "description",
       content: expect.stringContaining("Crie sua conta na Boi na Nuvem"),
     });
-    // Check for Open Graph tags
     type MetaTag = { title?: string; name?: string; property?: string; content?: string };
     expect(metaData.some((m: MetaTag) => m.property === "og:title")).toBe(true);
-    // Check for noindex (auth pages should not be indexed)
     expect(
       metaData.some((m: MetaTag) => m.name === "robots" && m.content?.includes("noindex"))
     ).toBe(true);

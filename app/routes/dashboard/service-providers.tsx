@@ -1,16 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router";
-import {
-  Table,
-  StatusBadge,
-  TableActionButtons,
-  ConfirmationModal,
-  Alert,
-  type TableColumn,
-  type TableAction,
-  type TableFilter,
-  type SortDirection,
-} from "~/components/ui";
+import { TableActionButtons, type TableColumn } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
 import { mockServiceProviders } from "~/mocks/service-providers";
@@ -21,390 +11,199 @@ import { ROUTES, getServiceProviderEditRoute, getServiceProviderViewRoute } from
 import { getLocationMovementsByServiceProviderId } from "~/services/location-movements.service";
 import { getServiceProviderObservationsByServiceProviderId } from "~/services/service-provider-observations.service";
 import { usePermissions } from "~/utils/permissions";
+import { RegistrationListPage } from "~/components/dashboard/registrations/registration-list-page";
+import {
+  createNameCodeColumn,
+  createStatusColumn,
+  createTextColumn,
+} from "~/components/dashboard/registrations/table-columns";
+import { formatDate } from "~/utils/formatting";
+import { createRegistrationMeta, createRegistrationLoader } from "~/utils/route-helpers";
 
 export function meta() {
-  return [
-    { title: "Prestadores de Serviço - Boi na Nuvem" },
-    {
-      name: "description",
-      content: "Gerenciamento de prestadores de serviço do Boi na Nuvem",
-    },
-  ];
+  return createRegistrationMeta(
+    "Prestadores de Serviço",
+    "Gerenciamento de prestadores de serviço do Boi na Nuvem"
+  );
 }
 
 export async function loader({ request }: { request: Request }) {
-  const { createRouteGuard } = await import("~/utils/route-guard");
-  return createRouteGuard(undefined, "view")({ request });
+  return createRegistrationLoader(undefined, "view")({ request });
 }
 
 export default function ServiceProviders() {
   const t = useTranslation();
   const { language } = useLanguage();
   const navigate = useNavigate();
-  const { canAdd, canEdit, canRemove } = usePermissions();
+  const { canEdit, canRemove } = usePermissions();
   const [serviceProviders, setServiceProviders] = useState<ServiceProvider[]>([
     ...mockServiceProviders,
   ]);
-  const [sortState, setSortState] = useState<{
-    column: string | null;
-    direction: SortDirection;
-  }>({ column: "name", direction: "asc" });
 
-  const [searchValue, setSearchValue] = useState("");
-  const [activeFilter, setActiveFilter] = useState<string>("all");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [selectedServiceProvider, setSelectedServiceProvider] = useState<ServiceProvider | null>(
-    null
-  );
-  const [alertMessage, setAlertMessage] = useState<{
-    title: string;
-    variant: "success" | "error" | "warning" | "info";
-  } | null>(null);
-  const itemsPerPage = 10;
-
-  const localeForDateTime = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat(localeForDateTime, {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    }).format(date);
-  };
-
-  const showAlert = (
-    title: string,
-    variant: "success" | "error" | "warning" | "info" = "success"
-  ) => {
-    setAlertMessage({ title, variant });
-    setTimeout(() => {
-      setAlertMessage(null);
-    }, 3000);
-  };
-
-  const handleDeleteClick = (serviceProvider: ServiceProvider) => {
-    setSelectedServiceProvider(serviceProvider);
-    setIsDeleteModalOpen(true);
-  };
-
-  const handleDeleteServiceProvider = async () => {
-    if (!selectedServiceProvider) return;
-    const success = deleteServiceProvider(selectedServiceProvider.id);
-    if (success) {
-      setServiceProviders(serviceProviders.filter((sp) => sp.id !== selectedServiceProvider.id));
-      showAlert(t.serviceProviders.success.deleted, "success");
-    } else {
-      showAlert(t.serviceProviders.errors.deleteFailed, "error");
-    }
-    setSelectedServiceProvider(null);
-  };
-
-  const filteredData = serviceProviders.filter((serviceProvider) => {
-    const matchesSearch =
-      serviceProvider.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-      serviceProvider.code.toLowerCase().includes(searchValue.toLowerCase()) ||
-      (serviceProvider.email?.toLowerCase().includes(searchValue.toLowerCase()) ?? false) ||
-      (serviceProvider.phone?.toLowerCase().includes(searchValue.toLowerCase()) ?? false) ||
-      (serviceProvider.cpf?.toLowerCase().includes(searchValue.toLowerCase()) ?? false) ||
-      (serviceProvider.cnpj?.toLowerCase().includes(searchValue.toLowerCase()) ?? false);
-
-    const matchesFilter =
-      activeFilter === "all" ||
-      (activeFilter === "active" && serviceProvider.status === "active") ||
-      (activeFilter === "inactive" && serviceProvider.status === "inactive");
-
-    return matchesSearch && matchesFilter;
-  });
-
-  const sortedData = [...filteredData].sort((a, b) => {
-    if (!sortState.column || !sortState.direction) {
-      return 0;
-    }
-
-    const aValue = a[sortState.column];
-    const bValue = b[sortState.column];
-
-    if (aValue == null && bValue == null) return 0;
-    if (aValue == null) return 1;
-    if (bValue == null) return -1;
-
-    let comparison = 0;
-    if (typeof aValue === "string" && typeof bValue === "string") {
-      comparison = aValue.localeCompare(bValue, localeForDateTime, {
-        sensitivity: "base",
-      });
-    } else if (typeof aValue === "number" && typeof bValue === "number") {
-      comparison = aValue - bValue;
-    } else {
-      comparison = String(aValue).localeCompare(String(bValue), localeForDateTime);
-    }
-
-    return sortState.direction === "asc" ? comparison : -comparison;
-  });
-
-  const paginatedData = sortedData.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-
-  const columns: TableColumn<ServiceProvider>[] = [
-    {
-      key: "name",
-      label: t.serviceProviders.table.name,
-      sortable: true,
-      render: (_, row) => (
-        <div>
-          <h2 className="font-medium text-gray-800 dark:text-gray-200">{row.name}</h2>
-          <p className="text-sm font-normal text-gray-600 dark:text-gray-400">{row.code}</p>
-        </div>
+  const columns: TableColumn<ServiceProvider>[] = useMemo(
+    () => [
+      createNameCodeColumn<ServiceProvider>(t.serviceProviders.table.name, true),
+      createTextColumn<ServiceProvider>(
+        "document",
+        t.serviceProviders.table.document || "Documento",
+        (row) => row.cpf || row.cnpj || null,
+        false
       ),
-    },
-    {
-      key: "document",
-      label: t.serviceProviders.table.document || "Documento",
-      sortable: false,
-      render: (_, row) => (
-        <span className="text-gray-700 dark:text-gray-300">{row.cpf || row.cnpj || "-"}</span>
+      createTextColumn<ServiceProvider>(
+        "email",
+        t.serviceProviders.table.email,
+        (row) => row.email || null,
+        true
       ),
-    },
-    {
-      key: "email",
-      label: t.serviceProviders.table.email,
-      sortable: true,
-      render: (_, row) => (
-        <span className="text-gray-700 dark:text-gray-300">{row.email || "-"}</span>
+      createTextColumn<ServiceProvider>(
+        "phone",
+        t.serviceProviders.table.phone,
+        (row) => row.phone || null,
+        true
       ),
-    },
-    {
-      key: "phone",
-      label: t.serviceProviders.table.phone,
-      sortable: true,
-      render: (_, row) => (
-        <span className="text-gray-700 dark:text-gray-300">{row.phone || "-"}</span>
-      ),
-    },
-    {
-      key: "properties",
-      label: t.serviceProviders.table.properties,
-      sortable: false,
-      render: (_, row) => {
-        const properties = row.propertyIds
-          .map((id) => getPropertyById(id))
-          .filter((p) => p !== undefined)
-          .map((p) => p!.name);
-        return (
-          <span className="text-gray-700 dark:text-gray-300">
-            {properties.length > 0 ? properties.join(", ") : "-"}
-          </span>
-        );
-      },
-    },
-    {
-      key: "lastMovement",
-      label: t.serviceProviders.table.lastMovement || "Última Movimentação",
-      sortable: false,
-      render: (_, row) => {
-        const movements = getLocationMovementsByServiceProviderId(row.id);
-        if (movements.length === 0) {
-          return <span className="text-gray-400 dark:text-gray-500">-</span>;
-        }
-        const lastMovement = movements.sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        )[0];
-        const movementTypeLabel =
-          t.properties.details.movements.types[
-            lastMovement.type as keyof typeof t.properties.details.movements.types
-          ] || lastMovement.type;
-        return (
-          <div className="space-y-1">
-            <p className="text-sm text-gray-700 dark:text-gray-300">{movementTypeLabel}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {formatDate(lastMovement.date)}
-            </p>
-          </div>
-        );
-      },
-    },
-    {
-      key: "lastObservation",
-      label: t.serviceProviders.table.lastObservation || "Última Observação",
-      sortable: false,
-      render: (_, row) => {
-        const observations = getServiceProviderObservationsByServiceProviderId(row.id);
-        if (observations.length === 0) {
-          return <span className="text-gray-400 dark:text-gray-500">-</span>;
-        }
-        const lastObservation = observations.sort(
-          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        )[0];
-        const truncated =
-          lastObservation.observation.length > 60
-            ? `${lastObservation.observation.substring(0, 60)}...`
-            : lastObservation.observation;
-        return (
-          <div className="space-y-1">
-            <p
-              className="text-sm text-gray-700 dark:text-gray-300"
-              title={lastObservation.observation}
-            >
-              {truncated}
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {formatDate(lastObservation.createdAt)}
-            </p>
-          </div>
-        );
-      },
-    },
-    {
-      key: "status",
-      label: t.serviceProviders.table.status,
-      sortable: true,
-      render: (_, row) => (
-        <StatusBadge
-          label={
-            row.status === "active"
-              ? t.serviceProviders.table.active
-              : t.serviceProviders.table.inactive
-          }
-          variant={row.status === "active" ? "success" : "default"}
-        />
-      ),
-    },
-    {
-      key: "actions",
-      label: "",
-      headerClassName: "relative",
-      render: (_, row) => (
-        <TableActionButtons
-          onEdit={() => navigate(getServiceProviderEditRoute(row.id))}
-          onDelete={() => handleDeleteClick(row)}
-          canEdit={canEdit("registration", "serviceProvider")}
-          canDelete={canRemove("registration", "serviceProvider")}
-        />
-      ),
-    },
-  ];
-
-  const headerActions: TableAction[] = canAdd("registration", "serviceProvider")
-    ? [
-        {
-          label: t.serviceProviders.addServiceProvider,
-          variant: "primary",
-          leftIcon: (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className="w-5 h-5"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          ),
-          onClick: () => navigate(ROUTES.SERVICE_PROVIDERS_NEW),
+      {
+        key: "properties",
+        label: t.serviceProviders.table.properties,
+        sortable: false,
+        render: (_, row) => {
+          const properties = row.propertyIds
+            .map((id) => getPropertyById(id))
+            .filter((p) => p !== undefined)
+            .map((p) => p!.name);
+          return (
+            <span className="text-gray-700 dark:text-gray-300">
+              {properties.length > 0 ? properties.join(", ") : "-"}
+            </span>
+          );
         },
-      ]
-    : [];
+      },
+      {
+        key: "lastMovement",
+        label: t.serviceProviders.table.lastMovement || "Última Movimentação",
+        sortable: false,
+        render: (_, row) => {
+          const movements = getLocationMovementsByServiceProviderId(row.id);
+          if (movements.length === 0) {
+            return <span className="text-gray-400 dark:text-gray-500">-</span>;
+          }
+          const lastMovement = movements.sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+          )[0];
+          const movementTypeLabel =
+            t.properties.details.movements.types[
+              lastMovement.type as keyof typeof t.properties.details.movements.types
+            ] || lastMovement.type;
+          return (
+            <div className="space-y-1">
+              <p className="text-sm text-gray-700 dark:text-gray-300">{movementTypeLabel}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {formatDate(lastMovement.date, language)}
+              </p>
+            </div>
+          );
+        },
+      },
+      {
+        key: "lastObservation",
+        label: t.serviceProviders.table.lastObservation || "Última Observação",
+        sortable: false,
+        render: (_, row) => {
+          const observations = getServiceProviderObservationsByServiceProviderId(row.id);
+          if (observations.length === 0) {
+            return <span className="text-gray-400 dark:text-gray-500">-</span>;
+          }
+          const lastObservation = observations.sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          )[0];
+          const truncated =
+            lastObservation.observation.length > 60
+              ? `${lastObservation.observation.substring(0, 60)}...`
+              : lastObservation.observation;
+          return (
+            <div className="space-y-1">
+              <p
+                className="text-sm text-gray-700 dark:text-gray-300"
+                title={lastObservation.observation}
+              >
+                {truncated}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {formatDate(lastObservation.createdAt, language)}
+              </p>
+            </div>
+          );
+        },
+      },
+      createStatusColumn<ServiceProvider>(
+        t.serviceProviders.table.status,
+        t.serviceProviders.table.active,
+        t.serviceProviders.table.inactive,
+        true
+      ),
+      {
+        key: "actions",
+        label: "",
+        headerClassName: "relative",
+        render: (_, row) => (
+          <TableActionButtons
+            onEdit={() => navigate(getServiceProviderEditRoute(row.id))}
+            onDelete={() => {}}
+            canEdit={canEdit("registration", "serviceProvider")}
+            canDelete={canRemove("registration", "serviceProvider")}
+          />
+        ),
+      },
+    ],
+    [t, language, navigate, canEdit, canRemove]
+  );
 
-  const filters: TableFilter[] = [
-    {
-      label: t.serviceProviders.filters.all,
-      value: "all",
-      active: activeFilter === "all",
-      onClick: () => setActiveFilter("all"),
-    },
-    {
-      label: t.serviceProviders.filters.active,
-      value: "active",
-      active: activeFilter === "active",
-      onClick: () => setActiveFilter("active"),
-    },
-    {
-      label: t.serviceProviders.filters.inactive,
-      value: "inactive",
-      active: activeFilter === "inactive",
-      onClick: () => setActiveFilter("inactive"),
-    },
-  ];
-
-  const handleSort = (column: string, direction: SortDirection) => {
-    setSortState({ column, direction });
-    setCurrentPage(1);
-  };
+  const filterOptions = useMemo(
+    () => [
+      { label: t.serviceProviders.filters.all, value: "all" },
+      { label: t.serviceProviders.filters.active, value: "active" },
+      { label: t.serviceProviders.filters.inactive, value: "inactive" },
+    ],
+    [t]
+  );
 
   return (
-    <div>
-      <Table<ServiceProvider>
-        columns={columns}
-        data={paginatedData}
-        header={{
-          title: t.serviceProviders.title,
-          badge: {
-            label: t.serviceProviders.badge.serviceProviders(filteredData.length),
-            variant: "primary",
-          },
-          description: t.serviceProviders.description,
-          actions: headerActions,
-        }}
-        filters={filters}
-        search={{
-          placeholder: t.serviceProviders.searchPlaceholder,
-          value: searchValue,
-          onChange: setSearchValue,
-        }}
-        pagination={{
-          currentPage,
-          totalPages: totalPages || 1,
-          onPageChange: setCurrentPage,
-          showInfo: false,
-        }}
-        sortState={sortState}
-        onSort={handleSort}
-        onRowClick={(row) => navigate(getServiceProviderViewRoute(row.id))}
-        emptyState={{
-          title: t.serviceProviders.emptyState.title,
-          description: searchValue
-            ? t.serviceProviders.emptyState.descriptionWithSearch(searchValue)
-            : t.serviceProviders.emptyState.descriptionWithoutSearch,
-          onClearSearch: () => {
-            setSearchValue("");
-            setActiveFilter("all");
-          },
-          clearSearchLabel: t.common.clearSearch,
-          onAddNew: () => navigate(ROUTES.SERVICE_PROVIDERS_NEW),
-          addNewLabel: t.serviceProviders.addServiceProvider,
-        }}
-      />
-
-      {alertMessage && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-          <Alert title={alertMessage.title} variant={alertMessage.variant} />
-        </div>
-      )}
-
-      <ConfirmationModal
-        isOpen={isDeleteModalOpen}
-        onClose={() => {
-          setIsDeleteModalOpen(false);
-          setSelectedServiceProvider(null);
-        }}
-        onConfirm={handleDeleteServiceProvider}
-        title={t.serviceProviders.deleteModal.title}
-        message={t.serviceProviders.deleteModal.message(selectedServiceProvider?.name || "")}
-        confirmLabel={t.serviceProviders.deleteModal.confirm}
-        cancelLabel={t.serviceProviders.deleteModal.cancel}
-        variant="danger"
-      />
-    </div>
+    <RegistrationListPage<ServiceProvider>
+      data={serviceProviders}
+      columns={columns}
+      title={t.serviceProviders.title}
+      description={t.serviceProviders.description}
+      badgeLabel={(count) => t.serviceProviders.badge.serviceProviders(count)}
+      searchPlaceholder={t.serviceProviders.searchPlaceholder}
+      emptyStateTitle={t.serviceProviders.emptyState.title}
+      emptyStateDescription={(searchValue) =>
+        t.serviceProviders.emptyState.descriptionWithSearch(searchValue)
+      }
+      emptyStateDescriptionWithoutSearch={t.serviceProviders.emptyState.descriptionWithoutSearch}
+      addButtonLabel={t.serviceProviders.addServiceProvider}
+      newRoute={ROUTES.SERVICE_PROVIDERS_NEW}
+      viewRoute={getServiceProviderViewRoute}
+      deleteService={(serviceProvider) => {
+        const success = deleteServiceProvider(serviceProvider.id);
+        if (success) {
+          setServiceProviders(serviceProviders.filter((sp) => sp.id !== serviceProvider.id));
+        }
+        return success;
+      }}
+      deleteSuccessMessage={t.serviceProviders.success.deleted}
+      deleteErrorMessage={t.serviceProviders.errors.deleteFailed}
+      deleteModalTitle={t.serviceProviders.deleteModal.title}
+      deleteModalMessage={(name) => t.serviceProviders.deleteModal.message(name)}
+      deleteModalConfirm={t.serviceProviders.deleteModal.confirm}
+      deleteModalCancel={t.serviceProviders.deleteModal.cancel}
+      onDeleteSuccess={(serviceProvider) => {
+        setServiceProviders(serviceProviders.filter((sp) => sp.id !== serviceProvider.id));
+      }}
+      permissionSection="registration"
+      permissionResource="serviceProvider"
+      language={language}
+      initialSortColumn="name"
+      searchFields={["name", "code", "email", "phone", "cpf", "cnpj"]}
+      filterOptions={filterOptions}
+    />
   );
 }

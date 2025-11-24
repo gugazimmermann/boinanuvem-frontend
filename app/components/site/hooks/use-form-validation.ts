@@ -37,7 +37,6 @@ export function useFormValidation<T extends Record<string, string>>(
   return { errors, isValid };
 }
 
-// Common validators
 export const validators = {
   email: (value: string): string | null => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {

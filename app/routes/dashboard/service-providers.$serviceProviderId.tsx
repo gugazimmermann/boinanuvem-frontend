@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router";
 import { format, startOfMonth, endOfMonth, subMonths, parseISO } from "date-fns";
-import { ptBR } from "date-fns/locale/pt-BR";
+import { formatCurrency, formatDate, formatDateTime } from "~/utils/formatting";
 import {
   Button,
   StatusBadge,
@@ -71,13 +71,6 @@ import {
 } from "~/services/service-provider-observations.service";
 import type { ServiceProviderObservation } from "~/types/service-provider-observation";
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(value);
-};
-
 const monthNames = [
   "Jan",
   "Fev",
@@ -95,10 +88,12 @@ const monthNames = [
 
 interface ServiceProviderFinanceDashboardProps {
   serviceProviderId: string;
+  language: "pt" | "en" | "es";
 }
 
 function ServiceProviderFinanceDashboard({
   serviceProviderId,
+  language,
 }: ServiceProviderFinanceDashboardProps) {
   const t = useTranslation();
   const { theme } = useTheme();
@@ -248,7 +243,7 @@ function ServiceProviderFinanceDashboard({
                 {t.financesDashboard.cards.totalIncome}
               </p>
               <p className="text-xl font-bold text-green-600 dark:text-green-400 mt-1">
-                {formatCurrency(totalIncome)}
+                {formatCurrency(totalIncome, language)}
               </p>
             </div>
             <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
@@ -347,7 +342,7 @@ function ServiceProviderFinanceDashboard({
                   border: `1px solid ${gridColor}`,
                   borderRadius: "8px",
                 }}
-                formatter={(value: number) => formatCurrency(value)}
+                formatter={(value: number) => formatCurrency(value, language)}
               />
               <Legend />
               <Line
@@ -392,7 +387,7 @@ function ServiceProviderFinanceDashboard({
                   border: `1px solid ${gridColor}`,
                   borderRadius: "8px",
                 }}
-                formatter={(value: number) => formatCurrency(value)}
+                formatter={(value: number) => formatCurrency(value, language)}
               />
               <Area
                 type="monotone"
@@ -431,7 +426,7 @@ function ServiceProviderFinanceDashboard({
                     border: `1px solid ${gridColor}`,
                     borderRadius: "8px",
                   }}
-                  formatter={(value: number) => formatCurrency(value)}
+                  formatter={(value: number) => formatCurrency(value, language)}
                 />
                 <Bar
                   dataKey="value"
@@ -572,26 +567,6 @@ export default function ServiceProviderDetails() {
       </div>
     );
   }
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat("pt-BR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    }).format(date);
-  };
-
-  const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat("pt-BR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(date);
-  };
 
   const handleSubmitObservation = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -901,7 +876,7 @@ export default function ServiceProviderDetails() {
                     {t.serviceProviders.details.createdAt}
                   </p>
                   <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
-                    {formatDate(serviceProvider.createdAt)}
+                    {formatDate(serviceProvider.createdAt, language)}
                   </p>
                 </div>
               </div>
@@ -1032,17 +1007,6 @@ export default function ServiceProviderDetails() {
             ...animalMovements.map((m) => ({ ...m, movementType: "animal" as const })),
           ];
 
-          const formatDate = (dateString: string) => {
-            const date = new Date(dateString);
-            return new Intl.DateTimeFormat("pt-BR", {
-              day: "2-digit",
-              month: "2-digit",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            }).format(date);
-          };
-
           const filteredMovements = movements.filter((movement) => {
             if (!searchValue) return true;
 
@@ -1065,7 +1029,7 @@ export default function ServiceProviderDetails() {
                 return true;
             }
 
-            const dateText = formatDate(movement.date);
+            const dateText = formatDate(movement.date, language);
             if (dateText.toLowerCase().includes(searchLower)) return true;
 
             const locationIds =
@@ -1216,7 +1180,9 @@ export default function ServiceProviderDetails() {
               label: t.properties.details.movements.table.date,
               sortable: true,
               render: (_, row) => (
-                <span className="text-gray-700 dark:text-gray-300">{formatDate(row.date)}</span>
+                <span className="text-gray-700 dark:text-gray-300">
+                  {formatDate(row.date, language)}
+                </span>
               ),
             },
             {
@@ -1461,7 +1427,7 @@ export default function ServiceProviderDetails() {
 
             if (observation.observation.toLowerCase().includes(searchLower)) return true;
 
-            const dateText = formatDateTime(observation.createdAt);
+            const dateText = formatDateTime(observation.createdAt, language);
             if (dateText.toLowerCase().includes(searchLower)) return true;
 
             return false;
@@ -1523,7 +1489,7 @@ export default function ServiceProviderDetails() {
               sortable: true,
               render: (_, row) => (
                 <span className="text-gray-700 dark:text-gray-300">
-                  {formatDateTime(row.createdAt)}
+                  {formatDateTime(row.createdAt, language)}
                 </span>
               ),
             },
@@ -1817,7 +1783,10 @@ export default function ServiceProviderDetails() {
               </div>
 
               {financeSubTab === "dashboard" && (
-                <ServiceProviderFinanceDashboard serviceProviderId={serviceProvider.id} />
+                <ServiceProviderFinanceDashboard
+                  serviceProviderId={serviceProvider.id}
+                  language={language}
+                />
               )}
 
               {financeSubTab === "transactions" &&
@@ -1881,18 +1850,6 @@ export default function ServiceProviderDetails() {
                     ...cashFlowTransactions.map(normalizeCashFlow),
                     ...payableTransactions.map(normalizePayable),
                   ];
-
-                  const formatDate = (dateString: string) => {
-                    const date = new Date(dateString);
-                    return format(date, "dd/MM/yyyy", { locale: ptBR });
-                  };
-
-                  const formatCurrency = (value: number) => {
-                    return new Intl.NumberFormat("pt-BR", {
-                      style: "currency",
-                      currency: "BRL",
-                    }).format(value);
-                  };
 
                   const handleDeleteFinanceClick = (transaction: UnifiedTransaction) => {
                     let originalTransaction: CashFlow | AccountsPayable | null = null;
@@ -2383,7 +2340,7 @@ export default function ServiceProviderDetails() {
                                 {t.cashFlow.filters.income}
                               </span>
                               <span className="font-semibold text-green-600 dark:text-green-400">
-                                {formatCurrency(totalIncome)}
+                                {formatCurrency(totalIncome, language)}
                               </span>
                             </div>
                             <div className="flex flex-col">

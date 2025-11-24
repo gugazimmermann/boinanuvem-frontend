@@ -40,8 +40,6 @@ vi.mock("~/services/users.service", () => ({
   getUserById: vi.fn(),
 }));
 
-// Mock weighings service early to prevent initialization errors in sales mock
-// Use vi.hoisted to ensure the mock function is available when the mock factory runs
 const { mockGetWeighingsByAnimalId } = vi.hoisted(() => {
   return {
     mockGetWeighingsByAnimalId: vi.fn(() => []),

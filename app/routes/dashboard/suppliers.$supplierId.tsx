@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router";
 import { format, startOfMonth, endOfMonth, subMonths, parseISO } from "date-fns";
-import { ptBR } from "date-fns/locale/pt-BR";
+import { formatDate, formatDateTime, formatCurrency } from "~/utils/formatting";
 import {
   Button,
   StatusBadge,
@@ -69,13 +69,6 @@ import { InventoryItemCategory } from "~/types";
 import { getInventoryItemsBySupplierId, getCurrentStock } from "~/services/inventory.service";
 import { getInventoryViewRoute } from "~/routes.config";
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(value);
-};
-
 const monthNames = [
   "Jan",
   "Fev",
@@ -93,9 +86,10 @@ const monthNames = [
 
 interface SupplierFinanceDashboardProps {
   supplierId: string;
+  language: "pt" | "en" | "es";
 }
 
-function SupplierFinanceDashboard({ supplierId }: SupplierFinanceDashboardProps) {
+function SupplierFinanceDashboard({ supplierId, language }: SupplierFinanceDashboardProps) {
   const t = useTranslation();
   const { theme } = useTheme();
   const isDark = theme === "dark";
@@ -241,7 +235,7 @@ function SupplierFinanceDashboard({ supplierId }: SupplierFinanceDashboardProps)
                 {t.financesDashboard.cards.totalIncome}
               </p>
               <p className="text-xl font-bold text-green-600 dark:text-green-400 mt-1">
-                {formatCurrency(totalIncome)}
+                {formatCurrency(totalIncome, language)}
               </p>
             </div>
             <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
@@ -340,7 +334,7 @@ function SupplierFinanceDashboard({ supplierId }: SupplierFinanceDashboardProps)
                   border: `1px solid ${gridColor}`,
                   borderRadius: "8px",
                 }}
-                formatter={(value: number) => formatCurrency(value)}
+                formatter={(value: number) => formatCurrency(value, language)}
               />
               <Legend />
               <Line
@@ -385,7 +379,7 @@ function SupplierFinanceDashboard({ supplierId }: SupplierFinanceDashboardProps)
                   border: `1px solid ${gridColor}`,
                   borderRadius: "8px",
                 }}
-                formatter={(value: number) => formatCurrency(value)}
+                formatter={(value: number) => formatCurrency(value, language)}
               />
               <Area
                 type="monotone"
@@ -424,7 +418,7 @@ function SupplierFinanceDashboard({ supplierId }: SupplierFinanceDashboardProps)
                     border: `1px solid ${gridColor}`,
                     borderRadius: "8px",
                   }}
-                  formatter={(value: number) => formatCurrency(value)}
+                  formatter={(value: number) => formatCurrency(value, language)}
                 />
                 <Bar
                   dataKey="value"
@@ -566,26 +560,6 @@ export default function SupplierDetails() {
       </div>
     );
   }
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat("pt-BR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    }).format(date);
-  };
-
-  const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat("pt-BR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(date);
-  };
 
   const handleSubmitObservation = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -883,7 +857,7 @@ export default function SupplierDetails() {
                     {t.suppliers.details.createdAt}
                   </p>
                   <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
-                    {formatDate(supplier.createdAt)}
+                    {formatDate(supplier.createdAt, language)}
                   </p>
                 </div>
               </div>
@@ -1009,7 +983,7 @@ export default function SupplierDetails() {
 
             if (observation.observation.toLowerCase().includes(searchLower)) return true;
 
-            const dateText = formatDateTime(observation.createdAt);
+            const dateText = formatDateTime(observation.createdAt, language);
             if (dateText.toLowerCase().includes(searchLower)) return true;
 
             return false;
@@ -1071,7 +1045,7 @@ export default function SupplierDetails() {
               sortable: true,
               render: (_, row) => (
                 <span className="text-gray-700 dark:text-gray-300">
-                  {formatDateTime(row.createdAt)}
+                  {formatDateTime(row.createdAt, language)}
                 </span>
               ),
             },
@@ -1359,7 +1333,7 @@ export default function SupplierDetails() {
               </div>
 
               {financeSubTab === "dashboard" && (
-                <SupplierFinanceDashboard supplierId={supplier.id} />
+                <SupplierFinanceDashboard supplierId={supplier.id} language={language} />
               )}
 
               {financeSubTab === "transactions" &&
@@ -1422,18 +1396,6 @@ export default function SupplierDetails() {
                     ...cashFlowTransactions.map(normalizeCashFlow),
                     ...payableTransactions.map(normalizePayable),
                   ];
-
-                  const formatDate = (dateString: string) => {
-                    const date = new Date(dateString);
-                    return format(date, "dd/MM/yyyy", { locale: ptBR });
-                  };
-
-                  const formatCurrency = (value: number) => {
-                    return new Intl.NumberFormat("pt-BR", {
-                      style: "currency",
-                      currency: "BRL",
-                    }).format(value);
-                  };
 
                   const handleDeleteFinanceClick = (transaction: UnifiedTransaction) => {
                     let originalTransaction: CashFlow | AccountsPayable | null = null;
@@ -1507,7 +1469,7 @@ export default function SupplierDetails() {
                             transaction.paymentMethod
                           ]?.toLowerCase() || ""
                         : "";
-                      const amount = formatCurrency(transaction.amount).toLowerCase();
+                      const amount = formatCurrency(transaction.amount, language).toLowerCase();
 
                       let employeeName = "";
                       if (transaction.employeeId) {
@@ -1651,7 +1613,7 @@ export default function SupplierDetails() {
                               : "text-red-600 dark:text-red-400"
                           }`}
                         >
-                          {row.type === "income" ? "+" : "-"} {formatCurrency(row.amount)}
+                          {row.type === "income" ? "+" : "-"} {formatCurrency(row.amount, language)}
                         </span>
                       ),
                     },
@@ -1916,7 +1878,7 @@ export default function SupplierDetails() {
                                 {t.cashFlow.filters.income}
                               </span>
                               <span className="font-semibold text-green-600 dark:text-green-400">
-                                {formatCurrency(totalIncome)}
+                                {formatCurrency(totalIncome, language)}
                               </span>
                             </div>
                             <div className="flex flex-col">

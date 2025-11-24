@@ -61,17 +61,7 @@ import {
 } from "~/services/location-costs.service";
 import { Input } from "~/components/ui";
 
-const formatAreaType = (type: AreaType): string => {
-  const typeMap: Record<AreaType, string> = {
-    [AreaType.HECTARES]: "ha",
-    [AreaType.SQUARE_METERS]: "m²",
-    [AreaType.SQUARE_FEET]: "ft²",
-    [AreaType.ACRES]: "ac",
-    [AreaType.SQUARE_KILOMETERS]: "km²",
-    [AreaType.SQUARE_MILES]: "mi²",
-  };
-  return typeMap[type] || type;
-};
+import { formatAreaType } from "~/utils/formatting";
 
 export function meta() {
   return [
@@ -211,7 +201,6 @@ export default function LocationDetails() {
   const allAnimalsInLocation = animalIdsInLocation
     .map((id) => getAnimalById(id))
     .filter((animal): animal is Animal => animal !== null);
-  // Filtrar apenas animais ativos para todos os cálculos
   const animalsInLocation = allAnimalsInLocation.filter((animal) => animal.status === "active");
 
   const calculateTotalWeight = () => {

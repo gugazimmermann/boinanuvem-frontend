@@ -1,16 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router";
-import {
-  Table,
-  StatusBadge,
-  TableActionButtons,
-  ConfirmationModal,
-  Alert,
-  type TableColumn,
-  type TableAction,
-  type TableFilter,
-  type SortDirection,
-} from "~/components/ui";
+import { TableActionButtons, type TableColumn } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
 import { mockEmployees } from "~/mocks/employees";
@@ -21,380 +11,189 @@ import { ROUTES, getEmployeeEditRoute, getEmployeeViewRoute } from "~/routes.con
 import { getLocationMovementsByEmployeeId } from "~/services/location-movements.service";
 import { getEmployeeObservationsByEmployeeId } from "~/services/employee-observations.service";
 import { usePermissions } from "~/utils/permissions";
+import { RegistrationListPage } from "~/components/dashboard/registrations/registration-list-page";
+import {
+  createNameCodeColumn,
+  createStatusColumn,
+  createTextColumn,
+} from "~/components/dashboard/registrations/table-columns";
+import { formatDate } from "~/utils/formatting";
+import { createRegistrationMeta, createRegistrationLoader } from "~/utils/route-helpers";
 
 export function meta() {
-  return [
-    { title: "Funcionários - Boi na Nuvem" },
-    {
-      name: "description",
-      content: "Gerenciamento de funcionários do Boi na Nuvem",
-    },
-  ];
+  return createRegistrationMeta("Funcionários", "Gerenciamento de funcionários do Boi na Nuvem");
 }
 
 export async function loader({ request }: { request: Request }) {
-  const { createRouteGuard } = await import("~/utils/route-guard");
-  return createRouteGuard(undefined, "view")({ request });
+  return createRegistrationLoader(undefined, "view")({ request });
 }
 
 export default function Employees() {
   const t = useTranslation();
   const { language } = useLanguage();
   const navigate = useNavigate();
-  const { canAdd, canEdit, canRemove } = usePermissions();
+  const { canEdit, canRemove } = usePermissions();
   const [employees, setEmployees] = useState<Employee[]>([...mockEmployees]);
-  const [sortState, setSortState] = useState<{
-    column: string | null;
-    direction: SortDirection;
-  }>({ column: "name", direction: "asc" });
 
-  const [searchValue, setSearchValue] = useState("");
-  const [activeFilter, setActiveFilter] = useState<string>("all");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
-  const [alertMessage, setAlertMessage] = useState<{
-    title: string;
-    variant: "success" | "error" | "warning" | "info";
-  } | null>(null);
-  const itemsPerPage = 10;
-
-  const localeForDateTime = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat(localeForDateTime, {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    }).format(date);
-  };
-
-  const showAlert = (
-    title: string,
-    variant: "success" | "error" | "warning" | "info" = "success"
-  ) => {
-    setAlertMessage({ title, variant });
-    setTimeout(() => {
-      setAlertMessage(null);
-    }, 3000);
-  };
-
-  const handleDeleteClick = (employee: Employee) => {
-    setSelectedEmployee(employee);
-    setIsDeleteModalOpen(true);
-  };
-
-  const handleDeleteEmployee = async () => {
-    if (!selectedEmployee) return;
-    const success = deleteEmployee(selectedEmployee.id);
-    if (success) {
-      setEmployees(employees.filter((e) => e.id !== selectedEmployee.id));
-      showAlert(t.employees.success.deleted, "success");
-    } else {
-      showAlert(t.employees.errors.deleteFailed, "error");
-    }
-    setSelectedEmployee(null);
-  };
-
-  const filteredData = employees.filter((employee) => {
-    const matchesSearch =
-      employee.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-      employee.code.toLowerCase().includes(searchValue.toLowerCase()) ||
-      (employee.email?.toLowerCase().includes(searchValue.toLowerCase()) ?? false) ||
-      (employee.phone?.toLowerCase().includes(searchValue.toLowerCase()) ?? false);
-
-    const matchesFilter =
-      activeFilter === "all" ||
-      (activeFilter === "active" && employee.status === "active") ||
-      (activeFilter === "inactive" && employee.status === "inactive");
-
-    return matchesSearch && matchesFilter;
-  });
-
-  const sortedData = [...filteredData].sort((a, b) => {
-    if (!sortState.column || !sortState.direction) {
-      return 0;
-    }
-
-    const aValue = a[sortState.column];
-    const bValue = b[sortState.column];
-
-    if (aValue == null && bValue == null) return 0;
-    if (aValue == null) return 1;
-    if (bValue == null) return -1;
-
-    let comparison = 0;
-    if (typeof aValue === "string" && typeof bValue === "string") {
-      comparison = aValue.localeCompare(bValue, localeForDateTime, {
-        sensitivity: "base",
-      });
-    } else if (typeof aValue === "number" && typeof bValue === "number") {
-      comparison = aValue - bValue;
-    } else {
-      comparison = String(aValue).localeCompare(String(bValue), localeForDateTime);
-    }
-
-    return sortState.direction === "asc" ? comparison : -comparison;
-  });
-
-  const paginatedData = sortedData.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+  const columns: TableColumn<Employee>[] = useMemo(
+    () => [
+      createNameCodeColumn<Employee>(t.employees.table.name, true),
+      createTextColumn<Employee>("cpf", t.employees.table.cpf, (row) => row.cpf || null, true),
+      createTextColumn<Employee>(
+        "email",
+        t.employees.table.email,
+        (row) => row.email || null,
+        true
+      ),
+      createTextColumn<Employee>(
+        "phone",
+        t.employees.table.phone,
+        (row) => row.phone || null,
+        true
+      ),
+      {
+        key: "properties",
+        label: t.employees.table.properties,
+        sortable: false,
+        render: (_, row) => {
+          const properties = row.propertyIds
+            .map((id) => getPropertyById(id))
+            .filter((p) => p !== undefined)
+            .map((p) => p!.name);
+          return (
+            <span className="text-gray-700 dark:text-gray-300">
+              {properties.length > 0 ? properties.join(", ") : "-"}
+            </span>
+          );
+        },
+      },
+      {
+        key: "lastMovement",
+        label: t.employees.table.lastMovement || "Última Movimentação",
+        sortable: false,
+        render: (_, row) => {
+          const movements = getLocationMovementsByEmployeeId(row.id);
+          if (movements.length === 0) {
+            return <span className="text-gray-400 dark:text-gray-500">-</span>;
+          }
+          const lastMovement = movements.sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+          )[0];
+          const movementTypeLabel =
+            t.properties.details.movements.types[
+              lastMovement.type as keyof typeof t.properties.details.movements.types
+            ] || lastMovement.type;
+          return (
+            <div className="space-y-1">
+              <p className="text-sm text-gray-700 dark:text-gray-300">{movementTypeLabel}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {formatDate(lastMovement.date, language)}
+              </p>
+            </div>
+          );
+        },
+      },
+      {
+        key: "lastObservation",
+        label: t.employees.table.lastObservation || "Última Observação",
+        sortable: false,
+        render: (_, row) => {
+          const observations = getEmployeeObservationsByEmployeeId(row.id);
+          if (observations.length === 0) {
+            return <span className="text-gray-400 dark:text-gray-500">-</span>;
+          }
+          const lastObservation = observations.sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          )[0];
+          const truncated =
+            lastObservation.observation.length > 60
+              ? `${lastObservation.observation.substring(0, 60)}...`
+              : lastObservation.observation;
+          return (
+            <div className="space-y-1">
+              <p
+                className="text-sm text-gray-700 dark:text-gray-300"
+                title={lastObservation.observation}
+              >
+                {truncated}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {formatDate(lastObservation.createdAt, language)}
+              </p>
+            </div>
+          );
+        },
+      },
+      createStatusColumn<Employee>(
+        t.employees.table.status,
+        t.employees.table.active,
+        t.employees.table.inactive,
+        true
+      ),
+      {
+        key: "actions",
+        label: "",
+        headerClassName: "relative",
+        render: (_, row) => (
+          <TableActionButtons
+            onEdit={() => navigate(getEmployeeEditRoute(row.id))}
+            onDelete={() => {}}
+            canEdit={canEdit("registration", "employee")}
+            canDelete={canRemove("registration", "employee")}
+          />
+        ),
+      },
+    ],
+    [t, language, navigate, canEdit, canRemove]
   );
 
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-
-  const columns: TableColumn<Employee>[] = [
-    {
-      key: "name",
-      label: t.employees.table.name,
-      sortable: true,
-      render: (_, row) => (
-        <div>
-          <h2 className="font-medium text-gray-800 dark:text-gray-200">{row.name}</h2>
-          <p className="text-sm font-normal text-gray-600 dark:text-gray-400">{row.code}</p>
-        </div>
-      ),
-    },
-    {
-      key: "cpf",
-      label: t.employees.table.cpf,
-      sortable: true,
-      render: (_, row) => (
-        <span className="text-gray-700 dark:text-gray-300">{row.cpf || "-"}</span>
-      ),
-    },
-    {
-      key: "email",
-      label: t.employees.table.email,
-      sortable: true,
-      render: (_, row) => (
-        <span className="text-gray-700 dark:text-gray-300">{row.email || "-"}</span>
-      ),
-    },
-    {
-      key: "phone",
-      label: t.employees.table.phone,
-      sortable: true,
-      render: (_, row) => (
-        <span className="text-gray-700 dark:text-gray-300">{row.phone || "-"}</span>
-      ),
-    },
-    {
-      key: "properties",
-      label: t.employees.table.properties,
-      sortable: false,
-      render: (_, row) => {
-        const properties = row.propertyIds
-          .map((id) => getPropertyById(id))
-          .filter((p) => p !== undefined)
-          .map((p) => p!.name);
-        return (
-          <span className="text-gray-700 dark:text-gray-300">
-            {properties.length > 0 ? properties.join(", ") : "-"}
-          </span>
-        );
-      },
-    },
-    {
-      key: "lastMovement",
-      label: t.employees.table.lastMovement || "Última Movimentação",
-      sortable: false,
-      render: (_, row) => {
-        const movements = getLocationMovementsByEmployeeId(row.id);
-        if (movements.length === 0) {
-          return <span className="text-gray-400 dark:text-gray-500">-</span>;
-        }
-        const lastMovement = movements.sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        )[0];
-        const movementTypeLabel =
-          t.properties.details.movements.types[
-            lastMovement.type as keyof typeof t.properties.details.movements.types
-          ] || lastMovement.type;
-        return (
-          <div className="space-y-1">
-            <p className="text-sm text-gray-700 dark:text-gray-300">{movementTypeLabel}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {formatDate(lastMovement.date)}
-            </p>
-          </div>
-        );
-      },
-    },
-    {
-      key: "lastObservation",
-      label: t.employees.table.lastObservation || "Última Observação",
-      sortable: false,
-      render: (_, row) => {
-        const observations = getEmployeeObservationsByEmployeeId(row.id);
-        if (observations.length === 0) {
-          return <span className="text-gray-400 dark:text-gray-500">-</span>;
-        }
-        const lastObservation = observations.sort(
-          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        )[0];
-        const truncated =
-          lastObservation.observation.length > 60
-            ? `${lastObservation.observation.substring(0, 60)}...`
-            : lastObservation.observation;
-        return (
-          <div className="space-y-1">
-            <p
-              className="text-sm text-gray-700 dark:text-gray-300"
-              title={lastObservation.observation}
-            >
-              {truncated}
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {formatDate(lastObservation.createdAt)}
-            </p>
-          </div>
-        );
-      },
-    },
-    {
-      key: "status",
-      label: t.employees.table.status,
-      sortable: true,
-      render: (_, row) => (
-        <StatusBadge
-          label={row.status === "active" ? t.employees.table.active : t.employees.table.inactive}
-          variant={row.status === "active" ? "success" : "default"}
-        />
-      ),
-    },
-    {
-      key: "actions",
-      label: "",
-      headerClassName: "relative",
-      render: (_, row) => (
-        <TableActionButtons
-          onEdit={() => navigate(getEmployeeEditRoute(row.id))}
-          onDelete={() => handleDeleteClick(row)}
-          canEdit={canEdit("registration", "employee")}
-          canDelete={canRemove("registration", "employee")}
-        />
-      ),
-    },
-  ];
-
-  const headerActions: TableAction[] = canAdd("registration", "employee")
-    ? [
-        {
-          label: t.employees.addEmployee,
-          variant: "primary",
-          leftIcon: (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className="w-5 h-5"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          ),
-          onClick: () => navigate(ROUTES.EMPLOYEES_NEW),
-        },
-      ]
-    : [];
-
-  const filters: TableFilter[] = [
-    {
-      label: t.employees.filters.all,
-      value: "all",
-      active: activeFilter === "all",
-      onClick: () => setActiveFilter("all"),
-    },
-    {
-      label: t.employees.filters.active,
-      value: "active",
-      active: activeFilter === "active",
-      onClick: () => setActiveFilter("active"),
-    },
-    {
-      label: t.employees.filters.inactive,
-      value: "inactive",
-      active: activeFilter === "inactive",
-      onClick: () => setActiveFilter("inactive"),
-    },
-  ];
-
-  const handleSort = (column: string, direction: SortDirection) => {
-    setSortState({ column, direction });
-    setCurrentPage(1);
-  };
+  const filterOptions = useMemo(
+    () => [
+      { label: t.employees.filters.all, value: "all" },
+      { label: t.employees.filters.active, value: "active" },
+      { label: t.employees.filters.inactive, value: "inactive" },
+    ],
+    [t]
+  );
 
   return (
-    <div>
-      <Table<Employee>
-        columns={columns}
-        data={paginatedData}
-        header={{
-          title: t.employees.title,
-          badge: {
-            label: t.employees.badge.employees(filteredData.length),
-            variant: "primary",
-          },
-          description: t.employees.description,
-          actions: headerActions,
-        }}
-        filters={filters}
-        search={{
-          placeholder: t.employees.searchPlaceholder,
-          value: searchValue,
-          onChange: setSearchValue,
-        }}
-        pagination={{
-          currentPage,
-          totalPages: totalPages || 1,
-          onPageChange: setCurrentPage,
-          showInfo: false,
-        }}
-        sortState={sortState}
-        onSort={handleSort}
-        onRowClick={(row) => navigate(getEmployeeViewRoute(row.id))}
-        emptyState={{
-          title: t.employees.emptyState.title,
-          description: searchValue
-            ? t.employees.emptyState.descriptionWithSearch(searchValue)
-            : t.employees.emptyState.descriptionWithoutSearch,
-          onClearSearch: () => {
-            setSearchValue("");
-            setActiveFilter("all");
-          },
-          clearSearchLabel: t.common.clearSearch,
-          onAddNew: () => navigate(ROUTES.EMPLOYEES_NEW),
-          addNewLabel: t.employees.addEmployee,
-        }}
-      />
-
-      {alertMessage && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-          <Alert title={alertMessage.title} variant={alertMessage.variant} />
-        </div>
-      )}
-
-      <ConfirmationModal
-        isOpen={isDeleteModalOpen}
-        onClose={() => {
-          setIsDeleteModalOpen(false);
-          setSelectedEmployee(null);
-        }}
-        onConfirm={handleDeleteEmployee}
-        title={t.employees.deleteModal.title}
-        message={t.employees.deleteModal.message(selectedEmployee?.name || "")}
-        confirmLabel={t.employees.deleteModal.confirm}
-        cancelLabel={t.employees.deleteModal.cancel}
-        variant="danger"
-      />
-    </div>
+    <RegistrationListPage<Employee>
+      data={employees}
+      columns={columns}
+      title={t.employees.title}
+      description={t.employees.description}
+      badgeLabel={(count) => t.employees.badge.employees(count)}
+      searchPlaceholder={t.employees.searchPlaceholder}
+      emptyStateTitle={t.employees.emptyState.title}
+      emptyStateDescription={(searchValue) =>
+        t.employees.emptyState.descriptionWithSearch(searchValue)
+      }
+      emptyStateDescriptionWithoutSearch={t.employees.emptyState.descriptionWithoutSearch}
+      addButtonLabel={t.employees.addEmployee}
+      newRoute={ROUTES.EMPLOYEES_NEW}
+      viewRoute={getEmployeeViewRoute}
+      deleteService={(employee) => {
+        const success = deleteEmployee(employee.id);
+        if (success) {
+          setEmployees(employees.filter((e) => e.id !== employee.id));
+        }
+        return success;
+      }}
+      deleteSuccessMessage={t.employees.success.deleted}
+      deleteErrorMessage={t.employees.errors.deleteFailed}
+      deleteModalTitle={t.employees.deleteModal.title}
+      deleteModalMessage={(name) => t.employees.deleteModal.message(name)}
+      deleteModalConfirm={t.employees.deleteModal.confirm}
+      deleteModalCancel={t.employees.deleteModal.cancel}
+      onDeleteSuccess={(employee) => {
+        setEmployees(employees.filter((e) => e.id !== employee.id));
+      }}
+      permissionSection="registration"
+      permissionResource="employee"
+      language={language}
+      initialSortColumn="name"
+      searchFields={["name", "code", "email", "phone"]}
+      filterOptions={filterOptions}
+    />
   );
 }

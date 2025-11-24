@@ -70,11 +70,9 @@ describe("Home", () => {
       content:
         "Sistema completo de gestão para fazendas de gado de corte. Gerencie propriedades, pastos, animais, pesos, nascimentos, finanças, estoque, vendas e muito mais. Dashboard interativo, análises avançadas e relatórios detalhados.",
     });
-    // Check for Open Graph tags
     type MetaTag = { title?: string; name?: string; property?: string; content?: string };
     expect(metaData.some((m: MetaTag) => m.property === "og:title")).toBe(true);
     expect(metaData.some((m: MetaTag) => m.property === "og:description")).toBe(true);
-    // Check for Twitter Card tags
     expect(metaData.some((m: MetaTag) => m.name === "twitter:card")).toBe(true);
   });
 

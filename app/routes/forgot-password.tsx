@@ -30,9 +30,7 @@ export default function ForgotPassword() {
 
   const { email, error, isLoading, setEmail, handleSendCode } = usePasswordReset({
     onSendCode: async (email) => {
-      // TODO: Implement password reset service call
       console.log("Sending reset code to:", email);
-      // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1000));
     },
   });

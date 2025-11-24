@@ -31,12 +31,10 @@ export function createSEOMeta(options: SEOMetaOptions) {
   const metaTags: Array<
     { title: string } | { name: string; content: string } | { property: string; content: string }
   > = [
-    // Basic meta tags
     { title: fullTitle },
     { name: "description", content: description },
     { name: "robots", content: noindex ? "noindex, nofollow" : "index, follow" },
 
-    // Open Graph tags
     { property: "og:title", content: fullTitle },
     { property: "og:description", content: description },
     { property: "og:image", content: image },
@@ -45,7 +43,6 @@ export function createSEOMeta(options: SEOMetaOptions) {
     { property: "og:site_name", content: SITE_NAME },
     { property: "og:locale", content: "pt_BR" },
 
-    // Twitter Card tags
     { name: "twitter:card", content: "summary_large_image" },
     { name: "twitter:title", content: fullTitle },
     { name: "twitter:description", content: description },

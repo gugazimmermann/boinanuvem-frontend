@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { format, startOfMonth, endOfMonth, subMonths, parseISO } from "date-fns";
-import { ptBR } from "date-fns/locale/pt-BR";
+import { formatCurrency, formatDate } from "~/utils/formatting";
 import {
   LineChart,
   Line,
@@ -47,18 +47,6 @@ export function meta() {
     },
   ];
 }
-
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(value);
-};
-
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return format(date, "dd/MM/yyyy", { locale: ptBR });
-};
 
 const monthNames = [
   "Jan",
@@ -402,7 +390,7 @@ export default function FinancesDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <StatCard
           title={t.financesDashboard.cards.totalIncome}
-          value={formatCurrency(totalIncome)}
+          value={formatCurrency(totalIncome, "pt")}
           valueColor="green"
           icon={<span className="text-lg">📈</span>}
         />

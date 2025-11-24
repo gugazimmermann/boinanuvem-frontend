@@ -1,9 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale/pt-BR";
-import { enUS } from "date-fns/locale/en-US";
-import { es } from "date-fns/locale/es";
+import { formatDate, formatCurrency, formatDateTime } from "~/utils/formatting";
 import {
   Button,
   StatusBadge,
@@ -34,24 +31,6 @@ import {
   addCashFlowObservation,
 } from "~/services/cash-flow-observations.service";
 import type { CashFlowObservation } from "~/types/cash-flow-observation";
-
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return format(date, "dd/MM/yyyy", { locale: ptBR });
-};
-
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(value);
-};
-
-const formatDateTime = (dateString: string, locale: string) => {
-  const date = new Date(dateString);
-  const dateLocale = locale === "en" ? enUS : locale === "es" ? es : ptBR;
-  return format(date, "dd/MM/yyyy HH:mm", { locale: dateLocale });
-};
 
 export function meta() {
   return [
@@ -218,21 +197,24 @@ export default function CashFlowDetails() {
                   : "text-red-600 dark:text-red-400"
               }`}
             >
-              {transaction.type === "income" ? "+" : "-"} {formatCurrency(transaction.amount)}
+              {transaction.type === "income" ? "+" : "-"}{" "}
+              {formatCurrency(transaction.amount, language)}
             </p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
               {t.cashFlow.details.date}
             </label>
-            <p className="text-gray-900 dark:text-gray-100">{formatDate(transaction.date)}</p>
+            <p className="text-gray-900 dark:text-gray-100">
+              {formatDate(transaction.date, language)}
+            </p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
               {t.cashFlow.details.paymentDate}
             </label>
             <p className="text-gray-900 dark:text-gray-100">
-              {transaction.paymentDate ? formatDate(transaction.paymentDate) : "-"}
+              {transaction.paymentDate ? formatDate(transaction.paymentDate, language) : "-"}
             </p>
           </div>
           <div>
@@ -323,7 +305,9 @@ export default function CashFlowDetails() {
             <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
               {t.cashFlow.details.createdAt}
             </label>
-            <p className="text-gray-900 dark:text-gray-100">{formatDate(transaction.createdAt)}</p>
+            <p className="text-gray-900 dark:text-gray-100">
+              {formatDate(transaction.createdAt, language)}
+            </p>
           </div>
         </div>
       </div>

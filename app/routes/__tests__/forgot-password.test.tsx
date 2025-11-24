@@ -198,10 +198,8 @@ describe("ForgotPassword", () => {
       name: "description",
       content: expect.stringContaining("Recupere sua senha da conta Boi na Nuvem"),
     });
-    // Check for Open Graph tags
     type MetaTag = { title?: string; name?: string; property?: string; content?: string };
     expect(metaData.some((m: MetaTag) => m.property === "og:title")).toBe(true);
-    // Check for noindex (auth pages should not be indexed)
     expect(
       metaData.some((m: MetaTag) => m.name === "robots" && m.content?.includes("noindex"))
     ).toBe(true);

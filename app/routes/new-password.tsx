@@ -40,9 +40,7 @@ export default function NewPassword() {
     handleResetPassword,
   } = usePasswordReset({
     onResetPassword: async (code, _newPassword) => {
-      // TODO: Implement password reset service call
       console.log("Resetting password with code:", code);
-      // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1000));
     },
   });
