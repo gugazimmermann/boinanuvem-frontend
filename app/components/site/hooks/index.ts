@@ -12,3 +12,6 @@ export {
   type UseCEPLookupOptions,
   type UseCEPLookupReturn,
 } from "./use-cep-lookup";
+export { useAuthForm } from "./use-auth-form";
+export { useFormValidation, validators } from "./use-form-validation";
+export { usePasswordReset } from "./use-password-reset";

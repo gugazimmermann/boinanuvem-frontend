@@ -6,3 +6,8 @@ export { Badge } from "./badge";
 export { Heading } from "./heading";
 export { Section } from "./section";
 export { SVGPlaceholder } from "./svg-placeholder";
+export { AuthCard } from "../auth-card";
+export { AuthFooter } from "../auth-footer";
+export { AuthFormError } from "../auth-form-error";
+export { AddressForm } from "../address-form";
+export { StepIndicator } from "../step-indicator";

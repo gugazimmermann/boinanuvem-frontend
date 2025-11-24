@@ -1,16 +1,13 @@
 import { AuthLayout } from "../components/site/auth-layout";
-import { AuthInput, AuthButton } from "../components/site/ui";
+import { AuthCard, AuthFooter, AuthFormError, AuthInput, AuthButton } from "../components/site/ui";
+import { usePasswordReset } from "../components/site/hooks";
 import { ROUTES } from "../routes.config";
 import { requireGuest, useRequireGuest } from "../utils/route-guard";
+import { useTranslation } from "../i18n";
+import { createAuthMeta } from "../utils/auth-meta";
 
 export function meta() {
-  return [
-    { title: "Esqueceu a Senha - Boi na Nuvem" },
-    {
-      name: "description",
-      content: "Recupere sua senha da conta Boi na Nuvem",
-    },
-  ];
+  return createAuthMeta("Esqueceu a Senha", "Recupere sua senha da conta Boi na Nuvem");
 }
 
 export async function loader() {
@@ -19,48 +16,61 @@ export async function loader() {
 
 export default function ForgotPassword() {
   useRequireGuest();
+  const t = useTranslation();
+
+  const { email, error, isLoading, setEmail, handleSendCode } = usePasswordReset({
+    onSendCode: async (email) => {
+      // TODO: Implement password reset service call
+      console.log("Sending reset code to:", email);
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    },
+  });
+
+  const getErrorMessage = (errorKey: string) => {
+    const errorMap: Record<string, string> = {
+      emailRequired: t.common.emailRequired,
+      invalidEmail: t.common.invalidEmail,
+      sendCodeError: t.common.sendCodeError,
+    };
+    return errorMap[errorKey] || t.common.sendCodeError;
+  };
+
   return (
     <AuthLayout>
-      <div className="w-full max-w-sm mx-auto overflow-hidden bg-white dark:bg-gray-800 rounded-lg shadow-md">
-        <div className="px-6 py-4">
-          <div className="flex justify-center mx-auto mb-4">
-            <div className="w-auto h-7 sm:h-8 flex items-center text-2xl font-bold text-secondary dark:text-secondary-light">
-              Boi na Nuvem
-            </div>
+      <AuthCard
+        title="Esqueceu a senha?"
+        subtitle="Digite seu email para receber um código de recuperação"
+        footer={
+          <AuthFooter question="Lembrou sua senha?" linkText="Entrar" linkRoute={ROUTES.LOGIN} />
+        }
+      >
+        <form className="mt-6" onSubmit={handleSendCode}>
+          <AuthFormError error={error ? getErrorMessage(error) : undefined} />
+
+          <div className="w-full">
+            <AuthInput
+              type="email"
+              placeholder="Email"
+              aria-label={t.common.ariaLabels.email}
+              className="mt-0"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              error={
+                error === "emailRequired" || error === "invalidEmail"
+                  ? getErrorMessage(error)
+                  : undefined
+              }
+            />
           </div>
 
-          <h3 className="mt-3 text-xl font-medium text-center text-gray-600 dark:text-gray-300">
-            Esqueceu a senha?
-          </h3>
-
-          <p className="mt-1 text-center text-gray-500 dark:text-gray-400">
-            Digite seu email para receber um código de recuperação
-          </p>
-
-          <form className="mt-6">
-            <div className="w-full">
-              <AuthInput type="email" placeholder="Email" aria-label="Email" className="mt-0" />
-            </div>
-
-            <div className="mt-6">
-              <AuthButton type="submit" variant="primary" size="md" fullWidth>
-                Enviar Código
-              </AuthButton>
-            </div>
-          </form>
-        </div>
-
-        <div className="flex items-center justify-center py-4 text-center bg-gray-50 dark:bg-gray-900">
-          <span className="text-sm text-gray-600 dark:text-gray-400">Lembrou sua senha? </span>
-
-          <a
-            href={ROUTES.LOGIN}
-            className="mx-2 text-sm font-bold text-blue-500 dark:text-blue-400 hover:underline transition-colors cursor-pointer"
-          >
-            Entrar
-          </a>
-        </div>
-      </div>
+          <div className="mt-6">
+            <AuthButton type="submit" variant="primary" size="md" fullWidth disabled={isLoading}>
+              {isLoading ? "Enviando..." : "Enviar Código"}
+            </AuthButton>
+          </div>
+        </form>
+      </AuthCard>
     </AuthLayout>
   );
 }

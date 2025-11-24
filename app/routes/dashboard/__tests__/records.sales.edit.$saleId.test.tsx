@@ -191,6 +191,7 @@ vi.mock("~/components/ui", () => ({
     onChange,
     name,
     label,
+    showPlaceholder: _showPlaceholder,
     ...props
   }: {
     options?: Array<{ value: string; label: string }>;
@@ -198,6 +199,7 @@ vi.mock("~/components/ui", () => ({
     onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
     name?: string;
     label?: string;
+    showPlaceholder?: boolean;
     [key: string]: unknown;
   }) => (
     <select

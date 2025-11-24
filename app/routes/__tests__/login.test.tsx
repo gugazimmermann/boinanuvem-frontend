@@ -48,21 +48,63 @@ vi.mock("~/components/site/auth-layout", () => ({
   ),
 }));
 
-vi.mock("~/components/site/ui", () => ({
-  AuthInput: ({
-    type,
-    placeholder,
-    showPasswordToggle: _showPasswordToggle,
-    ...props
-  }: ComponentProps<typeof AuthInput> & { fullWidth?: boolean }) => (
-    <input data-testid={`auth-input-${type}`} type={type} placeholder={placeholder} {...props} />
-  ),
-  AuthButton: ({ children, ...props }: ComponentProps<typeof AuthButton>) => (
-    <button data-testid="auth-button" {...(props as React.ButtonHTMLAttributes<HTMLButtonElement>)}>
-      {children}
-    </button>
-  ),
-}));
+vi.mock("~/components/site/ui", async () => {
+  const actual =
+    await vi.importActual<typeof import("~/components/site/ui")>("~/components/site/ui");
+  return {
+    ...actual,
+    AuthInput: ({
+      type,
+      placeholder,
+      showPasswordToggle: _showPasswordToggle,
+      ...props
+    }: ComponentProps<typeof AuthInput> & { fullWidth?: boolean }) => (
+      <input data-testid={`auth-input-${type}`} type={type} placeholder={placeholder} {...props} />
+    ),
+    AuthButton: ({ children, ...props }: ComponentProps<typeof AuthButton>) => (
+      <button
+        data-testid="auth-button"
+        {...(props as React.ButtonHTMLAttributes<HTMLButtonElement>)}
+      >
+        {children}
+      </button>
+    ),
+    AuthCard: ({
+      children,
+      title,
+      subtitle,
+      footer,
+    }: {
+      children: React.ReactNode;
+      title?: string;
+      subtitle?: string;
+      footer?: React.ReactNode;
+    }) => (
+      <div data-testid="auth-card">
+        {title && <h3>{title}</h3>}
+        {subtitle && <p>{subtitle}</p>}
+        {children}
+        {footer}
+      </div>
+    ),
+    AuthFooter: ({
+      question,
+      linkText,
+      linkRoute,
+    }: {
+      question: string;
+      linkText: string;
+      linkRoute: string;
+    }) => (
+      <div data-testid="auth-footer">
+        <span>{question} </span>
+        <a href={linkRoute}>{linkText}</a>
+      </div>
+    ),
+    AuthFormError: ({ error }: { error?: string }) =>
+      error ? <div data-testid="auth-form-error">{error}</div> : null,
+  };
+});
 
 describe("Login", () => {
   const createRouter = (isAuthenticated = false, includeLoader = false) => {

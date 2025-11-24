@@ -56,56 +56,173 @@ vi.mock("~/components/site/auth-layout", () => ({
   ),
 }));
 
-vi.mock("~/components/site/ui", () => ({
-  AuthInput: ({
-    type,
-    placeholder,
-    value,
-    onChange,
-    error,
-    showPasswordToggle: _showPasswordToggle,
-    ...props
-  }: ComponentProps<typeof AuthInput> & { fullWidth?: boolean }) => {
-    const { fullWidth: _fullWidth, ...domProps } = props;
-    return (
-      <div>
-        <input
-          data-testid={`auth-input-${placeholder || type}`}
-          type={type}
-          placeholder={placeholder}
-          value={value || ""}
-          onChange={onChange || undefined}
-          {...domProps}
-        />
-        {error && <div data-testid={`error-${placeholder || type}`}>{error}</div>}
+vi.mock("~/components/site/ui", async () => {
+  const actual =
+    await vi.importActual<typeof import("~/components/site/ui")>("~/components/site/ui");
+  return {
+    ...actual,
+    AuthInput: ({
+      type,
+      placeholder,
+      value,
+      onChange,
+      error,
+      showPasswordToggle: _showPasswordToggle,
+      ...props
+    }: ComponentProps<typeof AuthInput> & { fullWidth?: boolean }) => {
+      const { fullWidth: _fullWidth, ...domProps } = props;
+      return (
+        <div>
+          <input
+            data-testid={`auth-input-${placeholder || type}`}
+            type={type}
+            placeholder={placeholder}
+            value={value || ""}
+            onChange={onChange || undefined}
+            {...domProps}
+          />
+          {error && <div data-testid={`error-${placeholder || type}`}>{error}</div>}
+        </div>
+      );
+    },
+    AuthButton: ({ children, onClick, type, ...props }: ComponentProps<typeof AuthButton>) => (
+      <button
+        data-testid={`auth-button-${children}`}
+        type={type as "button" | "submit" | "reset" | undefined}
+        onClick={onClick as React.MouseEventHandler<HTMLButtonElement> | undefined}
+        {...(props as React.ButtonHTMLAttributes<HTMLButtonElement>)}
+      >
+        {children}
+      </button>
+    ),
+    AuthSelect: ({ options, value, onChange, ...props }: ComponentProps<typeof AuthSelect>) => (
+      <select
+        data-testid={`auth-select-${props["aria-label"]}`}
+        value={value || ""}
+        onChange={onChange}
+        {...props}
+      >
+        {options?.map((opt: { value: string; label: string }) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    ),
+    AuthCard: ({
+      children,
+      title,
+      subtitle,
+      footer,
+    }: {
+      children: React.ReactNode;
+      title?: string;
+      subtitle?: string;
+      footer?: React.ReactNode;
+    }) => (
+      <div data-testid="auth-card">
+        <div>Boi na Nuvem</div>
+        {title && <h3>{title}</h3>}
+        {subtitle && <p>{subtitle}</p>}
+        {children}
+        {footer}
       </div>
-    );
-  },
-  AuthButton: ({ children, onClick, type, ...props }: ComponentProps<typeof AuthButton>) => (
-    <button
-      data-testid={`auth-button-${children}`}
-      type={type as "button" | "submit" | "reset" | undefined}
-      onClick={onClick as React.MouseEventHandler<HTMLButtonElement> | undefined}
-      {...(props as React.ButtonHTMLAttributes<HTMLButtonElement>)}
-    >
-      {children}
-    </button>
-  ),
-  AuthSelect: ({ options, value, onChange, ...props }: ComponentProps<typeof AuthSelect>) => (
-    <select
-      data-testid={`auth-select-${props["aria-label"]}`}
-      value={value || ""}
-      onChange={onChange}
-      {...props}
-    >
-      {options?.map((opt: { value: string; label: string }) => (
-        <option key={opt.value} value={opt.value}>
-          {opt.label}
-        </option>
-      ))}
-    </select>
-  ),
-}));
+    ),
+    AuthFooter: ({
+      question,
+      linkText,
+      linkRoute,
+    }: {
+      question: string;
+      linkText: string;
+      linkRoute: string;
+    }) => (
+      <div data-testid="auth-footer">
+        <span>{question} </span>
+        <a href={linkRoute}>{linkText}</a>
+      </div>
+    ),
+    AuthFormError: ({ error }: { error?: string }) =>
+      error ? <div data-testid="auth-form-error">{error}</div> : null,
+    AddressForm: ({
+      data,
+      onChange,
+      errors,
+      zipCodeError,
+      zipCodeLoading,
+    }: {
+      data: AddressFormData;
+      onChange: (field: keyof AddressFormData, value: string) => void;
+      errors?: Partial<Record<keyof AddressFormData, string>>;
+      zipCodeError?: string;
+      zipCodeLoading?: boolean;
+    }) => {
+      return (
+        <div data-testid="address-form">
+          <div>
+            <input
+              data-testid="address-zipcode"
+              placeholder="CEP"
+              value={data.zipCode || ""}
+              onChange={(e) => {
+                // Call the mocked maskCEP function so tests can verify it was called
+                const masked = mockMaskCEP(e.target.value);
+                onChange("zipCode", masked);
+              }}
+            />
+            {zipCodeLoading && <p>Searching address...</p>}
+            {(zipCodeError || errors?.zipCode) && (
+              <div data-testid="error-zipcode">{zipCodeError || errors?.zipCode}</div>
+            )}
+          </div>
+          <input
+            data-testid="address-street"
+            placeholder="Rua"
+            value={data.street || ""}
+            onChange={(e) => onChange("street", e.target.value)}
+          />
+          <input
+            placeholder="Número"
+            value={data.number || ""}
+            onChange={(e) => onChange("number", e.target.value)}
+          />
+          <input
+            placeholder="Complemento"
+            value={data.complement || ""}
+            onChange={(e) => onChange("complement", e.target.value)}
+          />
+          <input
+            placeholder="Bairro"
+            value={data.neighborhood || ""}
+            onChange={(e) => onChange("neighborhood", e.target.value)}
+          />
+          <input
+            placeholder="Cidade"
+            value={data.city || ""}
+            onChange={(e) => onChange("city", e.target.value)}
+          />
+          <select
+            data-testid="auth-select-State"
+            value={data.state || ""}
+            onChange={(e) => onChange("state", e.target.value)}
+          >
+            <option value="">Selecione...</option>
+            <option value="SC">SC</option>
+          </select>
+        </div>
+      );
+    },
+    StepIndicator: ({ currentStep, totalSteps }: { currentStep: number; totalSteps: number }) => (
+      <div data-testid="step-indicator">
+        {Array.from({ length: totalSteps }, (_, i) => i + 1).map((step) => (
+          <span key={step} data-active={step <= currentStep}>
+            {step}
+          </span>
+        ))}
+      </div>
+    ),
+  };
+});
 
 const mockUseCNPJLookup = vi.fn<[string, UseCNPJLookupOptions?], UseCNPJLookupReturn>();
 const mockUseCEPLookup = vi.fn<[string, UseCEPLookupOptions?], UseCEPLookupReturn>();

@@ -47,44 +47,86 @@ vi.mock("~/components/site/auth-layout", () => ({
   ),
 }));
 
-vi.mock("~/components/site/ui", () => ({
-  AuthInput: ({
-    type,
-    placeholder,
-    value,
-    onChange,
-    ...props
-  }: ComponentProps<typeof AuthInput> & { fullWidth?: boolean }) => {
-    const { fullWidth: _fullWidth, showPasswordToggle: _showPasswordToggle, ...rest } = props;
+vi.mock("~/components/site/ui", async () => {
+  const actual =
+    await vi.importActual<typeof import("~/components/site/ui")>("~/components/site/ui");
+  return {
+    ...actual,
+    AuthInput: ({
+      type,
+      placeholder,
+      value,
+      onChange,
+      ...props
+    }: ComponentProps<typeof AuthInput> & { fullWidth?: boolean }) => {
+      const { fullWidth: _fullWidth, showPasswordToggle: _showPasswordToggle, ...rest } = props;
 
-    const inputProps = onChange ? { value: value || "", onChange } : { defaultValue: value || "" };
-    return (
-      <input
-        data-testid={`auth-input-${type}`}
-        type={type}
-        placeholder={placeholder}
-        {...inputProps}
-        {...rest}
-      />
-    );
-  },
-  AuthButton: ({
-    children,
-    fullWidth: _fullWidth,
-    onClick,
-    type,
-    ...props
-  }: ComponentProps<typeof AuthButton>) => (
-    <button
-      data-testid="auth-button"
-      type={type as "button" | "submit" | "reset" | undefined}
-      onClick={onClick as React.MouseEventHandler<HTMLButtonElement> | undefined}
-      {...(props as React.ButtonHTMLAttributes<HTMLButtonElement>)}
-    >
-      {children}
-    </button>
-  ),
-}));
+      const inputProps = onChange
+        ? { value: value || "", onChange }
+        : { defaultValue: value || "" };
+      return (
+        <input
+          data-testid={`auth-input-${type}`}
+          type={type}
+          placeholder={placeholder}
+          {...inputProps}
+          {...rest}
+        />
+      );
+    },
+    AuthButton: ({
+      children,
+      fullWidth: _fullWidth,
+      onClick,
+      type,
+      ...props
+    }: ComponentProps<typeof AuthButton>) => (
+      <button
+        data-testid="auth-button"
+        type={type as "button" | "submit" | "reset" | undefined}
+        onClick={onClick as React.MouseEventHandler<HTMLButtonElement> | undefined}
+        {...(props as React.ButtonHTMLAttributes<HTMLButtonElement>)}
+      >
+        {children}
+      </button>
+    ),
+    AuthCard: ({
+      children,
+      title,
+      subtitle,
+      footer,
+    }: {
+      children: React.ReactNode;
+      title?: string;
+      subtitle?: string;
+      footer?: React.ReactNode;
+    }) => (
+      <div data-testid="auth-card">
+        <div>Boi na Nuvem</div>
+        {title && <h3>{title}</h3>}
+        {subtitle && <p>{subtitle}</p>}
+        {children}
+        {footer}
+      </div>
+    ),
+    AuthFooter: ({
+      question,
+      linkText,
+      linkRoute,
+    }: {
+      question: string;
+      linkText: string;
+      linkRoute: string;
+    }) => (
+      <div data-testid="auth-footer">
+        <span>{question} </span>
+        <a href={linkRoute}>{linkText}</a>
+      </div>
+    ),
+    AuthFormError: ({ error }: { error?: string }) =>
+      error ? <div data-testid="auth-form-error">{error}</div> : null,
+  };
+});
 
 describe("ForgotPassword", () => {
   const createRouter = (isAuthenticated = false, includeLoader = false) => {
