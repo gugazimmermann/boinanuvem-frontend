@@ -40,6 +40,19 @@ vi.mock("~/services/users.service", () => ({
   getUserById: vi.fn(),
 }));
 
+// Mock weighings service early to prevent initialization errors in sales mock
+// Use vi.hoisted to ensure the mock function is available when the mock factory runs
+const { mockGetWeighingsByAnimalId } = vi.hoisted(() => {
+  return {
+    mockGetWeighingsByAnimalId: vi.fn(() => []),
+  };
+});
+
+vi.mock("~/services/weighings.service", () => ({
+  getWeighingsByAnimalId: (...args: unknown[]) => mockGetWeighingsByAnimalId(...args),
+  getWeighingsByCompanyId: vi.fn(() => []),
+}));
+
 const mockUsePermissions = vi.fn();
 vi.mock("~/utils/permissions", () => ({
   usePermissions: () => mockUsePermissions(),
@@ -172,16 +185,10 @@ vi.mock("~/services/reproductive-indexes.service", () => ({
   getExpectedBirthsForecast: vi.fn(() => []),
 }));
 
-const mockGetWeighingsByAnimalId = vi.fn(() => []);
-
 vi.mock("~/mocks/weighings", async () => {
   const actual = await vi.importActual<typeof import("~/mocks/weighings")>("~/mocks/weighings");
   return actual;
 });
-
-vi.mock("~/services/weighings.service", () => ({
-  getWeighingsByAnimalId: (...args: unknown[]) => mockGetWeighingsByAnimalId(...args),
-}));
 
 vi.mock("~/mocks/cash-flow", async () => {
   const actual = await vi.importActual<typeof import("~/mocks/cash-flow")>("~/mocks/cash-flow");

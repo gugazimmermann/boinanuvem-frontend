@@ -663,11 +663,13 @@ export default function PropertyDetails() {
   const locations = getLocationsByPropertyId(property.id);
   const locationsCount = locations.length;
   const allPropertyAnimals = getAnimalsByPropertyId(property.id);
-  const animalsCount = allPropertyAnimals.length;
+  // Filtrar apenas animais ativos para todos os cálculos
+  const propertyAnimals = allPropertyAnimals.filter((animal) => animal.status === "active");
+  const animalsCount = propertyAnimals.length;
 
   const calculateTotalWeight = () => {
     let totalWeight = 0;
-    allPropertyAnimals.forEach((animal) => {
+    propertyAnimals.forEach((animal) => {
       const weighings = getWeighingsByAnimalId(animal.id);
       if (weighings.length > 0) {
         const lastWeighing = weighings.sort(
@@ -1035,8 +1037,7 @@ export default function PropertyDetails() {
                     {animalsCount.toLocaleString()}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {allPropertyAnimals.filter((a) => a.status === "active").length}{" "}
-                    {t.properties.details.activeAnimals.toLowerCase()}
+                    {animalsCount} {t.properties.details.activeAnimals.toLowerCase()}
                   </p>
                 </div>
                 <div

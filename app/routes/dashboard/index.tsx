@@ -1,55 +1,23 @@
-import { useMemo } from "react";
-import {
-  format,
-  startOfMonth,
-  endOfMonth,
-  subMonths,
-  parseISO,
-  differenceInHours,
-  differenceInDays,
-  differenceInMinutes,
-} from "date-fns";
-import {
-  LineChart,
-  Line,
-  AreaChart,
-  Area,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from "recharts";
+import { useMemo, useCallback } from "react";
+import { format, parseISO } from "date-fns";
+import { PieChart, Pie, Cell, Tooltip } from "recharts";
 import { useTranslation } from "~/i18n";
 import { useTheme } from "~/contexts/theme-context";
 import { useLanguage } from "~/contexts/language-context";
-import { ptBR } from "date-fns/locale/pt-BR";
-import { enUS } from "date-fns/locale/en-US";
-import { es } from "date-fns/locale/es";
-import { StatCard, ChartWrapper, getTooltipStyle, getChartColors } from "~/components/dashboard";
-import { mockProperties } from "~/mocks/properties";
-import { mockLocations } from "~/mocks/locations";
+import { StatCard, ChartWrapper, getChartColors, getTooltipStyle } from "~/components/dashboard";
+import { LineChartConfig } from "~/components/dashboard/charts/line-chart-config";
+import { AreaChartConfig } from "~/components/dashboard/charts/area-chart-config";
+import { ActivityItem } from "~/components/dashboard/activity-item";
+import { RecentListItem } from "~/components/dashboard/recent-list-item";
 import { mockCompanies } from "~/mocks/companies";
-import { getAnimalsByCompanyId } from "~/services/animals.service";
-import { getWeighingsByAnimalId, getWeighingsByCompanyId } from "~/services/weighings.service";
-import { getExpectedBirthsForecast } from "~/services/reproductive-indexes.service";
-import { getCashFlowByCompanyId } from "~/services/cash-flow.service";
-import { getAccountsPayableByCompanyId } from "~/services/accounts-payable.service";
-import { getAccountsReceivableByCompanyId } from "~/services/accounts-receivable.service";
-import { getBirthsByCompanyId } from "~/services/births.service";
-import { getBreedingsByCompanyId } from "~/services/breedings.service";
-import { getEmployeesByCompanyId } from "~/services/employees.service";
-import { getSuppliersByCompanyId } from "~/services/suppliers.service";
-import { getBuyersByCompanyId } from "~/services/buyers.service";
-import { getSalesByCompanyId } from "~/services/sales.service";
-import { getSalesMetrics } from "~/services/sales-analytics.service";
-import { AreaType } from "~/types";
-import { AccountsPayableStatus, AccountsReceivableStatus } from "~/types";
+import { useDashboardData } from "~/components/dashboard/hooks/use-dashboard-data";
+import { useMonthlyTrends } from "~/components/dashboard/hooks/use-monthly-trends";
+import { useRecentActivities } from "~/components/dashboard/hooks/use-recent-activities";
+import { formatCurrency } from "~/utils/currency";
+import { getDateLocale } from "~/utils/date";
 import { ROUTES } from "~/routes.config";
 import { translations } from "~/i18n/translations";
+import type { Weighing, CashFlow, Sale } from "~/types";
 
 export function meta() {
   const t = translations.pt;
@@ -62,354 +30,132 @@ export function meta() {
   ];
 }
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(value);
-};
-
-const formatRelativeTime = (dateString: string, t: ReturnType<typeof useTranslation>) => {
-  const date = parseISO(dateString);
-  const now = new Date();
-  const minutes = differenceInMinutes(now, date);
-  const hours = differenceInHours(now, date);
-  const days = differenceInDays(now, date);
-
-  if (minutes < 60) {
-    return t.dashboard.recentActivities.minutesAgo(minutes);
-  } else if (hours < 24) {
-    return t.dashboard.recentActivities.hoursAgo(hours);
-  } else {
-    return t.dashboard.recentActivities.daysAgo(days);
-  }
-};
-
 export default function Dashboard() {
   const t = useTranslation();
   const { theme } = useTheme();
   const { language } = useLanguage();
   const isDark = theme === "dark";
 
-  const dateLocale = useMemo(() => {
-    switch (language) {
-      case "en":
-        return enUS;
-      case "es":
-        return es;
-      default:
-        return ptBR;
-    }
-  }, [language]);
+  const dateLocale = useMemo(() => getDateLocale(language), [language]);
 
   const company = mockCompanies[0];
   const companyId = company?.id || "";
-  const animals = getAnimalsByCompanyId(companyId);
-  const totalAnimals = animals.length;
-  const totalProperties = mockProperties.length;
-  const totalLocations = mockLocations.length;
 
-  const calculateTotalWeight = () => {
+  const dashboardData = useDashboardData(companyId);
+  const {
+    animals,
+    totalAnimals,
+    totalProperties,
+    totalLocations,
+    totalWeight,
+    animalUnits,
+    totalAreaInHectares,
+    stockingRate,
+    nextMonthExpected,
+    nextThreeMonthsTotal,
+    totalIncome,
+    totalExpenses,
+    netCashFlow,
+    totalAccountsPayable,
+    totalAccountsReceivable,
+    employees,
+    suppliers,
+    buyers,
+    birthsThisMonth,
+    breedingsThisMonth,
+    salesThisMonth,
+    salesMetrics,
+    recentSales,
+    recentBirths,
+    recentBreedings,
+    allWeighings,
+    cashFlowData,
+    sales,
+    births,
+    breedings,
+    currentDate,
+  } = dashboardData;
+
+  const activities = useRecentActivities({
+    animals,
+    births,
+    weighings: allWeighings,
+    breedings,
+    cashFlowData,
+    sales,
+    t,
+  });
+
+  const formatRelativeTimeOptions = useMemo(
+    () => ({
+      minutesAgo: t.dashboard.recentActivities.minutesAgo,
+      hoursAgo: t.dashboard.recentActivities.hoursAgo,
+      daysAgo: t.dashboard.recentActivities.daysAgo,
+    }),
+    [t]
+  );
+
+  const weightAggregator = useCallback((monthWeighings: Weighing[]) => {
     let totalWeight = 0;
-    animals.forEach((animal) => {
-      const weighings = getWeighingsByAnimalId(animal.id);
-      if (weighings.length > 0) {
-        const lastWeighing = weighings.sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        )[0];
-        totalWeight += lastWeighing.weight;
-      }
+    let count = 0;
+    monthWeighings.forEach((weighing) => {
+      totalWeight += weighing.weight;
+      count++;
     });
-    return totalWeight;
-  };
+    const avgWeight = count > 0 ? totalWeight / count : 0;
+    return { averageWeight: Math.round(avgWeight) };
+  }, []);
 
-  const totalWeight = calculateTotalWeight();
-  const animalUnits = totalWeight > 0 ? totalWeight / 450 : 0;
-
-  const convertToHectares = (value: number, type: AreaType): number => {
-    switch (type) {
-      case AreaType.HECTARES:
-        return value;
-      case AreaType.SQUARE_METERS:
-        return value / 10000;
-      case AreaType.SQUARE_FEET:
-        return value / 107639;
-      case AreaType.ACRES:
-        return value * 0.404686;
-      case AreaType.SQUARE_KILOMETERS:
-        return value * 100;
-      case AreaType.SQUARE_MILES:
-        return value * 258.999;
-      default:
-        return value;
-    }
-  };
-
-  const totalAreaInHectares = mockProperties.reduce((sum, property) => {
-    return sum + convertToHectares(property.area.value, property.area.type);
-  }, 0);
-
-  const stockingRate =
-    totalAreaInHectares > 0 && animalUnits > 0 ? animalUnits / totalAreaInHectares : 0;
-
-  const activeAnimals = animals.filter((animal) => animal.status === "active").length;
-
-  const expectedBirthsForecast = useMemo(
-    () => getExpectedBirthsForecast(companyId, { isPropertyId: false, monthsAhead: 9 }),
-    [companyId]
-  );
-
-  const nextMonthExpected = useMemo(() => {
-    if (!expectedBirthsForecast.monthly || expectedBirthsForecast.monthly.length === 0) return 0;
-    const today = new Date();
-    const nextMonthKey = `${today.getFullYear()}-${String(today.getMonth() + 2).padStart(2, "0")}`;
-    const nextMonth = expectedBirthsForecast.monthly.find((item) => item.month === nextMonthKey);
-    return nextMonth?.expectedBirths || 0;
-  }, [expectedBirthsForecast.monthly]);
-
-  const nextThreeMonthsTotal = expectedBirthsForecast.total;
-
-  const cashFlowData = useMemo(() => getCashFlowByCompanyId(companyId), [companyId]);
-  const accountsPayableData = useMemo(() => getAccountsPayableByCompanyId(companyId), [companyId]);
-  const accountsReceivableData = useMemo(
-    () => getAccountsReceivableByCompanyId(companyId),
-    [companyId]
-  );
-
-  const currentDate = useMemo(() => new Date(), []);
-  const currentMonthStart = useMemo(() => startOfMonth(currentDate), [currentDate]);
-  const currentMonthEnd = useMemo(() => endOfMonth(currentDate), [currentDate]);
-
-  const currentMonthCashFlow = useMemo(() => {
-    return cashFlowData.filter((transaction) => {
-      const transactionDate = parseISO(transaction.date);
-      return transactionDate >= currentMonthStart && transactionDate <= currentMonthEnd;
-    });
-  }, [cashFlowData, currentMonthStart, currentMonthEnd]);
-
-  const totalIncome = useMemo(() => {
-    return currentMonthCashFlow
+  const financialAggregator = useCallback((monthTransactions: CashFlow[]) => {
+    const income = monthTransactions
       .filter((t) => t.type === "income")
       .reduce((sum, t) => sum + t.amount, 0);
-  }, [currentMonthCashFlow]);
-
-  const totalExpenses = useMemo(() => {
-    return currentMonthCashFlow
+    const expenses = monthTransactions
       .filter((t) => t.type === "expense")
       .reduce((sum, t) => sum + t.amount, 0);
-  }, [currentMonthCashFlow]);
+    return {
+      income: Math.round(income),
+      expenses: Math.round(expenses),
+    };
+  }, []);
 
-  const netCashFlow = totalIncome - totalExpenses;
+  const salesAggregator = useCallback((monthSales: Sale[]) => {
+    const revenue = monthSales.reduce((sum, sale) => sum + sale.totalPrice, 0);
+    return {
+      revenue: Math.round(revenue),
+      count: monthSales.length,
+    };
+  }, []);
 
-  const totalAccountsPayable = useMemo(() => {
-    const unpaidPayable = accountsPayableData.filter(
-      (ap) =>
-        ap.status === AccountsPayableStatus.UNPAID || ap.status === AccountsPayableStatus.OVERDUE
-    );
-    return unpaidPayable.reduce((sum, ap) => {
-      const remainingAmount = ap.paidAmount ? ap.amount - ap.paidAmount : ap.amount;
-      return sum + remainingAmount;
-    }, 0);
-  }, [accountsPayableData]);
+  const weightTrendData = useMonthlyTrends<Weighing>({
+    data: allWeighings,
+    dateField: "date",
+    monthsBack: 5,
+    dateLocale,
+    currentDate,
+    aggregator: weightAggregator,
+  });
 
-  const totalAccountsReceivable = useMemo(() => {
-    const unpaidReceivable = accountsReceivableData.filter(
-      (ar) =>
-        ar.status === AccountsReceivableStatus.UNPAID ||
-        ar.status === AccountsReceivableStatus.OVERDUE
-    );
-    return unpaidReceivable.reduce((sum, ar) => {
-      const remainingAmount = ar.paidAmount ? ar.amount - ar.paidAmount : ar.amount;
-      return sum + remainingAmount;
-    }, 0);
-  }, [accountsReceivableData]);
+  const financialTrendData = useMonthlyTrends<CashFlow>({
+    data: cashFlowData,
+    dateField: "date",
+    monthsBack: 5,
+    dateLocale,
+    currentDate,
+    aggregator: financialAggregator,
+  });
 
-  const employees = useMemo(() => getEmployeesByCompanyId(companyId), [companyId]);
-  const suppliers = useMemo(() => getSuppliersByCompanyId(companyId), [companyId]);
-  const buyers = useMemo(() => getBuyersByCompanyId(companyId), [companyId]);
-
-  const births = useMemo(() => getBirthsByCompanyId(companyId), [companyId]);
-  const breedings = useMemo(() => getBreedingsByCompanyId(companyId), [companyId]);
-
-  const sales = useMemo(() => getSalesByCompanyId(companyId), [companyId]);
-  const salesMetrics = useMemo(() => getSalesMetrics(companyId), [companyId]);
-
-  const salesThisMonth = useMemo(() => {
-    return sales.filter((sale) => {
-      const saleDate = parseISO(sale.saleDate);
-      return saleDate >= currentMonthStart && saleDate <= currentMonthEnd;
-    }).length;
-  }, [sales, currentMonthStart, currentMonthEnd]);
-
-  const recentSales = useMemo(() => {
-    return [...sales]
-      .sort((a, b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime())
-      .slice(0, 10);
-  }, [sales]);
-
-  const birthsThisMonth = useMemo(() => {
-    return births.filter((birth) => {
-      const birthDate = parseISO(birth.birthDate);
-      return birthDate >= currentMonthStart && birthDate <= currentMonthEnd;
-    }).length;
-  }, [births, currentMonthStart, currentMonthEnd]);
-
-  const breedingsThisMonth = useMemo(() => {
-    return breedings.filter((breeding) => {
-      const breedingDate = parseISO(breeding.date);
-      return breedingDate >= currentMonthStart && breedingDate <= currentMonthEnd;
-    }).length;
-  }, [breedings, currentMonthStart, currentMonthEnd]);
-
-  const recentBirths = useMemo(() => {
-    return [...births]
-      .sort((a, b) => new Date(b.birthDate).getTime() - new Date(a.birthDate).getTime())
-      .slice(0, 10);
-  }, [births]);
-
-  const recentBreedings = useMemo(() => {
-    return [...breedings]
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 10);
-  }, [breedings]);
-
-  const allWeighings = useMemo(() => getWeighingsByCompanyId(companyId), [companyId]);
-
-  const activities = useMemo(() => {
-    const activityList: Array<{
-      type: string;
-      date: string;
-      title: string;
-      icon: string;
-      color: string;
-    }> = [];
-
-    animals.forEach((animal) => {
-      activityList.push({
-        type: "animal",
-        date: animal.createdAt || new Date().toISOString(),
-        title: t.dashboard.recentActivities.newAnimalRegistered,
-        icon: "🐄",
-        color: "blue",
-      });
-    });
-
-    births.forEach((birth) => {
-      activityList.push({
-        type: "birth",
-        date: birth.birthDate,
-        title: t.dashboard.recentActivities.newBirthRegistered,
-        icon: "👶",
-        color: "purple",
-      });
-    });
-
-    allWeighings.forEach((weighing) => {
-      activityList.push({
-        type: "weighing",
-        date: weighing.date,
-        title: t.dashboard.recentActivities.newWeighingRegistered,
-        icon: "⚖️",
-        color: "teal",
-      });
-    });
-
-    breedings.forEach((breeding) => {
-      activityList.push({
-        type: "breeding",
-        date: breeding.date,
-        title: t.dashboard.recentActivities.newBreedingRegistered,
-        icon: "💑",
-        color: "pink",
-      });
-    });
-
-    cashFlowData.forEach((transaction) => {
-      activityList.push({
-        type: "transaction",
-        date: transaction.date,
-        title: t.dashboard.recentActivities.newTransactionRegistered,
-        icon: transaction.type === "income" ? "💰" : "💸",
-        color: transaction.type === "income" ? "green" : "red",
-      });
-    });
-
-    sales.forEach((sale) => {
-      activityList.push({
-        type: "sale",
-        date: sale.saleDate,
-        title: t.dashboard.recentActivities.newSaleRegistered,
-        icon: "💵",
-        color: "green",
-      });
-    });
-
-    return activityList
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 10);
-  }, [animals, births, allWeighings, breedings, cashFlowData, sales, t]);
-
-  const weightTrendData = useMemo(() => {
-    const months = [];
-    for (let i = 5; i >= 0; i--) {
-      const monthDate = subMonths(currentDate, i);
-      const monthStart = startOfMonth(monthDate);
-      const monthEnd = endOfMonth(monthDate);
-
-      const monthWeighings = allWeighings.filter((w) => {
-        const weighingDate = parseISO(w.date);
-        return weighingDate >= monthStart && weighingDate <= monthEnd;
-      });
-
-      let totalWeight = 0;
-      let count = 0;
-      monthWeighings.forEach((weighing) => {
-        totalWeight += weighing.weight;
-        count++;
-      });
-
-      const avgWeight = count > 0 ? totalWeight / count : 0;
-
-      months.push({
-        month: format(monthDate, "MMM", { locale: dateLocale }),
-        averageWeight: Math.round(avgWeight),
-      });
-    }
-    return months;
-  }, [allWeighings, currentDate, dateLocale]);
-
-  const financialTrendData = useMemo(() => {
-    const months = [];
-    for (let i = 5; i >= 0; i--) {
-      const monthDate = subMonths(currentDate, i);
-      const monthStart = startOfMonth(monthDate);
-      const monthEnd = endOfMonth(monthDate);
-
-      const monthTransactions = cashFlowData.filter((t) => {
-        const transactionDate = parseISO(t.date);
-        return transactionDate >= monthStart && transactionDate <= monthEnd;
-      });
-
-      const income = monthTransactions
-        .filter((t) => t.type === "income")
-        .reduce((sum, t) => sum + t.amount, 0);
-
-      const expenses = monthTransactions
-        .filter((t) => t.type === "expense")
-        .reduce((sum, t) => sum + t.amount, 0);
-
-      months.push({
-        month: format(monthDate, "MMM", { locale: dateLocale }),
-        income: Math.round(income),
-        expenses: Math.round(expenses),
-      });
-    }
-    return months;
-  }, [cashFlowData, currentDate, dateLocale]);
+  const salesTrendData = useMonthlyTrends<Sale>({
+    data: sales,
+    dateField: "saleDate",
+    monthsBack: 5,
+    dateLocale,
+    currentDate,
+    aggregator: salesAggregator,
+  });
 
   const chartColors = getChartColors(isDark);
 
-  // Animal distribution by status
   const animalDistributionByStatus = useMemo(() => {
     const statusCounts: Record<string, number> = {};
     animals.forEach((animal) => {
@@ -427,31 +173,6 @@ export default function Dashboard() {
       value,
     }));
   }, [animals, t]);
-
-  // Sales trends over time
-  const salesTrendData = useMemo(() => {
-    const months = [];
-    for (let i = 5; i >= 0; i--) {
-      const monthDate = subMonths(currentDate, i);
-      const monthStart = startOfMonth(monthDate);
-      const monthEnd = endOfMonth(monthDate);
-
-      const monthSales = sales.filter((sale) => {
-        const saleDate = parseISO(sale.saleDate);
-        return saleDate >= monthStart && saleDate <= monthEnd;
-      });
-
-      const revenue = monthSales.reduce((sum, sale) => sum + sale.totalPrice, 0);
-      const count = monthSales.length;
-
-      months.push({
-        month: format(monthDate, "MMM", { locale: dateLocale }),
-        revenue: Math.round(revenue),
-        count,
-      });
-    }
-    return months;
-  }, [sales, currentDate, dateLocale]);
 
   return (
     <div>
@@ -480,14 +201,12 @@ export default function Dashboard() {
           <StatCard
             title={t.dashboard.stats.totalAnimals}
             value={totalAnimals.toLocaleString()}
-            subtitle={`${activeAnimals} ${t.dashboard.stats.active}`}
             icon={<span className="text-lg">🐄</span>}
           />
 
           <StatCard
             title={t.properties.table.uas}
             value={animalUnits.toFixed(2)}
-            subtitle={`${(totalWeight / 1000).toFixed(1)} ${t.dashboard.stats.totalWeight}`}
             icon={<span className="text-lg">📊</span>}
           />
 
@@ -566,35 +285,35 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <StatCard
             title={t.dashboard.financial.monthlyIncome}
-            value={formatCurrency(totalIncome)}
+            value={formatCurrency(totalIncome, language)}
             valueColor="green"
             icon={<span className="text-lg">📈</span>}
           />
 
           <StatCard
             title={t.dashboard.financial.monthlyExpenses}
-            value={formatCurrency(totalExpenses)}
+            value={formatCurrency(totalExpenses, language)}
             valueColor="red"
             icon={<span className="text-lg">📉</span>}
           />
 
           <StatCard
             title={t.dashboard.financial.netCashFlow}
-            value={formatCurrency(netCashFlow)}
+            value={formatCurrency(netCashFlow, language)}
             valueColor={netCashFlow >= 0 ? "green" : "red"}
             icon={<span className="text-lg">💰</span>}
           />
 
           <StatCard
             title={t.dashboard.financial.accountsPayable}
-            value={formatCurrency(totalAccountsPayable)}
+            value={formatCurrency(totalAccountsPayable, language)}
             valueColor="orange"
             icon={<span className="text-lg">📤</span>}
           />
 
           <StatCard
             title={t.dashboard.financial.accountsReceivable}
-            value={formatCurrency(totalAccountsReceivable)}
+            value={formatCurrency(totalAccountsReceivable, language)}
             valueColor="blue"
             icon={<span className="text-lg">📥</span>}
             link={{ to: ROUTES.FINANCES_DASHBOARD, text: t.dashboard.financial.viewFinances }}
@@ -602,9 +321,9 @@ export default function Dashboard() {
 
           <StatCard
             title={t.dashboard.financial.totalSalesRevenue}
-            value={formatCurrency(salesMetrics.totalRevenue)}
+            value={formatCurrency(salesMetrics.totalRevenue, language)}
             valueColor="green"
-            subtitle={`${t.dashboard.financial.averagePricePerKg}: ${formatCurrency(salesMetrics.averagePricePerKg)}`}
+            subtitle={`${t.dashboard.financial.averagePricePerKg}: ${formatCurrency(salesMetrics.averagePricePerKg, language)}`}
             icon={<span className="text-lg">💰</span>}
             link={{ to: ROUTES.SALES, text: t.dashboard.financial.viewSales }}
           />
@@ -621,32 +340,24 @@ export default function Dashboard() {
             isEmpty={weightTrendData.length === 0}
             emptyMessage={t.dashboard.charts.noData}
           >
-            <LineChart data={weightTrendData}>
-              <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
-              <XAxis dataKey="month" tick={{ fill: chartColors.text, fontSize: 12 }} />
-              <YAxis
-                tick={{ fill: chartColors.text, fontSize: 12 }}
-                label={{
-                  value: t.dashboard.charts.averageWeight,
-                  angle: -90,
-                  position: "insideLeft",
-                  style: { fill: chartColors.text, fontSize: "12px" },
-                }}
-              />
-              <Tooltip
-                {...getTooltipStyle(isDark)}
-                formatter={(value: number) => [`${value} kg`, t.dashboard.charts.averageWeight]}
-              />
-              <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
-              <Line
-                type="monotone"
-                dataKey="averageWeight"
-                stroke={chartColors.weight}
-                strokeWidth={2}
-                name={t.dashboard.charts.averageWeight}
-                dot={{ fill: chartColors.weight, r: 4 }}
-              />
-            </LineChart>
+            <LineChartConfig
+              data={weightTrendData}
+              dataKeys={[
+                {
+                  key: "averageWeight",
+                  name: t.dashboard.charts.averageWeight,
+                  color: chartColors.weight,
+                },
+              ]}
+              xAxisKey="month"
+              yAxisLabel={t.dashboard.charts.averageWeight}
+              tooltipFormatter={(value: number) => [
+                `${value} kg`,
+                t.dashboard.charts.averageWeight,
+              ]}
+              chartColors={chartColors}
+              isDark={isDark}
+            />
           </ChartWrapper>
 
           <ChartWrapper
@@ -654,35 +365,26 @@ export default function Dashboard() {
             isEmpty={financialTrendData.length === 0}
             emptyMessage={t.dashboard.charts.noData}
           >
-            <LineChart data={financialTrendData}>
-              <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
-              <XAxis dataKey="month" tick={{ fill: chartColors.text, fontSize: 12 }} />
-              <YAxis
-                tick={{ fill: chartColors.text, fontSize: 12 }}
-                tickFormatter={(value) => t.common.currency.formatShort(value)}
-              />
-              <Tooltip
-                {...getTooltipStyle(isDark)}
-                formatter={(value: number) => formatCurrency(value)}
-              />
-              <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
-              <Line
-                type="monotone"
-                dataKey="income"
-                stroke={chartColors.income}
-                strokeWidth={2}
-                name={t.dashboard.charts.income}
-                dot={{ fill: chartColors.income, r: 4 }}
-              />
-              <Line
-                type="monotone"
-                dataKey="expenses"
-                stroke={chartColors.expense}
-                strokeWidth={2}
-                name={t.dashboard.charts.expenses}
-                dot={{ fill: chartColors.expense, r: 4 }}
-              />
-            </LineChart>
+            <LineChartConfig
+              data={financialTrendData}
+              dataKeys={[
+                {
+                  key: "income",
+                  name: t.dashboard.charts.income,
+                  color: chartColors.income,
+                },
+                {
+                  key: "expenses",
+                  name: t.dashboard.charts.expenses,
+                  color: chartColors.expense,
+                },
+              ]}
+              xAxisKey="month"
+              yAxisFormatter={(value) => t.common.currency.formatShort(value)}
+              tooltipFormatter={(value: number) => formatCurrency(value, language)}
+              chartColors={chartColors}
+              isDark={isDark}
+            />
           </ChartWrapper>
 
           <ChartWrapper
@@ -690,33 +392,22 @@ export default function Dashboard() {
             isEmpty={salesTrendData.length === 0}
             emptyMessage={t.dashboard.charts.noSalesData}
           >
-            <AreaChart data={salesTrendData}>
-              <defs>
-                <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={chartColors.income} stopOpacity={0.8} />
-                  <stop offset="95%" stopColor={chartColors.income} stopOpacity={0.1} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
-              <XAxis dataKey="month" tick={{ fill: chartColors.text, fontSize: 12 }} />
-              <YAxis
-                tick={{ fill: chartColors.text, fontSize: 12 }}
-                tickFormatter={(value) => t.common.currency.formatShort(value)}
-              />
-              <Tooltip
-                {...getTooltipStyle(isDark)}
-                formatter={(value: number) => formatCurrency(value)}
-              />
-              <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
-              <Area
-                type="monotone"
-                dataKey="revenue"
-                stroke={chartColors.income}
-                fillOpacity={1}
-                fill="url(#colorRevenue)"
-                name={t.dashboard.charts.revenue}
-              />
-            </AreaChart>
+            <AreaChartConfig
+              data={salesTrendData}
+              dataKeys={[
+                {
+                  key: "revenue",
+                  name: t.dashboard.charts.revenue,
+                  color: chartColors.income,
+                  gradientId: "colorRevenue",
+                },
+              ]}
+              xAxisKey="month"
+              yAxisFormatter={(value) => t.common.currency.formatShort(value)}
+              tooltipFormatter={(value: number) => formatCurrency(value, language)}
+              chartColors={chartColors}
+              isDark={isDark}
+            />
           </ChartWrapper>
 
           <ChartWrapper
@@ -754,40 +445,15 @@ export default function Dashboard() {
           <div className="space-y-3">
             {activities.length > 0 ? (
               activities.map((activity, index) => (
-                <div
+                <ActivityItem
                   key={index}
-                  className={`flex items-center space-x-3 ${
-                    index < activities.length - 1
-                      ? "pb-3 border-b border-gray-200 dark:border-gray-700"
-                      : ""
-                  }`}
-                >
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      activity.color === "blue"
-                        ? "bg-blue-100 dark:bg-blue-900/30"
-                        : activity.color === "purple"
-                          ? "bg-purple-100 dark:bg-purple-900/30"
-                          : activity.color === "teal"
-                            ? "bg-teal-100 dark:bg-teal-900/30"
-                            : activity.color === "pink"
-                              ? "bg-pink-100 dark:bg-pink-900/30"
-                              : activity.color === "green"
-                                ? "bg-green-100 dark:bg-green-900/30"
-                                : "bg-red-100 dark:bg-red-900/30"
-                    }`}
-                  >
-                    <span className="text-sm">{activity.icon}</span>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-xs font-medium text-gray-900 dark:text-gray-100">
-                      {activity.title}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {formatRelativeTime(activity.date, t)}
-                    </p>
-                  </div>
-                </div>
+                  icon={activity.icon}
+                  title={activity.title}
+                  date={activity.date}
+                  color={activity.color as "blue" | "purple" | "teal" | "pink" | "green" | "red"}
+                  formatRelativeTimeOptions={formatRelativeTimeOptions}
+                  isLast={index === activities.length - 1}
+                />
               ))
             ) : (
               <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
@@ -809,23 +475,19 @@ export default function Dashboard() {
                 recentBirths.map((birth, index) => (
                   <div
                     key={birth.id}
-                    className={`flex items-center space-x-3 ${
+                    className={
                       index < recentBirths.length - 1
                         ? "pb-3 border-b border-gray-200 dark:border-gray-700"
                         : ""
-                    }`}
+                    }
                   >
-                    <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
-                      <span className="text-sm">👶</span>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-xs font-medium text-gray-900 dark:text-gray-100">
-                        {format(parseISO(birth.birthDate), "dd/MM/yyyy")}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {formatRelativeTime(birth.birthDate, t)}
-                      </p>
-                    </div>
+                    <RecentListItem
+                      icon="👶"
+                      date={birth.birthDate}
+                      title={format(parseISO(birth.birthDate), "dd/MM/yyyy")}
+                      color="purple"
+                      formatRelativeTimeOptions={formatRelativeTimeOptions}
+                    />
                   </div>
                 ))
               ) : (
@@ -847,23 +509,19 @@ export default function Dashboard() {
                 recentBreedings.map((breeding, index) => (
                   <div
                     key={breeding.id}
-                    className={`flex items-center space-x-3 ${
+                    className={
                       index < recentBreedings.length - 1
                         ? "pb-3 border-b border-gray-200 dark:border-gray-700"
                         : ""
-                    }`}
+                    }
                   >
-                    <div className="w-8 h-8 bg-pink-100 dark:bg-pink-900/30 rounded-full flex items-center justify-center">
-                      <span className="text-sm">💑</span>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-xs font-medium text-gray-900 dark:text-gray-100">
-                        {format(parseISO(breeding.date), "dd/MM/yyyy")}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {formatRelativeTime(breeding.date, t)}
-                      </p>
-                    </div>
+                    <RecentListItem
+                      icon="💑"
+                      date={breeding.date}
+                      title={format(parseISO(breeding.date), "dd/MM/yyyy")}
+                      color="pink"
+                      formatRelativeTimeOptions={formatRelativeTimeOptions}
+                    />
                   </div>
                 ))
               ) : (
@@ -885,26 +543,20 @@ export default function Dashboard() {
                 recentSales.map((sale, index) => (
                   <div
                     key={sale.id}
-                    className={`flex items-center space-x-3 ${
+                    className={
                       index < recentSales.length - 1
                         ? "pb-3 border-b border-gray-200 dark:border-gray-700"
                         : ""
-                    }`}
+                    }
                   >
-                    <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center">
-                      <span className="text-sm">💵</span>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-xs font-medium text-gray-900 dark:text-gray-100">
-                        {format(parseISO(sale.saleDate), "dd/MM/yyyy")} •{" "}
-                        {formatCurrency(sale.totalPrice)}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {sale.saleItems.length}{" "}
-                        {t.dashboard.additionalStats.animal(sale.saleItems.length)} •{" "}
-                        {formatRelativeTime(sale.saleDate, t)}
-                      </p>
-                    </div>
+                    <RecentListItem
+                      icon="💵"
+                      date={sale.saleDate}
+                      title={`${format(parseISO(sale.saleDate), "dd/MM/yyyy")} • ${formatCurrency(sale.totalPrice, language)}`}
+                      subtitle={`${sale.saleItems.length} ${t.dashboard.additionalStats.animal(sale.saleItems.length)}`}
+                      color="emerald"
+                      formatRelativeTimeOptions={formatRelativeTimeOptions}
+                    />
                   </div>
                 ))
               ) : (

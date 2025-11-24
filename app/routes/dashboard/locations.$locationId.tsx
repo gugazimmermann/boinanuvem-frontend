@@ -208,9 +208,11 @@ export default function LocationDetails() {
   }
 
   const animalIdsInLocation = getAnimalsByLastMovementLocation(location.id);
-  const animalsInLocation = animalIdsInLocation
+  const allAnimalsInLocation = animalIdsInLocation
     .map((id) => getAnimalById(id))
     .filter((animal): animal is Animal => animal !== null);
+  // Filtrar apenas animais ativos para todos os cálculos
+  const animalsInLocation = allAnimalsInLocation.filter((animal) => animal.status === "active");
 
   const calculateTotalWeight = () => {
     let totalWeight = 0;
