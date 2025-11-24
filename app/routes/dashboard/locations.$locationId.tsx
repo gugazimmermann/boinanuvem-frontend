@@ -186,8 +186,8 @@ export default function LocationDetails() {
 
   if (!location) {
     return (
-      <div className="space-y-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+      <div className="space-y-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
           <p className="text-gray-600 dark:text-gray-400 mb-4">{t.locations.emptyState.title}</p>
           <Button variant="outline" onClick={() => navigate(ROUTES.LOCATIONS)}>
             {t.team.new.back}
@@ -317,7 +317,7 @@ export default function LocationDetails() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3">
@@ -526,9 +526,9 @@ export default function LocationDetails() {
       </div>
 
       {activeTab === "information" && (
-        <div className="space-y-6">
+        <div className="space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -548,7 +548,7 @@ export default function LocationDetails() {
               </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -567,7 +567,7 @@ export default function LocationDetails() {
               </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -586,7 +586,7 @@ export default function LocationDetails() {
               </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -608,7 +608,7 @@ export default function LocationDetails() {
               </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -634,12 +634,15 @@ export default function LocationDetails() {
       )}
 
       {activeTab === "info" && (
-        <div className="space-y-6">
+        <div className="space-y-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-                {t.locations.details.locationInfo}
-              </h2>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="h-1 w-12 bg-blue-500 rounded-full"></div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                  {t.locations.details.locationInfo}
+                </h2>
+              </div>
               <div className="space-y-4">
                 <div>
                   <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -703,10 +706,13 @@ export default function LocationDetails() {
       )}
 
       {activeTab === "activities" && isMainUser() && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-            {t.dashboard.recentActivities.title}
-          </h2>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-1 w-12 bg-green-500 rounded-full"></div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              {t.dashboard.recentActivities.title}
+            </h2>
+          </div>
           <div className="space-y-3">
             <div className="flex items-center space-x-3 pb-3 border-b border-gray-200 dark:border-gray-700">
               <div
@@ -1262,7 +1268,7 @@ export default function LocationDetails() {
           const selectedAnimalIds = Array.from(selectedAnimals);
 
           return (
-            <div className="space-y-6">
+            <div className="space-y-8">
               <Table<Animal>
                 columns={columns}
                 data={paginatedAnimals}
@@ -1535,7 +1541,7 @@ export default function LocationDetails() {
           ];
 
           return (
-            <div className="space-y-6">
+            <div className="space-y-8">
               {observationAlert && (
                 <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
                   <Alert title={observationAlert.title} variant={observationAlert.variant} />
@@ -1543,7 +1549,7 @@ export default function LocationDetails() {
               )}
 
               {showObservationForm && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100">
                       {t.locations.details.newObservation}
@@ -2042,7 +2048,7 @@ export default function LocationDetails() {
           ];
 
           return (
-            <div className="space-y-6">
+            <div className="space-y-8">
               <Table<UnifiedMovement>
                 columns={columns}
                 data={paginatedMovements}
@@ -2100,7 +2106,7 @@ export default function LocationDetails() {
         })()}
 
       {activeTab === "costs" && location && (
-        <div className="space-y-6">
+        <div className="space-y-8">
           {(() => {
             const consumptionCosts = getLocationConsumptionCosts(
               location.id,
@@ -2122,10 +2128,13 @@ export default function LocationDetails() {
 
             return (
               <>
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-                  <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-                    {t.locations.costs.title}
-                  </h2>
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="h-1 w-12 bg-blue-500 rounded-full"></div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                      {t.locations.costs.title}
+                    </h2>
+                  </div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
                     {t.locations.costs.description}
                   </p>

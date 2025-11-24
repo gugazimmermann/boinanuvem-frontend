@@ -1,8 +1,10 @@
-import type { Breeding, BreedingFormData } from "~/types";
+import type { Breeding, BreedingFormData, Animal } from "~/types";
 import { mockBreedings } from "~/mocks/breedings";
 import { findById, findByField, createEntity, updateEntity, deleteEntity } from "./base-service";
 import { mockBirths } from "~/mocks/births";
-import { getAnimalsByPropertyId } from "./animals.service";
+import { getAnimalsByPropertyId, getAnimalById } from "./animals.service";
+import { getBirthByAnimalId } from "./births.service";
+import { getPropertyById } from "./properties.service";
 
 const ID_PREFIX = "pp0e8400-e29b-41d4-a716";
 const DEFAULT_ID = "pp0e8400-e29b-41d4-a716-446655440009";
@@ -57,13 +59,36 @@ export function getNextAttemptNumber(animalId: string): number {
 
 export function isAnimalPregnant(animalId: string): boolean {
   const breedings = getBreedingsByAnimalId(animalId);
-  return breedings.length > 0;
+  return breedings.some((b) => b.confirmed === true);
+}
+
+/**
+ * Get the most recent confirmed breeding for an animal
+ */
+export function getMostRecentConfirmedBreeding(animalId: string): Breeding | undefined {
+  const breedings = getBreedingsByAnimalId(animalId);
+  const confirmedBreedings = breedings.filter((b) => b.confirmed === true);
+
+  if (confirmedBreedings.length === 0) {
+    return undefined;
+  }
+
+  return confirmedBreedings.sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  )[0];
 }
 
 export function getPregnantAnimals(companyId: string): string[] {
   const breedings = getBreedingsByCompanyId(companyId);
-  const confirmedBreedings = breedings.filter((b) => b.confirmed === true);
-  const uniqueAnimalIds = new Set(confirmedBreedings.map((b) => b.animalId));
+  const uniqueAnimalIds = new Set<string>();
+
+  // Only iterate once, collecting confirmed breeding animal IDs
+  breedings.forEach((breeding) => {
+    if (breeding.confirmed === true) {
+      uniqueAnimalIds.add(breeding.animalId);
+    }
+  });
+
   return Array.from(uniqueAnimalIds);
 }
 
@@ -102,9 +127,39 @@ export function getExposedCows(propertyId: string): string[] {
 
 export function getPregnantCowsByPropertyId(propertyId: string): string[] {
   const breedings = getBreedingsByPropertyId(propertyId);
-  const confirmedBreedings = breedings.filter((b) => b.confirmed === true);
-  const uniqueAnimalIds = new Set(confirmedBreedings.map((b) => b.animalId));
+  const uniqueAnimalIds = new Set<string>();
+
+  // Only iterate once, collecting confirmed breeding animal IDs
+  breedings.forEach((breeding) => {
+    if (breeding.confirmed === true) {
+      uniqueAnimalIds.add(breeding.animalId);
+    }
+  });
+
   return Array.from(uniqueAnimalIds);
+}
+
+/**
+ * Enrich a breeding with related animal, property, and birth data
+ */
+export function enrichBreedingWithAnimalData(breeding: Breeding): Breeding & {
+  animal?: Animal;
+  property?: ReturnType<typeof getPropertyById>;
+  bull?: Animal;
+  breed?: string;
+} {
+  const animal = getAnimalById(breeding.animalId);
+  const property = animal ? getPropertyById(animal.propertyId) : null;
+  const bull = breeding.bullId ? getAnimalById(breeding.bullId) : null;
+  const birth = animal ? getBirthByAnimalId(animal.id) : null;
+
+  return {
+    ...breeding,
+    animal: animal || undefined,
+    property: property || undefined,
+    bull: bull || undefined,
+    breed: birth?.breed,
+  };
 }
 
 export function unconfirmMostRecentBreedingForAnimal(animalId: string): boolean {

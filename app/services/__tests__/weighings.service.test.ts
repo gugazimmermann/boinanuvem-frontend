@@ -3,6 +3,7 @@ import {
   getWeighingById,
   getWeighingsByAnimalId,
   getWeighingsByCompanyId,
+  getWeighingsByAnimalIds,
   addWeighing,
   updateWeighing,
   deleteWeighing,
@@ -82,6 +83,42 @@ describe("weighings.service", () => {
       const result = getWeighingsByCompanyId("company-1");
       expect(result).toHaveLength(2);
       expect(result.every((weighing) => weighing.companyId === "company-1")).toBe(true);
+    });
+  });
+
+  describe("getWeighingsByAnimalIds", () => {
+    it("should return map of weighings grouped by animal ID", () => {
+      const result = getWeighingsByAnimalIds(["animal-1", "animal-2"]);
+
+      expect(result).toBeInstanceOf(Map);
+      expect(result.size).toBe(2);
+      expect(result.get("animal-1")).toHaveLength(2);
+      expect(result.get("animal-2")).toHaveLength(1);
+      expect(result.get("animal-1")?.every((w) => w.animalId === "animal-1")).toBe(true);
+      expect(result.get("animal-2")?.every((w) => w.animalId === "animal-2")).toBe(true);
+    });
+
+    it("should return empty arrays for animals with no weighings", () => {
+      const result = getWeighingsByAnimalIds(["nonexistent-animal"]);
+
+      expect(result).toBeInstanceOf(Map);
+      expect(result.size).toBe(1);
+      expect(result.get("nonexistent-animal")).toHaveLength(0);
+    });
+
+    it("should handle empty array input", () => {
+      const result = getWeighingsByAnimalIds([]);
+
+      expect(result).toBeInstanceOf(Map);
+      expect(result.size).toBe(0);
+    });
+
+    it("should only include weighings for requested animal IDs", () => {
+      const result = getWeighingsByAnimalIds(["animal-1"]);
+
+      expect(result.size).toBe(1);
+      expect(result.has("animal-1")).toBe(true);
+      expect(result.has("animal-2")).toBe(false);
     });
   });
 

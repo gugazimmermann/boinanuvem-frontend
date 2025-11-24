@@ -155,8 +155,8 @@ export default function EmployeeDetails() {
 
   if (!employee) {
     return (
-      <div className="space-y-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+      <div className="space-y-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
           <p className="text-gray-600 dark:text-gray-400 mb-4">{t.employees.emptyState.title}</p>
           <Button variant="outline" onClick={() => navigate(ROUTES.EMPLOYEES)}>
             {t.team.new.back}
@@ -213,11 +213,11 @@ export default function EmployeeDetails() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{employee.name}</h1>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{employee.name}</h1>
             <StatusBadge
               label={
                 employee.status === "active" ? t.employees.table.active : t.employees.table.inactive
@@ -378,12 +378,15 @@ export default function EmployeeDetails() {
       </div>
 
       {activeTab === "info" && (
-        <div className="space-y-6">
+        <div className="space-y-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-                {t.employees.details.employeeInfo}
-              </h2>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="h-1 w-12 bg-blue-500 rounded-full"></div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                  {t.employees.details.employeeInfo}
+                </h2>
+              </div>
               <div className="space-y-4">
                 <div>
                   <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -460,10 +463,13 @@ export default function EmployeeDetails() {
             </div>
 
             {(employee.street || employee.city) && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-                  {t.employees.details.address}
-                </h2>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="h-1 w-12 bg-green-500 rounded-full"></div>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                    {t.employees.details.address}
+                  </h2>
+                </div>
                 <div className="space-y-4">
                   {employee.street && (
                     <div>
@@ -526,10 +532,13 @@ export default function EmployeeDetails() {
       )}
 
       {activeTab === "activities" && isMainUser() && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-            {t.dashboard.recentActivities.title}
-          </h2>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-1 w-12 bg-teal-500 rounded-full"></div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              {t.dashboard.recentActivities.title}
+            </h2>
+          </div>
           <div className="space-y-3">
             <div className="flex items-center space-x-3 pb-3 border-b border-gray-200 dark:border-gray-700">
               <div
@@ -933,7 +942,7 @@ export default function EmployeeDetails() {
             : [];
 
           return (
-            <div className="space-y-6">
+            <div className="space-y-8">
               <Table<UnifiedMovement>
                 columns={columns}
                 data={paginatedMovements}
@@ -1139,7 +1148,7 @@ export default function EmployeeDetails() {
           ];
 
           return (
-            <div className="space-y-6">
+            <div className="space-y-8">
               {observationAlert && (
                 <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
                   <Alert title={observationAlert.title} variant={observationAlert.variant} />
@@ -1147,7 +1156,7 @@ export default function EmployeeDetails() {
               )}
 
               {showObservationForm && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100">
                       {t.employees.details.newObservation}
@@ -1791,7 +1800,7 @@ export default function EmployeeDetails() {
           };
 
           return (
-            <div className="space-y-6">
+            <div className="space-y-8">
               <Table<UnifiedTransaction>
                 columns={financeColumns}
                 data={paginatedFinanceData}

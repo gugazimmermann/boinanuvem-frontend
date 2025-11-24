@@ -45,7 +45,6 @@ export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
       { translationKey: "unconfirmedBreedings", path: ROUTES.BREEDINGS_UNCONFIRMED, icon: "⏳" },
       { translationKey: "pregnantCows", path: ROUTES.BREEDINGS_PREGNANT, icon: "🐄" },
       { translationKey: "reproductiveIndexes", path: ROUTES.REPRODUCTIVE_INDEXES, icon: "📊" },
-      { translationKey: "productionIndexes", path: ROUTES.PRODUCTION_INDEXES, icon: "📈" },
       { translationKey: "birthForecast", path: ROUTES.BIRTH_FORECAST, icon: "📅" },
     ],
   },

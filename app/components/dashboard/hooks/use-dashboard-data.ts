@@ -2,14 +2,14 @@ import { useMemo } from "react";
 import { startOfMonth, endOfMonth, parseISO } from "date-fns";
 import { mockProperties } from "~/mocks/properties";
 import { mockLocations } from "~/mocks/locations";
-import { getAnimalsByCompanyId } from "~/services/animals.service";
-import { getWeighingsByAnimalId, getWeighingsByCompanyId } from "~/services/weighings.service";
+import { getAnimalsByCompanyId, getAnimalsByPropertyId } from "~/services/animals.service";
+import { getWeighingsByCompanyId } from "~/services/weighings.service";
 import { getExpectedBirthsForecast } from "~/services/reproductive-indexes.service";
 import { getCashFlowByCompanyId } from "~/services/cash-flow.service";
 import { getAccountsPayableByCompanyId } from "~/services/accounts-payable.service";
 import { getAccountsReceivableByCompanyId } from "~/services/accounts-receivable.service";
-import { getBirthsByCompanyId } from "~/services/births.service";
-import { getBreedingsByCompanyId } from "~/services/breedings.service";
+import { getBirthsByCompanyId, getBirthsByPropertyId } from "~/services/births.service";
+import { getBreedingsByCompanyId, getBreedingsByPropertyId } from "~/services/breedings.service";
 import { getEmployeesByCompanyId } from "~/services/employees.service";
 import { getSuppliersByCompanyId } from "~/services/suppliers.service";
 import { getBuyersByCompanyId } from "~/services/buyers.service";
@@ -19,8 +19,20 @@ import { AccountsPayableStatus, AccountsReceivableStatus } from "~/types";
 import { convertToHectares } from "~/utils/area";
 import { ANIMAL_UNIT_WEIGHT_KG } from "~/utils/constants";
 
-export function useDashboardData(companyId: string) {
-  const allAnimals = useMemo(() => getAnimalsByCompanyId(companyId), [companyId]);
+export interface DashboardFilters {
+  propertyId?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export function useDashboardData(companyId: string, filters?: DashboardFilters) {
+  // Get animals based on property filter
+  const allAnimals = useMemo(() => {
+    if (filters?.propertyId) {
+      return getAnimalsByPropertyId(filters.propertyId);
+    }
+    return getAnimalsByCompanyId(companyId);
+  }, [companyId, filters]);
 
   const animals = useMemo(
     () => allAnimals.filter((animal) => animal.status === "active"),
@@ -32,18 +44,38 @@ export function useDashboardData(companyId: string) {
   const totalLocations = mockLocations.length;
 
   const totalWeight = useMemo(() => {
-    let weight = 0;
-    animals.forEach((animal) => {
-      const weighings = getWeighingsByAnimalId(animal.id);
-      if (weighings.length > 0) {
-        const lastWeighing = weighings.sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        )[0];
-        weight += lastWeighing.weight;
+    // Batch fetch all weighings for the company/property
+    const allWeighingsData = getWeighingsByCompanyId(companyId);
+
+    // Filter by property if needed
+    let filteredWeighings = allWeighingsData;
+    if (filters?.propertyId) {
+      const propertyAnimalIds = new Set(animals.map((a) => a.id));
+      filteredWeighings = allWeighingsData.filter((weighing) =>
+        propertyAnimalIds.has(weighing.animalId)
+      );
+    }
+
+    // Group weighings by animal ID and find the latest for each
+    const lastWeighingByAnimal = new Map<string, { weight: number; date: string }>();
+    filteredWeighings.forEach((weighing) => {
+      const existing = lastWeighingByAnimal.get(weighing.animalId);
+      if (!existing || new Date(weighing.date).getTime() > new Date(existing.date).getTime()) {
+        lastWeighingByAnimal.set(weighing.animalId, {
+          weight: weighing.weight,
+          date: weighing.date,
+        });
       }
     });
+
+    // Sum up all the latest weights
+    let weight = 0;
+    lastWeighingByAnimal.forEach((weighing) => {
+      weight += weighing.weight;
+    });
+
     return weight;
-  }, [animals]);
+  }, [animals, companyId, filters]);
 
   const animalUnits = useMemo(
     () => (totalWeight > 0 ? totalWeight / ANIMAL_UNIT_WEIGHT_KG : 0),
@@ -51,10 +83,14 @@ export function useDashboardData(companyId: string) {
   );
 
   const totalAreaInHectares = useMemo(() => {
+    if (filters?.propertyId) {
+      const property = mockProperties.find((p) => p.id === filters.propertyId);
+      return property ? convertToHectares(property.area.value, property.area.type) : 0;
+    }
     return mockProperties.reduce((sum, property) => {
       return sum + convertToHectares(property.area.value, property.area.type);
     }, 0);
-  }, []);
+  }, [filters]);
 
   const stockingRate = useMemo(
     () => (totalAreaInHectares > 0 && animalUnits > 0 ? animalUnits / totalAreaInHectares : 0),
@@ -76,7 +112,27 @@ export function useDashboardData(companyId: string) {
 
   const nextThreeMonthsTotal = expectedBirthsForecast.total;
 
-  const cashFlowData = useMemo(() => getCashFlowByCompanyId(companyId), [companyId]);
+  const cashFlowData = useMemo(() => {
+    const allCashFlow = getCashFlowByCompanyId(companyId);
+    if (!filters?.startDate && !filters?.endDate) {
+      return allCashFlow;
+    }
+    return allCashFlow.filter((transaction) => {
+      const transactionDate = parseISO(transaction.date);
+      if (filters.startDate) {
+        const start = new Date(filters.startDate);
+        start.setHours(0, 0, 0, 0);
+        if (transactionDate < start) return false;
+      }
+      if (filters.endDate) {
+        const end = new Date(filters.endDate);
+        end.setHours(23, 59, 59, 999);
+        if (transactionDate > end) return false;
+      }
+      return true;
+    });
+  }, [companyId, filters]);
+
   const accountsPayableData = useMemo(() => getAccountsPayableByCompanyId(companyId), [companyId]);
   const accountsReceivableData = useMemo(
     () => getAccountsReceivableByCompanyId(companyId),
@@ -135,11 +191,96 @@ export function useDashboardData(companyId: string) {
   const suppliers = useMemo(() => getSuppliersByCompanyId(companyId), [companyId]);
   const buyers = useMemo(() => getBuyersByCompanyId(companyId), [companyId]);
 
-  const births = useMemo(() => getBirthsByCompanyId(companyId), [companyId]);
-  const breedings = useMemo(() => getBreedingsByCompanyId(companyId), [companyId]);
+  // Get births with filters
+  const births = useMemo(() => {
+    const allBirths = filters?.propertyId
+      ? getBirthsByPropertyId(filters.propertyId)
+      : getBirthsByCompanyId(companyId);
 
-  const sales = useMemo(() => getSalesByCompanyId(companyId), [companyId]);
-  const salesMetrics = useMemo(() => getSalesMetrics(companyId), [companyId]);
+    if (!filters?.startDate && !filters?.endDate) {
+      return allBirths;
+    }
+
+    return allBirths.filter((birth) => {
+      const birthDate = parseISO(birth.birthDate);
+      if (filters.startDate) {
+        const start = new Date(filters.startDate);
+        start.setHours(0, 0, 0, 0);
+        if (birthDate < start) return false;
+      }
+      if (filters.endDate) {
+        const end = new Date(filters.endDate);
+        end.setHours(23, 59, 59, 999);
+        if (birthDate > end) return false;
+      }
+      return true;
+    });
+  }, [companyId, filters]);
+
+  // Get breedings with filters
+  const breedings = useMemo(() => {
+    const allBreedings = filters?.propertyId
+      ? getBreedingsByPropertyId(filters.propertyId)
+      : getBreedingsByCompanyId(companyId);
+
+    if (!filters?.startDate && !filters?.endDate) {
+      return allBreedings;
+    }
+
+    return allBreedings.filter((breeding) => {
+      const breedingDate = parseISO(breeding.date);
+      if (filters.startDate) {
+        const start = new Date(filters.startDate);
+        start.setHours(0, 0, 0, 0);
+        if (breedingDate < start) return false;
+      }
+      if (filters.endDate) {
+        const end = new Date(filters.endDate);
+        end.setHours(23, 59, 59, 999);
+        if (breedingDate > end) return false;
+      }
+      return true;
+    });
+  }, [companyId, filters]);
+
+  // Get sales with filters
+  const sales = useMemo(() => {
+    const allSales = getSalesByCompanyId(companyId);
+    let filtered = allSales;
+
+    // Filter by property
+    if (filters?.propertyId) {
+      filtered = filtered.filter((sale) => sale.propertyId === filters.propertyId);
+    }
+
+    // Filter by date
+    if (filters?.startDate || filters?.endDate) {
+      filtered = filtered.filter((sale) => {
+        const saleDate = parseISO(sale.saleDate);
+        if (filters.startDate) {
+          const start = new Date(filters.startDate);
+          start.setHours(0, 0, 0, 0);
+          if (saleDate < start) return false;
+        }
+        if (filters.endDate) {
+          const end = new Date(filters.endDate);
+          end.setHours(23, 59, 59, 999);
+          if (saleDate > end) return false;
+        }
+        return true;
+      });
+    }
+
+    return filtered;
+  }, [companyId, filters]);
+
+  const salesMetrics = useMemo(() => {
+    return getSalesMetrics(companyId, {
+      startDate: filters?.startDate,
+      endDate: filters?.endDate,
+      propertyId: filters?.propertyId,
+    });
+  }, [companyId, filters]);
 
   const salesThisMonth = useMemo(() => {
     return sales.filter((sale) => {
@@ -180,7 +321,39 @@ export function useDashboardData(companyId: string) {
       .slice(0, 10);
   }, [breedings]);
 
-  const allWeighings = useMemo(() => getWeighingsByCompanyId(companyId), [companyId]);
+  // Get weighings with filters
+  const allWeighings = useMemo(() => {
+    const allWeighingsData = getWeighingsByCompanyId(companyId);
+
+    // Filter by property (through animals)
+    let filtered = allWeighingsData;
+    if (filters?.propertyId) {
+      const propertyAnimalIds = new Set(
+        getAnimalsByPropertyId(filters.propertyId).map((a) => a.id)
+      );
+      filtered = filtered.filter((weighing) => propertyAnimalIds.has(weighing.animalId));
+    }
+
+    // Filter by date
+    if (filters?.startDate || filters?.endDate) {
+      filtered = filtered.filter((weighing) => {
+        const weighingDate = parseISO(weighing.date);
+        if (filters.startDate) {
+          const start = new Date(filters.startDate);
+          start.setHours(0, 0, 0, 0);
+          if (weighingDate < start) return false;
+        }
+        if (filters.endDate) {
+          const end = new Date(filters.endDate);
+          end.setHours(23, 59, 59, 999);
+          if (weighingDate > end) return false;
+        }
+        return true;
+      });
+    }
+
+    return filtered;
+  }, [companyId, filters]);
 
   return {
     animals,

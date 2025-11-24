@@ -24,9 +24,9 @@ export function Tooltip({ content, children, position = "top" }: TooltipProps) {
       {children}
       {isVisible && (
         <div
-          className={`absolute z-50 flex items-center justify-center w-48 p-3 text-gray-600 bg-white rounded-lg shadow-lg dark:shadow-none shadow-gray-200 dark:bg-gray-800 dark:text-white -translate-x-1/2 ${positionClasses} pointer-events-none`}
+          className={`absolute z-50 w-64 max-w-xs p-3 text-sm text-gray-600 bg-white rounded-lg shadow-lg dark:shadow-none shadow-gray-200 dark:bg-gray-800 dark:text-white -translate-x-1/2 ${positionClasses} pointer-events-none`}
         >
-          <span className="truncate">{content}</span>
+          <span className="block break-words">{content}</span>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             className={`w-6 h-6 absolute -translate-x-1/2 left-1/2 ${arrowClasses} text-white dark:text-gray-800 fill-current`}

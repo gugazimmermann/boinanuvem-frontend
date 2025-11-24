@@ -234,9 +234,9 @@ function ServiceProviderFinanceDashboard({
       };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -252,7 +252,7 @@ function ServiceProviderFinanceDashboard({
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -268,7 +268,7 @@ function ServiceProviderFinanceDashboard({
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -290,7 +290,7 @@ function ServiceProviderFinanceDashboard({
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -306,7 +306,7 @@ function ServiceProviderFinanceDashboard({
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -324,10 +324,13 @@ function ServiceProviderFinanceDashboard({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-            {t.financesDashboard.charts.incomeVsExpenses}
-          </h2>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-1 w-12 bg-blue-500 rounded-full"></div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              {t.financesDashboard.charts.incomeVsExpenses}
+            </h2>
+          </div>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={monthlyData}>
               <CartesianGrid strokeDasharray="3 3" stroke={gridColor} opacity={0.3} />
@@ -363,10 +366,13 @@ function ServiceProviderFinanceDashboard({
           </ResponsiveContainer>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-            {t.financesDashboard.charts.monthlyCashFlow}
-          </h2>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-1 w-12 bg-green-500 rounded-full"></div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              {t.financesDashboard.charts.monthlyCashFlow}
+            </h2>
+          </div>
           <ResponsiveContainer width="100%" height={300}>
             <AreaChart data={monthlyData}>
               <defs>
@@ -402,10 +408,13 @@ function ServiceProviderFinanceDashboard({
         </div>
 
         {expenseCategoriesData.length > 0 && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 lg:col-span-2">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-              {t.financesDashboard.charts.expenseCategories}
-            </h2>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 lg:col-span-2">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-1 w-12 bg-orange-500 rounded-full"></div>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                {t.financesDashboard.charts.expenseCategories}
+              </h2>
+            </div>
             <ResponsiveContainer width="100%" height={400}>
               <BarChart data={expenseCategoriesData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke={gridColor} opacity={0.3} />
@@ -555,8 +564,8 @@ export default function ServiceProviderDetails() {
 
   if (!serviceProvider) {
     return (
-      <div className="space-y-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+      <div className="space-y-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
           <p className="text-gray-600 dark:text-gray-400 mb-4">
             {t.serviceProviders.emptyState.title}
           </p>
@@ -615,7 +624,7 @@ export default function ServiceProviderDetails() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3">
@@ -785,12 +794,15 @@ export default function ServiceProviderDetails() {
       </div>
 
       {activeTab === "info" && (
-        <div className="space-y-6">
+        <div className="space-y-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-                {t.serviceProviders.details.serviceProviderInfo}
-              </h2>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="h-1 w-12 bg-blue-500 rounded-full"></div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                  {t.serviceProviders.details.serviceProviderInfo}
+                </h2>
+              </div>
               <div className="space-y-4">
                 <div>
                   <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -883,10 +895,13 @@ export default function ServiceProviderDetails() {
             </div>
 
             {(serviceProvider.street || serviceProvider.city) && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-                  {t.serviceProviders.details.address}
-                </h2>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="h-1 w-12 bg-green-500 rounded-full"></div>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                    {t.serviceProviders.details.address}
+                  </h2>
+                </div>
                 <div className="space-y-4">
                   {serviceProvider.street && (
                     <div>
@@ -949,10 +964,13 @@ export default function ServiceProviderDetails() {
       )}
 
       {activeTab === "activities" && isMainUser() && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-            {t.dashboard.recentActivities.title}
-          </h2>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-1 w-12 bg-teal-500 rounded-full"></div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              {t.dashboard.recentActivities.title}
+            </h2>
+          </div>
           <div className="space-y-3">
             <div className="flex items-center space-x-3 pb-3 border-b border-gray-200 dark:border-gray-700">
               <div
@@ -1358,7 +1376,7 @@ export default function ServiceProviderDetails() {
             : [];
 
           return (
-            <div className="space-y-6">
+            <div className="space-y-8">
               <Table<UnifiedMovement>
                 columns={columns}
                 data={paginatedMovements}
@@ -1566,7 +1584,7 @@ export default function ServiceProviderDetails() {
           ];
 
           return (
-            <div className="space-y-6">
+            <div className="space-y-8">
               {observationAlert && (
                 <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
                   <Alert title={observationAlert.title} variant={observationAlert.variant} />
@@ -1574,7 +1592,7 @@ export default function ServiceProviderDetails() {
               )}
 
               {showObservationForm && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100">
                       {t.serviceProviders.details.newObservation}
@@ -1728,7 +1746,7 @@ export default function ServiceProviderDetails() {
         serviceProvider &&
         (() => {
           return (
-            <div className="space-y-6">
+            <div className="space-y-8">
               <div className="mb-4">
                 <nav className="flex space-x-3" aria-label="Sub Tabs">
                   <button
@@ -2289,7 +2307,7 @@ export default function ServiceProviderDetails() {
                   };
 
                   return (
-                    <div className="space-y-6">
+                    <div className="space-y-8">
                       <Table<UnifiedTransaction>
                         columns={financeColumns}
                         data={paginatedFinanceData}

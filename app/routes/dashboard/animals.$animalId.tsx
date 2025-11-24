@@ -533,8 +533,8 @@ export default function AnimalDetails() {
 
   if (!animal) {
     return (
-      <div className="space-y-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+      <div className="space-y-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
           <p className="text-gray-600 dark:text-gray-400 mb-4">{t.animals.emptyState.title}</p>
           <Button variant="outline" onClick={() => navigate(ROUTES.ANIMALS)}>
             {t.team.new.back}
@@ -926,13 +926,16 @@ export default function AnimalDetails() {
       </div>
 
       {activeTab === "dashboard" && (
-        <div className="space-y-6">
+        <div className="space-y-8">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              {t.dashboard.title}
-            </h2>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-1 w-12 bg-blue-500 rounded-full"></div>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                {t.dashboard.title}
+              </h2>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -948,7 +951,7 @@ export default function AnimalDetails() {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -964,7 +967,7 @@ export default function AnimalDetails() {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -980,7 +983,7 @@ export default function AnimalDetails() {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -1001,11 +1004,14 @@ export default function AnimalDetails() {
           </div>
 
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              {t.animals.details.dashboard.additionalMetrics}
-            </h2>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-1 w-12 bg-green-500 rounded-full"></div>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                {t.animals.details.dashboard.additionalMetrics}
+              </h2>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -1029,7 +1035,7 @@ export default function AnimalDetails() {
               </div>
 
               {birth?.breed && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -1047,7 +1053,7 @@ export default function AnimalDetails() {
               )}
 
               {(birth?.gender || acquisitionItem?.gender) && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -1073,7 +1079,7 @@ export default function AnimalDetails() {
               )}
 
               {birth?.purity && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -1095,13 +1101,16 @@ export default function AnimalDetails() {
           {(!isMale && (birthsAsMother.length > 0 || breedings.length > 0)) ||
           (isMale && (sonsBirths.length > 0 || breedings.length > 0)) ? (
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                {t.animals.details.dashboard.reproductiveStatistics}
-              </h2>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="h-1 w-12 bg-pink-500 rounded-full"></div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                  {t.animals.details.dashboard.reproductiveStatistics}
+                </h2>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {!isMale ? (
                   <>
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -1116,7 +1125,7 @@ export default function AnimalDetails() {
                         </div>
                       </div>
                     </div>
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -1131,7 +1140,7 @@ export default function AnimalDetails() {
                         </div>
                       </div>
                     </div>
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -1147,7 +1156,7 @@ export default function AnimalDetails() {
                       </div>
                     </div>
                     {averageCalvingInterval !== null && (
-                      <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -1166,7 +1175,7 @@ export default function AnimalDetails() {
                   </>
                 ) : (
                   <>
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -1181,7 +1190,7 @@ export default function AnimalDetails() {
                         </div>
                       </div>
                     </div>
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -1203,11 +1212,14 @@ export default function AnimalDetails() {
           ) : null}
 
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              {t.animals.details.dashboard.locationProperty}
-            </h2>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-1 w-12 bg-cyan-500 rounded-full"></div>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                {t.animals.details.dashboard.locationProperty}
+              </h2>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -1232,7 +1244,7 @@ export default function AnimalDetails() {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -1257,7 +1269,7 @@ export default function AnimalDetails() {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -1274,7 +1286,7 @@ export default function AnimalDetails() {
               </div>
 
               {daysInCurrentLocation !== null && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -1295,11 +1307,14 @@ export default function AnimalDetails() {
 
           {animalCostData && (
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                {t.animals.details.dashboard.costInformation}
-              </h2>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="h-1 w-12 bg-orange-500 rounded-full"></div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                  {t.animals.details.dashboard.costInformation}
+                </h2>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -1316,7 +1331,7 @@ export default function AnimalDetails() {
                 </div>
 
                 {currentWeight > 0 && (
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -1338,11 +1353,14 @@ export default function AnimalDetails() {
 
           {weighings.length > 0 && (
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                {t.animals.details.dashboard.weighingStatistics}
-              </h2>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="h-1 w-12 bg-indigo-500 rounded-full"></div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                  {t.animals.details.dashboard.weighingStatistics}
+                </h2>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -1359,7 +1377,7 @@ export default function AnimalDetails() {
                 </div>
 
                 {firstWeighing && (
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -1380,7 +1398,7 @@ export default function AnimalDetails() {
                 )}
 
                 {lastWeighing && (
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -1401,7 +1419,7 @@ export default function AnimalDetails() {
                 )}
 
                 {weightGainSinceFirst !== null && (
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -1428,10 +1446,13 @@ export default function AnimalDetails() {
           )}
 
           {weightChartData.length > 1 && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                {t.animals.details.dashboard.weightTrend}
-              </h2>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="h-1 w-12 bg-teal-500 rounded-full"></div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                  {t.animals.details.dashboard.weightTrend}
+                </h2>
+              </div>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={weightChartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#374151" : "#e5e7eb"} />
@@ -1466,10 +1487,13 @@ export default function AnimalDetails() {
             </div>
           )}
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              {t.animals.details.dashboard.recentActivity}
-            </h2>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-1 w-12 bg-yellow-500 rounded-full"></div>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                {t.animals.details.dashboard.recentActivity}
+              </h2>
+            </div>
             <div className="space-y-3">
               {recentWeighings.length > 0 && (
                 <div>
@@ -1584,12 +1608,15 @@ export default function AnimalDetails() {
       )}
 
       {activeTab === "info" && (
-        <div className="space-y-6">
+        <div className="space-y-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-                {t.animals.details.animalInfo}
-              </h2>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="h-1 w-12 bg-blue-500 rounded-full"></div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                  {t.animals.details.animalInfo}
+                </h2>
+              </div>
               <div className="space-y-4">
                 <div>
                   <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -1733,10 +1760,13 @@ export default function AnimalDetails() {
               </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-                {t.animals.details.genealogy}
-              </h2>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="h-1 w-12 bg-purple-500 rounded-full"></div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                  {t.animals.details.genealogy}
+                </h2>
+              </div>
               <div className="space-y-4">
                 {birth?.purity && (
                   <div>
@@ -1984,7 +2014,7 @@ export default function AnimalDetails() {
           ];
 
           return (
-            <div className="space-y-6">
+            <div className="space-y-8">
               <Table<WeighingWithCalculations>
                 columns={columns}
                 data={paginatedWeighings}
@@ -2016,7 +2046,7 @@ export default function AnimalDetails() {
         })()}
 
       {activeTab === "weighings" && weighings.length === 0 && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
           <p className="text-sm text-gray-500 dark:text-gray-400">
             {t.animals.details.noWeighings}
           </p>
@@ -2162,10 +2192,13 @@ export default function AnimalDetails() {
       )}
 
       {activeTab === "activities" && isMainUser() && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-            {t.dashboard.recentActivities.title}
-          </h2>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-1 w-12 bg-teal-500 rounded-full"></div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              {t.dashboard.recentActivities.title}
+            </h2>
+          </div>
           <div className="space-y-3">
             <div className="flex items-center space-x-3 pb-3 border-b border-gray-200 dark:border-gray-700">
               <div
@@ -2400,7 +2433,7 @@ export default function AnimalDetails() {
           ];
 
           return (
-            <div className="space-y-6">
+            <div className="space-y-8">
               {observationAlert && (
                 <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
                   <Alert title={observationAlert.title} variant={observationAlert.variant} />
@@ -2408,7 +2441,7 @@ export default function AnimalDetails() {
               )}
 
               {showObservationForm && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100">
                       {t.animals.details.newObservation}
@@ -2813,7 +2846,7 @@ export default function AnimalDetails() {
               ];
 
           return (
-            <div className="space-y-6">
+            <div className="space-y-8">
               {breedingAlert && (
                 <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
                   <Alert title={breedingAlert.title} variant={breedingAlert.variant} />
@@ -3054,7 +3087,7 @@ export default function AnimalDetails() {
           ];
 
           return (
-            <div className="space-y-6">
+            <div className="space-y-8">
               <Table<import("~/types/sanitary-control").SanitaryControl>
                 columns={columns}
                 data={paginatedSanitaryControls}
@@ -3107,7 +3140,7 @@ export default function AnimalDetails() {
         })()}
 
       {activeTab === "costs" && animal && (
-        <div className="space-y-6">
+        <div className="space-y-8">
           {(() => {
             const animalCostData = getAnimalTotalCost(
               animal.id,
@@ -3129,10 +3162,13 @@ export default function AnimalDetails() {
 
             return (
               <>
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-                  <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-                    {t.animals.details.costs?.title}
-                  </h2>
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="h-1 w-12 bg-red-500 rounded-full"></div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                      {t.animals.details.costs?.title}
+                    </h2>
+                  </div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
                     {t.animals.details.costs?.description ||
                       "Track inventory consumption costs for this animal"}
@@ -3335,7 +3371,7 @@ export default function AnimalDetails() {
       )}
 
       {activeTab === "sales" && animal && (
-        <div className="space-y-6">
+        <div className="space-y-8">
           {(() => {
             const animalSales = getSalesByAnimalId(animal.id);
             const salesWithDetails = animalSales
@@ -3375,16 +3411,19 @@ export default function AnimalDetails() {
 
             return (
               <>
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-                  <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-                    {t.animals.details.tabs.sales}
-                  </h2>
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="h-1 w-12 bg-green-500 rounded-full"></div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                      {t.animals.details.tabs.sales}
+                    </h2>
+                  </div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
                     {t.animals.details.sales?.description}
                   </p>
 
                   {salesWithDetails.length > 0 ? (
-                    <div className="space-y-6">
+                    <div className="space-y-8">
                       {salesWithDetails.map(({ sale, saleItem, profitability, buyer }) => (
                         <div
                           key={sale.id}

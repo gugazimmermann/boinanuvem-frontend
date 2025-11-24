@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   getFertilityRate,
   getBirthRate,
@@ -34,9 +34,13 @@ import { es } from "date-fns/locale/es";
 
 interface ReproductiveIndexesProps {
   propertyId: string;
+  period?: {
+    startDate?: string;
+    endDate?: string;
+  };
 }
 
-export function ReproductiveIndexes({ propertyId }: ReproductiveIndexesProps) {
+export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesProps) {
   const t = useTranslation();
   const { language } = useLanguage();
 
@@ -49,10 +53,7 @@ export function ReproductiveIndexes({ propertyId }: ReproductiveIndexesProps) {
     };
   };
 
-  const [selectedPeriod, setSelectedPeriod] = useState<{
-    startDate?: string;
-    endDate?: string;
-  }>(getDefaultPeriod());
+  const selectedPeriod = period || getDefaultPeriod();
 
   const dateLocale = useMemo(() => {
     switch (language) {
@@ -172,43 +173,6 @@ export function ReproductiveIndexes({ propertyId }: ReproductiveIndexesProps) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {t.reproductiveIndexes.filters.startDate}
-            </label>
-            <input
-              type="date"
-              value={selectedPeriod.startDate || ""}
-              onChange={(e) =>
-                setSelectedPeriod((prev) => ({
-                  ...prev,
-                  startDate: e.target.value || undefined,
-                }))
-              }
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {t.reproductiveIndexes.filters.endDate}
-            </label>
-            <input
-              type="date"
-              value={selectedPeriod.endDate || ""}
-              onChange={(e) =>
-                setSelectedPeriod((prev) => ({
-                  ...prev,
-                  endDate: e.target.value || undefined,
-                }))
-              }
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200"
-            />
-          </div>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between mb-4">

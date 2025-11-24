@@ -235,8 +235,8 @@ export default function InventoryItemDetails() {
 
   if (!item) {
     return (
-      <div className="space-y-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+      <div className="space-y-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
           <p className="text-gray-600 dark:text-gray-400 mb-4">{t.inventory.emptyState.title}</p>
           <Button variant="outline" onClick={() => navigate(ROUTES.INVENTORY)}>
             {t.common.back}
@@ -392,7 +392,7 @@ export default function InventoryItemDetails() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3">
@@ -457,10 +457,13 @@ export default function InventoryItemDetails() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-            {t.inventory.details.itemInfo}
-          </h2>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-1 w-12 bg-blue-500 rounded-full"></div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              {t.inventory.details.itemInfo}
+            </h2>
+          </div>
           <div className="space-y-4">
             <div>
               <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -558,10 +561,13 @@ export default function InventoryItemDetails() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-            {t.inventory.details.stockInfo}
-          </h2>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-1 w-12 bg-green-500 rounded-full"></div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              {t.inventory.details.stockInfo}
+            </h2>
+          </div>
           <div className="space-y-4">
             <div>
               <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -597,7 +603,7 @@ export default function InventoryItemDetails() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
         <Table<InventoryMovement>
           columns={movementColumns}
           data={paginatedMovements}
@@ -641,7 +647,7 @@ export default function InventoryItemDetails() {
       </div>
 
       {item && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
           {(() => {
             const filteredObservations = observations.filter((observation) => {
               if (!observationsSearchValue) return true;
@@ -790,7 +796,7 @@ export default function InventoryItemDetails() {
             ];
 
             return (
-              <div className="space-y-6">
+              <div className="space-y-8">
                 {observationAlert && (
                   <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
                     <Alert title={observationAlert.title} variant={observationAlert.variant} />
@@ -798,7 +804,7 @@ export default function InventoryItemDetails() {
                 )}
 
                 {showObservationForm && (
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100">
                         Nova Observação

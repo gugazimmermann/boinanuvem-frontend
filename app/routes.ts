@@ -82,7 +82,6 @@ export default [
     route(ROUTE_NAMES.BREEDINGS_PREGNANT, "routes/dashboard/records.breedings.pregnant.tsx"),
     route(ROUTE_NAMES.BREEDINGS_UNCONFIRMED, "routes/dashboard/records.breedings.unconfirmed.tsx"),
     route(ROUTE_NAMES.REPRODUCTIVE_INDEXES, "routes/dashboard/reproductive-indexes.tsx"),
-    route(ROUTE_NAMES.PRODUCTION_INDEXES, "routes/dashboard/production-indexes.tsx"),
     route(ROUTE_NAMES.BIRTH_FORECAST, "routes/dashboard/birth-forecast.tsx"),
     route(ROUTE_NAMES.MOVEMENTS_VIEW, "routes/dashboard/movements.$movementId.tsx"),
     route(ROUTE_NAMES.OBSERVATIONS_VIEW, "routes/dashboard/observations.$observationId.tsx"),

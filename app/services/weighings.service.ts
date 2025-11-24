@@ -17,6 +17,27 @@ export function getWeighingsByCompanyId(companyId: string): Weighing[] {
   return findByField(mockWeighings, "companyId", companyId);
 }
 
+export function getWeighingsByAnimalIds(animalIds: string[]): Map<string, Weighing[]> {
+  const animalIdSet = new Set(animalIds);
+  const weighingsMap = new Map<string, Weighing[]>();
+
+  // Initialize map with empty arrays for all animal IDs
+  animalIds.forEach((id) => {
+    weighingsMap.set(id, []);
+  });
+
+  // Group weighings by animal ID
+  mockWeighings.forEach((weighing) => {
+    if (animalIdSet.has(weighing.animalId)) {
+      const existing = weighingsMap.get(weighing.animalId) || [];
+      existing.push(weighing);
+      weighingsMap.set(weighing.animalId, existing);
+    }
+  });
+
+  return weighingsMap;
+}
+
 export function addWeighing(data: WeighingFormData): Weighing {
   return createEntity(mockWeighings, data, ID_PREFIX, DEFAULT_ID);
 }

@@ -307,9 +307,9 @@ function PropertyFinanceDashboard({ propertyId }: PropertyFinanceDashboardProps)
   const tooltipStyle = getTooltipStyle(isDark);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -325,7 +325,7 @@ function PropertyFinanceDashboard({ propertyId }: PropertyFinanceDashboardProps)
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -341,7 +341,7 @@ function PropertyFinanceDashboard({ propertyId }: PropertyFinanceDashboardProps)
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -363,7 +363,7 @@ function PropertyFinanceDashboard({ propertyId }: PropertyFinanceDashboardProps)
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -379,7 +379,7 @@ function PropertyFinanceDashboard({ propertyId }: PropertyFinanceDashboardProps)
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -395,7 +395,7 @@ function PropertyFinanceDashboard({ propertyId }: PropertyFinanceDashboardProps)
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -639,8 +639,8 @@ export default function PropertyDetails() {
 
   if (!property) {
     return (
-      <div className="space-y-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+      <div className="space-y-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
           <p className="text-gray-600 dark:text-gray-400 mb-4">{t.properties.emptyState.title}</p>
           <Button variant="outline" onClick={() => navigate(ROUTES.PROPERTIES)}>
             {t.team.new.back}
@@ -738,7 +738,7 @@ export default function PropertyDetails() {
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{property.name}</h1>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{property.name}</h1>
             <StatusBadge
               label={
                 property.status === "active"
@@ -978,179 +978,190 @@ export default function PropertyDetails() {
       </div>
 
       {activeTab === "information" && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                    {t.properties.table.area}
-                  </p>
-                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                    {property.area.value.toLocaleString(localeForDateTime, {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}{" "}
-                    {formatAreaType(property.area.type)}
-                  </p>
-                </div>
-                <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                  <span className="text-lg">📏</span>
+        <div className="space-y-8">
+          <div>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-1 w-12 bg-blue-500 rounded-full"></div>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                Informações Gerais
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                      {t.properties.table.area}
+                    </p>
+                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                      {property.area.value.toLocaleString(localeForDateTime, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}{" "}
+                      {formatAreaType(property.area.type)}
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                    <span className="text-lg">📏</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                    {t.properties.table.locations}
-                  </p>
-                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                    {locationsCount}
-                  </p>
-                </div>
-                <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
-                  <span className="text-lg">📍</span>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                      {t.properties.table.locations}
+                    </p>
+                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                      {locationsCount}
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
+                    <span className="text-lg">📍</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                    {t.properties.table.animals}
-                  </p>
-                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                    {animalsCount.toLocaleString()}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {animalsCount} {t.properties.details.activeAnimals.toLowerCase()}
-                  </p>
-                </div>
-                <div
-                  className="w-10 h-10 dark:bg-blue-900/30 rounded-lg flex items-center justify-center"
-                  style={{ backgroundColor: `${DASHBOARD_COLORS.primaryLight}40` }}
-                >
-                  <span className="text-lg">🐄</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                    {t.properties.table.uas}
-                  </p>
-                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                    {animalUnits.toLocaleString(localeForDateTime, {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
-                  </p>
-                </div>
-                <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
-                  <span className="text-lg">📊</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                    {t.properties.table.stockingRate}
-                  </p>
-                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                    {stockingRate.toLocaleString(localeForDateTime, {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {t.dashboard.stats.uaPerHa}
-                  </p>
-                </div>
-                <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
-                  <span className="text-lg">🌱</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                    {t.dashboard.stats.density}
-                  </p>
-                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                    {density.toLocaleString(localeForDateTime, {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {t.dashboard.stats.animalsPerHa}
-                  </p>
-                </div>
-                <div className="w-10 h-10 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg flex items-center justify-center">
-                  <span className="text-lg">📈</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                    {t.dashboard.stats.averageWeight}
-                  </p>
-                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                    {averageWeight.toFixed(0)}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {t.dashboard.stats.kgPerAnimal}
-                  </p>
-                </div>
-                <div className="w-10 h-10 bg-teal-100 dark:bg-teal-900/30 rounded-lg flex items-center justify-center">
-                  <span className="text-lg">⚖️</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                    {t.dashboard.stats.expectedBirths}
-                  </p>
-                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                    {nextMonthExpected}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {t.dashboard.stats.nextMonth} • {expectedBirthsForecast.total}{" "}
-                    {t.dashboard.stats.nextThreeMonths}
-                  </p>
-                  <Link
-                    to={ROUTES.BIRTH_FORECAST}
-                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-1 inline-block"
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                      {t.properties.table.animals}
+                    </p>
+                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                      {animalsCount.toLocaleString()}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {animalsCount} {t.properties.details.activeAnimals.toLowerCase()}
+                    </p>
+                  </div>
+                  <div
+                    className="w-10 h-10 dark:bg-blue-900/30 rounded-lg flex items-center justify-center"
+                    style={{ backgroundColor: `${DASHBOARD_COLORS.primaryLight}40` }}
                   >
-                    {t.dashboard.stats.viewForecast}
-                  </Link>
+                    <span className="text-lg">🐄</span>
+                  </div>
                 </div>
-                <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center">
-                  <span className="text-lg">📅</span>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                      {t.properties.table.uas}
+                    </p>
+                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                      {animalUnits.toLocaleString(localeForDateTime, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
+                    <span className="text-lg">📊</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                      {t.properties.table.stockingRate}
+                    </p>
+                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                      {stockingRate.toLocaleString(localeForDateTime, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {t.dashboard.stats.uaPerHa}
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
+                    <span className="text-lg">🌱</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                      {t.dashboard.stats.density}
+                    </p>
+                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                      {density.toLocaleString(localeForDateTime, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {t.dashboard.stats.animalsPerHa}
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg flex items-center justify-center">
+                    <span className="text-lg">📈</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                      {t.dashboard.stats.averageWeight}
+                    </p>
+                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                      {averageWeight.toFixed(0)}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {t.dashboard.stats.kgPerAnimal}
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 bg-teal-100 dark:bg-teal-900/30 rounded-lg flex items-center justify-center">
+                    <span className="text-lg">⚖️</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                      {t.dashboard.stats.expectedBirths}
+                    </p>
+                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                      {nextMonthExpected}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {t.dashboard.stats.nextMonth} • {expectedBirthsForecast.total}{" "}
+                      {t.dashboard.stats.nextThreeMonths}
+                    </p>
+                    <Link
+                      to={ROUTES.BIRTH_FORECAST}
+                      className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-1 inline-block"
+                    >
+                      {t.dashboard.stats.viewForecast}
+                    </Link>
+                  </div>
+                  <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center">
+                    <span className="text-lg">📅</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              {t.properties.details.relatedEntities}
-            </h2>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-1 w-12 bg-purple-500 rounded-full"></div>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                {t.properties.details.relatedEntities}
+              </h2>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {(() => {
                 const employees = getEmployeesByPropertyId(property.id);
@@ -1160,7 +1171,7 @@ export default function PropertyDetails() {
 
                 return (
                   <>
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -1176,7 +1187,7 @@ export default function PropertyDetails() {
                       </div>
                     </div>
 
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -1192,7 +1203,7 @@ export default function PropertyDetails() {
                       </div>
                     </div>
 
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -1208,7 +1219,7 @@ export default function PropertyDetails() {
                       </div>
                     </div>
 
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -1237,7 +1248,7 @@ export default function PropertyDetails() {
             />
           )}
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between mb-4">
               <div className="flex-1">
                 <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
@@ -1306,12 +1317,15 @@ export default function PropertyDetails() {
       )}
 
       {activeTab === "info" && (
-        <div className="space-y-6">
+        <div className="space-y-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-                {t.properties.details.propertyInfo}
-              </h2>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="h-1 w-12 bg-blue-500 rounded-full"></div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                  {t.properties.details.propertyInfo}
+                </h2>
+              </div>
               <div className="space-y-4">
                 <div>
                   <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -1348,10 +1362,13 @@ export default function PropertyDetails() {
               </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-                {t.properties.details.address}
-              </h2>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="h-1 w-12 bg-green-500 rounded-full"></div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                  {t.properties.details.address}
+                </h2>
+              </div>
               <div className="space-y-4">
                 <div>
                   <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -1411,10 +1428,13 @@ export default function PropertyDetails() {
           </div>
 
           {property.latitude && property.longitude && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-                {t.properties.details.location}
-              </h2>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="h-1 w-12 bg-yellow-500 rounded-full"></div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                  {t.properties.details.location}
+                </h2>
+              </div>
               <PropertyMap
                 latitude={property.latitude}
                 longitude={property.longitude}
@@ -1901,7 +1921,7 @@ export default function PropertyDetails() {
           const selectedAnimalIds = Array.from(selectedAnimals);
 
           return (
-            <div className="space-y-6">
+            <div className="space-y-8">
               <Table<Animal>
                 columns={columns}
                 data={paginatedAnimals}
@@ -2122,7 +2142,7 @@ export default function PropertyDetails() {
           ];
 
           return (
-            <div className="space-y-6">
+            <div className="space-y-8">
               <Table<Location>
                 columns={columns}
                 data={sortedLocations}
@@ -2151,7 +2171,7 @@ export default function PropertyDetails() {
         })()}
 
       {activeTab === "registrations" && property && (
-        <div className="space-y-6">
+        <div className="space-y-8">
           <div className="mb-4">
             <nav className="flex space-x-3" aria-label="Sub Tabs">
               <button
@@ -2335,7 +2355,7 @@ export default function PropertyDetails() {
               ];
 
               return (
-                <div className="space-y-6">
+                <div className="space-y-8">
                   <Table<Employee>
                     columns={columns}
                     data={sortedEmployees}
@@ -2451,7 +2471,7 @@ export default function PropertyDetails() {
               ];
 
               return (
-                <div className="space-y-6">
+                <div className="space-y-8">
                   <Table<ServiceProvider>
                     columns={columns}
                     data={sortedServiceProviders}
@@ -2567,7 +2587,7 @@ export default function PropertyDetails() {
               ];
 
               return (
-                <div className="space-y-6">
+                <div className="space-y-8">
                   <Table<Supplier>
                     columns={columns}
                     data={sortedSuppliers}
@@ -2681,7 +2701,7 @@ export default function PropertyDetails() {
               ];
 
               return (
-                <div className="space-y-6">
+                <div className="space-y-8">
                   <Table<Buyer>
                     columns={columns}
                     data={sortedBuyers}
@@ -2712,10 +2732,13 @@ export default function PropertyDetails() {
       )}
 
       {activeTab === "activities" && isMainUser() && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-            {t.dashboard.recentActivities.title}
-          </h2>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-1 w-12 bg-teal-500 rounded-full"></div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              {t.dashboard.recentActivities.title}
+            </h2>
+          </div>
           <div className="space-y-3">
             <div className="flex items-center space-x-3 pb-3 border-b border-gray-200 dark:border-gray-700">
               <div
@@ -3114,7 +3137,7 @@ export default function PropertyDetails() {
           ];
 
           return (
-            <div className="space-y-6">
+            <div className="space-y-8">
               <Table<UnifiedMovement>
                 columns={columns}
                 data={paginatedMovements}
@@ -3175,7 +3198,7 @@ export default function PropertyDetails() {
         property &&
         (() => {
           return (
-            <div className="space-y-6">
+            <div className="space-y-8">
               <div className="mb-4">
                 <nav className="flex space-x-3" aria-label="Sub Tabs">
                   <button
@@ -3797,7 +3820,7 @@ export default function PropertyDetails() {
                   };
 
                   return (
-                    <div className="space-y-6">
+                    <div className="space-y-8">
                       <Table<UnifiedTransaction>
                         columns={financeColumns}
                         data={paginatedFinanceData}

@@ -200,8 +200,8 @@ export default function EditBuyer() {
 
   if (!buyer) {
     return (
-      <div className="space-y-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+      <div className="space-y-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
           <p className="text-gray-600 dark:text-gray-400">{t.buyers.emptyState.title}</p>
           <Button variant="outline" onClick={() => navigate(ROUTES.BUYERS)} className="mt-4">
             {t.team.new.back}
@@ -212,7 +212,7 @@ export default function EditBuyer() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {alertMessage && (
         <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
           <Alert title={alertMessage.title} variant={alertMessage.variant} />
@@ -221,7 +221,7 @@ export default function EditBuyer() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             {t.buyers.edit.title}
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -237,8 +237,8 @@ export default function EditBuyer() {
         </Button>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-        <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+        <form onSubmit={handleSubmit} className="space-y-8">
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Input

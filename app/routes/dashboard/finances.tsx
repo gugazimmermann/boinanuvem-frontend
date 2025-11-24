@@ -382,10 +382,12 @@ export default function FinancesDashboard() {
   const tooltipStyle = getTooltipStyle(isDark);
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
-        {t.financesDashboard.title}
-      </h1>
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+          {t.financesDashboard.title}
+        </h1>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <StatCard
@@ -431,12 +433,15 @@ export default function FinancesDashboard() {
         />
       </div>
 
-      <div className="mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-          {t.financesDashboard.salesAnalytics.title}
-        </h2>
+      <div>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="h-1 w-12 bg-green-500 rounded-full"></div>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+            {t.financesDashboard.salesAnalytics.title}
+          </h2>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -455,7 +460,7 @@ export default function FinancesDashboard() {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -475,7 +480,7 @@ export default function FinancesDashboard() {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -497,7 +502,7 @@ export default function FinancesDashboard() {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -525,7 +530,7 @@ export default function FinancesDashboard() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
             <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
               {t.financesDashboard.salesAnalytics.salesByType}
             </h3>
@@ -578,7 +583,7 @@ export default function FinancesDashboard() {
             })()}
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
             <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
               {t.financesDashboard.salesAnalytics.profitabilityBreakdown}
             </h3>
@@ -777,7 +782,7 @@ export default function FinancesDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
             {t.financesDashboard.tables.recentTransactions}
           </h2>
@@ -833,7 +838,7 @@ export default function FinancesDashboard() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
             {t.financesDashboard.tables.upcomingPayments}
           </h2>
@@ -896,7 +901,7 @@ export default function FinancesDashboard() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
             {t.financesDashboard.tables.upcomingReceivables}
           </h2>
@@ -957,7 +962,7 @@ export default function FinancesDashboard() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
             {t.financesDashboard.tables.overdue}
           </h2>

@@ -254,7 +254,7 @@ export default function NewAnimalMovement() {
   if (animalIds.length === 0) {
     return (
       <div className="space-y-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
           <p className="text-gray-600 dark:text-gray-400 mb-4">
             {t.animals.movement.noAnimalsSelected}
           </p>
@@ -288,7 +288,7 @@ export default function NewAnimalMovement() {
         </Button>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
         <div className="mb-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
             {t.animals.movement.selectedAnimals}

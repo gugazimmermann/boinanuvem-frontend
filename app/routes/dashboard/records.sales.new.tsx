@@ -404,16 +404,16 @@ export default function NewSale() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {alertMessage && <Alert variant={alertMessage.variant} title={alertMessage.title} />}
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t.sales.new.title}</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t.sales.new.title}</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">{t.sales.new.description}</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

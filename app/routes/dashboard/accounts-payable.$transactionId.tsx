@@ -74,8 +74,8 @@ export default function AccountsPayableDetails() {
 
   if (!transaction) {
     return (
-      <div className="space-y-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+      <div className="space-y-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
           <p className="text-gray-600 dark:text-gray-400 mb-4">
             {t.accountsPayable.emptyState.title}
           </p>
@@ -155,10 +155,10 @@ export default function AccountsPayableDetails() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             {t.accountsPayable.details.transactionInfo}
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{transaction.description}</p>
@@ -178,7 +178,7 @@ export default function AccountsPayableDetails() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {supplier && (
             <div>
@@ -308,7 +308,7 @@ export default function AccountsPayableDetails() {
       </div>
 
       {transaction && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
           {(() => {
             const filteredObservations = observations.filter((observation) => {
               if (!observationsSearchValue) return true;
@@ -463,7 +463,7 @@ export default function AccountsPayableDetails() {
             ];
 
             return (
-              <div className="space-y-6">
+              <div className="space-y-8">
                 {observationAlert && (
                   <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
                     <Alert title={observationAlert.title} variant={observationAlert.variant} />
@@ -471,7 +471,7 @@ export default function AccountsPayableDetails() {
                 )}
 
                 {showObservationForm && (
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100">
                         {t.accountsPayable.details.newObservation || "Nova Observação"}

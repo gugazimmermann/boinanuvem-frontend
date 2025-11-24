@@ -77,8 +77,8 @@ export default function MovementDetails() {
 
   if (!movement) {
     return (
-      <div className="space-y-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+      <div className="space-y-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
           <p className="text-gray-600 dark:text-gray-400 mb-4">
             {t.properties.details.movements.emptyState.title}
           </p>
@@ -131,7 +131,7 @@ export default function MovementDetails() {
     : t.properties.details.movements.types.animal_movement;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -179,7 +179,7 @@ export default function MovementDetails() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
             {t.properties.details.movements.title}
           </h2>
@@ -215,7 +215,7 @@ export default function MovementDetails() {
         </div>
 
         {locations.length > 0 && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
               {t.properties.details.movements.table.locations}
             </h2>
@@ -252,7 +252,7 @@ export default function MovementDetails() {
         )}
 
         {(employees.length > 0 || serviceProviders.length > 0) && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
               {t.properties.details.movements.table.responsible}
             </h2>
@@ -326,7 +326,7 @@ export default function MovementDetails() {
         )}
 
         {movement.observation && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
               {t.properties.details.movements.observation}
             </h2>
@@ -337,7 +337,7 @@ export default function MovementDetails() {
         )}
 
         {movement.fileIds && movement.fileIds.length > 0 && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
               {t.properties.details.movements.files}
             </h2>

@@ -4,6 +4,7 @@ import { Input, Select, Button, Alert } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { ROUTES, getInventoryViewRoute } from "~/routes.config";
 import { getInventoryItemById, updateInventoryItem } from "~/services/inventory.service";
+import { getNitrogenContent, setNitrogenContent } from "~/services/nitrogen-content.service";
 import type { InventoryItemFormData, Property } from "~/types";
 import { InventoryItemCategory } from "~/types";
 import { mockProperties } from "~/mocks/properties";
@@ -45,6 +46,7 @@ export default function EditInventoryItem() {
     usageAmount: string;
     usageUnit: string;
     usageBasis: string;
+    nitrogenContent: string;
     propertyIds: string[];
   }>({
     code: "",
@@ -61,11 +63,13 @@ export default function EditInventoryItem() {
     usageAmount: "",
     usageUnit: "",
     usageBasis: "",
+    nitrogenContent: "",
     propertyIds: [],
   });
 
   useEffect(() => {
     if (item) {
+      const nitrogenContent = getNitrogenContent(item.id);
       setFormData({
         code: item.code,
         name: item.name,
@@ -81,6 +85,7 @@ export default function EditInventoryItem() {
         usageAmount: item.usageAmount?.toString() || "",
         usageUnit: item.usageUnit || "",
         usageBasis: item.usageBasis || "",
+        nitrogenContent: nitrogenContent > 0 ? nitrogenContent.toString() : "",
         propertyIds: item.propertyIds || [],
       });
     }
@@ -155,6 +160,19 @@ export default function EditInventoryItem() {
       }
     }
 
+    if (
+      formData.category === InventoryItemCategory.FERTILIZER &&
+      formData.nitrogenContent &&
+      formData.nitrogenContent.trim()
+    ) {
+      const nitrogenContent = parseFloat(formData.nitrogenContent);
+      if (isNaN(nitrogenContent) || nitrogenContent < 0) {
+        newErrors.nitrogenContent =
+          t.inventory.new.nitrogenContentInvalid ||
+          "Nitrogen content must be greater than or equal to 0";
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -209,6 +227,18 @@ export default function EditInventoryItem() {
       };
       const success = updateInventoryItem(item.id, itemData);
       if (success) {
+        // Save nitrogen content if provided and category is FERTILIZER
+        if (
+          formData.category === InventoryItemCategory.FERTILIZER &&
+          formData.nitrogenContent &&
+          formData.nitrogenContent.trim()
+        ) {
+          const nitrogenKgPerUnit = parseFloat(formData.nitrogenContent);
+          if (!isNaN(nitrogenKgPerUnit) && nitrogenKgPerUnit >= 0) {
+            setNitrogenContent(item.id, nitrogenKgPerUnit);
+          }
+        }
+
         showAlert(t.inventory.edit.success, "success");
         setTimeout(() => {
           navigate(getInventoryViewRoute(item.id));
@@ -226,8 +256,8 @@ export default function EditInventoryItem() {
 
   if (!item) {
     return (
-      <div className="space-y-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+      <div className="space-y-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
           <p className="text-gray-600 dark:text-gray-400 mb-4">{t.inventory.emptyState.title}</p>
           <Button variant="outline" onClick={() => navigate(ROUTES.INVENTORY)}>
             {t.common.back}
@@ -300,7 +330,7 @@ export default function EditInventoryItem() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {alertMessage && (
         <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
           <Alert title={alertMessage.title} variant={alertMessage.variant} />
@@ -309,7 +339,7 @@ export default function EditInventoryItem() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             {t.inventory.edit.title}
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -325,8 +355,8 @@ export default function EditInventoryItem() {
         </Button>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-        <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+        <form onSubmit={handleSubmit} className="space-y-8">
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Input
@@ -410,6 +440,27 @@ export default function EditInventoryItem() {
                 placeholder={t.inventory.new.unitPricePlaceholder}
               />
             </div>
+
+            {formData.category === InventoryItemCategory.FERTILIZER && (
+              <div className="space-y-4 border-t border-b border-gray-200 dark:border-gray-700 pt-4 pb-4">
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {t.inventory.new.nitrogenContent || "Nitrogen Content"}
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label={t.inventory.new.nitrogenContentLabel || "Nitrogen Content (kg per unit)"}
+                    type="number"
+                    value={formData.nitrogenContent}
+                    onChange={(e) => handleChange("nitrogenContent", e.target.value)}
+                    error={errors.nitrogenContent}
+                    disabled={isSubmitting}
+                    min="0"
+                    step="0.01"
+                    placeholder="e.g., 10 (kg of nitrogen per unit)"
+                  />
+                </div>
+              </div>
+            )}
 
             {(formData.category === InventoryItemCategory.MEDICINES ||
               formData.category === InventoryItemCategory.VACCINES) && (

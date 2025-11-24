@@ -112,7 +112,7 @@ export default function BirthForecastPage() {
 
   if (properties.length === 0) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
           {t.birthForecast.title}
         </h1>
@@ -122,8 +122,16 @@ export default function BirthForecastPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+          {t.birthForecast.title}
+        </h1>
+      </div>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 uppercase tracking-wide">
+          Filtros
+        </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -145,55 +153,69 @@ export default function BirthForecastPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title={t.birthForecast.summary.total}
-          value={summaryStats.total}
-          subtitle={t.birthForecast.summary.totalDescription}
-          icon={<span className="text-lg">📊</span>}
-        />
+      <div>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="h-1 w-12 bg-blue-500 rounded-full"></div>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Resumo</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            title={t.birthForecast.summary.total}
+            value={summaryStats.total}
+            subtitle={t.birthForecast.summary.totalDescription}
+            icon={<span className="text-lg">📊</span>}
+          />
 
-        <StatCard
-          title={t.birthForecast.summary.nextMonth}
-          value={summaryStats.nextMonth}
-          subtitle={t.birthForecast.summary.nextMonthDescription}
-          icon={<span className="text-lg">📅</span>}
-        />
+          <StatCard
+            title={t.birthForecast.summary.nextMonth}
+            value={summaryStats.nextMonth}
+            subtitle={t.birthForecast.summary.nextMonthDescription}
+            icon={<span className="text-lg">📅</span>}
+          />
 
-        <StatCard
-          title={t.birthForecast.summary.average}
-          value={summaryStats.average}
-          subtitle={t.birthForecast.summary.averageDescription}
-          icon={<span className="text-lg">📈</span>}
-        />
+          <StatCard
+            title={t.birthForecast.summary.average}
+            value={summaryStats.average}
+            subtitle={t.birthForecast.summary.averageDescription}
+            icon={<span className="text-lg">📈</span>}
+          />
 
-        <StatCard
-          title={t.birthForecast.summary.peakMonth}
-          value={summaryStats.peakMonth ? summaryStats.peakMonth.count : "-"}
-          subtitle={summaryStats.peakMonth ? summaryStats.peakMonth.month : ""}
-          icon={<span className="text-lg">🔺</span>}
-        />
+          <StatCard
+            title={t.birthForecast.summary.peakMonth}
+            value={summaryStats.peakMonth ? summaryStats.peakMonth.count : "-"}
+            subtitle={summaryStats.peakMonth ? summaryStats.peakMonth.month : ""}
+            icon={<span className="text-lg">🔺</span>}
+          />
+        </div>
       </div>
 
-      <ChartWrapper
-        title={t.birthForecast.chart.title}
-        isEmpty={expectedBirthsData.length === 0}
-        emptyMessage={t.birthForecast.emptyState.noData}
-        height={400}
-      >
-        <BarChart data={expectedBirthsData}>
-          <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
-          <XAxis dataKey="month" tick={{ fill: chartColors.text, fontSize: 12 }} />
-          <YAxis tick={{ fill: chartColors.text, fontSize: 12 }} />
-          <Tooltip {...tooltipStyle} />
-          <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
-          <Bar
-            dataKey="expectedBirths"
-            fill={chartColors.income}
-            name={t.birthForecast.chart.expectedBirths}
-          />
-        </BarChart>
-      </ChartWrapper>
+      <div>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="h-1 w-12 bg-green-500 rounded-full"></div>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+            {t.birthForecast.chart.title}
+          </h2>
+        </div>
+        <ChartWrapper
+          title=""
+          isEmpty={expectedBirthsData.length === 0}
+          emptyMessage={t.birthForecast.emptyState.noData}
+          height={400}
+        >
+          <BarChart data={expectedBirthsData}>
+            <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
+            <XAxis dataKey="month" tick={{ fill: chartColors.text, fontSize: 12 }} />
+            <YAxis tick={{ fill: chartColors.text, fontSize: 12 }} />
+            <Tooltip {...tooltipStyle} />
+            <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
+            <Bar
+              dataKey="expectedBirths"
+              fill={chartColors.income}
+              name={t.birthForecast.chart.expectedBirths}
+            />
+          </BarChart>
+        </ChartWrapper>
+      </div>
     </div>
   );
 }

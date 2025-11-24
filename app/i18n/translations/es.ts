@@ -1111,6 +1111,7 @@ export const es = {
       vitamins: "Vitaminas",
       medicines: "Medicamentos",
       vaccines: "Vacunas",
+      fertilizer: "Fertilizante",
       custom: "Personalizado",
     },
     units: {
@@ -1217,6 +1218,10 @@ export const es = {
       usageUnit: "Unidad",
       usageBasis: "Base",
       usageAmountInvalid: "La cantidad de uso debe ser un número válido mayor que cero",
+      nitrogenContent: "Contenido de Nitrógeno",
+      nitrogenContentLabel: "Contenido de Nitrógeno (kg por unidad)",
+      nitrogenContentInvalid:
+        "El contenido de nitrógeno debe ser un número válido mayor o igual a cero",
       usageBasisOptions: {
         perAnimal: "por animal",
         perKg: "por kg",

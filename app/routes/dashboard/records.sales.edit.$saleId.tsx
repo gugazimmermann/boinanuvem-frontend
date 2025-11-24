@@ -438,7 +438,7 @@ export default function EditSale() {
   if (!sale) {
     return (
       <div className="space-y-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
           <p className="text-gray-600 dark:text-gray-400 mb-4">{t.sales.notFound}</p>
           <Button variant="outline" onClick={() => navigate(ROUTES.SALES)}>
             {t.common.back}
@@ -452,9 +452,9 @@ export default function EditSale() {
     <div className="space-y-6">
       {alertMessage && <Alert variant={alertMessage.variant} title={alertMessage.title} />}
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t.sales.edit.title}</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t.sales.edit.title}</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">{t.sales.edit.description}</p>
         </div>
 

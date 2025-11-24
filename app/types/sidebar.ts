@@ -17,7 +17,6 @@ export interface SidebarSubItemConfig {
     pregnantCows: string;
     unconfirmedBreedings: string;
     reproductiveIndexes: string;
-    productionIndexes: string;
     birthForecast: string;
     cashFlow: string;
     accountsPayable: string;
@@ -47,7 +46,6 @@ export interface SidebarItemConfig {
     weighings: string;
     breedings: string;
     reproductiveIndexes: string;
-    productionIndexes: string;
     birthForecast: string;
     cashFlow: string;
     accountsPayable: string;

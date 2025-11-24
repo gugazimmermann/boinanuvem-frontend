@@ -62,8 +62,8 @@ export default function ObservationDetails() {
 
   if (!observation) {
     return (
-      <div className="space-y-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+      <div className="space-y-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
           <p className="text-gray-600 dark:text-gray-400 mb-4">
             {t.locations.details.observationNotFound}
           </p>
@@ -161,7 +161,7 @@ export default function ObservationDetails() {
       </div>
 
       {location && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
             {t.locations.table.name}
           </h2>
@@ -188,7 +188,7 @@ export default function ObservationDetails() {
       )}
 
       {employee && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
             {t.employees.table.name}
           </h2>
@@ -215,7 +215,7 @@ export default function ObservationDetails() {
       )}
 
       {serviceProvider && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
             {t.serviceProviders.table.name}
           </h2>
@@ -244,7 +244,7 @@ export default function ObservationDetails() {
       )}
 
       {supplier && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
             {t.suppliers.table.name}
           </h2>
@@ -271,7 +271,7 @@ export default function ObservationDetails() {
       )}
 
       {buyer && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
             {t.buyers.table.name}
           </h2>
@@ -296,7 +296,7 @@ export default function ObservationDetails() {
       )}
 
       {animal && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
             {t.animals.table.code}
           </h2>
@@ -322,7 +322,7 @@ export default function ObservationDetails() {
         </div>
       )}
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
         <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
           {t.locations.details.observation || "Observação"}
         </h2>
@@ -332,7 +332,7 @@ export default function ObservationDetails() {
       </div>
 
       {observation.fileIds && observation.fileIds.length > 0 && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
             {t.locations.details.files || "Anexos"} ({observation.fileIds.length})
           </h2>

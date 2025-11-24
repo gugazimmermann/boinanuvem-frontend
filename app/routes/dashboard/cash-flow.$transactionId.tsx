@@ -138,8 +138,8 @@ export default function CashFlowDetails() {
 
   if (!transaction) {
     return (
-      <div className="space-y-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+      <div className="space-y-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
           <p className="text-gray-600 dark:text-gray-400 mb-4">{t.cashFlow.emptyState.title}</p>
           <Button variant="outline" onClick={() => navigate(ROUTES.CASH_FLOW)}>
             {t.common.back}
@@ -150,7 +150,7 @@ export default function CashFlowDetails() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -173,7 +173,7 @@ export default function CashFlowDetails() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
@@ -313,7 +313,7 @@ export default function CashFlowDetails() {
       </div>
 
       {transaction && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
           {(() => {
             const filteredObservations = observations.filter((observation) => {
               if (!observationsSearchValue) return true;
@@ -468,7 +468,7 @@ export default function CashFlowDetails() {
             ];
 
             return (
-              <div className="space-y-6">
+              <div className="space-y-8">
                 {observationAlert && (
                   <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
                     <Alert title={observationAlert.title} variant={observationAlert.variant} />
@@ -476,7 +476,7 @@ export default function CashFlowDetails() {
                 )}
 
                 {showObservationForm && (
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100">
                         {t.cashFlow.details.newObservation || "Nova Observação"}

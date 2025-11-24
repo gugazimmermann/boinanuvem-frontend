@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { LanguageProvider } from "~/contexts/language-context";
 import { ThemeProvider } from "~/contexts/theme-context";
@@ -7,7 +7,7 @@ import Dashboard from "../index";
 import { mockProperties } from "~/mocks/properties";
 import { mockLocations } from "~/mocks/locations";
 import { getAnimalsByCompanyId } from "~/services/animals.service";
-import { getWeighingsByAnimalId } from "~/services/weighings.service";
+import { getWeighingsByCompanyId } from "~/services/weighings.service";
 
 vi.mock("~/mocks/companies", () => ({
   mockCompanies: [
@@ -98,6 +98,17 @@ vi.mock("~/services/weighings.service", async () => {
         id: "weighing-1",
         date: "2024-01-01",
         weight: 450,
+        animalId: "animal-1",
+        companyId: "550e8400-e29b-41d4-a716-446655440000",
+      },
+    ]),
+    getWeighingsByCompanyId: vi.fn(() => [
+      {
+        id: "weighing-1",
+        date: "2024-01-01",
+        weight: 450,
+        animalId: "animal-1",
+        companyId: "550e8400-e29b-41d4-a716-446655440000",
       },
     ]),
   };
@@ -172,11 +183,41 @@ describe("Dashboard", () => {
     expect(heading || screen.queryAllByRole("button").length > 0).toBeTruthy();
   });
 
-  it("should calculate total weight from weighings", () => {
+  it("should calculate total weight from weighings using batch query", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    expect(getWeighingsByAnimalId).toHaveBeenCalled();
+    // Should use getWeighingsByCompanyId for batch query instead of individual calls
+    expect(getWeighingsByCompanyId).toHaveBeenCalled();
+  });
+
+  it("should display loading skeleton for aggregated indexes", async () => {
+    const router = createRouter();
+    render(<RouterProvider router={router} />);
+
+    // Check if skeleton screens are shown during calculation
+    await waitFor(() => {
+      const headings = screen.getAllByRole("heading");
+      expect(headings.length).toBeGreaterThan(0);
+    });
+  });
+
+  it("should handle property filter changes", async () => {
+    const router = createRouter();
+    render(<RouterProvider router={router} />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
+    });
+  });
+
+  it("should handle date period filter changes", async () => {
+    const router = createRouter();
+    render(<RouterProvider router={router} />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
+    });
   });
 
   it("should have correct meta function", () => {

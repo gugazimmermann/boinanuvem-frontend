@@ -5,6 +5,7 @@ import { translations } from "~/i18n/translations";
 import { mockCompanies } from "~/mocks/companies";
 import { getPropertiesByCompanyId } from "~/services/properties.service";
 import { ReproductiveIndexes } from "~/components/dashboard/reproductive-indexes/reproductive-indexes";
+import { Tooltip } from "~/components/ui/tooltip";
 import {
   getFertilityRate,
   getBirthRate,
@@ -32,7 +33,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   Legend,
 } from "recharts";
 import { ChartWrapper, getTooltipStyle, getChartColors } from "~/components/dashboard";
@@ -309,7 +310,7 @@ export default function ReproductiveIndexesPage() {
 
   if (properties.length === 0) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
           {t.sidebar.reproductiveIndexes}
         </h1>
@@ -323,8 +324,11 @@ export default function ReproductiveIndexesPage() {
   const showAggregated = selectedPropertyId === ALL_PROPERTIES_ID;
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+    <div className="space-y-8">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 uppercase tracking-wide">
+          Filtros
+        </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -379,126 +383,192 @@ export default function ReproductiveIndexesPage() {
       </div>
 
       {showAggregated && aggregatedIndexes ? (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  {t.reproductiveIndexes.fertilityRate.title}
-                </h3>
+        <div>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-1 w-12 bg-blue-500 rounded-full"></div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              Índices Reprodutivos
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-5 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    {t.reproductiveIndexes.fertilityRate.title}
+                  </h3>
+                  <Tooltip content={t.reproductiveIndexes.fertilityRate.description} position="top">
+                    <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </button>
+                  </Tooltip>
+                </div>
                 <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
                   <span className="text-lg">📊</span>
                 </div>
               </div>
-              <div className="mb-4">
-                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                  {(aggregatedIndexes.fertilityRate.rate * 100).toFixed(2)}%
-                </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  {t.reproductiveIndexes.fertilityRate.description}
+              <div className="mb-3">
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {(aggregatedIndexes.fertilityRate.rate * 100).toFixed(2)}
+                  <span className="text-sm font-normal text-gray-500 dark:text-gray-400">%</span>
                 </p>
               </div>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
+              <div className="pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                <div className="flex justify-between text-xs">
                   <span className="text-gray-600 dark:text-gray-400">
                     {t.reproductiveIndexes.fertilityRate.pregnantCows}:
                   </span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
+                  <span className="font-semibold text-gray-900 dark:text-gray-100">
                     {aggregatedIndexes.fertilityRate.pregnantCows}
                   </span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between text-xs">
                   <span className="text-gray-600 dark:text-gray-400">
                     {t.reproductiveIndexes.fertilityRate.exposedCows}:
                   </span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
+                  <span className="font-semibold text-gray-900 dark:text-gray-100">
                     {aggregatedIndexes.fertilityRate.exposedCows}
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  {t.reproductiveIndexes.birthRate.title}
-                </h3>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-5 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    {t.reproductiveIndexes.birthRate.title}
+                  </h3>
+                  <Tooltip content={t.reproductiveIndexes.birthRate.description} position="top">
+                    <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </button>
+                  </Tooltip>
+                </div>
                 <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
                   <span className="text-lg">👶</span>
                 </div>
               </div>
-              <div className="mb-4">
-                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                  {(aggregatedIndexes.birthRate.rate * 100).toFixed(2)}%
-                </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  {t.reproductiveIndexes.birthRate.description}
+              <div className="mb-3">
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {(aggregatedIndexes.birthRate.rate * 100).toFixed(2)}
+                  <span className="text-sm font-normal text-gray-500 dark:text-gray-400">%</span>
                 </p>
               </div>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
+              <div className="pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                <div className="flex justify-between text-xs">
                   <span className="text-gray-600 dark:text-gray-400">
                     {t.reproductiveIndexes.birthRate.calvesBorn}:
                   </span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
+                  <span className="font-semibold text-gray-900 dark:text-gray-100">
                     {aggregatedIndexes.birthRate.calvesBorn}
                   </span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between text-xs">
                   <span className="text-gray-600 dark:text-gray-400">
                     {t.reproductiveIndexes.birthRate.pregnantFemales}:
                   </span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
+                  <span className="font-semibold text-gray-900 dark:text-gray-100">
                     {aggregatedIndexes.birthRate.pregnantFemales}
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  {t.reproductiveIndexes.calvingInterval.title}
-                </h3>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-5 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    {t.reproductiveIndexes.calvingInterval.title}
+                  </h3>
+                  <Tooltip
+                    content={t.reproductiveIndexes.calvingInterval.description}
+                    position="top"
+                  >
+                    <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </button>
+                  </Tooltip>
+                </div>
                 <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
                   <span className="text-lg">⏱️</span>
                 </div>
               </div>
-              <div className="mb-4">
-                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                  {aggregatedIndexes.calvingInterval.average > 0
-                    ? `${Math.round(aggregatedIndexes.calvingInterval.average / 30)} ${t.reproductiveIndexes.calvingInterval.months}`
-                    : "-"}
-                </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  {t.reproductiveIndexes.calvingInterval.description}
+              <div className="mb-3">
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {aggregatedIndexes.calvingInterval.average > 0 ? (
+                    <>
+                      {Math.round(aggregatedIndexes.calvingInterval.average / 30)}{" "}
+                      <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                        {t.reproductiveIndexes.calvingInterval.months}
+                      </span>
+                    </>
+                  ) : (
+                    "-"
+                  )}
                 </p>
               </div>
               {aggregatedIndexes.calvingInterval.average > 0 && (
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
+                <div className="pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                  <div className="flex justify-between text-xs">
                     <span className="text-gray-600 dark:text-gray-400">
                       {t.reproductiveIndexes.calvingInterval.min}:
                     </span>
-                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                    <span className="font-semibold text-gray-900 dark:text-gray-100">
                       {Math.round(aggregatedIndexes.calvingInterval.min / 30)}{" "}
                       {t.reproductiveIndexes.calvingInterval.months}
                     </span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between text-xs">
                     <span className="text-gray-600 dark:text-gray-400">
                       {t.reproductiveIndexes.calvingInterval.max}:
                     </span>
-                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                    <span className="font-semibold text-gray-900 dark:text-gray-100">
                       {Math.round(aggregatedIndexes.calvingInterval.max / 30)}{" "}
                       {t.reproductiveIndexes.calvingInterval.months}
                     </span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between text-xs">
                     <span className="text-gray-600 dark:text-gray-400">
                       {t.reproductiveIndexes.calvingInterval.animals}:
                     </span>
-                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                    <span className="font-semibold text-gray-900 dark:text-gray-100">
                       {aggregatedIndexes.calvingInterval.animalsWithIntervals}
                     </span>
                   </div>
@@ -506,119 +576,175 @@ export default function ReproductiveIndexesPage() {
               )}
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  {t.reproductiveIndexes.cullingRate.title}
-                </h3>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-5 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    {t.reproductiveIndexes.cullingRate.title}
+                  </h3>
+                  <Tooltip content={t.reproductiveIndexes.cullingRate.description} position="top">
+                    <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </button>
+                  </Tooltip>
+                </div>
                 <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
                   <span className="text-lg">🔄</span>
                 </div>
               </div>
-              <div className="mb-4">
-                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                  {(aggregatedIndexes.cullingRate.rate * 100).toFixed(2)}%
-                </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  {t.reproductiveIndexes.cullingRate.description}
+              <div className="mb-3">
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {(aggregatedIndexes.cullingRate.rate * 100).toFixed(2)}
+                  <span className="text-sm font-normal text-gray-500 dark:text-gray-400">%</span>
                 </p>
               </div>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
+              <div className="pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                <div className="flex justify-between text-xs">
                   <span className="text-gray-600 dark:text-gray-400">
                     {t.reproductiveIndexes.cullingRate.replacedFemales}:
                   </span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
+                  <span className="font-semibold text-gray-900 dark:text-gray-100">
                     {aggregatedIndexes.cullingRate.replacedFemales}
                   </span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between text-xs">
                   <span className="text-gray-600 dark:text-gray-400">
                     {t.reproductiveIndexes.cullingRate.totalFemales}:
                   </span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
+                  <span className="font-semibold text-gray-900 dark:text-gray-100">
                     {aggregatedIndexes.cullingRate.totalFemales}
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  {t.reproductiveIndexes.intrauterineMortality.title}
-                </h3>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-5 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    {t.reproductiveIndexes.intrauterineMortality.title}
+                  </h3>
+                  <Tooltip
+                    content={t.reproductiveIndexes.intrauterineMortality.description}
+                    position="top"
+                  >
+                    <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </button>
+                  </Tooltip>
+                </div>
                 <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
                   <span className="text-lg">⚠️</span>
                 </div>
               </div>
-              <div className="mb-4">
-                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                  {(aggregatedIndexes.intrauterineMortality.rate * 100).toFixed(2)}%
-                </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  {t.reproductiveIndexes.intrauterineMortality.description}
+              <div className="mb-3">
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {(aggregatedIndexes.intrauterineMortality.rate * 100).toFixed(2)}
+                  <span className="text-sm font-normal text-gray-500 dark:text-gray-400">%</span>
                 </p>
               </div>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
+              <div className="pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                <div className="flex justify-between text-xs">
                   <span className="text-gray-600 dark:text-gray-400">
                     {t.reproductiveIndexes.intrauterineMortality.pregnantCows}:
                   </span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
+                  <span className="font-semibold text-gray-900 dark:text-gray-100">
                     {aggregatedIndexes.intrauterineMortality.pregnantCows}
                   </span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between text-xs">
                   <span className="text-gray-600 dark:text-gray-400">
                     {t.reproductiveIndexes.intrauterineMortality.cowsThatCalved}:
                   </span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
+                  <span className="font-semibold text-gray-900 dark:text-gray-100">
                     {aggregatedIndexes.intrauterineMortality.cowsThatCalved}
                   </span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between text-xs">
                   <span className="text-gray-600 dark:text-gray-400">
                     {t.reproductiveIndexes.intrauterineMortality.losses}:
                   </span>
-                  <span className="font-medium text-red-600 dark:text-red-400">
+                  <span className="font-semibold text-red-600 dark:text-red-400">
                     {aggregatedIndexes.intrauterineMortality.losses}
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  {t.reproductiveIndexes.bullToCowRatio.title}
-                </h3>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-5 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    {t.reproductiveIndexes.bullToCowRatio.title}
+                  </h3>
+                  <Tooltip
+                    content={t.reproductiveIndexes.bullToCowRatio.description}
+                    position="top"
+                  >
+                    <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </button>
+                  </Tooltip>
+                </div>
                 <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
                   <span className="text-lg">🐂</span>
                 </div>
               </div>
-              <div className="mb-4">
-                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+              <div className="mb-3">
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {aggregatedIndexes.bullToCowRatio.ratio}
                 </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  {t.reproductiveIndexes.bullToCowRatio.description}
-                </p>
               </div>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
+              <div className="pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                <div className="flex justify-between text-xs">
                   <span className="text-gray-600 dark:text-gray-400">
                     {t.reproductiveIndexes.bullToCowRatio.bullsUsed}:
                   </span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
+                  <span className="font-semibold text-gray-900 dark:text-gray-100">
                     {aggregatedIndexes.bullToCowRatio.bullsUsed}
                   </span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between text-xs">
                   <span className="text-gray-600 dark:text-gray-400">
                     {t.reproductiveIndexes.bullToCowRatio.exposedCows}:
                   </span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
+                  <span className="font-semibold text-gray-900 dark:text-gray-100">
                     {aggregatedIndexes.bullToCowRatio.exposedCows}
                   </span>
                 </div>
@@ -626,6 +752,10 @@ export default function ReproductiveIndexesPage() {
             </div>
           </div>
 
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-1 w-12 bg-green-500 rounded-full"></div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Gráficos</h2>
+          </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <ChartWrapper
               title={t.reproductiveIndexes.charts.monthlyBirthRate}
@@ -636,7 +766,7 @@ export default function ReproductiveIndexesPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
                 <XAxis dataKey="month" tick={{ fill: chartColors.text, fontSize: 12 }} />
                 <YAxis tick={{ fill: chartColors.text, fontSize: 12 }} />
-                <Tooltip {...tooltipStyle} />
+                <RechartsTooltip {...tooltipStyle} />
                 <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
                 <Line
                   type="monotone"
@@ -657,7 +787,7 @@ export default function ReproductiveIndexesPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
                 <XAxis dataKey="year" tick={{ fill: chartColors.text, fontSize: 12 }} />
                 <YAxis tick={{ fill: chartColors.text, fontSize: 12 }} />
-                <Tooltip {...tooltipStyle} />
+                <RechartsTooltip {...tooltipStyle} />
                 <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
                 <Bar
                   dataKey="rate"
@@ -668,6 +798,12 @@ export default function ReproductiveIndexesPage() {
             </ChartWrapper>
           </div>
 
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-1 w-12 bg-purple-500 rounded-full"></div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              Previsão de Nascimentos
+            </h2>
+          </div>
           <ChartWrapper
             title={t.reproductiveIndexes.charts.expectedFutureBirths}
             isEmpty={expectedBirthsData.length === 0}
@@ -677,7 +813,7 @@ export default function ReproductiveIndexesPage() {
               <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
               <XAxis dataKey="month" tick={{ fill: chartColors.text, fontSize: 12 }} />
               <YAxis tick={{ fill: chartColors.text, fontSize: 12 }} />
-              <Tooltip {...tooltipStyle} />
+              <RechartsTooltip {...tooltipStyle} />
               <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
               <Bar
                 dataKey="expectedBirths"
@@ -688,7 +824,9 @@ export default function ReproductiveIndexesPage() {
           </ChartWrapper>
         </div>
       ) : (
-        selectedPropertyId && <ReproductiveIndexes propertyId={selectedPropertyId} />
+        selectedPropertyId && (
+          <ReproductiveIndexes propertyId={selectedPropertyId} period={selectedPeriod} />
+        )
       )}
     </div>
   );

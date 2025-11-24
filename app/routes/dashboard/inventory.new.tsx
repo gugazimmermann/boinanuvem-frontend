@@ -5,6 +5,7 @@ import { useTranslation } from "~/i18n";
 import { ROUTES } from "~/routes.config";
 import { addInventoryItem } from "~/services/inventory.service";
 import { addInventoryMovement } from "~/services/inventory-movements.service";
+import { setNitrogenContent } from "~/services/nitrogen-content.service";
 import { addCashFlow } from "~/services/cash-flow.service";
 import { addAccountsPayable } from "~/services/accounts-payable.service";
 import { addInventoryObservation } from "~/services/inventory-observations.service";
@@ -81,6 +82,7 @@ export default function NewInventoryItem() {
     usageAmount: string;
     usageUnit: string;
     usageBasis: string;
+    nitrogenContent: string;
     propertyIds: string[];
     createCashFlowTransaction: boolean;
     paymentMethod: PaymentMethod;
@@ -106,6 +108,7 @@ export default function NewInventoryItem() {
     usageAmount: "",
     usageUnit: "",
     usageBasis: "",
+    nitrogenContent: "",
     propertyIds: [],
     createCashFlowTransaction: false,
     paymentMethod: PaymentMethod.PIX,
@@ -198,6 +201,19 @@ export default function NewInventoryItem() {
       }
     }
 
+    if (
+      formData.category === InventoryItemCategory.FERTILIZER &&
+      formData.nitrogenContent &&
+      formData.nitrogenContent.trim()
+    ) {
+      const nitrogenContent = parseFloat(formData.nitrogenContent);
+      if (isNaN(nitrogenContent) || nitrogenContent < 0) {
+        newErrors.nitrogenContent =
+          t.inventory.new.nitrogenContentInvalid ||
+          "Nitrogen content must be greater than or equal to 0";
+      }
+    }
+
     if (formData.createCashFlowTransaction && initialStock > 0 && formData.supplierId) {
       if (!formData.unitPrice || parseFloat(formData.unitPrice) <= 0) {
         newErrors.unitPrice = t.inventory.movements.new.unitPriceRequired;
@@ -270,6 +286,18 @@ export default function NewInventoryItem() {
         propertyIds: formData.propertyIds,
       };
       const newItem = addInventoryItem(itemData);
+
+      // Save nitrogen content if provided and category is FERTILIZER
+      if (
+        formData.category === InventoryItemCategory.FERTILIZER &&
+        formData.nitrogenContent &&
+        formData.nitrogenContent.trim()
+      ) {
+        const nitrogenKgPerUnit = parseFloat(formData.nitrogenContent);
+        if (!isNaN(nitrogenKgPerUnit) && nitrogenKgPerUnit >= 0) {
+          setNitrogenContent(newItem.id, nitrogenKgPerUnit);
+        }
+      }
 
       const initialStock =
         formData.initialStock && formData.initialStock.trim()
@@ -427,7 +455,7 @@ export default function NewInventoryItem() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {alertMessage && (
         <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
           <Alert title={alertMessage.title} variant={alertMessage.variant} />
@@ -436,7 +464,7 @@ export default function NewInventoryItem() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             {t.inventory.addItem}
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -452,8 +480,8 @@ export default function NewInventoryItem() {
         </Button>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-        <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+        <form onSubmit={handleSubmit} className="space-y-8">
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Input
@@ -537,6 +565,27 @@ export default function NewInventoryItem() {
                 placeholder={t.inventory.new.unitPricePlaceholder}
               />
             </div>
+
+            {formData.category === InventoryItemCategory.FERTILIZER && (
+              <div className="space-y-4 border-t border-b border-gray-200 dark:border-gray-700 pt-4 pb-4">
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {t.inventory.new.nitrogenContent || "Nitrogen Content"}
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label={t.inventory.new.nitrogenContentLabel || "Nitrogen Content (kg per unit)"}
+                    type="number"
+                    value={formData.nitrogenContent}
+                    onChange={(e) => handleChange("nitrogenContent", e.target.value)}
+                    error={errors.nitrogenContent}
+                    disabled={isSubmitting}
+                    min="0"
+                    step="0.01"
+                    placeholder="e.g., 10 (kg of nitrogen per unit)"
+                  />
+                </div>
+              </div>
+            )}
 
             {(formData.category === InventoryItemCategory.MEDICINES ||
               formData.category === InventoryItemCategory.VACCINES) && (

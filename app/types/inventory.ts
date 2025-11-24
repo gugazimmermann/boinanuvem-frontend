@@ -5,6 +5,7 @@ export enum InventoryItemCategory {
   VITAMINS = "vitamins",
   MEDICINES = "medicines",
   VACCINES = "vaccines",
+  FERTILIZER = "fertilizer",
   CUSTOM = "custom",
 }
 

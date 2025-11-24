@@ -52,7 +52,7 @@ export function StatCard({
 
   return (
     <div
-      className={`bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow ${className}`}
+      className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow ${className}`}
     >
       <div className="flex items-center justify-between">
         <div className="flex-1">
