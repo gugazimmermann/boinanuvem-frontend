@@ -393,7 +393,7 @@ describe("InventoryItemDetails", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    expect(getCurrentStock).toHaveBeenCalledWith("item-1");
+    expect(getCurrentStock).toHaveBeenCalledWith("item-1", undefined);
   });
 
   it("should display low stock warning when stock is below minimum", () => {

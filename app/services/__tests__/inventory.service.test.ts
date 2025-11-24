@@ -11,6 +11,7 @@ import {
   addInventoryItem,
   updateInventoryItem,
   deleteInventoryItem,
+  clearInventoryCache,
 } from "../inventory.service";
 import { mockInventoryItems } from "~/mocks/inventory";
 import { mockInventoryMovements } from "~/mocks/inventory-movements";
@@ -35,6 +36,7 @@ vi.mock("../inventory-movements.service", () => {
 
 describe("inventory.service", () => {
   beforeEach(() => {
+    clearInventoryCache();
     mockInventoryItems.length = 0;
     mockInventoryMovements.length = 0;
     mockInventoryItems.push(
@@ -159,6 +161,7 @@ describe("inventory.service", () => {
 
   describe("getCurrentStock", () => {
     beforeEach(() => {
+      clearInventoryCache();
       mockGetMovementsByItemId.mockImplementation((itemId: string) => {
         if (itemId === "ii0e8400-e29b-41d4-a716-446655440010") {
           return [
@@ -433,6 +436,7 @@ describe("inventory.service", () => {
 
   describe("getLowStockItems", () => {
     beforeEach(() => {
+      clearInventoryCache();
       mockGetMovementsByItemId.mockImplementation((itemId: string) => {
         if (itemId === "ii0e8400-e29b-41d4-a716-446655440010") {
           return [

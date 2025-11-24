@@ -24,26 +24,21 @@ import {
   getSupplierViewRoute,
   getCashFlowViewRoute,
 } from "~/routes.config";
-import { getInventoryItemById, getCurrentStock } from "~/services/inventory.service";
+import { getInventoryItemById } from "~/services/inventory.service";
 import { getMovementsByItemId } from "~/services/inventory-movements.service";
 import { getSupplierById } from "~/services/suppliers.service";
-import { getPropertyById } from "~/services/properties.service";
 import { getCashFlowById } from "~/services/cash-flow.service";
 import {
   getInventoryObservationsByItemId,
   addInventoryObservation,
 } from "~/services/inventory-observations.service";
 import type { InventoryMovement, InventoryObservation } from "~/types";
-import { InventoryItemCategory, InventoryMovementType } from "~/types";
-
-const isExpiringSoon = (expirationDate?: string, daysThreshold: number = 30): boolean => {
-  if (!expirationDate) return false;
-  const today = new Date();
-  const expDate = new Date(expirationDate);
-  const diffTime = expDate.getTime() - today.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays >= 0 && diffDays <= daysThreshold;
-};
+import { InventoryMovementType } from "~/types";
+import { useInventoryStock } from "~/hooks/use-inventory-stock";
+import { InventoryItemDetails as InventoryItemDetailsComponent } from "~/components/dashboard/inventory/inventory-item-details";
+import { getUnitLabel, formatInventoryDate } from "~/utils/inventory-utils";
+import { formatCurrency } from "~/utils/formatting";
+import { mockCompanies } from "~/mocks/companies";
 
 export function meta() {
   return [
@@ -60,7 +55,7 @@ export async function loader({ request }: { request: Request }) {
   return createRouteGuard(undefined, "view")({ request });
 }
 
-export default function InventoryItemDetails() {
+export default function InventoryItemDetailsPage() {
   const { itemId } = useParams<{ itemId: string }>();
   const navigate = useNavigate();
   const t = useTranslation();
@@ -68,76 +63,19 @@ export default function InventoryItemDetails() {
   const { canEdit } = usePermissions();
   const item = getInventoryItemById(itemId);
 
-  const dateLocale = useMemo(() => {
-    switch (language) {
-      case "en":
-        return enUS;
-      case "es":
-        return es;
-      default:
-        return ptBR;
-    }
-  }, [language]);
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const dateFormat =
-      language === "en" ? "MM/dd/yyyy" : language === "es" ? "dd/MM/yyyy" : "dd/MM/yyyy";
-    return format(date, dateFormat, { locale: dateLocale });
-  };
-
-  const localeForCurrency = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat(localeForCurrency, {
-      style: "currency",
-      currency: "BRL",
-    }).format(value);
-  };
-
   const formatDateTime = (dateString: string) => {
-    return format(new Date(dateString), "dd/MM/yyyy HH:mm", { locale: dateLocale });
+    return format(new Date(dateString), "dd/MM/yyyy HH:mm", {
+      locale: language === "en" ? enUS : language === "es" ? es : ptBR,
+    });
   };
 
-  const getUnitLabel = (unit: string, quantity: number = 1): string => {
-    const unitMap: Record<
-      string,
-      { singular: keyof typeof t.inventory.units; plural?: keyof typeof t.inventory.units }
-    > = {
-      unidade: { singular: "unit", plural: "unitPlural" },
-      g: { singular: "gram" },
-      kg: { singular: "kg" },
-      tonelada: { singular: "ton", plural: "tonPlural" },
+  const company = mockCompanies[0];
+  const companyId = company?.id || item?.companyId || "";
 
-      ml: { singular: "milliliter" },
-      L: { singular: "liter" },
-
-      cm: { singular: "centimeter", plural: "centimeterPlural" },
-      m: { singular: "meter", plural: "meterPlural" },
-
-      m2: { singular: "squareMeter", plural: "squareMeterPlural" },
-      ha: { singular: "hectare", plural: "hectarePlural" },
-
-      saco: { singular: "bag", plural: "bagPlural" },
-      frasco: { singular: "bottle", plural: "bottlePlural" },
-      dose: { singular: "dose", plural: "dosePlural" },
-      caixa: { singular: "box", plural: "boxPlural" },
-      comprimido: { singular: "tablet", plural: "tabletPlural" },
-      pilula: { singular: "pill", plural: "pillPlural" },
-      ampola: { singular: "ampoule", plural: "ampoulePlural" },
-      seringa: { singular: "syringe", plural: "syringePlural" },
-      cartucho: { singular: "cartridge", plural: "cartridgePlural" },
-      rolo: { singular: "roll", plural: "rollPlural" },
-      pacote: { singular: "package", plural: "packagePlural" },
-      lata: { singular: "can", plural: "canPlural" },
-    };
-    const unitInfo = unitMap[unit];
-    if (!unitInfo) return unit;
-
-    const isPlural = Math.abs(quantity) !== 1;
-    const key = isPlural && unitInfo.plural ? unitInfo.plural : unitInfo.singular;
-    return t.inventory.units[key] || unit;
-  };
+  const { currentStock, isLowStock, isExpiring } = useInventoryStock({
+    item,
+    companyId,
+  });
 
   const [sortState, setSortState] = useState<{
     column: string | null;
@@ -166,21 +104,6 @@ export default function InventoryItemDetails() {
   const movements = useMemo(() => {
     if (!item) return [];
     return getMovementsByItemId(item.id);
-  }, [item]);
-
-  const currentStock = useMemo(() => {
-    if (!item) return 0;
-    return getCurrentStock(item.id);
-  }, [item]);
-
-  const isLowStock = useMemo(() => {
-    if (!item) return false;
-    return currentStock < item.minimumStock;
-  }, [item, currentStock]);
-
-  const isExpiring = useMemo(() => {
-    if (!item) return false;
-    return isExpiringSoon(item.expirationDate, 30);
   }, [item]);
 
   useEffect(() => {
@@ -246,8 +169,6 @@ export default function InventoryItemDetails() {
     );
   }
 
-  const supplier = item.supplierId ? getSupplierById(item.supplierId) : null;
-
   const filteredMovements = movements.filter((movement) => {
     if (!searchValue) return true;
     const searchLower = searchValue.toLowerCase();
@@ -306,7 +227,9 @@ export default function InventoryItemDetails() {
       label: t.inventory.movements.table.date,
       sortable: true,
       render: (_, row) => (
-        <span className="text-gray-700 dark:text-gray-300">{formatDate(row.date)}</span>
+        <span className="text-gray-700 dark:text-gray-300">
+          {formatInventoryDate(row.date, language)}
+        </span>
       ),
     },
     {
@@ -338,7 +261,7 @@ export default function InventoryItemDetails() {
           className={`font-medium ${row.quantity >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
         >
           {row.quantity >= 0 ? "+" : ""}
-          {row.quantity} {getUnitLabel(item.unit, row.quantity)}
+          {row.quantity} {getUnitLabel(item.unit, row.quantity, t)}
         </span>
       ),
     },
@@ -348,7 +271,7 @@ export default function InventoryItemDetails() {
       sortable: true,
       render: (_, row) => (
         <span className="text-gray-700 dark:text-gray-300">
-          {row.unitPrice ? formatCurrency(row.unitPrice) : "-"}
+          {row.unitPrice ? formatCurrency(row.unitPrice, language) : "-"}
         </span>
       ),
     },
@@ -382,7 +305,7 @@ export default function InventoryItemDetails() {
             onClick={() => navigate(getCashFlowViewRoute(row.cashFlowId!))}
             className="text-blue-600 dark:text-blue-400 hover:underline"
           >
-            {formatCurrency(cashFlow.amount)}
+            {formatCurrency(cashFlow.amount, language)}
           </button>
         ) : (
           <span className="text-gray-400 dark:text-gray-500">-</span>
@@ -456,152 +379,15 @@ export default function InventoryItemDetails() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="h-1 w-12 bg-blue-500 rounded-full"></div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-              {t.inventory.details.itemInfo}
-            </h2>
-          </div>
-          <div className="space-y-4">
-            <div>
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                {t.inventory.table.code}
-              </p>
-              <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">{item.code}</p>
-            </div>
-            <div>
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                {t.inventory.table.name}
-              </p>
-              <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">{item.name}</p>
-            </div>
-            {item.description && (
-              <div>
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.inventory.table.description}
-                </p>
-                <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">{item.description}</p>
-              </div>
-            )}
-            <div>
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                {t.inventory.table.category}
-              </p>
-              <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
-                {item.category === InventoryItemCategory.CUSTOM
-                  ? item.customCategory || t.inventory.categories.custom
-                  : t.inventory.categories[item.category as keyof typeof t.inventory.categories] ||
-                    item.category}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                {t.inventory.table.unit}
-              </p>
-              <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
-                {getUnitLabel(item.unit, 1)}
-              </p>
-            </div>
-            {(item.category === InventoryItemCategory.MEDICINES ||
-              item.category === InventoryItemCategory.VACCINES) &&
-              item.usageAmount &&
-              item.usageUnit &&
-              item.usageBasis && (
-                <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                    {t.inventory.new.usageMethod}
-                  </p>
-                  <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
-                    {item.usageAmount} {getUnitLabel(item.usageUnit, item.usageAmount)}{" "}
-                    {item.usageBasis === "per_animal"
-                      ? t.inventory.new.usageBasisOptions?.perAnimal || "por animal"
-                      : item.usageBasis === "per_kg"
-                        ? t.inventory.new.usageBasisOptions?.perKg || "por kg"
-                        : item.usageBasis}
-                  </p>
-                </div>
-              )}
-            {supplier && (
-              <div>
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.inventory.table.supplier}
-                </p>
-                <button
-                  onClick={() => navigate(getSupplierViewRoute(supplier.id))}
-                  className="text-sm text-blue-600 dark:text-blue-400 hover:underline mt-1"
-                >
-                  {supplier.name}
-                </button>
-              </div>
-            )}
-            <div>
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                {t.inventory.details.properties}
-              </p>
-              <div className="mt-1 flex flex-wrap gap-2">
-                {item.propertyIds && item.propertyIds.length > 0 ? (
-                  item.propertyIds.map((propertyId: string) => {
-                    const property = getPropertyById(propertyId);
-                    return property ? (
-                      <span
-                        key={propertyId}
-                        className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
-                      >
-                        {property.name}
-                      </span>
-                    ) : null;
-                  })
-                ) : (
-                  <span className="text-sm text-gray-500 dark:text-gray-400">-</span>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="h-1 w-12 bg-green-500 rounded-full"></div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-              {t.inventory.details.stockInfo}
-            </h2>
-          </div>
-          <div className="space-y-4">
-            <div>
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                {t.inventory.table.currentStock}
-              </p>
-              <p
-                className={`text-2xl font-bold mt-1 ${isLowStock ? "text-red-600 dark:text-red-400" : "text-gray-900 dark:text-gray-100"}`}
-              >
-                {currentStock} {getUnitLabel(item.unit, currentStock)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                {t.inventory.table.minimumStock}
-              </p>
-              <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
-                {item.minimumStock} {getUnitLabel(item.unit, item.minimumStock)}
-              </p>
-            </div>
-            {item.hasExpiration && item.expirationDate && (
-              <div>
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.inventory.table.expirationDate}
-                </p>
-                <p
-                  className={`text-sm mt-1 ${isExpiring ? "text-orange-600 dark:text-orange-400 font-medium" : "text-gray-900 dark:text-gray-100"}`}
-                >
-                  {formatDate(item.expirationDate)}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+      <InventoryItemDetailsComponent
+        item={item}
+        currentStock={currentStock}
+        isLowStock={isLowStock}
+        isExpiring={isExpiring}
+        translations={t}
+        language={language}
+        onSupplierClick={(supplierId) => navigate(getSupplierViewRoute(supplierId))}
+      />
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
         <Table<InventoryMovement>

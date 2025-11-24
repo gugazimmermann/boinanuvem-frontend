@@ -29,6 +29,7 @@ import { InventoryItemCategory, InventoryMovementType } from "~/types";
 import { mockCompanies } from "~/mocks/companies";
 import { mockEmployees } from "~/mocks/employees";
 import { mockServiceProviders } from "~/mocks/service-providers";
+import { getUnitLabel } from "~/utils/inventory-utils";
 
 export async function loader({ request }: { request: Request }) {
   const { createRouteGuard } = await import("~/utils/route-guard");
@@ -474,42 +475,6 @@ export default function NewWeighing() {
     return 0;
   };
 
-  const getUnitLabel = (unit: string, quantity: number = 1): string => {
-    const unitMap: Record<
-      string,
-      { singular: keyof typeof t.inventory.units; plural?: keyof typeof t.inventory.units }
-    > = {
-      unidade: { singular: "unit", plural: "unitPlural" },
-      g: { singular: "gram" },
-      kg: { singular: "kg" },
-      tonelada: { singular: "ton", plural: "tonPlural" },
-      ml: { singular: "milliliter" },
-      L: { singular: "liter" },
-      cm: { singular: "centimeter", plural: "centimeterPlural" },
-      m: { singular: "meter", plural: "meterPlural" },
-      m2: { singular: "squareMeter", plural: "squareMeterPlural" },
-      ha: { singular: "hectare", plural: "hectarePlural" },
-      saco: { singular: "bag", plural: "bagPlural" },
-      frasco: { singular: "bottle", plural: "bottlePlural" },
-      dose: { singular: "dose", plural: "dosePlural" },
-      caixa: { singular: "box", plural: "boxPlural" },
-      comprimido: { singular: "tablet", plural: "tabletPlural" },
-      pilula: { singular: "pill", plural: "pillPlural" },
-      ampola: { singular: "ampoule", plural: "ampoulePlural" },
-      seringa: { singular: "syringe", plural: "syringePlural" },
-      cartucho: { singular: "cartridge", plural: "cartridgePlural" },
-      rolo: { singular: "roll", plural: "rollPlural" },
-      pacote: { singular: "package", plural: "packagePlural" },
-      lata: { singular: "can", plural: "canPlural" },
-    };
-    const unitInfo = unitMap[unit];
-    if (!unitInfo) return unit;
-
-    const isPlural = Math.abs(quantity) !== 1;
-    const key = isPlural && unitInfo.plural ? unitInfo.plural : unitInfo.singular;
-    return t.inventory.units[key] || unit;
-  };
-
   const showAlert = (
     title: string,
     variant: "success" | "error" | "warning" | "info" = "success"
@@ -883,7 +848,8 @@ export default function NewWeighing() {
                                         {calculatedDosage.toFixed(2)}{" "}
                                         {getUnitLabel(
                                           item.usageUnit || item.unit,
-                                          calculatedDosage
+                                          calculatedDosage,
+                                          t
                                         )}
                                       </span>
                                     </div>
@@ -918,7 +884,7 @@ export default function NewWeighing() {
                                         }`}
                                       >
                                         {currentStock.toFixed(2)}{" "}
-                                        {getUnitLabel(item.unit, currentStock)}
+                                        {getUnitLabel(item.unit, currentStock, t)}
                                       </span>
                                     </div>
                                   </div>

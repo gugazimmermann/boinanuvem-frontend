@@ -1,9 +1,5 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale/pt-BR";
-import { enUS } from "date-fns/locale/en-US";
-import { es } from "date-fns/locale/es";
 import {
   Table,
   TableActionButtons,
@@ -18,12 +14,7 @@ import {
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
 import { mockInventoryItems } from "~/mocks/inventory";
-import {
-  deleteInventoryItem,
-  getCurrentStock,
-  getLowStockItems,
-  getExpiringItems,
-} from "~/services/inventory.service";
+import { deleteInventoryItem, getCurrentStock } from "~/services/inventory.service";
 import type { InventoryItem } from "~/types";
 import { InventoryItemCategory } from "~/types";
 import { getSupplierById } from "~/services/suppliers.service";
@@ -31,15 +22,9 @@ import { ROUTES, getInventoryEditRoute, getInventoryViewRoute } from "~/routes.c
 import { usePermissions } from "~/utils/permissions";
 import { mockCompanies } from "~/mocks/companies";
 import { getPropertiesByCompanyId } from "~/services/properties.service";
-
-const isExpiringSoon = (expirationDate?: string, daysThreshold: number = 30): boolean => {
-  if (!expirationDate) return false;
-  const today = new Date();
-  const expDate = new Date(expirationDate);
-  const diffTime = expDate.getTime() - today.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays >= 0 && diffDays <= daysThreshold;
-};
+import { useInventoryStock } from "~/hooks/use-inventory-stock";
+import { useInventoryFilters } from "~/hooks/use-inventory-filters";
+import { getUnitLabel, isExpiringSoon, formatInventoryDate } from "~/utils/inventory-utils";
 
 export function meta() {
   return [
@@ -64,72 +49,6 @@ export default function Inventory() {
   const company = mockCompanies[0];
   const companyId = company?.id || "";
   const [items, setItems] = useState<InventoryItem[]>([...mockInventoryItems]);
-  const [sortState, setSortState] = useState<{
-    column: string | null;
-    direction: SortDirection;
-  }>({ column: "name", direction: "asc" });
-
-  const dateLocale = useMemo(() => {
-    switch (language) {
-      case "en":
-        return enUS;
-      case "es":
-        return es;
-      default:
-        return ptBR;
-    }
-  }, [language]);
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const dateFormat =
-      language === "en" ? "MM/dd/yyyy" : language === "es" ? "dd/MM/yyyy" : "dd/MM/yyyy";
-    return format(date, dateFormat, { locale: dateLocale });
-  };
-
-  const getUnitLabel = (unit: string, quantity: number = 1): string => {
-    const unitMap: Record<
-      string,
-      { singular: keyof typeof t.inventory.units; plural?: keyof typeof t.inventory.units }
-    > = {
-      unidade: { singular: "unit", plural: "unitPlural" },
-      g: { singular: "gram" },
-      kg: { singular: "kg" },
-      tonelada: { singular: "ton", plural: "tonPlural" },
-
-      ml: { singular: "milliliter" },
-      L: { singular: "liter" },
-
-      cm: { singular: "centimeter", plural: "centimeterPlural" },
-      m: { singular: "meter", plural: "meterPlural" },
-
-      m2: { singular: "squareMeter", plural: "squareMeterPlural" },
-      ha: { singular: "hectare", plural: "hectarePlural" },
-
-      saco: { singular: "bag", plural: "bagPlural" },
-      frasco: { singular: "bottle", plural: "bottlePlural" },
-      dose: { singular: "dose", plural: "dosePlural" },
-      caixa: { singular: "box", plural: "boxPlural" },
-      comprimido: { singular: "tablet", plural: "tabletPlural" },
-      pilula: { singular: "pill", plural: "pillPlural" },
-      ampola: { singular: "ampoule", plural: "ampoulePlural" },
-      seringa: { singular: "syringe", plural: "syringePlural" },
-      cartucho: { singular: "cartridge", plural: "cartridgePlural" },
-      rolo: { singular: "roll", plural: "rollPlural" },
-      pacote: { singular: "package", plural: "packagePlural" },
-      lata: { singular: "can", plural: "canPlural" },
-    };
-    const unitInfo = unitMap[unit];
-    if (!unitInfo) return unit;
-
-    const isPlural = Math.abs(quantity) !== 1;
-    const key = isPlural && unitInfo.plural ? unitInfo.plural : unitInfo.singular;
-    return t.inventory.units[key] || unit;
-  };
-
-  const [searchValue, setSearchValue] = useState("");
-  const [activeFilter, setActiveFilter] = useState<string>("all");
-  const [propertyFilter, setPropertyFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
@@ -138,6 +57,33 @@ export default function Inventory() {
     variant: "success" | "error" | "warning" | "info";
   } | null>(null);
   const itemsPerPage = 10;
+
+  const { lowStockItems, expiringItems } = useInventoryStock({
+    items,
+    companyId,
+  });
+
+  const properties = useMemo(
+    () => (company ? getPropertiesByCompanyId(company.id) : []),
+    [company]
+  );
+
+  const {
+    searchValue,
+    setSearchValue,
+    activeFilter,
+    setActiveFilter,
+    propertyFilter,
+    setPropertyFilter,
+    sortState,
+    handleSort,
+    sortedData,
+  } = useInventoryFilters({
+    items,
+    lowStockItems,
+    expiringItems,
+    language,
+  });
 
   const showAlert = (
     title: string,
@@ -166,70 +112,12 @@ export default function Inventory() {
     setSelectedItem(null);
   };
 
-  const lowStockItems = useMemo(() => getLowStockItems(companyId), [companyId]);
-  const expiringItems = useMemo(() => getExpiringItems(companyId, 30), [companyId]);
-  const properties = useMemo(
-    () => (company ? getPropertiesByCompanyId(company.id) : []),
-    [company]
-  );
-
-  const filteredData = items.filter((item) => {
-    const matchesSearch =
-      item.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-      item.code.toLowerCase().includes(searchValue.toLowerCase()) ||
-      (item.description?.toLowerCase().includes(searchValue.toLowerCase()) ?? false);
-
-    const matchesFilter =
-      activeFilter === "all" ||
-      (activeFilter === "lowStock" && lowStockItems.some((i) => i.id === item.id)) ||
-      (activeFilter === "expiring" && expiringItems.some((i) => i.id === item.id));
-
-    const matchesProperty = propertyFilter === "all" || item.propertyIds.includes(propertyFilter);
-
-    return matchesSearch && matchesFilter && matchesProperty;
-  });
-
-  const sortedData = [...filteredData].sort((a, b) => {
-    if (!sortState.column || !sortState.direction) {
-      return 0;
-    }
-
-    let aValue: string | number | undefined;
-    let bValue: string | number | undefined;
-
-    if (sortState.column === "currentStock") {
-      aValue = getCurrentStock(a.id);
-      bValue = getCurrentStock(b.id);
-    } else {
-      aValue = a[sortState.column as keyof InventoryItem] as string | number | undefined;
-      bValue = b[sortState.column as keyof InventoryItem] as string | number | undefined;
-    }
-
-    if (aValue == null && bValue == null) return 0;
-    if (aValue == null) return 1;
-    if (bValue == null) return -1;
-
-    let comparison = 0;
-    const locale = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
-    if (typeof aValue === "string" && typeof bValue === "string") {
-      comparison = aValue.localeCompare(bValue, locale, {
-        sensitivity: "base",
-      });
-    } else if (typeof aValue === "number" && typeof bValue === "number") {
-      comparison = aValue - bValue;
-    } else {
-      comparison = String(aValue).localeCompare(String(bValue), locale);
-    }
-
-    return sortState.direction === "asc" ? comparison : -comparison;
-  });
-
   const paginatedData = sortedData.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
 
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const totalPages = Math.ceil(sortedData.length / itemsPerPage);
 
   const columns: TableColumn<InventoryItem>[] = [
     {
@@ -268,7 +156,7 @@ export default function Inventory() {
             <span
               className={`font-medium ${isLowStock ? "text-red-600 dark:text-red-400" : "text-gray-700 dark:text-gray-300"}`}
             >
-              {currentStock} {getUnitLabel(row.unit, currentStock)}
+              {currentStock} {getUnitLabel(row.unit, currentStock, t)}
             </span>
             {isLowStock && (
               <Tooltip content={t.inventory.table.lowStock} position="top">
@@ -316,7 +204,7 @@ export default function Inventory() {
             <span
               className={`text-sm ${expiring ? "text-orange-600 dark:text-orange-400" : "text-gray-700 dark:text-gray-300"}`}
             >
-              {formatDate(row.expirationDate)}
+              {formatInventoryDate(row.expirationDate, language)}
             </span>
             {expiring && (
               <Tooltip content={t.inventory.table.expiring} position="top">
@@ -402,8 +290,8 @@ export default function Inventory() {
     },
   ];
 
-  const handleSort = (column: string, direction: SortDirection) => {
-    setSortState({ column, direction });
+  const handleSortWithPageReset = (column: string, direction: SortDirection) => {
+    handleSort(column, direction);
     setCurrentPage(1);
   };
 
@@ -415,7 +303,7 @@ export default function Inventory() {
         header={{
           title: t.inventory.title,
           badge: {
-            label: t.inventory.badge.items(filteredData.length),
+            label: t.inventory.badge.items(sortedData.length),
             variant: "primary",
           },
           description: t.inventory.description,
@@ -453,7 +341,7 @@ export default function Inventory() {
           showInfo: false,
         }}
         sortState={sortState}
-        onSort={handleSort}
+        onSort={handleSortWithPageReset}
         onRowClick={(row) => navigate(getInventoryViewRoute(row.id))}
         emptyState={{
           title: t.inventory.emptyState.title,

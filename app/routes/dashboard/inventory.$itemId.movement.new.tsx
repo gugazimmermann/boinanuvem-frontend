@@ -17,29 +17,9 @@ import type {
   AccountsPayableFormData,
   Property,
 } from "~/types";
-import {
-  InventoryMovementType,
-  CashFlowCategory,
-  PaymentMethod,
-  AccountsPayableStatus,
-} from "~/types";
+import { InventoryMovementType, PaymentMethod, AccountsPayableStatus } from "~/types";
 import { mockCompanies } from "~/mocks/companies";
-
-const getCategoryForCashFlow = (itemCategory: string): CashFlowCategory => {
-  switch (itemCategory) {
-    case "feed":
-      return CashFlowCategory.FEED;
-    case "medicines":
-      return CashFlowCategory.MEDICINES;
-    case "vaccines":
-      return CashFlowCategory.VACCINES;
-    case "supplements":
-    case "vitamins":
-      return CashFlowCategory.OTHER_EXPENSES;
-    default:
-      return CashFlowCategory.OTHER_EXPENSES;
-  }
-};
+import { getCategoryForCashFlow, getUnitLabel } from "~/utils/inventory-utils";
 
 export function meta() {
   return [
@@ -66,46 +46,6 @@ export default function NewInventoryMovement() {
   const properties = getPropertiesByCompanyId(companyId);
   const suppliers = getSuppliersByCompanyId(companyId);
   const bankAccounts = getBankAccountsByCompanyId(companyId);
-
-  const getUnitLabel = (unit: string, quantity: number = 1): string => {
-    const unitMap: Record<
-      string,
-      { singular: keyof typeof t.inventory.units; plural?: keyof typeof t.inventory.units }
-    > = {
-      unidade: { singular: "unit", plural: "unitPlural" },
-      g: { singular: "gram" },
-      kg: { singular: "kg" },
-      tonelada: { singular: "ton", plural: "tonPlural" },
-
-      ml: { singular: "milliliter" },
-      L: { singular: "liter" },
-
-      cm: { singular: "centimeter", plural: "centimeterPlural" },
-      m: { singular: "meter", plural: "meterPlural" },
-
-      m2: { singular: "squareMeter", plural: "squareMeterPlural" },
-      ha: { singular: "hectare", plural: "hectarePlural" },
-
-      saco: { singular: "bag", plural: "bagPlural" },
-      frasco: { singular: "bottle", plural: "bottlePlural" },
-      dose: { singular: "dose", plural: "dosePlural" },
-      caixa: { singular: "box", plural: "boxPlural" },
-      comprimido: { singular: "tablet", plural: "tabletPlural" },
-      pilula: { singular: "pill", plural: "pillPlural" },
-      ampola: { singular: "ampoule", plural: "ampoulePlural" },
-      seringa: { singular: "syringe", plural: "syringePlural" },
-      cartucho: { singular: "cartridge", plural: "cartridgePlural" },
-      rolo: { singular: "roll", plural: "rollPlural" },
-      pacote: { singular: "package", plural: "packagePlural" },
-      lata: { singular: "can", plural: "canPlural" },
-    };
-    const unitInfo = unitMap[unit];
-    if (!unitInfo) return unit;
-
-    const isPlural = Math.abs(quantity) !== 1;
-    const key = isPlural && unitInfo.plural ? unitInfo.plural : unitInfo.singular;
-    return t.inventory.units[key] || unit;
-  };
 
   const [formData, setFormData] = useState<{
     type: InventoryMovementType;
@@ -406,7 +346,7 @@ export default function NewInventoryMovement() {
                 min="0.01"
                 step="0.01"
                 required
-                helperText={`${t.inventory.movements.new.unit}: ${getUnitLabel(item.unit, 1)}`}
+                helperText={`${t.inventory.movements.new.unit}: ${getUnitLabel(item.unit, 1, t)}`}
               />
               <Input
                 label={t.inventory.movements.table.unitPrice}
