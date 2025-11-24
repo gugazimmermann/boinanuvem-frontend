@@ -3709,4 +3709,12 @@ export const en = {
       expectedBirths: "Expected Births",
     },
   },
+  privacy: {
+    title: "Privacy Policy",
+    lastUpdate: "Last updated",
+  },
+  terms: {
+    title: "Terms of Use",
+    lastUpdate: "Last updated",
+  },
 } as const;

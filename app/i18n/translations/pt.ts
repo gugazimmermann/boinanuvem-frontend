@@ -4015,4 +4015,12 @@ export const pt = {
       expectedBirths: "Nascimentos Esperados",
     },
   },
+  privacy: {
+    title: "Política de Privacidade",
+    lastUpdate: "Última atualização",
+  },
+  terms: {
+    title: "Termos de Uso",
+    lastUpdate: "Última atualização",
+  },
 } as const;

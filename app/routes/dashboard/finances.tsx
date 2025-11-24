@@ -20,6 +20,7 @@ import {
 } from "recharts";
 import { useTranslation } from "~/i18n";
 import { useTheme } from "~/contexts/theme-context";
+import { useLanguage } from "~/contexts/language-context";
 import {
   StatCard,
   ChartWrapper,
@@ -67,6 +68,7 @@ const monthNames = [
 
 export default function FinancesDashboard() {
   const t = useTranslation();
+  const { language } = useLanguage();
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
@@ -290,35 +292,35 @@ export default function FinancesDashboard() {
 
         <StatCard
           title={t.financesDashboard.cards.totalExpenses}
-          value={formatCurrency(totalExpenses)}
+          value={formatCurrency(totalExpenses, language)}
           valueColor="red"
           icon={<span className="text-lg">📉</span>}
         />
 
         <StatCard
           title={t.financesDashboard.cards.netCashFlow}
-          value={formatCurrency(netCashFlow)}
+          value={formatCurrency(netCashFlow, language)}
           valueColor={netCashFlow >= 0 ? "green" : "red"}
           icon={<span className="text-lg">💰</span>}
         />
 
         <StatCard
           title={t.financesDashboard.cards.accountsPayable}
-          value={formatCurrency(totalAccountsPayable)}
+          value={formatCurrency(totalAccountsPayable, language)}
           valueColor="orange"
           icon={<span className="text-lg">📤</span>}
         />
 
         <StatCard
           title={t.financesDashboard.cards.accountsReceivable}
-          value={formatCurrency(totalAccountsReceivable)}
+          value={formatCurrency(totalAccountsReceivable, language)}
           valueColor="blue"
           icon={<span className="text-lg">📥</span>}
         />
 
         <StatCard
           title={t.financesDashboard.cards.overdue}
-          value={formatCurrency(totalOverdue)}
+          value={formatCurrency(totalOverdue, language)}
           valueColor="red"
           icon={<span className="text-lg">⚠️</span>}
         />
@@ -358,11 +360,11 @@ export default function FinancesDashboard() {
                   {t.financesDashboard.salesAnalytics.totalRevenue}
                 </p>
                 <p className="text-xl font-bold text-green-600 dark:text-green-400 mt-1">
-                  {formatCurrency(salesMetrics.totalRevenue)}
+                  {formatCurrency(salesMetrics.totalRevenue, language)}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {t.financesDashboard.salesAnalytics.averagePricePerHead}:{" "}
-                  {formatCurrency(salesMetrics.averagePricePerHead)}
+                  {formatCurrency(salesMetrics.averagePricePerHead, language)}
                 </p>
               </div>
               <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
@@ -378,7 +380,7 @@ export default function FinancesDashboard() {
                   {t.financesDashboard.salesAnalytics.averagePricePerKg}
                 </p>
                 <p className="text-xl font-bold text-blue-600 dark:text-blue-400 mt-1">
-                  {formatCurrency(salesMetrics.averagePricePerKg)}
+                  {formatCurrency(salesMetrics.averagePricePerKg, language)}
                 </p>
                 {salesMetrics.averageCarcassValue && (
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -406,7 +408,7 @@ export default function FinancesDashboard() {
                       : "text-red-600 dark:text-red-400"
                   }`}
                 >
-                  {formatCurrency(salesMetrics.profitability.totalProfit)}
+                  {formatCurrency(salesMetrics.profitability.totalProfit, language)}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {salesMetrics.profitability.averageProfitMargin.toFixed(2)}%{" "}
@@ -456,7 +458,7 @@ export default function FinancesDashboard() {
                     />
                     <Tooltip
                       {...tooltipStyle}
-                      formatter={(value: number) => formatCurrency(value)}
+                      formatter={(value: number) => formatCurrency(value, language)}
                     />
                     <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
                     <Bar
@@ -484,7 +486,7 @@ export default function FinancesDashboard() {
                   {t.financesDashboard.salesAnalytics.totalCost}
                 </p>
                 <p className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-1">
-                  {formatCurrency(salesMetrics.profitability.totalCost)}
+                  {formatCurrency(salesMetrics.profitability.totalCost, language)}
                 </p>
               </div>
               <div>
@@ -492,7 +494,7 @@ export default function FinancesDashboard() {
                   {t.financesDashboard.salesAnalytics.totalSalePrice}
                 </p>
                 <p className="text-lg font-bold text-green-600 dark:text-green-400 mt-1">
-                  {formatCurrency(salesMetrics.profitability.totalSalePrice)}
+                  {formatCurrency(salesMetrics.profitability.totalSalePrice, language)}
                 </p>
               </div>
               <div>
@@ -514,7 +516,7 @@ export default function FinancesDashboard() {
                   {t.financesDashboard.salesAnalytics.averageCostPerKg}
                 </p>
                 <p className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-1">
-                  {formatCurrency(salesMetrics.profitability.averageCostPerKg)}
+                  {formatCurrency(salesMetrics.profitability.averageCostPerKg, language)}
                 </p>
               </div>
             </div>
@@ -700,7 +702,7 @@ export default function FinancesDashboard() {
                       className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50"
                     >
                       <td className="py-2 px-3 text-sm text-gray-700 dark:text-gray-300">
-                        {formatDate(transaction.date)}
+                        {formatDate(transaction.date, language)}
                       </td>
                       <td className="py-2 px-3 text-sm text-gray-700 dark:text-gray-300">
                         {transaction.description}
@@ -713,7 +715,7 @@ export default function FinancesDashboard() {
                         }`}
                       >
                         {transaction.type === "income" ? "+" : "-"}{" "}
-                        {formatCurrency(transaction.amount)}
+                        {formatCurrency(transaction.amount, language)}
                       </td>
                     </tr>
                   ))
@@ -760,7 +762,7 @@ export default function FinancesDashboard() {
                         className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50"
                       >
                         <td className="py-2 px-3 text-sm text-gray-700 dark:text-gray-300">
-                          {formatDate(payment.dueDate)}
+                          {formatDate(payment.dueDate, language)}
                         </td>
                         <td className="py-2 px-3 text-sm text-gray-700 dark:text-gray-300">
                           {payment.description}
@@ -819,7 +821,7 @@ export default function FinancesDashboard() {
                         className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50"
                       >
                         <td className="py-2 px-3 text-sm text-gray-700 dark:text-gray-300">
-                          {formatDate(receivable.dueDate)}
+                          {formatDate(receivable.dueDate, language)}
                         </td>
                         <td className="py-2 px-3 text-sm text-gray-700 dark:text-gray-300">
                           {receivable.description}
@@ -907,7 +909,7 @@ export default function FinancesDashboard() {
                           </span>
                         </td>
                         <td className="py-2 px-3 text-sm text-red-600 dark:text-red-400 font-medium">
-                          {formatDate(item.item.dueDate)}
+                          {formatDate(item.item.dueDate, language)}
                         </td>
                         <td className="py-2 px-3 text-sm text-gray-700 dark:text-gray-300">
                           {item.item.description}
@@ -923,7 +925,7 @@ export default function FinancesDashboard() {
                           )}
                         </td>
                         <td className="py-2 px-3 text-sm font-medium text-right text-red-600 dark:text-red-400">
-                          {formatCurrency(remainingAmount)}
+                          {formatCurrency(remainingAmount, language)}
                         </td>
                       </tr>
                     );

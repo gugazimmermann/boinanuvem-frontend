@@ -64,7 +64,8 @@ export default function InventoryItemDetailsPage() {
   const item = getInventoryItemById(itemId);
 
   const formatDateTime = (dateString: string) => {
-    return format(new Date(dateString), "dd/MM/yyyy HH:mm", {
+    const dateFormat = language === "en" ? "MM/dd/yyyy HH:mm" : "dd/MM/yyyy HH:mm";
+    return format(new Date(dateString), dateFormat, {
       locale: language === "en" ? enUS : language === "es" ? es : ptBR,
     });
   };
@@ -621,7 +622,8 @@ export default function InventoryItemDetailsPage() {
                     <form onSubmit={handleSubmitObservation} className="space-y-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Observação <span className="text-red-500">*</span>
+                          {t.cashFlow?.details?.observation || "Observação"}{" "}
+                          <span className="text-red-500">*</span>
                         </label>
                         <textarea
                           value={observationText}
@@ -629,18 +631,24 @@ export default function InventoryItemDetailsPage() {
                           disabled={isSubmittingObservation}
                           rows={4}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200 resize-none"
-                          placeholder="Digite sua observação sobre este item de estoque..."
+                          placeholder={
+                            t.cashFlow?.details?.observationPlaceholder ||
+                            "Digite sua observação sobre este item de estoque..."
+                          }
                           required
                         />
                       </div>
 
                       <FileUpload
-                        label="Anexos"
+                        label={t.cashFlow?.details?.files || "Anexos"}
                         files={observationFiles}
                         onChange={setObservationFiles}
                         disabled={isSubmittingObservation}
                         multiple={true}
-                        helperText="Você pode fazer upload de múltiplos arquivos"
+                        helperText={
+                          t.cashFlow?.details?.filesHelper ||
+                          "Você pode fazer upload de múltiplos arquivos"
+                        }
                       />
 
                       <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">

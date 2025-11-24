@@ -22,6 +22,7 @@ import { useDashboardData } from "~/components/dashboard/hooks/use-dashboard-dat
 import { useMonthlyTrends } from "~/components/dashboard/hooks/use-monthly-trends";
 import { useRecentActivities } from "~/components/dashboard/hooks/use-recent-activities";
 import { formatCurrency } from "~/utils/currency";
+import { formatNumber } from "~/utils/formatting";
 import { getDateLocale } from "~/utils/date";
 import { ROUTES } from "~/routes.config";
 import { translations } from "~/i18n/translations";
@@ -442,7 +443,7 @@ export default function Dashboard() {
 
           <StatCard
             title={t.dashboard.stats.totalAnimals}
-            value={totalAnimals.toLocaleString()}
+            value={formatNumber(totalAnimals, language)}
             icon={<span className="text-lg">🐄</span>}
           />
 

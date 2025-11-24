@@ -47,7 +47,8 @@ export function formatDate(
 export function formatDateTime(dateString: string | Date, language: Language = "pt"): string {
   const date = typeof dateString === "string" ? new Date(dateString) : dateString;
   const dateLocale = getDateLocale(language);
-  return format(date, "dd/MM/yyyy HH:mm", { locale: dateLocale });
+  const dateFormat = language === "en" ? "MM/dd/yyyy HH:mm" : "dd/MM/yyyy HH:mm";
+  return format(date, dateFormat, { locale: dateLocale });
 }
 
 export function formatCurrency(value: number, language: Language = "pt"): string {

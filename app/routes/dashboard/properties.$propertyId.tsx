@@ -113,7 +113,7 @@ import { ChartWrapper, getTooltipStyle, getChartColors } from "~/components/dash
 import { AccountsPayableStatus, AccountsReceivableStatus } from "~/types";
 import { ReproductiveIndexes } from "~/components/dashboard/reproductive-indexes/reproductive-indexes";
 
-import { formatAreaType } from "~/utils/formatting";
+import { formatAreaType, formatNumber } from "~/utils/formatting";
 
 const monthNames = [
   "Jan",
@@ -1030,7 +1030,7 @@ export default function PropertyDetails() {
                       {t.properties.table.animals}
                     </p>
                     <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                      {animalsCount.toLocaleString()}
+                      {formatNumber(animalsCount, language)}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       {animalsCount} {t.properties.details.activeAnimals.toLowerCase()}

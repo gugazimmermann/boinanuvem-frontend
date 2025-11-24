@@ -65,6 +65,13 @@ export interface InventoryItemFormProps {
     };
     cashFlow: {
       paymentMethods: Record<string, string>;
+      details?: {
+        observationLabel?: string;
+        observation?: string;
+        observationPlaceholder?: string;
+        files?: string;
+        filesHelper?: string;
+      };
     };
     bankAccounts: {
       accountTypes: {
@@ -467,7 +474,7 @@ export function InventoryItemForm({
         <>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Observação
+              {t.cashFlow?.details?.observation || "Observação"}
             </label>
             <textarea
               value={formData.observation}
@@ -475,18 +482,23 @@ export function InventoryItemForm({
               disabled={isSubmitting}
               rows={4}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200"
-              placeholder="Adicione uma observação (opcional)"
+              placeholder={
+                t.cashFlow?.details?.observationPlaceholder || "Adicione uma observação (opcional)"
+              }
             />
           </div>
 
           {onObservationFilesChange && (
             <FileUpload
-              label="Anexos"
+              label={t.cashFlow?.details?.files || "Anexos"}
               files={observationFiles}
               onChange={onObservationFilesChange}
               disabled={isSubmitting}
               multiple={true}
-              helperText="Você pode anexar múltiplos arquivos à observação"
+              helperText={
+                t.cashFlow?.details?.filesHelper ||
+                "Você pode anexar múltiplos arquivos à observação"
+              }
             />
           )}
         </>

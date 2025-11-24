@@ -3700,4 +3700,12 @@ export const es = {
       expectedBirths: "Nacimientos Esperados",
     },
   },
+  privacy: {
+    title: "Política de Privacidad",
+    lastUpdate: "Última actualización",
+  },
+  terms: {
+    title: "Términos de Uso",
+    lastUpdate: "Última actualización",
+  },
 } as const;

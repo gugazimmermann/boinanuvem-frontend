@@ -1,6 +1,9 @@
 import type { Route } from "./+types/terms";
 import { AuthLayout } from "../components/site/auth-layout";
 import { ROUTES } from "../routes.config";
+import { useLanguage } from "../contexts/language-context";
+import { formatDate } from "../utils/formatting";
+import { useTranslation } from "../i18n";
 
 import { createSEOMeta } from "../utils/seo-meta";
 
@@ -18,17 +21,20 @@ export function links() {
 }
 
 export default function Terms() {
+  const { language } = useLanguage();
+  const t = useTranslation();
+
   return (
     <AuthLayout>
       <div className="w-full max-w-4xl mx-auto px-4 py-8">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">
-            Termos de Uso
+            {t.terms.title}
           </h1>
 
           <div className="prose prose-gray dark:prose-invert max-w-none">
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-              Última atualização: {new Date().toLocaleDateString("pt-BR")}
+              {t.terms.lastUpdate}: {formatDate(new Date(), language)}
             </p>
 
             <section className="mb-8">
