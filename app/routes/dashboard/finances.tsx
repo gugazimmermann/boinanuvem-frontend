@@ -37,6 +37,8 @@ import { getSalesByCompanyId } from "~/services/sales.service";
 import { getSalesMetrics } from "~/services/sales-analytics.service";
 import type { AccountsPayable, AccountsReceivable } from "~/types";
 import { AccountsPayableStatus, AccountsReceivableStatus } from "~/types";
+import { useFinanceCalculations } from "~/hooks/use-finance-calculations";
+import { calculateRemainingAmount } from "~/utils/finance";
 
 export function meta() {
   return [
@@ -81,82 +83,20 @@ export default function FinancesDashboard() {
   const salesMetrics = useMemo(() => getSalesMetrics(companyId), [companyId]);
 
   const currentDate = useMemo(() => new Date(), []);
-  const currentMonthStart = useMemo(() => startOfMonth(currentDate), [currentDate]);
-  const currentMonthEnd = useMemo(() => endOfMonth(currentDate), [currentDate]);
 
-  const currentMonthCashFlow = cashFlowData.filter((transaction) => {
-    const transactionDate = parseISO(transaction.date);
-    return transactionDate >= currentMonthStart && transactionDate <= currentMonthEnd;
-  });
-
-  const totalIncome = currentMonthCashFlow
-    .filter((t) => t.type === "income")
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const totalExpenses = currentMonthCashFlow
-    .filter((t) => t.type === "expense")
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const netCashFlow = totalIncome - totalExpenses;
-
-  const unpaidPayable = accountsPayableData.filter(
-    (ap) =>
-      ap.status === AccountsPayableStatus.UNPAID || ap.status === AccountsPayableStatus.OVERDUE
-  );
-  const totalAccountsPayable = unpaidPayable.reduce((sum, ap) => {
-    const remainingAmount = ap.paidAmount ? ap.amount - ap.paidAmount : ap.amount;
-    return sum + remainingAmount;
-  }, 0);
-
-  const unpaidReceivable = accountsReceivableData.filter(
-    (ar) =>
-      ar.status === AccountsReceivableStatus.UNPAID ||
-      ar.status === AccountsReceivableStatus.OVERDUE
-  );
-  const totalAccountsReceivable = unpaidReceivable.reduce((sum, ar) => {
-    const remainingAmount = ar.paidAmount ? ar.amount - ar.paidAmount : ar.amount;
-    return sum + remainingAmount;
-  }, 0);
-
-  const today = useMemo(() => {
-    const date = new Date();
-    date.setHours(0, 0, 0, 0);
-    return date;
-  }, []);
-
-  const totalOverduePayable = useMemo(() => {
-    const overdue = accountsPayableData.filter((ap) => {
-      const dueDate = parseISO(ap.dueDate);
-      dueDate.setHours(0, 0, 0, 0);
-      return (
-        (ap.status === AccountsPayableStatus.UNPAID ||
-          ap.status === AccountsPayableStatus.OVERDUE) &&
-        dueDate < today
-      );
-    });
-    return overdue.reduce((sum, ap) => {
-      const remainingAmount = ap.paidAmount ? ap.amount - ap.paidAmount : ap.amount;
-      return sum + remainingAmount;
-    }, 0);
-  }, [accountsPayableData, today]);
-
-  const totalOverdueReceivable = useMemo(() => {
-    const overdue = accountsReceivableData.filter((ar) => {
-      const dueDate = parseISO(ar.dueDate);
-      dueDate.setHours(0, 0, 0, 0);
-      return (
-        (ar.status === AccountsReceivableStatus.UNPAID ||
-          ar.status === AccountsReceivableStatus.OVERDUE) &&
-        dueDate < today
-      );
-    });
-    return overdue.reduce((sum, ar) => {
-      const remainingAmount = ar.paidAmount ? ar.amount - ar.paidAmount : ar.amount;
-      return sum + remainingAmount;
-    }, 0);
-  }, [accountsReceivableData, today]);
-
-  const totalOverdue = totalOverduePayable + totalOverdueReceivable;
+  // Use finance calculations hook
+  const {
+    totalIncome,
+    totalExpenses,
+    netCashFlow,
+    totalAccountsPayable,
+    totalAccountsReceivable,
+    totalOverdue,
+    overduePayable,
+    overdueReceivable,
+    upcomingPayments,
+    upcomingReceivables,
+  } = useFinanceCalculations(cashFlowData, accountsPayableData, accountsReceivableData);
 
   const monthlyData = useMemo(() => {
     const months: Record<string, { month: string; income: number; expenses: number; net: number }> =
@@ -292,70 +232,6 @@ export default function FinancesDashboard() {
       .slice(0, 10);
   }, [cashFlowData]);
 
-  const upcomingPayments = useMemo(() => {
-    const thirtyDaysFromNow = new Date();
-    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-
-    return accountsPayableData
-      .filter((ap) => {
-        const dueDate = parseISO(ap.dueDate);
-        return (
-          (ap.status === AccountsPayableStatus.UNPAID ||
-            ap.status === AccountsPayableStatus.PARTIAL) &&
-          dueDate >= today &&
-          dueDate <= thirtyDaysFromNow
-        );
-      })
-      .sort((a, b) => parseISO(a.dueDate).getTime() - parseISO(b.dueDate).getTime())
-      .slice(0, 10);
-  }, [accountsPayableData, today]);
-
-  const upcomingReceivables = useMemo(() => {
-    const thirtyDaysFromNow = new Date();
-    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-
-    return accountsReceivableData
-      .filter((ar) => {
-        const dueDate = parseISO(ar.dueDate);
-        return (
-          (ar.status === AccountsReceivableStatus.UNPAID ||
-            ar.status === AccountsReceivableStatus.PARTIAL) &&
-          dueDate >= today &&
-          dueDate <= thirtyDaysFromNow
-        );
-      })
-      .sort((a, b) => parseISO(a.dueDate).getTime() - parseISO(b.dueDate).getTime())
-      .slice(0, 10);
-  }, [accountsReceivableData, today]);
-
-  const overduePayable = useMemo(
-    () =>
-      accountsPayableData.filter((ap) => {
-        const dueDate = parseISO(ap.dueDate);
-        dueDate.setHours(0, 0, 0, 0);
-        return (
-          (ap.status === AccountsPayableStatus.UNPAID ||
-            ap.status === AccountsPayableStatus.OVERDUE) &&
-          dueDate < today
-        );
-      }),
-    [accountsPayableData, today]
-  );
-
-  const overdueReceivable = useMemo(
-    () =>
-      accountsReceivableData.filter((ar) => {
-        const dueDate = parseISO(ar.dueDate);
-        dueDate.setHours(0, 0, 0, 0);
-        return (
-          (ar.status === AccountsReceivableStatus.UNPAID ||
-            ar.status === AccountsReceivableStatus.OVERDUE) &&
-          dueDate < today
-        );
-      }),
-    [accountsReceivableData, today]
-  );
-
   const overdueItems = useMemo(() => {
     const allOverdue: Array<{
       type: "payable" | "receivable";
@@ -376,6 +252,23 @@ export default function FinancesDashboard() {
       return dateA.getTime() - dateB.getTime();
     });
   }, [overduePayable, overdueReceivable]);
+
+  // Sort and limit upcoming payments/receivables
+  const sortedUpcomingPayments = useMemo(
+    () =>
+      [...upcomingPayments]
+        .sort((a, b) => parseISO(a.dueDate).getTime() - parseISO(b.dueDate).getTime())
+        .slice(0, 10),
+    [upcomingPayments]
+  );
+
+  const sortedUpcomingReceivables = useMemo(
+    () =>
+      [...upcomingReceivables]
+        .sort((a, b) => parseISO(a.dueDate).getTime() - parseISO(b.dueDate).getTime())
+        .slice(0, 10),
+    [upcomingReceivables]
+  );
 
   const chartColors = getChartColors(isDark);
   const pieColors = getPieChartColors(chartColors);
@@ -858,8 +751,8 @@ export default function FinancesDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {upcomingPayments.length > 0 ? (
-                  upcomingPayments.map((payment) => {
+                {sortedUpcomingPayments.length > 0 ? (
+                  sortedUpcomingPayments.map((payment) => {
                     const supplier = payment.supplierId
                       ? getSupplierById(payment.supplierId)
                       : null;
@@ -881,9 +774,7 @@ export default function FinancesDashboard() {
                         </td>
                         <td className="py-2 px-3 text-sm font-medium text-right text-orange-600 dark:text-orange-400">
                           {formatCurrency(
-                            payment.paidAmount
-                              ? payment.amount - payment.paidAmount
-                              : payment.amount
+                            calculateRemainingAmount(payment.amount, payment.paidAmount)
                           )}
                         </td>
                       </tr>
@@ -921,8 +812,8 @@ export default function FinancesDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {upcomingReceivables.length > 0 ? (
-                  upcomingReceivables.map((receivable) => {
+                {sortedUpcomingReceivables.length > 0 ? (
+                  sortedUpcomingReceivables.map((receivable) => {
                     const buyer = receivable.buyerId ? getBuyerById(receivable.buyerId) : null;
                     return (
                       <tr
@@ -942,9 +833,7 @@ export default function FinancesDashboard() {
                         </td>
                         <td className="py-2 px-3 text-sm font-medium text-right text-blue-600 dark:text-blue-400">
                           {formatCurrency(
-                            receivable.paidAmount
-                              ? receivable.amount - receivable.paidAmount
-                              : receivable.amount
+                            calculateRemainingAmount(receivable.amount, receivable.paidAmount)
                           )}
                         </td>
                       </tr>
@@ -996,9 +885,10 @@ export default function FinancesDashboard() {
                       !isPayable && (item.item as AccountsReceivable).buyerId
                         ? getBuyerById((item.item as AccountsReceivable).buyerId!)
                         : null;
-                    const remainingAmount = item.item.paidAmount
-                      ? item.item.amount - item.item.paidAmount
-                      : item.item.amount;
+                    const remainingAmount = calculateRemainingAmount(
+                      item.item.amount,
+                      item.item.paidAmount
+                    );
 
                     return (
                       <tr

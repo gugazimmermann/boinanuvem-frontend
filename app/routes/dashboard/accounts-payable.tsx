@@ -1,9 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale/pt-BR";
-import { enUS } from "date-fns/locale/en-US";
-import { es } from "date-fns/locale/es";
+import { formatDate, formatCurrency } from "~/utils/formatting";
 import {
   Table,
   StatusBadge,
@@ -14,7 +11,6 @@ import {
   type TableColumn,
   type TableAction,
   type TableFilter,
-  type SortDirection,
 } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
@@ -31,6 +27,9 @@ import type { AccountsPayable } from "~/types";
 import { ROUTES, getAccountsPayableEditRoute, getAccountsPayableViewRoute } from "~/routes.config";
 import { mockCompanies } from "~/mocks/companies";
 import { usePermissions } from "~/utils/permissions";
+import { useFinanceList } from "~/hooks/use-finance-list";
+import { useDateFilters } from "~/hooks/use-date-filters";
+import { getStatusVariant } from "~/utils/finance";
 
 export function meta() {
   return [
@@ -60,49 +59,44 @@ export default function AccountsPayable() {
     return [...mockAccountsPayable];
   }, [company]);
   const [transactions, setTransactions] = useState<AccountsPayable[]>(initialTransactions);
-  const [sortState, setSortState] = useState<{
-    column: string | null;
-    direction: SortDirection;
-  }>({ column: "dueDate", direction: "asc" });
-
-  const [searchValue, setSearchValue] = useState("");
-  const [activeFilter, setActiveFilter] = useState<string>("all");
-  const [propertyFilter, setPropertyFilter] = useState<string>("all");
-  const [selectedYear, setSelectedYear] = useState<string>("all");
-  const [selectedMonth, setSelectedMonth] = useState<string>("all");
-  const [currentPage, setCurrentPage] = useState(1);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<AccountsPayable | null>(null);
   const [alertMessage, setAlertMessage] = useState<{
     title: string;
     variant: "success" | "error" | "warning" | "info";
   } | null>(null);
-  const itemsPerPage = 10;
 
-  const dateLocale = useMemo(() => {
-    switch (language) {
-      case "en":
-        return enUS;
-      case "es":
-        return es;
-      default:
-        return ptBR;
-    }
-  }, [language]);
-
-  const localeForCurrency = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
-  const localeForDateTime = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
   const properties = useMemo(
     () => (company ? getPropertiesByCompanyId(company.id) : []),
     [company]
   );
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const dateFormat =
-      language === "en" ? "MM/dd/yyyy" : language === "es" ? "dd/MM/yyyy" : "dd/MM/yyyy";
-    return format(date, dateFormat, { locale: dateLocale });
-  };
+  const { yearOptions, monthOptions } = useDateFilters();
+
+  // Use finance list hook
+  const {
+    searchValue,
+    setSearchValue,
+    activeFilter,
+    setActiveFilter,
+    propertyFilter,
+    setPropertyFilter,
+    selectedYear,
+    setSelectedYear,
+    selectedMonth,
+    setSelectedMonth,
+    sortState,
+    handleSort,
+    currentPage,
+    setCurrentPage,
+    filteredData,
+    paginatedData,
+    totalPages,
+    totalAmount,
+  } = useFinanceList<AccountsPayable>({
+    data: transactions,
+    initialSort: { column: "dueDate", direction: "asc" },
+  });
 
   const showAlert = (
     title: string,
@@ -131,124 +125,6 @@ export default function AccountsPayable() {
     setSelectedTransaction(null);
   };
 
-  const filteredData = transactions.filter((transaction) => {
-    let matchesSearch: boolean;
-    if (!searchValue) {
-      matchesSearch = true;
-    } else {
-      const searchLower = searchValue.toLowerCase();
-      const property = getPropertyById(transaction.propertyId);
-      const propertyName = property?.name?.toLowerCase() || "";
-      const category = transaction.category
-        ? t.cashFlow.categories[transaction.category]?.toLowerCase() || ""
-        : "";
-      const paymentMethod = transaction.paymentMethod
-        ? t.cashFlow.paymentMethods[transaction.paymentMethod]?.toLowerCase() || ""
-        : "";
-      const amount = formatCurrency(transaction.amount).toLowerCase();
-
-      let supplierName = "";
-      if (transaction.supplierId) {
-        const supplier = getSupplierById(transaction.supplierId);
-        supplierName = supplier?.name?.toLowerCase() || "";
-      }
-
-      let employeeName = "";
-      if (transaction.employeeId) {
-        const employee = getEmployeeById(transaction.employeeId);
-        employeeName = employee?.name?.toLowerCase() || "";
-      }
-
-      let serviceProviderName = "";
-      if (transaction.serviceProviderId) {
-        const serviceProvider = getServiceProviderById(transaction.serviceProviderId);
-        serviceProviderName = serviceProvider?.name?.toLowerCase() || "";
-      }
-
-      matchesSearch =
-        transaction.description.toLowerCase().includes(searchLower) ||
-        transaction.referenceNumber?.toLowerCase().includes(searchLower) ||
-        propertyName.includes(searchLower) ||
-        category.includes(searchLower) ||
-        paymentMethod.includes(searchLower) ||
-        amount.includes(searchLower) ||
-        supplierName.includes(searchLower) ||
-        employeeName.includes(searchLower) ||
-        serviceProviderName.includes(searchLower);
-    }
-
-    const matchesFilter =
-      activeFilter === "all" ||
-      (activeFilter === "paid" && transaction.status === "paid") ||
-      (activeFilter === "unpaid" && transaction.status === "unpaid") ||
-      (activeFilter === "overdue" && transaction.status === "overdue") ||
-      (activeFilter === "partial" && transaction.status === "partial");
-
-    const matchesYear = selectedYear === "all" || transaction.dueDate.startsWith(selectedYear);
-    const monthStr = selectedMonth === "all" ? null : selectedMonth.padStart(2, "0");
-    const matchesMonth =
-      selectedMonth === "all" || (monthStr && transaction.dueDate.substring(5, 7) === monthStr);
-
-    const matchesProperty = propertyFilter === "all" || transaction.propertyId === propertyFilter;
-
-    return matchesSearch && matchesFilter && matchesYear && matchesMonth && matchesProperty;
-  });
-
-  const sortedData = [...filteredData].sort((a, b) => {
-    if (!sortState.column || !sortState.direction) {
-      return 0;
-    }
-
-    const aValue = a[sortState.column];
-    const bValue = b[sortState.column];
-
-    if (aValue == null && bValue == null) return 0;
-    if (aValue == null) return 1;
-    if (bValue == null) return -1;
-
-    let comparison = 0;
-    if (typeof aValue === "string" && typeof bValue === "string") {
-      comparison = aValue.localeCompare(bValue, localeForDateTime, {
-        sensitivity: "base",
-      });
-    } else if (typeof aValue === "number" && typeof bValue === "number") {
-      comparison = aValue - bValue;
-    } else {
-      comparison = String(aValue).localeCompare(String(bValue), localeForDateTime);
-    }
-
-    return sortState.direction === "asc" ? comparison : -comparison;
-  });
-
-  const paginatedData = sortedData.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-
-  const totalAmount = filteredData.reduce((sum, t) => sum + t.amount, 0);
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat(localeForCurrency, {
-      style: "currency",
-      currency: "BRL",
-    }).format(value);
-  };
-
-  const getStatusVariant = (status: string) => {
-    switch (status) {
-      case "paid":
-        return "success";
-      case "overdue":
-        return "danger";
-      case "partial":
-        return "warning";
-      default:
-        return "default";
-    }
-  };
-
   const columns: TableColumn<AccountsPayable>[] = [
     {
       key: "amount",
@@ -265,7 +141,9 @@ export default function AccountsPayable() {
       label: t.accountsPayable.table.dueDate,
       sortable: true,
       render: (_, row) => (
-        <span className="text-gray-700 dark:text-gray-300">{formatDate(row.dueDate)}</span>
+        <span className="text-gray-700 dark:text-gray-300">
+          {formatDate(row.dueDate, language)}
+        </span>
       ),
     },
     {
@@ -412,45 +290,6 @@ export default function AccountsPayable() {
     },
   ];
 
-  const handleSort = (column: string, direction: SortDirection) => {
-    setSortState({ column, direction });
-    setCurrentPage(1);
-  };
-
-  const getYearOptions = () => {
-    const options: Array<{ value: string; label: string }> = [
-      { value: "all", label: t.cashFlow.filters.allYears },
-    ];
-    const currentDate = new Date();
-    const currentYear = currentDate.getFullYear();
-
-    options.push({ value: String(currentYear - 1), label: String(currentYear - 1) });
-    options.push({ value: String(currentYear), label: String(currentYear) });
-
-    return options;
-  };
-
-  const getMonthOptions = () => {
-    const localeMap: Record<string, string> = {
-      pt: "pt-BR",
-      en: "en-US",
-      es: "es-ES",
-    };
-    const locale = localeMap[language] || "pt-BR";
-    const options: Array<{ value: string; label: string }> = [
-      { value: "all", label: t.cashFlow.filters.allMonths },
-    ];
-
-    for (let month = 1; month <= 12; month++) {
-      const monthName = new Date(2000, month - 1).toLocaleDateString(locale, {
-        month: "long",
-      });
-      options.push({ value: String(month), label: monthName });
-    }
-
-    return options;
-  };
-
   return (
     <div>
       <Table<AccountsPayable>
@@ -508,7 +347,7 @@ export default function AccountsPayable() {
                   setSelectedYear(e.target.value);
                   setCurrentPage(1);
                 }}
-                options={getYearOptions()}
+                options={yearOptions}
                 selectClassName="text-xs sm:text-sm py-2"
               />
             </div>
@@ -519,7 +358,7 @@ export default function AccountsPayable() {
                   setSelectedMonth(e.target.value);
                   setCurrentPage(1);
                 }}
-                options={getMonthOptions()}
+                options={monthOptions}
                 selectClassName="text-xs sm:text-sm py-2"
               />
             </div>
@@ -545,6 +384,7 @@ export default function AccountsPayable() {
             setPropertyFilter("all");
             setSelectedYear("all");
             setSelectedMonth("all");
+            setCurrentPage(1);
           },
           clearSearchLabel: t.common.clearSearch,
           onAddNew: () => navigate(ROUTES.ACCOUNTS_PAYABLE_NEW),

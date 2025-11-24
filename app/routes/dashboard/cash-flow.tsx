@@ -1,9 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale/pt-BR";
-import { enUS } from "date-fns/locale/en-US";
-import { es } from "date-fns/locale/es";
+import { formatDate, formatCurrency } from "~/utils/formatting";
 import {
   Table,
   StatusBadge,
@@ -14,7 +11,6 @@ import {
   type TableColumn,
   type TableAction,
   type TableFilter,
-  type SortDirection,
 } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
@@ -31,6 +27,9 @@ import type { CashFlow } from "~/types";
 import { mockCompanies } from "~/mocks/companies";
 import { ROUTES, getCashFlowEditRoute, getCashFlowViewRoute } from "~/routes.config";
 import { usePermissions } from "~/utils/permissions";
+import { useFinanceList } from "~/hooks/use-finance-list";
+import { useDateFilters } from "~/hooks/use-date-filters";
+import { formatFinanceAmount } from "~/utils/finance";
 
 export function meta() {
   return [
@@ -54,51 +53,64 @@ export default function CashFlow() {
   const { canAdd, canEdit, canRemove } = usePermissions();
   const company = mockCompanies[0];
   const [transactions, setTransactions] = useState<CashFlow[]>([...mockCashFlow]);
-  const [sortState, setSortState] = useState<{
-    column: string | null;
-    direction: SortDirection;
-  }>({ column: "date", direction: "desc" });
-
-  const [searchValue, setSearchValue] = useState("");
-  const [activeFilter, setActiveFilter] = useState<string>("all");
-  const [propertyFilter, setPropertyFilter] = useState<string>("all");
-  const [selectedSupplier, setSelectedSupplier] = useState<string>("all");
-  const [selectedBuyer, setSelectedBuyer] = useState<string>("all");
-  const [selectedYear, setSelectedYear] = useState<string>("all");
-  const [selectedMonth, setSelectedMonth] = useState<string>("all");
-  const [currentPage, setCurrentPage] = useState(1);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<CashFlow | null>(null);
   const [alertMessage, setAlertMessage] = useState<{
     title: string;
     variant: "success" | "error" | "warning" | "info";
   } | null>(null);
-  const itemsPerPage = 10;
 
-  const dateLocale = useMemo(() => {
-    switch (language) {
-      case "en":
-        return enUS;
-      case "es":
-        return es;
-      default:
-        return ptBR;
-    }
-  }, [language]);
-
-  const localeForCurrency = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
-  const localeForDateTime = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
   const properties = useMemo(
     () => (company ? getPropertiesByCompanyId(company.id) : []),
     [company]
   );
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const dateFormat =
-      language === "en" ? "MM/dd/yyyy" : language === "es" ? "dd/MM/yyyy" : "dd/MM/yyyy";
-    return format(date, dateFormat, { locale: dateLocale });
-  };
+  const localeForCurrency = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
+  const { yearOptions, monthOptions } = useDateFilters();
+
+  // Use finance list hook
+  const {
+    searchValue,
+    setSearchValue,
+    activeFilter,
+    setActiveFilter,
+    propertyFilter,
+    setPropertyFilter,
+    selectedSupplier,
+    setSelectedSupplier,
+    selectedBuyer,
+    setSelectedBuyer,
+    selectedYear,
+    setSelectedYear,
+    selectedMonth,
+    setSelectedMonth,
+    sortState,
+    handleSort,
+    currentPage,
+    setCurrentPage,
+    filteredData,
+    paginatedData,
+    totalPages,
+  } = useFinanceList<CashFlow>({
+    data: transactions,
+    initialSort: { column: "date", direction: "desc" },
+    filterConfig: {
+      enableTypeFilter: true,
+      enableSupplierFilter: true,
+      enableBuyerFilter: true,
+    },
+  });
+
+  // Calculate totals from filtered data
+  const totalIncome = useMemo(
+    () => filteredData.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0),
+    [filteredData]
+  );
+  const totalExpenses = useMemo(
+    () => filteredData.filter((t) => t.type === "expense").reduce((sum, t) => sum + t.amount, 0),
+    [filteredData]
+  );
+  const netTotal = totalIncome - totalExpenses;
 
   const showAlert = (
     title: string,
@@ -127,138 +139,6 @@ export default function CashFlow() {
     setSelectedTransaction(null);
   };
 
-  const filteredData = transactions.filter((transaction) => {
-    let matchesSearch: boolean;
-    if (!searchValue) {
-      matchesSearch = true;
-    } else {
-      const searchLower = searchValue.toLowerCase();
-      const property = getPropertyById(transaction.propertyId);
-      const propertyName = property?.name?.toLowerCase() || "";
-      const category = transaction.category
-        ? t.cashFlow.categories[transaction.category]?.toLowerCase() || ""
-        : "";
-      const paymentMethod = transaction.paymentMethod
-        ? t.cashFlow.paymentMethods[transaction.paymentMethod]?.toLowerCase() || ""
-        : "";
-      const amount = formatCurrency(transaction.amount).toLowerCase();
-
-      let supplierName = "";
-      if (transaction.supplierId) {
-        const supplier = getSupplierById(transaction.supplierId);
-        supplierName = supplier?.name?.toLowerCase() || "";
-      }
-
-      let buyerName = "";
-      if (transaction.buyerId) {
-        const buyer = getBuyerById(transaction.buyerId);
-        buyerName = buyer?.name?.toLowerCase() || "";
-      }
-
-      let employeeName = "";
-      if (transaction.employeeId) {
-        const employee = getEmployeeById(transaction.employeeId);
-        employeeName = employee?.name?.toLowerCase() || "";
-      }
-
-      let serviceProviderName = "";
-      if (transaction.serviceProviderId) {
-        const serviceProvider = getServiceProviderById(transaction.serviceProviderId);
-        serviceProviderName = serviceProvider?.name?.toLowerCase() || "";
-      }
-
-      matchesSearch =
-        transaction.description.toLowerCase().includes(searchLower) ||
-        transaction.referenceNumber?.toLowerCase().includes(searchLower) ||
-        propertyName.includes(searchLower) ||
-        category.includes(searchLower) ||
-        paymentMethod.includes(searchLower) ||
-        amount.includes(searchLower) ||
-        supplierName.includes(searchLower) ||
-        buyerName.includes(searchLower) ||
-        employeeName.includes(searchLower) ||
-        serviceProviderName.includes(searchLower);
-    }
-
-    const matchesFilter =
-      activeFilter === "all" ||
-      (activeFilter === "income" && transaction.type === "income") ||
-      (activeFilter === "expense" && transaction.type === "expense");
-
-    const matchesYear = selectedYear === "all" || transaction.date.startsWith(selectedYear);
-    const monthStr = selectedMonth === "all" ? null : selectedMonth.padStart(2, "0");
-    const matchesMonth =
-      selectedMonth === "all" || (monthStr && transaction.date.substring(5, 7) === monthStr);
-
-    const matchesSupplier =
-      selectedSupplier === "all" ||
-      (transaction.type === "expense" && transaction.supplierId === selectedSupplier);
-
-    const matchesBuyer =
-      selectedBuyer === "all" ||
-      (transaction.type === "income" && transaction.buyerId === selectedBuyer);
-
-    const matchesProperty = propertyFilter === "all" || transaction.propertyId === propertyFilter;
-
-    return (
-      matchesSearch &&
-      matchesFilter &&
-      matchesYear &&
-      matchesMonth &&
-      matchesSupplier &&
-      matchesBuyer &&
-      matchesProperty
-    );
-  });
-
-  const sortedData = [...filteredData].sort((a, b) => {
-    if (!sortState.column || !sortState.direction) {
-      return 0;
-    }
-
-    const aValue = a[sortState.column];
-    const bValue = b[sortState.column];
-
-    if (aValue == null && bValue == null) return 0;
-    if (aValue == null) return 1;
-    if (bValue == null) return -1;
-
-    let comparison = 0;
-    if (typeof aValue === "string" && typeof bValue === "string") {
-      comparison = aValue.localeCompare(bValue, localeForDateTime, {
-        sensitivity: "base",
-      });
-    } else if (typeof aValue === "number" && typeof bValue === "number") {
-      comparison = aValue - bValue;
-    } else {
-      comparison = String(aValue).localeCompare(String(bValue), localeForDateTime);
-    }
-
-    return sortState.direction === "asc" ? comparison : -comparison;
-  });
-
-  const paginatedData = sortedData.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-
-  const totalIncome = filteredData
-    .filter((t) => t.type === "income")
-    .reduce((sum, t) => sum + t.amount, 0);
-  const totalExpenses = filteredData
-    .filter((t) => t.type === "expense")
-    .reduce((sum, t) => sum + t.amount, 0);
-  const netTotal = totalIncome - totalExpenses;
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat(localeForCurrency, {
-      style: "currency",
-      currency: "BRL",
-    }).format(value);
-  };
-
   const columns: TableColumn<CashFlow>[] = [
     {
       key: "type",
@@ -283,7 +163,7 @@ export default function CashFlow() {
               : "text-red-600 dark:text-red-400"
           }`}
         >
-          {row.type === "income" ? "+" : "-"} {formatCurrency(row.amount)}
+          {formatFinanceAmount(row.amount, row.type, localeForCurrency)}
         </span>
       ),
     },
@@ -292,7 +172,7 @@ export default function CashFlow() {
       label: t.cashFlow.table.date,
       sortable: true,
       render: (_, row) => (
-        <span className="text-gray-700 dark:text-gray-300">{formatDate(row.date)}</span>
+        <span className="text-gray-700 dark:text-gray-300">{formatDate(row.date, language)}</span>
       ),
     },
     {
@@ -450,45 +330,6 @@ export default function CashFlow() {
     },
   ];
 
-  const handleSort = (column: string, direction: SortDirection) => {
-    setSortState({ column, direction });
-    setCurrentPage(1);
-  };
-
-  const getYearOptions = () => {
-    const options: Array<{ value: string; label: string }> = [
-      { value: "all", label: t.cashFlow.filters.allYears },
-    ];
-    const currentDate = new Date();
-    const currentYear = currentDate.getFullYear();
-
-    options.push({ value: String(currentYear - 1), label: String(currentYear - 1) });
-    options.push({ value: String(currentYear), label: String(currentYear) });
-
-    return options;
-  };
-
-  const getMonthOptions = () => {
-    const localeMap: Record<string, string> = {
-      pt: "pt-BR",
-      en: "en-US",
-      es: "es-ES",
-    };
-    const locale = localeMap[language] || "pt-BR";
-    const options: Array<{ value: string; label: string }> = [
-      { value: "all", label: t.cashFlow.filters.allMonths },
-    ];
-
-    for (let month = 1; month <= 12; month++) {
-      const monthName = new Date(2000, month - 1).toLocaleDateString(locale, {
-        month: "long",
-      });
-      options.push({ value: String(month), label: monthName });
-    }
-
-    return options;
-  };
-
   return (
     <div>
       <Table<CashFlow>
@@ -613,7 +454,7 @@ export default function CashFlow() {
                   setSelectedYear(e.target.value);
                   setCurrentPage(1);
                 }}
-                options={getYearOptions()}
+                options={yearOptions}
                 selectClassName="text-xs sm:text-sm py-2"
               />
             </div>
@@ -624,7 +465,7 @@ export default function CashFlow() {
                   setSelectedMonth(e.target.value);
                   setCurrentPage(1);
                 }}
-                options={getMonthOptions()}
+                options={monthOptions}
                 selectClassName="text-xs sm:text-sm py-2"
               />
             </div>
@@ -652,6 +493,7 @@ export default function CashFlow() {
             setSelectedBuyer("all");
             setSelectedYear("all");
             setSelectedMonth("all");
+            setCurrentPage(1);
           },
           clearSearchLabel: t.common.clearSearch,
           onAddNew: () => navigate(ROUTES.CASH_FLOW_NEW),
