@@ -136,7 +136,7 @@ describe("UserDropdown", () => {
     }
   });
 
-  it("should show Company Profile and Team for main user", async () => {
+  it("should show Company Profile, Team, and Payments for main user", async () => {
     const user = userEvent.setup();
     const wrapper = createWrapper("main-user-id");
     render(<UserDropdown />, { wrapper });
@@ -147,13 +147,15 @@ describe("UserDropdown", () => {
       await waitFor(() => {
         const companyProfile = screen.queryByText(/Perfil da Empresa|Company Profile/i);
         const team = screen.queryByText(/Equipe|Team/i);
+        const payments = screen.queryByText(/Pagamentos|Payments/i);
         expect(companyProfile).toBeInTheDocument();
         expect(team).toBeInTheDocument();
+        expect(payments).toBeInTheDocument();
       });
     }
   });
 
-  it("should not show Company Profile and Team for non-main user", async () => {
+  it("should not show Company Profile, Team, and Payments for non-main user", async () => {
     const user = userEvent.setup();
     const wrapper = createWrapper("non-main-user-id");
     render(<UserDropdown />, { wrapper });
@@ -164,8 +166,10 @@ describe("UserDropdown", () => {
       await waitFor(() => {
         const companyProfile = screen.queryByText(/Perfil da Empresa|Company Profile/i);
         const team = screen.queryByText(/Equipe|Team/i);
+        const payments = screen.queryByText(/Pagamentos|Payments/i);
         expect(companyProfile).not.toBeInTheDocument();
         expect(team).not.toBeInTheDocument();
+        expect(payments).not.toBeInTheDocument();
       });
     }
   });

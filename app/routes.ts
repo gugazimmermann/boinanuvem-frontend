@@ -4,6 +4,7 @@ import { ROUTE_NAMES } from "./routes.config";
 export default [
   index("routes/home.tsx"),
   route("sitemap.xml", "routes/sitemap[.]xml.tsx"),
+  route("api/invoices/:invoiceId", "routes/api.invoices.$invoiceId.tsx"),
   route(ROUTE_NAMES.LOGIN, "routes/login.tsx"),
   route(ROUTE_NAMES.REGISTER, "routes/register.tsx"),
   route(ROUTE_NAMES.FORGOT_PASSWORD, "routes/forgot-password.tsx"),
@@ -96,6 +97,7 @@ export default [
     route(ROUTE_NAMES.TEAM_EDIT, "routes/dashboard/team.edit.$userId.tsx"),
     route(ROUTE_NAMES.TEAM_PERMISSIONS, "routes/dashboard/team.permissions.$userId.tsx"),
     route(ROUTE_NAMES.HELP, "routes/dashboard/help.tsx"),
+    route(ROUTE_NAMES.PAYMENTS, "routes/dashboard/payments.tsx"),
     route(ROUTE_NAMES.CASH_FLOW, "routes/dashboard/cash-flow.tsx"),
     route(ROUTE_NAMES.CASH_FLOW_NEW, "routes/dashboard/cash-flow.new.tsx"),
     route(ROUTE_NAMES.CASH_FLOW_EDIT, "routes/dashboard/cash-flow.edit.$transactionId.tsx"),

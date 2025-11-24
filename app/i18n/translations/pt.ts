@@ -111,6 +111,7 @@ export const pt = {
     companyProfile: "Perfil da Empresa",
     userProfile: "Perfil do Usuario",
     team: "Equipe",
+    payments: "Pagamentos",
     help: "Ajuda",
     logout: "Sair",
   },
@@ -1934,6 +1935,66 @@ export const pt = {
     monthFilter: "Filtrar por mês",
   },
 
+  payments: {
+    title: "Pagamentos",
+    description: "Gerencie o histórico de pagamentos da sua assinatura.",
+    meta: {
+      title: "Pagamentos - Boi na Nuvem",
+      description: "Gerenciamento de pagamentos do Boi na Nuvem",
+    },
+    searchPlaceholder: "Buscar pagamentos...",
+    filters: {
+      all: "Todos",
+      paid: "Pagos",
+      pending: "Pendentes",
+      failed: "Falhados",
+    },
+    table: {
+      month: "Mês",
+      plan: "Plano",
+      amount: "Valor",
+      status: "Status",
+      actions: "Ações",
+    },
+    badge: {
+      payments: (count: number) => `${count} pagamento${count !== 1 ? "s" : ""}`,
+    },
+    status: {
+      paid: "Pago",
+      pending: "Pendente",
+      failed: "Falhado",
+    },
+    downloadInvoice: "Baixar Invoice",
+    invoice: {
+      title: "Invoice",
+      number: "Número",
+      issuer: "Emitente",
+      recipient: "Destinatário",
+      description: "Descrição",
+      period: "Período",
+      plan: "Plano",
+      amount: "Valor",
+      paymentInformation: "Informações do Pagamento",
+      status: "Status",
+      invoiceDate: "Data do Invoice",
+      referenceMonth: "Mês de Referência",
+      createdDate: "Data de Criação",
+      footer: {
+        generated: "Este é um invoice gerado automaticamente pelo sistema Boi na Nuvem.",
+        contact:
+          "Para mais informações, entre em contato através do email: contato@boinanuvem.com.br",
+        copyright: "© {year} Boi na Nuvem. Todos os direitos reservados.",
+      },
+      subscription: "Assinatura Mensal - Boi na Nuvem",
+    },
+    emptyState: {
+      title: "Nenhum pagamento encontrado",
+      descriptionWithSearch: (search: string) =>
+        `Sua busca "${search}" não encontrou pagamentos. Tente novamente.`,
+      descriptionWithoutSearch: "Você ainda não possui pagamentos registrados.",
+    },
+  },
+
   bankAccounts: {
     title: "Contas Bancárias",
     description: "Gerencie todas as contas bancárias da empresa.",
@@ -3493,7 +3554,13 @@ export const pt = {
         category: "analytics",
         question: "Quais métricas estão disponíveis no dashboard principal?",
         answer:
-          "O dashboard principal oferece uma visão completa da operação. Para acessá-lo:\n\n1) No menu lateral, clique em 'Dashboard' (primeiro item do menu);\n2) A página exibe várias seções:\n\nResumo Financeiro:\n- Receitas Mensais: total de receitas do mês atual\n- Despesas Mensais: total de despesas do mês atual\n- Fluxo de Caixa Líquido: diferença entre receitas e despesas\n- Contas a Pagar: total pendente\n- Contas a Receber: total pendente\n\nMétricas do Rebanho:\n- Total de Animais: contagem de todos os animais\n- Total de Propriedades: número de propriedades cadastradas\n- Total de Localizações: número de localizações\n- Nascimentos Esperados: baseado em coberturas confirmadas\n- Peso Médio do Rebanho: média de peso dos animais ativos\n- Densidade Animal: relação animais/área\n- Unidades Animais (UA): conversão padrão\n\nAtividades Recentes:\n- Feed em tempo real agregando nascimentos, coberturas, pesagens, vendas, etc.\n\nEstatísticas Rápidas:\n- Contagem de Funcionários\n- Contagem de Fornecedores\n- Contagem de Compradores\n\nGráficos Interativos:\n- Tendências de Peso: evolução do peso dos animais ao longo do tempo\n- Tendências Financeiras: receitas vs despesas ao longo do tempo\n\nToda essa informação fornece uma visão completa da saúde e status da operação de relance.",
+          "O dashboard principal oferece uma visão completa da operação. Para acessá-lo:\n\n1) No menu lateral, clique em 'Dashboard' (primeiro item do menu);\n2) A página exibe várias seções:\n\nResumo Financeiro:\n- Receitas Mensais: total de receitas do mês atual\n- Despesas Mensais: total de despesas do mês atual\n- Fluxo de Caixa Líquido: diferença entre receitas e despesas\n- Contas a Pagar: total pendente\n- Contas a Receber: total pendente\n\nMétricas do Rebanho:\n- Total de Animais: contagem de todos os animais\n- Total de Propriedades: número de propriedades cadastradas\n- Total de Localizações: número de localizações\n- Nascimentos Esperados: baseado em coberturas confirmadas\n- Peso Médio do Rebanho: média de peso dos animais ativos\n- Densidade Animal: relação animais/área\n- Unidades Animais (UA): conversão padrão\n\nAtividades Recentes:\n- Feed em tempo real agregando nascimentos, coberturas, pesagens, vendas, etc.\n\nEstatísticas Rápidas:\n- Contagem de Funcionários\n- Contagem de Fornecedores\n- Contagem de Compradores\n\nGráficos Interativos:\n- Tendências de Peso: evolução do peso dos animais ao longo do tempo\n- Tendências Financeiras: receitas vs despesas ao longo do tempo\n\nÍndices de Produção:\n- Ganho Médio Diário (GMD): ganho de peso diário dos animais\n- Ganho Médio Diário de Carcaça (GMDC): ganho de carcaça diário\n- Dias em Confinamento: tempo médio que os animais ficam em confinamento\n- Rendimento de Carcaça: porcentagem de carcaça em relação ao peso vivo\n- Idade ao Abate: idade média dos animais ao abate\n- Produção de Arrobas por Hectare: produtividade da propriedade\n- Quilos de Nitrogênio por UA: eficiência do uso de nitrogênio\n- Quilos de Carne por Quilo de Nitrogênio: conversão de nitrogênio em carne\n\nToda essa informação fornece uma visão completa da saúde e status da operação de relance.",
+      },
+      productionIndexes: {
+        category: "analytics",
+        question: "O que são os Índices de Produção e como usá-los?",
+        answer:
+          "Os Índices de Produção são métricas essenciais para avaliar a eficiência produtiva da sua operação. Para acessá-los:\n\n1) No menu lateral, clique em 'Dashboard' (primeiro item do menu);\n2) Role a página até a seção 'Índices de Produção';\n3) Use o filtro de 'Propriedade' para ver índices de uma propriedade específica ou 'Todas as Propriedades' para ver o agregado;\n4) Use os filtros de 'Data Início' e 'Data Fim' para analisar períodos específicos;\n\nOs principais índices calculados são:\n\nGanho Médio Diário (GMD):\n- Mede o ganho de peso diário dos animais em kg/dia\n- Calculado baseado nas pesagens registradas\n- Mostra a média e o número de animais analisados\n\nGanho Médio Diário de Carcaça (GMDC):\n- Mede o ganho de carcaça diário em kg/dia\n- Requer dados de rendimento de carcaça das vendas\n- Mostra também o rendimento de carcaça utilizado no cálculo\n\nDias em Confinamento:\n- Tempo médio que os animais ficam em confinamento\n- Calculado desde a entrada até a saída (venda ou óbito)\n- Útil para planejamento de recursos e infraestrutura\n\nRendimento de Carcaça:\n- Porcentagem de carcaça em relação ao peso vivo\n- Baseado nos dados de vendas registradas\n- Mostra contagem, peso de carcaça total e peso vivo total\n\nIdade ao Abate:\n- Idade média dos animais ao abate\n- Mostra idade mínima, máxima e contagem de animais\n- Importante para otimizar o ciclo produtivo\n\nProdução de Arrobas por Hectare:\n- Produtividade da propriedade em arrobas/hectare\n- Calcula total de arrobas produzidas dividido pela área\n- Mostra total de arrobas e área em hectares\n\nQuilos de Nitrogênio por UA:\n- Eficiência do uso de nitrogênio na propriedade\n- Relaciona consumo de nitrogênio (via ração) com unidades animais\n- Mostra total de nitrogênio e unidades animais\n\nQuilos de Carne por Quilo de Nitrogênio:\n- Conversão de nitrogênio em produção de carne\n- Relaciona ganho de peso total com consumo de nitrogênio\n- Mostra ganho de peso total e nitrogênio total consumido\n\nDica: Revise regularmente os índices de produção para identificar oportunidades de melhoria e otimizar a eficiência da operação.",
       },
       propertyDashboard: {
         category: "analytics",

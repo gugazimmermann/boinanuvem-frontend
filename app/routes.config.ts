@@ -90,6 +90,7 @@ export const ROUTES = {
   BANK_ACCOUNTS_EDIT: "/dashboard/contas-bancarias/:bankAccountId/editar",
   BANK_ACCOUNTS_VIEW: "/dashboard/contas-bancarias/:bankAccountId",
   FINANCES_DASHBOARD: "/dashboard/financas",
+  PAYMENTS: "/dashboard/pagamentos",
 } as const;
 
 export function getUserProfileRoute(userId: string): string {
@@ -367,6 +368,7 @@ export const ROUTE_NAMES = {
   BANK_ACCOUNTS_EDIT: "contas-bancarias/:bankAccountId/editar",
   BANK_ACCOUNTS_VIEW: "contas-bancarias/:bankAccountId",
   FINANCES_DASHBOARD: "financas",
+  PAYMENTS: "pagamentos",
 } as const;
 
 import type { RoutePath, RouteName } from "~/types";

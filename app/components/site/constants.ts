@@ -144,12 +144,12 @@ export const PRICING_PLANS = [
   {
     name: "Mínimo",
     description: "Plano ideal para começar sua gestão.",
-    monthlyPrice: "R$ 24,90",
-    annualPrice: "R$ 249,00",
+    monthlyPrice: "R$ 49,90",
+    annualPrice: "R$ 479,00",
     limits: {
       properties: "1 Propriedade",
       locations: "10 Localizações",
-      animals: "25 Animais",
+      animals: "50 Animais",
       members: "2 Membros",
     },
     features: COMMON_FEATURES,
@@ -158,8 +158,8 @@ export const PRICING_PLANS = [
   {
     name: "Básico",
     description: "Plano ideal para pequenas propriedades.",
-    monthlyPrice: "R$ 49,90",
-    annualPrice: "R$ 499,00",
+    monthlyPrice: "R$ 99,00",
+    annualPrice: "R$ 950,00",
     limits: {
       properties: "1 Propriedade",
       locations: "20 Localizações",
@@ -172,8 +172,8 @@ export const PRICING_PLANS = [
   {
     name: "Padrão",
     description: "Plano completo para propriedades em crescimento.",
-    monthlyPrice: "R$ 99,90",
-    annualPrice: "R$ 999,00",
+    monthlyPrice: "R$ 149,90",
+    annualPrice: "R$ 1.439,00",
     limits: {
       properties: "1 Propriedade",
       locations: "Ilimitadas",
@@ -187,7 +187,7 @@ export const PRICING_PLANS = [
     name: "Avançado",
     description: "Plano completo para grandes fazendas e equipes.",
     monthlyPrice: "R$ 249,90",
-    annualPrice: "R$ 2.499,00",
+    annualPrice: "R$ 2.399,00",
     limits: {
       properties: "Ilimitadas",
       locations: "Ilimitadas",

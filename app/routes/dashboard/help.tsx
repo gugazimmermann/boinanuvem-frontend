@@ -1,13 +1,15 @@
 import type { Route } from "./+types/help";
 import { useState, useMemo } from "react";
 import { useTranslation } from "~/i18n";
+import { translations } from "~/i18n/translations";
 
 export function meta(_args: Route.MetaArgs) {
+  const t = translations.pt;
   return [
-    { title: "Ajuda - Boi na Nuvem" },
+    { title: t.help.meta.title },
     {
       name: "description",
-      content: "Central de ajuda e perguntas frequentes do Boi na Nuvem",
+      content: t.help.meta.description,
     },
   ];
 }

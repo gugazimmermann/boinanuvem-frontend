@@ -85,3 +85,5 @@ export type {
   AnimalLocationCost,
 } from "./location-costs";
 export type { Fee } from "./fee";
+export type { Payment } from "./payment";
+export { PaymentStatus } from "./payment";

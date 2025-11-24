@@ -46,6 +46,7 @@ const createMenuItems = (
 
   if (isMainUser) {
     items.push({ label: t.userDropdown.team, href: ROUTES.TEAM });
+    items.push({ label: t.userDropdown.payments, href: ROUTES.PAYMENTS });
   }
 
   items.push({ divider: true });

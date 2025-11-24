@@ -112,6 +112,7 @@ export const es = {
     companyProfile: "Perfil de la Empresa",
     userProfile: "Perfil del Usuario",
     team: "Equipo",
+    payments: "Pagos",
     help: "Ayuda",
     logout: "Salir",
   },
@@ -1935,6 +1936,65 @@ export const es = {
     monthFilter: "Filtrar por mes",
   },
 
+  payments: {
+    title: "Pagos",
+    description: "Gestione el historial de pagos de su suscripción.",
+    meta: {
+      title: "Pagos - Boi na Nuvem",
+      description: "Gestión de pagos de Boi na Nuvem",
+    },
+    searchPlaceholder: "Buscar pagos...",
+    filters: {
+      all: "Todos",
+      paid: "Pagados",
+      pending: "Pendientes",
+      failed: "Fallidos",
+    },
+    table: {
+      month: "Mes",
+      plan: "Plan",
+      amount: "Monto",
+      status: "Estado",
+      actions: "Acciones",
+    },
+    badge: {
+      payments: (count: number) => `${count} pago${count !== 1 ? "s" : ""}`,
+    },
+    status: {
+      paid: "Pagado",
+      pending: "Pendiente",
+      failed: "Fallido",
+    },
+    downloadInvoice: "Descargar Invoice",
+    invoice: {
+      title: "Invoice",
+      number: "Número",
+      issuer: "Emisor",
+      recipient: "Destinatario",
+      description: "Descripción",
+      period: "Período",
+      plan: "Plan",
+      amount: "Monto",
+      paymentInformation: "Información del Pago",
+      status: "Estado",
+      invoiceDate: "Fecha del Invoice",
+      referenceMonth: "Mes de Referencia",
+      createdDate: "Fecha de Creación",
+      footer: {
+        generated: "Este es un invoice generado automáticamente por el sistema Boi na Nuvem.",
+        contact: "Para más información, contáctenos en: contato@boinanuvem.com.br",
+        copyright: "© {year} Boi na Nuvem. Todos los derechos reservados.",
+      },
+      subscription: "Suscripción Mensual - Boi na Nuvem",
+    },
+    emptyState: {
+      title: "No se encontraron pagos",
+      descriptionWithSearch: (search: string) =>
+        `Su búsqueda "${search}" no encontró pagos. Intente nuevamente.`,
+      descriptionWithoutSearch: "Aún no tiene pagos registrados.",
+    },
+  },
+
   bankAccounts: {
     title: "Cuentas Bancarias",
     description: "Gestione todas las cuentas bancarias de la empresa.",
@@ -3463,7 +3523,13 @@ export const es = {
       dashboardMetrics: {
         question: "¿Qué métricas están disponibles en el dashboard principal?",
         answer:
-          "El dashboard principal ofrece una visión completa de tu operación con resúmenes financieros que muestran ingresos mensuales, gastos y flujo de caja neto. Puedes ver totales de cuentas por pagar y por cobrar, nacimientos y montas recientes, y un feed de actividades en tiempo real que agrega varios eventos. Estadísticas rápidas muestran conteos de empleados, proveedores y compradores. Gráficos interactivos muestran tendencias de peso de tus animales y tendencias financieras comparando ingresos vs gastos a lo largo del tiempo. El dashboard también muestra métricas tradicionales como total de animales, propiedades, ubicaciones, nacimientos esperados, peso promedio del rebaño, densidad animal y unidades animales (UA). Toda esta información proporciona una visión completa de la salud y el estado de tu operación de un vistazo.",
+          "El dashboard principal ofrece una visión completa de tu operación con resúmenes financieros que muestran ingresos mensuales, gastos y flujo de caja neto. Puedes ver totales de cuentas por pagar y por cobrar, nacimientos y montas recientes, y un feed de actividades en tiempo real que agrega varios eventos. Estadísticas rápidas muestran conteos de empleados, proveedores y compradores. Gráficos interactivos muestran tendencias de peso de tus animales y tendencias financieras comparando ingresos vs gastos a lo largo del tiempo. El dashboard también muestra métricas tradicionales como total de animales, propiedades, ubicaciones, nacimientos esperados, peso promedio del rebaño, densidad animal y unidades animales (UA). Índices de Producción incluyen Ganancia Media Diaria (GMD), Ganancia Media Diaria de Canal (GMDC), Días en Confinamiento, Rendimiento de Canal, Edad al Sacrificio, Producción de Arrobas por Hectárea, Kilogramos de Nitrógeno por UA, y Kilogramos de Carne por Kilogramo de Nitrógeno. Toda esta información proporciona una visión completa de la salud y el estado de tu operación de un vistazo.",
+      },
+      productionIndexes: {
+        category: "analytics",
+        question: "¿Qué son los Índices de Producción y cómo los uso?",
+        answer:
+          "Los Índices de Producción son métricas esenciales para evaluar la eficiencia productiva de tu operación. Para acceder a ellos:\n\n1) En el menú lateral, haz clic en 'Dashboard' (primer elemento del menú);\n2) Desplázate hacia abajo hasta la sección 'Índices de Producción';\n3) Usa el filtro de 'Propiedad' para ver índices de una propiedad específica o 'Todas las Propiedades' para ver el agregado;\n4) Usa los filtros de 'Fecha Inicio' y 'Fecha Fin' para analizar períodos específicos;\n\nLos principales índices calculados son:\n\nGanancia Media Diaria (GMD):\n- Mide la ganancia de peso diaria de los animales en kg/día\n- Calculado basado en los pesajes registrados\n- Muestra el promedio y el número de animales analizados\n\nGanancia Media Diaria de Canal (GMDC):\n- Mide la ganancia de canal diaria en kg/día\n- Requiere datos de rendimiento de canal de las ventas\n- También muestra el rendimiento de canal utilizado en el cálculo\n\nDías en Confinamiento:\n- Tiempo promedio que los animales pasan en confinamiento\n- Calculado desde la entrada hasta la salida (venta o muerte)\n- Útil para planificación de recursos e infraestructura\n\nRendimiento de Canal:\n- Porcentaje de canal en relación al peso vivo\n- Basado en los datos de ventas registradas\n- Muestra conteo, peso total de canal y peso vivo total\n\nEdad al Sacrificio:\n- Edad promedio de los animales al sacrificio\n- Muestra edad mínima, máxima y conteo de animales\n- Importante para optimizar el ciclo productivo\n\nProducción de Arrobas por Hectárea:\n- Productividad de la propiedad en arrobas/hectárea\n- Calcula total de arrobas producidas dividido por el área\n- Muestra total de arrobas y área en hectáreas\n\nKilogramos de Nitrógeno por UA:\n- Eficiencia del uso de nitrógeno en la propiedad\n- Relaciona consumo de nitrógeno (vía ración) con unidades animales\n- Muestra nitrógeno total y unidades animales\n\nKilogramos de Carne por Kilogramo de Nitrógeno:\n- Conversión de nitrógeno en producción de carne\n- Relaciona ganancia de peso total con consumo de nitrógeno\n- Muestra ganancia de peso total y nitrógeno total consumido\n\nDica: Revisa regularmente los índices de producción para identificar oportunidades de mejora y optimizar la eficiencia de la operación.",
       },
       propertyDashboard: {
         question: "¿Qué información está disponible en el dashboard de la propiedad?",
