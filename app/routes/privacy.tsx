@@ -2,14 +2,19 @@ import type { Route } from "./+types/privacy";
 import { AuthLayout } from "../components/site/auth-layout";
 import { ROUTES } from "../routes.config";
 
+import { createSEOMeta } from "../utils/seo-meta";
+
 export function meta(_args: Route.MetaArgs) {
-  return [
-    { title: "Política de Privacidade - Boi na Nuvem" },
-    {
-      name: "description",
-      content: "Política de Privacidade do serviço Boi na Nuvem",
-    },
-  ];
+  return createSEOMeta({
+    title: "Política de Privacidade",
+    description:
+      "Política de Privacidade do serviço Boi na Nuvem. Saiba como coletamos, usamos e protegemos seus dados pessoais de acordo com a LGPD.",
+    url: "/privacidade",
+  });
+}
+
+export function links() {
+  return [{ rel: "canonical", href: "https://boinanuvem.com.br/privacidade" }];
 }
 
 export default function Privacy() {

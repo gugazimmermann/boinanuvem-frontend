@@ -2,14 +2,19 @@ import type { Route } from "./+types/terms";
 import { AuthLayout } from "../components/site/auth-layout";
 import { ROUTES } from "../routes.config";
 
+import { createSEOMeta } from "../utils/seo-meta";
+
 export function meta(_args: Route.MetaArgs) {
-  return [
-    { title: "Termos de Uso - Boi na Nuvem" },
-    {
-      name: "description",
-      content: "Termos de Uso do serviço Boi na Nuvem",
-    },
-  ];
+  return createSEOMeta({
+    title: "Termos de Uso",
+    description:
+      "Termos de Uso do serviço Boi na Nuvem. Leia os termos e condições que regem o uso da plataforma de gestão para fazendas de gado de corte.",
+    url: "/termos",
+  });
+}
+
+export function links() {
+  return [{ rel: "canonical", href: "https://boinanuvem.com.br/termos" }];
 }
 
 export default function Terms() {

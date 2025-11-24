@@ -421,8 +421,19 @@ describe("Register", () => {
 
   it("should have correct meta function", () => {
     const metaData = meta();
-    expect(metaData).toHaveLength(2);
-    expect(metaData[0]).toEqual({ title: "Cadastrar - Boi na Nuvem" });
+    expect(metaData.length).toBeGreaterThan(2);
+    expect(metaData).toContainEqual({ title: "Cadastrar - Boi na Nuvem" });
+    expect(metaData).toContainEqual({
+      name: "description",
+      content: expect.stringContaining("Crie sua conta na Boi na Nuvem"),
+    });
+    // Check for Open Graph tags
+    type MetaTag = { title?: string; name?: string; property?: string; content?: string };
+    expect(metaData.some((m: MetaTag) => m.property === "og:title")).toBe(true);
+    // Check for noindex (auth pages should not be indexed)
+    expect(
+      metaData.some((m: MetaTag) => m.name === "robots" && m.content?.includes("noindex"))
+    ).toBe(true);
   });
 
   it("should handle company data changes", () => {

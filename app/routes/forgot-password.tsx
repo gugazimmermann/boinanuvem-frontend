@@ -4,10 +4,20 @@ import { usePasswordReset } from "../components/site/hooks";
 import { ROUTES } from "../routes.config";
 import { requireGuest, useRequireGuest } from "../utils/route-guard";
 import { useTranslation } from "../i18n";
-import { createAuthMeta } from "../utils/auth-meta";
+import { createSEOMeta } from "../utils/seo-meta";
 
 export function meta() {
-  return createAuthMeta("Esqueceu a Senha", "Recupere sua senha da conta Boi na Nuvem");
+  return createSEOMeta({
+    title: "Esqueceu a Senha",
+    description:
+      "Recupere sua senha da conta Boi na Nuvem. Digite seu email para receber um código de recuperação.",
+    url: "/esqueceu-senha",
+    noindex: true,
+  });
+}
+
+export function links() {
+  return [{ rel: "canonical", href: "https://boinanuvem.com.br/esqueceu-senha" }];
 }
 
 export async function loader() {

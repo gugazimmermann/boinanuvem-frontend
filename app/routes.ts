@@ -3,6 +3,7 @@ import { ROUTE_NAMES } from "./routes.config";
 
 export default [
   index("routes/home.tsx"),
+  route("sitemap.xml", "routes/sitemap[.]xml.tsx"),
   route(ROUTE_NAMES.LOGIN, "routes/login.tsx"),
   route(ROUTE_NAMES.REGISTER, "routes/register.tsx"),
   route(ROUTE_NAMES.FORGOT_PASSWORD, "routes/forgot-password.tsx"),

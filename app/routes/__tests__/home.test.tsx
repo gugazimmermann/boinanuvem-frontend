@@ -63,13 +63,19 @@ describe("Home", () => {
 
   it("should have correct meta function", () => {
     const metaData = meta({} as Parameters<typeof meta>[0]);
-    expect(metaData).toHaveLength(2);
-    expect(metaData[0]).toEqual({ title: "Boi na Nuvem" });
-    expect(metaData[1]).toEqual({
+    expect(metaData.length).toBeGreaterThan(2);
+    expect(metaData).toContainEqual({ title: "Boi na Nuvem" });
+    expect(metaData).toContainEqual({
       name: "description",
       content:
-        "Boi na Nuvem - Sistema completo de gestão para fazendas de gado de corte. Gerencie propriedades, pastos, animais, pesos, nascimentos, finanças, estoque, vendas e muito mais. Dashboard interativo, análises avançadas e relatórios detalhados.",
+        "Sistema completo de gestão para fazendas de gado de corte. Gerencie propriedades, pastos, animais, pesos, nascimentos, finanças, estoque, vendas e muito mais. Dashboard interativo, análises avançadas e relatórios detalhados.",
     });
+    // Check for Open Graph tags
+    type MetaTag = { title?: string; name?: string; property?: string; content?: string };
+    expect(metaData.some((m: MetaTag) => m.property === "og:title")).toBe(true);
+    expect(metaData.some((m: MetaTag) => m.property === "og:description")).toBe(true);
+    // Check for Twitter Card tags
+    expect(metaData.some((m: MetaTag) => m.name === "twitter:card")).toBe(true);
   });
 
   it("should render components in correct order", () => {

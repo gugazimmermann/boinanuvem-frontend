@@ -18,11 +18,21 @@ import {
 } from "../components/site/utils";
 import { useTranslation } from "../i18n/use-translation";
 import { requireGuest, useRequireGuest } from "../utils/route-guard";
-import { createAuthMeta } from "../utils/auth-meta";
+import { createSEOMeta } from "../utils/seo-meta";
 import type { AddressFormData } from "~/types";
 
 export function meta() {
-  return createAuthMeta("Cadastrar", "Crie sua conta na Boi na Nuvem");
+  return createSEOMeta({
+    title: "Cadastrar",
+    description:
+      "Crie sua conta na Boi na Nuvem e comece a gerenciar sua fazenda de gado de corte com tecnologia de ponta. Teste grátis por 14 dias.",
+    url: "/cadastrar",
+    noindex: true,
+  });
+}
+
+export function links() {
+  return [{ rel: "canonical", href: "https://boinanuvem.com.br/cadastrar" }];
 }
 
 export async function loader() {

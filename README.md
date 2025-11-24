@@ -7,6 +7,7 @@ A modern, full-stack React application built with React Router v7, featuring a c
 ### Core Features
 - **Modern Stack**: Built with React Router v7, React 19, TypeScript, and Vite
 - **Server-Side Rendering (SSR)**: Optimized for performance and SEO
+- **SEO Optimized**: Comprehensive SEO implementation with Open Graph, Twitter Cards, structured data, sitemap, and robots.txt
 - **Multi-Language Support**: Internationalization (i18n) with support for Portuguese (pt), English (en), and Spanish (es)
 - **Theme Support**: Dark and light mode with system preference detection
 - **Responsive Design**: Mobile-first design with Tailwind CSS v4
@@ -452,11 +453,12 @@ boinanuvem-frontend/
 │   ├── types/              # TypeScript type definitions
 │   ├── utils/              # Utility functions
 │   │   ├── auth-meta.ts    # Shared auth meta() function generator
-│   │   └── auth-helpers.ts # Auth validation and formatting helpers
+│   │   ├── auth-helpers.ts # Auth validation and formatting helpers
+│   │   └── seo-meta.ts     # SEO meta tags utility (Open Graph, Twitter Cards, etc.)
 │   ├── root.tsx           # Root layout component
 │   ├── routes.ts          # Route configuration
 │   └── routes.config.ts   # Route constants and helpers
-├── public/                 # Static assets (images, flags, favicon)
+├── public/                 # Static assets (images, flags, favicon, robots.txt)
 ├── build/                  # Production build output (generated)
 │   ├── client/            # Client-side assets
 │   └── server/            # Server-side code
@@ -585,6 +587,61 @@ The application includes a comprehensive mock data system for development and te
   - **Type-Safe Generation**: Fully typed mock data with proper interfaces
   - **Circular Dependency Resolution**: Smart lazy loading to handle complex data relationships
   - **Consistent Data Structure**: Uniform data structure across all entities
+
+## 🔍 SEO & Meta Tags
+
+The application includes comprehensive SEO optimization for better search engine visibility and social media sharing:
+
+### SEO Features
+
+- **Open Graph Tags**: Complete Open Graph implementation for Facebook, LinkedIn, and other social platforms
+  - `og:title`, `og:description`, `og:image`, `og:url`, `og:type`, `og:site_name`, `og:locale`
+  - Optimized social sharing previews
+- **Twitter Card Tags**: Twitter/X Card support for enhanced link previews
+  - `twitter:card`, `twitter:title`, `twitter:description`, `twitter:image`
+  - Large image card format for better visual presentation
+- **Structured Data (JSON-LD)**: Schema.org structured data for rich snippets
+  - Organization schema with contact information
+  - SoftwareApplication schema with features, pricing, and ratings
+  - Enhanced search result appearance
+- **Meta Tags**: Comprehensive meta tag management
+  - Title and description optimization
+  - Canonical URLs to prevent duplicate content
+  - Robots meta tags for indexing control
+  - Theme color and viewport optimization
+- **Sitemap**: Dynamic XML sitemap generation
+  - Automatic sitemap at `/sitemap.xml`
+  - Includes all public routes with priorities and change frequencies
+  - Search engine crawler guidance
+- **robots.txt**: Search engine crawler instructions
+  - Allows public pages for indexing
+  - Disallows dashboard and authentication routes
+  - Sitemap reference for crawlers
+
+### SEO Implementation
+
+The SEO system is implemented through:
+
+- **SEO Utility** (`app/utils/seo-meta.ts`): Centralized SEO meta tag generation
+  - `createSEOMeta()` function for generating comprehensive meta tags
+  - Configurable options for title, description, image, URL, type, and indexing
+  - Automatic Open Graph and Twitter Card tag generation
+- **Route-Level SEO**: Each route can define its own meta tags
+  - Public routes (home, terms, privacy) with full SEO optimization
+  - Authentication routes with noindex for privacy
+  - Canonical URLs for all public pages
+- **Structured Data**: JSON-LD structured data on home page
+  - Organization information with contact details
+  - SoftwareApplication details with features and pricing
+  - Enhanced search result rich snippets
+
+### SEO Best Practices
+
+- **Unique Meta Descriptions**: Each page has optimized, unique descriptions
+- **Canonical URLs**: Prevents duplicate content issues
+- **Social Media Optimization**: Rich previews for all major platforms
+- **Search Engine Friendly**: Proper robots.txt and sitemap configuration
+- **Structured Data**: Enhanced search result appearance with rich snippets
 
 ## 🌐 Internationalization
 
@@ -878,6 +935,14 @@ These shared components and hooks ensure:
     - Consistent error handling and loading states across all auth pages
     - Full i18n support for all auth-related strings in all languages
 
+- **SEO Enhancements**: Comprehensive SEO optimization implementation
+  - **Open Graph & Twitter Cards**: Full social media meta tag support for rich link previews
+  - **Structured Data**: JSON-LD schema.org markup for Organization and SoftwareApplication
+  - **Sitemap & robots.txt**: Dynamic sitemap generation and crawler instructions
+  - **Canonical URLs**: Proper canonical URL implementation to prevent duplicate content
+  - **Enhanced Meta Tags**: Comprehensive meta tag system with SEO utility
+  - **Search Engine Optimization**: All public routes optimized for search engines
+
 - **Comprehensive Inventory Test Coverage**: Complete test suites for inventory routes, services, and mocks
   - Inventory list page tests (rendering, search, filters, pagination, sorting, deletion)
   - New inventory item form tests (form submission, validation, financial integration)
@@ -1099,6 +1164,7 @@ npm run format:check
 
 ### Key Features
 - **Server-Side Rendering (SSR)** - Optimized for SEO and performance
+- **SEO Optimized** - Open Graph, Twitter Cards, structured data, sitemap, and robots.txt
 - **Type Safety** - Full TypeScript coverage with strict mode
 - **Internationalization** - Multi-language support (pt, en, es)
 - **Accessibility** - WCAG compliant components and interactions

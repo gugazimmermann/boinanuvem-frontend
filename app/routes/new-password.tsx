@@ -4,10 +4,20 @@ import { usePasswordReset } from "../components/site/hooks";
 import { ROUTES } from "../routes.config";
 import { requireGuest, useRequireGuest } from "../utils/route-guard";
 import { useTranslation } from "../i18n";
-import { createAuthMeta } from "../utils/auth-meta";
+import { createSEOMeta } from "../utils/seo-meta";
 
 export function meta() {
-  return createAuthMeta("Nova Senha", "Defina uma nova senha para sua conta Boi na Nuvem");
+  return createSEOMeta({
+    title: "Nova Senha",
+    description:
+      "Defina uma nova senha para sua conta Boi na Nuvem. Digite o código recebido e sua nova senha.",
+    url: "/nova-senha",
+    noindex: true,
+  });
+}
+
+export function links() {
+  return [{ rel: "canonical", href: "https://boinanuvem.com.br/nova-senha" }];
 }
 
 export async function loader() {

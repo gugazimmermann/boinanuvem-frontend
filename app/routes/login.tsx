@@ -7,10 +7,20 @@ import { authenticateUser } from "../services/users.service";
 import { useAuth } from "../contexts/auth-context";
 import { requireGuest, useRequireGuest } from "../utils/route-guard";
 import { useTranslation } from "../i18n";
-import { createAuthMeta } from "../utils/auth-meta";
+import { createSEOMeta } from "../utils/seo-meta";
 
 export function meta() {
-  return createAuthMeta("Entrar", "Faça login na sua conta Boi na Nuvem");
+  return createSEOMeta({
+    title: "Entrar",
+    description:
+      "Faça login na sua conta Boi na Nuvem e acesse o sistema completo de gestão para fazendas de gado de corte.",
+    url: "/entrar",
+    noindex: true,
+  });
+}
+
+export function links() {
+  return [{ rel: "canonical", href: "https://boinanuvem.com.br/entrar" }];
 }
 
 export async function loader() {

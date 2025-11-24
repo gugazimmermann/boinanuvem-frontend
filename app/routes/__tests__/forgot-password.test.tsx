@@ -192,12 +192,19 @@ describe("ForgotPassword", () => {
 
   it("should have correct meta function", () => {
     const metaData = meta();
-    expect(metaData).toHaveLength(2);
-    expect(metaData[0]).toEqual({ title: "Esqueceu a Senha - Boi na Nuvem" });
-    expect(metaData[1]).toEqual({
+    expect(metaData.length).toBeGreaterThan(2);
+    expect(metaData).toContainEqual({ title: "Esqueceu a Senha - Boi na Nuvem" });
+    expect(metaData).toContainEqual({
       name: "description",
-      content: "Recupere sua senha da conta Boi na Nuvem",
+      content: expect.stringContaining("Recupere sua senha da conta Boi na Nuvem"),
     });
+    // Check for Open Graph tags
+    type MetaTag = { title?: string; name?: string; property?: string; content?: string };
+    expect(metaData.some((m: MetaTag) => m.property === "og:title")).toBe(true);
+    // Check for noindex (auth pages should not be indexed)
+    expect(
+      metaData.some((m: MetaTag) => m.name === "robots" && m.content?.includes("noindex"))
+    ).toBe(true);
   });
 
   it("should render description text", () => {

@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard/
+Disallow: /entrar
+Disallow: /cadastrar
+Disallow: /esqueceu-senha
+Disallow: /nova-senha
+
+Sitemap: https://boinanuvem.com.br/sitemap.xml
+
