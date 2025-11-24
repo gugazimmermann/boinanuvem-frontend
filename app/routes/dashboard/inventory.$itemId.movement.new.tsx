@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
-import { Input, Select, Button, Alert } from "~/components/ui";
+import { Input, Select, Button, Alert, FileUpload } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { ROUTES, getInventoryViewRoute } from "~/routes.config";
 import { getInventoryItemById } from "~/services/inventory.service";
@@ -11,6 +11,8 @@ import { getSuppliersByCompanyId } from "~/services/suppliers.service";
 import { getPropertiesByCompanyId } from "~/services/properties.service";
 import { getBankAccountsByCompanyId } from "~/services/bank-account.service";
 import { getLocationsByPropertyId } from "~/services/locations.service";
+import { getEmployeesByPropertyId } from "~/services/employees.service";
+import { getServiceProvidersByPropertyId } from "~/services/service-providers.service";
 import type {
   InventoryMovementFormData,
   CashFlowFormData,
@@ -53,6 +55,7 @@ export default function NewInventoryMovement() {
     unitPrice: string;
     date: string;
     description: string;
+    observation: string;
     supplierId: string;
     propertyId: string;
     locationId: string;
@@ -64,12 +67,15 @@ export default function NewInventoryMovement() {
     dueDate: string;
     accountPayablePaymentMethod: PaymentMethod;
     accountPayableBankAccountId: string;
+    employeeIds: string[];
+    serviceProviderIds: string[];
   }>({
     type: InventoryMovementType.PURCHASE,
     quantity: "",
     unitPrice: "",
     date: new Date().toISOString().split("T")[0],
     description: "",
+    observation: "",
     supplierId: "",
     propertyId: properties[0]?.id || "",
     locationId: "",
@@ -81,7 +87,17 @@ export default function NewInventoryMovement() {
     dueDate: "",
     accountPayablePaymentMethod: PaymentMethod.PIX,
     accountPayableBankAccountId: "",
+    employeeIds: [],
+    serviceProviderIds: [],
   });
+
+  const [files, setFiles] = useState<File[]>([]);
+
+  const selectedProperty = properties.find((p) => p.id === formData.propertyId);
+  const employees = selectedProperty ? getEmployeesByPropertyId(selectedProperty.id) : [];
+  const serviceProviders = selectedProperty
+    ? getServiceProvidersByPropertyId(selectedProperty.id)
+    : [];
 
   useEffect(() => {
     if (item) {
@@ -101,6 +117,17 @@ export default function NewInventoryMovement() {
     }
   }, [item]);
 
+  useEffect(() => {
+    if (formData.propertyId) {
+      setFormData((prev) => ({
+        ...prev,
+        locationId: "",
+        employeeIds: [],
+        serviceProviderIds: [],
+      }));
+    }
+  }, [formData.propertyId]);
+
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [alertMessage, setAlertMessage] = useState<{
@@ -118,12 +145,33 @@ export default function NewInventoryMovement() {
     }, 3000);
   };
 
-  const handleChange = (field: keyof typeof formData, value: string | boolean | PaymentMethod) => {
+  const handleChange = (
+    field: keyof typeof formData,
+    value: string | boolean | PaymentMethod | string[]
+  ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
+  const toggleSelection = (field: "employeeIds" | "serviceProviderIds", id: string) => {
+    setFormData((prev) => {
+      const currentIds = prev[field];
+      const newIds = currentIds.includes(id)
+        ? currentIds.filter((itemId) => itemId !== id)
+        : [...currentIds, id];
+      return { ...prev, [field]: newIds };
+    });
+    if (errors[field] || errors.responsible) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        delete newErrors.responsible;
         return newErrors;
       });
     }
@@ -226,6 +274,7 @@ export default function NewInventoryMovement() {
         addAccountsPayable(accountPayableData);
       }
 
+      const fileIds = files.map((_, index) => `file-${Date.now()}-${index}`);
       const movementData: InventoryMovementFormData = {
         itemId: item.id,
         type: formData.type,
@@ -242,6 +291,11 @@ export default function NewInventoryMovement() {
         companyId,
         locationId: formData.locationId || undefined,
         expirationDate: formData.expirationDate || undefined,
+        employeeIds: formData.employeeIds.length > 0 ? formData.employeeIds : undefined,
+        serviceProviderIds:
+          formData.serviceProviderIds.length > 0 ? formData.serviceProviderIds : undefined,
+        observation: formData.observation.trim() || undefined,
+        fileIds: fileIds.length > 0 ? fileIds : undefined,
       };
 
       addInventoryMovement(movementData);
@@ -416,6 +470,81 @@ export default function NewInventoryMovement() {
               />
             )}
 
+            {formData.propertyId && (
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                  {t.properties.details.movements.table.responsible}
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {t.employees.title}
+                    </label>
+                    <div className="border border-gray-300 dark:border-gray-600 rounded-md p-4 max-h-48 overflow-y-auto">
+                      {employees.length === 0 ? (
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {t.properties.details.movements.noEmployees}
+                        </p>
+                      ) : (
+                        <div className="space-y-2">
+                          {employees.map((employee) => (
+                            <label
+                              key={employee.id}
+                              className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={formData.employeeIds.includes(employee.id)}
+                                onChange={() => toggleSelection("employeeIds", employee.id)}
+                                disabled={isSubmitting}
+                                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+                              />
+                              <span className="text-sm text-gray-900 dark:text-gray-100">
+                                {employee.name}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {t.serviceProviders.title}
+                    </label>
+                    <div className="border border-gray-300 dark:border-gray-600 rounded-md p-4 max-h-48 overflow-y-auto">
+                      {serviceProviders.length === 0 ? (
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {t.properties.details.movements.noServiceProviders}
+                        </p>
+                      ) : (
+                        <div className="space-y-2">
+                          {serviceProviders.map((provider) => (
+                            <label
+                              key={provider.id}
+                              className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={formData.serviceProviderIds.includes(provider.id)}
+                                onChange={() => toggleSelection("serviceProviderIds", provider.id)}
+                                disabled={isSubmitting}
+                                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+                              />
+                              <span className="text-sm text-gray-900 dark:text-gray-100">
+                                {provider.name}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {item.hasExpiration && isPurchase && (
               <Input
                 label={t.inventory.movements.table.expirationDate}
@@ -445,6 +574,40 @@ export default function NewInventoryMovement() {
                 <p className="mt-1 text-sm text-red-500">{errors.description}</p>
               )}
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {t.properties.details.movements.observation}
+              </label>
+              <textarea
+                value={formData.observation}
+                onChange={(e) => handleChange("observation", e.target.value)}
+                disabled={isSubmitting}
+                rows={4}
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200 resize-none ${
+                  errors.observation ? "border-red-500" : "border-gray-300 dark:border-gray-600"
+                }`}
+                placeholder={
+                  t.properties.details.movements.observationPlaceholder ||
+                  "Adicione observações sobre esta movimentação..."
+                }
+              />
+              {errors.observation && (
+                <p className="mt-1 text-sm text-red-500">{errors.observation}</p>
+              )}
+            </div>
+
+            <FileUpload
+              label={t.properties.details.movements.files}
+              files={files}
+              onChange={setFiles}
+              disabled={isSubmitting}
+              multiple={true}
+              helperText={
+                t.properties.details.movements.filesHelper ||
+                "Você pode fazer upload de múltiplos arquivos"
+              }
+            />
 
             {isPurchase && (
               <div className="space-y-4">

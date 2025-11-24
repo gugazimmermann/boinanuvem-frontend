@@ -29,6 +29,10 @@ export default [
     route(ROUTE_NAMES.LOCATIONS_NEW, "routes/dashboard/locations.new.tsx"),
     route(ROUTE_NAMES.LOCATIONS_EDIT, "routes/dashboard/locations.edit.$locationId.tsx"),
     route(ROUTE_NAMES.LOCATIONS_VIEW, "routes/dashboard/locations.$locationId.tsx"),
+    route(
+      ROUTE_NAMES.LOCATIONS_INVENTORY_MOVEMENT_NEW,
+      "routes/dashboard/locations.$locationId.inventory-movement.new.tsx"
+    ),
     route(ROUTE_NAMES.EMPLOYEES, "routes/dashboard/employees.tsx"),
     route(ROUTE_NAMES.EMPLOYEES_NEW, "routes/dashboard/employees.new.tsx"),
     route(ROUTE_NAMES.EMPLOYEES_EDIT, "routes/dashboard/employees.edit.$employeeId.tsx"),

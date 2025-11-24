@@ -158,6 +158,38 @@ vi.mock("~/components/ui", () => ({
   Alert: ({ title, variant }: { title?: string; variant?: string }) => (
     <div data-testid={`alert-${variant}`}>{title}</div>
   ),
+  FileUpload: ({
+    label,
+    files,
+    onChange,
+    disabled,
+    multiple,
+    helperText,
+    ...props
+  }: {
+    label?: string;
+    files?: File[];
+    onChange?: (files: File[]) => void;
+    disabled?: boolean;
+    multiple?: boolean;
+    helperText?: string;
+    [key: string]: unknown;
+  }) => (
+    <div data-testid="file-upload">
+      {label && <label>{label}</label>}
+      <input
+        type="file"
+        multiple={multiple}
+        disabled={disabled}
+        onChange={(e) => {
+          const selectedFiles = Array.from(e.target.files || []);
+          onChange?.(multiple ? [...(files || []), ...selectedFiles] : selectedFiles);
+        }}
+        {...props}
+      />
+      {helperText && <span>{helperText}</span>}
+    </div>
+  ),
 }));
 
 describe("NewInventoryMovement", () => {
@@ -504,8 +536,9 @@ describe("NewInventoryMovement", () => {
     const router = createRouter();
     render(<RouterProvider router={router} />);
 
-    const backButton = screen.queryByRole("button");
-    expect(backButton || screen.queryByText(/empty|não encontrado/i)).toBeTruthy();
+    const backButton = screen.queryByText(/back|voltar/i);
+    const emptyMessage = screen.queryByText(/empty|não encontrado/i);
+    expect(backButton || emptyMessage).toBeTruthy();
   });
 
   it("should navigate back on cancel", () => {

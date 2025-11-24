@@ -18,6 +18,7 @@ export const ROUTES = {
   LOCATIONS_NEW: "/dashboard/localizacoes/novo",
   LOCATIONS_EDIT: "/dashboard/localizacoes/:locationId/editar",
   LOCATIONS_VIEW: "/dashboard/localizacoes/:locationId",
+  LOCATIONS_INVENTORY_MOVEMENT_NEW: "/dashboard/localizacoes/:locationId/movimentacao-estoque/novo",
   EMPLOYEES: "/dashboard/funcionarios",
   EMPLOYEES_NEW: "/dashboard/funcionarios/novo",
   EMPLOYEES_EDIT: "/dashboard/funcionarios/:employeeId/editar",
@@ -125,6 +126,10 @@ export function getLocationEditRoute(locationId: string): string {
 
 export function getLocationViewRoute(locationId: string): string {
   return `/dashboard/localizacoes/${locationId}`;
+}
+
+export function getLocationInventoryMovementNewRoute(locationId: string): string {
+  return `/dashboard/localizacoes/${locationId}/movimentacao-estoque/novo`;
 }
 
 export function getEmployeeEditRoute(employeeId: string): string {
@@ -289,6 +294,7 @@ export const ROUTE_NAMES = {
   LOCATIONS_NEW: "localizacoes/novo",
   LOCATIONS_EDIT: "localizacoes/:locationId/editar",
   LOCATIONS_VIEW: "localizacoes/:locationId",
+  LOCATIONS_INVENTORY_MOVEMENT_NEW: "localizacoes/:locationId/movimentacao-estoque/novo",
   EMPLOYEES: "funcionarios",
   EMPLOYEES_NEW: "funcionarios/novo",
   EMPLOYEES_EDIT: "funcionarios/:employeeId/editar",

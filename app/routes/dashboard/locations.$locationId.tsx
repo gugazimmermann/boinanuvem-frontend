@@ -60,6 +60,12 @@ import {
   getAnimalCostBreakdown,
 } from "~/services/location-costs.service";
 import { Input } from "~/components/ui";
+import { getMovementsByLocationId } from "~/services/inventory-movements.service";
+import { getInventoryItemById } from "~/services/inventory.service";
+import type { InventoryMovement } from "~/types";
+import { InventoryMovementType } from "~/types";
+import { getInventoryViewRoute, getLocationInventoryMovementNewRoute } from "~/routes.config";
+import { getUnitLabel } from "~/utils/inventory-utils";
 
 import { formatAreaType } from "~/utils/formatting";
 
@@ -1699,14 +1705,19 @@ export default function LocationDetails() {
         (() => {
           const locationMovements = getLocationMovementsByLocationId(location.id);
           const animalMovements = getAnimalMovementsByLocationId(location.id);
+          const inventoryMovements = getMovementsByLocationId(location.id).filter(
+            (m) => m.type === InventoryMovementType.CONSUMPTION
+          );
 
           type UnifiedMovement =
             | (LocationMovement & { movementType: "location" } & Record<string, unknown>)
-            | (AnimalMovement & { movementType: "animal" } & Record<string, unknown>);
+            | (AnimalMovement & { movementType: "animal" } & Record<string, unknown>)
+            | (InventoryMovement & { movementType: "inventory" } & Record<string, unknown>);
 
           const movements: UnifiedMovement[] = [
             ...locationMovements.map((m) => ({ ...m, movementType: "location" as const })),
             ...animalMovements.map((m) => ({ ...m, movementType: "animal" as const })),
+            ...inventoryMovements.map((m) => ({ ...m, movementType: "inventory" as const })),
           ];
 
           const filteredMovements = movements.filter((movement) => {
@@ -1721,7 +1732,7 @@ export default function LocationDetails() {
                     .type as keyof typeof t.properties.details.movements.types
                 ] || (movement as LocationMovement).type;
               if (typeText.toLowerCase().includes(searchLower)) return true;
-            } else {
+            } else if (movement.movementType === "animal") {
               const animalMovementText =
                 t.properties.details.movements.types.animal_movement.toLowerCase();
               if (
@@ -1729,22 +1740,38 @@ export default function LocationDetails() {
                 "animal".toLowerCase().includes(searchLower)
               )
                 return true;
+            } else if (movement.movementType === "inventory") {
+              const inventoryMovement = movement as InventoryMovement;
+              const item = getInventoryItemById(inventoryMovement.itemId);
+              if (item) {
+                const itemName = `${item.code} ${item.name}`.toLowerCase();
+                if (itemName.includes(searchLower)) return true;
+              }
+              const consumptionText =
+                t.inventory.movements.types.consumption?.toLowerCase() || "consumo";
+              if (consumptionText.includes(searchLower)) return true;
             }
 
             const dateText = formatDate(movement.date);
             if (dateText.toLowerCase().includes(searchLower)) return true;
 
-            const locationIds =
-              movement.movementType === "location"
-                ? (movement as LocationMovement).locationIds
-                : [(movement as AnimalMovement).locationId];
-            const locationNames = locationIds
-              .map((id) => {
-                const loc = getLocationById(id);
-                return loc ? `${loc.name} ${loc.code}`.toLowerCase() : id.toLowerCase();
-              })
-              .join(" ");
-            if (locationNames.includes(searchLower)) return true;
+            if (movement.movementType === "inventory") {
+              const inventoryMovement = movement as InventoryMovement;
+              const item = getInventoryItemById(inventoryMovement.itemId);
+              if (item && item.name.toLowerCase().includes(searchLower)) return true;
+            } else {
+              const locationIds =
+                movement.movementType === "location"
+                  ? (movement as LocationMovement).locationIds
+                  : [(movement as AnimalMovement).locationId];
+              const locationNames = locationIds
+                .map((id) => {
+                  const loc = getLocationById(id);
+                  return loc ? `${loc.name} ${loc.code}`.toLowerCase() : id.toLowerCase();
+                })
+                .join(" ");
+              if (locationNames.includes(searchLower)) return true;
+            }
 
             if (movement.movementType === "animal") {
               const animalNames = (movement as AnimalMovement).animalIds
@@ -1757,22 +1784,51 @@ export default function LocationDetails() {
               if (animalNames.includes(searchLower)) return true;
             }
 
-            const employeeNames = movement.employeeIds
-              .map((id) => {
-                const employee = getEmployeeById(id);
-                return employee ? employee.name.toLowerCase() : "";
-              })
-              .filter((name) => name !== "")
-              .join(" ");
-            if (employeeNames.includes(searchLower)) return true;
+            let employeeNames = "";
+            let providerNames = "";
 
-            const providerNames = movement.serviceProviderIds
-              .map((id) => {
-                const provider = getServiceProviderById(id);
-                return provider ? provider.name.toLowerCase() : "";
-              })
-              .filter((name) => name !== "")
-              .join(" ");
+            if (movement.movementType === "inventory") {
+              const inventoryMovement = movement as InventoryMovement;
+              employeeNames = inventoryMovement.employeeIds
+                ? inventoryMovement.employeeIds
+                    .map((id) => {
+                      const employee = getEmployeeById(id);
+                      return employee ? employee.name.toLowerCase() : "";
+                    })
+                    .filter((name) => name !== "")
+                    .join(" ")
+                : "";
+              providerNames = inventoryMovement.serviceProviderIds
+                ? inventoryMovement.serviceProviderIds
+                    .map((id) => {
+                      const provider = getServiceProviderById(id);
+                      return provider ? provider.name.toLowerCase() : "";
+                    })
+                    .filter((name) => name !== "")
+                    .join(" ")
+                : "";
+            } else {
+              employeeNames = movement.employeeIds
+                ? movement.employeeIds
+                    .map((id) => {
+                      const employee = getEmployeeById(id);
+                      return employee ? employee.name.toLowerCase() : "";
+                    })
+                    .filter((name) => name !== "")
+                    .join(" ")
+                : "";
+              providerNames = movement.serviceProviderIds
+                ? movement.serviceProviderIds
+                    .map((id) => {
+                      const provider = getServiceProviderById(id);
+                      return provider ? provider.name.toLowerCase() : "";
+                    })
+                    .filter((name) => name !== "")
+                    .join(" ")
+                : "";
+            }
+
+            if (employeeNames.includes(searchLower)) return true;
             if (providerNames.includes(searchLower)) return true;
 
             return false;
@@ -1790,40 +1846,65 @@ export default function LocationDetails() {
               aValue = new Date(a.date).getTime();
               bValue = new Date(b.date).getTime();
             } else if (sortState.column === "locations") {
-              const aLocationIds =
-                a.movementType === "location"
-                  ? (a as LocationMovement).locationIds
-                  : [(a as AnimalMovement).locationId];
-              const bLocationIds =
-                b.movementType === "location"
-                  ? (b as LocationMovement).locationIds
-                  : [(b as AnimalMovement).locationId];
-              const aLocationNames = aLocationIds
-                .map((id) => {
-                  const loc = getLocationById(id);
-                  return loc ? `${loc.name} (${loc.code})` : id;
-                })
-                .sort()
-                .join(", ");
-              const bLocationNames = bLocationIds
-                .map((id) => {
-                  const loc = getLocationById(id);
-                  return loc ? `${loc.name} (${loc.code})` : id;
-                })
-                .sort()
-                .join(", ");
-              aValue = aLocationNames;
-              bValue = bLocationNames;
+              if (a.movementType === "inventory" || b.movementType === "inventory") {
+                const aLocationId =
+                  a.movementType === "inventory"
+                    ? (a as InventoryMovement).locationId
+                    : a.movementType === "location"
+                      ? (a as LocationMovement).locationIds[0]
+                      : (a as AnimalMovement).locationId;
+                const bLocationId =
+                  b.movementType === "inventory"
+                    ? (b as InventoryMovement).locationId
+                    : b.movementType === "location"
+                      ? (b as LocationMovement).locationIds[0]
+                      : (b as AnimalMovement).locationId;
+                const aLoc = aLocationId ? getLocationById(aLocationId) : null;
+                const bLoc = bLocationId ? getLocationById(bLocationId) : null;
+                aValue = aLoc ? `${aLoc.name} (${aLoc.code})` : aLocationId || "";
+                bValue = bLoc ? `${bLoc.name} (${bLoc.code})` : bLocationId || "";
+              } else {
+                const aLocationIds =
+                  a.movementType === "location"
+                    ? (a as LocationMovement).locationIds
+                    : [(a as AnimalMovement).locationId];
+                const bLocationIds =
+                  b.movementType === "location"
+                    ? (b as LocationMovement).locationIds
+                    : [(b as AnimalMovement).locationId];
+                const aLocationNames = aLocationIds
+                  .map((id) => {
+                    const loc = getLocationById(id);
+                    return loc ? `${loc.name} (${loc.code})` : id;
+                  })
+                  .sort()
+                  .join(", ");
+                const bLocationNames = bLocationIds
+                  .map((id) => {
+                    const loc = getLocationById(id);
+                    return loc ? `${loc.name} (${loc.code})` : id;
+                  })
+                  .sort()
+                  .join(", ");
+                aValue = aLocationNames;
+                bValue = bLocationNames;
+              }
             } else if (sortState.column === "type") {
               if (a.movementType === "location") {
                 aValue = (a as LocationMovement).type;
-              } else {
+              } else if (a.movementType === "animal") {
                 aValue = "animal";
+              } else {
+                const item = getInventoryItemById((a as InventoryMovement).itemId);
+                aValue = item ? `${item.code} - ${item.name}` : "inventory";
               }
               if (b.movementType === "location") {
                 bValue = (b as LocationMovement).type;
-              } else {
+              } else if (b.movementType === "animal") {
                 bValue = "animal";
+              } else {
+                const item = getInventoryItemById((b as InventoryMovement).itemId);
+                bValue = item ? `${item.code} - ${item.name}` : "inventory";
               }
             } else {
               if (a.movementType === "location") {
@@ -1831,8 +1912,13 @@ export default function LocationDetails() {
                   | string
                   | number
                   | undefined;
-              } else {
+              } else if (a.movementType === "animal") {
                 aValue = (a as AnimalMovement)[sortState.column as keyof AnimalMovement] as
+                  | string
+                  | number
+                  | undefined;
+              } else {
+                aValue = (a as InventoryMovement)[sortState.column as keyof InventoryMovement] as
                   | string
                   | number
                   | undefined;
@@ -1842,8 +1928,13 @@ export default function LocationDetails() {
                   | string
                   | number
                   | undefined;
-              } else {
+              } else if (b.movementType === "animal") {
                 bValue = (b as AnimalMovement)[sortState.column as keyof AnimalMovement] as
+                  | string
+                  | number
+                  | undefined;
+              } else {
+                bValue = (b as InventoryMovement)[sortState.column as keyof InventoryMovement] as
                   | string
                   | number
                   | undefined;
@@ -1897,10 +1988,20 @@ export default function LocationDetails() {
                       ] || (row as LocationMovement).type}
                     </span>
                   );
-                } else {
+                } else if (row.movementType === "animal") {
                   return (
                     <span className="text-gray-700 dark:text-gray-300">
                       {t.properties.details.movements.types.animal_movement}
+                    </span>
+                  );
+                } else {
+                  const inventoryMovement = row as InventoryMovement;
+                  const item = getInventoryItemById(inventoryMovement.itemId);
+                  return (
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {item
+                        ? `${item.code} - ${item.name}`
+                        : t.inventory.movements.types.consumption || "Consumo"}
                     </span>
                   );
                 }
@@ -1911,6 +2012,17 @@ export default function LocationDetails() {
               label: t.properties.details.movements.table.locations,
               sortable: true,
               render: (_, row) => {
+                if (row.movementType === "inventory") {
+                  const inventoryMovement = row as InventoryMovement;
+                  const loc = inventoryMovement.locationId
+                    ? getLocationById(inventoryMovement.locationId)
+                    : null;
+                  return (
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {loc ? `${loc.name} (${loc.code})` : "-"}
+                    </span>
+                  );
+                }
                 const locationIds =
                   row.movementType === "location"
                     ? (row as LocationMovement).locationIds
@@ -1928,12 +2040,23 @@ export default function LocationDetails() {
             },
             {
               key: "animals",
-              label: "Animais",
+              label: t.inventory.movements.table.quantity || "Quantidade",
               sortable: false,
               render: (_, row) => {
                 if (row.movementType === "animal") {
                   const count = (row as AnimalMovement).animalIds.length;
                   return <span className="text-gray-700 dark:text-gray-300">{count}</span>;
+                }
+                if (row.movementType === "inventory") {
+                  const inventoryMovement = row as InventoryMovement;
+                  const item = getInventoryItemById(inventoryMovement.itemId);
+                  return (
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {item
+                        ? `${inventoryMovement.quantity} ${getUnitLabel(item.unit, inventoryMovement.quantity, t)}`
+                        : "-"}
+                    </span>
+                  );
                 }
                 return <span className="text-gray-400 dark:text-gray-500">-</span>;
               },
@@ -1943,19 +2066,47 @@ export default function LocationDetails() {
               label: t.properties.details.movements.table.responsible,
               sortable: false,
               render: (_, row) => {
-                const employeeNames = row.employeeIds
-                  .map((id) => {
-                    const employee = getEmployeeById(id);
-                    return employee ? employee.name : null;
-                  })
-                  .filter((name): name is string => name !== null);
+                let employeeNames: string[] = [];
+                let providerNames: string[] = [];
 
-                const providerNames = row.serviceProviderIds
-                  .map((id) => {
-                    const provider = getServiceProviderById(id);
-                    return provider ? provider.name : null;
-                  })
-                  .filter((name): name is string => name !== null);
+                if (row.movementType === "inventory") {
+                  const inventoryMovement = row as InventoryMovement;
+                  employeeNames = inventoryMovement.employeeIds
+                    ? inventoryMovement.employeeIds
+                        .map((id) => {
+                          const employee = getEmployeeById(id);
+                          return employee ? employee.name : null;
+                        })
+                        .filter((name): name is string => name !== null)
+                    : [];
+
+                  providerNames = inventoryMovement.serviceProviderIds
+                    ? inventoryMovement.serviceProviderIds
+                        .map((id) => {
+                          const provider = getServiceProviderById(id);
+                          return provider ? provider.name : null;
+                        })
+                        .filter((name): name is string => name !== null)
+                    : [];
+                } else {
+                  employeeNames = row.employeeIds
+                    ? row.employeeIds
+                        .map((id) => {
+                          const employee = getEmployeeById(id);
+                          return employee ? employee.name : null;
+                        })
+                        .filter((name): name is string => name !== null)
+                    : [];
+
+                  providerNames = row.serviceProviderIds
+                    ? row.serviceProviderIds
+                        .map((id) => {
+                          const provider = getServiceProviderById(id);
+                          return provider ? provider.name : null;
+                        })
+                        .filter((name): name is string => name !== null)
+                    : [];
+                }
 
                 const allResponsibles = [...employeeNames, ...providerNames];
                 return (
@@ -1973,7 +2124,9 @@ export default function LocationDetails() {
                 const observation =
                   row.movementType === "location"
                     ? (row as LocationMovement).observation
-                    : (row as AnimalMovement).observation;
+                    : row.movementType === "animal"
+                      ? (row as AnimalMovement).observation
+                      : (row as InventoryMovement).description;
                 if (!observation) {
                   return <span className="text-gray-400 dark:text-gray-500">-</span>;
                 }
@@ -1991,6 +2144,9 @@ export default function LocationDetails() {
               label: t.properties.details.movements.files,
               sortable: false,
               render: (_, row) => {
+                if (row.movementType === "inventory") {
+                  return <span className="text-gray-400 dark:text-gray-500">-</span>;
+                }
                 const fileIds =
                   row.movementType === "location"
                     ? (row as LocationMovement).fileIds
@@ -2022,31 +2178,6 @@ export default function LocationDetails() {
             },
           ];
 
-          const headerActions: TableAction[] = [
-            {
-              label: t.properties.details.movements.add,
-              variant: "primary",
-              leftIcon: (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                  className="w-5 h-5"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              ),
-              onClick: () =>
-                navigate(`${getMovementNewRoute(property.id)}?locationId=${location.id}`),
-            },
-          ];
-
           return (
             <div className="space-y-8">
               <Table<UnifiedMovement>
@@ -2059,7 +2190,6 @@ export default function LocationDetails() {
                     variant: "primary",
                   },
                   description: t.properties.details.movements.description,
-                  actions: headerActions,
                 }}
                 search={{
                   placeholder: t.properties.details.movements.searchPlaceholder,
@@ -2069,6 +2199,58 @@ export default function LocationDetails() {
                     setCurrentPage(1);
                   },
                 }}
+                belowContent={
+                  <div className="flex items-center justify-end gap-3">
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() =>
+                        navigate(`${getMovementNewRoute(property.id)}?locationId=${location.id}`)
+                      }
+                      leftIcon={
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={1.5}
+                          stroke="currentColor"
+                          className="w-5 h-5"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                      }
+                    >
+                      {t.properties.details.movements.add}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(getLocationInventoryMovementNewRoute(location.id))}
+                      leftIcon={
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={1.5}
+                          stroke="currentColor"
+                          className="w-5 h-5"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"
+                          />
+                        </svg>
+                      }
+                    >
+                      Adicionar Consumo de Estoque
+                    </Button>
+                  </div>
+                }
                 pagination={{
                   currentPage,
                   totalPages: totalPages || 1,
@@ -2097,9 +2279,14 @@ export default function LocationDetails() {
                     : undefined,
                   clearSearchLabel: searchValue ? t.common.clearSearch : undefined,
                 }}
-                onRowClick={(row) =>
-                  navigate(`${getMovementViewRoute(row.id)}?fromLocation=${location.id}`)
-                }
+                onRowClick={(row) => {
+                  if (row.movementType === "inventory") {
+                    const inventoryMovement = row as InventoryMovement;
+                    navigate(getInventoryViewRoute(inventoryMovement.itemId));
+                  } else {
+                    navigate(`${getMovementViewRoute(row.id)}?fromLocation=${location.id}`);
+                  }
+                }}
               />
             </div>
           );
