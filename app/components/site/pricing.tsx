@@ -1,10 +1,37 @@
 import { useState, memo } from "react";
 import { Section, Heading, Button } from "./ui";
-import { PRICING_PLANS } from "./constants";
 import { ROUTES } from "../../routes.config";
+import type { Plan } from "~/types/plan";
 
-export const Pricing = memo(function Pricing() {
+interface PricingProps {
+  plans: Plan[];
+}
+
+export const Pricing = memo(function Pricing({ plans }: PricingProps) {
   const [isMonthly, setIsMonthly] = useState(true);
+
+  // Show loading state if no plans are provided
+  if (!plans || plans.length === 0) {
+    return (
+      <Section
+        id="section-pricing"
+        className="bg-gradient-to-b from-white via-gray-50 to-white dark:from-gray-950 dark:via-gray-900 dark:to-gray-950"
+      >
+        <div className="text-center">
+          <Heading level={2} color="secondary" className="mb-4">
+            Carregando planos...
+          </Heading>
+          <div className="animate-pulse">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-96 bg-gray-200 dark:bg-gray-700 rounded-2xl"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Section>
+    );
+  }
 
   return (
     <Section
@@ -78,14 +105,14 @@ export const Pricing = memo(function Pricing() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-        {PRICING_PLANS.map((plan, index) => {
+        {plans.map((plan, index) => {
           const price = isMonthly ? plan.monthlyPrice : plan.annualPrice;
           const period = isMonthly ? "mês" : "ano";
           const buttonVariant = plan.popular ? "primary" : "secondary";
 
           return (
             <div
-              key={index}
+              key={plan.id || index}
               className={`relative p-8 rounded-2xl flex flex-col ${plan.popular ? "shadow-lg" : ""} ${
                 plan.popular
                   ? "bg-white dark:bg-gray-800 border-2 border-primary"

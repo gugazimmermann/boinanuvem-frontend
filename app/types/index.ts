@@ -87,3 +87,4 @@ export type {
 export type { Fee } from "./fee";
 export type { Payment } from "./payment";
 export { PaymentStatus } from "./payment";
+export type { Plan, PlanLimits, PlansApiResponse, GetPlansParams } from "./plan";

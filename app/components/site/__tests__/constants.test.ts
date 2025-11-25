@@ -4,7 +4,6 @@ import {
   NAV_LINKS,
   SERVICES,
   FEATURES,
-  PRICING_PLANS,
   FAQS,
   BLOG_POSTS,
   FOOTER_SECTIONS,
@@ -92,34 +91,7 @@ describe("constants", () => {
     });
   });
 
-  describe("PRICING_PLANS", () => {
-    it("should export pricing plans array", () => {
-      expect(Array.isArray(PRICING_PLANS)).toBe(true);
-      expect(PRICING_PLANS.length).toBeGreaterThan(0);
-    });
-
-    it("should have valid pricing plan structure", () => {
-      PRICING_PLANS.forEach((plan) => {
-        expect(plan).toHaveProperty("name");
-        expect(plan).toHaveProperty("description");
-        expect(plan).toHaveProperty("monthlyPrice");
-        expect(plan).toHaveProperty("annualPrice");
-        expect(plan).toHaveProperty("features");
-        expect(plan).toHaveProperty("popular");
-        expect(typeof plan.name).toBe("string");
-        expect(typeof plan.description).toBe("string");
-        expect(typeof plan.monthlyPrice).toBe("string");
-        expect(typeof plan.annualPrice).toBe("string");
-        expect(Array.isArray(plan.features)).toBe(true);
-        expect(typeof plan.popular).toBe("boolean");
-      });
-    });
-
-    it("should have at least one popular plan", () => {
-      const hasPopular = PRICING_PLANS.some((plan) => plan.popular === true);
-      expect(hasPopular).toBe(true);
-    });
-  });
+  // PRICING_PLANS removed - now using API data exclusively
 
   describe("FAQS", () => {
     it("should export FAQs array", () => {

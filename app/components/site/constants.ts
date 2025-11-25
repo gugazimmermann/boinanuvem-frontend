@@ -109,7 +109,7 @@ export const FEATURES = [
   },
 ] as const;
 
-const COMMON_FEATURES = [
+const _COMMON_FEATURES = [
   "Gestão de Propriedades e Pastos",
   "Controle de Animais e Peso",
   "Registro de Nascimentos e Aquisições",
@@ -140,64 +140,7 @@ const COMMON_FEATURES = [
   "Suporte por Email",
 ] as const;
 
-export const PRICING_PLANS = [
-  {
-    name: "Mínimo",
-    description: "Plano ideal para começar sua gestão.",
-    monthlyPrice: "R$ 49,90",
-    annualPrice: "R$ 479,00",
-    limits: {
-      properties: "1 Propriedade",
-      locations: "10 Localizações",
-      animals: "50 Animais",
-      members: "2 Membros",
-    },
-    features: COMMON_FEATURES,
-    popular: false,
-  },
-  {
-    name: "Básico",
-    description: "Plano ideal para pequenas propriedades.",
-    monthlyPrice: "R$ 99,00",
-    annualPrice: "R$ 950,00",
-    limits: {
-      properties: "1 Propriedade",
-      locations: "20 Localizações",
-      animals: "100 Animais",
-      members: "5 Membros",
-    },
-    features: COMMON_FEATURES,
-    popular: false,
-  },
-  {
-    name: "Padrão",
-    description: "Plano completo para propriedades em crescimento.",
-    monthlyPrice: "R$ 149,90",
-    annualPrice: "R$ 1.439,00",
-    limits: {
-      properties: "1 Propriedade",
-      locations: "Ilimitadas",
-      animals: "500 Animais",
-      members: "Ilimitados",
-    },
-    features: COMMON_FEATURES,
-    popular: true,
-  },
-  {
-    name: "Avançado",
-    description: "Plano completo para grandes fazendas e equipes.",
-    monthlyPrice: "R$ 249,90",
-    annualPrice: "R$ 2.399,00",
-    limits: {
-      properties: "Ilimitadas",
-      locations: "Ilimitadas",
-      animals: "Ilimitados",
-      members: "Ilimitados",
-    },
-    features: COMMON_FEATURES,
-    popular: false,
-  },
-] as const;
+// PRICING_PLANS removed - now using API data exclusively
 
 export const FAQS = [
   {

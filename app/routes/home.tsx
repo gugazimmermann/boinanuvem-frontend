@@ -15,6 +15,8 @@ import {
   ScrollToTop,
 } from "../components/site";
 import { createSEOMeta } from "../utils/seo-meta";
+import { fetchPlans } from "../services/plans.service";
+import type { Plan } from "~/types/plan";
 
 export function meta(_args: Route.MetaArgs) {
   return createSEOMeta({
@@ -30,7 +32,19 @@ export function links() {
   return [{ rel: "canonical", href: "https://boinanuvem.com.br/" }];
 }
 
-export default function Home() {
+export async function loader(): Promise<{ plans: Plan[] }> {
+  try {
+    const plans = await fetchPlans({ status: "active" });
+    return { plans };
+  } catch (error) {
+    console.error("Failed to load plans:", error);
+    // Re-throw the error so React Router can handle it with an error boundary
+    throw new Error("Failed to load pricing plans. Please try again later.");
+  }
+}
+
+export default function Home({ loaderData }: Route.ComponentProps) {
+  const { plans } = loaderData;
   const structuredData = {
     "@context": "https://schema.org",
     "@graph": [
@@ -98,7 +112,7 @@ export default function Home() {
         <Services />
         <FeatureHighlights />
         <Examples />
-        <Pricing />
+        <Pricing plans={plans} />
         <FAQs />
         <CTA />
         <Blog />
