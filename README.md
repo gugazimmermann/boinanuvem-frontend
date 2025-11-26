@@ -1,48 +1,85 @@
-# Boi na Nuvem - Frontend
+# Boi na Nuvem - Frontend Application
 
-A modern, full-stack React application built with React Router v7, featuring a comprehensive dashboard for livestock management, team collaboration, and property management. This application provides a complete solution for managing cattle operations, from animal tracking to financial management and reproductive analytics.
+A cutting-edge, full-stack React application built with React Router v7 and React 19, featuring a comprehensive dashboard for modern livestock management, team collaboration, and agricultural property management. This enterprise-grade application provides a complete digital solution for cattle operations, from advanced animal tracking and breeding management to financial analytics and reproductive performance monitoring.
 
-## 🚀 Features
+## 🚀 Core Features & Capabilities
 
-### Core Features
-- **Modern Stack**: Built with React Router v7, React 19, TypeScript, and Vite
-- **Server-Side Rendering (SSR)**: Optimized for performance and SEO
-- **SEO Optimized**: Comprehensive SEO implementation with Open Graph, Twitter Cards, structured data, sitemap, and robots.txt
-- **Multi-Language Support**: Internationalization (i18n) with support for Portuguese (pt), English (en), and Spanish (es)
-- **Theme Support**: Dark and light mode with system preference detection
-- **Responsive Design**: Mobile-first design with Tailwind CSS v4
-- **Type Safety**: Full TypeScript support with strict mode
+### 🏗️ Modern Architecture & Performance
+- **Next-Generation Stack**: Built with React Router v7, React 19, TypeScript 5.9, and Vite 7
+- **Server-Side Rendering (SSR)**: Optimized for performance, SEO, and faster initial page loads
+- **Advanced SEO Optimization**: 
+  - Comprehensive Open Graph and Twitter Cards implementation
+  - Schema.org structured data for rich search results
+  - Dynamic sitemap generation and robots.txt configuration
+  - Meta tag optimization for social media sharing
+- **Enterprise Internationalization**: 
+  - Full i18n support for Portuguese (pt), English (en), and Spanish (es)
+  - Type-safe translation system with comprehensive coverage
+  - Locale-aware date, number, and currency formatting
+  - Dynamic language switching without page reload
+- **Advanced Theme System**: 
+  - Dark and light mode with intelligent system preference detection
+  - Smooth theme transitions and persistent user preferences
+  - Tailwind CSS v4 integration with custom design tokens
+- **Mobile-First Responsive Design**: 
+  - Optimized for all device sizes from mobile to desktop
+  - Touch-friendly interfaces and gesture support
+  - Progressive Web App (PWA) capabilities
+- **Complete Type Safety**: 
+  - Strict TypeScript configuration with zero tolerance for type errors
+  - Full type coverage across components, services, and utilities
+  - Auto-generated types for enhanced developer experience
 
-### Livestock Management
-- **Animal Management**: Complete animal registration, editing, and tracking with comprehensive filtering and search
-  - Detailed animal profiles with breed, gender, birth information, and parent relationships
-  - Animal code management and identification
-  - Full CRUD operations with view, edit, and delete capabilities
-- **Inventory Management**: Comprehensive inventory tracking and management system
-  - Complete inventory item registration with categories, units, and minimum stock levels
-  - **Usage Method Configuration**: For medicines and vaccines, specify usage method with amount, unit, and basis (per animal or per kg)
-    - Structured dosage information for accurate administration
-    - Automatic dosage calculation during sanitary control and weighing processes
-    - Weight-based dosage calculation when applicable
-  - Stock level tracking with automatic calculation based on movements
-  - Inventory movements (purchase, sale, adjustment, consumption) with supplier association
-  - Low stock alerts and expiration date tracking
-  - **Observations System**: Add multiple observations with file attachments to each inventory item
-    - Multiple observations on item detail pages
-    - File attachment support (photos, documents)
-    - Complete observation history tracking
-  - **Financial Integration**: When adding new inventory items with suppliers, automatically create cash flow transactions and/or accounts payable
-    - Cash flow transaction creation with payment method and bank account selection
-    - Accounts payable creation with due date, payment method, and bank account
-    - Seamless integration between inventory purchases and financial records
-  - **Location-Based Cost Tracking**: Track inventory consumption costs by location and calculate per-animal costs
-    - Optional location assignment when recording consumption movements
-    - Location cost analysis with total consumption costs, consumption history, and per-animal breakdown
-    - Animal cost tracking showing total cost per animal across all locations
-    - Time-weighted cost allocation based on animal presence in locations during consumption
-    - Date range filtering for cost analysis
-    - Cost breakdown by location for individual animals
-    - Detailed consumption history with item details and allocated costs
+### 🐄 Advanced Livestock Management System
+
+#### 📋 Comprehensive Animal Management
+- **Complete Animal Registry**: 
+  - Detailed animal profiles with breed classification, gender tracking, and birth information
+  - Parent-child relationship management with automatic purity calculation (PO, F1, F2, F3, F4, F5, PC)
+  - Advanced animal identification with customizable coding systems
+  - Full CRUD operations with intuitive interfaces for viewing, editing, and managing animals
+  - Bulk operations for efficient management of large herds
+- **Intelligent Search & Filtering**: 
+  - Multi-criteria search across animal attributes (breed, gender, age, location, status)
+  - Advanced filtering with date ranges, weight ranges, and custom parameters
+  - Saved search configurations for frequently used filters
+  - Real-time search results with pagination for large datasets
+#### 📦 Enterprise Inventory Management System
+- **Advanced Inventory Registry**: 
+  - Complete inventory item registration with hierarchical categories and subcategories
+  - Multi-unit support with automatic conversion calculations
+  - Minimum stock level configuration with automated alert systems
+  - Expiration date tracking with proactive notification systems
+- **Intelligent Usage Method Configuration**: 
+  - **Medicine & Vaccine Dosage Management**: Precise dosage configuration with amount, unit, and basis (per animal or per kg)
+  - **Structured Dosage Information**: Detailed administration guidelines for accurate veterinary care
+  - **Automatic Dosage Calculation**: Real-time calculation during sanitary control and weighing processes
+  - **Weight-Based Calculations**: Dynamic dosage adjustment based on current animal weights
+- **Real-Time Stock Management**: 
+  - Automatic stock level calculation based on all movement types
+  - Multi-location inventory tracking with transfer capabilities
+  - Inventory movement types: Purchase, Sale, Adjustment, Consumption with full audit trails
+  - Supplier association and purchase order management
+- **Comprehensive Observation System**: 
+  - Multiple observations per inventory item with rich text support
+  - File attachment capabilities (photos, documents, certificates)
+  - Complete observation history with user attribution and timestamps
+  - Searchable observation database for quick information retrieval
+- **Seamless Financial Integration**: 
+  - **Automatic Transaction Creation**: When adding inventory with suppliers, automatically generate:
+    - Cash flow transactions with payment method and bank account selection
+    - Accounts payable records with due dates and payment terms
+  - **Complete Financial Traceability**: Full integration between inventory purchases and financial records
+  - **Cost Center Management**: Track costs by department, location, or project
+- **Advanced Location-Based Cost Analytics**: 
+  - **Granular Cost Tracking**: Monitor inventory consumption costs by specific locations
+  - **Per-Animal Cost Calculation**: Detailed cost allocation based on animal presence and consumption
+  - **Time-Weighted Allocation**: Intelligent cost distribution using animal movement history
+  - **Comprehensive Cost Analysis**: 
+    - Total consumption costs by location and time period
+    - Individual animal cost breakdown across all locations
+    - Detailed consumption history with item-level cost attribution
+    - Date range filtering for flexible reporting periods
 - **Birth Records**: Track and manage animal births with parent relationships
   - Automatic purity calculation (PO, F1, F2, F3, F4, F5, PC) based on parent breeds
   - Birth date tracking and gender recording
@@ -351,10 +388,24 @@ A modern, full-stack React application built with React Router v7, featuring a c
   - **Fully Internationalized**: All help content available in Portuguese, English, and Spanish
   - **Comprehensive Coverage**: FAQs for animal management, locations, employees, service providers, suppliers, buyers, observations, weighings (including session weighings), acquisitions (including batch acquisitions, cost per arroba, and profitability spread), deaths, sales (including pricing modes, payment methods, flexible fees, and profitability), movements, inventory management (including observations, financial integration, and location-based cost tracking), financial management (including observations for cash flow, accounts payable, and accounts receivable, and animal inventory costs), reproductive indexes, birth forecast, dashboard metrics, pasture planning, breeding season, search & filtering, data organization, and best practices
 
-## 📋 Prerequisites
+## 📋 Prerequisites & System Requirements
 
-- **Node.js** 20 or higher
-- **npm** (comes with Node.js) or **yarn** or **pnpm**
+### Required Software
+- **Node.js**: Version 20.x or higher (LTS recommended for stability)
+- **Package Manager**: npm (included with Node.js), yarn, or pnpm
+- **Git**: For version control and repository management
+- **Modern Web Browser**: Chrome 90+, Firefox 88+, Safari 14+, or Edge 90+
+
+### Development Environment
+- **Operating System**: Windows 10/11, macOS 10.15+, or Linux (Ubuntu 18.04+)
+- **Memory**: Minimum 8GB RAM (16GB recommended for optimal performance)
+- **Storage**: At least 4GB free space for dependencies and build artifacts
+- **Network**: Stable internet connection for package downloads and API communication
+
+### Optional but Recommended
+- **VS Code**: With recommended extensions for React, TypeScript, and Tailwind CSS
+- **React Developer Tools**: Browser extension for debugging React components
+- **Git GUI**: GitKraken, SourceTree, or GitHub Desktop for visual Git management
 
 ## 🚀 Quick Start
 
@@ -1154,60 +1205,76 @@ Check formatting without making changes:
 npm run format:check
 ```
 
-## 📚 Technologies
+## 🛠️ Technology Stack & Architecture
 
-### Core Framework
-- **React Router v7** (^7.9.2) - Full-stack React framework with SSR support
-- **React 19** (^19.1.1) - UI library with latest features
-- **TypeScript 5.9** (^5.9.2) - Type safety and developer experience
-- **Vite 7** (^7.1.7) - Build tool and dev server
+### 🏗️ Core Framework & Runtime
+- **React Router v7** (^7.9.2) - Next-generation full-stack React framework with advanced SSR capabilities
+- **React 19** (^19.1.1) - Latest React with concurrent features, automatic batching, and improved performance
+- **TypeScript 5.9** (^5.9.2) - Advanced type safety with strict mode and enhanced developer experience
+- **Vite 7** (^7.1.7) - Ultra-fast build tool with Hot Module Replacement (HMR) and optimized production builds
+- **Node.js 20+** - Modern JavaScript runtime with enhanced performance and security features
 
-### Key Features
-- **Server-Side Rendering (SSR)** - Optimized for SEO and performance
-- **SEO Optimized** - Open Graph, Twitter Cards, structured data, sitemap, and robots.txt
-- **Type Safety** - Full TypeScript coverage with strict mode
-- **Internationalization** - Multi-language support (pt, en, es)
-- **Accessibility** - WCAG compliant components and interactions
-- **Responsive Design** - Mobile-first approach with Tailwind CSS
+### 🎯 Advanced Features & Capabilities
+- **Server-Side Rendering (SSR)** - Optimized for SEO, performance, and faster initial page loads
+- **Progressive Enhancement** - Works without JavaScript and enhances with client-side features
+- **Advanced SEO Optimization** - Complete Open Graph, Twitter Cards, structured data, dynamic sitemap, and robots.txt
+- **Enterprise Type Safety** - Comprehensive TypeScript coverage with strict mode and zero tolerance for type errors
+- **Multi-Language Internationalization** - Full i18n support for Portuguese, English, and Spanish with type-safe translations
+- **WCAG 2.1 Accessibility Compliance** - Screen reader support, keyboard navigation, and inclusive design patterns
+- **Mobile-First Responsive Design** - Optimized for all device sizes with touch-friendly interfaces
 
-### Styling & UI
-- **Tailwind CSS v4** (^4.1.13) - Utility-first CSS framework
-- **Custom UI Components** - Reusable component library
-- **@tailwindcss/vite** (^4.1.13) - Tailwind CSS Vite plugin
+### 🎨 Styling & User Interface
+- **Tailwind CSS v4** (^4.1.13) - Latest utility-first CSS framework with advanced features
+- **Custom Design System** - Comprehensive component library with consistent design tokens
+- **@tailwindcss/vite** (^4.1.13) - Seamless Tailwind CSS integration with Vite
+- **Dark/Light Theme System** - Intelligent theme switching with system preference detection
+- **Advanced Animations** - Smooth transitions and micro-interactions for enhanced user experience
 
-### Data & Visualization
-- **Recharts** (^3.4.1) - Chart and graph library for data visualization
-  - Line charts for trend analysis
-  - Bar charts for comparisons
-  - Responsive chart containers
-- **Leaflet** (^1.9.4) - Interactive maps for property and location visualization
-  - Geocoding integration
-  - Map markers and layers
-- **date-fns** (^4.1.0) - Date utility library
-  - Locale support for pt, en, es
-  - Date formatting and manipulation
+### 📊 Data Visualization & Mapping
+- **Recharts** (^3.4.1) - Professional chart library for comprehensive data visualization
+  - Interactive line charts for trend analysis and performance tracking
+  - Responsive bar charts for comparative data analysis
+  - Area charts for cumulative data visualization
+  - Pie charts for distribution analysis
+  - Custom tooltips and legends with branded styling
+- **Leaflet** (^1.9.4) - Advanced interactive mapping for property and location visualization
+  - Geocoding integration for address-to-coordinate conversion
+  - Custom map markers and layers for property identification
+  - Interactive property boundaries and location mapping
+  - Satellite and terrain view support
+- **date-fns** (^4.1.0) - Comprehensive date utility library
+  - Full locale support for Portuguese, English, and Spanish
+  - Advanced date formatting and manipulation functions
+  - Timezone-aware date calculations and comparisons
 
-### Testing
-- **Vitest** (^4.0.9) - Fast unit test framework
-- **React Testing Library** (^16.3.0) - Component testing utilities
-- **@testing-library/jest-dom** (^6.9.1) - Custom DOM matchers
-- **@testing-library/user-event** (^14.6.1) - User interaction simulation
-- **jsdom** (^27.2.0) - DOM implementation for Node.js testing
-- **@vitest/coverage-v8** (^4.0.9) - Code coverage reporting
-- **@vitest/ui** (^4.0.9) - Interactive test UI
+### 🧪 Testing & Quality Assurance
+- **Vitest** (^4.0.9) - Next-generation testing framework with native ESM support and fast execution
+- **React Testing Library** (^16.3.0) - Best-practice component testing utilities focusing on user behavior
+- **@testing-library/jest-dom** (^6.9.1) - Custom DOM matchers for more expressive assertions
+- **@testing-library/user-event** (^14.6.1) - Advanced user interaction simulation for realistic testing
+- **jsdom** (^27.2.0) - Fast DOM implementation for Node.js testing environment
+- **@vitest/coverage-v8** (^4.0.9) - Advanced code coverage reporting with V8 engine integration
+- **@vitest/ui** (^4.0.9) - Interactive testing interface for enhanced debugging and development
 
-### Development Tools
-- **ESLint** (^9.39.1) - Code linting and quality checks
-- **Prettier** (^3.6.2) - Code formatting
-- **TypeScript ESLint** (^8.46.4) - TypeScript-specific linting rules
-- **Husky** (^9.1.7) - Git hooks for pre-commit checks
-- **vite-tsconfig-paths** (^5.1.4) - TypeScript path resolution for Vite
+### 🔧 Development Tools & Code Quality
+- **ESLint** (^9.39.1) - Advanced code linting with TypeScript-specific rules and React best practices
+- **Prettier** (^3.6.2) - Opinionated code formatting for consistent style across the codebase
+- **TypeScript ESLint** (^8.46.4) - Comprehensive TypeScript linting rules and type checking
+- **Husky** (^9.1.7) - Git hooks for automated pre-commit quality checks and validation
+- **vite-tsconfig-paths** (^5.1.4) - TypeScript path mapping support for clean import statements
 
-### Runtime
-- **Node.js 20** - Runtime environment (Alpine Linux in Docker)
-- **@react-router/node** (^7.9.2) - React Router Node.js adapter
-- **@react-router/serve** (^7.9.2) - React Router production server
-- **isbot** (^5.1.31) - Bot detection for SSR optimization
+### 🚀 Production & Deployment
+- **@react-router/node** (^7.9.2) - Node.js adapter for server-side rendering and API integration
+- **@react-router/serve** (^7.9.2) - Production server with optimized performance and caching
+- **isbot** (^5.1.31) - Intelligent bot detection for SSR optimization and performance tuning
+- **Docker Support** - Multi-stage Docker builds for optimized production deployments
+- **Alpine Linux** - Lightweight container base for minimal production footprint
+
+### 🔐 Security & Authentication
+- **bcryptjs** (^2.4.3) - Secure password hashing and validation utilities
+- **JWT Integration** - Seamless integration with backend JWT authentication system
+- **CSRF Protection** - Built-in protection against cross-site request forgery attacks
+- **XSS Prevention** - Automatic sanitization and protection against cross-site scripting
 
 ## 🔧 Troubleshooting
 
