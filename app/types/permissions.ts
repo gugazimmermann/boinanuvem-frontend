@@ -27,6 +27,7 @@ export interface UserPermissions {
     sanitaryControls: ResourcePermissions;
     locationMovements: ResourcePermissions;
     animalMovements: ResourcePermissions;
+    inventoryMovements: ResourcePermissions;
   };
   breedings: {
     breedings: ResourcePermissions;
@@ -40,6 +41,13 @@ export interface UserPermissions {
     accountsPayable: ResourcePermissions;
     accountsReceivable: ResourcePermissions;
     bankAccounts: ResourcePermissions;
+  };
+  reports: {
+    analytics: ResourcePermissions;
+    financialReports: ResourcePermissions;
+    animalReports: ResourcePermissions;
+    productionReports: ResourcePermissions;
+    inventoryReports: ResourcePermissions;
   };
 }
 
@@ -143,6 +151,12 @@ export const defaultPermissions: UserPermissions = {
       edit: false,
       remove: false,
     },
+    inventoryMovements: {
+      view: false,
+      add: false,
+      edit: false,
+      remove: false,
+    },
   },
   breedings: {
     breedings: {
@@ -196,6 +210,38 @@ export const defaultPermissions: UserPermissions = {
       remove: false,
     },
     bankAccounts: {
+      view: false,
+      add: false,
+      edit: false,
+      remove: false,
+    },
+  },
+  reports: {
+    analytics: {
+      view: false,
+      add: false,
+      edit: false,
+      remove: false,
+    },
+    financialReports: {
+      view: false,
+      add: false,
+      edit: false,
+      remove: false,
+    },
+    animalReports: {
+      view: false,
+      add: false,
+      edit: false,
+      remove: false,
+    },
+    productionReports: {
+      view: false,
+      add: false,
+      edit: false,
+      remove: false,
+    },
+    inventoryReports: {
       view: false,
       add: false,
       edit: false,

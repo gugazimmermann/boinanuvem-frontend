@@ -23,6 +23,7 @@ const fullPermissions: UserPermissions = {
     sanitaryControls: { view: true, add: true, edit: true, remove: true },
     locationMovements: { view: true, add: true, edit: true, remove: true },
     animalMovements: { view: true, add: true, edit: true, remove: true },
+    inventoryMovements: { view: true, add: true, edit: true, remove: true },
   },
   breedings: {
     breedings: { view: true, add: true, edit: true, remove: true },
@@ -36,6 +37,13 @@ const fullPermissions: UserPermissions = {
     accountsPayable: { view: true, add: true, edit: true, remove: true },
     accountsReceivable: { view: true, add: true, edit: true, remove: true },
     bankAccounts: { view: true, add: true, edit: true, remove: true },
+  },
+  reports: {
+    analytics: { view: true, add: true, edit: true, remove: true },
+    financialReports: { view: true, add: true, edit: true, remove: true },
+    animalReports: { view: true, add: true, edit: true, remove: true },
+    productionReports: { view: true, add: true, edit: true, remove: true },
+    inventoryReports: { view: true, add: true, edit: true, remove: true },
   },
 };
 
@@ -59,6 +67,7 @@ const managerPermissions: UserPermissions = {
     sanitaryControls: { view: true, add: true, edit: true, remove: false },
     locationMovements: { view: true, add: true, edit: true, remove: false },
     animalMovements: { view: true, add: true, edit: true, remove: false },
+    inventoryMovements: { view: true, add: true, edit: true, remove: false },
   },
   breedings: {
     breedings: { view: true, add: true, edit: true, remove: false },
@@ -72,6 +81,13 @@ const managerPermissions: UserPermissions = {
     accountsPayable: { view: true, add: true, edit: true, remove: false },
     accountsReceivable: { view: true, add: true, edit: true, remove: false },
     bankAccounts: { view: true, add: true, edit: true, remove: false },
+  },
+  reports: {
+    analytics: { view: true, add: true, edit: true, remove: false },
+    financialReports: { view: true, add: true, edit: true, remove: false },
+    animalReports: { view: true, add: true, edit: true, remove: false },
+    productionReports: { view: true, add: true, edit: true, remove: false },
+    inventoryReports: { view: true, add: true, edit: true, remove: false },
   },
 };
 
@@ -95,6 +111,7 @@ const regularUserPermissions: UserPermissions = {
     sanitaryControls: { view: true, add: true, edit: false, remove: false },
     locationMovements: { view: true, add: true, edit: false, remove: false },
     animalMovements: { view: true, add: true, edit: false, remove: false },
+    inventoryMovements: { view: true, add: true, edit: false, remove: false },
   },
   breedings: {
     breedings: { view: true, add: true, edit: false, remove: false },
@@ -108,6 +125,13 @@ const regularUserPermissions: UserPermissions = {
     accountsPayable: { view: true, add: false, edit: false, remove: false },
     accountsReceivable: { view: true, add: false, edit: false, remove: false },
     bankAccounts: { view: true, add: false, edit: false, remove: false },
+  },
+  reports: {
+    analytics: { view: true, add: false, edit: false, remove: false },
+    financialReports: { view: true, add: false, edit: false, remove: false },
+    animalReports: { view: true, add: false, edit: false, remove: false },
+    productionReports: { view: true, add: false, edit: false, remove: false },
+    inventoryReports: { view: true, add: false, edit: false, remove: false },
   },
 };
 
@@ -131,6 +155,7 @@ const inactiveUserPermissions: UserPermissions = {
     sanitaryControls: { view: true, add: false, edit: false, remove: false },
     locationMovements: { view: true, add: false, edit: false, remove: false },
     animalMovements: { view: true, add: false, edit: false, remove: false },
+    inventoryMovements: { view: true, add: false, edit: false, remove: false },
   },
   breedings: {
     breedings: { view: true, add: false, edit: false, remove: false },
@@ -144,6 +169,13 @@ const inactiveUserPermissions: UserPermissions = {
     accountsPayable: { view: true, add: false, edit: false, remove: false },
     accountsReceivable: { view: true, add: false, edit: false, remove: false },
     bankAccounts: { view: true, add: false, edit: false, remove: false },
+  },
+  reports: {
+    analytics: { view: true, add: false, edit: false, remove: false },
+    financialReports: { view: true, add: false, edit: false, remove: false },
+    animalReports: { view: true, add: false, edit: false, remove: false },
+    productionReports: { view: true, add: false, edit: false, remove: false },
+    inventoryReports: { view: true, add: false, edit: false, remove: false },
   },
 };
 
@@ -167,6 +199,7 @@ const pendingUserPermissions: UserPermissions = {
     sanitaryControls: { view: false, add: false, edit: false, remove: false },
     locationMovements: { view: false, add: false, edit: false, remove: false },
     animalMovements: { view: false, add: false, edit: false, remove: false },
+    inventoryMovements: { view: false, add: false, edit: false, remove: false },
   },
   breedings: {
     breedings: { view: false, add: false, edit: false, remove: false },
@@ -180,6 +213,13 @@ const pendingUserPermissions: UserPermissions = {
     accountsPayable: { view: false, add: false, edit: false, remove: false },
     accountsReceivable: { view: false, add: false, edit: false, remove: false },
     bankAccounts: { view: false, add: false, edit: false, remove: false },
+  },
+  reports: {
+    analytics: { view: false, add: false, edit: false, remove: false },
+    financialReports: { view: false, add: false, edit: false, remove: false },
+    animalReports: { view: false, add: false, edit: false, remove: false },
+    productionReports: { view: false, add: false, edit: false, remove: false },
+    inventoryReports: { view: false, add: false, edit: false, remove: false },
   },
 };
 

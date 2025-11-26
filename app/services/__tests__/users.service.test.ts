@@ -182,6 +182,7 @@ describe("users.service", () => {
           sanitaryControls: { view: false, add: false, edit: false, remove: false },
           locationMovements: { view: false, add: false, edit: false, remove: false },
           animalMovements: { view: false, add: false, edit: false, remove: false },
+          inventoryMovements: { view: false, add: false, edit: false, remove: false },
         },
         breedings: {
           breedings: { view: false, add: false, edit: false, remove: false },
@@ -195,6 +196,13 @@ describe("users.service", () => {
           accountsPayable: { view: false, add: false, edit: false, remove: false },
           accountsReceivable: { view: false, add: false, edit: false, remove: false },
           bankAccounts: { view: false, add: false, edit: false, remove: false },
+        },
+        reports: {
+          analytics: { view: false, add: false, edit: false, remove: false },
+          financialReports: { view: false, add: false, edit: false, remove: false },
+          animalReports: { view: false, add: false, edit: false, remove: false },
+          productionReports: { view: false, add: false, edit: false, remove: false },
+          inventoryReports: { view: false, add: false, edit: false, remove: false },
         },
       };
 

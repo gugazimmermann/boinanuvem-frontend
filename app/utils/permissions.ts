@@ -22,6 +22,7 @@ const fullPermissions: UserPermissions = {
     sanitaryControls: { view: true, add: true, edit: true, remove: true },
     locationMovements: { view: true, add: true, edit: true, remove: true },
     animalMovements: { view: true, add: true, edit: true, remove: true },
+    inventoryMovements: { view: true, add: true, edit: true, remove: true },
   },
   breedings: {
     breedings: { view: true, add: true, edit: true, remove: true },
@@ -35,6 +36,13 @@ const fullPermissions: UserPermissions = {
     accountsPayable: { view: true, add: true, edit: true, remove: true },
     accountsReceivable: { view: true, add: true, edit: true, remove: true },
     bankAccounts: { view: true, add: true, edit: true, remove: true },
+  },
+  reports: {
+    analytics: { view: true, add: true, edit: true, remove: true },
+    financialReports: { view: true, add: true, edit: true, remove: true },
+    animalReports: { view: true, add: true, edit: true, remove: true },
+    productionReports: { view: true, add: true, edit: true, remove: true },
+    inventoryReports: { view: true, add: true, edit: true, remove: true },
   },
 };
 
@@ -70,6 +78,7 @@ export function usePermissions() {
         sanitaryControls: { view: false, add: false, edit: false, remove: false },
         locationMovements: { view: false, add: false, edit: false, remove: false },
         animalMovements: { view: false, add: false, edit: false, remove: false },
+        inventoryMovements: { view: false, add: false, edit: false, remove: false },
       },
       breedings: {
         breedings: { view: false, add: false, edit: false, remove: false },
@@ -83,6 +92,13 @@ export function usePermissions() {
         accountsPayable: { view: false, add: false, edit: false, remove: false },
         accountsReceivable: { view: false, add: false, edit: false, remove: false },
         bankAccounts: { view: false, add: false, edit: false, remove: false },
+      },
+      reports: {
+        analytics: { view: false, add: false, edit: false, remove: false },
+        financialReports: { view: false, add: false, edit: false, remove: false },
+        animalReports: { view: false, add: false, edit: false, remove: false },
+        productionReports: { view: false, add: false, edit: false, remove: false },
+        inventoryReports: { view: false, add: false, edit: false, remove: false },
       },
     };
   }, [currentUser]);
