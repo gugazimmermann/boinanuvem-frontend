@@ -70,7 +70,10 @@ export default function PregnantCows() {
 
       const birth = getBirthByAnimalId(animal.id);
       const property = getPropertyById(animal.propertyId);
-      const breedName = birth?.breed ? t.animals.breeds[birth.breed] || birth.breed : "";
+      const breedName = (() => {
+        if (!birth?.breed) return "";
+        return t.animals.breeds[birth.breed] || birth.breed;
+      })();
 
       return {
         ...animal,
@@ -133,7 +136,7 @@ export default function PregnantCows() {
       sortable: false,
       render: (_, row) => {
         const birth = getBirthByAnimalId(row.id);
-        if (!birth || !birth.breed) {
+        if (!birth?.breed) {
           return <span className="text-gray-700 dark:text-gray-300">-</span>;
         }
         return (
@@ -188,9 +191,16 @@ export default function PregnantCows() {
         return (
           <Tooltip content={`${row.daysPregnant} ${t.breedings.pregnant.table.days}`}>
             <span className="text-gray-700 dark:text-gray-300">
-              {months > 0
-                ? `${months} ${t.breedings.pregnant.table.months}${days > 0 ? ` ${t.breedings.pregnant.table.and} ${days} ${t.breedings.pregnant.table.days}` : ""}`
-                : `${row.daysPregnant} ${t.breedings.pregnant.table.days}`}
+              {(() => {
+                if (months > 0) {
+                  const daysText =
+                    days > 0
+                      ? ` ${t.breedings.pregnant.table.and} ${days} ${t.breedings.pregnant.table.days}`
+                      : "";
+                  return `${months} ${t.breedings.pregnant.table.months}${daysText}`;
+                }
+                return `${row.daysPregnant} ${t.breedings.pregnant.table.days}`;
+              })()}
             </span>
           </Tooltip>
         );

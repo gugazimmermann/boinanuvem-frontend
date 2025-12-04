@@ -4,13 +4,13 @@ import { AnimalCodeDisplay } from "../animal-code-display";
 import type { Animal } from "~/types";
 
 export interface AnimalSelectionSectionProps {
-  animals: Animal[];
-  selectedAnimalIds: string[];
-  searchValue: string;
-  onSearchChange: (value: string) => void;
-  onToggleAnimal: (animalId: string) => void;
-  error?: string;
-  disabled?: boolean;
+  readonly animals: Animal[];
+  readonly selectedAnimalIds: string[];
+  readonly searchValue: string;
+  readonly onSearchChange: (value: string) => void;
+  readonly onToggleAnimal: (animalId: string) => void;
+  readonly error?: string;
+  readonly disabled?: boolean;
 }
 
 export function AnimalSelectionSection({

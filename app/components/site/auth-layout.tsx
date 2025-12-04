@@ -1,8 +1,9 @@
 import { type ReactNode } from "react";
-import { ROUTES } from "../../routes.config";
+import { ROUTES } from "~/routes.config";
+import { FooterCopyright } from "./footer-copyright";
 
 interface AuthLayoutProps {
-  children: ReactNode;
+  readonly children: ReactNode;
 }
 
 export function AuthLayout({ children }: AuthLayoutProps) {
@@ -29,28 +30,9 @@ export function AuthLayout({ children }: AuthLayoutProps) {
 
       <main className="flex-1 flex items-center justify-center py-12 px-4">{children}</main>
 
-      <footer className="bg-white/50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-800 py-3">
+      <footer className="bg-white/50 dark:bg-gray-900/50 py-3">
         <div className="container mx-auto px-4 max-w-7xl">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-2">
-            <p className="text-xs text-gray-500 dark:text-gray-400 text-center md:text-left">
-              Copyrights © {new Date().getFullYear()} All Rights Reserved by Boi na Nuvem
-            </p>
-            <div className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400">
-              <a
-                href={ROUTES.TERMS}
-                className="hover:text-gray-900 dark:hover:text-gray-200 transition-colors cursor-pointer"
-              >
-                Termos
-              </a>
-              <span className="text-gray-300 dark:text-gray-600">|</span>
-              <a
-                href={ROUTES.PRIVACY}
-                className="hover:text-gray-900 dark:hover:text-gray-200 transition-colors cursor-pointer"
-              >
-                Privacidade
-              </a>
-            </div>
-          </div>
+          <FooterCopyright variant="transparent" />
         </div>
       </footer>
     </div>

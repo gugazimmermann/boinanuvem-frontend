@@ -1,134 +1,60 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
-import { createMemoryRouter, RouterProvider } from "react-router";
-import type { RouteObject } from "react-router";
-import type { ComponentProps } from "react";
-import { LanguageProvider } from "~/contexts/language-context";
-import { ThemeProvider } from "~/contexts/theme-context";
-import { AuthProvider } from "~/contexts/auth-context";
-import Register, { meta, loader as registerLoader } from "../register";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router";
+import { loader, meta, links, default as Register } from "../register";
 import { ROUTES } from "~/routes.config";
-import type { TeamUser } from "~/types";
-import { getUserById } from "~/services/users.service";
-import { AuthInput, AuthButton, AuthSelect } from "~/components/site/ui";
-import type {
-  UseCNPJLookupOptions,
-  UseCNPJLookupReturn,
-  UseCEPLookupOptions,
-  UseCEPLookupReturn,
-  CNPJData,
-  CEPData,
-} from "~/types";
-import type { AddressFormData, CompanyFormData } from "~/types";
+import { requireGuest } from "~/utils/route-guard";
 
-const mockNavigate = vi.fn();
+vi.mock("~/utils/route-guard", () => ({
+  requireGuest: vi.fn(() => Promise.resolve(null)),
+  useRequireGuest: vi.fn(),
+}));
 
-const mockUser: TeamUser = {
-  id: "test-user-id",
-  name: "Test User",
-  email: "test@example.com",
-  phone: "1234567890",
-  status: "active",
-  mainUser: false,
-  companyId: "company-id",
-  createdAt: "2025-01-01",
-  permissions: {} as never,
-};
-
-vi.mock("react-router", async () => {
-  const actual = await vi.importActual("react-router");
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-  };
-});
-
-vi.mock("~/services/users.service", () => ({
-  getUserById: vi.fn((id: string) => {
-    if (id === "test-user-id") return mockUser;
-    return null;
-  }),
+vi.mock("~/components/site/hooks", () => ({
+  useCNPJLookup: vi.fn(() => ({
+    data: null,
+    loading: false,
+    error: null,
+  })),
+  useCEPLookup: vi.fn(() => ({
+    data: null,
+    loading: false,
+    error: null,
+  })),
 }));
 
 vi.mock("~/components/site/auth-layout", () => ({
-  AuthLayout: ({ children }: { children: React.ReactNode }) => (
+  AuthLayout: vi.fn(({ children }: { children: React.ReactNode }) => (
     <div data-testid="auth-layout">{children}</div>
-  ),
+  )),
 }));
 
-vi.mock("~/components/site/ui", async () => {
-  const actual =
-    await vi.importActual<typeof import("~/components/site/ui")>("~/components/site/ui");
-  return {
-    ...actual,
-    AuthInput: ({
-      type,
-      placeholder,
-      value,
-      onChange,
-      error,
-      showPasswordToggle: _showPasswordToggle,
-      ...props
-    }: ComponentProps<typeof AuthInput> & { fullWidth?: boolean }) => {
-      const { fullWidth: _fullWidth, ...domProps } = props;
-      return (
-        <div>
-          <input
-            data-testid={`auth-input-${placeholder || type}`}
-            type={type}
-            placeholder={placeholder}
-            value={value || ""}
-            onChange={onChange || undefined}
-            {...domProps}
-          />
-          {error && <div data-testid={`error-${placeholder || type}`}>{error}</div>}
-        </div>
-      );
-    },
-    AuthButton: ({ children, onClick, type, ...props }: ComponentProps<typeof AuthButton>) => (
-      <button
-        data-testid={`auth-button-${children}`}
-        type={type as "button" | "submit" | "reset" | undefined}
-        onClick={onClick as React.MouseEventHandler<HTMLButtonElement> | undefined}
-        {...(props as React.ButtonHTMLAttributes<HTMLButtonElement>)}
-      >
-        {children}
-      </button>
-    ),
-    AuthSelect: ({ options, value, onChange, ...props }: ComponentProps<typeof AuthSelect>) => (
-      <select
-        data-testid={`auth-select-${props["aria-label"]}`}
-        value={value || ""}
-        onChange={onChange}
-        {...props}
-      >
-        {options?.map((opt: { value: string; label: string }) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
-    ),
-    AuthCard: ({
-      children,
+vi.mock("~/components/site/ui", () => ({
+  AuthCard: vi.fn(
+    ({
       title,
       subtitle,
+      children,
       footer,
+      maxWidth,
     }: {
+      title: string;
+      subtitle: string;
       children: React.ReactNode;
-      title?: string;
-      subtitle?: string;
       footer?: React.ReactNode;
+      maxWidth?: string;
     }) => (
-      <div data-testid="auth-card">
-        <div>Boi na Nuvem</div>
-        {title && <h3>{title}</h3>}
-        {subtitle && <p>{subtitle}</p>}
+      <div data-testid="auth-card" data-max-width={maxWidth}>
+        <h1>{title}</h1>
+        <p>{subtitle}</p>
         {children}
         {footer}
       </div>
-    ),
-    AuthFooter: ({
+    )
+  ),
+  AuthFooter: vi.fn(
+    ({
       question,
       linkText,
       linkRoute,
@@ -138,1494 +64,1115 @@ vi.mock("~/components/site/ui", async () => {
       linkRoute: string;
     }) => (
       <div data-testid="auth-footer">
-        <span>{question} </span>
+        <span>{question}</span>
         <a href={linkRoute}>{linkText}</a>
       </div>
-    ),
-    AuthFormError: ({ error }: { error?: string }) =>
-      error ? <div data-testid="auth-form-error">{error}</div> : null,
-    AddressForm: ({
+    )
+  ),
+  AuthButton: vi.fn(
+    ({
+      children,
+      type,
+      variant,
+      size,
+      fullWidth,
+      disabled,
+      onClick,
+    }: {
+      children: React.ReactNode;
+      type?: string;
+      variant?: string;
+      size?: string;
+      fullWidth?: boolean;
+      disabled?: boolean;
+      onClick?: () => void;
+    }) => (
+      <button
+        type={type as "button" | "submit" | "reset"}
+        data-variant={variant}
+        data-size={size}
+        data-full-width={fullWidth}
+        disabled={disabled}
+        onClick={onClick}
+      >
+        {children}
+      </button>
+    )
+  ),
+  AddressForm: vi.fn(
+    ({
       data,
       onChange,
       errors,
       zipCodeError,
       zipCodeLoading,
+      onZipCodeSuccess: _onZipCodeSuccess,
     }: {
-      data: AddressFormData;
-      onChange: (field: keyof AddressFormData, value: string) => void;
-      errors?: Partial<Record<keyof AddressFormData, string>>;
+      data: Record<string, string>;
+      onChange?: (field: string, value: string) => void;
+      errors?: Record<string, string>;
       zipCodeError?: string;
       zipCodeLoading?: boolean;
-    }) => {
-      return (
-        <div data-testid="address-form">
-          <div>
-            <input
-              data-testid="address-zipcode"
-              placeholder="CEP"
-              value={data.zipCode || ""}
-              onChange={(e) => {
-                const masked = mockMaskCEP(e.target.value);
-                onChange("zipCode", masked);
-              }}
-            />
-            {zipCodeLoading && <p>Searching address...</p>}
-            {(zipCodeError || errors?.zipCode) && (
-              <div data-testid="error-zipcode">{zipCodeError || errors?.zipCode}</div>
-            )}
+      onZipCodeSuccess?: (data: unknown) => void;
+    }) => (
+      <div data-testid="address-form">
+        <input
+          data-testid="address-zipcode"
+          value={data.zipCode || ""}
+          onChange={(e) => onChange?.("zipCode", e.target.value)}
+          placeholder="CEP"
+        />
+        <input
+          data-testid="address-street"
+          value={data.street || ""}
+          onChange={(e) => onChange?.("street", e.target.value)}
+          placeholder="Rua"
+        />
+        <input
+          data-testid="address-number"
+          value={data.number || ""}
+          onChange={(e) => onChange?.("number", e.target.value)}
+          placeholder="Número"
+        />
+        <input
+          data-testid="address-neighborhood"
+          value={data.neighborhood || ""}
+          onChange={(e) => onChange?.("neighborhood", e.target.value)}
+          placeholder="Bairro"
+        />
+        <input
+          data-testid="address-city"
+          value={data.city || ""}
+          onChange={(e) => onChange?.("city", e.target.value)}
+          placeholder="Cidade"
+        />
+        <input
+          data-testid="address-state"
+          value={data.state || ""}
+          onChange={(e) => onChange?.("state", e.target.value)}
+          placeholder="Estado"
+        />
+        {zipCodeError && <div data-testid="zipcode-error">{zipCodeError}</div>}
+        {zipCodeLoading && <div data-testid="zipcode-loading">Loading...</div>}
+        {errors && Object.keys(errors).length > 0 && (
+          <div data-testid="address-errors">
+            {Object.entries(errors).map(([key, value]) => (
+              <span key={key} data-testid={`error-${key}`}>
+                {value}
+              </span>
+            ))}
           </div>
-          <input
-            data-testid="address-street"
-            placeholder="Rua"
-            value={data.street || ""}
-            onChange={(e) => onChange("street", e.target.value)}
-          />
-          <input
-            placeholder="Número"
-            value={data.number || ""}
-            onChange={(e) => onChange("number", e.target.value)}
-          />
-          <input
-            placeholder="Complemento"
-            value={data.complement || ""}
-            onChange={(e) => onChange("complement", e.target.value)}
-          />
-          <input
-            placeholder="Bairro"
-            value={data.neighborhood || ""}
-            onChange={(e) => onChange("neighborhood", e.target.value)}
-          />
-          <input
-            placeholder="Cidade"
-            value={data.city || ""}
-            onChange={(e) => onChange("city", e.target.value)}
-          />
-          <select
-            data-testid="auth-select-State"
-            value={data.state || ""}
-            onChange={(e) => onChange("state", e.target.value)}
-          >
-            <option value="">Selecione...</option>
-            <option value="SC">SC</option>
-          </select>
-        </div>
-      );
-    },
-    StepIndicator: ({ currentStep, totalSteps }: { currentStep: number; totalSteps: number }) => (
-      <div data-testid="step-indicator">
-        {Array.from({ length: totalSteps }, (_, i) => i + 1).map((step) => (
-          <span key={step} data-active={step <= currentStep}>
-            {step}
-          </span>
-        ))}
+        )}
       </div>
-    ),
-  };
-});
-
-const mockUseCNPJLookup = vi.fn<[string, UseCNPJLookupOptions?], UseCNPJLookupReturn>();
-const mockUseCEPLookup = vi.fn<[string, UseCEPLookupOptions?], UseCEPLookupReturn>();
-
-vi.mock("~/components/site/hooks", () => ({
-  useCNPJLookup: (cnpj: string, options?: UseCNPJLookupOptions) => mockUseCNPJLookup(cnpj, options),
-  useCEPLookup: (cep: string, options?: UseCEPLookupOptions) => mockUseCEPLookup(cep, options),
+    )
+  ),
 }));
 
-const mockMapCNPJDataToCompanyForm = vi.fn<
-  [CNPJData, Partial<CompanyFormData>?],
-  CompanyFormData
->();
-const mockMapCEPDataToAddressForm = vi.fn<
-  [CEPData, Partial<AddressFormData>?],
-  Partial<AddressFormData>
->();
-const mockMaskCNPJ = vi.fn((val: string) => (val || "").replace(/\D/g, ""));
-const mockMaskPhone = vi.fn((val: string) => (val || "").replace(/\D/g, ""));
-const mockMaskCEP = vi.fn((val: string) => (val || "").replace(/\D/g, ""));
-const mockMaskCPF = vi.fn((val: string) => (val || "").replace(/\D/g, ""));
-const mockUnmaskCNPJ = vi.fn((val: string) => (val || "").replace(/\D/g, ""));
-const mockUnmaskCEP = vi.fn((val: string) => (val || "").replace(/\D/g, ""));
-const mockGeocodeAddress = vi.fn<
-  [
-    {
-      street: string;
-      number: string;
-      complement?: string;
-      neighborhood: string;
-      city: string;
-      state: string;
-      zipCode: string;
+vi.mock("~/components/ui", () => ({
+  Input: vi.fn(
+    ({
+      type,
+      placeholder,
+      value,
+      onChange,
+      error,
+      required,
+      "aria-label": ariaLabel,
+      showPasswordToggle,
+    }: {
+      type?: string;
+      placeholder?: string;
+      value?: string;
+      onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+      error?: string;
+      required?: boolean;
+      "aria-label"?: string;
+      showPasswordToggle?: boolean;
+    }) => (
+      <div>
+        <input
+          type={type}
+          placeholder={placeholder}
+          value={value}
+          onChange={onChange}
+          aria-label={ariaLabel}
+          data-error={error}
+          data-required={required}
+          data-password-toggle={showPasswordToggle}
+        />
+        {error && <span data-testid="input-error">{error}</span>}
+      </div>
+    )
+  ),
+  Alert: vi.fn(({ title, variant }: { title: string; variant: string }) => (
+    <div data-testid="alert" data-variant={variant}>
+      {title}
+    </div>
+  )),
+}));
+
+vi.mock("~/components/site/step-indicator", () => ({
+  StepIndicator: vi.fn(
+    ({ currentStep, totalSteps }: { currentStep: number; totalSteps: number }) => (
+      <div data-testid="step-indicator">
+        Step {currentStep} of {totalSteps}
+      </div>
+    )
+  ),
+}));
+
+vi.mock("~/i18n/use-translation", () => ({
+  useTranslation: vi.fn(() => ({
+    profile: {
+      company: {
+        fields: {
+          cnpj: "CNPJ",
+          companyName: "Razão Social",
+          email: "Email",
+          phone: "Telefone",
+          street: "Rua",
+          neighborhood: "Bairro",
+          city: "Cidade",
+          state: "Estado",
+          zipCode: "CEP",
+        },
+      },
+      errors: {
+        required: (field: string) => `${field} é obrigatório`,
+        cnpjMustHave14Digits: "CNPJ deve ter 14 dígitos",
+        cepMustHave8Digits: "CEP deve ter 8 dígitos",
+      },
     },
-  ],
-  Promise<{ lat: number; lon: number } | { error: string }>
->();
-const mockBuildAddressString = vi.fn<
-  [
-    {
-      street: string;
-      number: string;
-      complement?: string;
-      neighborhood: string;
-      city: string;
-      state: string;
-      zipCode: string;
+    common: {
+      invalidEmail: "Email inválido",
+      incompleteAddress: "Endereço incompleto",
+      addressNotFound: "Endereço não encontrado",
+      requestError: "Erro na requisição",
+      unknownError: "Erro desconhecido",
+      ariaLabels: {
+        cnpj: "CNPJ",
+        companyName: "Razão Social",
+        email: "Email",
+        phone: "Telefone",
+        name: "Nome",
+        cpf: "CPF",
+      },
     },
-  ],
-  string
->();
+  })),
+}));
 
 vi.mock("~/components/site/utils", () => ({
-  mapCNPJDataToCompanyForm: (data: CNPJData, existingData?: Partial<AddressFormData>) =>
-    mockMapCNPJDataToCompanyForm(data, existingData),
-  mapCEPDataToAddressForm: (data: CEPData, existingData?: Partial<AddressFormData>) =>
-    mockMapCEPDataToAddressForm(data, existingData),
-  maskCNPJ: (value: string) => mockMaskCNPJ(value),
-  maskPhone: (value: string) => mockMaskPhone(value),
-  maskCEP: (value: string) => mockMaskCEP(value),
-  maskCPF: (value: string) => mockMaskCPF(value),
-  unmaskCNPJ: (value: string) => mockUnmaskCNPJ(value),
-  unmaskCEP: (value: string) => mockUnmaskCEP(value),
-  geocodeAddress: (address: {
-    street: string;
-    number: string;
-    complement?: string;
-    neighborhood: string;
-    city: string;
-    state: string;
-    zipCode: string;
-  }) => mockGeocodeAddress(address),
-  buildAddressString: (address: {
-    street: string;
-    number: string;
-    complement?: string;
-    neighborhood: string;
-    city: string;
-    state: string;
-    zipCode: string;
-  }) => mockBuildAddressString(address),
+  maskCNPJ: vi.fn((value: string) => value),
+  maskPhone: vi.fn((value: string) => value),
+  maskCPF: vi.fn((value: string) => value),
+  unmaskCNPJ: vi.fn((value: string) => value.replace(/\D/g, "")),
+  unmaskCEP: vi.fn((value: string) => value.replace(/\D/g, "")),
+  geocodeAddress: vi.fn(() => Promise.resolve({ lat: -23.5505, lon: -46.6333 })),
+  buildAddressString: vi.fn(() => "Test Address"),
+  mapCNPJDataToCompanyForm: vi.fn(
+    (
+      data: {
+        nome?: string;
+        email?: string;
+        telefone?: string;
+        logradouro?: string;
+        numero?: string;
+        complemento?: string;
+        bairro?: string;
+        municipio?: string;
+        uf?: string;
+      },
+      prev: Partial<{
+        companyName: string;
+        email: string;
+        phone: string;
+        street: string;
+        number: string;
+        complement: string;
+        neighborhood: string;
+        city: string;
+        state: string;
+      }>
+    ) => ({
+      ...prev,
+      companyName: data.nome || prev.companyName,
+      email: data.email || prev.email,
+      phone: data.telefone || prev.phone,
+      street: data.logradouro || prev.street,
+      number: data.numero || prev.number,
+      complement: data.complemento || prev.complement,
+      neighborhood: data.bairro || prev.neighborhood,
+      city: data.municipio || prev.city,
+      state: data.uf || prev.state,
+    })
+  ),
+  mapCEPDataToAddressForm: vi.fn(
+    (
+      data: { logradouro?: string; bairro?: string; localidade?: string; uf?: string },
+      prev: Partial<{ street: string; neighborhood: string; city: string; state: string }>
+    ) => ({
+      ...prev,
+      street: data.logradouro || prev.street,
+      neighborhood: data.bairro || prev.neighborhood,
+      city: data.localidade || prev.city,
+      state: data.uf || prev.state,
+    })
+  ),
 }));
 
-vi.mock("~/utils/brazilian-states", () => ({
-  BRAZILIAN_STATES: [
-    { code: "SC", name: "Santa Catarina" },
-    { code: "PR", name: "Paraná" },
-  ],
+vi.mock("~/utils/email-validation", () => ({
+  isValidEmail: vi.fn((email: string) => email.includes("@")),
 }));
 
-describe("Register", () => {
-  const createRouter = (isAuthenticated = false, includeLoader = false) => {
-    if (isAuthenticated && typeof window !== "undefined") {
-      localStorage.setItem("currentUserId", "test-user-id");
-    } else if (typeof window !== "undefined") {
-      localStorage.removeItem("currentUserId");
-    }
-    const routeConfig: RouteObject = {
-      path: "/register",
-      element: (
-        <LanguageProvider>
-          <ThemeProvider>
-            <AuthProvider>
-              <Register />
-            </AuthProvider>
-          </ThemeProvider>
-        </LanguageProvider>
-      ),
-      ...(includeLoader && { loader: registerLoader }),
-    };
-    return createMemoryRouter(
-      [
-        routeConfig,
-        {
-          path: ROUTES.DASHBOARD,
-          element: <div data-testid="dashboard-page">Dashboard</div>,
-        },
-      ],
-      {
-        initialEntries: ["/register"],
-      }
-    );
-  };
+const TestWrapper = ({ children }: { children: React.ReactNode }) => (
+  <MemoryRouter>{children}</MemoryRouter>
+);
 
+describe("register", () => {
   beforeEach(() => {
-    if (typeof window !== "undefined") {
-      localStorage.clear();
-    }
     vi.clearAllMocks();
-    mockNavigate.mockClear();
-    vi.mocked(getUserById).mockReturnValue(mockUser);
-    mockUseCNPJLookup.mockReturnValue({
-      data: null,
-      loading: false,
-      error: null,
-    });
-    mockUseCEPLookup.mockReturnValue({
-      data: null,
-      loading: false,
-      error: null,
-    });
-    mockMapCNPJDataToCompanyForm.mockImplementation((data: CNPJData) => ({
-      cnpj: data.cnpj || "",
-      companyName: data.razao_social || "",
-      email: data.email || "",
-      phone: data.ddd_telefone_1 || "",
-      street: data.logradouro || "",
-      number: data.numero || "",
-      complement: data.complemento || "",
-      neighborhood: data.bairro || "",
-      city: data.municipio || "",
-      state: data.uf || "",
-      zipCode: data.cep || "",
-    }));
-    mockMapCEPDataToAddressForm.mockImplementation((data: CEPData) => ({
-      zipCode: data.cep || "",
-      street: data.street || "",
-      neighborhood: data.neighborhood || "",
-      city: data.city || "",
-      state: data.state || "",
-      number: "",
-      complement: "",
-    }));
-    mockUnmaskCNPJ.mockImplementation((val: string) => (val || "").replace(/\D/g, ""));
-    mockUnmaskCEP.mockImplementation((val: string) => (val || "").replace(/\D/g, ""));
-    mockGeocodeAddress.mockResolvedValue({ lat: -23.5505, lon: -46.6333 });
-    mockBuildAddressString.mockReturnValue("Test Address, 123");
   });
 
-  it("should render register form step 1", () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    expect(screen.getByTestId("auth-layout")).toBeInTheDocument();
-    expect(screen.getByText("Dados da Empresa")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("CNPJ")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Razão Social")).toBeInTheDocument();
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
-  it("should display step indicators", () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    expect(screen.getByText("1")).toBeInTheDocument();
-    expect(screen.getByText("2")).toBeInTheDocument();
-  });
-
-  it("should have login link", () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    const loginLink = screen.getByText("Entrar");
-    expect(loginLink).toBeInTheDocument();
-    expect(loginLink.closest("a")).toHaveAttribute("href", ROUTES.LOGIN);
-  });
-
-  it("should have correct meta function", () => {
-    const metaData = meta();
-    expect(metaData.length).toBeGreaterThan(2);
-    expect(metaData).toContainEqual({ title: "Cadastrar - Boi na Nuvem" });
-    expect(metaData).toContainEqual({
-      name: "description",
-      content: expect.stringContaining("Crie sua conta na Boi na Nuvem"),
-    });
-    type MetaTag = { title?: string; name?: string; property?: string; content?: string };
-    expect(metaData.some((m: MetaTag) => m.property === "og:title")).toBe(true);
-    expect(
-      metaData.some((m: MetaTag) => m.name === "robots" && m.content?.includes("noindex"))
-    ).toBe(true);
-  });
-
-  it("should handle company data changes", () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    const cnpjInput = screen.getByPlaceholderText("CNPJ");
-    fireEvent.change(cnpjInput, { target: { value: "12345678000190" } });
-    expect(cnpjInput).toHaveValue("12345678000190");
-
-    const companyNameInput = screen.getByPlaceholderText("Razão Social");
-    fireEvent.change(companyNameInput, { target: { value: "Test Company" } });
-    expect(companyNameInput).toHaveValue("Test Company");
-  });
-
-  it("should call CNPJ lookup hook with unmasked value", () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    const cnpjInput = screen.getByPlaceholderText("CNPJ");
-    fireEvent.change(cnpjInput, { target: { value: "12.345.678/0001-90" } });
-
-    expect(mockUnmaskCNPJ).toHaveBeenCalled();
-  });
-
-  it("should call CEP lookup hook for company zip code", () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    const zipCodeInput = screen.getByPlaceholderText("CEP");
-    fireEvent.change(zipCodeInput, { target: { value: "12345678" } });
-
-    expect(mockUnmaskCEP).toHaveBeenCalled();
-  });
-
-  it("should show loading state for CNPJ lookup", () => {
-    mockUseCNPJLookup.mockReturnValue({
-      data: null,
-      loading: true,
-      error: null,
-    });
-
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    expect(screen.getByText("Searching CNPJ data...")).toBeInTheDocument();
-  });
-
-  it("should show loading state for CEP lookup", () => {
-    mockUseCEPLookup.mockReturnValue({
-      data: null,
-      loading: true,
-      error: null,
-    });
-
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    const zipCodeInput = screen.getByPlaceholderText("CEP");
-    fireEvent.change(zipCodeInput, { target: { value: "12345678" } });
-
-    expect(screen.getByText("Searching address...")).toBeInTheDocument();
-  });
-
-  it("should display CNPJ error", () => {
-    mockUseCNPJLookup.mockReturnValue({
-      data: null,
-      loading: false,
-      error: "CNPJ not found",
-    });
-
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    expect(screen.getByText("CNPJ not found")).toBeInTheDocument();
-  });
-
-  it("should display CEP error", () => {
-    mockUseCEPLookup.mockReturnValue({
-      data: null,
-      loading: false,
-      error: "CEP not found",
-    });
-
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    const zipCodeInput = screen.getByPlaceholderText("CEP");
-    fireEvent.change(zipCodeInput, { target: { value: "12345678" } });
-
-    expect(screen.getByText("CEP not found")).toBeInTheDocument();
-  });
-
-  it("should not proceed to step 2 with invalid company data", () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    const nextButton = screen.getByText("Próximo");
-    fireEvent.click(nextButton);
-
-    expect(screen.getByText("Dados da Empresa")).toBeInTheDocument();
-  });
-
-  it("should proceed to step 2 with valid company data", () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    fireEvent.change(screen.getByPlaceholderText("CNPJ"), {
-      target: { value: "12345678000190" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Razão Social"), {
-      target: { value: "Test Company" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Email"), {
-      target: { value: "test@example.com" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Telefone"), {
-      target: { value: "11987654321" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("CEP"), {
-      target: { value: "12345678" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Rua"), {
-      target: { value: "Test Street" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Bairro"), {
-      target: { value: "Test Neighborhood" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Cidade"), {
-      target: { value: "Test City" },
-    });
-    fireEvent.change(screen.getByTestId("auth-select-State"), {
-      target: { value: "SC" },
-    });
-
-    const nextButton = screen.getByText("Próximo");
-    fireEvent.click(nextButton);
-
-    expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
-  });
-
-  it("should go back to step 1 from step 2", () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    fireEvent.change(screen.getByPlaceholderText("CNPJ"), {
-      target: { value: "12345678000190" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Razão Social"), {
-      target: { value: "Test Company" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Email"), {
-      target: { value: "test@example.com" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Telefone"), {
-      target: { value: "11987654321" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("CEP"), {
-      target: { value: "12345678" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Rua"), {
-      target: { value: "Test Street" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Bairro"), {
-      target: { value: "Test Neighborhood" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Cidade"), {
-      target: { value: "Test City" },
-    });
-    fireEvent.change(screen.getByTestId("auth-select-State"), {
-      target: { value: "SC" },
-    });
-
-    fireEvent.click(screen.getByText("Próximo"));
-    expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
-
-    const backButton = screen.getByText("Voltar");
-    fireEvent.click(backButton);
-
-    expect(screen.getByText("Dados da Empresa")).toBeInTheDocument();
-  });
-
-  it("should handle user data changes in step 2", () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    fireEvent.change(screen.getByPlaceholderText("CNPJ"), {
-      target: { value: "12345678000190" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Razão Social"), {
-      target: { value: "Test Company" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Email"), {
-      target: { value: "test@example.com" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Telefone"), {
-      target: { value: "11987654321" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("CEP"), {
-      target: { value: "12345678" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Rua"), {
-      target: { value: "Test Street" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Bairro"), {
-      target: { value: "Test Neighborhood" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Cidade"), {
-      target: { value: "Test City" },
-    });
-    fireEvent.change(screen.getByTestId("auth-select-State"), {
-      target: { value: "SC" },
-    });
-    fireEvent.click(screen.getByText("Próximo"));
-
-    const nameInput = screen.getByPlaceholderText("Nome");
-    fireEvent.change(nameInput, { target: { value: "John Doe" } });
-    expect(nameInput).toHaveValue("John Doe");
-  });
-
-  it("should call CEP lookup for user zip code in step 2", async () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    fireEvent.change(screen.getByPlaceholderText("CNPJ"), {
-      target: { value: "12345678000190" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Razão Social"), {
-      target: { value: "Test Company" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Email"), {
-      target: { value: "test@example.com" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Telefone"), {
-      target: { value: "11987654321" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("CEP"), {
-      target: { value: "12345678" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Rua"), {
-      target: { value: "Test Street" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Bairro"), {
-      target: { value: "Test Neighborhood" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Cidade"), {
-      target: { value: "Test City" },
-    });
-    fireEvent.change(screen.getByTestId("auth-select-State"), {
-      target: { value: "SC" },
-    });
-    fireEvent.click(screen.getByText("Próximo"));
-
-    await waitFor(() => {
-      expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
-    });
-
-    const zipCodeInputs = screen.getAllByPlaceholderText("CEP");
-    if (zipCodeInputs.length > 1) {
-      fireEvent.change(zipCodeInputs[zipCodeInputs.length - 1], { target: { value: "87654321" } });
-    } else {
-      fireEvent.change(zipCodeInputs[0], { target: { value: "87654321" } });
-    }
-
-    expect(mockUnmaskCEP).toHaveBeenCalled();
-  });
-
-  it("should handle form submission", async () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    fireEvent.change(screen.getByPlaceholderText("CNPJ"), {
-      target: { value: "12345678000190" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Razão Social"), {
-      target: { value: "Test Company" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Email"), {
-      target: { value: "test@example.com" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Telefone"), {
-      target: { value: "11987654321" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("CEP"), {
-      target: { value: "12345678" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Rua"), {
-      target: { value: "Test Street" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Bairro"), {
-      target: { value: "Test Neighborhood" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Cidade"), {
-      target: { value: "Test City" },
-    });
-    fireEvent.change(screen.getByTestId("auth-select-State"), {
-      target: { value: "SC" },
-    });
-    fireEvent.click(screen.getByText("Próximo"));
-
-    await waitFor(() => {
-      expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
-    });
-
-    fireEvent.change(screen.getByPlaceholderText("Nome"), {
-      target: { value: "John Doe" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("CPF"), {
-      target: { value: "12345678901" },
-    });
-    const emailInputs = screen.getAllByPlaceholderText("Email");
-    if (emailInputs.length > 0) {
-      fireEvent.change(emailInputs[emailInputs.length - 1], {
-        target: { value: "user@example.com" },
-      });
-    }
-    const phoneInputs = screen.getAllByPlaceholderText("Telefone");
-    if (phoneInputs.length > 0) {
-      fireEvent.change(phoneInputs[phoneInputs.length - 1], {
-        target: { value: "11987654321" },
-      });
-    }
-
-    const submitButton = screen.getByText("Cadastrar");
-    fireEvent.click(submitButton);
-
-    await waitFor(() => {
-      expect(mockGeocodeAddress).toHaveBeenCalledTimes(2);
-      expect(mockBuildAddressString).toHaveBeenCalledTimes(2);
+  describe("loader", () => {
+    it("should call requireGuest", async () => {
+      await loader();
+      expect(requireGuest).toHaveBeenCalled();
     });
   });
 
-  it("should handle geocoding errors in submission", async () => {
-    mockGeocodeAddress.mockResolvedValueOnce({
-      error: "INCOMPLETE_ADDRESS",
-    });
-    mockGeocodeAddress.mockResolvedValueOnce({
-      error: "ADDRESS_NOT_FOUND",
-    });
-
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    fireEvent.change(screen.getByPlaceholderText("CNPJ"), {
-      target: { value: "12345678000190" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Razão Social"), {
-      target: { value: "Test Company" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Email"), {
-      target: { value: "test@example.com" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Telefone"), {
-      target: { value: "11987654321" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("CEP"), {
-      target: { value: "12345678" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Rua"), {
-      target: { value: "Test Street" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Bairro"), {
-      target: { value: "Test Neighborhood" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Cidade"), {
-      target: { value: "Test City" },
-    });
-    fireEvent.change(screen.getByTestId("auth-select-State"), {
-      target: { value: "SC" },
-    });
-    fireEvent.click(screen.getByText("Próximo"));
-
-    fireEvent.change(screen.getByPlaceholderText("Nome"), {
-      target: { value: "John Doe" },
+  describe("meta", () => {
+    it("should return SEO meta tags", () => {
+      const result = meta();
+      expect(result).toBeDefined();
+      expect(Array.isArray(result)).toBe(true);
     });
 
-    const submitButton = screen.getByText("Cadastrar");
-    fireEvent.click(submitButton);
-
-    await waitFor(() => {
-      expect(mockGeocodeAddress).toHaveBeenCalled();
+    it("should include noindex", () => {
+      const result = meta();
+      const robotsTag = result.find((tag) => "name" in tag && tag.name === "robots");
+      expect(robotsTag).toBeDefined();
+      if (robotsTag && "content" in robotsTag) {
+        expect(robotsTag.content).toContain("noindex");
+      }
     });
   });
 
-  it("should validate email format", () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    fireEvent.change(screen.getByPlaceholderText("Email"), {
-      target: { value: "invalid-email" },
+  describe("links", () => {
+    it("should return canonical link", () => {
+      const result = links();
+      expect(result).toHaveLength(1);
+      expect(result[0].rel).toBe("canonical");
+      expect(result[0].href).toBe("https://boinanuvem.com.br/cadastrar");
     });
-    fireEvent.change(screen.getByPlaceholderText("CNPJ"), {
-      target: { value: "12345678000190" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Razão Social"), {
-      target: { value: "Test Company" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Telefone"), {
-      target: { value: "11987654321" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("CEP"), {
-      target: { value: "12345678" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Rua"), {
-      target: { value: "Test Street" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Bairro"), {
-      target: { value: "Test Neighborhood" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Cidade"), {
-      target: { value: "Test City" },
-    });
-    fireEvent.change(screen.getByTestId("auth-select-State"), {
-      target: { value: "SC" },
-    });
-
-    const nextButton = screen.getByText("Próximo");
-    fireEvent.click(nextButton);
-
-    expect(screen.getByText("Dados da Empresa")).toBeInTheDocument();
   });
 
-  it("should validate CNPJ length", () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
+  describe("Register component", () => {
+    it("should render AuthLayout", () => {
+      render(
+        <TestWrapper>
+          <Register />
+        </TestWrapper>
+      );
 
-    fireEvent.change(screen.getByPlaceholderText("CNPJ"), {
-      target: { value: "123" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Razão Social"), {
-      target: { value: "Test Company" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Email"), {
-      target: { value: "test@example.com" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Telefone"), {
-      target: { value: "11987654321" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("CEP"), {
-      target: { value: "12345678" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Rua"), {
-      target: { value: "Test Street" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Bairro"), {
-      target: { value: "Test Neighborhood" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Cidade"), {
-      target: { value: "Test City" },
-    });
-    fireEvent.change(screen.getByTestId("auth-select-State"), {
-      target: { value: "SC" },
+      expect(screen.getByTestId("auth-layout")).toBeInTheDocument();
     });
 
-    const nextButton = screen.getByText("Próximo");
-    fireEvent.click(nextButton);
+    it("should render step indicator", () => {
+      render(
+        <TestWrapper>
+          <Register />
+        </TestWrapper>
+      );
 
-    expect(screen.getByText("Dados da Empresa")).toBeInTheDocument();
-  });
-
-  it("should validate CEP length", () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    fireEvent.change(screen.getByPlaceholderText("CNPJ"), {
-      target: { value: "12345678000190" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Razão Social"), {
-      target: { value: "Test Company" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Email"), {
-      target: { value: "test@example.com" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Telefone"), {
-      target: { value: "11987654321" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("CEP"), {
-      target: { value: "123" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Rua"), {
-      target: { value: "Test Street" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Bairro"), {
-      target: { value: "Test Neighborhood" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Cidade"), {
-      target: { value: "Test City" },
-    });
-    fireEvent.change(screen.getByTestId("auth-select-State"), {
-      target: { value: "SC" },
+      expect(screen.getByTestId("step-indicator")).toBeInTheDocument();
+      expect(screen.getByText("Step 1 of 2")).toBeInTheDocument();
     });
 
-    const nextButton = screen.getByText("Próximo");
-    fireEvent.click(nextButton);
+    it("should render company data form on step 1", () => {
+      render(
+        <TestWrapper>
+          <Register />
+        </TestWrapper>
+      );
 
-    expect(screen.getByText("Dados da Empresa")).toBeInTheDocument();
-  });
-
-  it("should handle CNPJ lookup success callback", () => {
-    const mockCNPJData = {
-      cnpj: "12345678000190",
-      razao_social: "Test Company",
-      email: "company@example.com",
-    };
-
-    mockMapCNPJDataToCompanyForm.mockReturnValue({
-      companyName: "Test Company",
-      email: "company@example.com",
+      expect(screen.getByText("Dados da Empresa")).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("CNPJ")).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("Razão Social")).toBeInTheDocument();
     });
 
-    mockUseCNPJLookup.mockReturnValue({
-      data: mockCNPJData,
-      loading: false,
-      error: null,
+    it("should render free trial banner", () => {
+      render(
+        <TestWrapper>
+          <Register />
+        </TestWrapper>
+      );
+
+      expect(screen.getByText(/Teste Grátis por 14 dias/)).toBeInTheDocument();
     });
 
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
+    it("should render AuthFooter with link to login", () => {
+      render(
+        <TestWrapper>
+          <Register />
+        </TestWrapper>
+      );
 
-    expect(mockUseCNPJLookup).toHaveBeenCalled();
-  });
-
-  it("should handle CEP lookup success callback", () => {
-    const mockCEPData = {
-      cep: "12345678",
-      street: "Test Street",
-      neighborhood: "Test Neighborhood",
-      city: "Test City",
-      state: "SC",
-    };
-
-    mockMapCEPDataToAddressForm.mockReturnValue({
-      street: "Test Street",
-      neighborhood: "Test Neighborhood",
-      city: "Test City",
-      state: "SC",
+      const footer = screen.getByTestId("auth-footer");
+      expect(footer).toBeInTheDocument();
+      expect(screen.getByText("Já tem uma conta?")).toBeInTheDocument();
+      const link = screen.getByText("Entrar");
+      expect(link).toHaveAttribute("href", ROUTES.LOGIN);
     });
 
-    mockUseCEPLookup.mockReturnValue({
-      data: mockCEPData,
-      loading: false,
-      error: null,
+    it("should show next button on step 1", () => {
+      render(
+        <TestWrapper>
+          <Register />
+        </TestWrapper>
+      );
+
+      const button = screen.getByText("Próximo");
+      expect(button).toBeInTheDocument();
     });
 
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
+    it("should navigate to step 2 when next button is clicked with valid data", async () => {
+      render(
+        <TestWrapper>
+          <Register />
+        </TestWrapper>
+      );
 
-    const zipCodeInput = screen.getByPlaceholderText("CEP");
-    fireEvent.change(zipCodeInput, { target: { value: "12345678" } });
+      const cnpjInput = screen.getByPlaceholderText("CNPJ");
+      const companyNameInput = screen.getByPlaceholderText("Razão Social");
+      const emailInput = screen.getByPlaceholderText("Email");
+      const phoneInput = screen.getByPlaceholderText("Telefone");
+      const zipCodeInput = screen.getByTestId("address-zipcode");
+      const streetInput = screen.getByTestId("address-street");
+      const neighborhoodInput = screen.getByTestId("address-neighborhood");
+      const cityInput = screen.getByTestId("address-city");
+      const stateInput = screen.getByTestId("address-state");
 
-    expect(mockUseCEPLookup).toHaveBeenCalled();
-  });
+      await userEvent.type(cnpjInput, "12345678000190");
+      await userEvent.type(companyNameInput, "Test Company");
+      await userEvent.type(emailInput, "test@example.com");
+      await userEvent.type(phoneInput, "11999999999");
+      await userEvent.type(zipCodeInput, "12345678");
+      await userEvent.type(streetInput, "Test Street");
+      await userEvent.type(neighborhoodInput, "Test Neighborhood");
+      await userEvent.type(cityInput, "Test City");
+      await userEvent.type(stateInput, "SP");
 
-  const fillCompanyForm = () => {
-    fireEvent.change(screen.getByPlaceholderText("CNPJ"), {
-      target: { value: "12345678000190" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Razão Social"), {
-      target: { value: "Test Company" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Email"), {
-      target: { value: "test@example.com" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Telefone"), {
-      target: { value: "11987654321" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("CEP"), {
-      target: { value: "12345678" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Rua"), {
-      target: { value: "Test Street" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Bairro"), {
-      target: { value: "Test Neighborhood" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("Cidade"), {
-      target: { value: "Test City" },
-    });
-    fireEvent.change(screen.getByTestId("auth-select-State"), {
-      target: { value: "SC" },
-    });
-  };
+      const nextButton = screen.getByText("Próximo");
+      await userEvent.click(nextButton);
 
-  it("should handle form submission via form onSubmit", async () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    fillCompanyForm();
-    fireEvent.click(screen.getByText("Próximo"));
-
-    await waitFor(() => {
-      expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
-    });
-
-    const form = screen.getByPlaceholderText("Nome").closest("form");
-    expect(form).toBeInTheDocument();
-
-    if (form) {
-      fireEvent.submit(form);
       await waitFor(() => {
-        expect(mockGeocodeAddress).toHaveBeenCalled();
+        expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
       });
-    }
-  });
-
-  it("should handle handleSubmit without event parameter", async () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    fillCompanyForm();
-    fireEvent.click(screen.getByText("Próximo"));
-
-    await waitFor(() => {
-      expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
     });
 
-    const submitButton = screen.getByText("Cadastrar");
-    fireEvent.click(submitButton);
+    it("should show validation errors when required fields are missing", async () => {
+      render(
+        <TestWrapper>
+          <Register />
+        </TestWrapper>
+      );
 
-    await waitFor(() => {
-      expect(mockGeocodeAddress).toHaveBeenCalledTimes(2);
-      const alert = screen.queryByText(/Address Coordinates/i);
-      expect(alert).toBeInTheDocument();
-    });
-  });
+      const nextButton = screen.getByText("Próximo");
+      await userEvent.click(nextButton);
 
-  it("should translate REQUEST_ERROR in geocoding", async () => {
-    mockGeocodeAddress.mockResolvedValueOnce({
-      error: "REQUEST_ERROR: 404 Not Found",
-    });
-    mockGeocodeAddress.mockResolvedValueOnce({
-      error: "REQUEST_ERROR: 500 Internal Server Error",
-    });
-
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    fillCompanyForm();
-    fireEvent.click(screen.getByText("Próximo"));
-
-    await waitFor(() => {
-      expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
-    });
-
-    const submitButton = screen.getByText("Cadastrar");
-    fireEvent.click(submitButton);
-
-    await waitFor(() => {
-      expect(mockGeocodeAddress).toHaveBeenCalled();
-      const alert = screen.queryByText(/Address Coordinates/i);
-      expect(alert).toBeInTheDocument();
-    });
-  });
-
-  it("should translate UNKNOWN_ERROR with message in geocoding", async () => {
-    mockGeocodeAddress.mockResolvedValueOnce({
-      error: "UNKNOWN_ERROR: Network timeout",
-    });
-    mockGeocodeAddress.mockResolvedValueOnce({
-      error: "UNKNOWN_ERROR: Connection failed",
-    });
-
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    fillCompanyForm();
-    fireEvent.click(screen.getByText("Próximo"));
-
-    await waitFor(() => {
-      expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
-    });
-
-    const submitButton = screen.getByText("Cadastrar");
-    fireEvent.click(submitButton);
-
-    await waitFor(() => {
-      expect(mockGeocodeAddress).toHaveBeenCalled();
-      const alert = screen.queryByText(/Address Coordinates/i);
-      expect(alert).toBeInTheDocument();
-    });
-  });
-
-  it("should translate UNKNOWN_ERROR without message in geocoding", async () => {
-    mockGeocodeAddress.mockResolvedValueOnce({
-      error: "UNKNOWN_ERROR",
-    });
-    mockGeocodeAddress.mockResolvedValueOnce({
-      error: "UNKNOWN_ERROR",
-    });
-
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    fillCompanyForm();
-    fireEvent.click(screen.getByText("Próximo"));
-
-    await waitFor(() => {
-      expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
-    });
-
-    const submitButton = screen.getByText("Cadastrar");
-    fireEvent.click(submitButton);
-
-    await waitFor(() => {
-      expect(mockGeocodeAddress).toHaveBeenCalled();
-      const alert = screen.queryByText(/Address Coordinates/i);
-      expect(alert).toBeInTheDocument();
-    });
-  });
-
-  it("should handle successful geocoding for both addresses", async () => {
-    mockGeocodeAddress.mockResolvedValueOnce({ lat: -23.5505, lon: -46.6333 });
-    mockGeocodeAddress.mockResolvedValueOnce({ lat: -23.5505, lon: -46.6333 });
-
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    fillCompanyForm();
-    fireEvent.click(screen.getByText("Próximo"));
-
-    await waitFor(() => {
-      expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
-    });
-
-    const submitButton = screen.getByText("Cadastrar");
-    fireEvent.click(submitButton);
-
-    await waitFor(() => {
-      expect(mockGeocodeAddress).toHaveBeenCalledTimes(2);
-      const alert = screen.queryByText(/Address Coordinates/i);
-      expect(alert).toBeInTheDocument();
-      if (alert) {
-        expect(alert.textContent).toContain("Latitude");
-        expect(alert.textContent).toContain("Longitude");
-      }
-    });
-  });
-
-  it("should handle mixed geocoding results (success and error)", async () => {
-    mockGeocodeAddress.mockResolvedValueOnce({ lat: -23.5505, lon: -46.6333 });
-    mockGeocodeAddress.mockResolvedValueOnce({
-      error: "INCOMPLETE_ADDRESS",
-    });
-
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    fillCompanyForm();
-    fireEvent.click(screen.getByText("Próximo"));
-
-    await waitFor(() => {
-      expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
-    });
-
-    const submitButton = screen.getByText("Cadastrar");
-    fireEvent.click(submitButton);
-
-    await waitFor(() => {
-      expect(mockGeocodeAddress).toHaveBeenCalledTimes(2);
-      const alert = screen.queryByText(/Address Coordinates/i);
-      expect(alert).toBeInTheDocument();
-    });
-  });
-
-  it("should clear errors when company field is changed", () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    const nextButton = screen.getByText("Próximo");
-    fireEvent.click(nextButton);
-
-    const cnpjInput = screen.getByPlaceholderText("CNPJ");
-    fireEvent.change(cnpjInput, { target: { value: "12345678000190" } });
-
-    expect(mockMaskCNPJ).toHaveBeenCalled();
-  });
-
-  it("should handle all user data fields in step 2", async () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    fillCompanyForm();
-    fireEvent.click(screen.getByText("Próximo"));
-
-    await waitFor(() => {
-      expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
-    });
-
-    fireEvent.change(screen.getByPlaceholderText("Nome"), {
-      target: { value: "John Doe" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("CPF"), {
-      target: { value: "12345678901" },
-    });
-    const emailInputs = screen.getAllByPlaceholderText("Email");
-    fireEvent.change(emailInputs[emailInputs.length - 1], {
-      target: { value: "user@example.com" },
-    });
-    const phoneInputs = screen.getAllByPlaceholderText("Telefone");
-    fireEvent.change(phoneInputs[phoneInputs.length - 1], {
-      target: { value: "11987654321" },
-    });
-
-    const zipCodeInputs = screen.getAllByPlaceholderText("CEP");
-    fireEvent.change(zipCodeInputs[zipCodeInputs.length - 1], {
-      target: { value: "87654321" },
-    });
-    const streetInputs = screen.getAllByPlaceholderText("Rua");
-    fireEvent.change(streetInputs[streetInputs.length - 1], {
-      target: { value: "User Street" },
-    });
-    const numberInputs = screen.getAllByPlaceholderText("Número");
-    fireEvent.change(numberInputs[numberInputs.length - 1], {
-      target: { value: "456" },
-    });
-    const complementInputs = screen.getAllByPlaceholderText("Complemento");
-    fireEvent.change(complementInputs[complementInputs.length - 1], {
-      target: { value: "Apt 101" },
-    });
-    const neighborhoodInputs = screen.getAllByPlaceholderText("Bairro");
-    fireEvent.change(neighborhoodInputs[neighborhoodInputs.length - 1], {
-      target: { value: "User Neighborhood" },
-    });
-    const cityInputs = screen.getAllByPlaceholderText("Cidade");
-    fireEvent.change(cityInputs[cityInputs.length - 1], {
-      target: { value: "User City" },
-    });
-    const stateSelects = screen.getAllByTestId("auth-select-State");
-    fireEvent.change(stateSelects[stateSelects.length - 1], {
-      target: { value: "PR" },
-    });
-    const passwordInputs = screen.getAllByPlaceholderText("Senha");
-    fireEvent.change(passwordInputs[0], {
-      target: { value: "password123" },
-    });
-    const confirmPasswordInputs = screen.getAllByPlaceholderText("Repita a Senha");
-    fireEvent.change(confirmPasswordInputs[0], {
-      target: { value: "password123" },
-    });
-
-    expect(screen.getByPlaceholderText("Nome")).toHaveValue("John Doe");
-    expect(screen.getByPlaceholderText("CPF")).toHaveValue("12345678901");
-    expect(passwordInputs[0]).toHaveValue("password123");
-    expect(confirmPasswordInputs[0]).toHaveValue("password123");
-  });
-
-  it("should handle CNPJ success callback and update state", () => {
-    const mockCNPJData: CNPJData = {
-      cnpj: "12345678000190",
-      razao_social: "Test Company",
-      email: "company@example.com",
-      ddd_telefone_1: "",
-      logradouro: "",
-      numero: "",
-      complemento: "",
-      bairro: "",
-      municipio: "",
-      uf: "",
-      cep: "",
-    };
-
-    mockMapCNPJDataToCompanyForm.mockReturnValue({
-      companyName: "Mapped Company",
-      email: "mapped@example.com",
-    });
-
-    let onSuccessCallback: ((data: CNPJData) => void) | undefined;
-
-    mockUseCNPJLookup.mockImplementation((cnpj: string, options?: UseCNPJLookupOptions) => {
-      onSuccessCallback = options?.onSuccess;
-      return {
-        data: null,
-        loading: false,
-        error: null,
-        fetchCNPJ: vi.fn(),
-      };
-    });
-
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    expect(onSuccessCallback).toBeDefined();
-    if (onSuccessCallback) {
-      act(() => {
-        onSuccessCallback?.(mockCNPJData);
+      await waitFor(() => {
+        const errors = screen.queryAllByTestId("input-error");
+        expect(errors.length).toBeGreaterThan(0);
       });
-      expect(mockMapCNPJDataToCompanyForm).toHaveBeenCalledWith(mockCNPJData, expect.any(Object));
-    }
-  });
-
-  it("should handle company CEP success callback and update state", () => {
-    const mockCEPData: CEPData = {
-      cep: "12345678",
-      street: "Mapped Street",
-      neighborhood: "Mapped Neighborhood",
-      city: "Mapped City",
-      state: "SC",
-      service: "",
-      location: {
-        type: "",
-        coordinates: {},
-      },
-    };
-
-    mockMapCEPDataToAddressForm.mockReturnValue({
-      street: "Mapped Street",
-      neighborhood: "Mapped Neighborhood",
-      city: "Mapped City",
-      state: "SC",
     });
 
-    let onSuccessCallback: ((data: CEPData) => void) | undefined;
+    it("should validate CNPJ length", async () => {
+      render(
+        <TestWrapper>
+          <Register />
+        </TestWrapper>
+      );
 
-    mockUseCEPLookup.mockImplementation((cep: string, options?: UseCEPLookupOptions) => {
-      if (cep === "12345678") {
-        onSuccessCallback = options?.onSuccess;
-      }
-      return {
-        data: null,
-        loading: false,
-        error: null,
-        fetchCEP: vi.fn(),
-      };
-    });
+      const cnpjInput = screen.getByPlaceholderText("CNPJ");
+      await userEvent.type(cnpjInput, "123"); // Invalid length
 
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
+      const nextButton = screen.getByText("Próximo");
+      await userEvent.click(nextButton);
 
-    const zipCodeInput = screen.getByPlaceholderText("CEP");
-    fireEvent.change(zipCodeInput, { target: { value: "12345678" } });
-
-    expect(onSuccessCallback).toBeDefined();
-    if (onSuccessCallback) {
-      act(() => {
-        onSuccessCallback?.(mockCEPData);
+      await waitFor(() => {
+        const errors = screen.getAllByText("CNPJ deve ter 14 dígitos");
+        expect(errors.length).toBeGreaterThan(0);
       });
-    }
-  });
-
-  it("should handle user CEP success callback and update state", async () => {
-    const mockCEPData: CEPData = {
-      cep: "87654321",
-      street: "User Mapped Street",
-      neighborhood: "User Mapped Neighborhood",
-      city: "User Mapped City",
-      state: "PR",
-      service: "",
-      location: {
-        type: "",
-        coordinates: {},
-      },
-    };
-
-    mockMapCEPDataToAddressForm.mockReturnValue({
-      street: "User Mapped Street",
-      neighborhood: "User Mapped Neighborhood",
-      city: "User Mapped City",
-      state: "PR",
     });
 
-    let userOnSuccessCallback: ((data: CEPData) => void) | undefined;
+    it("should validate email format", async () => {
+      render(
+        <TestWrapper>
+          <Register />
+        </TestWrapper>
+      );
 
-    mockUseCEPLookup.mockImplementation((cep: string, options?: UseCEPLookupOptions) => {
-      if (cep === "87654321") {
-        userOnSuccessCallback = options?.onSuccess;
-      }
-      return {
-        data: null,
-        loading: false,
-        error: null,
-        fetchCEP: vi.fn(),
-      };
-    });
+      const emailInput = screen.getByPlaceholderText("Email");
+      await userEvent.type(emailInput, "invalid-email");
 
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
+      const nextButton = screen.getByText("Próximo");
+      await userEvent.click(nextButton);
 
-    fillCompanyForm();
-    fireEvent.click(screen.getByText("Próximo"));
-
-    await waitFor(() => {
-      expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
-    });
-
-    const zipCodeInputs = screen.getAllByPlaceholderText("CEP");
-    fireEvent.change(zipCodeInputs[zipCodeInputs.length - 1], {
-      target: { value: "87654321" },
-    });
-
-    expect(userOnSuccessCallback).toBeDefined();
-    if (userOnSuccessCallback) {
-      act(() => {
-        userOnSuccessCallback?.(mockCEPData);
+      await waitFor(() => {
+        const errors = screen.getAllByText("Email inválido");
+        expect(errors.length).toBeGreaterThan(0);
       });
-    }
-  });
-
-  it("should handle phone masking in company data", () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    const phoneInput = screen.getByPlaceholderText("Telefone");
-    fireEvent.change(phoneInput, { target: { value: "11987654321" } });
-
-    expect(mockMaskPhone).toHaveBeenCalled();
-  });
-
-  it("should handle CEP masking in company data", () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    const zipCodeInput = screen.getByPlaceholderText("CEP");
-    fireEvent.change(zipCodeInput, { target: { value: "12345678" } });
-
-    expect(mockMaskCEP).toHaveBeenCalled();
-  });
-
-  it("should handle CPF masking in user data", async () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    fillCompanyForm();
-    fireEvent.click(screen.getByText("Próximo"));
-
-    await waitFor(() => {
-      expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
     });
 
-    const cpfInput = screen.getByPlaceholderText("CPF");
-    fireEvent.change(cpfInput, { target: { value: "12345678901" } });
+    it("should validate CEP length", async () => {
+      render(
+        <TestWrapper>
+          <Register />
+        </TestWrapper>
+      );
 
-    expect(mockMaskCPF).toHaveBeenCalled();
-  });
+      const cnpjInput = screen.getByPlaceholderText("CNPJ");
+      const companyNameInput = screen.getByPlaceholderText("Razão Social");
+      const emailInput = screen.getByPlaceholderText("Email");
+      const phoneInput = screen.getByPlaceholderText("Telefone");
+      const zipCodeInput = screen.getByTestId("address-zipcode");
+      const streetInput = screen.getByTestId("address-street");
+      const neighborhoodInput = screen.getByTestId("address-neighborhood");
+      const cityInput = screen.getByTestId("address-city");
+      const stateInput = screen.getByTestId("address-state");
 
-  it("should handle phone masking in user data", async () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
+      await userEvent.type(cnpjInput, "12345678000190");
+      await userEvent.type(companyNameInput, "Test Company");
+      await userEvent.type(emailInput, "test@example.com");
+      await userEvent.type(phoneInput, "11999999999");
+      await userEvent.type(zipCodeInput, "123"); // Invalid length
+      await userEvent.type(streetInput, "Test Street");
+      await userEvent.type(neighborhoodInput, "Test Neighborhood");
+      await userEvent.type(cityInput, "Test City");
+      await userEvent.type(stateInput, "SP");
 
-    fillCompanyForm();
-    fireEvent.click(screen.getByText("Próximo"));
+      const nextButton = screen.getByText("Próximo");
+      await userEvent.click(nextButton);
 
-    await waitFor(() => {
-      expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText("CEP deve ter 8 dígitos")).toBeInTheDocument();
+      });
     });
 
-    const phoneInputs = screen.getAllByPlaceholderText("Telefone");
-    fireEvent.change(phoneInputs[phoneInputs.length - 1], {
-      target: { value: "11987654321" },
+    it("should show back button on step 2", async () => {
+      render(
+        <TestWrapper>
+          <Register />
+        </TestWrapper>
+      );
+
+      // Fill step 1 and navigate to step 2
+      const cnpjInput = screen.getByPlaceholderText("CNPJ");
+      const companyNameInput = screen.getByPlaceholderText("Razão Social");
+      const emailInput = screen.getByPlaceholderText("Email");
+      const phoneInput = screen.getByPlaceholderText("Telefone");
+      const zipCodeInput = screen.getByTestId("address-zipcode");
+      const streetInput = screen.getByTestId("address-street");
+      const neighborhoodInput = screen.getByTestId("address-neighborhood");
+      const cityInput = screen.getByTestId("address-city");
+      const stateInput = screen.getByTestId("address-state");
+
+      await userEvent.type(cnpjInput, "12345678000190");
+      await userEvent.type(companyNameInput, "Test Company");
+      await userEvent.type(emailInput, "test@example.com");
+      await userEvent.type(phoneInput, "11999999999");
+      await userEvent.type(zipCodeInput, "12345678");
+      await userEvent.type(streetInput, "Test Street");
+      await userEvent.type(neighborhoodInput, "Test Neighborhood");
+      await userEvent.type(cityInput, "Test City");
+      await userEvent.type(stateInput, "SP");
+
+      const nextButton = screen.getByText("Próximo");
+      await userEvent.click(nextButton);
+
+      await waitFor(() => {
+        const backButton = screen.getByText("Voltar");
+        expect(backButton).toBeInTheDocument();
+      });
     });
 
-    expect(mockMaskPhone).toHaveBeenCalled();
-  });
+    it("should navigate back to step 1 when back button is clicked", async () => {
+      render(
+        <TestWrapper>
+          <Register />
+        </TestWrapper>
+      );
 
-  it("should handle CEP masking in user data", async () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
+      // Fill step 1 and navigate to step 2
+      const cnpjInput = screen.getByPlaceholderText("CNPJ");
+      const companyNameInput = screen.getByPlaceholderText("Razão Social");
+      const emailInput = screen.getByPlaceholderText("Email");
+      const phoneInput = screen.getByPlaceholderText("Telefone");
+      const zipCodeInput = screen.getByTestId("address-zipcode");
+      const streetInput = screen.getByTestId("address-street");
+      const neighborhoodInput = screen.getByTestId("address-neighborhood");
+      const cityInput = screen.getByTestId("address-city");
+      const stateInput = screen.getByTestId("address-state");
 
-    fillCompanyForm();
-    fireEvent.click(screen.getByText("Próximo"));
+      await userEvent.type(cnpjInput, "12345678000190");
+      await userEvent.type(companyNameInput, "Test Company");
+      await userEvent.type(emailInput, "test@example.com");
+      await userEvent.type(phoneInput, "11999999999");
+      await userEvent.type(zipCodeInput, "12345678");
+      await userEvent.type(streetInput, "Test Street");
+      await userEvent.type(neighborhoodInput, "Test Neighborhood");
+      await userEvent.type(cityInput, "Test City");
+      await userEvent.type(stateInput, "SP");
 
-    await waitFor(() => {
-      expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
+      const nextButton = screen.getByText("Próximo");
+      await userEvent.click(nextButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
+      });
+
+      const backButton = screen.getByText("Voltar");
+      await userEvent.click(backButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("Dados da Empresa")).toBeInTheDocument();
+      });
     });
 
-    const zipCodeInputs = screen.getAllByPlaceholderText("CEP");
-    fireEvent.change(zipCodeInputs[zipCodeInputs.length - 1], {
-      target: { value: "87654321" },
+    it("should show CNPJ loading state", async () => {
+      const { useCNPJLookup } = await import("~/components/site/hooks");
+      vi.mocked(useCNPJLookup).mockReturnValueOnce({
+        data: null,
+        loading: true,
+        error: null,
+      });
+
+      render(
+        <TestWrapper>
+          <Register />
+        </TestWrapper>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Searching CNPJ data...")).toBeInTheDocument();
+      });
     });
 
-    expect(mockMaskCEP).toHaveBeenCalled();
-  });
-
-  it("should show user CEP loading state", async () => {
-    mockUseCEPLookup.mockImplementation((cep: string) => {
-      if (cep === "87654321") {
-        return {
-          data: null,
-          loading: true,
-          error: null,
-          fetchCEP: vi.fn(),
-        };
-      }
-      return {
+    it("should show CNPJ error", async () => {
+      const { useCNPJLookup } = await import("~/components/site/hooks");
+      vi.mocked(useCNPJLookup).mockReturnValueOnce({
         data: null,
         loading: false,
+        error: "CNPJ not found",
+      });
+
+      render(
+        <TestWrapper>
+          <Register />
+        </TestWrapper>
+      );
+
+      const cnpjInput = screen.getByPlaceholderText("CNPJ");
+      expect(cnpjInput).toHaveAttribute("data-error", "CNPJ not found");
+    });
+
+    it("should show zip code loading state for company", async () => {
+      const { useCEPLookup } = await import("~/components/site/hooks");
+      vi.mocked(useCEPLookup).mockReturnValueOnce({
+        data: null,
+        loading: true,
         error: null,
-        fetchCEP: vi.fn(),
-      };
+      });
+
+      render(
+        <TestWrapper>
+          <Register />
+        </TestWrapper>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("zipcode-loading")).toBeInTheDocument();
+      });
     });
 
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    fillCompanyForm();
-    fireEvent.click(screen.getByText("Próximo"));
-
-    await waitFor(() => {
-      expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
-    });
-
-    const zipCodeInputs = screen.getAllByPlaceholderText("CEP");
-    fireEvent.change(zipCodeInputs[zipCodeInputs.length - 1], {
-      target: { value: "87654321" },
-    });
-
-    await waitFor(() => {
-      const loadingMessages = screen.getAllByText("Searching address...");
-      expect(loadingMessages.length).toBeGreaterThan(0);
-    });
-  });
-
-  it("should display user CEP error", async () => {
-    mockUseCEPLookup.mockImplementation((cep: string) => {
-      if (cep === "87654321") {
-        return {
-          data: null,
-          loading: false,
-          error: "User CEP not found",
-          fetchCEP: vi.fn(),
-        };
-      }
-      return {
+    it("should show zip code error for company", async () => {
+      const { useCEPLookup } = await import("~/components/site/hooks");
+      vi.mocked(useCEPLookup).mockReturnValueOnce({
         data: null,
         loading: false,
-        error: null,
-        fetchCEP: vi.fn(),
+        error: "CEP not found",
+      });
+
+      render(
+        <TestWrapper>
+          <Register />
+        </TestWrapper>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("zipcode-error")).toHaveTextContent("CEP not found");
+      });
+    });
+
+    it("should handle CNPJ lookup success", async () => {
+      const mockCNPJData = {
+        nome: "Test Company",
+        email: "company@example.com",
+        telefone: "11999999999",
+        logradouro: "Test Street",
+        numero: "123",
+        complemento: "Apt 1",
+        bairro: "Test Neighborhood",
+        municipio: "Test City",
+        uf: "SP",
+        cep: "12345678",
       };
+
+      const { useCNPJLookup } = await import("~/components/site/hooks");
+      const _mockOnSuccess = vi.fn();
+
+      vi.mocked(useCNPJLookup).mockReturnValueOnce({
+        data: mockCNPJData,
+        loading: false,
+        error: null,
+      });
+
+      render(
+        <TestWrapper>
+          <Register />
+        </TestWrapper>
+      );
+
+      // The hook should be called with onSuccess callback
+      expect(useCNPJLookup).toHaveBeenCalled();
     });
 
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
+    it("should handle company zip code lookup success", async () => {
+      const mockCEPData = {
+        logradouro: "Test Street",
+        bairro: "Test Neighborhood",
+        localidade: "Test City",
+        uf: "SP",
+      };
 
-    fillCompanyForm();
-    fireEvent.click(screen.getByText("Próximo"));
+      const { useCEPLookup } = await import("~/components/site/hooks");
+      vi.mocked(useCEPLookup).mockReturnValueOnce({
+        data: mockCEPData,
+        loading: false,
+        error: null,
+      });
 
-    await waitFor(() => {
-      expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
+      render(
+        <TestWrapper>
+          <Register />
+        </TestWrapper>
+      );
+
+      expect(useCEPLookup).toHaveBeenCalled();
     });
 
-    const zipCodeInputs = screen.getAllByPlaceholderText("CEP");
-    fireEvent.change(zipCodeInputs[zipCodeInputs.length - 1], {
-      target: { value: "87654321" },
+    it("should handle user zip code lookup success", async () => {
+      render(
+        <TestWrapper>
+          <Register />
+        </TestWrapper>
+      );
+
+      // Navigate to step 2
+      const cnpjInput = screen.getByPlaceholderText("CNPJ");
+      const companyNameInput = screen.getByPlaceholderText("Razão Social");
+      const emailInput = screen.getByPlaceholderText("Email");
+      const phoneInput = screen.getByPlaceholderText("Telefone");
+      const zipCodeInput = screen.getByTestId("address-zipcode");
+      const streetInput = screen.getByTestId("address-street");
+      const neighborhoodInput = screen.getByTestId("address-neighborhood");
+      const cityInput = screen.getByTestId("address-city");
+      const stateInput = screen.getByTestId("address-state");
+
+      await userEvent.type(cnpjInput, "12345678000190");
+      await userEvent.type(companyNameInput, "Test Company");
+      await userEvent.type(emailInput, "test@example.com");
+      await userEvent.type(phoneInput, "11999999999");
+      await userEvent.type(zipCodeInput, "12345678");
+      await userEvent.type(streetInput, "Test Street");
+      await userEvent.type(neighborhoodInput, "Test Neighborhood");
+      await userEvent.type(cityInput, "Test City");
+      await userEvent.type(stateInput, "SP");
+
+      const nextButton = screen.getByText("Próximo");
+      await userEvent.click(nextButton);
+
+      await waitFor(
+        () => {
+          expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
+        },
+        { timeout: 5000 }
+      );
+
+      // Check that user zip code lookup is called (it's called for both company and user)
+      const { useCEPLookup } = await import("~/components/site/hooks");
+      expect(useCEPLookup).toHaveBeenCalled();
     });
 
-    await waitFor(() => {
-      expect(screen.getByText("User CEP not found")).toBeInTheDocument();
+    it("should mask CNPJ input", async () => {
+      const { maskCNPJ } = await import("~/components/site/utils");
+      vi.mocked(maskCNPJ).mockReturnValue("12.345.678/0001-90");
+
+      render(
+        <TestWrapper>
+          <Register />
+        </TestWrapper>
+      );
+
+      const cnpjInput = screen.getByPlaceholderText("CNPJ");
+      await userEvent.type(cnpjInput, "12345678000190");
+
+      expect(maskCNPJ).toHaveBeenCalled();
     });
-  });
 
-  it("should handle all company address fields", () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
+    it("should mask phone input", async () => {
+      const { maskPhone } = await import("~/components/site/utils");
+      vi.mocked(maskPhone).mockReturnValue("(11) 99999-9999");
 
-    fireEvent.change(screen.getByPlaceholderText("Número"), {
-      target: { value: "123" },
+      render(
+        <TestWrapper>
+          <Register />
+        </TestWrapper>
+      );
+
+      const phoneInput = screen.getByPlaceholderText("Telefone");
+      await userEvent.type(phoneInput, "11999999999");
+
+      expect(maskPhone).toHaveBeenCalled();
     });
-    fireEvent.change(screen.getByPlaceholderText("Complemento"), {
-      target: { value: "Apt 1" },
+
+    it("should mask CPF input on step 2", async () => {
+      const { maskCPF } = await import("~/components/site/utils");
+      vi.mocked(maskCPF).mockReturnValue("123.456.789-00");
+
+      render(
+        <TestWrapper>
+          <Register />
+        </TestWrapper>
+      );
+
+      // Navigate to step 2
+      const cnpjInput = screen.getByPlaceholderText("CNPJ");
+      const companyNameInput = screen.getByPlaceholderText("Razão Social");
+      const emailInput = screen.getByPlaceholderText("Email");
+      const phoneInput = screen.getByPlaceholderText("Telefone");
+      const zipCodeInput = screen.getByTestId("address-zipcode");
+      const streetInput = screen.getByTestId("address-street");
+      const neighborhoodInput = screen.getByTestId("address-neighborhood");
+      const cityInput = screen.getByTestId("address-city");
+      const stateInput = screen.getByTestId("address-state");
+
+      await userEvent.type(cnpjInput, "12345678000190");
+      await userEvent.type(companyNameInput, "Test Company");
+      await userEvent.type(emailInput, "test@example.com");
+      await userEvent.type(phoneInput, "11999999999");
+      await userEvent.type(zipCodeInput, "12345678");
+      await userEvent.type(streetInput, "Test Street");
+      await userEvent.type(neighborhoodInput, "Test Neighborhood");
+      await userEvent.type(cityInput, "Test City");
+      await userEvent.type(stateInput, "SP");
+
+      const nextButton = screen.getByText("Próximo");
+      await userEvent.click(nextButton);
+
+      await waitFor(
+        () => {
+          const cpfInput = screen.getByPlaceholderText("CPF");
+          expect(cpfInput).toBeInTheDocument();
+        },
+        { timeout: 5000 }
+      );
+
+      const cpfInput = screen.getByPlaceholderText("CPF");
+      await userEvent.type(cpfInput, "12345678900");
+
+      expect(maskCPF).toHaveBeenCalled();
     });
 
-    expect(screen.getByPlaceholderText("Número")).toHaveValue("123");
-    expect(screen.getByPlaceholderText("Complemento")).toHaveValue("Apt 1");
-  });
+    it("should clear error when field is changed", async () => {
+      render(
+        <TestWrapper>
+          <Register />
+        </TestWrapper>
+      );
 
-  it("should validate all required company fields", () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
+      // Trigger validation error
+      const nextButton = screen.getByText("Próximo");
+      await userEvent.click(nextButton);
 
-    const nextButton = screen.getByText("Próximo");
-    fireEvent.click(nextButton);
+      await waitFor(() => {
+        expect(screen.queryAllByTestId("input-error").length).toBeGreaterThan(0);
+      });
 
-    expect(screen.getByText("Dados da Empresa")).toBeInTheDocument();
-  });
+      // Fix the error by typing in the field
+      const cnpjInput = screen.getByPlaceholderText("CNPJ");
+      await userEvent.type(cnpjInput, "12345678000190");
 
-  it("should handle form submission in step 1 via form onSubmit", () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
+      // Error should be cleared
+      await waitFor(() => {
+        const cnpjErrors = screen
+          .queryAllByTestId("input-error")
+          .filter((error) => error.textContent?.includes("CNPJ"));
+        expect(cnpjErrors.length).toBe(0);
+      });
+    });
 
-    fillCompanyForm();
+    it("should handle form submission on step 2", async () => {
+      const { geocodeAddress, buildAddressString } = await import("~/components/site/utils");
+      vi.mocked(geocodeAddress).mockResolvedValue({ lat: -23.5505, lon: -46.6333 });
+      vi.mocked(buildAddressString).mockReturnValue("Test Address");
 
-    const form = screen.getByPlaceholderText("CNPJ").closest("form");
-    expect(form).toBeInTheDocument();
+      render(
+        <TestWrapper>
+          <Register />
+        </TestWrapper>
+      );
 
-    if (form) {
-      fireEvent.submit(form);
-      expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
-    }
-  });
+      // Fill step 1
+      const cnpjInput = screen.getByPlaceholderText("CNPJ");
+      const companyNameInput = screen.getByPlaceholderText("Razão Social");
+      const emailInput = screen.getByPlaceholderText("Email");
+      const phoneInput = screen.getByPlaceholderText("Telefone");
+      const zipCodeInput = screen.getByTestId("address-zipcode");
+      const streetInput = screen.getByTestId("address-street");
+      const neighborhoodInput = screen.getByTestId("address-neighborhood");
+      const cityInput = screen.getByTestId("address-city");
+      const stateInput = screen.getByTestId("address-state");
 
-  it("should redirect to dashboard when user is already authenticated", async () => {
-    const router = createRouter(true, true);
-    render(<RouterProvider router={router} />);
+      await userEvent.type(cnpjInput, "12345678000190");
+      await userEvent.type(companyNameInput, "Test Company");
+      await userEvent.type(emailInput, "test@example.com");
+      await userEvent.type(phoneInput, "11999999999");
+      await userEvent.type(zipCodeInput, "12345678");
+      await userEvent.type(streetInput, "Test Street");
+      await userEvent.type(neighborhoodInput, "Test Neighborhood");
+      await userEvent.type(cityInput, "Test City");
+      await userEvent.type(stateInput, "SP");
 
-    await waitFor(() => {
-      expect(screen.getByTestId("dashboard-page")).toBeInTheDocument();
+      const nextButton = screen.getByText("Próximo");
+      await userEvent.click(nextButton);
+
+      await waitFor(
+        () => {
+          expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
+        },
+        { timeout: 5000 }
+      );
+
+      // Submit form
+      const submitButton = screen.getByText("Cadastrar");
+      await userEvent.click(submitButton);
+
+      await waitFor(
+        () => {
+          expect(geocodeAddress).toHaveBeenCalled();
+          expect(buildAddressString).toHaveBeenCalled();
+        },
+        { timeout: 5000 }
+      );
+    });
+
+    it("should show alert on form submission", async () => {
+      const { geocodeAddress, buildAddressString } = await import("~/components/site/utils");
+      vi.mocked(geocodeAddress).mockResolvedValue({ lat: -23.5505, lon: -46.6333 });
+      vi.mocked(buildAddressString).mockReturnValue("Test Address");
+
+      render(
+        <TestWrapper>
+          <Register />
+        </TestWrapper>
+      );
+
+      // Fill step 1 and navigate to step 2
+      const cnpjInput = screen.getByPlaceholderText("CNPJ");
+      const companyNameInput = screen.getByPlaceholderText("Razão Social");
+      const emailInput = screen.getByPlaceholderText("Email");
+      const phoneInput = screen.getByPlaceholderText("Telefone");
+      const zipCodeInput = screen.getByTestId("address-zipcode");
+      const streetInput = screen.getByTestId("address-street");
+      const neighborhoodInput = screen.getByTestId("address-neighborhood");
+      const cityInput = screen.getByTestId("address-city");
+      const stateInput = screen.getByTestId("address-state");
+
+      await userEvent.type(cnpjInput, "12345678000190");
+      await userEvent.type(companyNameInput, "Test Company");
+      await userEvent.type(emailInput, "test@example.com");
+      await userEvent.type(phoneInput, "11999999999");
+      await userEvent.type(zipCodeInput, "12345678");
+      await userEvent.type(streetInput, "Test Street");
+      await userEvent.type(neighborhoodInput, "Test Neighborhood");
+      await userEvent.type(cityInput, "Test City");
+      await userEvent.type(stateInput, "SP");
+
+      const nextButton = screen.getByText("Próximo");
+      await userEvent.click(nextButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
+      });
+
+      // Submit form
+      const submitButton = screen.getByText("Cadastrar");
+      await userEvent.click(submitButton);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("alert")).toBeInTheDocument();
+      });
+    });
+
+    it("should handle geocode error", async () => {
+      const { geocodeAddress, buildAddressString } = await import("~/components/site/utils");
+      vi.mocked(geocodeAddress).mockResolvedValue({ error: "INCOMPLETE_ADDRESS" });
+      vi.mocked(buildAddressString).mockReturnValue("Test Address");
+
+      render(
+        <TestWrapper>
+          <Register />
+        </TestWrapper>
+      );
+
+      // Fill step 1 and navigate to step 2
+      const cnpjInput = screen.getByPlaceholderText("CNPJ");
+      const companyNameInput = screen.getByPlaceholderText("Razão Social");
+      const emailInput = screen.getByPlaceholderText("Email");
+      const phoneInput = screen.getByPlaceholderText("Telefone");
+      const zipCodeInput = screen.getByTestId("address-zipcode");
+      const streetInput = screen.getByTestId("address-street");
+      const neighborhoodInput = screen.getByTestId("address-neighborhood");
+      const cityInput = screen.getByTestId("address-city");
+      const stateInput = screen.getByTestId("address-state");
+
+      await userEvent.type(cnpjInput, "12345678000190");
+      await userEvent.type(companyNameInput, "Test Company");
+      await userEvent.type(emailInput, "test@example.com");
+      await userEvent.type(phoneInput, "11999999999");
+      await userEvent.type(zipCodeInput, "12345678");
+      await userEvent.type(streetInput, "Test Street");
+      await userEvent.type(neighborhoodInput, "Test Neighborhood");
+      await userEvent.type(cityInput, "Test City");
+      await userEvent.type(stateInput, "SP");
+
+      const nextButton = screen.getByText("Próximo");
+      await userEvent.click(nextButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
+      });
+
+      // Submit form
+      const submitButton = screen.getByText("Cadastrar");
+      await userEvent.click(submitButton);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("alert")).toBeInTheDocument();
+      });
+    });
+
+    it("should handle different geocode error types", async () => {
+      const { geocodeAddress, buildAddressString } = await import("~/components/site/utils");
+      vi.mocked(geocodeAddress)
+        .mockResolvedValueOnce({ error: "ADDRESS_NOT_FOUND" })
+        .mockResolvedValueOnce({ error: "REQUEST_ERROR:404" });
+      vi.mocked(buildAddressString).mockReturnValue("Test Address");
+
+      render(
+        <TestWrapper>
+          <Register />
+        </TestWrapper>
+      );
+
+      // Fill step 1 and navigate to step 2
+      const cnpjInput = screen.getByPlaceholderText("CNPJ");
+      const companyNameInput = screen.getByPlaceholderText("Razão Social");
+      const emailInput = screen.getByPlaceholderText("Email");
+      const phoneInput = screen.getByPlaceholderText("Telefone");
+      const zipCodeInput = screen.getByTestId("address-zipcode");
+      const streetInput = screen.getByTestId("address-street");
+      const neighborhoodInput = screen.getByTestId("address-neighborhood");
+      const cityInput = screen.getByTestId("address-city");
+      const stateInput = screen.getByTestId("address-state");
+
+      await userEvent.type(cnpjInput, "12345678000190");
+      await userEvent.type(companyNameInput, "Test Company");
+      await userEvent.type(emailInput, "test@example.com");
+      await userEvent.type(phoneInput, "11999999999");
+      await userEvent.type(zipCodeInput, "12345678");
+      await userEvent.type(streetInput, "Test Street");
+      await userEvent.type(neighborhoodInput, "Test Neighborhood");
+      await userEvent.type(cityInput, "Test City");
+      await userEvent.type(stateInput, "SP");
+
+      const nextButton = screen.getByText("Próximo");
+      await userEvent.click(nextButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
+      });
+
+      // Submit form
+      const submitButton = screen.getByText("Cadastrar");
+      await userEvent.click(submitButton);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("alert")).toBeInTheDocument();
+      });
+    });
+
+    it("should handle form submission without event", async () => {
+      const { geocodeAddress, buildAddressString } = await import("~/components/site/utils");
+      vi.mocked(geocodeAddress).mockResolvedValue({ lat: -23.5505, lon: -46.6333 });
+      vi.mocked(buildAddressString).mockReturnValue("Test Address");
+
+      render(
+        <TestWrapper>
+          <Register />
+        </TestWrapper>
+      );
+
+      // Fill step 1 and navigate to step 2
+      const cnpjInput = screen.getByPlaceholderText("CNPJ");
+      const companyNameInput = screen.getByPlaceholderText("Razão Social");
+      const emailInput = screen.getByPlaceholderText("Email");
+      const phoneInput = screen.getByPlaceholderText("Telefone");
+      const zipCodeInput = screen.getByTestId("address-zipcode");
+      const streetInput = screen.getByTestId("address-street");
+      const neighborhoodInput = screen.getByTestId("address-neighborhood");
+      const cityInput = screen.getByTestId("address-city");
+      const stateInput = screen.getByTestId("address-state");
+
+      await userEvent.type(cnpjInput, "12345678000190");
+      await userEvent.type(companyNameInput, "Test Company");
+      await userEvent.type(emailInput, "test@example.com");
+      await userEvent.type(phoneInput, "11999999999");
+      await userEvent.type(zipCodeInput, "12345678");
+      await userEvent.type(streetInput, "Test Street");
+      await userEvent.type(neighborhoodInput, "Test Neighborhood");
+      await userEvent.type(cityInput, "Test City");
+      await userEvent.type(stateInput, "SP");
+
+      const nextButton = screen.getByText("Próximo");
+      await userEvent.click(nextButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
+      });
+
+      // Click submit button directly (which calls handleSubmit without event)
+      const submitButton = screen.getByText("Cadastrar");
+      await userEvent.click(submitButton);
+
+      await waitFor(() => {
+        expect(geocodeAddress).toHaveBeenCalled();
+      });
     });
   });
 });

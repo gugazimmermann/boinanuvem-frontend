@@ -1,6 +1,5 @@
 export { Button } from "./button";
 export { AuthButton } from "./auth-button";
-export { AuthInput } from "./auth-input";
 export { AuthSelect } from "./auth-select";
 export { Badge } from "./badge";
 export { Heading } from "./heading";

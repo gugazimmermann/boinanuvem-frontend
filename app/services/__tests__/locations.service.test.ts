@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import {
   getLocationById,
   getLocationsByPropertyId,
@@ -9,61 +9,58 @@ import {
 } from "../locations.service";
 import { mockLocations } from "~/mocks/locations";
 import type { LocationFormData } from "~/types";
-import { LocationType, AreaType } from "~/types/location";
-
-vi.mock("~/mocks/locations", () => ({
-  mockLocations: [],
-}));
+import { LocationType, AreaType } from "~/types";
 
 describe("locations.service", () => {
   beforeEach(() => {
     mockLocations.length = 0;
     mockLocations.push(
       {
-        id: "660e8400-e29b-41d4-a716-446655440010",
-        name: "Location One",
-        code: "L001",
+        id: "location-1",
+        companyId: "company-1",
+        propertyId: "property-1",
+        code: "LOC001",
+        name: "Location 1",
         locationType: LocationType.PASTURE,
         area: { value: 100, type: AreaType.HECTARES },
-        status: "active" as const,
-        propertyId: "property-1",
-        companyId: "company-1",
-        createdAt: "2020-01-01",
+        status: "active",
+        createdAt: "2025-01-01",
       },
       {
-        id: "660e8400-e29b-41d4-a716-446655440011",
-        name: "Location Two",
-        code: "L002",
-        locationType: LocationType.PASTURE,
-        area: { value: 200, type: AreaType.HECTARES },
-        status: "active" as const,
-        propertyId: "property-1",
+        id: "location-2",
         companyId: "company-1",
-        createdAt: "2020-01-02",
-      },
-      {
-        id: "660e8400-e29b-41d4-a716-446655440012",
-        name: "Location Three",
-        code: "L003",
-        locationType: LocationType.PASTURE,
-        area: { value: 300, type: AreaType.HECTARES },
-        status: "active" as const,
         propertyId: "property-2",
+        code: "LOC002",
+        name: "Location 2",
+        locationType: LocationType.BARN,
+        area: { value: 50, type: AreaType.SQUARE_METERS },
+        status: "active",
+        createdAt: "2025-01-02",
+      },
+      {
+        id: "location-3",
         companyId: "company-2",
-        createdAt: "2020-01-03",
+        propertyId: "property-1",
+        code: "LOC003",
+        name: "Location 3",
+        locationType: LocationType.CORRAL,
+        area: { value: 200, type: AreaType.HECTARES },
+        status: "inactive",
+        createdAt: "2025-01-03",
       }
     );
   });
 
   describe("getLocationById", () => {
     it("should return location when ID exists", () => {
-      const result = getLocationById("660e8400-e29b-41d4-a716-446655440010");
+      const result = getLocationById("location-1");
       expect(result).toBeDefined();
-      expect(result?.name).toBe("Location One");
+      expect(result?.id).toBe("location-1");
+      expect(result?.name).toBe("Location 1");
     });
 
     it("should return undefined when ID does not exist", () => {
-      const result = getLocationById("nonexistent-id");
+      const result = getLocationById("location-nonexistent");
       expect(result).toBeUndefined();
     });
 
@@ -74,41 +71,43 @@ describe("locations.service", () => {
   });
 
   describe("getLocationsByPropertyId", () => {
-    it("should return locations for specific property", () => {
+    it("should return all locations for a property", () => {
       const result = getLocationsByPropertyId("property-1");
       expect(result).toHaveLength(2);
-      expect(result.every((location) => location.propertyId === "property-1")).toBe(true);
+      expect(result[0]?.id).toBe("location-1");
+      expect(result[1]?.id).toBe("location-3");
     });
 
     it("should return empty array when property has no locations", () => {
-      const result = getLocationsByPropertyId("property-999");
+      const result = getLocationsByPropertyId("property-nonexistent");
       expect(result).toHaveLength(0);
     });
   });
 
   describe("getLocationsByCompanyId", () => {
-    it("should return locations for specific company", () => {
+    it("should return all locations for a company", () => {
       const result = getLocationsByCompanyId("company-1");
       expect(result).toHaveLength(2);
-      expect(result.every((location) => location.companyId === "company-1")).toBe(true);
+      expect(result[0]?.id).toBe("location-1");
+      expect(result[1]?.id).toBe("location-2");
     });
 
     it("should return empty array when company has no locations", () => {
-      const result = getLocationsByCompanyId("company-999");
+      const result = getLocationsByCompanyId("company-nonexistent");
       expect(result).toHaveLength(0);
     });
   });
 
   describe("addLocation", () => {
-    it("should add new location with generated ID", () => {
+    it("should add a new location with generated ID", () => {
       const formData: LocationFormData = {
-        name: "New Location",
-        code: "L004",
-        locationType: LocationType.PASTURE,
-        area: { value: 150, type: AreaType.HECTARES },
-        status: "active" as const,
-        propertyId: "property-1",
         companyId: "company-1",
+        propertyId: "property-1",
+        code: "LOC004",
+        name: "Location 4",
+        locationType: LocationType.FIELD,
+        area: { value: 150, type: AreaType.HECTARES },
+        status: "active",
       };
 
       const initialLength = mockLocations.length;
@@ -116,43 +115,65 @@ describe("locations.service", () => {
 
       expect(mockLocations).toHaveLength(initialLength + 1);
       expect(result.id).toBeDefined();
-      expect(result.name).toBe("New Location");
+      expect(result.companyId).toBe("company-1");
+      expect(result.name).toBe("Location 4");
       expect(result.createdAt).toBeDefined();
+    });
+
+    it("should generate ID with correct prefix", () => {
+      const formData: LocationFormData = {
+        companyId: "company-1",
+        propertyId: "property-1",
+        code: "LOC004",
+        name: "Location 4",
+        locationType: LocationType.FIELD,
+        area: { value: 150, type: AreaType.HECTARES },
+        status: "active",
+      };
+
+      const result = addLocation(formData);
+      expect(result.id).toContain("660e8400-e29b-41d4-a716");
     });
   });
 
   describe("updateLocation", () => {
-    it("should update existing location", () => {
-      const result = updateLocation("660e8400-e29b-41d4-a716-446655440010", {
-        name: "Updated Location",
-      });
+    it("should update location when ID exists", () => {
+      const updateData: Partial<LocationFormData> = {
+        name: "Updated Location 1",
+        status: "inactive",
+      };
 
+      const result = updateLocation("location-1", updateData);
       expect(result).toBe(true);
-      const updated = mockLocations.find((l) => l.id === "660e8400-e29b-41d4-a716-446655440010");
-      expect(updated?.name).toBe("Updated Location");
+
+      const updated = mockLocations.find((loc) => loc.id === "location-1");
+      expect(updated?.name).toBe("Updated Location 1");
+      expect(updated?.status).toBe("inactive");
     });
 
-    it("should return false when location does not exist", () => {
-      const result = updateLocation("nonexistent-id", { name: "New Name" });
+    it("should return false when ID does not exist", () => {
+      const updateData: Partial<LocationFormData> = {
+        name: "Updated Location",
+      };
+
+      const result = updateLocation("location-nonexistent", updateData);
       expect(result).toBe(false);
     });
   });
 
   describe("deleteLocation", () => {
-    it("should delete existing location", () => {
+    it("should delete location when ID exists", () => {
       const initialLength = mockLocations.length;
-      const result = deleteLocation("660e8400-e29b-41d4-a716-446655440010");
+      const result = deleteLocation("location-1");
 
       expect(result).toBe(true);
       expect(mockLocations).toHaveLength(initialLength - 1);
-      expect(
-        mockLocations.find((l) => l.id === "660e8400-e29b-41d4-a716-446655440010")
-      ).toBeUndefined();
+      expect(mockLocations.find((loc) => loc.id === "location-1")).toBeUndefined();
     });
 
-    it("should return false when location does not exist", () => {
+    it("should return false when ID does not exist", () => {
       const initialLength = mockLocations.length;
-      const result = deleteLocation("nonexistent-id");
+      const result = deleteLocation("location-nonexistent");
 
       expect(result).toBe(false);
       expect(mockLocations).toHaveLength(initialLength);

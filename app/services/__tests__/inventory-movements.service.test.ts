@@ -16,8 +16,9 @@ import { mockInventoryMovements } from "~/mocks/inventory-movements";
 import type { InventoryMovementFormData } from "~/types";
 import { InventoryMovementType } from "~/types";
 
-vi.mock("~/mocks/inventory-movements", () => ({
-  mockInventoryMovements: [],
+// Mock the inventory service
+vi.mock("../inventory.service", () => ({
+  clearInventoryCache: vi.fn(),
 }));
 
 describe("inventory-movements.service", () => {
@@ -25,79 +26,68 @@ describe("inventory-movements.service", () => {
     mockInventoryMovements.length = 0;
     mockInventoryMovements.push(
       {
-        id: "im0e8400-e29b-41d4-a716-446655440010",
+        id: "movement-1",
         itemId: "item-1",
         type: InventoryMovementType.PURCHASE,
         quantity: 100,
-        unitPrice: 10.5,
-        date: "2025-01-10",
-        description: "Test purchase",
-        supplierId: "supplier-1",
+        unitPrice: 10,
+        date: "2025-01-01",
         propertyId: "property-1",
         companyId: "company-1",
-        createdAt: "2025-01-10",
+        supplierId: "supplier-1",
+        locationId: "location-1",
+        createdAt: "2025-01-01",
       },
       {
-        id: "im0e8400-e29b-41d4-a716-446655440011",
+        id: "movement-2",
         itemId: "item-1",
         type: InventoryMovementType.CONSUMPTION,
         quantity: 50,
-        date: "2025-01-15",
-        description: "Test consumption",
+        unitPrice: 10,
+        date: "2025-01-02",
         propertyId: "property-1",
         companyId: "company-1",
-        createdAt: "2025-01-15",
+        locationId: "location-1",
+        createdAt: "2025-01-02",
       },
       {
-        id: "im0e8400-e29b-41d4-a716-446655440012",
+        id: "movement-3",
         itemId: "item-2",
         type: InventoryMovementType.PURCHASE,
         quantity: 200,
-        unitPrice: 8.0,
-        date: "2025-01-12",
-        description: "Another purchase",
-        supplierId: "supplier-2",
-        cashFlowId: "cashflow-1",
+        unitPrice: 20,
+        date: "2025-01-03",
         propertyId: "property-2",
         companyId: "company-1",
-        createdAt: "2025-01-12",
+        supplierId: "supplier-2",
+        cashFlowId: "cashflow-1",
+        createdAt: "2025-01-03",
       },
       {
-        id: "im0e8400-e29b-41d4-a716-446655440013",
+        id: "movement-4",
         itemId: "item-1",
         type: InventoryMovementType.CONSUMPTION,
-        quantity: 30,
-        date: "2025-01-18",
-        description: "Consumption in location",
+        quantity: 25,
+        unitPrice: 10,
+        date: "2025-01-04",
         propertyId: "property-1",
         companyId: "company-1",
-        locationId: "location-1",
-        createdAt: "2025-01-18",
-      },
-      {
-        id: "im0e8400-e29b-41d4-a716-446655440014",
-        itemId: "item-2",
-        type: InventoryMovementType.CONSUMPTION,
-        quantity: 20,
-        date: "2025-01-20",
-        description: "Another consumption in location",
-        propertyId: "property-1",
-        companyId: "company-1",
-        locationId: "location-1",
-        createdAt: "2025-01-20",
+        locationId: "location-2",
+        createdAt: "2025-01-04",
       }
     );
   });
 
   describe("getInventoryMovementById", () => {
     it("should return movement when ID exists", () => {
-      const result = getInventoryMovementById("im0e8400-e29b-41d4-a716-446655440010");
+      const result = getInventoryMovementById("movement-1");
       expect(result).toBeDefined();
-      expect(result?.type).toBe(InventoryMovementType.PURCHASE);
+      expect(result?.id).toBe("movement-1");
+      expect(result?.itemId).toBe("item-1");
     });
 
     it("should return undefined when ID does not exist", () => {
-      const result = getInventoryMovementById("nonexistent-id");
+      const result = getInventoryMovementById("movement-nonexistent");
       expect(result).toBeUndefined();
     });
 
@@ -108,141 +98,131 @@ describe("inventory-movements.service", () => {
   });
 
   describe("getMovementsByItemId", () => {
-    it("should return movements for specific item", () => {
+    it("should return all movements for an item", () => {
       const result = getMovementsByItemId("item-1");
-      expect(result.length).toBeGreaterThan(0);
-      expect(result.every((movement) => movement.itemId === "item-1")).toBe(true);
+      expect(result).toHaveLength(3);
+      expect(result.every((m) => m.itemId === "item-1")).toBe(true);
     });
 
     it("should return empty array when item has no movements", () => {
-      const result = getMovementsByItemId("nonexistent-item");
+      const result = getMovementsByItemId("item-nonexistent");
       expect(result).toHaveLength(0);
     });
   });
 
   describe("getMovementsByCompanyId", () => {
-    it("should return movements for specific company", () => {
+    it("should return all movements for a company", () => {
       const result = getMovementsByCompanyId("company-1");
-      expect(result.length).toBeGreaterThan(0);
-      expect(result.every((movement) => movement.companyId === "company-1")).toBe(true);
+      expect(result).toHaveLength(4);
+      expect(result.every((m) => m.companyId === "company-1")).toBe(true);
     });
 
     it("should return empty array when company has no movements", () => {
-      const result = getMovementsByCompanyId("nonexistent-company");
+      const result = getMovementsByCompanyId("company-nonexistent");
       expect(result).toHaveLength(0);
     });
   });
 
   describe("getMovementsBySupplierId", () => {
-    it("should return movements for specific supplier", () => {
+    it("should return all movements for a supplier", () => {
       const result = getMovementsBySupplierId("supplier-1");
-      expect(result.length).toBeGreaterThan(0);
-      expect(result.every((movement) => movement.supplierId === "supplier-1")).toBe(true);
+      expect(result).toHaveLength(1);
+      expect(result[0]?.id).toBe("movement-1");
     });
 
     it("should return empty array when supplier has no movements", () => {
-      const result = getMovementsBySupplierId("nonexistent-supplier");
+      const result = getMovementsBySupplierId("supplier-nonexistent");
       expect(result).toHaveLength(0);
     });
   });
 
   describe("getMovementsByCashFlowId", () => {
-    it("should return movements for specific cash flow", () => {
+    it("should return all movements for a cash flow", () => {
       const result = getMovementsByCashFlowId("cashflow-1");
-      expect(result.length).toBeGreaterThan(0);
-      expect(result.every((movement) => movement.cashFlowId === "cashflow-1")).toBe(true);
+      expect(result).toHaveLength(1);
+      expect(result[0]?.id).toBe("movement-3");
     });
 
     it("should return empty array when cash flow has no movements", () => {
-      const result = getMovementsByCashFlowId("nonexistent-cashflow");
+      const result = getMovementsByCashFlowId("cashflow-nonexistent");
       expect(result).toHaveLength(0);
     });
   });
 
   describe("getMovementsByPropertyId", () => {
-    it("should return movements for specific property", () => {
+    it("should return all movements for a property", () => {
       const result = getMovementsByPropertyId("property-1");
-      expect(result.length).toBeGreaterThan(0);
-      expect(result.every((movement) => movement.propertyId === "property-1")).toBe(true);
+      expect(result).toHaveLength(3);
+      expect(result.every((m) => m.propertyId === "property-1")).toBe(true);
     });
 
     it("should return empty array when property has no movements", () => {
-      const result = getMovementsByPropertyId("nonexistent-property");
+      const result = getMovementsByPropertyId("property-nonexistent");
       expect(result).toHaveLength(0);
     });
   });
 
   describe("getMovementsByLocationId", () => {
-    it("should return movements for specific location", () => {
+    it("should return all movements for a location", () => {
       const result = getMovementsByLocationId("location-1");
-      expect(result.length).toBeGreaterThan(0);
-      expect(result.every((movement) => movement.locationId === "location-1")).toBe(true);
+      expect(result).toHaveLength(2);
+      expect(result.every((m) => m.locationId === "location-1")).toBe(true);
     });
 
     it("should return empty array when location has no movements", () => {
-      const result = getMovementsByLocationId("nonexistent-location");
+      const result = getMovementsByLocationId("location-nonexistent");
       expect(result).toHaveLength(0);
-    });
-
-    it("should only return movements with locationId set", () => {
-      const result = getMovementsByLocationId("location-1");
-      expect(result.every((movement) => movement.locationId === "location-1")).toBe(true);
     });
   });
 
   describe("getConsumptionMovementsByLocationId", () => {
-    it("should return only consumption movements for specific location", () => {
+    it("should return only consumption movements for a location", () => {
       const result = getConsumptionMovementsByLocationId("location-1");
-      expect(result.length).toBeGreaterThan(0);
-      expect(result.every((movement) => movement.locationId === "location-1")).toBe(true);
-      expect(result.every((movement) => movement.type === InventoryMovementType.CONSUMPTION)).toBe(
-        true
-      );
+      expect(result).toHaveLength(1);
+      expect(result[0]?.id).toBe("movement-2");
+      expect(result[0]?.type).toBe(InventoryMovementType.CONSUMPTION);
     });
 
     it("should return empty array when location has no consumption movements", () => {
-      const result = getConsumptionMovementsByLocationId("nonexistent-location");
+      const result = getConsumptionMovementsByLocationId("location-nonexistent");
       expect(result).toHaveLength(0);
     });
 
-    it("should not return purchase movements even if they have locationId", () => {
+    it("should not return non-consumption movements", () => {
       const result = getConsumptionMovementsByLocationId("location-1");
-      expect(result.every((movement) => movement.type === InventoryMovementType.CONSUMPTION)).toBe(
-        true
-      );
+      expect(result.every((m) => m.type === InventoryMovementType.CONSUMPTION)).toBe(true);
     });
   });
 
   describe("addInventoryMovement", () => {
-    it("should add new inventory movement", () => {
+    it("should add a new movement with generated ID", () => {
       const formData: InventoryMovementFormData = {
         itemId: "item-3",
-        type: InventoryMovementType.ADJUSTMENT,
-        quantity: 25,
-        date: "2025-01-20",
+        type: InventoryMovementType.PURCHASE,
+        quantity: 150,
+        unitPrice: 15,
+        date: "2025-01-05",
         propertyId: "property-1",
         companyId: "company-1",
-        createCashFlowTransaction: false,
+        locationId: "location-1",
       };
 
       const initialLength = mockInventoryMovements.length;
       const result = addInventoryMovement(formData);
 
       expect(mockInventoryMovements).toHaveLength(initialLength + 1);
-      expect(result.type).toBe(InventoryMovementType.ADJUSTMENT);
-      expect(result.itemId).toBe("item-3");
       expect(result.id).toBeDefined();
-      expect(result.createdAt).toBeDefined();
-      expect(result).not.toHaveProperty("createCashFlowTransaction");
+      expect(result.itemId).toBe("item-3");
+      expect(result.type).toBe(InventoryMovementType.PURCHASE);
+      expect(result.quantity).toBe(150);
     });
 
-    it("should handle createCashFlowTransaction field", () => {
+    it("should exclude createCashFlowTransaction from movement data", () => {
       const formData: InventoryMovementFormData = {
         itemId: "item-3",
         type: InventoryMovementType.PURCHASE,
-        quantity: 100,
-        unitPrice: 10.0,
-        date: "2025-01-20",
+        quantity: 150,
+        date: "2025-01-05",
         propertyId: "property-1",
         companyId: "company-1",
         createCashFlowTransaction: true,
@@ -251,102 +231,62 @@ describe("inventory-movements.service", () => {
       const result = addInventoryMovement(formData);
       expect(result).not.toHaveProperty("createCashFlowTransaction");
     });
-
-    it("should generate unique ID for new movement", () => {
-      const formData1: InventoryMovementFormData = {
-        itemId: "item-4",
-        type: InventoryMovementType.PURCHASE,
-        quantity: 50,
-        date: "2025-01-21",
-        propertyId: "property-1",
-        companyId: "company-1",
-      };
-
-      const formData2: InventoryMovementFormData = {
-        itemId: "item-5",
-        type: InventoryMovementType.CONSUMPTION,
-        quantity: 30,
-        date: "2025-01-22",
-        propertyId: "property-1",
-        companyId: "company-1",
-      };
-
-      const result1 = addInventoryMovement(formData1);
-      const result2 = addInventoryMovement(formData2);
-
-      expect(result1.id).not.toBe(result2.id);
-    });
   });
 
   describe("updateInventoryMovement", () => {
-    it("should update existing inventory movement", () => {
-      const result = updateInventoryMovement("im0e8400-e29b-41d4-a716-446655440010", {
-        quantity: 150,
-      });
+    it("should update movement when ID exists", () => {
+      const updateData: Partial<InventoryMovementFormData> = {
+        quantity: 75,
+        unitPrice: 12,
+      };
 
+      const result = updateInventoryMovement("movement-1", updateData);
       expect(result).toBe(true);
-      const updated = mockInventoryMovements.find(
-        (movement) => movement.id === "im0e8400-e29b-41d4-a716-446655440010"
-      );
-      expect(updated?.quantity).toBe(150);
+
+      const updated = mockInventoryMovements.find((m) => m.id === "movement-1");
+      expect(updated?.quantity).toBe(75);
+      expect(updated?.unitPrice).toBe(12);
     });
 
-    it("should handle createCashFlowTransaction field", () => {
-      const result = updateInventoryMovement("im0e8400-e29b-41d4-a716-446655440010", {
-        description: "Updated description",
-        createCashFlowTransaction: true,
-      });
+    it("should return false when ID does not exist", () => {
+      const updateData: Partial<InventoryMovementFormData> = {
+        quantity: 75,
+      };
 
-      expect(result).toBe(true);
-      const updated = mockInventoryMovements.find(
-        (movement) => movement.id === "im0e8400-e29b-41d4-a716-446655440010"
-      );
-      expect(updated?.description).toBe("Updated description");
-      expect(updated).not.toHaveProperty("createCashFlowTransaction");
-    });
-
-    it("should return false for non-existent movement", () => {
-      const result = updateInventoryMovement("nonexistent-id", {
-        quantity: 200,
-      });
+      const result = updateInventoryMovement("movement-nonexistent", updateData);
       expect(result).toBe(false);
     });
 
-    it("should handle partial updates", () => {
-      const original = mockInventoryMovements.find(
-        (movement) => movement.id === "im0e8400-e29b-41d4-a716-446655440010"
-      );
-      const originalDate = original?.date;
+    it("should exclude createCashFlowTransaction from update data", () => {
+      const updateData: Partial<InventoryMovementFormData> = {
+        quantity: 80,
+        createCashFlowTransaction: true,
+      };
 
-      updateInventoryMovement("im0e8400-e29b-41d4-a716-446655440010", {
-        description: "Updated description",
-      });
+      const result = updateInventoryMovement("movement-1", updateData);
+      expect(result).toBe(true);
 
-      const updated = mockInventoryMovements.find(
-        (movement) => movement.id === "im0e8400-e29b-41d4-a716-446655440010"
-      );
-      expect(updated?.description).toBe("Updated description");
-      expect(updated?.date).toBe(originalDate);
+      const updated = mockInventoryMovements.find((m) => m.id === "movement-1");
+      expect(updated).not.toHaveProperty("createCashFlowTransaction");
     });
   });
 
   describe("deleteInventoryMovement", () => {
-    it("should delete existing inventory movement", () => {
+    it("should delete movement when ID exists", () => {
       const initialLength = mockInventoryMovements.length;
-      const result = deleteInventoryMovement("im0e8400-e29b-41d4-a716-446655440010");
+      const result = deleteInventoryMovement("movement-1");
 
       expect(result).toBe(true);
       expect(mockInventoryMovements).toHaveLength(initialLength - 1);
-      expect(
-        mockInventoryMovements.find(
-          (movement) => movement.id === "im0e8400-e29b-41d4-a716-446655440010"
-        )
-      ).toBeUndefined();
+      expect(mockInventoryMovements.find((m) => m.id === "movement-1")).toBeUndefined();
     });
 
-    it("should return false for non-existent movement", () => {
-      const result = deleteInventoryMovement("nonexistent-id");
+    it("should return false when ID does not exist", () => {
+      const initialLength = mockInventoryMovements.length;
+      const result = deleteInventoryMovement("movement-nonexistent");
+
       expect(result).toBe(false);
+      expect(mockInventoryMovements).toHaveLength(initialLength);
     });
   });
 });

@@ -27,7 +27,7 @@ export function Blog() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
         {BLOG_POSTS.map((post, index) => (
           <div
-            key={index}
+            key={post.title}
             className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 hover:shadow-lg transition"
           >
             <div

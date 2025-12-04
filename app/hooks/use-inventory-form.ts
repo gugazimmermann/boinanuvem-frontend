@@ -114,87 +114,117 @@ export function useInventoryForm(options: UseInventoryFormOptions) {
     [errors]
   );
 
+  const validateBasicFields = useCallback(
+    (formData: InventoryFormData, newErrors: Record<string, string>): void => {
+      if (!formData.code?.trim()) {
+        newErrors.code = t.profile.errors.required(t.inventory.table.code);
+      }
+      if (!formData.name?.trim()) {
+        newErrors.name = t.profile.errors.required(t.inventory.table.name);
+      }
+      if (!formData.propertyIds || formData.propertyIds.length === 0) {
+        newErrors.propertyIds = t.inventory.new.propertyRequired;
+      }
+      if (formData.category === Category.CUSTOM && !formData.customCategory?.trim()) {
+        newErrors.customCategory = t.inventory.new.customCategoryRequired;
+      }
+    },
+    [t]
+  );
+
+  const validateStockFields = useCallback(
+    (formData: InventoryFormData, newErrors: Record<string, string>): void => {
+      const minStock = Number.parseFloat(formData.minimumStock);
+      if (Number.isNaN(minStock) || minStock < 0) {
+        newErrors.minimumStock = t.inventory.new.minimumStockInvalid;
+      }
+      if (formData.unitPrice?.trim()) {
+        const unitPrice = Number.parseFloat(formData.unitPrice);
+        if (Number.isNaN(unitPrice) || unitPrice <= 0) {
+          newErrors.unitPrice = t.inventory.new.unitPriceInvalid;
+        }
+      }
+      const initialStock = formData.initialStock?.trim()
+        ? Number.parseFloat(formData.initialStock)
+        : 0;
+      if (formData.initialStock?.trim()) {
+        if (Number.isNaN(initialStock) || initialStock < 0) {
+          newErrors.initialStock = t.inventory.new.initialStockInvalid;
+        }
+      }
+      if (formData.hasExpiration && !formData.expirationDate) {
+        newErrors.expirationDate = t.inventory.new.expirationDateRequired;
+      }
+    },
+    [t]
+  );
+
+  const validateCategorySpecificFields = useCallback(
+    (formData: InventoryFormData, newErrors: Record<string, string>): void => {
+      if (
+        (formData.category === Category.MEDICINES || formData.category === Category.VACCINES) &&
+        formData.usageAmount?.trim()
+      ) {
+        const usageAmount = Number.parseFloat(formData.usageAmount);
+        if (Number.isNaN(usageAmount) || usageAmount <= 0) {
+          newErrors.usageAmount = t.inventory.new.usageAmountInvalid;
+        }
+      }
+
+      if (formData.category === Category.FERTILIZER && formData.nitrogenContent?.trim()) {
+        const nitrogenContent = Number.parseFloat(formData.nitrogenContent);
+        if (Number.isNaN(nitrogenContent) || nitrogenContent < 0) {
+          newErrors.nitrogenContent =
+            t.inventory.new.nitrogenContentInvalid ||
+            "Nitrogen content must be greater than or equal to 0";
+        }
+      }
+    },
+    [t]
+  );
+
+  const validateFinancialFields = useCallback(
+    (formData: InventoryFormData, newErrors: Record<string, string>): void => {
+      const initialStock = formData.initialStock?.trim()
+        ? Number.parseFloat(formData.initialStock)
+        : 0;
+
+      if (formData.createCashFlowTransaction && initialStock > 0 && formData.supplierId) {
+        if (!formData.unitPrice || Number.parseFloat(formData.unitPrice) <= 0) {
+          newErrors.unitPrice = t.inventory.movements.new.unitPriceRequired;
+        }
+        if (!formData.paymentMethod) {
+          newErrors.paymentMethod = t.inventory.movements.new.paymentMethodRequired;
+        }
+      }
+
+      if (formData.createAccountPayable && initialStock > 0 && formData.supplierId) {
+        if (!formData.unitPrice || Number.parseFloat(formData.unitPrice) <= 0) {
+          newErrors.unitPrice = t.inventory.movements.new.unitPriceRequired;
+        }
+        if (!formData.dueDate) {
+          newErrors.dueDate = t.inventory.movements.new.dueDateRequired;
+        }
+      }
+    },
+    [t]
+  );
+
   const validate = useCallback((): boolean => {
     const newErrors: Record<string, string> = {};
-
-    if (!formData.code?.trim()) {
-      newErrors.code = t.profile.errors.required(t.inventory.table.code);
-    }
-    if (!formData.name?.trim()) {
-      newErrors.name = t.profile.errors.required(t.inventory.table.name);
-    }
-    if (!formData.propertyIds || formData.propertyIds.length === 0) {
-      newErrors.propertyIds = t.inventory.new.propertyRequired;
-    }
-    if (formData.category === Category.CUSTOM && !formData.customCategory?.trim()) {
-      newErrors.customCategory = t.inventory.new.customCategoryRequired;
-    }
-    const minStock = parseFloat(formData.minimumStock);
-    if (isNaN(minStock) || minStock < 0) {
-      newErrors.minimumStock = t.inventory.new.minimumStockInvalid;
-    }
-    if (formData.unitPrice && formData.unitPrice.trim()) {
-      const unitPrice = parseFloat(formData.unitPrice);
-      if (isNaN(unitPrice) || unitPrice <= 0) {
-        newErrors.unitPrice = t.inventory.new.unitPriceInvalid;
-      }
-    }
-    const initialStock =
-      formData.initialStock && formData.initialStock.trim() ? parseFloat(formData.initialStock) : 0;
-    if (formData.initialStock && formData.initialStock.trim()) {
-      if (isNaN(initialStock) || initialStock < 0) {
-        newErrors.initialStock = t.inventory.new.initialStockInvalid;
-      }
-    }
-    if (formData.hasExpiration && !formData.expirationDate) {
-      newErrors.expirationDate = t.inventory.new.expirationDateRequired;
-    }
-
-    if (
-      (formData.category === Category.MEDICINES || formData.category === Category.VACCINES) &&
-      formData.usageAmount &&
-      formData.usageAmount.trim()
-    ) {
-      const usageAmount = parseFloat(formData.usageAmount);
-      if (isNaN(usageAmount) || usageAmount <= 0) {
-        newErrors.usageAmount = t.inventory.new.usageAmountInvalid;
-      }
-    }
-
-    if (
-      formData.category === Category.FERTILIZER &&
-      formData.nitrogenContent &&
-      formData.nitrogenContent.trim()
-    ) {
-      const nitrogenContent = parseFloat(formData.nitrogenContent);
-      if (isNaN(nitrogenContent) || nitrogenContent < 0) {
-        newErrors.nitrogenContent =
-          t.inventory.new.nitrogenContentInvalid ||
-          "Nitrogen content must be greater than or equal to 0";
-      }
-    }
-
-    if (formData.createCashFlowTransaction && initialStock > 0 && formData.supplierId) {
-      if (!formData.unitPrice || parseFloat(formData.unitPrice) <= 0) {
-        newErrors.unitPrice = t.inventory.movements.new.unitPriceRequired;
-      }
-      if (!formData.paymentMethod) {
-        newErrors.paymentMethod = t.inventory.movements.new.paymentMethodRequired;
-      }
-    }
-
-    if (formData.createAccountPayable && initialStock > 0 && formData.supplierId) {
-      if (!formData.unitPrice || parseFloat(formData.unitPrice) <= 0) {
-        newErrors.unitPrice = t.inventory.movements.new.unitPriceRequired;
-      }
-      if (!formData.dueDate) {
-        newErrors.dueDate = t.inventory.movements.new.dueDateRequired;
-      }
-    }
-
+    validateBasicFields(formData, newErrors);
+    validateStockFields(formData, newErrors);
+    validateCategorySpecificFields(formData, newErrors);
+    validateFinancialFields(formData, newErrors);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [formData, t]);
+  }, [
+    formData,
+    validateBasicFields,
+    validateStockFields,
+    validateCategorySpecificFields,
+    validateFinancialFields,
+  ]);
 
   return {
     formData,

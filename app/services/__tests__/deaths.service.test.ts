@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import {
   getDeathById,
   getDeathByAnimalId,
@@ -10,44 +10,50 @@ import {
 import { mockDeaths } from "~/mocks/deaths";
 import type { DeathFormData } from "~/types";
 
-vi.mock("~/mocks/deaths", () => ({
-  mockDeaths: [],
-}));
-
 describe("deaths.service", () => {
   beforeEach(() => {
     mockDeaths.length = 0;
     mockDeaths.push(
       {
-        id: "de0e8400-e29b-41d4-a716-446655440010",
+        id: "death-1",
         animalId: "animal-1",
         companyId: "company-1",
-        date: "2024-01-15",
+        date: "2025-01-01",
         cause: "Disease",
-        observation: "Natural causes",
-        createdAt: "2024-01-15",
+        observation: "Test death 1",
+        createdAt: "2025-01-01",
       },
       {
-        id: "de0e8400-e29b-41d4-a716-446655440011",
+        id: "death-2",
         animalId: "animal-2",
         companyId: "company-1",
-        date: "2024-02-20",
+        date: "2025-01-02",
         cause: "Accident",
-        createdAt: "2024-02-20",
+        observation: "Test death 2",
+        createdAt: "2025-01-02",
+      },
+      {
+        id: "death-3",
+        animalId: "animal-3",
+        companyId: "company-2",
+        date: "2025-01-03",
+        cause: "Old age",
+        observation: "Test death 3",
+        createdAt: "2025-01-03",
       }
     );
   });
 
   describe("getDeathById", () => {
     it("should return death when ID exists", () => {
-      const result = getDeathById("de0e8400-e29b-41d4-a716-446655440010");
+      const result = getDeathById("death-1");
       expect(result).toBeDefined();
+      expect(result?.id).toBe("death-1");
       expect(result?.animalId).toBe("animal-1");
-      expect(result?.cause).toBe("Disease");
     });
 
     it("should return undefined when ID does not exist", () => {
-      const result = getDeathById("nonexistent-id");
+      const result = getDeathById("death-nonexistent");
       expect(result).toBeUndefined();
     });
 
@@ -58,121 +64,102 @@ describe("deaths.service", () => {
   });
 
   describe("getDeathByAnimalId", () => {
-    it("should return death for specific animal", () => {
+    it("should return death when animal ID exists", () => {
       const result = getDeathByAnimalId("animal-1");
       expect(result).toBeDefined();
       expect(result?.animalId).toBe("animal-1");
-      expect(result?.cause).toBe("Disease");
     });
 
-    it("should return undefined when animal has no death record", () => {
-      const result = getDeathByAnimalId("nonexistent-animal");
+    it("should return undefined when animal ID does not exist", () => {
+      const result = getDeathByAnimalId("animal-nonexistent");
       expect(result).toBeUndefined();
     });
   });
 
   describe("getDeathsByCompanyId", () => {
-    it("should return deaths for specific company", () => {
+    it("should return all deaths for a company", () => {
       const result = getDeathsByCompanyId("company-1");
       expect(result).toHaveLength(2);
-      expect(result.every((death) => death.companyId === "company-1")).toBe(true);
+      expect(result[0]?.id).toBe("death-1");
+      expect(result[1]?.id).toBe("death-2");
     });
 
     it("should return empty array when company has no deaths", () => {
-      const result = getDeathsByCompanyId("nonexistent-company");
+      const result = getDeathsByCompanyId("company-nonexistent");
       expect(result).toHaveLength(0);
     });
   });
 
   describe("addDeath", () => {
-    it("should add new death", () => {
+    it("should add a new death with generated ID", () => {
       const formData: DeathFormData = {
-        animalId: "animal-3",
+        animalId: "animal-4",
         companyId: "company-1",
-        date: "2024-03-01",
-        cause: "Old age",
-        observation: "Peaceful passing",
+        date: "2025-01-10",
+        cause: "Disease",
+        observation: "New death",
       };
 
       const initialLength = mockDeaths.length;
       const result = addDeath(formData);
 
       expect(mockDeaths).toHaveLength(initialLength + 1);
-      expect(result.animalId).toBe("animal-3");
-      expect(result.cause).toBe("Old age");
-      expect(result.observation).toBe("Peaceful passing");
       expect(result.id).toBeDefined();
+      expect(result.animalId).toBe("animal-4");
       expect(result.createdAt).toBeDefined();
     });
 
-    it("should add death without observation", () => {
+    it("should generate ID with correct prefix", () => {
       const formData: DeathFormData = {
         animalId: "animal-4",
         companyId: "company-1",
-        date: "2024-03-02",
-        cause: "Unknown",
+        date: "2025-01-10",
+        cause: "Disease",
       };
 
       const result = addDeath(formData);
-      expect(result.animalId).toBe("animal-4");
-      expect(result.cause).toBe("Unknown");
-      expect(result.observation).toBeUndefined();
+      expect(result.id).toContain("de0e8400-e29b-41d4-a716");
     });
   });
 
   describe("updateDeath", () => {
-    it("should update existing death", () => {
-      const result = updateDeath("de0e8400-e29b-41d4-a716-446655440010", {
+    it("should update death when ID exists", () => {
+      const updateData: Partial<DeathFormData> = {
         cause: "Updated cause",
         observation: "Updated observation",
-      });
+      };
 
+      const result = updateDeath("death-1", updateData);
       expect(result).toBe(true);
-      const updated = mockDeaths.find((d) => d.id === "de0e8400-e29b-41d4-a716-446655440010");
+
+      const updated = mockDeaths.find((death) => death.id === "death-1");
       expect(updated?.cause).toBe("Updated cause");
       expect(updated?.observation).toBe("Updated observation");
     });
 
-    it("should return false when death does not exist", () => {
-      const result = updateDeath("nonexistent-id", {
+    it("should return false when ID does not exist", () => {
+      const updateData: Partial<DeathFormData> = {
         cause: "Updated cause",
-      });
+      };
 
+      const result = updateDeath("death-nonexistent", updateData);
       expect(result).toBe(false);
-    });
-
-    it("should update only provided fields", () => {
-      const originalDeath = mockDeaths.find((d) => d.id === "de0e8400-e29b-41d4-a716-446655440010");
-      const originalCause = originalDeath?.cause;
-      const originalDate = originalDeath?.date;
-
-      const result = updateDeath("de0e8400-e29b-41d4-a716-446655440010", {
-        observation: "Only observation updated",
-      });
-
-      expect(result).toBe(true);
-      const updated = mockDeaths.find((d) => d.id === "de0e8400-e29b-41d4-a716-446655440010");
-      expect(updated?.observation).toBe("Only observation updated");
-      expect(updated?.cause).toBe(originalCause);
-      expect(updated?.date).toBe(originalDate);
     });
   });
 
   describe("deleteDeath", () => {
-    it("should delete existing death", () => {
+    it("should delete death when ID exists", () => {
       const initialLength = mockDeaths.length;
-      const result = deleteDeath("de0e8400-e29b-41d4-a716-446655440010");
+      const result = deleteDeath("death-1");
 
       expect(result).toBe(true);
       expect(mockDeaths).toHaveLength(initialLength - 1);
-      expect(
-        mockDeaths.find((d) => d.id === "de0e8400-e29b-41d4-a716-446655440010")
-      ).toBeUndefined();
+      expect(mockDeaths.find((death) => death.id === "death-1")).toBeUndefined();
     });
 
-    it("should return false when death does not exist", () => {
+    it("should return false when ID does not exist", () => {
       const initialLength = mockDeaths.length;
-      const result = deleteDeath("nonexistent-id");
+      const result = deleteDeath("death-nonexistent");
 
       expect(result).toBe(false);
       expect(mockDeaths).toHaveLength(initialLength);

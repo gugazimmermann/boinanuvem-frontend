@@ -5,7 +5,7 @@ import {
   TableActionButtons,
   type TableColumn,
   type TableAction,
-  Alert,
+  FixedAlert,
 } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
@@ -13,10 +13,8 @@ import { UserFormModal, DeleteUserModal, type UserFormData } from "~/components/
 import { getUserProfileRoute, ROUTES, getTeamEditRoute } from "~/routes.config";
 import { mockUsers } from "~/mocks/users";
 import { useAuth } from "~/contexts/auth-context";
-
+import { useAlert } from "~/hooks/use-alert";
 import type { TeamUser } from "~/types";
-
-export type { TeamUser };
 
 export function meta() {
   return [
@@ -44,20 +42,21 @@ export default function Team() {
       navigate(ROUTES.PROFILE);
     }
   }, [currentUser, navigate]);
-  const [users, setUsers] = useState<TeamUser[]>([...mockUsers.filter((user) => !user.mainUser)]);
+  const [users, setUsers] = useState<TeamUser[]>(mockUsers.filter((user) => !user.mainUser));
   const [searchValue, setSearchValue] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<TeamUser | null>(null);
-
-  const [alertMessage, setAlertMessage] = useState<{
-    title: string;
-    variant: "success" | "error" | "warning" | "info";
-  } | null>(null);
+  const { alertMessage, showAlert } = useAlert();
   const itemsPerPage = 10;
 
-  const localeForDateTime = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
+  const getLocale = (lang: string): string => {
+    if (lang === "en") return "en-US";
+    if (lang === "es") return "es-ES";
+    return "pt-BR";
+  };
+  const localeForDateTime = getLocale(language);
 
   const handleSearchChange = (value: string) => {
     setSearchValue(value);
@@ -97,16 +96,6 @@ export default function Team() {
       hour: "2-digit",
       minute: "2-digit",
     }).format(date);
-  };
-
-  const showAlert = (
-    title: string,
-    variant: "success" | "error" | "warning" | "info" = "success"
-  ) => {
-    setAlertMessage({ title, variant });
-    setTimeout(() => {
-      setAlertMessage(null);
-    }, 3000);
   };
 
   const handleAddUser = async (data: UserFormData) => {
@@ -207,17 +196,15 @@ export default function Team() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
         </svg>
       ),
-      onClick: () => navigate(ROUTES.TEAM_NEW),
+      onClick: () => {
+        navigate(ROUTES.TEAM_NEW);
+      },
     },
   ];
 
   return (
     <div>
-      {alertMessage && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-          <Alert title={alertMessage.title} variant={alertMessage.variant} />
-        </div>
-      )}
+      <FixedAlert alertMessage={alertMessage} />
       <Table<TeamUser>
         columns={columns}
         data={paginatedData}
@@ -241,7 +228,9 @@ export default function Team() {
         emptyState={{
           title: t.team.emptyState.title,
           description: t.team.emptyState.description,
-          onAddNew: () => navigate(ROUTES.TEAM_NEW),
+          onAddNew: () => {
+            navigate(ROUTES.TEAM_NEW);
+          },
           addNewLabel: t.team.addUser,
         }}
       />

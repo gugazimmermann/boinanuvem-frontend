@@ -59,16 +59,16 @@ export const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonPr
     const baseStyles = "rounded-full transition font-medium text-center cursor-pointer";
     const displayStyle = fullWidth ? "block w-full" : "inline-block";
 
-    const variantColorStyle =
-      variant === "primary"
-        ? { backgroundColor: COLORS.primary }
-        : variant === "secondary"
-          ? { backgroundColor: COLORS.secondary }
-          : {
-              borderColor: COLORS.secondary,
-              color: COLORS.secondary,
-              backgroundColor: COLORS.bgLightTertiary,
-            };
+    const getVariantColorStyle = () => {
+      if (variant === "primary") return { backgroundColor: COLORS.primary };
+      if (variant === "secondary") return { backgroundColor: COLORS.secondary };
+      return {
+        borderColor: COLORS.secondary,
+        color: COLORS.secondary,
+        backgroundColor: COLORS.bgLightTertiary,
+      };
+    };
+    const variantColorStyle = getVariantColorStyle();
 
     const combinedClassName =
       `${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${displayStyle} ${className}`.trim();

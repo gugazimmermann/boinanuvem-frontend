@@ -2,15 +2,16 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router";
 import {
   Table,
-  TableActionButtons,
-  ConfirmationModal,
-  Alert,
   Tooltip,
   type TableColumn,
   type TableAction,
   type TableFilter,
   type SortDirection,
 } from "~/components/ui";
+import { DeleteModalSection } from "~/components/dashboard/common/delete-modal-section";
+import { createActionColumn } from "~/utils/table-action-column";
+import { createAddButtonAction } from "~/utils/header-action-helpers";
+import { createEmptyStateConfig } from "~/utils/empty-state-config";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
 import { mockInventoryItems } from "~/mocks/inventory";
@@ -25,6 +26,7 @@ import { getPropertiesByCompanyId } from "~/services/properties.service";
 import { useInventoryStock } from "~/hooks/use-inventory-stock";
 import { useInventoryFilters } from "~/hooks/use-inventory-filters";
 import { getUnitLabel, isExpiringSoon, formatInventoryDate } from "~/utils/inventory-utils";
+import { useAlert } from "~/hooks/use-alert";
 
 export function meta() {
   return [
@@ -52,10 +54,7 @@ export default function Inventory() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
-  const [alertMessage, setAlertMessage] = useState<{
-    title: string;
-    variant: "success" | "error" | "warning" | "info";
-  } | null>(null);
+  const { alertMessage, showAlert } = useAlert();
   const itemsPerPage = 10;
 
   const { lowStockItems, expiringItems } = useInventoryStock({
@@ -84,16 +83,6 @@ export default function Inventory() {
     expiringItems,
     language,
   });
-
-  const showAlert = (
-    title: string,
-    variant: "success" | "error" | "warning" | "info" = "success"
-  ) => {
-    setAlertMessage({ title, variant });
-    setTimeout(() => {
-      setAlertMessage(null);
-    }, 3000);
-  };
 
   const handleDeleteClick = (item: InventoryItem) => {
     setSelectedItem(item);
@@ -228,44 +217,26 @@ export default function Inventory() {
         );
       },
     },
-    {
-      key: "actions",
-      label: "",
-      headerClassName: "relative",
-      render: (_, row) => (
-        <TableActionButtons
-          onEdit={() => navigate(getInventoryEditRoute(row.id))}
-          onDelete={() => handleDeleteClick(row)}
-          canEdit={canEdit("registration", "inventory")}
-          canDelete={canRemove("registration", "inventory")}
-        />
-      ),
-    },
+    createActionColumn<InventoryItem>({
+      onEdit: (row) => {
+        navigate(getInventoryEditRoute(row.id));
+      },
+      onDelete: (row) => {
+        handleDeleteClick(row);
+      },
+      canEdit: canEdit("registration", "inventory"),
+      canDelete: canRemove("registration", "inventory"),
+    }),
   ];
 
   const headerActions: TableAction[] = canAdd("registration", "inventory")
     ? [
-        {
+        createAddButtonAction({
           label: t.inventory.addItem,
-          variant: "primary",
-          leftIcon: (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className="w-5 h-5"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          ),
-          onClick: () => navigate(ROUTES.INVENTORY_NEW),
-        },
+          onClick: () => {
+            navigate(ROUTES.INVENTORY_NEW);
+          },
+        }),
       ]
     : [];
 
@@ -343,30 +314,27 @@ export default function Inventory() {
         sortState={sortState}
         onSort={handleSortWithPageReset}
         onRowClick={(row) => navigate(getInventoryViewRoute(row.id))}
-        emptyState={{
+        emptyState={createEmptyStateConfig({
           title: t.inventory.emptyState.title,
-          description: searchValue
-            ? t.inventory.emptyState.descriptionWithSearch(searchValue)
-            : t.inventory.emptyState.descriptionWithoutSearch,
+          descriptionWithSearch: (search) => t.inventory.emptyState.descriptionWithSearch(search),
+          descriptionWithoutSearch: t.inventory.emptyState.descriptionWithoutSearch,
+          searchValue,
           onClearSearch: () => {
             setSearchValue("");
             setActiveFilter("all");
             setPropertyFilter("all");
           },
           clearSearchLabel: t.common.clearSearch,
-          onAddNew: () => navigate(ROUTES.INVENTORY_NEW),
+          onAddNew: () => {
+            navigate(ROUTES.INVENTORY_NEW);
+          },
           addNewLabel: t.inventory.addItem,
-        }}
+        })}
       />
 
-      {alertMessage && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-          <Alert title={alertMessage.title} variant={alertMessage.variant} />
-        </div>
-      )}
-
-      <ConfirmationModal
-        isOpen={isDeleteModalOpen}
+      <DeleteModalSection
+        alertMessage={alertMessage}
+        isDeleteModalOpen={isDeleteModalOpen}
         onClose={() => {
           setIsDeleteModalOpen(false);
           setSelectedItem(null);
@@ -376,7 +344,6 @@ export default function Inventory() {
         message={t.inventory.deleteModal.message(selectedItem?.name || "")}
         confirmLabel={t.inventory.deleteModal.confirm}
         cancelLabel={t.inventory.deleteModal.cancel}
-        variant="danger"
       />
     </div>
   );

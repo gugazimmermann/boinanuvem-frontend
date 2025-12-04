@@ -1,7 +1,7 @@
 interface AuthFooterProps {
-  question: string;
-  linkText: string;
-  linkRoute: string;
+  readonly question: string;
+  readonly linkText: string;
+  readonly linkRoute: string;
 }
 
 export function AuthFooter({ question, linkText, linkRoute }: AuthFooterProps) {

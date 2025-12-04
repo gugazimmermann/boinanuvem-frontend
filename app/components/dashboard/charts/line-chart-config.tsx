@@ -3,19 +3,19 @@ import type { ChartColors } from "../utils/chart-colors";
 import { getTooltipStyle } from "./chart-tooltip";
 
 interface LineChartConfigProps {
-  data: Array<Record<string, unknown>>;
-  dataKeys: Array<{
-    key: string;
-    name: string;
-    color: string;
+  readonly data: Array<Record<string, unknown>>;
+  readonly dataKeys: Array<{
+    readonly key: string;
+    readonly name: string;
+    readonly color: string;
   }>;
-  xAxisKey: string;
-  yAxisLabel?: string;
-  yAxisFormatter?: (value: number) => string;
-  tooltipFormatter?: (value: number) => string | [string, string];
-  chartColors: ChartColors;
-  isDark: boolean;
-  height?: number;
+  readonly xAxisKey: string;
+  readonly yAxisLabel?: string;
+  readonly yAxisFormatter?: (value: number) => string;
+  readonly tooltipFormatter?: (value: number) => string | [string, string];
+  readonly chartColors: ChartColors;
+  readonly isDark: boolean;
+  readonly height?: number;
 }
 
 export function LineChartConfig({

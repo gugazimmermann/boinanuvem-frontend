@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 
-export type FilterValue = "all" | "active" | "inactive" | string;
+export type FilterValue = "all" | "active" | "inactive" | "published";
 
 export interface TableFilter {
   label: string;
@@ -37,7 +37,7 @@ export function useTableFilters(options: UseTableFiltersOptions = {}) {
   );
 
   const matchesFilter = useCallback(
-    (status: "active" | "inactive" | string): boolean => {
+    (status: FilterValue): boolean => {
       if (activeFilter === "all") return true;
       if (activeFilter === "active") return status === "active";
       if (activeFilter === "inactive") return status === "inactive";

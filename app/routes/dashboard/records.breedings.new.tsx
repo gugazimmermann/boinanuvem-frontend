@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router";
-import { Input, Button, Alert } from "~/components/ui";
+import { Input, Button, FixedAlert } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { translations } from "~/i18n/translations";
 import { ROUTES } from "~/routes.config";
@@ -112,7 +112,7 @@ export default function NewBreeding() {
           breedingData.semenCode = formData.semenCode;
         }
 
-        return addBreeding(breedingData);
+        return Promise.resolve(addBreeding(breedingData));
       });
 
       await Promise.all(promises);
@@ -131,11 +131,7 @@ export default function NewBreeding() {
 
   return (
     <div className="space-y-8">
-      {alertMessage && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-          <Alert title={alertMessage.title} variant={alertMessage.variant} />
-        </div>
-      )}
+      <FixedAlert alertMessage={alertMessage} />
 
       <div className="flex items-center justify-between">
         <div>
@@ -219,7 +215,10 @@ export default function NewBreeding() {
             />
 
             <div className="mt-4">
-              <label className="flex items-center space-x-3 cursor-pointer">
+              <label
+                className="flex items-center space-x-3 cursor-pointer"
+                aria-label="Confirm breeding"
+              >
                 <input
                   type="checkbox"
                   checked={formData.confirmed}

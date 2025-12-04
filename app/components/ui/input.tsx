@@ -16,22 +16,35 @@ const baseInputStyles = [
   "block",
   "w-full",
   "placeholder-gray-400/70",
+  "dark:placeholder-gray-500",
   "rounded-lg",
   "border",
   "border-gray-200",
+  "dark:border-gray-600",
   "bg-white",
+  "dark:bg-gray-700",
   "px-5",
   "py-2.5",
   "text-gray-700",
+  "dark:text-gray-200",
   "focus:border-blue-400",
+  "dark:focus:border-blue-500",
   "focus:outline-none",
   "focus:ring",
   "focus:ring-blue-300",
+  "dark:focus:ring-blue-600",
   "focus:ring-opacity-40",
   "transition-colors",
 ].join(" ");
 
-const errorInputStyles = ["border-red-400", "focus:border-red-400", "focus:ring-red-300"].join(" ");
+const errorInputStyles = [
+  "border-red-400",
+  "dark:border-red-500",
+  "focus:border-red-400",
+  "dark:focus:border-red-500",
+  "focus:ring-red-300",
+  "dark:focus:ring-red-600",
+].join(" ");
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   (
@@ -60,14 +73,19 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     const shouldShowToggle = isPasswordType && showPasswordToggle;
     const isDateType = type === "date";
     const [showPassword, setShowPassword] = useState(false);
-    const inputType = shouldShowToggle && showPassword ? "text" : isDateType ? "text" : type;
+    const getInputType = () => {
+      if (shouldShowToggle && showPassword) return "text";
+      if (isDateType) return "text";
+      return type;
+    };
+    const inputType = getInputType();
 
-    const displayValue =
-      isDateType && value && typeof value === "string"
-        ? value.includes("-") && value.length === 10
-          ? isoToDate(value)
-          : value
-        : value;
+    const getDisplayValue = () => {
+      if (!isDateType || !value || typeof value !== "string") return value;
+      if (value.includes("-") && value.length === 10) return isoToDate(value);
+      return value;
+    };
+    const displayValue = getDisplayValue();
 
     const inputStyles = [
       baseInputStyles,
@@ -99,7 +117,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className={className}>
         {label && (
-          <label htmlFor={inputId} className="block text-sm text-gray-500">
+          <label htmlFor={inputId} className="block text-sm text-gray-500 dark:text-gray-400">
             {label}
           </label>
         )}
@@ -123,7 +141,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             <button
               type="button"
               onClick={togglePasswordVisibility}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none transition-colors cursor-pointer"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none transition-colors cursor-pointer"
               aria-label={showPassword ? t.common.hidePassword : t.common.showPassword}
               tabIndex={-1}
             >
@@ -171,7 +189,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {displayText && (
           <p
             id={helperId}
-            className={`mt-3 text-xs ${hasError ? "text-red-500" : "text-gray-400"}`}
+            className={`mt-3 text-xs ${hasError ? "text-red-500 dark:text-red-400" : "text-gray-400 dark:text-gray-500"}`}
           >
             {displayText}
           </p>

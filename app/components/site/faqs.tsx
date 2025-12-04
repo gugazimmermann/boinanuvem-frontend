@@ -34,7 +34,7 @@ export const FAQs = memo(function FAQs() {
         </div>
         <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl border border-gray-200 dark:border-gray-700">
           {FAQS.map((faq, index) => (
-            <div key={index} className="mb-4 last:mb-0">
+            <div key={faq.question} className="mb-4 last:mb-0">
               <button
                 onClick={() => toggleFaq(index)}
                 className="w-full flex justify-between items-center py-4 text-left hover:opacity-80 transition cursor-pointer"

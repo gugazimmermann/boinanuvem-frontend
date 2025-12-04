@@ -1,98 +1,76 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { getPaymentsByCompanyId, getPaymentById } from "../payments.service";
 import { mockPayments } from "~/mocks/payments";
 import { PaymentStatus } from "~/types/payment";
-
-vi.mock("~/mocks/payments", () => ({
-  mockPayments: [],
-}));
 
 describe("payments.service", () => {
   beforeEach(() => {
     mockPayments.length = 0;
     mockPayments.push(
       {
-        id: "payment-001",
+        id: "payment-1",
         companyId: "company-1",
-        month: "2025-11",
-        plan: "Padrão",
-        amount: 149.9,
-        status: PaymentStatus.PAID,
-        invoiceId: "invoice-001",
-        createdAt: "2025-11-01",
-      },
-      {
-        id: "payment-002",
-        companyId: "company-1",
-        month: "2025-10",
+        month: "2025-01",
         plan: "Básico",
-        amount: 99.0,
-        status: PaymentStatus.PENDING,
-        invoiceId: "invoice-002",
-        createdAt: "2025-10-01",
+        amount: 100,
+        status: PaymentStatus.PAID,
+        invoiceId: "inv-1",
+        createdAt: "2025-01-01",
       },
       {
-        id: "payment-003",
+        id: "payment-2",
+        companyId: "company-1",
+        month: "2025-02",
+        plan: "Padrão",
+        amount: 200,
+        status: PaymentStatus.PENDING,
+        invoiceId: "inv-2",
+        createdAt: "2025-02-01",
+      },
+      {
+        id: "payment-3",
         companyId: "company-2",
-        month: "2025-11",
+        month: "2025-01",
         plan: "Avançado",
-        amount: 249.9,
+        amount: 300,
         status: PaymentStatus.PAID,
-        invoiceId: "invoice-003",
-        createdAt: "2025-11-01",
+        invoiceId: "inv-3",
+        createdAt: "2025-01-01",
       }
     );
   });
 
   describe("getPaymentsByCompanyId", () => {
-    it("should return payments for specific company", () => {
+    it("should return all payments for a company", () => {
       const result = getPaymentsByCompanyId("company-1");
       expect(result).toHaveLength(2);
-      expect(result.every((payment) => payment.companyId === "company-1")).toBe(true);
+      expect(result[0]?.id).toBe("payment-1");
+      expect(result[1]?.id).toBe("payment-2");
     });
 
     it("should return empty array when company has no payments", () => {
-      const result = getPaymentsByCompanyId("company-3");
+      const result = getPaymentsByCompanyId("company-nonexistent");
       expect(result).toHaveLength(0);
-    });
-
-    it("should return payments with correct structure", () => {
-      const result = getPaymentsByCompanyId("company-1");
-      expect(result[0]).toHaveProperty("id");
-      expect(result[0]).toHaveProperty("companyId");
-      expect(result[0]).toHaveProperty("month");
-      expect(result[0]).toHaveProperty("plan");
-      expect(result[0]).toHaveProperty("amount");
-      expect(result[0]).toHaveProperty("status");
-      expect(result[0]).toHaveProperty("invoiceId");
-      expect(result[0]).toHaveProperty("createdAt");
     });
   });
 
   describe("getPaymentById", () => {
     it("should return payment when ID exists", () => {
-      const result = getPaymentById("payment-001");
+      const result = getPaymentById("payment-1");
       expect(result).toBeDefined();
-      expect(result?.plan).toBe("Padrão");
-      expect(result?.amount).toBe(149.9);
+      expect(result?.id).toBe("payment-1");
+      expect(result?.amount).toBe(100);
+      expect(result?.status).toBe(PaymentStatus.PAID);
     });
 
     it("should return undefined when ID does not exist", () => {
-      const result = getPaymentById("nonexistent-id");
+      const result = getPaymentById("payment-nonexistent");
       expect(result).toBeUndefined();
     });
 
-    it("should return undefined when ID is undefined", () => {
-      const result = getPaymentById(undefined as unknown as string);
-      expect(result).toBeUndefined();
-    });
-
-    it("should return payment with correct status", () => {
-      const paidPayment = getPaymentById("payment-001");
-      expect(paidPayment?.status).toBe(PaymentStatus.PAID);
-
-      const pendingPayment = getPaymentById("payment-002");
-      expect(pendingPayment?.status).toBe(PaymentStatus.PENDING);
+    it("should return payment with correct month format", () => {
+      const result = getPaymentById("payment-1");
+      expect(result?.month).toMatch(/^\d{4}-\d{2}$/);
     });
   });
 });

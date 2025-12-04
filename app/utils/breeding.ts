@@ -1,6 +1,5 @@
 import { format } from "date-fns";
-import type { BreedingMethod } from "~/types";
-import type { Language } from "~/types";
+import type { BreedingMethod, Language } from "~/types";
 import { getDateLocale } from "./date";
 import type { TranslationKey } from "~/i18n/translations";
 

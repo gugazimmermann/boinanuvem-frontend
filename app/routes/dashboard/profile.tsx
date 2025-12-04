@@ -23,9 +23,8 @@ export default function Profile() {
   const isMainUser = currentUser?.mainUser === true;
 
   const defaultTab = isMainUser ? "company" : "user";
-  const activeTab = (tabParam === "user" || tabParam === "company" ? tabParam : defaultTab) as
-    | "company"
-    | "user";
+  const activeTab: "company" | "user" =
+    tabParam === "user" || tabParam === "company" ? tabParam : defaultTab;
 
   useEffect(() => {
     if (!isMainUser && activeTab === "company") {

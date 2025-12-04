@@ -18,9 +18,12 @@ export function generateNextId<T extends EntityWithId>(
     return defaultId;
   }
 
-  const lastId = data[data.length - 1].id;
+  const lastId = data.at(-1)?.id;
+  if (!lastId) {
+    return defaultId;
+  }
   const lastPart = lastId.split("-").pop() || "446655440009";
-  const lastNumber = parseInt(lastPart, 10);
+  const lastNumber = Number.parseInt(lastPart, 10);
   const nextNumber = (lastNumber + 1).toString().padStart(12, "0");
 
   return `${idPrefix}-${nextNumber}`;

@@ -42,12 +42,15 @@ export default function Help() {
 
   const faqItems = useMemo(() => {
     const faqs = t.help.faqs;
-    return Object.entries(faqs).map(([id, faq]) => ({
-      id,
-      category: faq.category,
-      question: faq.question,
-      answer: faq.answer,
-    }));
+    return Object.entries(faqs).map(([id, faq]) => {
+      const typedFaq = faq as { category: string; question: string; answer: string };
+      return {
+        id,
+        category: typedFaq.category,
+        question: typedFaq.question,
+        answer: typedFaq.answer,
+      };
+    });
   }, [t]);
 
   const filteredFaqs =
@@ -164,8 +167,8 @@ export default function Help() {
               {t.help.contactSupport.description}
             </p>
             <div className="space-y-2 text-gray-700 dark:text-gray-300">
-              {t.help.contactSupport.contactMethods.map((method, index) => (
-                <div key={index} className="flex items-start gap-2">
+              {t.help.contactSupport.contactMethods.map((method: string) => (
+                <div key={method} className="flex items-start gap-2">
                   <span className="text-blue-500 dark:text-blue-400 mt-1">•</span>
                   <span>{method}</span>
                 </div>

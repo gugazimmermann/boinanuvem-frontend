@@ -2,12 +2,12 @@ import type { ReactNode } from "react";
 import { ResponsiveContainer } from "recharts";
 
 interface ChartWrapperProps {
-  children: ReactNode;
-  height?: number;
-  title?: string;
-  className?: string;
-  emptyMessage?: string;
-  isEmpty?: boolean;
+  readonly children: ReactNode;
+  readonly height?: number;
+  readonly title?: string;
+  readonly className?: string;
+  readonly emptyMessage?: string;
+  readonly isEmpty?: boolean;
 }
 
 export function ChartWrapper({

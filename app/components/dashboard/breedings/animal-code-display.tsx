@@ -1,9 +1,9 @@
 import type { Animal } from "~/types";
 
 export interface AnimalCodeDisplayProps {
-  animal: Animal;
-  className?: string;
-  showRegistration?: boolean;
+  readonly animal: Animal;
+  readonly className?: string;
+  readonly showRegistration?: boolean;
 }
 
 export function AnimalCodeDisplay({

@@ -7,6 +7,7 @@ import {
   type FinanceFilterConfig,
 } from "./use-finance-filters";
 import { useFinanceSort, type SortState } from "./use-finance-sort";
+import { paginateItems } from "~/utils/table-helpers";
 
 export interface UseFinanceListOptions<T> {
   data: T[];
@@ -58,9 +59,15 @@ export function useFinanceList<T extends CashFlow | AccountsPayable | AccountsRe
   const [selectedSupplier, setSelectedSupplier] = useState("all");
   const [selectedBuyer, setSelectedBuyer] = useState("all");
 
-  const [sortState, setSortState] = useState<SortState>(
-    initialSort || { column: null, direction: "asc" }
-  );
+  const [sortState, setSortState] = useState<SortState>(() => {
+    if (initialSort) {
+      return {
+        column: initialSort.column,
+        direction: initialSort.direction ?? "asc",
+      };
+    }
+    return { column: null, direction: "asc" };
+  });
 
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -91,21 +98,20 @@ export function useFinanceList<T extends CashFlow | AccountsPayable | AccountsRe
 
   const sortedData = useFinanceSort(filteredData, sortState);
 
-  const paginatedData = useMemo(() => {
-    return sortedData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const { paginatedItems: paginatedData, totalPages } = useMemo(() => {
+    return paginateItems(sortedData, currentPage, itemsPerPage);
   }, [sortedData, currentPage, itemsPerPage]);
-
-  const totalPages = useMemo(
-    () => Math.ceil(filteredData.length / itemsPerPage),
-    [filteredData.length, itemsPerPage]
-  );
 
   const totalAmount = useMemo(() => {
     return filteredData.reduce((sum, t) => sum + t.amount, 0);
   }, [filteredData]);
 
   const handleSort = useCallback((column: string, direction: SortDirection) => {
-    setSortState({ column, direction });
+    if (direction === null) {
+      setSortState({ column: null, direction: "asc" });
+    } else {
+      setSortState({ column, direction });
+    }
     setCurrentPage(1);
   }, []);
 

@@ -2,16 +2,16 @@ import { useId, useRef, type ChangeEvent } from "react";
 import { useTranslation } from "~/i18n/use-translation";
 
 interface FileUploadProps {
-  label?: string;
-  helperText?: string;
-  error?: string;
-  className?: string;
-  multiple?: boolean;
-  accept?: string;
-  disabled?: boolean;
-  files?: File[];
-  onChange?: (files: File[]) => void;
-  onRemove?: (index: number) => void;
+  readonly label?: string;
+  readonly helperText?: string;
+  readonly error?: string;
+  readonly className?: string;
+  readonly multiple?: boolean;
+  readonly accept?: string;
+  readonly disabled?: boolean;
+  readonly files?: File[];
+  readonly onChange?: (files: File[]) => void;
+  readonly onRemove?: (index: number) => void;
 }
 
 export function FileUpload({
@@ -73,13 +73,20 @@ export function FileUpload({
       )}
 
       <div className="space-y-3">
-        <div
-          className={`relative border-2 border-dashed rounded-lg p-6 transition-colors ${
+        <button
+          type="button"
+          disabled={disabled}
+          className={`relative border-2 border-dashed rounded-lg p-6 transition-colors w-full text-left ${
             hasError
               ? "border-red-400 dark:border-red-500"
               : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
           } ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-          onClick={() => !disabled && fileInputRef.current?.click()}
+          onClick={() => {
+            if (disabled === false) {
+              fileInputRef.current?.click();
+            }
+          }}
+          aria-label={label || "Upload file"}
         >
           <input
             ref={fileInputRef}
@@ -120,7 +127,7 @@ export function FileUpload({
               </p>
             )}
           </div>
-        </div>
+        </button>
 
         {files.length > 0 && (
           <div className="space-y-2">

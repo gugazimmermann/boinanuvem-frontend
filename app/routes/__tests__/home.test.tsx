@@ -1,93 +1,171 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { createMemoryRouter, RouterProvider } from "react-router";
-import { LanguageProvider } from "~/contexts/language-context";
-import { ThemeProvider } from "~/contexts/theme-context";
-import { meta } from "../home";
+import { MemoryRouter } from "react-router";
+import { loader, meta, links, default as Home } from "../home";
+import { fetchPlans } from "~/services/plans.service";
+import type { Plan } from "~/types/plan";
 
-// Mock the plans service
 vi.mock("~/services/plans.service", () => ({
-  fetchPlans: vi.fn().mockResolvedValue([
-    {
-      id: "1",
-      name: "Básico",
-      description: "Plano ideal para pequenas propriedades.",
-      monthlyPrice: "R$ 99,00",
-      annualPrice: "R$ 950,00",
-      limits: {
-        properties: "1 Propriedade",
-        locations: "20 Localizações",
-        animals: "100 Animais",
-        members: "5 Membros",
-      },
-      features: ["Gestão de Animais", "Controle de Localização"],
-      popular: false,
-      status: "active",
-      createdAt: new Date("2025-11-25T22:00:00.000Z"),
-      updatedAt: new Date("2025-11-25T22:00:00.000Z"),
-    },
-  ]),
+  fetchPlans: vi.fn(),
 }));
 
 vi.mock("~/components/site", () => ({
-  Header: () => <div data-testid="header">Header</div>,
-  Hero: () => <div data-testid="hero">Hero</div>,
-  Statistics: () => <div data-testid="statistics">Statistics</div>,
-  TrustedBy: () => <div data-testid="trusted-by">TrustedBy</div>,
-  Services: () => <div data-testid="services">Services</div>,
-  FeatureHighlights: () => <div data-testid="feature-highlights">FeatureHighlights</div>,
-  Examples: () => <div data-testid="examples">Examples</div>,
-  Pricing: ({ plans }: { plans: unknown[] }) => (
-    <div data-testid="pricing">Pricing {plans?.length || 0} plans</div>
-  ),
-  FAQs: () => <div data-testid="faqs">FAQs</div>,
-  CTA: () => <div data-testid="cta">CTA</div>,
-  Blog: () => <div data-testid="blog">Blog</div>,
-  Footer: () => <div data-testid="footer">Footer</div>,
-  ScrollToTop: () => <div data-testid="scroll-to-top">ScrollToTop</div>,
+  Header: vi.fn(() => <div data-testid="header">Header</div>),
+  Hero: vi.fn(() => <div data-testid="hero">Hero</div>),
+  Statistics: vi.fn(() => <div data-testid="statistics">Statistics</div>),
+  TrustedBy: vi.fn(() => <div data-testid="trusted-by">TrustedBy</div>),
+  Services: vi.fn(() => <div data-testid="services">Services</div>),
+  FeatureHighlights: vi.fn(() => <div data-testid="feature-highlights">FeatureHighlights</div>),
+  Examples: vi.fn(() => <div data-testid="examples">Examples</div>),
+  Pricing: vi.fn(({ plans }: { plans: Plan[] }) => (
+    <div data-testid="pricing">Pricing: {plans.length} plans</div>
+  )),
+  FAQs: vi.fn(() => <div data-testid="faqs">FAQs</div>),
+  Cta: vi.fn(() => <div data-testid="cta">Cta</div>),
+  Blog: vi.fn(() => <div data-testid="blog">Blog</div>),
+  Footer: vi.fn(() => <div data-testid="footer">Footer</div>),
+  ScrollToTop: vi.fn(() => <div data-testid="scroll-to-top">ScrollToTop</div>),
 }));
 
-describe("Home", () => {
-  const createRouter = () => {
-    return createMemoryRouter(
-      [
-        {
-          path: "/",
-          element: (
-            <LanguageProvider>
-              <ThemeProvider>
-                <div>Home Component Test</div>
-              </ThemeProvider>
-            </LanguageProvider>
-          ),
-        },
-      ],
-      {
-        initialEntries: ["/"],
-      }
-    );
-  };
+const mockPlans: Plan[] = [
+  {
+    id: "plan-1",
+    name: "Basic Plan",
+    description: "Basic plan description",
+    monthlyPrice: "100",
+    annualPrice: "1000",
+    limits: {
+      properties: "1",
+      locations: "10",
+      animals: "100",
+      members: "1",
+    },
+    features: [],
+    popular: false,
+    status: "active",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+];
 
-  it("should render test placeholder", () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-    expect(screen.getByText("Home Component Test")).toBeInTheDocument();
+const TestWrapper = ({ children }: { children: React.ReactNode }) => (
+  <MemoryRouter>{children}</MemoryRouter>
+);
+
+describe("home", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.spyOn(console, "error").mockImplementation(() => {});
   });
 
-  it("should have correct meta function", () => {
-    const metaData = meta({} as Parameters<typeof meta>[0]);
-    expect(metaData.length).toBeGreaterThan(2);
-    expect(metaData).toContainEqual({ title: "Boi na Nuvem" });
-    expect(metaData).toContainEqual({
-      name: "description",
-      content:
-        "Sistema completo de gestão para fazendas de gado de corte. Gerencie propriedades, pastos, animais, pesos, nascimentos, finanças, estoque, vendas e muito mais. Dashboard interativo, análises avançadas e relatórios detalhados.",
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  describe("loader", () => {
+    it("should fetch and return plans", async () => {
+      vi.mocked(fetchPlans).mockResolvedValue(mockPlans);
+
+      const result = await loader();
+
+      expect(fetchPlans).toHaveBeenCalledWith({ status: "active" });
+      expect(result).toEqual({ plans: mockPlans });
     });
-    type MetaTag = { title?: string; name?: string; property?: string; content?: string };
-    expect(metaData.some((m: MetaTag) => m.property === "og:title")).toBe(true);
-    expect(metaData.some((m: MetaTag) => m.property === "og:description")).toBe(true);
-    expect(metaData.some((m: MetaTag) => m.name === "twitter:card")).toBe(true);
+
+    it("should handle fetch error and throw", async () => {
+      const error = new Error("Network error");
+      vi.mocked(fetchPlans).mockRejectedValue(error);
+
+      await expect(loader()).rejects.toThrow(
+        "Failed to load pricing plans. Please try again later."
+      );
+      expect(console.error).toHaveBeenCalledWith("Failed to load plans:", error);
+    });
   });
 
-  // Component integration tests simplified due to loader complexity
+  describe("meta", () => {
+    it("should return SEO meta tags", () => {
+      const result = meta({} as never);
+      expect(result).toBeDefined();
+      expect(Array.isArray(result)).toBe(true);
+    });
+
+    it("should include correct title", () => {
+      const result = meta({} as never);
+      const titleTag = result.find((tag) => "title" in tag);
+      expect(titleTag).toBeDefined();
+      if (titleTag && "title" in titleTag) {
+        expect(titleTag.title).toContain("Boi na Nuvem");
+      }
+    });
+  });
+
+  describe("links", () => {
+    it("should return canonical link", () => {
+      const result = links();
+      expect(result).toHaveLength(1);
+      expect(result[0].rel).toBe("canonical");
+      expect(result[0].href).toBe("https://boinanuvem.com.br/");
+    });
+  });
+
+  describe("Home component", () => {
+    it("should render all site components", () => {
+      render(
+        <TestWrapper>
+          <Home loaderData={{ plans: mockPlans }} params={{}} matches={[] as never} />
+        </TestWrapper>
+      );
+
+      expect(screen.getByTestId("header")).toBeInTheDocument();
+      expect(screen.getByTestId("hero")).toBeInTheDocument();
+      expect(screen.getByTestId("statistics")).toBeInTheDocument();
+      expect(screen.getByTestId("trusted-by")).toBeInTheDocument();
+      expect(screen.getByTestId("services")).toBeInTheDocument();
+      expect(screen.getByTestId("feature-highlights")).toBeInTheDocument();
+      expect(screen.getByTestId("examples")).toBeInTheDocument();
+      expect(screen.getByTestId("pricing")).toBeInTheDocument();
+      expect(screen.getByTestId("faqs")).toBeInTheDocument();
+      expect(screen.getByTestId("cta")).toBeInTheDocument();
+      expect(screen.getByTestId("blog")).toBeInTheDocument();
+      expect(screen.getByTestId("footer")).toBeInTheDocument();
+      expect(screen.getByTestId("scroll-to-top")).toBeInTheDocument();
+    });
+
+    it("should pass plans to Pricing component", () => {
+      render(
+        <TestWrapper>
+          <Home loaderData={{ plans: mockPlans }} params={{}} matches={[] as never} />
+        </TestWrapper>
+      );
+
+      expect(screen.getByText("Pricing: 1 plans")).toBeInTheDocument();
+    });
+
+    it("should include structured data script", () => {
+      const { container } = render(
+        <TestWrapper>
+          <Home loaderData={{ plans: mockPlans }} params={{}} matches={[] as never} />
+        </TestWrapper>
+      );
+
+      const script = container.querySelector('script[type="application/ld+json"]');
+      expect(script).toBeInTheDocument();
+      if (script) {
+        const data = JSON.parse(script.textContent || "{}");
+        expect(data["@context"]).toBe("https://schema.org");
+        expect(data["@graph"]).toBeDefined();
+      }
+    });
+
+    it("should render with empty plans array", () => {
+      render(
+        <TestWrapper>
+          <Home loaderData={{ plans: [] }} params={{}} matches={[] as never} />
+        </TestWrapper>
+      );
+
+      expect(screen.getByText("Pricing: 0 plans")).toBeInTheDocument();
+    });
+  });
 });

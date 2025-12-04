@@ -9,7 +9,7 @@ import {
   Examples,
   Pricing,
   FAQs,
-  CTA,
+  Cta,
   Blog,
   Footer,
   ScrollToTop,
@@ -114,7 +114,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
         <Examples />
         <Pricing plans={plans} />
         <FAQs />
-        <CTA />
+        <Cta />
         <Blog />
         <Footer />
         <ScrollToTop />

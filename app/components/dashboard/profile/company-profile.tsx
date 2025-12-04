@@ -1,8 +1,7 @@
 import { useState, useCallback, useMemo } from "react";
-import { Input, Alert } from "~/components/ui";
-import { Button } from "~/components/ui";
+import { Input, FixedAlert, FormFieldGroup, Button } from "~/components/ui";
 import { AddressForm } from "./address-form";
-import { ActivityLog, type ActivityLogEntry } from "./activity-log";
+import { ActivityLog } from "./activity-log";
 import { useCNPJLookup } from "~/components/site/hooks/use-cnpj-lookup";
 import { mapCNPJDataToCompanyForm } from "~/components/site/utils/cnpj-utils";
 import {
@@ -14,11 +13,19 @@ import {
   unmaskCEP,
 } from "~/components/site/utils/masks";
 import { useTranslation } from "~/i18n";
-import { DASHBOARD_COLORS } from "../utils/colors";
 import type { CompanyFormData } from "~/components/site/utils/cnpj-utils";
 import { mockCompanies } from "~/mocks/companies";
 import { updateCompany } from "~/services/companies.service";
 import { mockUsers } from "~/mocks/users";
+import { ProfileTabs, type ProfileTab } from "./shared/profile-tabs";
+import { useProfileForm } from "~/hooks/use-profile-form";
+import { generateActivityLogs } from "~/utils/activity-log-generator";
+import {
+  validateCNPJ,
+  validateEmail,
+  validatePhone,
+  validateAddressFields,
+} from "~/utils/form-validation";
 
 const getMockCompanyData = (): CompanyFormData => {
   const company = mockCompanies[0];
@@ -53,212 +60,144 @@ const getMockCompanyData = (): CompanyFormData => {
   };
 };
 
-const generateCompanyLogs = (companyId: string): ActivityLogEntry[] => {
-  const companyUsers = mockUsers.filter((user) => user.companyId === companyId);
-
-  if (companyUsers.length === 0) {
-    return [];
-  }
-
-  const users = companyUsers.map((user) => user.name);
-  const actions = ["CREATE", "UPDATE", "DELETE", "VIEW", "EXPORT", "IMPORT", "ARCHIVE", "RESTORE"];
-  const resourceTypes = [
-    "Property",
-    "Animal",
-    "Pasture",
-    "Report",
-    "Vaccination",
-    "Treatment",
-    "Birth",
-    "Weight",
-    "User",
-    "Settings",
-  ];
-
-  const properties = [
-    "Fazenda São João",
-    "Fazenda Santa Maria",
-    "Fazenda Boa Vista",
-    "Fazenda Esperança",
-    "Fazenda Verde",
-  ];
-  const animals = Array.from({ length: 50 }, (_, i) => `#${String(1000 + i).padStart(4, "0")}`);
-  const pastures = [
-    "Campo 1",
-    "Campo 2",
-    "Campo 3",
-    "Campo Norte",
-    "Campo Sul",
-    "Campo Leste",
-    "Campo Oeste",
-  ];
-  const reports = [
-    "Monthly Summary",
-    "Annual Report",
-    "Health Report",
-    "Production Report",
-    "Financial Report",
-  ];
-
-  const logs: ActivityLogEntry[] = [];
-  const now = Date.now();
-
-  for (let i = 0; i < 136; i++) {
-    const action = actions[Math.floor(Math.random() * actions.length)];
-    const resourceType = resourceTypes[Math.floor(Math.random() * resourceTypes.length)];
-    const user = users[Math.floor(Math.random() * users.length)];
-
-    let resource = "";
-    switch (resourceType) {
-      case "Property":
-        resource = `Property: ${properties[Math.floor(Math.random() * properties.length)]}`;
-        break;
-      case "Animal":
-        resource = `Animal: ${animals[Math.floor(Math.random() * animals.length)]}`;
-        break;
-      case "Pasture":
-        resource = `Pasture: ${pastures[Math.floor(Math.random() * pastures.length)]}`;
-        break;
-      case "Report":
-        resource = `Report: ${reports[Math.floor(Math.random() * reports.length)]}`;
-        break;
-      case "Vaccination":
-        resource = `Vaccination: Animal ${animals[Math.floor(Math.random() * animals.length)]}`;
-        break;
-      case "Treatment":
-        resource = `Treatment: Animal ${animals[Math.floor(Math.random() * animals.length)]}`;
-        break;
-      case "Birth":
-        resource = `Birth: Animal ${animals[Math.floor(Math.random() * animals.length)]}`;
-        break;
-      case "Weight":
-        resource = `Weight Record: Animal ${animals[Math.floor(Math.random() * animals.length)]}`;
-        break;
-      case "User":
-        resource = `User: ${users[Math.floor(Math.random() * users.length)]}`;
-        break;
-      case "Settings":
-        resource = "Settings: Company Configuration";
-        break;
-    }
-
-    const daysAgo = Math.floor(Math.random() * 90);
-    const hoursAgo = Math.floor(Math.random() * 24);
-    const minutesAgo = Math.floor(Math.random() * 60);
-    const timestamp = new Date(
-      now - daysAgo * 24 * 60 * 60 * 1000 - hoursAgo * 60 * 60 * 1000 - minutesAgo * 60 * 1000
-    ).toISOString();
-
-    logs.push({
-      id: String(i + 1),
-      user,
-      action,
-      resource,
-      timestamp,
-    });
-  }
-
-  return logs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-};
-
 export function CompanyProfile() {
   const t = useTranslation();
   const mockCompanyData = useMemo(() => getMockCompanyData(), []);
   const company = useMemo(() => mockCompanies[0], []);
   const companyId = company?.id || "";
-  const mockCompanyLogs = useMemo(() => generateCompanyLogs(companyId), [companyId]);
-  const [isEditing, setIsEditing] = useState(false);
-  const [data, setData] = useState<CompanyFormData>(mockCompanyData);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isSaving, setIsSaving] = useState(false);
-  const [activeSubTab, setActiveSubTab] = useState<"data" | "logs">("data");
-  const [alertMessage, setAlertMessage] = useState<{
-    title: string;
-    variant: "success" | "error" | "warning" | "info";
-  } | null>(null);
 
-  const showAlert = (
-    title: string,
-    variant: "success" | "error" | "warning" | "info" = "success"
-  ) => {
-    setAlertMessage({ title, variant });
-    setTimeout(() => {
-      setAlertMessage(null);
-    }, 3000);
-  };
+  const companyUsers = useMemo(
+    () => mockUsers.filter((user) => user.companyId === companyId),
+    [companyId]
+  );
+  const users = useMemo(() => companyUsers.map((user) => user.name), [companyUsers]);
 
-  const handleCNPJSuccess = useCallback(
-    (cnpjData: Parameters<typeof mapCNPJDataToCompanyForm>[0]) => {
-      if (isEditing) {
-        setData((prev) => {
-          const mappedData = mapCNPJDataToCompanyForm(cnpjData, prev);
-          return { ...mappedData, cnpj: prev.cnpj };
-        });
-      }
-    },
-    [isEditing]
+  const mockCompanyLogs = useMemo(
+    () =>
+      companyUsers.length > 0
+        ? generateActivityLogs({
+            count: 136,
+            maxDaysAgo: 90,
+            users,
+            actions: [
+              "CREATE",
+              "UPDATE",
+              "DELETE",
+              "VIEW",
+              "EXPORT",
+              "IMPORT",
+              "ARCHIVE",
+              "RESTORE",
+            ],
+            resourceTypes: [
+              "Property",
+              "Animal",
+              "Pasture",
+              "Report",
+              "Vaccination",
+              "Treatment",
+              "Birth",
+              "Weight",
+              "User",
+              "Settings",
+            ],
+            resourceData: {
+              properties: [
+                "Fazenda São João",
+                "Fazenda Santa Maria",
+                "Fazenda Boa Vista",
+                "Fazenda Esperança",
+                "Fazenda Verde",
+              ],
+              animals: Array.from(
+                { length: 50 },
+                (_, i) => `#${String(1000 + i).padStart(4, "0")}`
+              ),
+              pastures: [
+                "Campo 1",
+                "Campo 2",
+                "Campo 3",
+                "Campo Norte",
+                "Campo Sul",
+                "Campo Leste",
+                "Campo Oeste",
+              ],
+              reports: [
+                "Monthly Summary",
+                "Annual Report",
+                "Health Report",
+                "Production Report",
+                "Financial Report",
+              ],
+              users,
+            },
+          })
+        : [],
+    [companyUsers, users]
   );
 
-  const { loading: cnpjLoading } = useCNPJLookup(unmaskCNPJ(data.cnpj), {
-    debounceMs: 800,
-    onSuccess: handleCNPJSuccess,
-    enabled: isEditing,
-  });
+  const {
+    data,
+    errors,
+    isEditing,
+    isSaving,
+    alertMessage,
+    setData,
+    setIsEditing,
+    handleChange,
+    handleSave,
+    handleCancel,
+  } = useProfileForm<CompanyFormData>({
+    initialData: mockCompanyData,
+    validate: (data) => {
+      const newErrors: Record<string, string> = {};
+      const fieldLabels = t.profile.company.fields;
 
-  const handleChange = (field: keyof CompanyFormData, value: string) => {
-    setData((prev) => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
-    }
-  };
+      const cnpjError = validateCNPJ(
+        data.cnpj,
+        fieldLabels.cnpj,
+        () => undefined,
+        (field) => t.profile.errors.invalid(field)
+      );
+      if (cnpjError) newErrors.cnpj = cnpjError;
 
-  const validate = (): boolean => {
-    const newErrors: Record<string, string> = {};
-    const fieldLabels = t.profile.company.fields;
+      if (!data.companyName?.trim()) {
+        newErrors.companyName = t.profile.errors.required(fieldLabels.companyName);
+      }
 
-    if (!unmaskCNPJ(data.cnpj) || unmaskCNPJ(data.cnpj).length !== 14) {
-      newErrors.cnpj = t.profile.errors.invalid(fieldLabels.cnpj);
-    }
-    if (!data.companyName?.trim()) {
-      newErrors.companyName = t.profile.errors.required(fieldLabels.companyName);
-    }
-    if (!data.email?.trim()) {
-      newErrors.email = t.profile.errors.required(fieldLabels.email);
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
-      newErrors.email = t.profile.errors.invalid(fieldLabels.email);
-    }
-    if (!data.phone?.trim()) {
-      newErrors.phone = t.profile.errors.required(fieldLabels.phone);
-    }
-    if (!data.street?.trim()) {
-      newErrors.street = t.profile.errors.required(fieldLabels.street);
-    }
-    if (!data.neighborhood?.trim()) {
-      newErrors.neighborhood = t.profile.errors.required(fieldLabels.neighborhood);
-    }
-    if (!data.city?.trim()) {
-      newErrors.city = t.profile.errors.required(fieldLabels.city);
-    }
-    if (!data.state?.trim()) {
-      newErrors.state = t.profile.errors.required(fieldLabels.state);
-    }
-    if (!data.zipCode?.trim()) {
-      newErrors.zipCode = t.profile.errors.required(fieldLabels.zipCode);
-    }
+      const emailError = validateEmail(
+        data.email,
+        fieldLabels.email,
+        (field) => t.profile.errors.required(field),
+        (field) => t.profile.errors.invalid(field)
+      );
+      if (emailError) newErrors.email = emailError;
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+      const phoneError = validatePhone(
+        data.phone,
+        fieldLabels.phone,
+        (field) => t.profile.errors.required(field),
+        (field) => t.profile.errors.invalid(field)
+      );
+      if (phoneError) newErrors.phone = phoneError;
 
-  const handleSave = async () => {
-    if (!validate()) return;
+      const addressErrors = validateAddressFields(
+        data,
+        {
+          street: fieldLabels.street,
+          neighborhood: fieldLabels.neighborhood,
+          city: fieldLabels.city,
+          state: fieldLabels.state,
+          zipCode: fieldLabels.zipCode,
+        },
+        (field) => t.profile.errors.required(field),
+        (field) => t.profile.errors.invalid(field)
+      );
+      Object.assign(newErrors, addressErrors);
 
-    setIsSaving(true);
-    try {
+      return newErrors;
+    },
+    onSave: async (data) => {
       const unmaskedCNPJ = unmaskCNPJ(data.cnpj);
       updateCompany(unmaskedCNPJ, {
         cnpj: unmaskedCNPJ,
@@ -273,76 +212,43 @@ export function CompanyProfile() {
         state: data.state,
         zipCode: unmaskCEP(data.zipCode),
       });
-
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      setIsEditing(false);
-      showAlert(t.profile.success.saved, "success");
-    } catch {
-      showAlert(t.profile.errors.saveFailed, "error");
-    } finally {
-      setIsSaving(false);
-    }
-  };
+    },
+    successMessage: t.profile.success.saved,
+    errorMessage: t.profile.errors.saveFailed,
+  });
 
-  const handleCancel = () => {
-    setData(mockCompanyData);
-    setErrors({});
-    setIsEditing(false);
-  };
+  const [activeSubTab, setActiveSubTab] = useState<ProfileTab>("data");
+
+  const handleCNPJSuccess = useCallback(
+    (cnpjData: Parameters<typeof mapCNPJDataToCompanyForm>[0]) => {
+      if (isEditing) {
+        setData((prev) => {
+          const mappedData = mapCNPJDataToCompanyForm(cnpjData, prev);
+          return { ...mappedData, cnpj: prev.cnpj };
+        });
+      }
+    },
+    [isEditing, setData]
+  );
+
+  const { loading: cnpjLoading } = useCNPJLookup(unmaskCNPJ(data.cnpj), {
+    debounceMs: 800,
+    onSuccess: handleCNPJSuccess,
+    enabled: isEditing,
+  });
 
   return (
     <div className="space-y-4">
-      {alertMessage && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-          <Alert title={alertMessage.title} variant={alertMessage.variant} />
-        </div>
-      )}
-      <div className="mb-4">
-        <nav className="flex space-x-3" aria-label="Sub Tabs">
-          <button
-            onClick={() => setActiveSubTab("data")}
-            className={`
-              px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer
-              ${
-                activeSubTab === "data"
-                  ? "shadow-sm"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
-              }
-            `}
-            style={
-              activeSubTab === "data"
-                ? {
-                    backgroundColor: `${DASHBOARD_COLORS.primaryLight}40`,
-                    color: DASHBOARD_COLORS.primaryDark,
-                  }
-                : undefined
-            }
-          >
-            {t.profile.company.subTabs.data}
-          </button>
-          <button
-            onClick={() => setActiveSubTab("logs")}
-            className={`
-              px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer
-              ${
-                activeSubTab === "logs"
-                  ? "shadow-sm"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
-              }
-            `}
-            style={
-              activeSubTab === "logs"
-                ? {
-                    backgroundColor: `${DASHBOARD_COLORS.primaryLight}40`,
-                    color: DASHBOARD_COLORS.primaryDark,
-                  }
-                : undefined
-            }
-          >
-            {t.profile.company.subTabs.logs}
-          </button>
-        </nav>
-      </div>
+      <FixedAlert alertMessage={alertMessage} />
+      <ProfileTabs
+        activeTab={activeSubTab}
+        onTabChange={setActiveSubTab}
+        tabs={[
+          { id: "data", label: t.profile.company.subTabs.data },
+          { id: "logs", label: t.profile.company.subTabs.logs },
+        ]}
+      />
 
       {activeSubTab === "data" && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
@@ -358,7 +264,7 @@ export function CompanyProfile() {
           </div>
 
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <FormFieldGroup columns={2}>
               <Input
                 label={t.profile.company.fields.cnpj}
                 value={data.cnpj}
@@ -375,9 +281,9 @@ export function CompanyProfile() {
                 error={errors.companyName}
                 disabled={!isEditing || cnpjLoading}
               />
-            </div>
+            </FormFieldGroup>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <FormFieldGroup columns={2}>
               <Input
                 label={t.profile.company.fields.email}
                 type="email"
@@ -394,7 +300,7 @@ export function CompanyProfile() {
                 disabled={!isEditing}
                 placeholder="(00) 00000-0000"
               />
-            </div>
+            </FormFieldGroup>
 
             <AddressForm
               data={data}

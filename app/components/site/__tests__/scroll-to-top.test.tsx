@@ -4,40 +4,59 @@ import userEvent from "@testing-library/user-event";
 import { ScrollToTop } from "../scroll-to-top";
 
 describe("ScrollToTop", () => {
-  let scrollToSpy: ReturnType<typeof vi.fn>;
+  const originalScrollTo = window.scrollTo;
+  const mockScrollTo = vi.fn();
 
   beforeEach(() => {
-    scrollToSpy = vi.fn();
-    window.scrollTo = scrollToSpy;
+    window.scrollTo = mockScrollTo;
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    window.scrollTo = originalScrollTo;
   });
 
-  it("should render scroll to top button", () => {
+  it("should render button", () => {
     render(<ScrollToTop />);
-    expect(screen.getByLabelText("Scroll to top")).toBeInTheDocument();
+    const button = screen.getByRole("button");
+    expect(button).toBeInTheDocument();
+  });
+
+  it("should have correct aria-label", () => {
+    render(<ScrollToTop />);
+    const button = screen.getByRole("button", { name: "Scroll to top" });
+    expect(button).toBeInTheDocument();
   });
 
   it("should scroll to top when clicked", async () => {
     const user = userEvent.setup();
     render(<ScrollToTop />);
+    const button = screen.getByRole("button");
 
-    const button = screen.getByLabelText("Scroll to top");
     await user.click(button);
 
-    expect(scrollToSpy).toHaveBeenCalledWith({
+    expect(mockScrollTo).toHaveBeenCalledWith({
       top: 0,
       behavior: "smooth",
     });
   });
 
-  it("should have correct styling", () => {
+  it("should apply correct classes", () => {
+    const { container } = render(<ScrollToTop />);
+    const button = container.querySelector("button");
+    expect(button).toHaveClass("fixed");
+    expect(button).toHaveClass("bottom-8");
+    expect(button).toHaveClass("right-8");
+    expect(button).toHaveClass("w-12");
+    expect(button).toHaveClass("h-12");
+    expect(button).toHaveClass("text-white");
+    expect(button).toHaveClass("rounded-full");
+    expect(button).toHaveClass("bg-primary");
+  });
+
+  it("should render arrow character", () => {
     render(<ScrollToTop />);
-    const button = screen.getByLabelText("Scroll to top");
-    expect(button.className).toContain("fixed");
-    expect(button.className).toContain("bottom-8");
-    expect(button.className).toContain("right-8");
+    const button = screen.getByRole("button");
+    expect(button).toHaveTextContent("↑");
   });
 });

@@ -15,8 +15,9 @@ import {
   createNameCodeColumn,
   createStatusColumn,
   createTextColumn,
+  createLastObservationColumn,
+  createPropertiesColumn,
 } from "~/components/dashboard/registrations/table-columns";
-import { formatDate } from "~/utils/formatting";
 import { createRegistrationMeta, createRegistrationLoader } from "~/utils/route-helpers";
 
 export function meta() {
@@ -55,53 +56,12 @@ export default function Suppliers() {
         (row) => row.phone || null,
         true
       ),
-      {
-        key: "properties",
-        label: t.suppliers.table.properties,
-        sortable: false,
-        render: (_, row) => {
-          const properties = row.propertyIds
-            .map((id) => getPropertyById(id))
-            .filter((p) => p !== undefined)
-            .map((p) => p!.name);
-          return (
-            <span className="text-gray-700 dark:text-gray-300">
-              {properties.length > 0 ? properties.join(", ") : "-"}
-            </span>
-          );
-        },
-      },
-      {
-        key: "lastObservation",
-        label: t.suppliers.table.lastObservation || "Última Observação",
-        sortable: false,
-        render: (_, row) => {
-          const observations = getSupplierObservationsBySupplierId(row.id);
-          if (observations.length === 0) {
-            return <span className="text-gray-400 dark:text-gray-500">-</span>;
-          }
-          const lastObservation = observations.sort(
-            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          )[0];
-          const truncated =
-            lastObservation.observation.length > 60
-              ? `${lastObservation.observation.substring(0, 60)}...`
-              : lastObservation.observation;
-          return (
-            <div className="space-y-1">
-              <p
-                className="text-sm text-gray-700 dark:text-gray-300"
-                title={lastObservation.observation}
-              >
-                {truncated}
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {formatDate(lastObservation.createdAt, language)}
-              </p>
-            </div>
-          );
-        },
-      },
+      createPropertiesColumn<Supplier>(t.suppliers.table.properties, getPropertyById),
+      createLastObservationColumn<Supplier>(
+        t.suppliers.table.lastObservation || "Última Observação",
+        getSupplierObservationsBySupplierId,
+        language
+      ),
       createStatusColumn<Supplier>(
         t.suppliers.table.status,
         t.suppliers.table.active,
@@ -127,9 +87,9 @@ export default function Suppliers() {
 
   const filterOptions = useMemo(
     () => [
-      { label: t.suppliers.filters.all, value: "all" },
-      { label: t.suppliers.filters.active, value: "active" },
-      { label: t.suppliers.filters.inactive, value: "inactive" },
+      { label: t.suppliers.filters.all, value: "all" as const },
+      { label: t.suppliers.filters.active, value: "active" as const },
+      { label: t.suppliers.filters.inactive, value: "inactive" as const },
     ],
     [t]
   );

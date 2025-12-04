@@ -7,9 +7,6 @@ import {
   differenceInMinutes,
   format,
 } from "date-fns";
-import { ptBR } from "date-fns/locale/pt-BR";
-import { enUS } from "date-fns/locale/en-US";
-import { es } from "date-fns/locale/es";
 import {
   Button,
   StatusBadge,
@@ -17,21 +14,23 @@ import {
   type TableColumn,
   type SortDirection,
   type TableAction,
-  FileUpload,
-  Alert,
+  FixedAlert,
   ConfirmationModal,
 } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
+import { useDateLocale } from "~/hooks/use-date-locale";
 import {
   ROUTES,
   getAnimalEditRoute,
   getPropertyViewRoute,
   getAnimalViewRoute,
-  getObservationViewRoute,
   getBreedingNewRoute,
   getSanitaryControlNewRoute,
+  getSaleViewRoute,
+  getLocationViewRoute,
 } from "~/routes.config";
+import { createViewMeta } from "~/utils/route-helpers";
 import { getAnimalById } from "~/services/animals.service";
 import { getPropertyById } from "~/services/properties.service";
 import {
@@ -60,14 +59,25 @@ import { getLocationById } from "~/services/locations.service";
 import { getSalesByAnimalId } from "~/services/sales.service";
 import { getBuyerById } from "~/services/buyers.service";
 import { calculateAnimalProfitability } from "~/utils/profitability";
-import { getSaleViewRoute } from "~/routes.config";
-import type { Breeding, Birth } from "~/types";
+import type { Breeding, Birth, BirthPurity, Weighing } from "~/types";
 import type { AnimalObservation } from "~/types/animal-observation";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
-import type { BirthPurity } from "~/types";
 import { usePermissions } from "~/utils/permissions";
+import { useObservationManagement } from "~/hooks/use-observation-management";
+import { ObservationSection } from "~/components/dashboard/observations/observation-section";
 import { getAnimalTotalCost } from "~/services/location-costs.service";
-import { getLocationViewRoute } from "~/routes.config";
+import {
+  computeAnimalBasicData,
+  computeWeighingData,
+  computeAgeData,
+  hasNoGenealogyData,
+  getParentId,
+} from "~/utils/animal-calculations";
+import {
+  calculateWeighingsWithCalculations,
+  calculateGMDValue,
+} from "~/utils/weighing-calculations";
+import { getLocaleForDateTime, createCurrencyFormatter } from "~/utils/locale-helpers";
 import {
   LineChart,
   Line,
@@ -94,34 +104,38 @@ function GenealogyTreeComponent({
   t,
   navigate,
 }: {
-  node: GenealogyNodeType;
-  t: ReturnType<typeof useTranslation>;
-  navigate: (path: string) => void;
+  readonly node: GenealogyNodeType;
+  readonly t: ReturnType<typeof useTranslation>;
+  readonly navigate: (path: string) => void;
 }) {
   const getAnimalViewRoute = (id: string) => `/dashboard/animais/${id}`;
 
   const renderNode = (node: GenealogyNodeType, isMother: boolean | null = null) => {
     if (!node) return null;
 
-    const label =
-      node.level === 0
-        ? t.animals.details.currentAnimal
-        : isMother === true
-          ? t.animals.details.mother
-          : isMother === false
-            ? t.animals.details.father
-            : "";
+    const getLabel = () => {
+      if (node.level === 0) return t.animals.details.currentAnimal;
+      if (isMother === true) return t.animals.details.mother;
+      if (isMother === false) return t.animals.details.father;
+      return "";
+    };
+    const label = getLabel();
 
-    const bgColor =
-      node.level === 0
-        ? "bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 border-blue-200 dark:border-blue-700/50"
-        : isMother === true
-          ? "bg-gradient-to-br from-pink-50 to-pink-100/50 dark:from-pink-900/20 dark:to-pink-800/10 border-pink-200 dark:border-pink-700/50"
-          : "bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-900/20 dark:to-green-800/10 border-green-200 dark:border-green-700/50";
+    const getBgColor = () => {
+      if (node.level === 0) {
+        return "bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 border-blue-200 dark:border-blue-700/50";
+      }
+      if (isMother === true) {
+        return "bg-gradient-to-br from-pink-50 to-pink-100/50 dark:from-pink-900/20 dark:to-pink-800/10 border-pink-200 dark:border-pink-700/50";
+      }
+      return "bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-900/20 dark:to-green-800/10 border-green-200 dark:border-green-700/50";
+    };
+    const bgColor = getBgColor();
 
     return (
       <div className="flex flex-col items-center">
-        <div
+        <button
+          type="button"
           className={`
             relative px-3 py-2 rounded-lg border min-w-[140px] max-w-[160px] cursor-pointer 
             transition-all duration-200 hover:scale-105 hover:shadow-lg
@@ -154,7 +168,7 @@ function GenealogyTreeComponent({
               </p>
             )}
           </div>
-        </div>
+        </button>
 
         {(node.mother || node.father) && (
           <div className="mt-3 flex gap-6">
@@ -184,18 +198,1059 @@ function GenealogyTreeComponent({
 }
 
 export function meta() {
-  return [
-    { title: "Detalhes do Animal - Boi na Nuvem" },
-    {
-      name: "description",
-      content: "Visualização detalhada do animal",
-    },
-  ];
+  return createViewMeta("Animal", "Visualização detalhada do animal");
 }
 
 export async function loader({ request }: { request: Request }) {
   const { createRouteGuard } = await import("~/utils/route-guard");
   return createRouteGuard(undefined, "view")({ request });
+}
+
+function buildGenealogyTree(
+  animalId: string,
+  level: number = 0,
+  maxLevel: number = 4
+): GenealogyNodeType | null {
+  if (level > maxLevel) return null;
+
+  const currentAnimal = getAnimalById(animalId);
+  if (!currentAnimal) return null;
+
+  const currentBirth = getBirthByAnimalId(animalId);
+  const node: GenealogyNodeType = {
+    animal: {
+      id: currentAnimal.id,
+      code: currentAnimal.code,
+      registrationNumber: currentAnimal.registrationNumber,
+    },
+    birth: currentBirth
+      ? {
+          purity: currentBirth.purity,
+          breed: currentBirth.breed,
+          motherId: currentBirth.motherId,
+          fatherId: currentBirth.fatherId,
+        }
+      : undefined,
+    level,
+  };
+
+  if (currentBirth?.motherId) {
+    node.mother = buildGenealogyTree(currentBirth.motherId, level + 1, maxLevel);
+  }
+
+  if (currentBirth?.fatherId) {
+    node.father = buildGenealogyTree(currentBirth.fatherId, level + 1, maxLevel);
+  }
+
+  return node;
+}
+
+type WeighingWithCalculations = ReturnType<typeof calculateWeighingsWithCalculations>[0];
+
+type SonWithAnimal = {
+  birth: Birth;
+  animal: NonNullable<ReturnType<typeof getAnimalById>>;
+};
+
+function sortSonsWithAnimals(
+  sonsWithAnimals: SonWithAnimal[],
+  sortState: { column: string | null; direction: SortDirection },
+  localeForDateTime: string
+): SonWithAnimal[] {
+  const { column, direction } = sortState;
+  if (!column) {
+    return sonsWithAnimals.toSorted((a, b) => {
+      const dateA = new Date(a.birth.birthDate).getTime();
+      const dateB = new Date(b.birth.birthDate).getTime();
+      return dateB - dateA;
+    });
+  }
+
+  return sonsWithAnimals.toSorted((a, b) => {
+    let comparison = 0;
+    if (column === "code") {
+      comparison = a.animal.code.localeCompare(b.animal.code, localeForDateTime);
+    } else if (column === "registrationNumber") {
+      comparison = a.animal.registrationNumber.localeCompare(
+        b.animal.registrationNumber,
+        localeForDateTime
+      );
+    } else if (column === "birthDate") {
+      comparison = new Date(a.birth.birthDate).getTime() - new Date(b.birth.birthDate).getTime();
+    } else if (column === "gender") {
+      const genderA = a.birth.gender || "";
+      const genderB = b.birth.gender || "";
+      comparison = genderA.localeCompare(genderB, localeForDateTime);
+    } else if (column === "purity") {
+      const purityA = a.birth.purity || "";
+      const purityB = b.birth.purity || "";
+      comparison = purityA.localeCompare(purityB, localeForDateTime);
+    } else if (column === "breed") {
+      const breedA = a.birth.breed || "";
+      const breedB = b.birth.breed || "";
+      comparison = breedA.localeCompare(breedB, localeForDateTime);
+    } else {
+      return 0;
+    }
+    return direction === "asc" ? comparison : -comparison;
+  });
+}
+
+function handleTabChangeForActivities(
+  activeTab: AnimalTab,
+  canAccessActivities: boolean,
+  setActiveTab: (tab: AnimalTab | ((prev: AnimalTab) => AnimalTab)) => void
+): void {
+  if (activeTab === "activities" && !canAccessActivities) {
+    setActiveTab((prev) => (prev === "dashboard" ? prev : "dashboard"));
+  }
+}
+
+function handleTabChangeForBreeding(
+  isMale: boolean,
+  activeTab: AnimalTab,
+  setActiveTab: (tab: AnimalTab | ((prev: AnimalTab) => AnimalTab)) => void
+): void {
+  if (isMale && activeTab === "breeding") {
+    setActiveTab((prev) => (prev === "dashboard" ? prev : "dashboard"));
+  }
+}
+
+type AnimalTab =
+  | "dashboard"
+  | "info"
+  | "weighings"
+  | "genealogy"
+  | "activities"
+  | "observations"
+  | "breeding"
+  | "sanitaryControl"
+  | "costs"
+  | "sales";
+
+function renderTabButton(
+  tab: AnimalTab,
+  label: string,
+  activeTab: AnimalTab,
+  setActiveTab: (tab: AnimalTab) => void,
+  isConditional?: boolean
+) {
+  if (isConditional === false) return null;
+
+  return (
+    <button
+      onClick={() => setActiveTab(tab)}
+      className={`
+        py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
+        ${
+          activeTab === tab
+            ? "dark:text-blue-400"
+            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+        }
+      `}
+      style={
+        activeTab === tab
+          ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
+          : undefined
+      }
+    >
+      {label}
+    </button>
+  );
+}
+
+function renderParentGenealogy(
+  parentId: string | undefined,
+  t: ReturnType<typeof useTranslation>,
+  navigate: (path: string) => void,
+  getAnimalViewRoute: (id: string) => string,
+  bgColor: string
+): React.JSX.Element | null {
+  if (!parentId) return null;
+
+  const parent = getAnimalById(parentId);
+  const parentBirth = getBirthByAnimalId(parentId);
+
+  if (!parent) {
+    return <span className="text-sm text-gray-500 dark:text-gray-400">-</span>;
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium ${bgColor} cursor-pointer hover:opacity-80`}
+        onClick={() => navigate(getAnimalViewRoute(parent.id))}
+      >
+        {parent.code} - {parent.registrationNumber}
+      </button>
+      {parentBirth?.purity && (
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            {t.animals.details.purity}:
+          </span>
+          <StatusBadge label={t.animals.purity[parentBirth.purity]} variant="default" />
+          {parentBirth.breed && (
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              ({t.animals.breeds[parentBirth.breed]})
+            </span>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
+function renderAcquisitionItemDetails(
+  acquisition: ReturnType<typeof getAcquisitionByAnimalId> | null,
+  animalId: string,
+  localeForNumber: string,
+  t: ReturnType<typeof useTranslation>
+): React.JSX.Element | null {
+  if (!acquisition) return null;
+
+  const acquisitionItem = acquisition.acquisitionItems.find((item) => item.animalId === animalId);
+
+  if (!acquisitionItem) return null;
+
+  return (
+    <>
+      <div>
+        <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+          {t.animals.details.costs.acquisitionCost}
+        </p>
+        <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
+          {acquisitionItem.price.toLocaleString(localeForNumber, {
+            style: "currency",
+            currency: "BRL",
+          })}
+        </p>
+      </div>
+      {acquisitionItem.weight > 0 && (
+        <>
+          <div>
+            <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+              {"Peso na Aquisição"}
+            </p>
+            <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
+              {acquisitionItem.weight} kg
+            </p>
+          </div>
+          <div>
+            <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+              {"Custo por Arroba"}
+            </p>
+            <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
+              {acquisitionItem.costPerArroba.toLocaleString(localeForNumber, {
+                style: "currency",
+                currency: "BRL",
+              })}
+            </p>
+          </div>
+        </>
+      )}
+    </>
+  );
+}
+
+type ReproductiveStatsData = {
+  sonsBirths: Birth[];
+  breedings: Breeding[];
+  birthsAsMother: Birth[];
+  confirmedBreedings: Breeding[];
+  pendingBreedings: Breeding[];
+  averageCalvingInterval: number | null;
+};
+
+function renderReproductiveStats(
+  isMale: boolean,
+  data: ReproductiveStatsData,
+  t: ReturnType<typeof useTranslation>
+) {
+  const {
+    sonsBirths,
+    breedings,
+    birthsAsMother,
+    confirmedBreedings,
+    pendingBreedings,
+    averageCalvingInterval,
+  } = data;
+  const hasReproductiveData =
+    (!isMale && (birthsAsMother.length > 0 || breedings.length > 0)) ||
+    (isMale && (sonsBirths.length > 0 || breedings.length > 0));
+
+  if (!hasReproductiveData) return null;
+
+  return (
+    <div>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="h-1 w-12 bg-pink-500 rounded-full"></div>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+          {t.animals.details.dashboard.reproductiveStatistics}
+        </h2>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {isMale ? (
+          <>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {t.animals.details.dashboard.totalOffspring}
+                  </p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                    {sonsBirths.length}
+                  </p>
+                </div>
+                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                  <span className="text-lg">👨</span>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {t.animals.details.dashboard.totalBreedings}
+                  </p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                    {breedings.length}
+                  </p>
+                </div>
+                <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                  <span className="text-lg">🐂</span>
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {t.animals.details.dashboard.totalBirths}
+                  </p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                    {birthsAsMother.length}
+                  </p>
+                </div>
+                <div className="w-10 h-10 bg-pink-100 dark:bg-pink-900/30 rounded-lg flex items-center justify-center">
+                  <span className="text-lg">👶</span>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {t.animals.details.dashboard.confirmedBreedings}
+                  </p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                    {confirmedBreedings.length}
+                  </p>
+                </div>
+                <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                  <span className="text-lg">✅</span>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {t.animals.details.dashboard.pendingBreedings}
+                  </p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                    {pendingBreedings.length}
+                  </p>
+                </div>
+                <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
+                  <span className="text-lg">⏳</span>
+                </div>
+              </div>
+            </div>
+            {averageCalvingInterval !== null && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                      {t.animals.details.dashboard.averageCalvingInterval}
+                    </p>
+                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                      {averageCalvingInterval} {t.animals.details.dashboard.days}
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                    <span className="text-lg">📅</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+type AnimalDashboardTabProps = Readonly<{
+  animal: NonNullable<ReturnType<typeof getAnimalById>>;
+  currentWeight: number;
+  weightInArrobas: string;
+  gmd: number | null;
+  age: number | null;
+  birth: Birth | null;
+  acquisitionItem: { birthDate?: string; gender?: string } | null;
+  isMale: boolean;
+  sonsBirths: Birth[];
+  breedings: Breeding[];
+  birthsAsMother: Birth[];
+  confirmedBreedings: Breeding[];
+  pendingBreedings: Breeding[];
+  averageCalvingInterval: number | null;
+  currentLocation: ReturnType<typeof getLocationById>;
+  currentProperty: ReturnType<typeof getPropertyById>;
+  animalMovements: ReturnType<typeof getAnimalMovementsByAnimalId>;
+  daysInCurrentLocation: number | null;
+  animalCostData: ReturnType<typeof getAnimalTotalCost> | null;
+  totalCost: number;
+  costPerKg: number;
+  weighings: Weighing[];
+  firstWeighing: Weighing | null;
+  lastWeighing: Weighing | null;
+  weightGainSinceFirst: number | null;
+  averageWeightGainPerMonth: string | null;
+  weightChartData: Array<{ date: string; weight: number }>;
+  recentWeighings: Weighing[];
+  recentBreedingsList: Breeding[];
+  recentMovementsList: ReturnType<typeof getAnimalMovementsByAnimalId>;
+  isDark: boolean;
+  formatDate: (dateString: string | undefined) => string;
+  formatRelativeTime: (dateString: string) => string;
+  formatCurrency: (value: number) => string;
+  navigate: (path: string) => void;
+  t: ReturnType<typeof useTranslation>;
+}>;
+
+function AnimalDashboardTab(props: AnimalDashboardTabProps) {
+  const {
+    animal,
+    currentWeight,
+    weightInArrobas,
+    gmd,
+    age,
+    birth,
+    acquisitionItem,
+    isMale,
+    sonsBirths,
+    breedings,
+    birthsAsMother,
+    confirmedBreedings,
+    pendingBreedings,
+    averageCalvingInterval,
+    currentLocation,
+    currentProperty,
+    animalMovements,
+    daysInCurrentLocation,
+    animalCostData,
+    totalCost,
+    costPerKg,
+    weighings,
+    firstWeighing,
+    lastWeighing,
+    weightGainSinceFirst,
+    averageWeightGainPerMonth,
+    weightChartData,
+    recentWeighings,
+    recentBreedingsList,
+    recentMovementsList,
+    isDark,
+    formatDate,
+    formatRelativeTime,
+    formatCurrency,
+    navigate,
+    t,
+  } = props;
+  return (
+    <div className="space-y-8">
+      <div>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="h-1 w-12 bg-blue-500 rounded-full"></div>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+            {t.dashboard.title}
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  {t.animals.table.weight}
+                </p>
+                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                  {currentWeight > 0 ? `${currentWeight} kg` : "-"}
+                </p>
+              </div>
+              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                <span className="text-lg">⚖️</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  {t.animals.table.weightInArrobas}
+                </p>
+                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                  {weightInArrobas} @
+                </p>
+              </div>
+              <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                <span className="text-lg">📊</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  {t.animals.table.gmd}
+                </p>
+                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                  {gmd ? `${gmd} kg/dia` : "-"}
+                </p>
+              </div>
+              <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                <span className="text-lg">📈</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  {t.animals.table.birthDate}
+                </p>
+                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                  {(() => {
+                    if (age === null) return "-";
+                    const unit = age === 1 ? t.common.month : t.common.months;
+                    return `${age} ${unit}`;
+                  })()}
+                </p>
+              </div>
+              <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
+                <span className="text-lg">🎂</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="h-1 w-12 bg-green-500 rounded-full"></div>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+            {t.animals.details.dashboard.additionalMetrics}
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  {t.animals.table.status}
+                </p>
+                <div className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                  <StatusBadge
+                    label={
+                      animal.status === "active" ? t.animals.table.active : t.animals.table.inactive
+                    }
+                    variant={animal.status === "active" ? "success" : "default"}
+                  />
+                </div>
+              </div>
+              <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
+                <span className="text-lg">✓</span>
+              </div>
+            </div>
+          </div>
+
+          {birth?.breed && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {t.animals.details.dashboard.breed}
+                  </p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                    {t.animals.breeds[birth.breed] || birth.breed}
+                  </p>
+                </div>
+                <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
+                  <span className="text-lg">🐄</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {(birth?.gender || acquisitionItem?.gender) && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {t.animals.details.dashboard.gender}
+                  </p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                    {
+                      t.animals.gender[
+                        (birth?.gender || acquisitionItem?.gender) as "male" | "female"
+                      ]
+                    }
+                  </p>
+                </div>
+                <div className="w-10 h-10 bg-pink-100 dark:bg-pink-900/30 rounded-lg flex items-center justify-center">
+                  <span className="text-lg">
+                    {birth?.gender === "male" || acquisitionItem?.gender === "male" ? "♂" : "♀"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {birth?.purity && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {t.animals.details.purity}
+                  </p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                    {t.animals.purity[birth.purity]}
+                  </p>
+                </div>
+                <div className="w-10 h-10 bg-teal-100 dark:bg-teal-900/30 rounded-lg flex items-center justify-center">
+                  <span className="text-lg">⭐</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {renderReproductiveStats(
+        isMale,
+        {
+          sonsBirths,
+          breedings,
+          birthsAsMother,
+          confirmedBreedings,
+          pendingBreedings,
+          averageCalvingInterval,
+        },
+        t
+      )}
+
+      <div>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="h-1 w-12 bg-cyan-500 rounded-full"></div>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+            {t.animals.details.dashboard.locationProperty}
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  {t.animals.details.dashboard.currentLocation}
+                </p>
+                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                  {currentLocation ? (
+                    <button
+                      onClick={() => navigate(getLocationViewRoute(currentLocation.id))}
+                      className="hover:underline"
+                    >
+                      {currentLocation.name}
+                    </button>
+                  ) : (
+                    t.animals.details.dashboard.noLocation
+                  )}
+                </p>
+              </div>
+              <div className="w-10 h-10 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg flex items-center justify-center">
+                <span className="text-lg">📍</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  {t.animals.details.dashboard.currentProperty}
+                </p>
+                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                  {currentProperty ? (
+                    <button
+                      onClick={() => navigate(getPropertyViewRoute(currentProperty.id))}
+                      className="hover:underline"
+                    >
+                      {currentProperty.name}
+                    </button>
+                  ) : (
+                    t.animals.details.dashboard.noProperty
+                  )}
+                </p>
+              </div>
+              <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center">
+                <span className="text-lg">🏡</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  {t.animals.details.dashboard.totalMovements}
+                </p>
+                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                  {animalMovements.length}
+                </p>
+              </div>
+              <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
+                <span className="text-lg">🚚</span>
+              </div>
+            </div>
+          </div>
+
+          {daysInCurrentLocation !== null && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {t.animals.details.dashboard.daysInLocation}
+                  </p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                    {daysInCurrentLocation} {t.animals.details.dashboard.days}
+                  </p>
+                </div>
+                <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
+                  <span className="text-lg">📆</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {animalCostData && (
+        <div>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-1 w-12 bg-orange-500 rounded-full"></div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              {t.animals.details.dashboard.costInformation}
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {t.animals.details.costs.totalCost}
+                  </p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                    {formatCurrency(totalCost)}
+                  </p>
+                </div>
+                <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                  <span className="text-lg">💰</span>
+                </div>
+              </div>
+            </div>
+
+            {currentWeight > 0 && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                      {t.animals.details.dashboard.costPerKg}
+                    </p>
+                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                      {formatCurrency(costPerKg)}
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
+                    <span className="text-lg">📊</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {weighings.length > 0 && (
+        <div>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-1 w-12 bg-indigo-500 rounded-full"></div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              {t.animals.details.dashboard.weighingStatistics}
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {t.animals.details.dashboard.totalWeighings}
+                  </p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                    {weighings.length}
+                  </p>
+                </div>
+                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                  <span className="text-lg">⚖️</span>
+                </div>
+              </div>
+            </div>
+
+            {firstWeighing && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                      {t.animals.details.dashboard.firstWeighing}
+                    </p>
+                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                      {formatDate(firstWeighing.date)}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {firstWeighing.weight} kg
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                    <span className="text-lg">📅</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {lastWeighing && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                      {t.animals.details.dashboard.lastWeighing}
+                    </p>
+                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                      {formatDate(lastWeighing.date)}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {lastWeighing.weight} kg
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                    <span className="text-lg">📅</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {weightGainSinceFirst !== null && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                      {t.animals.details.dashboard.weightGain}
+                    </p>
+                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                      {weightGainSinceFirst > 0 ? "+" : ""}
+                      {weightGainSinceFirst.toFixed(1)} kg
+                    </p>
+                    {averageWeightGainPerMonth && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {averageWeightGainPerMonth} kg/{t.common.month}
+                      </p>
+                    )}
+                  </div>
+                  <div className="w-10 h-10 bg-teal-100 dark:bg-teal-900/30 rounded-lg flex items-center justify-center">
+                    <span className="text-lg">📈</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {weightChartData.length > 1 && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-1 w-12 bg-teal-500 rounded-full"></div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              {t.animals.details.dashboard.weightTrend}
+            </h2>
+          </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={weightChartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#374151" : "#e5e7eb"} />
+              <XAxis
+                dataKey="date"
+                stroke={isDark ? "#9ca3af" : "#6b7280"}
+                style={{ fontSize: "12px" }}
+              />
+              <YAxis
+                stroke={isDark ? "#9ca3af" : "#6b7280"}
+                style={{ fontSize: "12px" }}
+                label={{ value: "Weight (kg)", angle: -90, position: "insideLeft" }}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: isDark ? "#1f2937" : "#ffffff",
+                  border: `1px solid ${isDark ? "#374151" : "#e5e7eb"}`,
+                  borderRadius: "8px",
+                }}
+              />
+              <Legend />
+              <Line
+                type="monotone"
+                dataKey="weight"
+                stroke={DASHBOARD_COLORS.primary}
+                strokeWidth={2}
+                dot={{ fill: DASHBOARD_COLORS.primary, r: 4 }}
+                name={t.animals.table.weight}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="h-1 w-12 bg-yellow-500 rounded-full"></div>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+            {t.animals.details.dashboard.recentActivity}
+          </h2>
+        </div>
+        <div className="space-y-3">
+          {recentWeighings.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {t.animals.details.dashboard.recentWeighings}
+              </h3>
+              <div className="space-y-2">
+                {recentWeighings.map((weighing) => (
+                  <div
+                    key={weighing.id}
+                    className="flex items-center space-x-3 pb-2 border-b border-gray-200 dark:border-gray-700 last:border-0"
+                  >
+                    <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                      <span className="text-sm">⚖️</span>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-medium text-gray-900 dark:text-gray-100">
+                        {t.animals.details.weighing}: {weighing.weight} kg
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {formatRelativeTime(weighing.date)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!isMale && recentBreedingsList.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {t.animals.details.dashboard.recentBreedings}
+              </h3>
+              <div className="space-y-2">
+                {recentBreedingsList.map((breeding) => (
+                  <div
+                    key={breeding.id}
+                    className="flex items-center space-x-3 pb-2 border-b border-gray-200 dark:border-gray-700 last:border-0"
+                  >
+                    <div className="w-8 h-8 bg-pink-100 dark:bg-pink-900/30 rounded-full flex items-center justify-center">
+                      <span className="text-sm">💕</span>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-medium text-gray-900 dark:text-gray-100">
+                        {t.animals.details.breeding.title}: {formatDate(breeding.date)}
+                        <span className="ml-2">
+                          {breeding.confirmed ? (
+                            <StatusBadge
+                              label={t.animals.details.breeding.table.confirmed}
+                              variant="success"
+                            />
+                          ) : (
+                            <StatusBadge
+                              label={t.animals.details.breeding.table.unconfirmed}
+                              variant="default"
+                            />
+                          )}
+                        </span>
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {formatRelativeTime(breeding.date)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {recentMovementsList.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {t.animals.details.dashboard.recentMovements}
+              </h3>
+              <div className="space-y-2">
+                {recentMovementsList.map((movement) => {
+                  const location = getLocationById(movement.locationId);
+                  return (
+                    <div
+                      key={movement.id}
+                      className="flex items-center space-x-3 pb-2 border-b border-gray-200 dark:border-gray-700 last:border-0"
+                    >
+                      <div className="w-8 h-8 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center">
+                        <span className="text-sm">🚚</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs font-medium text-gray-900 dark:text-gray-100">
+                          {location?.name || t.animals.details.dashboard.noLocation}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {formatRelativeTime(movement.date)}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {recentWeighings.length === 0 &&
+            recentBreedingsList.length === 0 &&
+            recentMovementsList.length === 0 && (
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {t.dashboard.recentActivities.noActivities}
+              </p>
+            )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function AnimalDetails() {
@@ -208,68 +1263,54 @@ export default function AnimalDetails() {
   const { canEdit, isMainUser } = usePermissions();
   const animal = getAnimalById(animalId);
 
-  const dateLocale = useMemo(() => {
-    switch (language) {
-      case "en":
-        return enUS;
-      case "es":
-        return es;
-      default:
-        return ptBR;
-    }
-  }, [language]);
+  const dateLocale = useDateLocale();
+  const localeForDateTime = useMemo(() => getLocaleForDateTime(language), [language]);
+  const localeForNumber = localeForDateTime;
+  const formatCurrency = useMemo(() => createCurrencyFormatter(localeForNumber), [localeForNumber]);
 
-  const localeForDateTime = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
-  const localeForNumber = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
-  const [activeTab, setActiveTab] = useState<
-    | "dashboard"
-    | "info"
-    | "weighings"
-    | "genealogy"
-    | "activities"
-    | "observations"
-    | "breeding"
-    | "sanitaryControl"
-    | "costs"
-    | "sales"
-  >("dashboard");
+  const animalBasicData = useMemo(() => computeAnimalBasicData(animal ?? null), [animal]);
+  const { birth, acquisition, acquisitionItem, isMale } = animalBasicData || {
+    birth: null,
+    acquisition: null,
+    acquisitionItem: null,
+    isMale: false,
+  };
+  const canAccessActivities = isMainUser();
+  const [activeTab, setActiveTab] = useState<AnimalTab>(() => {
+    // Initialize tab - avoid activities if user doesn't have permission
+    return "dashboard";
+  });
 
   useEffect(() => {
-    if (activeTab === "activities" && !isMainUser()) {
-      setActiveTab("dashboard");
-    }
-  }, [activeTab, isMainUser]);
+    handleTabChangeForActivities(activeTab, canAccessActivities, setActiveTab);
+  }, [activeTab, canAccessActivities]);
+
+  useEffect(() => {
+    handleTabChangeForBreeding(isMale, activeTab, setActiveTab);
+  }, [isMale, activeTab]);
   const [weighingsCurrentPage, setWeighingsCurrentPage] = useState(1);
   const [weighingsSortState, setWeighingsSortState] = useState<{
     column: string | null;
     direction: SortDirection;
   }>({ column: "date", direction: "desc" });
-  const [showObservationForm, setShowObservationForm] = useState(false);
-  const [observationText, setObservationText] = useState("");
-  const [observationFiles, setObservationFiles] = useState<File[]>([]);
-  const [isSubmittingObservation, setIsSubmittingObservation] = useState(false);
-  const [observationAlert, setObservationAlert] = useState<{
-    title: string;
-    variant: "success" | "error";
-  } | null>(null);
-  const [observations, setObservations] = useState<AnimalObservation[]>([]);
-  const [observationsCurrentPage, setObservationsCurrentPage] = useState(1);
-  const [observationsSearchValue, setObservationsSearchValue] = useState("");
-  const [observationsSortState, setObservationsSortState] = useState<{
-    column: string | null;
-    direction: SortDirection;
-  }>({ column: "date", direction: "desc" });
+  const observationManagement = useObservationManagement<AnimalObservation>({
+    entityId: animal?.id || "",
+    fetchObservations: getAnimalObservationsByAnimalId,
+    addObservation: (data) => addAnimalObservation({ animalId: animal!.id, ...data }),
+    translationKeys: {
+      observationRequired: t.animals.details.observationRequired,
+      observationAdded: t.animals.details.observationAdded,
+      observationError: t.animals.details.observationError,
+    },
+    generateFileIdPrefix: () => "file-animal-obs",
+  });
   const [costsStartDate, setCostsStartDate] = useState<string>("");
   const [costsEndDate, setCostsEndDate] = useState<string>("");
-  const [breedings, setBreedings] = useState<Breeding[]>([]);
   const [breedingsCurrentPage, setBreedingsCurrentPage] = useState(1);
   const [breedingsSortState, setBreedingsSortState] = useState<{
     column: string | null;
     direction: SortDirection;
   }>({ column: "date", direction: "desc" });
-  const [sanitaryControls, setSanitaryControls] = useState<
-    Array<import("~/types/sanitary-control").SanitaryControl>
-  >([]);
   const [sanitaryControlsCurrentPage, setSanitaryControlsCurrentPage] = useState(1);
   const [sanitaryControlsSortState, setSanitaryControlsSortState] = useState<{
     column: string | null;
@@ -286,115 +1327,39 @@ export default function AnimalDetails() {
     title: string;
     variant: "success" | "error";
   } | null>(null);
+  const [breedingsKey, setBreedingsKey] = useState(0);
   const itemsPerPage = 10;
 
-  useEffect(() => {
-    if (animal) {
-      setObservations(getAnimalObservationsByAnimalId(animal.id));
-      setBreedings(getBreedingsByAnimalId(animal.id));
-      setSanitaryControls(getSanitaryControlsByAnimalId(animal.id));
-    }
-  }, [animal]);
+  const breedings = useMemo(() => (animal ? getBreedingsByAnimalId(animal.id) : []), [animal]);
 
-  const birth = animal ? getBirthByAnimalId(animal.id) : null;
-  const acquisition = animal ? getAcquisitionByAnimalId(animal.id) : null;
-  const acquisitionItem =
-    acquisition?.acquisitionItems?.find((item) => item.animalId === animal?.id) || null;
-  const isMale = birth?.gender === "male" || acquisitionItem?.gender === "male";
-
-  useEffect(() => {
-    if (isMale && activeTab === "breeding") {
-      setActiveTab("dashboard");
-    }
-  }, [isMale, activeTab]);
+  const sanitaryControls = useMemo(
+    () => (animal ? getSanitaryControlsByAnimalId(animal.id) : []),
+    [animal]
+  );
   const weighings = useMemo(() => (animal ? getWeighingsByAnimalId(animal.id) : []), [animal]);
 
-  type WeighingWithCalculations = {
-    id: string;
-    animalId: string;
-    employeeIds: string[];
-    serviceProviderIds: string[];
-    date: string;
-    weight: number;
-    observation?: string;
-    createdAt: string;
-    companyId: string;
-    weightDiff: number | null;
-    periodGMD: string | null;
-  };
+  const weighingsWithCalculations = useMemo(() => {
+    return calculateWeighingsWithCalculations(weighings);
+  }, [weighings]);
 
-  const sortedWeighingsByDate = [...weighings].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
-
-  const weighingsWithCalculations: WeighingWithCalculations[] = sortedWeighingsByDate.map(
-    (weighing, index) => {
-      const previousWeighing = sortedWeighingsByDate[index + 1];
-      const weightDiff = previousWeighing ? weighing.weight - previousWeighing.weight : null;
-      const daysDiff = previousWeighing
-        ? differenceInDays(new Date(weighing.date), new Date(previousWeighing.date))
-        : null;
-      const periodGMD =
-        weightDiff !== null && daysDiff !== null && daysDiff > 0
-          ? (weightDiff / daysDiff).toFixed(2)
-          : null;
-
-      return {
-        ...weighing,
-        weightDiff,
-        periodGMD,
-      };
-    }
-  );
-
-  const sortedWeighings = useMemo(
-    () => [...weighings].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
-    [weighings]
-  );
-  const lastWeighing = sortedWeighings[0];
+  const weighingData = useMemo(() => computeWeighingData(weighings), [weighings]);
+  const { sortedWeighings, lastWeighing, firstWeighing, currentWeight, weightInArrobas } =
+    weighingData;
 
   const calculateGMD = useMemo(() => {
-    if (sortedWeighings.length < 2) return null;
-    const firstWeighing = sortedWeighings[sortedWeighings.length - 1];
-    const lastWeighing = sortedWeighings[0];
-    const weightDiff = lastWeighing.weight - firstWeighing.weight;
-
-    const firstDateStr = firstWeighing.date.includes("T")
-      ? firstWeighing.date.split("T")[0]
-      : firstWeighing.date;
-    const lastDateStr = lastWeighing.date.includes("T")
-      ? lastWeighing.date.split("T")[0]
-      : lastWeighing.date;
-    const firstDate = new Date(firstDateStr + "T00:00:00Z");
-    const lastDate = new Date(lastDateStr + "T00:00:00Z");
-    const daysDiff = differenceInDays(lastDate, firstDate);
-    if (daysDiff === 0) return null;
-    return (weightDiff / daysDiff).toFixed(2);
+    return calculateGMDValue(sortedWeighings);
   }, [sortedWeighings]);
 
-  const calculateAge = () => {
-    const referenceDate = birth?.birthDate || acquisitionItem?.birthDate;
-    if (!referenceDate) return null;
-    const today = new Date();
-    const ref = new Date(referenceDate);
-    const months = differenceInMonths(today, ref);
-    return months;
-  };
-
-  const age = calculateAge();
-  const gmd = calculateGMD;
-  const currentWeight = lastWeighing?.weight || 0;
-  const weightInArrobas = currentWeight > 0 ? (currentWeight / 30).toFixed(2) : "0.00";
+  const age = useMemo(
+    () => computeAgeData(birth ?? null, acquisitionItem),
+    [birth, acquisitionItem]
+  );
+  const gmd = calculateGMD ? Number.parseFloat(calculateGMD) : null;
 
   const sonsBirths = useMemo(() => {
     if (!animal) return [];
     return getBirthsByFatherId(animal.id);
   }, [animal]);
-
-  type SonWithAnimal = {
-    birth: Birth;
-    animal: NonNullable<ReturnType<typeof getAnimalById>>;
-  };
 
   const sonsWithAnimals: SonWithAnimal[] = useMemo(() => {
     const mapped = sonsBirths
@@ -405,54 +1370,7 @@ export default function AnimalDetails() {
       })
       .filter((item): item is SonWithAnimal => item !== null);
 
-    const { column, direction } = sonsSortState;
-    if (!column) {
-      return mapped.sort((a, b) => {
-        const dateA = new Date(a.birth.birthDate).getTime();
-        const dateB = new Date(b.birth.birthDate).getTime();
-        return dateB - dateA;
-      });
-    }
-
-    return mapped.sort((a, b) => {
-      let comparison = 0;
-      switch (column) {
-        case "code":
-          comparison = a.animal.code.localeCompare(b.animal.code, localeForDateTime);
-          break;
-        case "registrationNumber":
-          comparison = a.animal.registrationNumber.localeCompare(
-            b.animal.registrationNumber,
-            localeForDateTime
-          );
-          break;
-        case "birthDate":
-          comparison =
-            new Date(a.birth.birthDate).getTime() - new Date(b.birth.birthDate).getTime();
-          break;
-        case "gender": {
-          const genderA = a.birth.gender || "";
-          const genderB = b.birth.gender || "";
-          comparison = genderA.localeCompare(genderB, localeForDateTime);
-          break;
-        }
-        case "purity": {
-          const purityA = a.birth.purity || "";
-          const purityB = b.birth.purity || "";
-          comparison = purityA.localeCompare(purityB, localeForDateTime);
-          break;
-        }
-        case "breed": {
-          const breedA = a.birth.breed || "";
-          const breedB = b.birth.breed || "";
-          comparison = breedA.localeCompare(breedB, localeForDateTime);
-          break;
-        }
-        default:
-          return 0;
-      }
-      return direction === "asc" ? comparison : -comparison;
-    });
+    return sortSonsWithAnimals(mapped, sonsSortState, localeForDateTime);
   }, [sonsBirths, sonsSortState, localeForDateTime]);
 
   const company = mockCompanies[0];
@@ -485,16 +1403,17 @@ export default function AnimalDetails() {
   );
   const sortedMovements = useMemo(
     () =>
-      [...animalMovements].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+      animalMovements.toSorted((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
     [animalMovements]
   );
   const currentMovement = sortedMovements[0];
   const currentLocation = currentMovement ? getLocationById(currentMovement.locationId) : null;
-  const currentProperty = currentLocation
-    ? getPropertyById(currentLocation.propertyId)
-    : animal?.propertyId
-      ? getPropertyById(animal.propertyId)
-      : null;
+  const getCurrentProperty = () => {
+    if (currentLocation) return getPropertyById(currentLocation.propertyId);
+    if (animal?.propertyId) return getPropertyById(animal.propertyId);
+    return null;
+  };
+  const currentProperty = getCurrentProperty();
   const daysInCurrentLocation = useMemo(() => {
     if (!currentMovement) return null;
     const today = new Date();
@@ -509,8 +1428,6 @@ export default function AnimalDetails() {
   const totalCost = animalCostData?.totalCost || 0;
   const costPerKg = currentWeight > 0 ? totalCost / currentWeight : 0;
 
-  const firstWeighing =
-    sortedWeighings.length > 0 ? sortedWeighings[sortedWeighings.length - 1] : null;
   const weightGainSinceFirst =
     firstWeighing && currentWeight > 0 ? currentWeight - firstWeighing.weight : null;
   const averageWeightGainPerMonth = useMemo(() => {
@@ -531,6 +1448,50 @@ export default function AnimalDetails() {
       }));
   }, [sortedWeighings, dateLocale]);
 
+  const formatDate = useMemo(() => {
+    return (dateString: string | undefined) => {
+      if (!dateString) return "-";
+      const date = new Date(dateString);
+      const dateFormat = language === "en" ? "MM/dd/yyyy" : "dd/MM/yyyy";
+      return format(date, dateFormat, { locale: dateLocale });
+    };
+  }, [language, dateLocale]);
+
+  const genealogyTree = useMemo(() => {
+    if (!animal) return null;
+    return buildGenealogyTree(animal.id);
+  }, [animal]);
+
+  const formatRelativeTime = useMemo(() => {
+    return (dateString: string) => {
+      const date = new Date(dateString);
+      const now = new Date();
+      const minutes = differenceInMinutes(now, date);
+
+      if (minutes < 1) {
+        return t.dashboard.recentActivities.justNow;
+      }
+      if (minutes < 60) {
+        return t.dashboard.recentActivities.minutesAgo(minutes);
+      }
+
+      const hours = differenceInHours(now, date);
+      if (hours < 24) {
+        return t.dashboard.recentActivities.hoursAgo(hours);
+      }
+
+      const days = differenceInDays(now, date);
+      if (days === 1) {
+        return t.dashboard.recentActivities.yesterday;
+      }
+      if (days < 7) {
+        return t.dashboard.recentActivities.daysAgo(days);
+      }
+
+      return format(date, "dd/MM/yyyy", { locale: dateLocale });
+    };
+  }, [t, dateLocale]);
+
   if (!animal) {
     return (
       <div className="space-y-8">
@@ -544,144 +1505,9 @@ export default function AnimalDetails() {
     );
   }
 
-  const formatDate = (dateString: string | undefined) => {
-    if (!dateString) return "-";
-    const date = new Date(dateString);
-    const dateFormat =
-      language === "en" ? "MM/dd/yyyy" : language === "es" ? "dd/MM/yyyy" : "dd/MM/yyyy";
-    return format(date, dateFormat, { locale: dateLocale });
-  };
-
-  const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat(localeForDateTime, {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(date);
-  };
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat(localeForNumber, {
-      style: "currency",
-      currency: "BRL",
-    }).format(value);
-  };
-
-  const handleSubmitObservation = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!observationText.trim()) {
-      setObservationAlert({
-        title: t.animals.details.observationRequired,
-        variant: "error",
-      });
-      setTimeout(() => setObservationAlert(null), 3000);
-      return;
-    }
-
-    setIsSubmittingObservation(true);
-    try {
-      const fileIds = observationFiles.map((_, index) => `file-animal-obs-${Date.now()}-${index}`);
-
-      addAnimalObservation({
-        animalId: animal.id,
-        observation: observationText.trim(),
-        fileIds: fileIds.length > 0 ? fileIds : undefined,
-      });
-
-      setObservations(getAnimalObservationsByAnimalId(animal.id));
-
-      setObservationAlert({
-        title: t.animals.details.observationAdded,
-        variant: "success",
-      });
-      setTimeout(() => setObservationAlert(null), 3000);
-
-      setObservationText("");
-      setObservationFiles([]);
-      setShowObservationForm(false);
-    } catch (error) {
-      console.error("Error adding observation:", error);
-      setObservationAlert({
-        title: t.animals.details.observationError,
-        variant: "error",
-      });
-      setTimeout(() => setObservationAlert(null), 3000);
-    } finally {
-      setIsSubmittingObservation(false);
-    }
-  };
-
-  const buildGenealogyTree = (
-    animalId: string,
-    level: number = 0,
-    maxLevel: number = 4
-  ): GenealogyNodeType | null => {
-    if (level > maxLevel) return null;
-
-    const currentAnimal = getAnimalById(animalId);
-    if (!currentAnimal) return null;
-
-    const currentBirth = getBirthByAnimalId(animalId);
-    const node: GenealogyNodeType = {
-      animal: {
-        id: currentAnimal.id,
-        code: currentAnimal.code,
-        registrationNumber: currentAnimal.registrationNumber,
-      },
-      birth: currentBirth
-        ? {
-            purity: currentBirth.purity,
-            breed: currentBirth.breed,
-            motherId: currentBirth.motherId,
-            fatherId: currentBirth.fatherId,
-          }
-        : undefined,
-      level,
-    };
-
-    if (currentBirth?.motherId) {
-      node.mother = buildGenealogyTree(currentBirth.motherId, level + 1, maxLevel);
-    }
-
-    if (currentBirth?.fatherId) {
-      node.father = buildGenealogyTree(currentBirth.fatherId, level + 1, maxLevel);
-    }
-
-    return node;
-  };
-
-  const genealogyTree = buildGenealogyTree(animal.id);
-
   const recentWeighings = sortedWeighings.slice(0, 5);
   const recentBreedingsList = breedings.slice(0, 5);
   const recentMovementsList = sortedMovements.slice(0, 5);
-  const formatRelativeTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const minutes = differenceInMinutes(now, date);
-    if (minutes < 1) {
-      return t.dashboard.recentActivities.justNow;
-    } else if (minutes < 60) {
-      return t.dashboard.recentActivities.minutesAgo(minutes);
-    } else {
-      const hours = differenceInHours(now, date);
-      if (hours < 24) {
-        return t.dashboard.recentActivities.hoursAgo(hours);
-      } else {
-        const days = differenceInDays(now, date);
-        if (days === 1) {
-          return t.dashboard.recentActivities.yesterday;
-        } else if (days < 7) {
-          return t.dashboard.recentActivities.daysAgo(days);
-        } else {
-          return format(date, "dd/MM/yyyy", { locale: dateLocale });
-        }
-      }
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -738,873 +1564,80 @@ export default function AnimalDetails() {
 
       <div className="mb-4 border-b border-gray-200 dark:border-gray-700">
         <nav className="flex space-x-8" aria-label={t.common.ariaLabels.tabs}>
-          <button
-            onClick={() => setActiveTab("dashboard")}
-            className={`
-              py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
-              ${
-                activeTab === "dashboard"
-                  ? "dark:text-blue-400"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-              }
-            `}
-            style={
-              activeTab === "dashboard"
-                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
-                : undefined
-            }
-          >
-            {t.dashboard.title}
-          </button>
-          <button
-            onClick={() => setActiveTab("info")}
-            className={`
-              py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
-              ${
-                activeTab === "info"
-                  ? "dark:text-blue-400"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-              }
-            `}
-            style={
-              activeTab === "info"
-                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
-                : undefined
-            }
-          >
-            {t.animals.details.tabs.info}
-          </button>
-          <button
-            onClick={() => setActiveTab("weighings")}
-            className={`
-              py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
-              ${
-                activeTab === "weighings"
-                  ? "dark:text-blue-400"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-              }
-            `}
-            style={
-              activeTab === "weighings"
-                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
-                : undefined
-            }
-          >
-            {t.animals.details.tabs.weighings}
-          </button>
-          {!isMale && (
-            <button
-              onClick={() => setActiveTab("breeding")}
-              className={`
-                py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
-                ${
-                  activeTab === "breeding"
-                    ? "dark:text-blue-400"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-                }
-              `}
-              style={
-                activeTab === "breeding"
-                  ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
-                  : undefined
-              }
-            >
-              {t.animals.details.tabs.breeding}
-            </button>
+          {renderTabButton("dashboard", t.dashboard.title, activeTab, setActiveTab)}
+          {renderTabButton("info", t.animals.details.tabs.info, activeTab, setActiveTab)}
+          {renderTabButton("weighings", t.animals.details.tabs.weighings, activeTab, setActiveTab)}
+          {renderTabButton(
+            "breeding",
+            t.animals.details.tabs.breeding,
+            activeTab,
+            setActiveTab,
+            !isMale
           )}
-          <button
-            onClick={() => setActiveTab("genealogy")}
-            className={`
-              py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
-              ${
-                activeTab === "genealogy"
-                  ? "dark:text-blue-400"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-              }
-            `}
-            style={
-              activeTab === "genealogy"
-                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
-                : undefined
-            }
-          >
-            {t.animals.details.tabs.genealogy}
-          </button>
-          <button
-            onClick={() => setActiveTab("observations")}
-            className={`
-              py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
-              ${
-                activeTab === "observations"
-                  ? "dark:text-blue-400"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-              }
-            `}
-            style={
-              activeTab === "observations"
-                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
-                : undefined
-            }
-          >
-            {t.animals.details.tabs.observations}
-          </button>
-          <button
-            onClick={() => setActiveTab("sanitaryControl")}
-            className={`
-              py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
-              ${
-                activeTab === "sanitaryControl"
-                  ? "dark:text-blue-400"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-              }
-            `}
-            style={
-              activeTab === "sanitaryControl"
-                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
-                : undefined
-            }
-          >
-            {t.animals.details.tabs.sanitaryControl}
-          </button>
-          <button
-            onClick={() => setActiveTab("costs")}
-            className={`
-              py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
-              ${
-                activeTab === "costs"
-                  ? "dark:text-blue-400"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-              }
-            `}
-            style={
-              activeTab === "costs"
-                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
-                : undefined
-            }
-          >
-            {t.animals.details.costs?.title}
-          </button>
-          <button
-            onClick={() => setActiveTab("sales")}
-            className={`
-              py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
-              ${
-                activeTab === "sales"
-                  ? "dark:text-blue-400"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-              }
-            `}
-            style={
-              activeTab === "sales"
-                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
-                : undefined
-            }
-          >
-            {t.animals.details.tabs.sales}
-          </button>
-          {isMainUser() && (
-            <button
-              onClick={() => setActiveTab("activities")}
-              className={`
-                py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
-                ${
-                  activeTab === "activities"
-                    ? "dark:text-blue-400"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-                }
-              `}
-              style={
-                activeTab === "activities"
-                  ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
-                  : undefined
-              }
-            >
-              {t.animals.details.tabs.activities}
-            </button>
+          {renderTabButton("genealogy", t.animals.details.tabs.genealogy, activeTab, setActiveTab)}
+          {renderTabButton(
+            "observations",
+            t.animals.details.tabs.observations,
+            activeTab,
+            setActiveTab
+          )}
+          {renderTabButton(
+            "sanitaryControl",
+            t.animals.details.tabs.sanitaryControl,
+            activeTab,
+            setActiveTab
+          )}
+          {renderTabButton("costs", t.animals.details.costs?.title || "", activeTab, setActiveTab)}
+          {renderTabButton("sales", t.animals.details.tabs.sales, activeTab, setActiveTab)}
+          {renderTabButton(
+            "activities",
+            t.animals.details.tabs.activities,
+            activeTab,
+            setActiveTab,
+            isMainUser()
           )}
         </nav>
       </div>
 
       {activeTab === "dashboard" && (
-        <div className="space-y-8">
-          <div>
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-1 w-12 bg-blue-500 rounded-full"></div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                {t.dashboard.title}
-              </h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                      {t.animals.table.weight}
-                    </p>
-                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                      {currentWeight > 0 ? `${currentWeight} kg` : "-"}
-                    </p>
-                  </div>
-                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                    <span className="text-lg">⚖️</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                      {t.animals.table.weightInArrobas}
-                    </p>
-                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                      {weightInArrobas} @
-                    </p>
-                  </div>
-                  <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                    <span className="text-lg">📊</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                      {t.animals.table.gmd}
-                    </p>
-                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                      {gmd ? `${gmd} kg/dia` : "-"}
-                    </p>
-                  </div>
-                  <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-                    <span className="text-lg">📈</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                      {t.animals.table.birthDate}
-                    </p>
-                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                      {age !== null
-                        ? `${age} ${age === 1 ? t.common.month : t.common.months}`
-                        : "-"}
-                    </p>
-                  </div>
-                  <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
-                    <span className="text-lg">🎂</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-1 w-12 bg-green-500 rounded-full"></div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                {t.animals.details.dashboard.additionalMetrics}
-              </h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                      {t.animals.table.status}
-                    </p>
-                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                      <StatusBadge
-                        label={
-                          animal.status === "active"
-                            ? t.animals.table.active
-                            : t.animals.table.inactive
-                        }
-                        variant={animal.status === "active" ? "success" : "default"}
-                      />
-                    </p>
-                  </div>
-                  <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
-                    <span className="text-lg">✓</span>
-                  </div>
-                </div>
-              </div>
-
-              {birth?.breed && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                        {t.animals.details.dashboard.breed}
-                      </p>
-                      <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                        {t.animals.breeds[birth.breed] || birth.breed}
-                      </p>
-                    </div>
-                    <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
-                      <span className="text-lg">🐄</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {(birth?.gender || acquisitionItem?.gender) && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                        {t.animals.details.dashboard.gender}
-                      </p>
-                      <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                        {
-                          t.animals.gender[
-                            (birth?.gender || acquisitionItem?.gender) as "male" | "female"
-                          ]
-                        }
-                      </p>
-                    </div>
-                    <div className="w-10 h-10 bg-pink-100 dark:bg-pink-900/30 rounded-lg flex items-center justify-center">
-                      <span className="text-lg">
-                        {birth?.gender === "male" || acquisitionItem?.gender === "male"
-                          ? "♂"
-                          : "♀"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {birth?.purity && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                        {t.animals.details.purity}
-                      </p>
-                      <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                        {t.animals.purity[birth.purity]}
-                      </p>
-                    </div>
-                    <div className="w-10 h-10 bg-teal-100 dark:bg-teal-900/30 rounded-lg flex items-center justify-center">
-                      <span className="text-lg">⭐</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {(!isMale && (birthsAsMother.length > 0 || breedings.length > 0)) ||
-          (isMale && (sonsBirths.length > 0 || breedings.length > 0)) ? (
-            <div>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="h-1 w-12 bg-pink-500 rounded-full"></div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                  {t.animals.details.dashboard.reproductiveStatistics}
-                </h2>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {!isMale ? (
-                  <>
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                            {t.animals.details.dashboard.totalBirths}
-                          </p>
-                          <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                            {birthsAsMother.length}
-                          </p>
-                        </div>
-                        <div className="w-10 h-10 bg-pink-100 dark:bg-pink-900/30 rounded-lg flex items-center justify-center">
-                          <span className="text-lg">👶</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                            {t.animals.details.dashboard.confirmedBreedings}
-                          </p>
-                          <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                            {confirmedBreedings.length}
-                          </p>
-                        </div>
-                        <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                          <span className="text-lg">✅</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                            {t.animals.details.dashboard.pendingBreedings}
-                          </p>
-                          <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                            {pendingBreedings.length}
-                          </p>
-                        </div>
-                        <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
-                          <span className="text-lg">⏳</span>
-                        </div>
-                      </div>
-                    </div>
-                    {averageCalvingInterval !== null && (
-                      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                              {t.animals.details.dashboard.averageCalvingInterval}
-                            </p>
-                            <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                              {averageCalvingInterval} {t.animals.details.dashboard.days}
-                            </p>
-                          </div>
-                          <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                            <span className="text-lg">📅</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                            {t.animals.details.dashboard.totalOffspring}
-                          </p>
-                          <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                            {sonsBirths.length}
-                          </p>
-                        </div>
-                        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                          <span className="text-lg">👨</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                            {t.animals.details.dashboard.totalBreedings}
-                          </p>
-                          <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                            {breedings.length}
-                          </p>
-                        </div>
-                        <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-                          <span className="text-lg">🐂</span>
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          ) : null}
-
-          <div>
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-1 w-12 bg-cyan-500 rounded-full"></div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                {t.animals.details.dashboard.locationProperty}
-              </h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                      {t.animals.details.dashboard.currentLocation}
-                    </p>
-                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                      {currentLocation ? (
-                        <button
-                          onClick={() => navigate(getLocationViewRoute(currentLocation.id))}
-                          className="hover:underline"
-                        >
-                          {currentLocation.name}
-                        </button>
-                      ) : (
-                        t.animals.details.dashboard.noLocation
-                      )}
-                    </p>
-                  </div>
-                  <div className="w-10 h-10 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg flex items-center justify-center">
-                    <span className="text-lg">📍</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                      {t.animals.details.dashboard.currentProperty}
-                    </p>
-                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                      {currentProperty ? (
-                        <button
-                          onClick={() => navigate(getPropertyViewRoute(currentProperty.id))}
-                          className="hover:underline"
-                        >
-                          {currentProperty.name}
-                        </button>
-                      ) : (
-                        t.animals.details.dashboard.noProperty
-                      )}
-                    </p>
-                  </div>
-                  <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center">
-                    <span className="text-lg">🏡</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                      {t.animals.details.dashboard.totalMovements}
-                    </p>
-                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                      {animalMovements.length}
-                    </p>
-                  </div>
-                  <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
-                    <span className="text-lg">🚚</span>
-                  </div>
-                </div>
-              </div>
-
-              {daysInCurrentLocation !== null && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                        {t.animals.details.dashboard.daysInLocation}
-                      </p>
-                      <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                        {daysInCurrentLocation} {t.animals.details.dashboard.days}
-                      </p>
-                    </div>
-                    <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
-                      <span className="text-lg">📆</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {animalCostData && (
-            <div>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="h-1 w-12 bg-orange-500 rounded-full"></div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                  {t.animals.details.dashboard.costInformation}
-                </h2>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                        {t.animals.details.costs.totalCost}
-                      </p>
-                      <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                        {formatCurrency(totalCost)}
-                      </p>
-                    </div>
-                    <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                      <span className="text-lg">💰</span>
-                    </div>
-                  </div>
-                </div>
-
-                {currentWeight > 0 && (
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                          {t.animals.details.dashboard.costPerKg}
-                        </p>
-                        <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                          {formatCurrency(costPerKg)}
-                        </p>
-                      </div>
-                      <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
-                        <span className="text-lg">📊</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {weighings.length > 0 && (
-            <div>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="h-1 w-12 bg-indigo-500 rounded-full"></div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                  {t.animals.details.dashboard.weighingStatistics}
-                </h2>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                        {t.animals.details.dashboard.totalWeighings}
-                      </p>
-                      <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                        {weighings.length}
-                      </p>
-                    </div>
-                    <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                      <span className="text-lg">⚖️</span>
-                    </div>
-                  </div>
-                </div>
-
-                {firstWeighing && (
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                          {t.animals.details.dashboard.firstWeighing}
-                        </p>
-                        <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                          {formatDate(firstWeighing.date)}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          {firstWeighing.weight} kg
-                        </p>
-                      </div>
-                      <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                        <span className="text-lg">📅</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {lastWeighing && (
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                          {t.animals.details.dashboard.lastWeighing}
-                        </p>
-                        <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                          {formatDate(lastWeighing.date)}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          {lastWeighing.weight} kg
-                        </p>
-                      </div>
-                      <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-                        <span className="text-lg">📅</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {weightGainSinceFirst !== null && (
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                          {t.animals.details.dashboard.weightGain}
-                        </p>
-                        <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                          {weightGainSinceFirst > 0 ? "+" : ""}
-                          {weightGainSinceFirst.toFixed(1)} kg
-                        </p>
-                        {averageWeightGainPerMonth && (
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            {averageWeightGainPerMonth} kg/{t.common.month}
-                          </p>
-                        )}
-                      </div>
-                      <div className="w-10 h-10 bg-teal-100 dark:bg-teal-900/30 rounded-lg flex items-center justify-center">
-                        <span className="text-lg">📈</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {weightChartData.length > 1 && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="h-1 w-12 bg-teal-500 rounded-full"></div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                  {t.animals.details.dashboard.weightTrend}
-                </h2>
-              </div>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={weightChartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#374151" : "#e5e7eb"} />
-                  <XAxis
-                    dataKey="date"
-                    stroke={isDark ? "#9ca3af" : "#6b7280"}
-                    style={{ fontSize: "12px" }}
-                  />
-                  <YAxis
-                    stroke={isDark ? "#9ca3af" : "#6b7280"}
-                    style={{ fontSize: "12px" }}
-                    label={{ value: "Weight (kg)", angle: -90, position: "insideLeft" }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: isDark ? "#1f2937" : "#ffffff",
-                      border: `1px solid ${isDark ? "#374151" : "#e5e7eb"}`,
-                      borderRadius: "8px",
-                    }}
-                  />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="weight"
-                    stroke={DASHBOARD_COLORS.primary}
-                    strokeWidth={2}
-                    dot={{ fill: DASHBOARD_COLORS.primary, r: 4 }}
-                    name={t.animals.table.weight}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-1 w-12 bg-yellow-500 rounded-full"></div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                {t.animals.details.dashboard.recentActivity}
-              </h2>
-            </div>
-            <div className="space-y-3">
-              {recentWeighings.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {t.animals.details.dashboard.recentWeighings}
-                  </h3>
-                  <div className="space-y-2">
-                    {recentWeighings.map((weighing) => (
-                      <div
-                        key={weighing.id}
-                        className="flex items-center space-x-3 pb-2 border-b border-gray-200 dark:border-gray-700 last:border-0"
-                      >
-                        <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-                          <span className="text-sm">⚖️</span>
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-xs font-medium text-gray-900 dark:text-gray-100">
-                            {t.animals.details.weighing}: {weighing.weight} kg
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {formatRelativeTime(weighing.date)}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {!isMale && recentBreedingsList.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {t.animals.details.dashboard.recentBreedings}
-                  </h3>
-                  <div className="space-y-2">
-                    {recentBreedingsList.map((breeding) => (
-                      <div
-                        key={breeding.id}
-                        className="flex items-center space-x-3 pb-2 border-b border-gray-200 dark:border-gray-700 last:border-0"
-                      >
-                        <div className="w-8 h-8 bg-pink-100 dark:bg-pink-900/30 rounded-full flex items-center justify-center">
-                          <span className="text-sm">💕</span>
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-xs font-medium text-gray-900 dark:text-gray-100">
-                            {t.animals.details.breeding.title}: {formatDate(breeding.date)}
-                            <span className="ml-2">
-                              {breeding.confirmed ? (
-                                <StatusBadge
-                                  label={t.animals.details.breeding.table.confirmed}
-                                  variant="success"
-                                />
-                              ) : (
-                                <StatusBadge
-                                  label={t.animals.details.breeding.table.unconfirmed}
-                                  variant="default"
-                                />
-                              )}
-                            </span>
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {formatRelativeTime(breeding.date)}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {recentMovementsList.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {t.animals.details.dashboard.recentMovements}
-                  </h3>
-                  <div className="space-y-2">
-                    {recentMovementsList.map((movement) => {
-                      const location = getLocationById(movement.locationId);
-                      return (
-                        <div
-                          key={movement.id}
-                          className="flex items-center space-x-3 pb-2 border-b border-gray-200 dark:border-gray-700 last:border-0"
-                        >
-                          <div className="w-8 h-8 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center">
-                            <span className="text-sm">🚚</span>
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-xs font-medium text-gray-900 dark:text-gray-100">
-                              {location?.name || t.animals.details.dashboard.noLocation}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                              {formatRelativeTime(movement.date)}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {recentWeighings.length === 0 &&
-                recentBreedingsList.length === 0 &&
-                recentMovementsList.length === 0 && (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {t.dashboard.recentActivities.noActivities}
-                  </p>
-                )}
-            </div>
-          </div>
-        </div>
+        <AnimalDashboardTab
+          animal={animal}
+          currentWeight={currentWeight}
+          weightInArrobas={weightInArrobas}
+          gmd={gmd}
+          age={age}
+          birth={birth ?? null}
+          acquisitionItem={acquisitionItem}
+          isMale={isMale}
+          sonsBirths={sonsBirths}
+          breedings={breedings}
+          birthsAsMother={birthsAsMother}
+          confirmedBreedings={confirmedBreedings}
+          pendingBreedings={pendingBreedings}
+          averageCalvingInterval={averageCalvingInterval}
+          currentLocation={currentLocation ?? undefined}
+          currentProperty={currentProperty ?? undefined}
+          animalMovements={animalMovements}
+          daysInCurrentLocation={daysInCurrentLocation}
+          animalCostData={animalCostData}
+          totalCost={totalCost}
+          costPerKg={costPerKg}
+          weighings={weighings}
+          firstWeighing={firstWeighing ?? null}
+          lastWeighing={lastWeighing ?? null}
+          weightGainSinceFirst={weightGainSinceFirst}
+          averageWeightGainPerMonth={averageWeightGainPerMonth}
+          weightChartData={weightChartData}
+          recentWeighings={recentWeighings}
+          recentBreedingsList={recentBreedingsList}
+          recentMovementsList={recentMovementsList}
+          isDark={isDark}
+          formatDate={formatDate}
+          formatRelativeTime={formatRelativeTime}
+          formatCurrency={formatCurrency}
+          navigate={navigate}
+          t={t}
+        />
       )}
 
       {activeTab === "info" && (
@@ -1682,49 +1715,7 @@ export default function AnimalDetails() {
                     </p>
                   </div>
                 )}
-                {(() => {
-                  const acquisitionItem = acquisition?.acquisitionItems.find(
-                    (item) => item.animalId === animal.id
-                  );
-                  return acquisitionItem ? (
-                    <>
-                      <div>
-                        <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                          {t.animals.details.costs.acquisitionCost}
-                        </p>
-                        <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
-                          {acquisitionItem.price.toLocaleString(localeForNumber, {
-                            style: "currency",
-                            currency: "BRL",
-                          })}
-                        </p>
-                      </div>
-                      {acquisitionItem.weight > 0 && (
-                        <>
-                          <div>
-                            <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                              {"Peso na Aquisição"}
-                            </p>
-                            <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
-                              {acquisitionItem.weight} kg
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                              {"Custo por Arroba"}
-                            </p>
-                            <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
-                              {acquisitionItem.costPerArroba.toLocaleString(localeForNumber, {
-                                style: "currency",
-                                currency: "BRL",
-                              })}
-                            </p>
-                          </div>
-                        </>
-                      )}
-                    </>
-                  ) : null;
-                })()}
+                {renderAcquisitionItemDetails(acquisition, animal.id, localeForNumber, t)}
                 <div>
                   <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
                     {t.animals.details.properties}
@@ -1734,12 +1725,13 @@ export default function AnimalDetails() {
                       (() => {
                         const property = getPropertyById(animal.propertyId);
                         return property ? (
-                          <span
+                          <button
+                            type="button"
                             className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-900/50"
                             onClick={() => navigate(getPropertyViewRoute(animal.propertyId))}
                           >
                             {property.name}
-                          </span>
+                          </button>
                         ) : (
                           <span className="text-sm text-gray-500 dark:text-gray-400">-</span>
                         );
@@ -1783,99 +1775,43 @@ export default function AnimalDetails() {
                     </div>
                   </div>
                 )}
-                {(birth?.motherId || acquisitionItem?.motherId) && (
+                {getParentId(birth ?? null, acquisitionItem, "mother") && (
                   <div>
                     <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                       {t.animals.details.mother}
                     </p>
                     <div className="mt-1 space-y-1">
-                      {(() => {
-                        const motherId = birth?.motherId || acquisitionItem?.motherId;
-                        const mother = motherId ? getAnimalById(motherId) : null;
-                        const motherBirth = motherId ? getBirthByAnimalId(motherId) : null;
-                        return mother ? (
-                          <>
-                            <span
-                              className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300 cursor-pointer hover:bg-pink-200 dark:hover:bg-pink-900/50"
-                              onClick={() => navigate(getAnimalViewRoute(mother.id))}
-                            >
-                              {mother.code} - {mother.registrationNumber}
-                            </span>
-                            {motherBirth?.purity && (
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs text-gray-500 dark:text-gray-400">
-                                  {t.animals.details.purity}:
-                                </span>
-                                <StatusBadge
-                                  label={t.animals.purity[motherBirth.purity]}
-                                  variant="default"
-                                />
-                                {motherBirth.breed && (
-                                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                                    ({t.animals.breeds[motherBirth.breed]})
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                          <span className="text-sm text-gray-500 dark:text-gray-400">-</span>
-                        );
-                      })()}
+                      {renderParentGenealogy(
+                        getParentId(birth ?? null, acquisitionItem, "mother"),
+                        t,
+                        navigate,
+                        getAnimalViewRoute,
+                        "bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300 hover:bg-pink-200 dark:hover:bg-pink-900/50"
+                      )}
                     </div>
                   </div>
                 )}
-                {(birth?.fatherId || acquisitionItem?.fatherId) && (
+                {getParentId(birth ?? null, acquisitionItem, "father") && (
                   <div>
                     <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                       {t.animals.details.father}
                     </p>
                     <div className="mt-1 space-y-1">
-                      {(() => {
-                        const fatherId = birth?.fatherId || acquisitionItem?.fatherId;
-                        const father = fatherId ? getAnimalById(fatherId) : null;
-                        const fatherBirth = fatherId ? getBirthByAnimalId(fatherId) : null;
-                        return father ? (
-                          <>
-                            <span
-                              className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-900/50"
-                              onClick={() => navigate(getAnimalViewRoute(father.id))}
-                            >
-                              {father.code} - {father.registrationNumber}
-                            </span>
-                            {fatherBirth?.purity && (
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs text-gray-500 dark:text-gray-400">
-                                  {t.animals.details.purity}:
-                                </span>
-                                <StatusBadge
-                                  label={t.animals.purity[fatherBirth.purity]}
-                                  variant="default"
-                                />
-                                {fatherBirth.breed && (
-                                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                                    ({t.animals.breeds[fatherBirth.breed]})
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                          <span className="text-sm text-gray-500 dark:text-gray-400">-</span>
-                        );
-                      })()}
+                      {renderParentGenealogy(
+                        getParentId(birth ?? null, acquisitionItem, "father"),
+                        t,
+                        navigate,
+                        getAnimalViewRoute,
+                        "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50"
+                      )}
                     </div>
                   </div>
                 )}
-                {!birth?.purity &&
-                  !birth?.motherId &&
-                  !birth?.fatherId &&
-                  !acquisitionItem?.motherId &&
-                  !acquisitionItem?.fatherId && (
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {t.animals.details.noGenealogy}
-                    </p>
-                  )}
+                {hasNoGenealogyData(birth ?? null, acquisitionItem) && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {t.animals.details.noGenealogy}
+                  </p>
+                )}
                 {birth?.observation && (
                   <div>
                     <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -1895,7 +1831,7 @@ export default function AnimalDetails() {
       {activeTab === "weighings" &&
         weighings.length > 0 &&
         (() => {
-          const sortedWeighingsForTable = [...weighingsWithCalculations].sort((a, b) => {
+          const sortedWeighingsForTable = weighingsWithCalculations.toSorted((a, b) => {
             const { column, direction } = weighingsSortState;
 
             if (!column) {
@@ -1903,29 +1839,23 @@ export default function AnimalDetails() {
             }
 
             let comparison = 0;
-            switch (column) {
-              case "date":
-                comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
-                break;
-              case "weight":
-                comparison = a.weight - b.weight;
-                break;
-              case "weightDiff":
-                comparison = (a.weightDiff ?? 0) - (b.weightDiff ?? 0);
-                break;
-              case "periodGMD":
-                comparison = parseFloat(a.periodGMD ?? "0") - parseFloat(b.periodGMD ?? "0");
-                break;
-              default:
-                return new Date(b.date).getTime() - new Date(a.date).getTime();
+            if (column === "date") {
+              comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
+            } else if (column === "weight") {
+              comparison = a.weight - b.weight;
+            } else if (column === "weightDiff") {
+              comparison = (a.weightDiff ?? 0) - (b.weightDiff ?? 0);
+            } else if (column === "periodGMD") {
+              comparison =
+                Number.parseFloat(a.periodGMD ?? "0") - Number.parseFloat(b.periodGMD ?? "0");
+            } else {
+              return new Date(b.date).getTime() - new Date(a.date).getTime();
             }
 
             return direction === "asc" ? comparison : -comparison;
           });
 
-          const filteredWeighings = sortedWeighingsForTable.filter(
-            (w) => w !== null && w !== undefined && w.id !== undefined
-          );
+          const filteredWeighings = sortedWeighingsForTable.filter((w) => w?.id !== undefined);
           const totalPages = Math.ceil(filteredWeighings.length / itemsPerPage);
           const startIndex = (weighingsCurrentPage - 1) * itemsPerPage;
           const paginatedWeighings = filteredWeighings.slice(startIndex, startIndex + itemsPerPage);
@@ -1964,7 +1894,7 @@ export default function AnimalDetails() {
               render: (_value, weighing) => {
                 if (!weighing) return <span className="text-sm text-gray-400">-</span>;
                 const weightDiff = weighing.weightDiff;
-                if (weightDiff === null || weightDiff === undefined || isNaN(weightDiff)) {
+                if (weightDiff === null || weightDiff === undefined || Number.isNaN(weightDiff)) {
                   return <span className="text-sm text-gray-400">-</span>;
                 }
                 return (
@@ -2172,7 +2102,7 @@ export default function AnimalDetails() {
                 header={{
                   title: t.animals.details.sons,
                   badge: {
-                    label: `${sonsWithAnimals.length} ${sonsWithAnimals.length !== 1 ? t.animals.details.sonsPlural : t.animals.details.son}`,
+                    label: `${sonsWithAnimals.length} ${sonsWithAnimals.length === 1 ? t.animals.details.son : t.animals.details.sonsPlural}`,
                     variant: "primary",
                   },
                 }}
@@ -2284,306 +2214,53 @@ export default function AnimalDetails() {
         </div>
       )}
 
-      {activeTab === "observations" &&
-        animal &&
-        (() => {
-          const filteredObservations = observations.filter((observation) => {
-            if (!observationsSearchValue) return true;
-
-            const searchLower = observationsSearchValue.toLowerCase();
-
-            if (observation.observation.toLowerCase().includes(searchLower)) return true;
-
-            const dateText = formatDateTime(observation.createdAt);
-            if (dateText.toLowerCase().includes(searchLower)) return true;
-
-            return false;
-          });
-
-          const sortedObservations = [...filteredObservations].sort((a, b) => {
-            if (!observationsSortState.column || !observationsSortState.direction) {
-              return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-            }
-
-            let aValue: string | number | undefined;
-            let bValue: string | number | undefined;
-
-            if (observationsSortState.column === "date") {
-              aValue = new Date(a.createdAt).getTime();
-              bValue = new Date(b.createdAt).getTime();
-            } else if (observationsSortState.column === "observation") {
-              aValue = a.observation;
-              bValue = b.observation;
-            } else {
-              aValue = a[observationsSortState.column as keyof AnimalObservation] as
-                | string
-                | number
-                | undefined;
-              bValue = b[observationsSortState.column as keyof AnimalObservation] as
-                | string
-                | number
-                | undefined;
-            }
-
-            if (aValue == null && bValue == null) return 0;
-            if (aValue == null) return 1;
-            if (bValue == null) return -1;
-
-            let comparison = 0;
-            if (typeof aValue === "string" && typeof bValue === "string") {
-              comparison = aValue.localeCompare(bValue, localeForDateTime, {
-                sensitivity: "base",
-              });
-            } else if (typeof aValue === "number" && typeof bValue === "number") {
-              comparison = aValue - bValue;
-            } else {
-              comparison = String(aValue).localeCompare(String(bValue), localeForDateTime);
-            }
-
-            return observationsSortState.direction === "asc" ? comparison : -comparison;
-          });
-
-          const totalPages = Math.ceil(sortedObservations.length / itemsPerPage);
-          const paginatedObservations = sortedObservations.slice(
-            (observationsCurrentPage - 1) * itemsPerPage,
-            observationsCurrentPage * itemsPerPage
-          );
-
-          const columns: TableColumn<AnimalObservation>[] = [
-            {
-              key: "date",
-              label: t.animals.details.observationDate,
-              sortable: true,
-              render: (_, row) => (
-                <span className="text-gray-700 dark:text-gray-300">
-                  {formatDateTime(row.createdAt)}
-                </span>
-              ),
-            },
-            {
-              key: "observation",
-              label: t.animals.details.observation,
-              sortable: true,
-              render: (_, row) => {
-                const truncated =
-                  row.observation.length > 100
-                    ? `${row.observation.substring(0, 100)}...`
-                    : row.observation;
-                return (
-                  <span className="text-gray-700 dark:text-gray-300" title={row.observation}>
-                    {truncated}
-                  </span>
-                );
-              },
-            },
-            {
-              key: "files",
-              label: t.animals.details.files,
-              sortable: false,
-              render: (_, row) => {
-                if (!row.fileIds || row.fileIds.length === 0) {
-                  return <span className="text-gray-400 dark:text-gray-500">-</span>;
-                }
-                return (
-                  <div className="flex items-center space-x-1">
-                    <svg
-                      className="h-4 w-4 text-gray-500 dark:text-gray-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                      />
-                    </svg>
-                    <span className="text-sm text-gray-700 dark:text-gray-300">
-                      {row.fileIds.length}
-                    </span>
-                  </div>
-                );
-              },
-            },
-          ];
-
-          const headerActions: TableAction[] = [
-            {
-              label: t.animals.details.addObservation,
-              variant: "primary",
-              leftIcon: (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                  className="w-5 h-5"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              ),
-              onClick: () => setShowObservationForm(true),
-            },
-          ];
-
-          return (
-            <div className="space-y-8">
-              {observationAlert && (
-                <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-                  <Alert title={observationAlert.title} variant={observationAlert.variant} />
-                </div>
-              )}
-
-              {showObservationForm && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100">
-                      {t.animals.details.newObservation}
-                    </h3>
-                    <button
-                      onClick={() => {
-                        setShowObservationForm(false);
-                        setObservationText("");
-                        setObservationFiles([]);
-                      }}
-                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                    >
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                  <form onSubmit={handleSubmitObservation} className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        {t.animals.details.observation} <span className="text-red-500">*</span>
-                      </label>
-                      <textarea
-                        value={observationText}
-                        onChange={(e) => setObservationText(e.target.value)}
-                        disabled={isSubmittingObservation}
-                        rows={4}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200 resize-none"
-                        placeholder={
-                          t.animals.details.observationPlaceholder ||
-                          "Digite sua observação sobre este animal..."
-                        }
-                        required
-                      />
-                    </div>
-
-                    <FileUpload
-                      label={t.animals.details.files}
-                      files={observationFiles}
-                      onChange={setObservationFiles}
-                      disabled={isSubmittingObservation}
-                      multiple={true}
-                      helperText={
-                        t.animals.details.filesHelper ||
-                        "Você pode fazer upload de múltiplos arquivos"
-                      }
-                    />
-
-                    <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                          setShowObservationForm(false);
-                          setObservationText("");
-                          setObservationFiles([]);
-                        }}
-                        disabled={isSubmittingObservation}
-                      >
-                        {t.common.cancel}
-                      </Button>
-                      <Button type="submit" disabled={isSubmittingObservation}>
-                        {t.common.save}
-                      </Button>
-                    </div>
-                  </form>
-                </div>
-              )}
-
-              {!showObservationForm && (
-                <Table<AnimalObservation & Record<string, unknown>>
-                  columns={columns}
-                  data={paginatedObservations as (AnimalObservation & Record<string, unknown>)[]}
-                  header={{
-                    title: t.animals.details.tabs.observations,
-                    badge: {
-                      label: `${filteredObservations.length} ${filteredObservations.length !== 1 ? t.animals.details.tabs.observations : t.animals.details.observation}`,
-                      variant: "primary",
-                    },
-                    description:
-                      t.animals.details.observationsDescription ||
-                      "Gerencie as observações deste animal",
-                    actions: headerActions,
-                  }}
-                  search={{
-                    placeholder: t.animals.details.searchObservations,
-                    value: observationsSearchValue,
-                    onChange: (value) => {
-                      setObservationsSearchValue(value);
-                      setObservationsCurrentPage(1);
-                    },
-                  }}
-                  pagination={{
-                    currentPage: observationsCurrentPage,
-                    totalPages: totalPages || 1,
-                    onPageChange: (page) => {
-                      setObservationsCurrentPage(page);
-                    },
-                    showInfo: false,
-                  }}
-                  sortState={observationsSortState}
-                  onSort={(column, direction) => {
-                    setObservationsSortState({ column, direction });
-                    setObservationsCurrentPage(1);
-                  }}
-                  onRowClick={(row) =>
-                    navigate(`${getObservationViewRoute(row.id)}?fromAnimal=${animal.id}`)
-                  }
-                  emptyState={{
-                    title: t.animals.details.noObservations,
-                    description: observationsSearchValue
-                      ? typeof t.animals.details.noObservationsWithSearch === "function"
-                        ? t.animals.details.noObservationsWithSearch(observationsSearchValue)
-                        : t.animals.details.noObservationsWithSearch ||
-                          `Nenhuma observação encontrada para "${observationsSearchValue}"`
-                      : t.animals.details.noObservationsDescription ||
-                        "Adicione sua primeira observação sobre este animal.",
-                    onClearSearch: observationsSearchValue
-                      ? () => {
-                          setObservationsSearchValue("");
-                          setObservationsCurrentPage(1);
-                        }
-                      : undefined,
-                    clearSearchLabel: observationsSearchValue ? t.common.clearSearch : undefined,
-                    onAddNew: () => setShowObservationForm(true),
-                    addNewLabel: t.animals.details.addObservation,
-                  }}
-                />
-              )}
-            </div>
-          );
-        })()}
+      {activeTab === "observations" && animal && (
+        <ObservationSection<AnimalObservation>
+          observations={observationManagement.observations}
+          title={t.animals.details.tabs.observations}
+          description={
+            t.animals.details.observationsDescription || "Gerencie as observações deste animal"
+          }
+          searchPlaceholder={t.animals.details.searchObservations}
+          emptyStateTitle={t.animals.details.noObservations}
+          emptyStateDescription={
+            t.animals.details.noObservationsDescription ||
+            "Adicione sua primeira observação sobre este animal."
+          }
+          emptyStateDescriptionWithSearch={
+            typeof t.animals.details.noObservationsWithSearch === "function"
+              ? t.animals.details.noObservationsWithSearch
+              : t.animals.details.noObservationsWithSearch ||
+                ((searchValue: string) => `Nenhuma observação encontrada para "${searchValue}"`)
+          }
+          translationKeys={{
+            observationDate: t.animals.details.observationDate,
+            observation: t.animals.details.observation,
+            files: t.animals.details.files,
+            addObservation: t.animals.details.addObservation,
+            newObservation: t.animals.details.newObservation,
+            observationPlaceholder: t.animals.details.observationPlaceholder,
+            filesHelper: t.animals.details.filesHelper,
+            cancel: t.common.cancel,
+            save: t.common.save,
+            observationRequired: t.animals.details.observationRequired,
+            observationAdded: t.animals.details.observationAdded,
+            observationError: t.animals.details.observationError,
+            clearSearch: t.common.clearSearch,
+          }}
+          onAddObservation={(e: React.FormEvent) => observationManagement.handleSubmit(e)}
+          showForm={observationManagement.showForm}
+          onShowFormChange={observationManagement.setShowForm}
+          observationText={observationManagement.observationText}
+          onObservationTextChange={observationManagement.setObservationText}
+          observationFiles={observationManagement.observationFiles}
+          onObservationFilesChange={observationManagement.setObservationFiles}
+          isSubmitting={observationManagement.isSubmitting}
+          alert={observationManagement.alert}
+          entityId={animal.id}
+          entityType="Animal"
+        />
+      )}
 
       {activeTab === "breeding" &&
         animal &&
@@ -2598,7 +2275,7 @@ export default function AnimalDetails() {
             if (!selectedBreeding) return;
             const success = confirmBreeding(selectedBreeding.id);
             if (success) {
-              setBreedings(getBreedingsByAnimalId(animal.id));
+              setBreedingsKey((prev) => prev + 1);
               setBreedingAlert({
                 title: t.animals.details.breeding.confirmSuccess,
                 variant: "success",
@@ -2626,7 +2303,7 @@ export default function AnimalDetails() {
             if (!selectedBreeding) return;
             const success = deleteBreeding(selectedBreeding.id);
             if (success) {
-              setBreedings(getBreedingsByAnimalId(animal.id));
+              setBreedingsKey((prev) => prev + 1);
               setBreedingAlert({
                 title: t.animals.details.breeding.discardSuccess,
                 variant: "success",
@@ -2647,48 +2324,46 @@ export default function AnimalDetails() {
 
           const hasAnyBreeding = breedings.length > 0;
 
-          const sortedBreedings = [...breedings].sort((a, b) => {
-            if (!breedingsSortState.column || !breedingsSortState.direction) {
-              return new Date(b.date).getTime() - new Date(a.date).getTime();
+          type BreedingSortValue = string | number | boolean | undefined;
+
+          const getBreedingSortValue = (breeding: Breeding, column: string): BreedingSortValue => {
+            if (column === "date") {
+              return new Date(breeding.date).getTime();
             }
-
-            let aValue: string | number | boolean | undefined;
-            let bValue: string | number | boolean | undefined;
-
-            if (breedingsSortState.column === "date") {
-              aValue = new Date(a.date).getTime();
-              bValue = new Date(b.date).getTime();
-            } else if (breedingsSortState.column === "method") {
-              aValue = a.method;
-              bValue = b.method;
-            } else if (breedingsSortState.column === "confirmed") {
-              aValue = a.confirmed ? 1 : 0;
-              bValue = b.confirmed ? 1 : 0;
-            } else {
-              aValue = a[breedingsSortState.column as keyof Breeding] as
-                | string
-                | number
-                | boolean
-                | undefined;
-              bValue = b[breedingsSortState.column as keyof Breeding] as
-                | string
-                | number
-                | boolean
-                | undefined;
+            if (column === "method") {
+              return breeding.method;
             }
+            if (column === "confirmed") {
+              return breeding.confirmed ? 1 : 0;
+            }
+            return breeding[column as keyof Breeding] as BreedingSortValue;
+          };
 
+          const compareBreedingValues = (
+            aValue: BreedingSortValue,
+            bValue: BreedingSortValue
+          ): number => {
             if (aValue == null && bValue == null) return 0;
             if (aValue == null) return 1;
             if (bValue == null) return -1;
 
-            let comparison = 0;
             if (typeof aValue === "string" && typeof bValue === "string") {
-              comparison = aValue.localeCompare(bValue, "pt-BR", { sensitivity: "base" });
-            } else if (typeof aValue === "number" && typeof bValue === "number") {
-              comparison = aValue - bValue;
-            } else {
-              comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
+              return aValue.localeCompare(bValue, "pt-BR", { sensitivity: "base" });
             }
+            if (typeof aValue === "number" && typeof bValue === "number") {
+              return aValue - bValue;
+            }
+            return String(aValue).localeCompare(String(bValue), "pt-BR");
+          };
+
+          const sortedBreedings = breedings.toSorted((a, b) => {
+            if (!breedingsSortState.column || !breedingsSortState.direction) {
+              return new Date(b.date).getTime() - new Date(a.date).getTime();
+            }
+
+            const aValue = getBreedingSortValue(a, breedingsSortState.column);
+            const bValue = getBreedingSortValue(b, breedingsSortState.column);
+            const comparison = compareBreedingValues(aValue, bValue);
 
             return breedingsSortState.direction === "asc" ? comparison : -comparison;
           });
@@ -2847,19 +2522,16 @@ export default function AnimalDetails() {
 
           return (
             <div className="space-y-8">
-              {breedingAlert && (
-                <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-                  <Alert title={breedingAlert.title} variant={breedingAlert.variant} />
-                </div>
-              )}
+              <FixedAlert alertMessage={breedingAlert} />
 
               <Table<Breeding>
+                key={breedingsKey}
                 columns={columns}
                 data={paginatedBreedings}
                 header={{
                   title: t.animals.details.breeding.title,
                   badge: {
-                    label: `${breedings.length} ${breedings.length !== 1 ? t.animals.details.breeding.badge : t.animals.details.breeding.badgeSingular}`,
+                    label: `${breedings.length} ${breedings.length === 1 ? t.animals.details.breeding.badgeSingular : t.animals.details.breeding.badge}`,
                     variant: "primary",
                   },
                   description:
@@ -2935,7 +2607,7 @@ export default function AnimalDetails() {
       {activeTab === "sanitaryControl" &&
         animal &&
         (() => {
-          const sortedSanitaryControls = [...sanitaryControls].sort((a, b) => {
+          const sortedSanitaryControls = sanitaryControls.toSorted((a, b) => {
             const { column, direction } = sanitaryControlsSortState;
 
             if (!column) {
@@ -2943,19 +2615,17 @@ export default function AnimalDetails() {
             }
 
             let comparison = 0;
-            switch (column) {
-              case "date":
-                comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
-                break;
-              default:
-                return new Date(b.date).getTime() - new Date(a.date).getTime();
+            if (column === "date") {
+              comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
+            } else {
+              return new Date(b.date).getTime() - new Date(a.date).getTime();
             }
 
             return direction === "asc" ? comparison : -comparison;
           });
 
           const filteredSanitaryControls = sortedSanitaryControls.filter(
-            (sc) => sc !== null && sc !== undefined && sc.id !== undefined
+            (sc) => sc?.id !== undefined
           );
           const totalPages = Math.ceil(filteredSanitaryControls.length / itemsPerPage);
           const startIndex = (sanitaryControlsCurrentPage - 1) * itemsPerPage;
@@ -2993,7 +2663,10 @@ export default function AnimalDetails() {
                       ) => {
                         const item = getInventoryItemById(applied.itemId);
                         return (
-                          <div key={idx} className="text-sm text-gray-900 dark:text-gray-100">
+                          <div
+                            key={`${applied.itemId}-${idx}`}
+                            className="text-sm text-gray-900 dark:text-gray-100"
+                          >
                             {item?.name || t.common.itemNotFound}: {applied.quantity}{" "}
                             {item?.unit || ""}
                           </div>
@@ -3030,7 +2703,10 @@ export default function AnimalDetails() {
                 return (
                   <div className="space-y-1">
                     {allResponsible.map((name, idx) => (
-                      <div key={idx} className="text-sm text-gray-900 dark:text-gray-100">
+                      <div
+                        key={`${name}-${idx}`}
+                        className="text-sm text-gray-900 dark:text-gray-100"
+                      >
                         {name}
                       </div>
                     ))}
@@ -3043,7 +2719,7 @@ export default function AnimalDetails() {
               label: t.animals.details.sanitaryControl?.observation,
               sortable: false,
               render: (_value, record) => {
-                if (!record || !record.observation) {
+                if (!record?.observation) {
                   return <span className="text-sm text-gray-400">-</span>;
                 }
                 return (
@@ -3095,9 +2771,9 @@ export default function AnimalDetails() {
                   title: t.animals.details.sanitaryControl?.title,
                   badge: {
                     label: `${sanitaryControls.length} ${
-                      sanitaryControls.length !== 1
-                        ? t.animals.details.sanitaryControl?.badge
-                        : t.animals.details.sanitaryControl?.badgeSingular
+                      sanitaryControls.length === 1
+                        ? t.animals.details.sanitaryControl?.badgeSingular
+                        : t.animals.details.sanitaryControl?.badge
                     }`,
                     variant: "primary",
                   },
@@ -3161,210 +2837,208 @@ export default function AnimalDetails() {
             );
 
             return (
-              <>
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="h-1 w-12 bg-red-500 rounded-full"></div>
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                      {t.animals.details.costs?.title}
-                    </h2>
-                  </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-                    {t.animals.details.costs?.description ||
-                      "Track inventory consumption costs for this animal"}
-                  </p>
-
-                  <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        {t.locations.costs.startDate}
-                      </label>
-                      <input
-                        type="date"
-                        value={costsStartDate}
-                        onChange={(e) => setCostsStartDate(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        {t.locations.costs.endDate}
-                      </label>
-                      <input
-                        type="date"
-                        value={costsEndDate}
-                        onChange={(e) => setCostsEndDate(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200"
-                      />
-                    </div>
-                    <div className="flex items-end">
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setCostsStartDate("");
-                          setCostsEndDate("");
-                        }}
-                        disabled={!costsStartDate && !costsEndDate}
-                      >
-                        {t.locations.costs.clearFilter}
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="mb-6">
-                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-                      <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                        {t.animals.details.costs?.totalCost}
-                      </p>
-                      <p className="text-2xl font-bold text-blue-900 dark:text-blue-100 mt-1">
-                        {animalCostData.totalCost.toLocaleString(localeForNumber, {
-                          style: "currency",
-                          currency: "BRL",
-                        })}
-                      </p>
-                      <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                        {animalCostData.consumptionPeriods}{" "}
-                        {t.animals.details.costs?.consumptionPeriods}
-                      </p>
-                    </div>
-                  </div>
-
-                  {animalCostData.locationBreakdown.length > 0 && (
-                    <div className="mb-6">
-                      <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                        {t.animals.details.costs?.costByLocation}
-                      </h3>
-                      <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                          <thead className="bg-gray-50 dark:bg-gray-900">
-                            <tr>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                {t.animals.details.costs?.location}
-                              </th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                {t.animals.details.costs?.totalAllocatedCost}
-                              </th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                {t.animals.details.costs?.consumptionPeriods}
-                              </th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                Actions
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                            {animalCostData.locationBreakdown.map((location) => (
-                              <tr key={location.locationId}>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                  {location.locationName}
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
-                                  {location.totalCost.toLocaleString(localeForNumber, {
-                                    style: "currency",
-                                    currency: "BRL",
-                                  })}
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                  {location.consumptionPeriods}
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() =>
-                                      navigate(
-                                        getLocationViewRoute(location.locationId) + "?tab=costs"
-                                      )
-                                    }
-                                  >
-                                    View Location
-                                  </Button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-
-                  {allConsumptionDetails.length > 0 && (
-                    <div>
-                      <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                        {t.animals.details.costs?.consumptionHistory}
-                      </h3>
-                      <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                          <thead className="bg-gray-50 dark:bg-gray-900">
-                            <tr>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                {t.locations.costs.date}
-                              </th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                {t.animals.details.costs?.location}
-                              </th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                {t.animals.details.costs?.itemName}
-                              </th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                {t.animals.details.costs?.quantity}
-                              </th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                {t.animals.details.costs?.costPerAnimal}
-                              </th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                {t.animals.details.costs?.totalAllocatedCost}
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                            {allConsumptionDetails.map((detail) => (
-                              <tr key={detail.movement.id}>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                  {format(new Date(detail.movement.date), "PP", {
-                                    locale: dateLocale,
-                                  })}
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                  {detail.locationName}
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                  {detail.item.name}
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                  {detail.movement.quantity.toLocaleString(localeForNumber)}
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                  {detail.costPerAnimal.toLocaleString(localeForNumber, {
-                                    style: "currency",
-                                    currency: "BRL",
-                                  })}
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
-                                  {detail.costPerAnimal.toLocaleString(localeForNumber, {
-                                    style: "currency",
-                                    currency: "BRL",
-                                  })}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-
-                  {animalCostData.locationBreakdown.length === 0 && (
-                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                      <p className="font-medium">{t.animals.details.costs?.noCosts}</p>
-                      <p className="text-sm mt-2">
-                        {t.animals.details.costs?.noCostsDescription ||
-                          "This animal has no inventory consumption costs recorded yet."}
-                      </p>
-                    </div>
-                  )}
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="h-1 w-12 bg-red-500 rounded-full"></div>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                    {t.animals.details.costs?.title}
+                  </h2>
                 </div>
-              </>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                  {t.animals.details.costs?.description ||
+                    "Track inventory consumption costs for this animal"}
+                </p>
+
+                <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {t.locations.costs.startDate}
+                    </label>
+                    <input
+                      type="date"
+                      value={costsStartDate}
+                      onChange={(e) => setCostsStartDate(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {t.locations.costs.endDate}
+                    </label>
+                    <input
+                      type="date"
+                      value={costsEndDate}
+                      onChange={(e) => setCostsEndDate(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setCostsStartDate("");
+                        setCostsEndDate("");
+                      }}
+                      disabled={!costsStartDate && !costsEndDate}
+                    >
+                      {t.locations.costs.clearFilter}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="mb-6">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                    <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                      {t.animals.details.costs?.totalCost}
+                    </p>
+                    <p className="text-2xl font-bold text-blue-900 dark:text-blue-100 mt-1">
+                      {animalCostData.totalCost.toLocaleString(localeForNumber, {
+                        style: "currency",
+                        currency: "BRL",
+                      })}
+                    </p>
+                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                      {animalCostData.consumptionPeriods}{" "}
+                      {t.animals.details.costs?.consumptionPeriods}
+                    </p>
+                  </div>
+                </div>
+
+                {animalCostData.locationBreakdown.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                      {t.animals.details.costs?.costByLocation}
+                    </h3>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead className="bg-gray-50 dark:bg-gray-900">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                              {t.animals.details.costs?.location}
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                              {t.animals.details.costs?.totalAllocatedCost}
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                              {t.animals.details.costs?.consumptionPeriods}
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                              Actions
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                          {animalCostData.locationBreakdown.map((location) => (
+                            <tr key={location.locationId}>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                {location.locationName}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                                {location.totalCost.toLocaleString(localeForNumber, {
+                                  style: "currency",
+                                  currency: "BRL",
+                                })}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                {location.consumptionPeriods}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() =>
+                                    navigate(
+                                      getLocationViewRoute(location.locationId) + "?tab=costs"
+                                    )
+                                  }
+                                >
+                                  View Location
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {allConsumptionDetails.length > 0 && (
+                  <div>
+                    <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                      {t.animals.details.costs?.consumptionHistory}
+                    </h3>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead className="bg-gray-50 dark:bg-gray-900">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                              {t.locations.costs.date}
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                              {t.animals.details.costs?.location}
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                              {t.animals.details.costs?.itemName}
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                              {t.animals.details.costs?.quantity}
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                              {t.animals.details.costs?.costPerAnimal}
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                              {t.animals.details.costs?.totalAllocatedCost}
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                          {allConsumptionDetails.map((detail) => (
+                            <tr key={detail.movement.id}>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                {format(new Date(detail.movement.date), "PP", {
+                                  locale: dateLocale,
+                                })}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                {detail.locationName}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                {detail.item.name}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                {detail.movement.quantity.toLocaleString(localeForNumber)}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                {detail.costPerAnimal.toLocaleString(localeForNumber, {
+                                  style: "currency",
+                                  currency: "BRL",
+                                })}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                                {detail.costPerAnimal.toLocaleString(localeForNumber, {
+                                  style: "currency",
+                                  currency: "BRL",
+                                })}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {animalCostData.locationBreakdown.length === 0 && (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <p className="font-medium">{t.animals.details.costs?.noCosts}</p>
+                    <p className="text-sm mt-2">
+                      {t.animals.details.costs?.noCostsDescription ||
+                        "This animal has no inventory consumption costs recorded yet."}
+                    </p>
+                  </div>
+                )}
+              </div>
             );
           })()}
         </div>
@@ -3402,196 +3076,185 @@ export default function AnimalDetails() {
               buyer: ReturnType<typeof getBuyerById>;
             }>;
 
-            const formatCurrency = (value: number) => {
-              return new Intl.NumberFormat(localeForNumber, {
-                style: "currency",
-                currency: "BRL",
-              }).format(value);
-            };
-
             return (
-              <>
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="h-1 w-12 bg-green-500 rounded-full"></div>
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                      {t.animals.details.tabs.sales}
-                    </h2>
-                  </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-                    {t.animals.details.sales?.description}
-                  </p>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="h-1 w-12 bg-green-500 rounded-full"></div>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                    {t.animals.details.tabs.sales}
+                  </h2>
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                  {t.animals.details.sales?.description}
+                </p>
 
-                  {salesWithDetails.length > 0 ? (
-                    <div className="space-y-8">
-                      {salesWithDetails.map(({ sale, saleItem, profitability, buyer }) => (
-                        <div
-                          key={sale.id}
-                          className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
-                        >
-                          <div className="flex items-start justify-between mb-4">
-                            <div>
-                              <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100">
-                                {format(new Date(sale.saleDate), "PP", { locale: dateLocale })}
-                              </h3>
-                              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                {buyer?.name || t.common.notAvailable}
-                              </p>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              onClick={() => navigate(getSaleViewRoute(sale.id))}
+                {salesWithDetails.length > 0 ? (
+                  <div className="space-y-8">
+                    {salesWithDetails.map(({ sale, saleItem, profitability, buyer }) => (
+                      <div
+                        key={sale.id}
+                        className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+                      >
+                        <div className="flex items-start justify-between mb-4">
+                          <div>
+                            <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100">
+                              {format(new Date(sale.saleDate), "PP", { locale: dateLocale })}
+                            </h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                              {buyer?.name || t.common.notAvailable}
+                            </p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            onClick={() => navigate(getSaleViewRoute(sale.id))}
+                          >
+                            {t.common.view}
+                          </Button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                          <div>
+                            <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                              {t.sales.details.price}
+                            </p>
+                            <p className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-1">
+                              {formatCurrency(saleItem.price)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                              {t.sales.details.weight}
+                            </p>
+                            <p className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-1">
+                              {saleItem.weight} kg
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                              {t.sales.details.pricePerKg}
+                            </p>
+                            <p className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-1">
+                              {formatCurrency(profitability.pricePerKg)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                              {t.sales.details.profit}
+                            </p>
+                            <p
+                              className={`text-lg font-bold mt-1 ${
+                                profitability.profit >= 0
+                                  ? "text-green-600 dark:text-green-400"
+                                  : "text-red-600 dark:text-red-400"
+                              }`}
                             >
-                              {t.common.view}
-                            </Button>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <div>
-                              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                                {t.sales.details.price}
-                              </p>
-                              <p className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-1">
-                                {formatCurrency(saleItem.price)}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                                {t.sales.details.weight}
-                              </p>
-                              <p className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-1">
-                                {saleItem.weight} kg
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                                {t.sales.details.pricePerKg}
-                              </p>
-                              <p className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-1">
-                                {formatCurrency(profitability.pricePerKg)}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                                {t.sales.details.profit}
-                              </p>
-                              <p
-                                className={`text-lg font-bold mt-1 ${
-                                  profitability.profit >= 0
-                                    ? "text-green-600 dark:text-green-400"
-                                    : "text-red-600 dark:text-red-400"
-                                }`}
-                              >
-                                {formatCurrency(profitability.profit)}
-                              </p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                {profitability.profitMargin.toFixed(2)}%{" "}
-                                {t.sales.details.profitMargin}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div>
-                                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                                  {t.sales.details.cost}
-                                </p>
-                                <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
-                                  {formatCurrency(profitability.totalCost)}
-                                </p>
-                              </div>
-                              <div>
-                                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                                  {t.sales.details.saleType}
-                                </p>
-                                <StatusBadge
-                                  label={
-                                    sale.saleType === "slaughterhouse"
-                                      ? t.sales.saleTypes?.slaughterhouse
-                                      : sale.saleType === "auction"
-                                        ? t.sales.saleTypes?.auction
-                                        : t.sales.saleTypes?.otherFarm
-                                  }
-                                  variant={
-                                    sale.saleType === "slaughterhouse"
-                                      ? "danger"
-                                      : sale.saleType === "auction"
-                                        ? "warning"
-                                        : "info"
-                                  }
-                                />
-                              </div>
-                            </div>
-                            {profitability.acquisitionArrobaValue !== undefined &&
-                              profitability.saleArrobaValue !== undefined && (
-                                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                                  <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
-                                    {"Análise de Spread (Arroba)"}
-                                  </h4>
-                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                    <div>
-                                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                                        {"Valor Arroba na Aquisição"}
-                                      </p>
-                                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mt-1">
-                                        {formatCurrency(profitability.acquisitionArrobaValue)}
-                                      </p>
-                                    </div>
-                                    <div>
-                                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                                        {"Valor Arroba na Venda"}
-                                      </p>
-                                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mt-1">
-                                        {formatCurrency(profitability.saleArrobaValue)}
-                                      </p>
-                                    </div>
-                                    <div>
-                                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                                        {"Spread por Arroba"}
-                                      </p>
-                                      <p
-                                        className={`text-sm font-semibold mt-1 ${
-                                          (profitability.spreadPerArroba || 0) >= 0
-                                            ? "text-green-600 dark:text-green-400"
-                                            : "text-red-600 dark:text-red-400"
-                                        }`}
-                                      >
-                                        {formatCurrency(profitability.spreadPerArroba || 0)}
-                                      </p>
-                                    </div>
-                                    <div>
-                                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                                        {"Spread Total"}
-                                      </p>
-                                      <p
-                                        className={`text-sm font-semibold mt-1 ${
-                                          (profitability.totalSpread || 0) >= 0
-                                            ? "text-green-600 dark:text-green-400"
-                                            : "text-red-600 dark:text-red-400"
-                                        }`}
-                                      >
-                                        {formatCurrency(profitability.totalSpread || 0)}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
+                              {formatCurrency(profitability.profit)}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              {profitability.profitMargin.toFixed(2)}%{" "}
+                              {t.sales.details.profitMargin}
+                            </p>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                      <p className="font-medium">{t.animals.details.sales?.noSales}</p>
-                      <p className="text-sm mt-2">
-                        {t.animals.details.sales?.noSalesDescription ||
-                          "Este animal ainda não foi vendido."}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </>
+
+                        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                {t.sales.details.cost}
+                              </p>
+                              <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
+                                {formatCurrency(profitability.totalCost)}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                {t.sales.details.saleType}
+                              </p>
+                              <StatusBadge
+                                label={(() => {
+                                  if (sale.saleType === "slaughterhouse")
+                                    return t.sales.saleTypes?.slaughterhouse;
+                                  if (sale.saleType === "auction")
+                                    return t.sales.saleTypes?.auction;
+                                  return t.sales.saleTypes?.otherFarm;
+                                })()}
+                                variant={(() => {
+                                  if (sale.saleType === "slaughterhouse") return "danger";
+                                  if (sale.saleType === "auction") return "warning";
+                                  return "info";
+                                })()}
+                              />
+                            </div>
+                          </div>
+                          {profitability.acquisitionArrobaValue !== undefined &&
+                            profitability.saleArrobaValue !== undefined && (
+                              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                                <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
+                                  {"Análise de Spread (Arroba)"}
+                                </h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                  <div>
+                                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                      {"Valor Arroba na Aquisição"}
+                                    </p>
+                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mt-1">
+                                      {formatCurrency(profitability.acquisitionArrobaValue)}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                      {"Valor Arroba na Venda"}
+                                    </p>
+                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mt-1">
+                                      {formatCurrency(profitability.saleArrobaValue)}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                      {"Spread por Arroba"}
+                                    </p>
+                                    <p
+                                      className={`text-sm font-semibold mt-1 ${
+                                        (profitability.spreadPerArroba || 0) >= 0
+                                          ? "text-green-600 dark:text-green-400"
+                                          : "text-red-600 dark:text-red-400"
+                                      }`}
+                                    >
+                                      {formatCurrency(profitability.spreadPerArroba || 0)}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                      {"Spread Total"}
+                                    </p>
+                                    <p
+                                      className={`text-sm font-semibold mt-1 ${
+                                        (profitability.totalSpread || 0) >= 0
+                                          ? "text-green-600 dark:text-green-400"
+                                          : "text-red-600 dark:text-red-400"
+                                      }`}
+                                    >
+                                      {formatCurrency(profitability.totalSpread || 0)}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <p className="font-medium">{t.animals.details.sales?.noSales}</p>
+                    <p className="text-sm mt-2">
+                      {t.animals.details.sales?.noSalesDescription ||
+                        "Este animal ainda não foi vendido."}
+                    </p>
+                  </div>
+                )}
+              </div>
             );
           })()}
         </div>

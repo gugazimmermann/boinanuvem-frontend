@@ -4,13 +4,13 @@ import { AnimalCodeDisplay } from "../animal-code-display";
 import { getAnimalById } from "~/services/animals.service";
 
 export interface AIBreedingSectionProps {
-  selectedAnimalIds: string[];
-  attemptNumbers: Record<string, number>;
-  semenCode: string;
-  onSemenCodeChange: (value: string) => void;
-  onAttemptNumberChange: (animalId: string, value: string) => void;
-  errors: Record<string, string>;
-  disabled?: boolean;
+  readonly selectedAnimalIds: string[];
+  readonly attemptNumbers: Record<string, number>;
+  readonly semenCode: string;
+  readonly onSemenCodeChange: (value: string) => void;
+  readonly onAttemptNumberChange: (animalId: string, value: string) => void;
+  readonly errors: Record<string, string>;
+  readonly disabled?: boolean;
 }
 
 export function AIBreedingSection({

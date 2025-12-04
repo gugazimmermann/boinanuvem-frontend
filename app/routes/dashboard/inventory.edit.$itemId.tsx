@@ -1,18 +1,26 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { Button, Alert } from "~/components/ui";
+import { Button } from "~/components/ui";
 import { useTranslation } from "~/i18n";
+import { FormPageLayout } from "~/components/dashboard/forms/form-page-layout";
 import { ROUTES, getInventoryViewRoute } from "~/routes.config";
 import { getInventoryItemById, updateInventoryItem } from "~/services/inventory.service";
 import { getNitrogenContent, setNitrogenContent } from "~/services/nitrogen-content.service";
 import type { InventoryItemFormData } from "~/types";
-import { InventoryItemCategory, PaymentMethod } from "~/types";
+import { PaymentMethod } from "~/types";
 import { mockProperties } from "~/mocks/properties";
 import { mockSuppliers } from "~/mocks/suppliers";
 import { useInventoryForm } from "~/hooks/use-inventory-form";
 import { InventoryItemForm } from "~/components/dashboard/inventory/inventory-item-form";
 import { mockCompanies } from "~/mocks/companies";
 import { getBankAccountsByCompanyId } from "~/services/bank-account.service";
+import { useAlert } from "~/hooks/use-alert";
+import {
+  getUsageFields,
+  getCustomCategory,
+  getExpirationDate,
+  handleNitrogenContent,
+} from "~/utils/inventory-form-helpers";
 
 export function meta() {
   return [
@@ -76,20 +84,7 @@ export default function EditInventoryItem() {
   }, [item, setFormData]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [alertMessage, setAlertMessage] = useState<{
-    title: string;
-    variant: "success" | "error" | "warning" | "info";
-  } | null>(null);
-
-  const showAlert = (
-    title: string,
-    variant: "success" | "error" | "warning" | "info" = "success"
-  ) => {
-    setAlertMessage({ title, variant });
-    setTimeout(() => {
-      setAlertMessage(null);
-    }, 3000);
-  };
+  const { alertMessage, showAlert } = useAlert();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,60 +92,25 @@ export default function EditInventoryItem() {
 
     setIsSubmitting(true);
     try {
+      const usageFields = getUsageFields(formData);
       const itemData: Partial<InventoryItemFormData> = {
         code: formData.code.trim(),
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
         category: formData.category,
-        customCategory:
-          formData.category === InventoryItemCategory.CUSTOM && formData.customCategory.trim()
-            ? formData.customCategory.trim()
-            : undefined,
+        customCategory: getCustomCategory(formData),
         unit: formData.unit,
-        minimumStock: parseFloat(formData.minimumStock),
-        unitPrice:
-          formData.unitPrice && formData.unitPrice.trim()
-            ? parseFloat(formData.unitPrice)
-            : undefined,
+        minimumStock: Number.parseFloat(formData.minimumStock),
+        unitPrice: formData.unitPrice?.trim() ? Number.parseFloat(formData.unitPrice) : undefined,
         supplierId: formData.supplierId || undefined,
         hasExpiration: formData.hasExpiration,
-        expirationDate:
-          formData.hasExpiration && formData.expirationDate ? formData.expirationDate : undefined,
-        usageAmount:
-          (formData.category === InventoryItemCategory.MEDICINES ||
-            formData.category === InventoryItemCategory.VACCINES) &&
-          formData.usageAmount &&
-          formData.usageAmount.trim()
-            ? parseFloat(formData.usageAmount)
-            : undefined,
-        usageUnit:
-          (formData.category === InventoryItemCategory.MEDICINES ||
-            formData.category === InventoryItemCategory.VACCINES) &&
-          formData.usageUnit &&
-          formData.usageUnit.trim()
-            ? formData.usageUnit.trim()
-            : undefined,
-        usageBasis:
-          (formData.category === InventoryItemCategory.MEDICINES ||
-            formData.category === InventoryItemCategory.VACCINES) &&
-          formData.usageBasis &&
-          formData.usageBasis.trim()
-            ? formData.usageBasis.trim()
-            : undefined,
+        expirationDate: getExpirationDate(formData),
+        ...usageFields,
         propertyIds: formData.propertyIds,
       };
       const success = updateInventoryItem(item.id, itemData);
       if (success) {
-        if (
-          formData.category === InventoryItemCategory.FERTILIZER &&
-          formData.nitrogenContent &&
-          formData.nitrogenContent.trim()
-        ) {
-          const nitrogenKgPerUnit = parseFloat(formData.nitrogenContent);
-          if (!isNaN(nitrogenKgPerUnit) && nitrogenKgPerUnit >= 0) {
-            setNitrogenContent(item.id, nitrogenKgPerUnit);
-          }
-        }
+        handleNitrogenContent(item.id, formData, setNitrogenContent);
 
         showAlert(t.inventory.edit.success, "success");
         setTimeout(() => {
@@ -181,61 +141,33 @@ export default function EditInventoryItem() {
   }
 
   return (
-    <div className="space-y-8">
-      {alertMessage && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-          <Alert title={alertMessage.title} variant={alertMessage.variant} />
-        </div>
-      )}
-
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-            {t.inventory.edit.title}
-          </h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {t.inventory.edit.description}
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          onClick={() => navigate(getInventoryViewRoute(item.id))}
-          disabled={isSubmitting}
-        >
-          {t.common.back}
-        </Button>
-      </div>
-
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-        <form onSubmit={handleSubmit} className="space-y-8">
-          <InventoryItemForm
-            formData={formData}
-            errors={errors}
-            isSubmitting={isSubmitting}
-            onFieldChange={handleChange}
-            translations={t}
-            suppliers={mockSuppliers}
-            properties={mockProperties}
-            bankAccounts={bankAccounts}
-            showInitialStock={false}
-            showObservation={false}
-          />
-
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate(getInventoryViewRoute(item.id))}
-              disabled={isSubmitting}
-            >
-              {t.common.cancel}
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {t.common.save}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <FormPageLayout
+      alertMessage={alertMessage}
+      title={t.inventory.edit.title}
+      description={t.inventory.edit.description}
+      backButtonLabel={t.common.back}
+      onBack={() => navigate(getInventoryViewRoute(item.id))}
+      isSubmitting={isSubmitting}
+      submitButtonLabel={t.common.save}
+      cancelButtonLabel={t.common.cancel}
+      onSubmit={handleSubmit}
+      onCancel={() => navigate(getInventoryViewRoute(item.id))}
+      containerClassName="space-y-8"
+      formSpacing="space-y-8"
+      titleSize="3xl"
+    >
+      <InventoryItemForm
+        formData={formData}
+        errors={errors}
+        isSubmitting={isSubmitting}
+        onFieldChange={handleChange}
+        translations={t}
+        suppliers={mockSuppliers}
+        properties={mockProperties}
+        bankAccounts={bankAccounts}
+        showInitialStock={false}
+        showObservation={false}
+      />
+    </FormPageLayout>
   );
 }

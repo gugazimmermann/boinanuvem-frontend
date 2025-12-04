@@ -1,34 +1,51 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { Hero } from "../hero";
 
-describe("Hero", () => {
-  it("should render hero section", () => {
-    render(<Hero />);
-    expect(screen.getByText(/Transforme sua fazenda/i)).toBeInTheDocument();
-  });
+vi.mock("~/routes.config", () => ({
+  ROUTES: {
+    REGISTER: "/register",
+  },
+}));
 
+describe("Hero", () => {
   it("should render heading", () => {
     render(<Hero />);
-    expect(
-      screen.getByText(/Transforme sua fazenda de gado de corte com tecnologia de ponta/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Transforme sua fazenda de gado de corte/)).toBeInTheDocument();
   });
 
   it("should render description", () => {
     render(<Hero />);
-    expect(screen.getByText(/Sistema completo e integrado/i)).toBeInTheDocument();
+    expect(screen.getByText(/Sistema completo e integrado para gestão/)).toBeInTheDocument();
   });
 
-  it("should render CTA buttons", () => {
+  it("should render feature list items", () => {
     render(<Hero />);
-    expect(screen.getByText(/Começar Agora/i)).toBeInTheDocument();
-    expect(screen.getByText(/Conhecer Funcionalidades/i)).toBeInTheDocument();
+    expect(screen.getByText(/Gestão completa do rebanho/)).toBeInTheDocument();
+    expect(screen.getByText(/Análises e relatórios em tempo real/)).toBeInTheDocument();
+    expect(screen.getByText(/Acesso de qualquer lugar/)).toBeInTheDocument();
   });
 
-  it("should render image", () => {
+  it("should render register button", () => {
     render(<Hero />);
-    const image = screen.getByAltText("Boi na Nuvem - Gestão de Fazendas");
-    expect(image).toBeInTheDocument();
+    const registerButton = screen.getByRole("link", { name: /Começar Agora/ });
+    expect(registerButton).toHaveAttribute("href", "/register");
+  });
+
+  it("should render features button", () => {
+    render(<Hero />);
+    const featuresButton = screen.getByRole("link", { name: /Conhecer Funcionalidades/ });
+    expect(featuresButton).toHaveAttribute("href", "#section-services");
+  });
+
+  it("should render badge", () => {
+    render(<Hero />);
+    expect(screen.getByText(/Sistema Completo de Gestão/)).toBeInTheDocument();
+  });
+
+  it("should render image on large screens", () => {
+    const { container } = render(<Hero />);
+    const imageContainer = container.querySelector("div.hidden.lg\\:flex");
+    expect(imageContainer).toBeInTheDocument();
   });
 });

@@ -67,31 +67,24 @@ function filterSales(sales: Sale[], filters?: SalesFilters): Sale[] {
   return filtered;
 }
 
-export function getSalesMetrics(companyId: string, filters?: SalesFilters): SalesMetrics {
-  let sales = getSalesByCompanyId(companyId);
-  sales = filterSales(sales, filters);
-
-  const totalSales = sales.length;
-  const totalRevenue = sales.reduce((sum, sale) => {
-    const totalFees = getTotalFees(sale.fees, sale.transportationFee, sale.additionalFees);
-    return sum + sale.totalPrice + totalFees;
-  }, 0);
-
+function calculateSaleItemMetrics(sales: Sale[]): {
+  totalWeight: number;
+  totalCarcassWeight: number;
+  carcassCount: number;
+  profitabilities: ReturnType<typeof calculateAnimalProfitability>[];
+} {
   let totalWeight = 0;
   let totalCarcassWeight = 0;
   let carcassCount = 0;
-  const totalAnimalsSold = sales.reduce((sum, sale) => sum + sale.saleItems.length, 0);
-
   const profitabilities: ReturnType<typeof calculateAnimalProfitability>[] = [];
 
-  sales.forEach((sale) => {
-    sale.saleItems.forEach((item) => {
+  for (const sale of sales) {
+    for (const item of sale.saleItems) {
       totalWeight += item.weight;
       if (item.carcassWeight) {
         totalCarcassWeight += item.carcassWeight;
         carcassCount++;
       }
-
       const profitability = calculateAnimalProfitability(
         item.animalId,
         item.price,
@@ -99,24 +92,24 @@ export function getSalesMetrics(companyId: string, filters?: SalesFilters): Sale
         item.weight
       );
       profitabilities.push(profitability);
-    });
-  });
+    }
+  }
 
-  const averagePricePerKg = totalWeight > 0 ? totalRevenue / totalWeight : 0;
-  const averagePricePerHead = totalAnimalsSold > 0 ? totalRevenue / totalAnimalsSold : 0;
-  const averageCarcassValue = carcassCount > 0 ? totalCarcassWeight / carcassCount : undefined;
+  return { totalWeight, totalCarcassWeight, carcassCount, profitabilities };
+}
 
+function calculateAverageAge(sales: Sale[]): number {
   let totalAgeInMonths = 0;
   let ageCount = 0;
-  sales.forEach((sale) => {
-    sale.saleItems.forEach((item) => {
+  for (const sale of sales) {
+    for (const item of sale.saleItems) {
       const animal = getAnimalById(item.animalId);
-      if (!animal) return;
+      if (!animal) continue;
 
       const birth = getBirthByAnimalId(animal.id);
       const acquisition = getAcquisitionByAnimalId(animal.id);
       const acquisitionItem = acquisition?.acquisitionItems.find(
-        (item) => item.animalId === animal.id
+        (acqItem) => acqItem.animalId === animal.id
       );
 
       let birthDate: string | undefined;
@@ -136,9 +129,31 @@ export function getSalesMetrics(companyId: string, filters?: SalesFilters): Sale
         totalAgeInMonths += ageInMonths;
         ageCount++;
       }
-    });
-  });
-  const averageAgeAtSale = ageCount > 0 ? totalAgeInMonths / ageCount : 0;
+    }
+  }
+  return ageCount > 0 ? totalAgeInMonths / ageCount : 0;
+}
+
+export function getSalesMetrics(companyId: string, filters?: SalesFilters): SalesMetrics {
+  let sales = getSalesByCompanyId(companyId);
+  sales = filterSales(sales, filters);
+
+  const totalSales = sales.length;
+  const { totalWeight, totalCarcassWeight, carcassCount, profitabilities } =
+    calculateSaleItemMetrics(sales);
+  const totalAnimalsSold = sales.reduce((sum, sale) => sum + sale.saleItems.length, 0);
+  const totalRevenue = sales.reduce((sum, sale) => {
+    const totalFees = getTotalFees(sale.fees, sale.transportationFee, sale.additionalFees);
+    return sum + sale.totalPrice + totalFees;
+  }, 0);
+
+  const averagePricePerKg = totalWeight > 0 ? totalRevenue / totalWeight : 0;
+  const averagePricePerHead = totalAnimalsSold > 0 ? totalRevenue / totalAnimalsSold : 0;
+  const averageCarcassValue =
+    carcassCount > 0 && totalCarcassWeight > 0
+      ? totalRevenue / (totalCarcassWeight / totalWeight)
+      : undefined;
+  const averageAgeAtSale = calculateAverageAge(sales);
 
   const profitability = calculateAggregatedProfitability(profitabilities);
 

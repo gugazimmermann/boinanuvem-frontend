@@ -1,5 +1,7 @@
+import { isValidEmail } from "./email-validation";
+
 export function validateEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  return isValidEmail(email);
 }
 
 export function validatePassword(password: string, minLength = 6): boolean {

@@ -1,11 +1,11 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useNavigate } from "react-router";
-import { Input, Select, Button, Alert } from "~/components/ui";
+import { Input, Select, Button, FixedAlert } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
 import { ROUTES } from "~/routes.config";
 import { formatCurrency } from "~/utils/currency";
-import { addAcquisition } from "~/services/acquisitions.service";
+import { addAcquisition, calculateAcquisitionCostPerArroba } from "~/services/acquisitions.service";
 import { addAnimal } from "~/services/animals.service";
 import { addWeighing } from "~/services/weighings.service";
 import { getSuppliersByCompanyId } from "~/services/suppliers.service";
@@ -25,7 +25,24 @@ import {
   AcquisitionPaymentMethod as AcquisitionPaymentMethodEnum,
 } from "~/types";
 import { mockCompanies } from "~/mocks/companies";
-import { calculateAcquisitionCostPerArroba } from "~/services/acquisitions.service";
+
+type AcquisitionItemFormData = {
+  animalId: string;
+  code: string;
+  registrationNumber: string;
+  price: string;
+  weight: string;
+  breed: string;
+  gender: "male" | "female" | "";
+  birthDate: string;
+  motherId: string;
+  fatherId: string;
+  motherRegistrationNumber: string;
+  fatherRegistrationNumber: string;
+  purity?: string;
+  birthObservation: string;
+};
+import { useAlert } from "~/hooks/use-alert";
 import { FeeManager } from "~/components/dashboard/records/fee-manager";
 
 const ARROBA_KG = 30;
@@ -54,6 +71,7 @@ export default function NewAcquisition() {
 
   const today = new Date().toISOString().split("T")[0];
 
+  const feeIdCounter = useRef(0);
   const [supplierSearch, setSupplierSearch] = useState("");
 
   const suppliers = useMemo(() => getSuppliersByCompanyId(companyId), [companyId]);
@@ -112,20 +130,7 @@ export default function NewAcquisition() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [alertMessage, setAlertMessage] = useState<{
-    title: string;
-    variant: "success" | "error" | "warning" | "info";
-  } | null>(null);
-
-  const showAlert = (
-    title: string,
-    variant: "success" | "error" | "warning" | "info" = "success"
-  ) => {
-    setAlertMessage({ title, variant });
-    setTimeout(() => {
-      setAlertMessage(null);
-    }, 3000);
-  };
+  const { alertMessage, showAlert } = useAlert();
 
   const handleChange = (field: keyof typeof formData, value: string | string[]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -186,7 +191,7 @@ export default function NewAcquisition() {
         prev.acquisitionItems.length > 0
       ) {
         const totalPriceNum =
-          parseFloat(newTotalPrice.replace(/[^\d,.-]/g, "").replace(",", ".")) || 0;
+          Number.parseFloat(newTotalPrice.replaceAll(/[^\d,.-]/g, "").replaceAll(",", ".")) || 0;
         const pricePerAnimal = totalPriceNum / prev.acquisitionItems.length;
 
         newItems = prev.acquisitionItems.map((item) => ({
@@ -206,7 +211,7 @@ export default function NewAcquisition() {
 
       if (value === PricingModeEnum.TOTAL && prev.totalPrice && prev.acquisitionItems.length > 0) {
         const totalPriceNum =
-          parseFloat(prev.totalPrice.replace(/[^\d,.-]/g, "").replace(",", ".")) || 0;
+          Number.parseFloat(prev.totalPrice.replaceAll(/[^\d,.-]/g, "").replaceAll(",", ".")) || 0;
         const pricePerAnimal = totalPriceNum / prev.acquisitionItems.length;
         newItems = prev.acquisitionItems.map((item) => ({
           ...item,
@@ -221,85 +226,195 @@ export default function NewAcquisition() {
     });
   };
 
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
+  const getError = (key: string, fallback: string): string => {
+    return (
+      (((t.acquisitions as Record<string, unknown>)?.errors as Record<string, unknown>)?.[
+        key
+      ] as string) || fallback
+    );
+  };
 
+  const validateBasicFields = (newErrors: Record<string, string>): void => {
     if (!formData.propertyId) {
-      newErrors.propertyId =
-        (((t.acquisitions as Record<string, unknown>)?.errors as Record<string, unknown>)
-          ?.propertyRequired as string) || "Propriedade é obrigatória";
+      newErrors.propertyId = getError("propertyRequired", "Propriedade é obrigatória");
     }
     if (!formData.supplierId) {
-      newErrors.supplierId =
-        (((t.acquisitions as Record<string, unknown>)?.errors as Record<string, unknown>)
-          ?.supplierRequired as string) || "Fornecedor é obrigatório";
+      newErrors.supplierId = getError("supplierRequired", "Fornecedor é obrigatório");
     }
     if (!formData.acquisitionDate) {
-      newErrors.acquisitionDate =
-        (((t.acquisitions as Record<string, unknown>)?.errors as Record<string, unknown>)
-          ?.acquisitionDateRequired as string) || "Data da aquisição é obrigatória";
+      newErrors.acquisitionDate = getError(
+        "acquisitionDateRequired",
+        "Data da aquisição é obrigatória"
+      );
     }
     if (!formData.pricingMode) {
-      newErrors.pricingMode =
-        (((t.acquisitions as Record<string, unknown>)?.errors as Record<string, unknown>)
-          ?.pricingModeRequired as string) || "Modo de precificação é obrigatório";
+      newErrors.pricingMode = getError("pricingModeRequired", "Modo de precificação é obrigatório");
     }
     if (!formData.paymentMethod) {
-      newErrors.paymentMethod =
-        (((t.acquisitions as Record<string, unknown>)?.errors as Record<string, unknown>)
-          ?.paymentMethodRequired as string) || "Método de pagamento é obrigatório";
+      newErrors.paymentMethod = getError(
+        "paymentMethodRequired",
+        "Método de pagamento é obrigatório"
+      );
     }
     if (formData.acquisitionItems.length === 0) {
-      newErrors.acquisitionItems =
-        (((t.acquisitions as Record<string, unknown>)?.errors as Record<string, unknown>)
-          ?.animalsRequired as string) || "Adicione pelo menos um animal";
+      newErrors.acquisitionItems = getError("animalsRequired", "Adicione pelo menos um animal");
     }
+  };
 
-    formData.acquisitionItems.forEach((item, index) => {
-      if (!item.code?.trim()) {
-        newErrors[`code_${index}`] = t.profile.errors.required(t.animals.table.code);
+  const validateAcquisitionItem = (
+    item: AcquisitionItemFormData,
+    index: number,
+    newErrors: Record<string, string>
+  ): void => {
+    if (!item.code?.trim()) {
+      newErrors[`code_${index}`] = t.profile.errors.required(t.animals.table.code);
+    }
+    if (!item.registrationNumber?.trim()) {
+      newErrors[`registrationNumber_${index}`] = t.profile.errors.required(
+        t.animals.new.registrationNumberLabel
+      );
+    }
+    if (!item.weight || Number.parseFloat(item.weight) <= 0) {
+      newErrors[`weight_${index}`] = getError("weightRequired", "Peso é obrigatório");
+    }
+    if (!item.breed?.trim()) {
+      newErrors[`breed_${index}`] = t.profile.errors.required(t.acquisitions.new.breedLabel);
+    }
+    if (!item.gender?.trim()) {
+      newErrors[`gender_${index}`] = t.profile.errors.required(t.acquisitions.new.genderLabel);
+    }
+  };
+
+  const validatePricing = (newErrors: Record<string, string>): void => {
+    if (formData.pricingMode === PricingModeEnum.TOTAL) {
+      if (formData.totalPrice) {
+        const totalPriceNum =
+          Number.parseFloat(formData.totalPrice.replaceAll(/[^\d,.-]/g, "").replaceAll(",", ".")) ||
+          0;
+        if (totalPriceNum <= 0) {
+          newErrors.totalPrice = getError(
+            "totalPriceInvalid",
+            "Preço total deve ser maior que zero"
+          );
+        }
+      } else {
+        newErrors.totalPrice = getError("totalPriceRequired", "Preço total é obrigatório");
       }
-      if (!item.registrationNumber?.trim()) {
-        newErrors[`registrationNumber_${index}`] = t.profile.errors.required(
-          t.animals.new.registrationNumberLabel
+    }
+  };
+
+  const validateIndividualPricing = (
+    item: AcquisitionItemFormData,
+    index: number,
+    newErrors: Record<string, string>
+  ): void => {
+    if (formData.pricingMode === PricingModeEnum.INDIVIDUAL) {
+      if (
+        !item.price ||
+        Number.parseFloat(item.price.replaceAll(/[^\d,.-]/g, "").replaceAll(",", ".")) <= 0
+      ) {
+        newErrors[`price_${index}`] = getError(
+          "priceRequired",
+          "Preço é obrigatório para cada animal"
         );
       }
-      if (!item.weight || parseFloat(item.weight) <= 0) {
-        newErrors[`weight_${index}`] =
-          (((t.acquisitions as Record<string, unknown>)?.errors as Record<string, unknown>)
-            ?.weightRequired as string) || "Peso é obrigatório";
-      }
-      if (!item.breed?.trim()) {
-        newErrors[`breed_${index}`] = t.profile.errors.required(t.acquisitions.new.breedLabel);
-      }
-      if (!item.gender?.trim()) {
-        newErrors[`gender_${index}`] = t.profile.errors.required(t.acquisitions.new.genderLabel);
-      }
-      if (formData.pricingMode === PricingModeEnum.TOTAL) {
-        if (!formData.totalPrice) {
-          newErrors.totalPrice =
-            (((t.acquisitions as Record<string, unknown>)?.errors as Record<string, unknown>)
-              ?.totalPriceRequired as string) || "Preço total é obrigatório";
-        } else {
-          const totalPriceNum =
-            parseFloat(formData.totalPrice.replace(/[^\d,.-]/g, "").replace(",", ".")) || 0;
-          if (totalPriceNum <= 0) {
-            newErrors.totalPrice =
-              (((t.acquisitions as Record<string, unknown>)?.errors as Record<string, unknown>)
-                ?.totalPriceInvalid as string) || "Preço total deve ser maior que zero";
-          }
-        }
-      } else if (formData.pricingMode === PricingModeEnum.INDIVIDUAL) {
-        if (!item.price || parseFloat(item.price.replace(/[^\d,.-]/g, "").replace(",", ".")) <= 0) {
-          newErrors[`price_${index}`] =
-            (((t.acquisitions as Record<string, unknown>)?.errors as Record<string, unknown>)
-              ?.priceRequired as string) || "Preço é obrigatório para cada animal";
-        }
-      }
-    });
+    }
+  };
 
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    validateBasicFields(newErrors);
+
+    for (let index = 0; index < formData.acquisitionItems.length; index++) {
+      const item = formData.acquisitionItems[index];
+      validateAcquisitionItem(item, index, newErrors);
+      validateIndividualPricing(item, index, newErrors);
+    }
+
+    validatePricing(newErrors);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const calculateItemPrice = (item: (typeof formData.acquisitionItems)[0]): number => {
+    if (formData.pricingMode === PricingModeEnum.TOTAL) {
+      const totalPriceNum =
+        Number.parseFloat(formData.totalPrice.replaceAll(/[^\d,.-]/g, "").replaceAll(",", ".")) ||
+        0;
+      return totalPriceNum / formData.acquisitionItems.length;
+    }
+    return Number.parseFloat(item.price.replaceAll(/[^\d,.-]/g, "").replaceAll(",", ".")) || 0;
+  };
+
+  const calculateItemPurity = (item: (typeof formData.acquisitionItems)[0]) => {
+    const hasParentInfo =
+      item.motherId ||
+      item.fatherId ||
+      item.motherRegistrationNumber ||
+      item.fatherRegistrationNumber;
+
+    if (!hasParentInfo) {
+      return undefined;
+    }
+
+    const motherBirth = item.motherId ? getBirthByAnimalId(item.motherId) : undefined;
+    const fatherBirth = item.fatherId ? getBirthByAnimalId(item.fatherId) : undefined;
+    const motherBreed = motherBirth?.breed;
+    const fatherBreed = fatherBirth?.breed;
+    return calculatePurity(motherBirth, fatherBirth, motherBreed, fatherBreed);
+  };
+
+  const processAcquisitionItem = (item: (typeof formData.acquisitionItems)[0]): AcquisitionItem => {
+    const animalData: AnimalFormData = {
+      code: item.code,
+      registrationNumber: item.registrationNumber,
+      acquisitionDate: formData.acquisitionDate,
+      status: "active",
+      companyId,
+      propertyId: formData.propertyId,
+    };
+    const newAnimal = addAnimal(animalData);
+    const purity = calculateItemPurity(item);
+    const price = calculateItemPrice(item);
+    const weight = Number.parseFloat(item.weight) || 0;
+
+    if (weight > 0) {
+      const weighingData: WeighingFormData = {
+        animalId: newAnimal.id,
+        date: formData.acquisitionDate,
+        weight,
+        employeeIds: [],
+        serviceProviderIds: [],
+        companyId,
+      };
+      addWeighing(weighingData);
+    }
+
+    return {
+      animalId: newAnimal.id,
+      price,
+      weight,
+      costPerArroba: calculateAcquisitionCostPerArroba(weight, price),
+      breed: item.breed ? (item.breed as AnimalBreed) : undefined,
+      gender: item.gender || undefined,
+      birthDate: item.birthDate || undefined,
+      motherId: item.motherId || undefined,
+      fatherId: item.fatherId || undefined,
+      motherRegistrationNumber: item.motherRegistrationNumber || undefined,
+      fatherRegistrationNumber: item.fatherRegistrationNumber || undefined,
+      purity,
+      birthObservation: item.birthObservation || undefined,
+    };
+  };
+
+  const processFees = () => {
+    return formData.fees
+      .filter((fee) => fee.name.trim() && fee.amount)
+      .map((fee) => ({
+        id: fee.id,
+        name: fee.name.trim(),
+        amount: Number.parseFloat(fee.amount.replaceAll(/[^\d,.-]/g, "").replaceAll(",", ".")) || 0,
+      }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -317,78 +432,11 @@ export default function NewAcquisition() {
     setIsSubmitting(true);
 
     try {
-      const acquisitionItems: AcquisitionItem[] = [];
-
-      for (const item of formData.acquisitionItems) {
-        const animalData: AnimalFormData = {
-          code: item.code,
-          registrationNumber: item.registrationNumber,
-          acquisitionDate: formData.acquisitionDate,
-          status: "active",
-          companyId,
-          propertyId: formData.propertyId,
-        };
-        const newAnimal = addAnimal(animalData);
-
-        let purity = undefined;
-        if (
-          item.motherId ||
-          item.fatherId ||
-          item.motherRegistrationNumber ||
-          item.fatherRegistrationNumber
-        ) {
-          const motherBirth = item.motherId ? getBirthByAnimalId(item.motherId) : undefined;
-          const fatherBirth = item.fatherId ? getBirthByAnimalId(item.fatherId) : undefined;
-          const motherBreed = motherBirth?.breed;
-          const fatherBreed = fatherBirth?.breed;
-          purity = calculatePurity(motherBirth, fatherBirth, motherBreed, fatherBreed);
-        }
-
-        const price =
-          formData.pricingMode === PricingModeEnum.TOTAL
-            ? parseFloat(formData.totalPrice.replace(/[^\d,.-]/g, "").replace(",", ".")) /
-              formData.acquisitionItems.length
-            : parseFloat(item.price.replace(/[^\d,.-]/g, "").replace(",", ".")) || 0;
-
-        const weight = parseFloat(item.weight) || 0;
-
-        acquisitionItems.push({
-          animalId: newAnimal.id,
-          price,
-          weight,
-          costPerArroba: calculateAcquisitionCostPerArroba(weight, price),
-          breed: item.breed ? (item.breed as AnimalBreed) : undefined,
-          gender: item.gender ? (item.gender as "male" | "female") : undefined,
-          birthDate: item.birthDate || undefined,
-          motherId: item.motherId || undefined,
-          fatherId: item.fatherId || undefined,
-          motherRegistrationNumber: item.motherRegistrationNumber || undefined,
-          fatherRegistrationNumber: item.fatherRegistrationNumber || undefined,
-          purity,
-          birthObservation: item.birthObservation || undefined,
-        });
-
-        if (weight > 0) {
-          const weighingData: WeighingFormData = {
-            animalId: newAnimal.id,
-            date: formData.acquisitionDate,
-            weight,
-            employeeIds: [],
-            serviceProviderIds: [],
-            companyId,
-          };
-          addWeighing(weighingData);
-        }
-      }
-
+      const acquisitionItems = formData.acquisitionItems.map((item) =>
+        processAcquisitionItem(item)
+      );
       const totalPrice = acquisitionItems.reduce((sum, item) => sum + item.price, 0);
-      const fees = formData.fees
-        .filter((fee) => fee.name.trim() && fee.amount)
-        .map((fee) => ({
-          id: fee.id,
-          name: fee.name.trim(),
-          amount: parseFloat(fee.amount.replace(/[^\d,.-]/g, "").replace(",", ".")) || 0,
-        }));
+      const fees = processFees();
 
       const acquisitionData: AcquisitionFormData = {
         companyId,
@@ -429,7 +477,7 @@ export default function NewAcquisition() {
       fees: [
         ...prev.fees,
         {
-          id: `fee-${Date.now()}-${Math.random()}`,
+          id: `fee-${Date.now()}-${++feeIdCounter.current}`,
           name: "",
           amount: "",
         },
@@ -453,11 +501,13 @@ export default function NewAcquisition() {
 
   const calculateTotal = () => {
     const itemsTotal = formData.acquisitionItems.reduce((sum, item) => {
-      const price = parseFloat(item.price.replace(/[^\d,.-]/g, "").replace(",", ".")) || 0;
+      const price =
+        Number.parseFloat(item.price.replaceAll(/[^\d,.-]/g, "").replaceAll(",", ".")) || 0;
       return sum + price;
     }, 0);
     const feesTotal = formData.fees.reduce((sum, fee) => {
-      const amount = parseFloat(fee.amount.replace(/[^\d,.-]/g, "").replace(",", ".")) || 0;
+      const amount =
+        Number.parseFloat(fee.amount.replaceAll(/[^\d,.-]/g, "").replaceAll(",", ".")) || 0;
       return sum + amount;
     }, 0);
     return itemsTotal + feesTotal;
@@ -465,7 +515,7 @@ export default function NewAcquisition() {
 
   return (
     <div className="space-y-8">
-      {alertMessage && <Alert variant={alertMessage.variant} title={alertMessage.title} />}
+      <FixedAlert alertMessage={alertMessage} />
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
         <div className="mb-6">
@@ -685,8 +735,9 @@ export default function NewAcquisition() {
                     "Preço por animal"}
                   :{" "}
                   {formatCurrency(
-                    (parseFloat(formData.totalPrice.replace(/[^\d,.-]/g, "").replace(",", ".")) ||
-                      0) / formData.acquisitionItems.length,
+                    (Number.parseFloat(
+                      formData.totalPrice.replaceAll(/[^\d,.-]/g, "").replaceAll(",", ".")
+                    ) || 0) / formData.acquisitionItems.length,
                     language
                   )}
                 </p>
@@ -744,15 +795,19 @@ export default function NewAcquisition() {
             {formData.acquisitionItems.length > 0 && (
               <div className="space-y-4">
                 {formData.acquisitionItems.map((item, index) => {
-                  const weight = parseFloat(item.weight) || 0;
+                  const weight = Number.parseFloat(item.weight) || 0;
                   const price =
-                    parseFloat(item.price.replace(/[^\d,.-]/g, "").replace(",", ".")) || 0;
+                    Number.parseFloat(
+                      item.price.replaceAll(/[^\d,.-]/g, "").replaceAll(",", ".")
+                    ) || 0;
                   const costPerArroba =
                     weight > 0 ? calculateAcquisitionCostPerArroba(weight, price) : 0;
+                  const itemKey =
+                    item.code || item.registrationNumber || item.animalId || `item-${index}`;
 
                   return (
                     <div
-                      key={index}
+                      key={itemKey}
                       className="border border-gray-300 dark:border-gray-600 rounded-md p-4"
                     >
                       <div className="flex items-center justify-between mb-4">

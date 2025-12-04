@@ -82,7 +82,7 @@ export default function Payments() {
   const formatMonth = (monthString: string): string => {
     try {
       const [year, month] = monthString.split("-");
-      const date = new Date(parseInt(year, 10), parseInt(month, 10) - 1, 1);
+      const date = new Date(Number.parseInt(year, 10), Number.parseInt(month, 10) - 1, 1);
       const dateLocale = getDateLocale(language);
       return format(date, "MMMM yyyy", { locale: dateLocale });
     } catch {

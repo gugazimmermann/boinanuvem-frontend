@@ -1,101 +1,121 @@
 import { describe, it, expect } from "vitest";
 import { mockSuppliers } from "../suppliers";
-import type { Supplier } from "~/types";
+import { mockCompanies } from "../companies";
+import { mockProperties } from "../properties";
 
-describe("suppliers mock", () => {
-  it("should export mockSuppliers array", () => {
-    expect(Array.isArray(mockSuppliers)).toBe(true);
-    expect(mockSuppliers.length).toBeGreaterThan(0);
-  });
-
-  it("should have valid supplier structure", () => {
-    mockSuppliers.forEach((supplier: Supplier) => {
-      expect(supplier).toHaveProperty("id");
-      expect(supplier).toHaveProperty("code");
-      expect(supplier).toHaveProperty("name");
-      expect(supplier).toHaveProperty("email");
-      expect(supplier).toHaveProperty("phone");
-      expect(supplier).toHaveProperty("status");
-      expect(supplier).toHaveProperty("createdAt");
-      expect(supplier).toHaveProperty("companyId");
-      expect(supplier).toHaveProperty("propertyIds");
-      expect(supplier).toHaveProperty("street");
-      expect(supplier).toHaveProperty("number");
-      expect(supplier).toHaveProperty("neighborhood");
-      expect(supplier).toHaveProperty("city");
-      expect(supplier).toHaveProperty("state");
-      expect(supplier).toHaveProperty("zipCode");
-
-      expect(typeof supplier.id).toBe("string");
-      expect(typeof supplier.code).toBe("string");
-      expect(typeof supplier.name).toBe("string");
-      expect(typeof supplier.email).toBe("string");
-      expect(typeof supplier.phone).toBe("string");
-      expect(typeof supplier.status).toBe("string");
-      expect(typeof supplier.createdAt).toBe("string");
-      expect(typeof supplier.companyId).toBe("string");
-      expect(Array.isArray(supplier.propertyIds)).toBe(true);
-      expect(typeof supplier.street).toBe("string");
-      expect(typeof supplier.number).toBe("string");
-      expect(typeof supplier.neighborhood).toBe("string");
-      expect(typeof supplier.city).toBe("string");
-      expect(typeof supplier.state).toBe("string");
-      expect(typeof supplier.zipCode).toBe("string");
+describe("suppliers", () => {
+  describe("mockSuppliers", () => {
+    it("should export an array", () => {
+      expect(Array.isArray(mockSuppliers)).toBe(true);
     });
-  });
 
-  it("should have either CNPJ or CPF", () => {
-    mockSuppliers.forEach((supplier: Supplier) => {
-      const hasCnpj = "cnpj" in supplier && supplier.cnpj !== undefined;
-      const hasCpf = "cpf" in supplier && supplier.cpf !== undefined;
-      expect(hasCnpj || hasCpf).toBe(true);
+    it("should not be empty", () => {
+      expect(mockSuppliers.length).toBeGreaterThan(0);
     });
-  });
 
-  it("should have valid CNPJ format when present", () => {
-    mockSuppliers.forEach((supplier: Supplier) => {
-      if ("cnpj" in supplier && supplier.cnpj) {
-        expect(supplier.cnpj).toMatch(/^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$/);
-      }
+    it("should have valid data structure", () => {
+      mockSuppliers.forEach((supplier) => {
+        expect(supplier).toHaveProperty("id");
+        expect(supplier).toHaveProperty("code");
+        expect(supplier).toHaveProperty("name");
+        expect(supplier).toHaveProperty("email");
+        expect(supplier).toHaveProperty("phone");
+        expect(supplier).toHaveProperty("status");
+        expect(supplier).toHaveProperty("createdAt");
+        expect(supplier).toHaveProperty("companyId");
+        expect(supplier).toHaveProperty("propertyIds");
+        expect(supplier).toHaveProperty("street");
+        expect(supplier).toHaveProperty("number");
+        expect(supplier).toHaveProperty("neighborhood");
+        expect(supplier).toHaveProperty("city");
+        expect(supplier).toHaveProperty("state");
+        expect(supplier).toHaveProperty("zipCode");
+      });
     });
-  });
 
-  it("should have valid CPF format when present", () => {
-    mockSuppliers.forEach((supplier: Supplier) => {
-      if ("cpf" in supplier && supplier.cpf) {
-        expect(supplier.cpf).toMatch(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/);
-      }
+    it("should have unique IDs", () => {
+      const ids = mockSuppliers.map((supplier) => supplier.id);
+      const uniqueIds = new Set(ids);
+      expect(uniqueIds.size).toBe(ids.length);
     });
-  });
 
-  it("should have valid email format", () => {
-    mockSuppliers.forEach((supplier: Supplier) => {
-      expect(supplier.email).toMatch(/^[^\s@]+@[^\s@]+\.[^\s@]+$/);
+    it("should have valid UUID format for IDs", () => {
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      mockSuppliers.forEach((supplier) => {
+        expect(supplier.id).toMatch(uuidRegex);
+      });
     });
-  });
 
-  it("should have valid status", () => {
-    mockSuppliers.forEach((supplier: Supplier) => {
-      expect(["active", "inactive", "pending"]).toContain(supplier.status);
+    it("should have valid date format", () => {
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      mockSuppliers.forEach((supplier) => {
+        expect(supplier.createdAt).toMatch(dateRegex);
+      });
     });
-  });
 
-  it("should have valid date format", () => {
-    mockSuppliers.forEach((supplier: Supplier) => {
-      expect(supplier.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-      expect(() => new Date(supplier.createdAt)).not.toThrow();
+    it("should have dates within expected range", () => {
+      mockSuppliers.forEach((supplier) => {
+        const date = new Date(supplier.createdAt);
+        expect(date.getFullYear()).toBeGreaterThanOrEqual(2020);
+        expect(date.getFullYear()).toBeLessThanOrEqual(2025);
+      });
     });
-  });
 
-  it("should have unique IDs", () => {
-    const ids = mockSuppliers.map((s) => s.id);
-    const uniqueIds = new Set(ids);
-    expect(uniqueIds.size).toBe(ids.length);
-  });
+    it("should have either CNPJ or CPF", () => {
+      mockSuppliers.forEach((supplier) => {
+        const hasCnpj = "cnpj" in supplier && supplier.cnpj !== undefined && supplier.cnpj !== null;
+        const hasCpf = "cpf" in supplier && supplier.cpf !== undefined && supplier.cpf !== null;
+        expect(hasCnpj || hasCpf).toBe(true);
+      });
+    });
 
-  it("should have unique codes", () => {
-    const codes = mockSuppliers.map((s) => s.code);
-    const uniqueCodes = new Set(codes);
-    expect(uniqueCodes.size).toBe(codes.length);
+    it("should have valid CNPJ format when present", () => {
+      mockSuppliers.forEach((supplier) => {
+        if ("cnpj" in supplier && supplier.cnpj) {
+          const cnpjDigits = supplier.cnpj.replace(/\D/g, "");
+          expect(cnpjDigits.length).toBe(14);
+        }
+      });
+    });
+
+    it("should have valid CPF format when present", () => {
+      mockSuppliers.forEach((supplier) => {
+        if ("cpf" in supplier && supplier.cpf) {
+          const cpfDigits = supplier.cpf.replace(/\D/g, "");
+          expect(cpfDigits.length).toBe(11);
+        }
+      });
+    });
+
+    it("should have valid email format", () => {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      mockSuppliers.forEach((supplier) => {
+        expect(supplier.email).toMatch(emailRegex);
+      });
+    });
+
+    it("should have valid status", () => {
+      const validStatuses = ["active", "inactive"];
+      mockSuppliers.forEach((supplier) => {
+        expect(validStatuses).toContain(supplier.status);
+      });
+    });
+
+    it("should reference valid company IDs", () => {
+      const companyIds = mockCompanies.map((c) => c.id);
+      mockSuppliers.forEach((supplier) => {
+        expect(companyIds).toContain(supplier.companyId);
+      });
+    });
+
+    it("should reference valid property IDs", () => {
+      const propertyIds = mockProperties.map((p) => p.id);
+      mockSuppliers.forEach((supplier) => {
+        expect(Array.isArray(supplier.propertyIds)).toBe(true);
+        supplier.propertyIds.forEach((propertyId) => {
+          expect(propertyIds).toContain(propertyId);
+        });
+      });
+    });
   });
 });

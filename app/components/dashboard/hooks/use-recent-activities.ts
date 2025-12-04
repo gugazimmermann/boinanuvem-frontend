@@ -27,7 +27,7 @@ export function useRecentActivities(options: UseRecentActivitiesOptions): Activi
   return useMemo(() => {
     const activityList: Activity[] = [];
 
-    animals.forEach((animal) => {
+    for (const animal of animals) {
       activityList.push({
         type: "animal",
         date: animal.createdAt || new Date().toISOString(),
@@ -35,9 +35,9 @@ export function useRecentActivities(options: UseRecentActivitiesOptions): Activi
         icon: "🐄",
         color: "blue",
       });
-    });
+    }
 
-    births.forEach((birth) => {
+    for (const birth of births) {
       activityList.push({
         type: "birth",
         date: birth.birthDate,
@@ -45,9 +45,9 @@ export function useRecentActivities(options: UseRecentActivitiesOptions): Activi
         icon: "👶",
         color: "purple",
       });
-    });
+    }
 
-    weighings.forEach((weighing) => {
+    for (const weighing of weighings) {
       activityList.push({
         type: "weighing",
         date: weighing.date,
@@ -55,9 +55,9 @@ export function useRecentActivities(options: UseRecentActivitiesOptions): Activi
         icon: "⚖️",
         color: "teal",
       });
-    });
+    }
 
-    breedings.forEach((breeding) => {
+    for (const breeding of breedings) {
       activityList.push({
         type: "breeding",
         date: breeding.date,
@@ -65,9 +65,9 @@ export function useRecentActivities(options: UseRecentActivitiesOptions): Activi
         icon: "💑",
         color: "pink",
       });
-    });
+    }
 
-    cashFlowData.forEach((transaction) => {
+    for (const transaction of cashFlowData) {
       activityList.push({
         type: "transaction",
         date: transaction.date,
@@ -75,9 +75,9 @@ export function useRecentActivities(options: UseRecentActivitiesOptions): Activi
         icon: transaction.type === "income" ? "💰" : "💸",
         color: transaction.type === "income" ? "green" : "red",
       });
-    });
+    }
 
-    sales.forEach((sale) => {
+    for (const sale of sales) {
       activityList.push({
         type: "sale",
         date: sale.saleDate,
@@ -85,10 +85,11 @@ export function useRecentActivities(options: UseRecentActivitiesOptions): Activi
         icon: "💵",
         color: "green",
       });
-    });
+    }
 
-    return activityList
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, limit);
+    const sortedActivities = activityList.toSorted(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+    return sortedActivities.slice(0, limit);
   }, [animals, births, weighings, breedings, cashFlowData, sales, t, limit]);
 }

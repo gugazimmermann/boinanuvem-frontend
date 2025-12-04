@@ -1,86 +1,95 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import {
   getCashFlowById,
   getCashFlowByCompanyId,
   getCashFlowByBankAccountId,
+  getCashFlowByPropertyId,
+  getCashFlowByEmployeeId,
+  getCashFlowByServiceProviderId,
+  getCashFlowBySupplierId,
+  getCashFlowByBuyerId,
   addCashFlow,
   updateCashFlow,
   deleteCashFlow,
 } from "../cash-flow.service";
 import { mockCashFlow } from "~/mocks/cash-flow";
 import type { CashFlowFormData } from "~/types";
-import { PaymentMethod, CashFlowCategory } from "~/types";
-
-vi.mock("~/mocks/cash-flow", () => ({
-  mockCashFlow: [],
-}));
+import { CashFlowCategory, PaymentMethod } from "~/types";
 
 describe("cash-flow.service", () => {
   beforeEach(() => {
     mockCashFlow.length = 0;
     mockCashFlow.push(
       {
-        id: "cc0e8400-e29b-41d4-a716-446655440010",
+        id: "cf-1",
+        companyId: "company-1",
+        type: "expense",
+        amount: 1000,
+        date: "2025-01-01",
+        description: "Test expense 1",
+        category: CashFlowCategory.FEED,
+        paymentMethod: PaymentMethod.CASH,
+        status: "completed",
+        propertyId: "property-1",
+        supplierId: "supplier-1",
+        createdAt: "2025-01-01",
+      },
+      {
+        id: "cf-2",
         companyId: "company-1",
         type: "income",
-        amount: 50000.0,
-        date: "2025-11-05",
+        amount: 2000,
+        date: "2025-01-02",
         description: "Test income 1",
         category: CashFlowCategory.CATTLE_SALES,
         paymentMethod: PaymentMethod.BANK_TRANSFER,
         status: "completed",
+        propertyId: "property-2",
         buyerId: "buyer-1",
-        paymentDate: "2025-11-05",
-        referenceNumber: "VEN-001",
-        bankAccountId: "bank-1",
-        propertyId: "property-1",
-        createdAt: "2025-11-05",
+        createdAt: "2025-01-02",
       },
       {
-        id: "cc0e8400-e29b-41d4-a716-446655440011",
+        id: "cf-3",
+        companyId: "company-2",
+        type: "expense",
+        amount: 3000,
+        date: "2025-01-03",
+        description: "Test expense 2",
+        category: CashFlowCategory.MEDICINES,
+        paymentMethod: PaymentMethod.PIX,
+        status: "completed",
+        propertyId: "property-1",
+        employeeId: "employee-1",
+        createdAt: "2025-01-03",
+      },
+      {
+        id: "cf-4",
         companyId: "company-1",
         type: "expense",
-        amount: 3500.0,
-        date: "2025-11-10",
-        description: "Test expense 1",
-        category: CashFlowCategory.FEED,
-        paymentMethod: PaymentMethod.PIX,
+        amount: 1500,
+        date: "2025-01-04",
+        description: "Test expense 3",
+        category: CashFlowCategory.VETERINARY,
+        paymentMethod: PaymentMethod.CASH,
         status: "completed",
-        supplierId: "supplier-1",
-        paymentDate: "2025-11-10",
-        referenceNumber: "DESP-001",
-        bankAccountId: "bank-1",
         propertyId: "property-1",
-        createdAt: "2025-11-10",
-      },
-      {
-        id: "cc0e8400-e29b-41d4-a716-446655440012",
-        companyId: "company-2",
-        type: "income",
-        amount: 32000.0,
-        date: "2025-11-18",
-        description: "Test income 2",
-        category: CashFlowCategory.MILK_SALES,
-        paymentMethod: PaymentMethod.PIX,
-        status: "completed",
-        buyerId: "buyer-2",
-        paymentDate: "2025-11-18",
-        bankAccountId: "bank-2",
-        propertyId: "property-2",
-        createdAt: "2025-11-18",
+        serviceProviderId: "service-provider-1",
+        bankAccountId: "bank-1",
+        createdAt: "2025-01-04",
       }
     );
   });
 
   describe("getCashFlowById", () => {
-    it("should return transaction when ID exists", () => {
-      const result = getCashFlowById("cc0e8400-e29b-41d4-a716-446655440010");
+    it("should return cash flow when ID exists", () => {
+      const result = getCashFlowById("cf-1");
       expect(result).toBeDefined();
-      expect(result?.description).toBe("Test income 1");
+      expect(result?.id).toBe("cf-1");
+      expect(result?.amount).toBe(1000);
     });
 
     it("should return undefined when ID does not exist", () => {
-      const result = getCashFlowById("nonexistent-id");
+      const result = getCashFlowById("cf-nonexistent");
       expect(result).toBeUndefined();
     });
 
@@ -91,44 +100,111 @@ describe("cash-flow.service", () => {
   });
 
   describe("getCashFlowByCompanyId", () => {
-    it("should return transactions for specific company", () => {
+    it("should return all cash flows for a company", () => {
       const result = getCashFlowByCompanyId("company-1");
-      expect(result).toHaveLength(2);
-      expect(result.every((transaction) => transaction.companyId === "company-1")).toBe(true);
+      expect(result).toHaveLength(3);
+      expect(result[0]?.id).toBe("cf-1");
+      expect(result[1]?.id).toBe("cf-2");
+      expect(result[2]?.id).toBe("cf-4");
     });
 
-    it("should return empty array when company has no transactions", () => {
-      const result = getCashFlowByCompanyId("company-3");
+    it("should return empty array when company has no cash flows", () => {
+      const result = getCashFlowByCompanyId("company-nonexistent");
       expect(result).toHaveLength(0);
     });
   });
 
   describe("getCashFlowByBankAccountId", () => {
-    it("should return transactions for specific bank account", () => {
+    it("should return all cash flows for a bank account", () => {
       const result = getCashFlowByBankAccountId("bank-1");
-      expect(result).toHaveLength(2);
-      expect(result.every((transaction) => transaction.bankAccountId === "bank-1")).toBe(true);
+      expect(result).toHaveLength(1);
+      expect(result[0]?.id).toBe("cf-4");
     });
 
-    it("should return empty array when bank account has no transactions", () => {
-      const result = getCashFlowByBankAccountId("bank-3");
+    it("should return empty array when bank account has no cash flows", () => {
+      const result = getCashFlowByBankAccountId("bank-nonexistent");
+      expect(result).toHaveLength(0);
+    });
+  });
+
+  describe("getCashFlowByPropertyId", () => {
+    it("should return all cash flows for a property", () => {
+      const result = getCashFlowByPropertyId("property-1");
+      expect(result).toHaveLength(3);
+      expect(result.some((cf) => cf.id === "cf-1")).toBe(true);
+      expect(result.some((cf) => cf.id === "cf-3")).toBe(true);
+      expect(result.some((cf) => cf.id === "cf-4")).toBe(true);
+    });
+
+    it("should return empty array when property has no cash flows", () => {
+      const result = getCashFlowByPropertyId("property-nonexistent");
+      expect(result).toHaveLength(0);
+    });
+  });
+
+  describe("getCashFlowByEmployeeId", () => {
+    it("should return all cash flows for an employee", () => {
+      const result = getCashFlowByEmployeeId("employee-1");
+      expect(result).toHaveLength(1);
+      expect(result[0]?.id).toBe("cf-3");
+    });
+
+    it("should return empty array when employee has no cash flows", () => {
+      const result = getCashFlowByEmployeeId("employee-nonexistent");
+      expect(result).toHaveLength(0);
+    });
+  });
+
+  describe("getCashFlowByServiceProviderId", () => {
+    it("should return all cash flows for a service provider", () => {
+      const result = getCashFlowByServiceProviderId("service-provider-1");
+      expect(result).toHaveLength(1);
+      expect(result[0]?.id).toBe("cf-4");
+    });
+
+    it("should return empty array when service provider has no cash flows", () => {
+      const result = getCashFlowByServiceProviderId("service-provider-nonexistent");
+      expect(result).toHaveLength(0);
+    });
+  });
+
+  describe("getCashFlowBySupplierId", () => {
+    it("should return all cash flows for a supplier", () => {
+      const result = getCashFlowBySupplierId("supplier-1");
+      expect(result).toHaveLength(1);
+      expect(result[0]?.id).toBe("cf-1");
+    });
+
+    it("should return empty array when supplier has no cash flows", () => {
+      const result = getCashFlowBySupplierId("supplier-nonexistent");
+      expect(result).toHaveLength(0);
+    });
+  });
+
+  describe("getCashFlowByBuyerId", () => {
+    it("should return all cash flows for a buyer", () => {
+      const result = getCashFlowByBuyerId("buyer-1");
+      expect(result).toHaveLength(1);
+      expect(result[0]?.id).toBe("cf-2");
+    });
+
+    it("should return empty array when buyer has no cash flows", () => {
+      const result = getCashFlowByBuyerId("buyer-nonexistent");
       expect(result).toHaveLength(0);
     });
   });
 
   describe("addCashFlow", () => {
-    it("should add new transaction", () => {
+    it("should add a new cash flow with generated ID", () => {
       const formData: CashFlowFormData = {
         companyId: "company-1",
-        type: "income",
-        amount: 15000.0,
-        date: "2025-12-01",
-        description: "New cash flow",
-        category: CashFlowCategory.CATTLE_SALES,
-        paymentMethod: PaymentMethod.BANK_TRANSFER,
+        type: "expense",
+        amount: 5000,
+        date: "2025-01-10",
+        description: "New expense",
+        category: CashFlowCategory.FUEL,
+        paymentMethod: PaymentMethod.CASH,
         status: "completed",
-        buyerId: "buyer-1",
-        bankAccountId: "bank-1",
         propertyId: "property-1",
       };
 
@@ -136,44 +212,68 @@ describe("cash-flow.service", () => {
       const result = addCashFlow(formData);
 
       expect(mockCashFlow).toHaveLength(initialLength + 1);
-      expect(result.description).toBe("New cash flow");
       expect(result.id).toBeDefined();
+      expect(result.companyId).toBe("company-1");
+      expect(result.amount).toBe(5000);
       expect(result.createdAt).toBeDefined();
+    });
+
+    it("should generate ID with correct prefix", () => {
+      const formData: CashFlowFormData = {
+        companyId: "company-1",
+        type: "expense",
+        amount: 5000,
+        date: "2025-01-10",
+        description: "New expense",
+        category: CashFlowCategory.FUEL,
+        paymentMethod: PaymentMethod.CASH,
+        status: "completed",
+        propertyId: "property-1",
+      };
+
+      const result = addCashFlow(formData);
+      expect(result.id).toContain("cc0e8400-e29b-41d4-a716");
     });
   });
 
   describe("updateCashFlow", () => {
-    it("should update existing transaction", () => {
-      const result = updateCashFlow("cc0e8400-e29b-41d4-a716-446655440010", {
-        description: "Updated cash flow",
-      });
+    it("should update cash flow when ID exists", () => {
+      const updateData: Partial<CashFlowFormData> = {
+        amount: 1500,
+        description: "Updated description",
+      };
 
+      const result = updateCashFlow("cf-1", updateData);
       expect(result).toBe(true);
-      const updated = mockCashFlow.find((t) => t.id === "cc0e8400-e29b-41d4-a716-446655440010");
-      expect(updated?.description).toBe("Updated cash flow");
+
+      const updated = mockCashFlow.find((cf) => cf.id === "cf-1");
+      expect(updated?.amount).toBe(1500);
+      expect(updated?.description).toBe("Updated description");
     });
 
-    it("should return false when transaction does not exist", () => {
-      const result = updateCashFlow("nonexistent-id", {
-        description: "Updated cash flow",
-      });
+    it("should return false when ID does not exist", () => {
+      const updateData: Partial<CashFlowFormData> = {
+        amount: 1500,
+      };
 
+      const result = updateCashFlow("cf-nonexistent", updateData);
       expect(result).toBe(false);
     });
   });
 
   describe("deleteCashFlow", () => {
-    it("should delete existing transaction", () => {
+    it("should delete cash flow when ID exists", () => {
       const initialLength = mockCashFlow.length;
-      const result = deleteCashFlow("cc0e8400-e29b-41d4-a716-446655440010");
+      const result = deleteCashFlow("cf-1");
 
       expect(result).toBe(true);
       expect(mockCashFlow).toHaveLength(initialLength - 1);
+      expect(mockCashFlow.find((cf) => cf.id === "cf-1")).toBeUndefined();
     });
 
-    it("should return false when transaction does not exist", () => {
+    it("should return false when ID does not exist", () => {
       const initialLength = mockCashFlow.length;
-      const result = deleteCashFlow("nonexistent-id");
+      const result = deleteCashFlow("cf-nonexistent");
 
       expect(result).toBe(false);
       expect(mockCashFlow).toHaveLength(initialLength);

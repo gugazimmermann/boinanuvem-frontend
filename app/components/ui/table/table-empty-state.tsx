@@ -3,14 +3,14 @@ import { Button } from "../button";
 import { useTranslation } from "~/i18n/use-translation";
 
 interface TableEmptyStateProps {
-  title?: string;
-  description?: string;
-  searchQuery?: string;
-  onClearSearch?: () => void;
-  clearSearchLabel?: string;
-  onAddNew?: () => void;
-  addNewLabel?: string;
-  icon?: ReactNode;
+  readonly title?: string;
+  readonly description?: string;
+  readonly searchQuery?: string;
+  readonly onClearSearch?: () => void;
+  readonly clearSearchLabel?: string;
+  readonly onAddNew?: () => void;
+  readonly addNewLabel?: string;
+  readonly icon?: ReactNode;
 }
 
 export function TableEmptyState({

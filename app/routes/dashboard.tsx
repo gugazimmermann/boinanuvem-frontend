@@ -5,7 +5,7 @@ import { ROUTES } from "../routes.config";
 const CURRENT_USER_ID_KEY = "currentUserId";
 
 export async function loader() {
-  if (typeof window !== "undefined") {
+  if (globalThis.window !== undefined) {
     const userId = localStorage.getItem(CURRENT_USER_ID_KEY);
     if (!userId) {
       throw redirect(ROUTES.LOGIN);

@@ -33,10 +33,10 @@ import { enUS } from "date-fns/locale/en-US";
 import { es } from "date-fns/locale/es";
 
 interface ReproductiveIndexesProps {
-  propertyId: string;
-  period?: {
-    startDate?: string;
-    endDate?: string;
+  readonly propertyId: string;
+  readonly period?: {
+    readonly startDate?: string;
+    readonly endDate?: string;
   };
 }
 
@@ -119,7 +119,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
     if (!birthRate.monthly) return [];
     return birthRate.monthly.map((item) => {
       const [year, month] = item.month.split("-");
-      const monthDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+      const monthDate = new Date(Number.parseInt(year), Number.parseInt(month) - 1, 1);
       const monthName = format(monthDate, "MMM yyyy", { locale: dateLocale });
       return {
         month: monthName,
@@ -147,7 +147,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
     if (!expectedBirthsForecast.monthly || expectedBirthsForecast.monthly.length === 0) return [];
     return expectedBirthsForecast.monthly.map((item) => {
       const [year, month] = item.month.split("-");
-      const monthDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+      const monthDate = new Date(Number.parseInt(year), Number.parseInt(month) - 1, 1);
       const monthName = format(monthDate, "MMM yyyy", { locale: dateLocale });
       return {
         month: monthName,
@@ -160,7 +160,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
     if (!calfMortalityRate.monthly) return [];
     return calfMortalityRate.monthly.map((item) => {
       const [year, month] = item.month.split("-");
-      const monthDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+      const monthDate = new Date(Number.parseInt(year), Number.parseInt(month) - 1, 1);
       const monthName = format(monthDate, "MMM yyyy", { locale: dateLocale });
       return {
         month: monthName,

@@ -1,7 +1,7 @@
 import { getAnimalsByPropertyId, getAnimalById } from "./animals.service";
 import { getWeighingsByAnimalId } from "./weighings.service";
 import { getSalesByCompanyId, getSalesByAnimalId } from "./sales.service";
-import type { Sale } from "~/types";
+import type { Sale, AnimalMovement } from "~/types";
 import { getBirthByAnimalId } from "./births.service";
 import { getPropertyById } from "./properties.service";
 import { getLocationsByPropertyId } from "./locations.service";
@@ -143,34 +143,25 @@ export function getAverageDailyGain(
   const animals = getAnimalsByPropertyId(propertyId);
   const results: AverageDailyGainResult[] = [];
 
-  animals.forEach((animal) => {
+  for (const animal of animals) {
     const weighings = getWeighingsByAnimalId(animal.id);
-    if (weighings.length < 2) return;
+    if (weighings.length < 2) continue;
 
-    let filteredWeighings = weighings;
-    if (period?.startDate || period?.endDate) {
-      filteredWeighings = weighings.filter((weighing) => {
-        const weighingDate = new Date(weighing.date).getTime();
-        if (period.startDate) {
-          const start = new Date(period.startDate).getTime();
-          if (weighingDate < start) return false;
-        }
-        if (period.endDate) {
-          const end = new Date(period.endDate).getTime();
-          if (weighingDate > end) return false;
-        }
-        return true;
-      });
-    }
+    const filteredWeighings = filterByPeriod(weighings, period);
 
-    if (filteredWeighings.length < 2) return;
+    if (filteredWeighings.length < 2) continue;
 
-    const sortedWeighings = [...filteredWeighings].sort(
+    const weighingsArray = [...filteredWeighings];
+    const sortedWeighings = weighingsArray.toSorted(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
     );
 
     const firstWeighing = sortedWeighings[0];
-    const lastWeighing = sortedWeighings[sortedWeighings.length - 1];
+    const lastWeighing = sortedWeighings.at(-1);
+
+    if (!firstWeighing || !lastWeighing) {
+      continue;
+    }
 
     const initialWeight = firstWeighing.weight;
     const finalWeight = lastWeighing.weight;
@@ -189,7 +180,7 @@ export function getAverageDailyGain(
         animalCode: animal.code,
       });
     }
-  });
+  }
 
   setCachedResult(cacheKey, results);
   return results;
@@ -215,7 +206,7 @@ export function getAverageDailyCarcassGain(
     carcassYield = yieldResult.yield;
   }
 
-  adgResults.forEach((adgResult) => {
+  for (const adgResult of adgResults) {
     const adc = (adgResult.adg * carcassYield) / 100;
     results.push({
       adc: Math.round(adc * 100) / 100,
@@ -225,10 +216,147 @@ export function getAverageDailyCarcassGain(
       finalWeight: adgResult.finalWeight,
       days: adgResult.days,
     });
-  });
+  }
 
   setCachedResult(cacheKey, results);
   return results;
+}
+
+// Generic date filtering utility
+function filterByPeriod<T extends { date: string }>(
+  items: T[],
+  period?: { startDate?: string; endDate?: string }
+): T[] {
+  if (!period?.startDate && !period?.endDate) {
+    return items;
+  }
+  return items.filter((item) => {
+    const itemDate = new Date(item.date).getTime();
+    if (period.startDate) {
+      const start = new Date(period.startDate).getTime();
+      if (itemDate < start) return false;
+    }
+    if (period.endDate) {
+      const end = new Date(period.endDate).getTime();
+      if (itemDate > end) return false;
+    }
+    return true;
+  });
+}
+
+// Helper for filtering sales by period (uses saleDate instead of date)
+function filterSalesByPeriod(
+  sales: Sale[],
+  period?: { startDate?: string; endDate?: string }
+): Sale[] {
+  if (!period?.startDate && !period?.endDate) {
+    return sales;
+  }
+  return sales.filter((sale) => {
+    const saleDate = new Date(sale.saleDate).getTime();
+    if (period.startDate) {
+      const start = new Date(period.startDate).getTime();
+      if (saleDate < start) return false;
+    }
+    if (period.endDate) {
+      const end = new Date(period.endDate).getTime();
+      if (saleDate > end) return false;
+    }
+    return true;
+  });
+}
+
+function filterMovementsByPeriod(
+  movements: AnimalMovement[],
+  period?: { startDate?: string; endDate?: string }
+): AnimalMovement[] {
+  return filterByPeriod(movements, period);
+}
+
+function getConfinementLocationIds(propertyId: string): Set<string> {
+  const locations = getLocationsByPropertyId(propertyId);
+  const confinementTypes = new Set([
+    LocationType.FEEDLOT,
+    LocationType.SEMI_FEEDLOT,
+    LocationType.CORRAL,
+  ]);
+  return new Set(
+    locations.filter((loc) => confinementTypes.has(loc.locationType)).map((loc) => loc.id)
+  );
+}
+
+function findEntryAndExitDates(
+  sortedMovements: ReturnType<typeof filterMovementsByPeriod>,
+  confinementLocationIds: Set<string>
+): { entryDate: Date | null; exitDate: Date | null } {
+  let entryDate: Date | null = null;
+  let exitDate: Date | null = null;
+
+  for (const movement of sortedMovements) {
+    const isConfinement = confinementLocationIds.has(movement.locationId);
+
+    if (isConfinement && !entryDate) {
+      entryDate = new Date(movement.date);
+    } else if (!isConfinement && entryDate && !exitDate) {
+      exitDate = new Date(movement.date);
+      break;
+    }
+  }
+
+  return { entryDate, exitDate };
+}
+
+function getExitDateFromSales(animalId: string, _entryDate: Date): Date {
+  const sales = getSalesByAnimalId(animalId);
+  if (sales.length === 0) {
+    return new Date();
+  }
+
+  const sortedSales = sales.toSorted(
+    (a, b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime()
+  );
+  return new Date(sortedSales[0].saleDate);
+}
+
+function calculateDaysOnFeed(
+  animal: ReturnType<typeof getAnimalsByPropertyId>[0],
+  movements: ReturnType<typeof getAnimalMovementsByAnimalId>,
+  confinementLocationIds: Set<string>,
+  period?: { startDate?: string; endDate?: string }
+): DaysOnFeedResult | null {
+  if (movements.length === 0) {
+    return null;
+  }
+
+  const filteredMovements = filterMovementsByPeriod(movements, period);
+  const sortedMovements = filteredMovements.toSorted(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+
+  const { entryDate, exitDate: initialExitDate } = findEntryAndExitDates(
+    sortedMovements,
+    confinementLocationIds
+  );
+
+  const exitDate =
+    entryDate && !initialExitDate ? getExitDateFromSales(animal.id, entryDate) : initialExitDate;
+
+  if (!entryDate || !exitDate) {
+    return null;
+  }
+
+  const days = Math.floor((exitDate.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24));
+  if (days <= 0) {
+    return null;
+  }
+
+  return {
+    days,
+    animalId: animal.id,
+    animalCode: animal.code,
+    entryDate: entryDate.toISOString().split("T")[0],
+    exitDate: exitDate.toISOString().split("T")[0],
+  };
 }
 
 export function getDaysOnFeed(
@@ -242,78 +370,16 @@ export function getDaysOnFeed(
   }
 
   const animals = getAnimalsByPropertyId(propertyId);
-  const locations = getLocationsByPropertyId(propertyId);
-  const confinementTypes = [LocationType.FEEDLOT, LocationType.SEMI_FEEDLOT, LocationType.CORRAL];
-  const confinementLocationIds = locations
-    .filter((loc) => confinementTypes.includes(loc.locationType))
-    .map((loc) => loc.id);
-
+  const confinementLocationIds = getConfinementLocationIds(propertyId);
   const results: DaysOnFeedResult[] = [];
 
-  animals.forEach((animal) => {
+  for (const animal of animals) {
     const movements = getAnimalMovementsByAnimalId(animal.id);
-    if (movements.length === 0) return;
-
-    let filteredMovements = movements;
-    if (period?.startDate || period?.endDate) {
-      filteredMovements = movements.filter((movement) => {
-        const movementDate = new Date(movement.date).getTime();
-        if (period.startDate) {
-          const start = new Date(period.startDate).getTime();
-          if (movementDate < start) return false;
-        }
-        if (period.endDate) {
-          const end = new Date(period.endDate).getTime();
-          if (movementDate > end) return false;
-        }
-        return true;
-      });
+    const result = calculateDaysOnFeed(animal, movements, confinementLocationIds, period);
+    if (result) {
+      results.push(result);
     }
-
-    const sortedMovements = [...filteredMovements].sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-    );
-
-    let entryDate: Date | null = null;
-    let exitDate: Date | null = null;
-
-    for (let i = 0; i < sortedMovements.length; i++) {
-      const movement = sortedMovements[i];
-      const isConfinement = confinementLocationIds.includes(movement.locationId);
-
-      if (isConfinement && !entryDate) {
-        entryDate = new Date(movement.date);
-      } else if (!isConfinement && entryDate && !exitDate) {
-        exitDate = new Date(movement.date);
-        break;
-      }
-    }
-
-    if (entryDate && !exitDate) {
-      const sales = getSalesByAnimalId(animal.id);
-      if (sales.length > 0) {
-        const sale = sales.sort(
-          (a, b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime()
-        )[0];
-        exitDate = new Date(sale.saleDate);
-      } else {
-        exitDate = new Date();
-      }
-    }
-
-    if (entryDate && exitDate) {
-      const days = Math.floor((exitDate.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24));
-      if (days > 0) {
-        results.push({
-          days,
-          animalId: animal.id,
-          animalCode: animal.code,
-          entryDate: entryDate.toISOString().split("T")[0],
-          exitDate: exitDate.toISOString().split("T")[0],
-        });
-      }
-    }
-  });
+  }
 
   setCachedResult(cacheKey, results);
   return results;
@@ -335,35 +401,21 @@ export function getCarcassYield(
   const allSales = getSalesByCompanyId(companyId);
   const sales: Sale[] = allSales.filter((sale) => sale.propertyId === propertyId);
 
-  let filteredSales = sales;
-  if (period?.startDate || period?.endDate) {
-    filteredSales = sales.filter((sale) => {
-      const saleDate = new Date(sale.saleDate).getTime();
-      if (period.startDate) {
-        const start = new Date(period.startDate).getTime();
-        if (saleDate < start) return false;
-      }
-      if (period.endDate) {
-        const end = new Date(period.endDate).getTime();
-        if (saleDate > end) return false;
-      }
-      return true;
-    });
-  }
+  const filteredSales = filterSalesByPeriod(sales, period);
 
   let totalCarcassWeight = 0;
   let totalLiveWeight = 0;
   let count = 0;
 
-  filteredSales.forEach((sale) => {
-    sale.saleItems.forEach((item) => {
+  for (const sale of filteredSales) {
+    for (const item of sale.saleItems) {
       if (item.carcassWeight && item.weight) {
         totalCarcassWeight += item.carcassWeight;
         totalLiveWeight += item.weight;
         count++;
       }
-    });
-  });
+    }
+  }
 
   const yieldPercentage = totalLiveWeight > 0 ? (totalCarcassWeight / totalLiveWeight) * 100 : 0;
 
@@ -394,28 +446,14 @@ export function getSlaughterAge(
   const allSales = getSalesByCompanyId(companyId);
   const sales: Sale[] = allSales.filter((sale) => sale.propertyId === propertyId);
 
-  let filteredSales = sales;
-  if (period?.startDate || period?.endDate) {
-    filteredSales = sales.filter((sale: Sale) => {
-      const saleDate = new Date(sale.saleDate).getTime();
-      if (period.startDate) {
-        const start = new Date(period.startDate).getTime();
-        if (saleDate < start) return false;
-      }
-      if (period.endDate) {
-        const end = new Date(period.endDate).getTime();
-        if (saleDate > end) return false;
-      }
-      return true;
-    });
-  }
+  const filteredSales = filterSalesByPeriod(sales, period);
 
   const ages: number[] = [];
 
-  filteredSales.forEach((sale: Sale) => {
-    sale.saleItems.forEach((item) => {
+  for (const sale of filteredSales) {
+    for (const item of sale.saleItems) {
       const animal = getAnimalById(item.animalId);
-      if (!animal) return;
+      if (!animal) continue;
 
       const birth = getBirthByAnimalId(animal.id);
       if (birth) {
@@ -426,8 +464,8 @@ export function getSlaughterAge(
         );
         ages.push(ageInDays);
       }
-    });
-  });
+    }
+  }
 
   if (ages.length === 0) {
     const result: SlaughterAgeResult = {
@@ -485,28 +523,14 @@ export function getArrobaProductionPerHectare(
   const allSales = getSalesByCompanyId(companyId);
   const sales: Sale[] = allSales.filter((sale) => sale.propertyId === propertyId);
 
-  let filteredSales = sales;
-  if (period?.startDate || period?.endDate) {
-    filteredSales = sales.filter((sale: Sale) => {
-      const saleDate = new Date(sale.saleDate).getTime();
-      if (period.startDate) {
-        const start = new Date(period.startDate).getTime();
-        if (saleDate < start) return false;
-      }
-      if (period.endDate) {
-        const end = new Date(period.endDate).getTime();
-        if (saleDate > end) return false;
-      }
-      return true;
-    });
-  }
+  const filteredSales = filterSalesByPeriod(sales, period);
 
   let totalArrobas = 0;
-  filteredSales.forEach((sale: Sale) => {
-    sale.saleItems.forEach((item) => {
+  for (const sale of filteredSales) {
+    for (const item of sale.saleItems) {
       totalArrobas += item.weight / 30;
-    });
-  });
+    }
+  }
 
   const arrobasPerHectare = areaInHectares > 0 ? totalArrobas / areaInHectares : 0;
 
@@ -551,28 +575,15 @@ export function getKgNitrogenPerAU(
       const weighings = getWeighingsByAnimalId(animal.id);
       if (weighings.length === 0) return null;
 
-      let filteredWeighings = weighings;
-      if (period?.startDate || period?.endDate) {
-        filteredWeighings = weighings.filter((weighing) => {
-          const weighingDate = new Date(weighing.date).getTime();
-          if (period.startDate) {
-            const start = new Date(period.startDate).getTime();
-            if (weighingDate < start) return false;
-          }
-          if (period.endDate) {
-            const end = new Date(period.endDate).getTime();
-            if (weighingDate > end) return false;
-          }
-          return true;
-        });
-      }
+      const filteredWeighings = filterByPeriod(weighings, period);
 
       if (filteredWeighings.length === 0) return null;
 
-      const latestWeighing = filteredWeighings.sort(
-        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-      )[0];
+      const latestWeighing = filteredWeighings
+        .toSorted((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .at(0);
 
+      if (!latestWeighing) return null;
       return { weight: latestWeighing.weight };
     })
     .filter((animal): animal is { weight: number } => animal !== null);
@@ -584,29 +595,16 @@ export function getKgNitrogenPerAU(
     (movement) => movement.type === InventoryMovementType.CONSUMPTION
   );
 
-  if (period?.startDate || period?.endDate) {
-    filteredMovements = filteredMovements.filter((movement) => {
-      const movementDate = new Date(movement.date).getTime();
-      if (period.startDate) {
-        const start = new Date(period.startDate).getTime();
-        if (movementDate < start) return false;
-      }
-      if (period.endDate) {
-        const end = new Date(period.endDate).getTime();
-        if (movementDate > end) return false;
-      }
-      return true;
-    });
-  }
+  filteredMovements = filterByPeriod(filteredMovements, period);
 
   let totalNitrogen = 0;
-  filteredMovements.forEach((movement) => {
+  for (const movement of filteredMovements) {
     if (hasNitrogenContent(movement.itemId)) {
       const nitrogenKgPerUnit = getNitrogenContent(movement.itemId);
       const nitrogenKg = movement.quantity * nitrogenKgPerUnit;
       totalNitrogen += nitrogenKg;
     }
-  });
+  }
 
   const kgNitrogenPerAU = animalUnits > 0 ? totalNitrogen / animalUnits : 0;
 
@@ -634,38 +632,25 @@ export function getKgMeatPerKgNitrogen(
   const adgResults = getAverageDailyGain(propertyId, period);
   let totalWeightGain = 0;
 
-  adgResults.forEach((result) => {
+  for (const result of adgResults) {
     totalWeightGain += result.finalWeight - result.initialWeight;
-  });
+  }
 
   const movements = getMovementsByPropertyId(propertyId);
   let filteredMovements = movements.filter(
     (movement) => movement.type === InventoryMovementType.CONSUMPTION
   );
 
-  if (period?.startDate || period?.endDate) {
-    filteredMovements = filteredMovements.filter((movement) => {
-      const movementDate = new Date(movement.date).getTime();
-      if (period.startDate) {
-        const start = new Date(period.startDate).getTime();
-        if (movementDate < start) return false;
-      }
-      if (period.endDate) {
-        const end = new Date(period.endDate).getTime();
-        if (movementDate > end) return false;
-      }
-      return true;
-    });
-  }
+  filteredMovements = filterByPeriod(filteredMovements, period);
 
   let totalNitrogen = 0;
-  filteredMovements.forEach((movement) => {
+  for (const movement of filteredMovements) {
     if (hasNitrogenContent(movement.itemId)) {
       const nitrogenKgPerUnit = getNitrogenContent(movement.itemId);
       const nitrogenKg = movement.quantity * nitrogenKgPerUnit;
       totalNitrogen += nitrogenKg;
     }
-  });
+  }
 
   const kgMeatPerKgNitrogen = totalNitrogen > 0 ? totalWeightGain / totalNitrogen : 0;
 

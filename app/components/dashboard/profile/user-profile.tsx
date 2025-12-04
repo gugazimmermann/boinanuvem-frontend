@@ -1,8 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Input, Alert } from "~/components/ui";
-import { Button } from "~/components/ui";
+import { Input, FixedAlert, FormFieldGroup, Button } from "~/components/ui";
 import { AddressForm } from "./address-form";
-import { ActivityLog, type ActivityLogEntry } from "./activity-log";
+import { ActivityLog } from "./activity-log";
 import {
   maskPhone,
   unmaskPhone,
@@ -12,13 +11,22 @@ import {
   unmaskCPF,
 } from "~/components/site/utils/masks";
 import { useTranslation } from "~/i18n";
-import { DASHBOARD_COLORS } from "../utils/colors";
 import type { AddressFormData } from "~/components/site/utils/cep-utils";
 import { getUserById, updateUser, updateUserPermissions } from "~/services/users.service";
 import { useAuth } from "~/contexts/auth-context";
 import { usePermissions } from "~/utils/permissions";
 import type { UserPermissions, PermissionAction, ResourcePermissions } from "~/types/permissions";
 import { defaultPermissions } from "~/types/permissions";
+import { ProfileTabs, type ProfileTab } from "./shared/profile-tabs";
+import { useAlert } from "~/hooks/use-alert";
+import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
+import { generateActivityLogs } from "~/utils/activity-log-generator";
+import {
+  validateCPF,
+  validateEmail,
+  validatePhone,
+  validateAddressFields,
+} from "~/utils/form-validation";
 
 interface UserFormData extends AddressFormData {
   name: string;
@@ -59,78 +67,10 @@ const getMainUserData = (mainUser: ReturnType<typeof useAuth>["currentUser"]): U
   };
 };
 
-const generateUserLogs = (): ActivityLogEntry[] => {
-  const actions = ["CREATE", "UPDATE", "DELETE", "VIEW", "EXPORT", "IMPORT"];
-  const resourceTypes = [
-    "Property",
-    "Animal",
-    "Pasture",
-    "Report",
-    "Vaccination",
-    "Treatment",
-    "Birth",
-    "Weight",
-  ];
-
-  const properties = ["Fazenda São João", "Fazenda Santa Maria", "Fazenda Boa Vista"];
-  const animals = Array.from({ length: 30 }, (_, i) => `#${String(1000 + i).padStart(4, "0")}`);
-  const pastures = ["Campo 1", "Campo 2", "Campo 3", "Campo Norte", "Campo Sul"];
-  const reports = ["Monthly Summary", "Annual Report", "Health Report", "Production Report"];
-
-  const logs: ActivityLogEntry[] = [];
-  const now = Date.now();
-
-  for (let i = 0; i < 52; i++) {
-    const action = actions[Math.floor(Math.random() * actions.length)];
-    const resourceType = resourceTypes[Math.floor(Math.random() * resourceTypes.length)];
-
-    let resource = "";
-    switch (resourceType) {
-      case "Property":
-        resource = `Property: ${properties[Math.floor(Math.random() * properties.length)]}`;
-        break;
-      case "Animal":
-        resource = `Animal: ${animals[Math.floor(Math.random() * animals.length)]}`;
-        break;
-      case "Pasture":
-        resource = `Pasture: ${pastures[Math.floor(Math.random() * pastures.length)]}`;
-        break;
-      case "Report":
-        resource = `Report: ${reports[Math.floor(Math.random() * reports.length)]}`;
-        break;
-      case "Vaccination":
-        resource = `Vaccination: Animal ${animals[Math.floor(Math.random() * animals.length)]}`;
-        break;
-      case "Treatment":
-        resource = `Treatment: Animal ${animals[Math.floor(Math.random() * animals.length)]}`;
-        break;
-      case "Birth":
-        resource = `Birth: Animal ${animals[Math.floor(Math.random() * animals.length)]}`;
-        break;
-      case "Weight":
-        resource = `Weight Record: Animal ${animals[Math.floor(Math.random() * animals.length)]}`;
-        break;
-    }
-
-    const daysAgo = Math.floor(Math.random() * 60);
-    const hoursAgo = Math.floor(Math.random() * 24);
-    const minutesAgo = Math.floor(Math.random() * 60);
-    const timestamp = new Date(
-      now - daysAgo * 24 * 60 * 60 * 1000 - hoursAgo * 60 * 60 * 1000 - minutesAgo * 60 * 1000
-    ).toISOString();
-
-    logs.push({
-      id: String(i + 1),
-      action,
-      resource,
-      timestamp,
-    });
-  }
-
-  return logs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-};
-
-const mockUserLogs: ActivityLogEntry[] = generateUserLogs();
+const mockUserLogs = generateActivityLogs({
+  count: 52,
+  maxDaysAgo: 60,
+});
 
 type PermissionSection = "registration" | "records" | "breedings" | "finances";
 
@@ -162,12 +102,11 @@ type PermissionResource =
   | "bankAccounts";
 
 interface ResourcePermissionSectionProps {
-  resource: PermissionResource;
-  resourceLabel: string;
-  permissions: ResourcePermissions;
-  isEditable: boolean;
-  onPermissionChange: (action: PermissionAction, value: boolean) => void;
-  onSelectAll: (value: boolean) => void;
+  readonly resourceLabel: string;
+  readonly permissions: ResourcePermissions;
+  readonly isEditable: boolean;
+  readonly onPermissionChange: (action: PermissionAction, value: boolean) => void;
+  readonly onSelectAll: (value: boolean) => void;
 }
 
 function ResourcePermissionSection({
@@ -180,7 +119,7 @@ function ResourcePermissionSection({
   const t = useTranslation();
   const checkboxRef = useRef<HTMLInputElement>(null);
   const allSelected = Object.values(permissions).every((v) => v === true);
-  const someSelected = Object.values(permissions).some((v) => v === true);
+  const someSelected = Object.values(permissions).includes(true);
 
   useEffect(() => {
     if (checkboxRef.current) {
@@ -269,10 +208,10 @@ function ResourcePermissionSection({
 }
 
 interface UserProfileProps {
-  userId?: string;
-  readOnly?: boolean;
-  onEdit?: () => void;
-  onSave?: (data: UserFormData) => Promise<void>;
+  readonly userId?: string;
+  readonly readOnly?: boolean;
+  readonly onEdit?: () => void;
+  readonly onSave?: (data: UserFormData) => Promise<void>;
 }
 
 export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserProfileProps) {
@@ -284,25 +223,12 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
   const [isEditing, setIsEditing] = useState(false);
   const [data, setData] = useState<UserFormData>(mainUserData);
   const [originalData, setOriginalData] = useState<UserFormData>(mainUserData);
+  const { alertMessage, showAlert } = useAlert();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
-  const [activeSubTab, setActiveSubTab] = useState<"data" | "logs" | "permissions">("data");
+  const [activeSubTab, setActiveSubTab] = useState<ProfileTab>("data");
   const [permissions, setPermissions] = useState<UserPermissions>(defaultPermissions);
   const [isSavingPermissions, setIsSavingPermissions] = useState(false);
-  const [alertMessage, setAlertMessage] = useState<{
-    title: string;
-    variant: "success" | "error" | "warning" | "info";
-  } | null>(null);
-
-  const showAlert = (
-    title: string,
-    variant: "success" | "error" | "warning" | "info" = "success"
-  ) => {
-    setAlertMessage({ title, variant });
-    setTimeout(() => {
-      setAlertMessage(null);
-    }, 3000);
-  };
 
   useEffect(() => {
     if (!userId && activeSubTab === "permissions") {
@@ -410,34 +336,44 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
     if (!data.name?.trim()) {
       newErrors.name = t.profile.errors.required(fieldLabels.name);
     }
-    if (!data.cpf?.trim()) {
-      newErrors.cpf = t.profile.errors.required("CPF");
-    } else if (unmaskCPF(data.cpf).length !== 11) {
-      newErrors.cpf = t.profile.errors.invalid("CPF");
-    }
-    if (!data.email?.trim()) {
-      newErrors.email = t.profile.errors.required(fieldLabels.email);
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
-      newErrors.email = t.profile.errors.invalid(fieldLabels.email);
-    }
-    if (!data.phone?.trim()) {
-      newErrors.phone = t.profile.errors.required(fieldLabels.phone);
-    }
-    if (!data.street?.trim()) {
-      newErrors.street = t.profile.errors.required(fieldLabels.street);
-    }
-    if (!data.neighborhood?.trim()) {
-      newErrors.neighborhood = t.profile.errors.required(fieldLabels.neighborhood);
-    }
-    if (!data.city?.trim()) {
-      newErrors.city = t.profile.errors.required(fieldLabels.city);
-    }
-    if (!data.state?.trim()) {
-      newErrors.state = t.profile.errors.required(fieldLabels.state);
-    }
-    if (!data.zipCode?.trim()) {
-      newErrors.zipCode = t.profile.errors.required(fieldLabels.zipCode);
-    }
+
+    const cpfError = validateCPF(
+      data.cpf,
+      "CPF",
+      (field) => t.profile.errors.required(field),
+      (field) => t.profile.errors.invalid(field)
+    );
+    if (cpfError) newErrors.cpf = cpfError;
+
+    const emailError = validateEmail(
+      data.email,
+      fieldLabels.email,
+      (field) => t.profile.errors.required(field),
+      (field) => t.profile.errors.invalid(field)
+    );
+    if (emailError) newErrors.email = emailError;
+
+    const phoneError = validatePhone(
+      data.phone,
+      fieldLabels.phone,
+      (field) => t.profile.errors.required(field),
+      (field) => t.profile.errors.invalid(field)
+    );
+    if (phoneError) newErrors.phone = phoneError;
+
+    const addressErrors = validateAddressFields(
+      data,
+      {
+        street: fieldLabels.street,
+        neighborhood: fieldLabels.neighborhood,
+        city: fieldLabels.city,
+        state: fieldLabels.state,
+        zipCode: fieldLabels.zipCode,
+      },
+      (field) => t.profile.errors.required(field),
+      (field) => t.profile.errors.invalid(field)
+    );
+    Object.assign(newErrors, addressErrors);
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -563,82 +499,16 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
 
   return (
     <div className="space-y-4">
-      {alertMessage && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-          <Alert title={alertMessage.title} variant={alertMessage.variant} />
-        </div>
-      )}
-      <div className="mb-4">
-        <nav className="flex space-x-3" aria-label="Sub Tabs">
-          <button
-            onClick={() => setActiveSubTab("data")}
-            className={`
-              px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer
-              ${
-                activeSubTab === "data"
-                  ? "shadow-sm"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
-              }
-            `}
-            style={
-              activeSubTab === "data"
-                ? {
-                    backgroundColor: `${DASHBOARD_COLORS.primaryLight}40`,
-                    color: DASHBOARD_COLORS.primaryDark,
-                  }
-                : undefined
-            }
-          >
-            {t.profile.user.subTabs.data}
-          </button>
-          {userId && (
-            <button
-              onClick={() => setActiveSubTab("permissions")}
-              className={`
-                px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer
-                ${
-                  activeSubTab === "permissions"
-                    ? "shadow-sm"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
-                }
-              `}
-              style={
-                activeSubTab === "permissions"
-                  ? {
-                      backgroundColor: `${DASHBOARD_COLORS.primaryLight}40`,
-                      color: DASHBOARD_COLORS.primaryDark,
-                    }
-                  : undefined
-              }
-            >
-              {t.profile.user.subTabs.permissions}
-            </button>
-          )}
-          {isMainUser() && (
-            <button
-              onClick={() => setActiveSubTab("logs")}
-              className={`
-                px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer
-                ${
-                  activeSubTab === "logs"
-                    ? "shadow-sm"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
-                }
-              `}
-              style={
-                activeSubTab === "logs"
-                  ? {
-                      backgroundColor: `${DASHBOARD_COLORS.primaryLight}40`,
-                      color: DASHBOARD_COLORS.primaryDark,
-                    }
-                  : undefined
-              }
-            >
-              {t.profile.user.subTabs.logs}
-            </button>
-          )}
-        </nav>
-      </div>
+      <FixedAlert alertMessage={alertMessage} />
+      <ProfileTabs
+        activeTab={activeSubTab}
+        onTabChange={setActiveSubTab}
+        tabs={[
+          { id: "data", label: t.profile.user.subTabs.data },
+          { id: "permissions", label: t.profile.user.subTabs.permissions, visible: !!userId },
+          { id: "logs", label: t.profile.user.subTabs.logs, visible: isMainUser() },
+        ]}
+      />
 
       {activeSubTab === "data" && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
@@ -666,7 +536,7 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
           </div>
 
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <FormFieldGroup columns={2}>
               <Input
                 label={t.profile.user.fields.name}
                 value={data.name}
@@ -683,9 +553,9 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
                 placeholder="000.000.000-00"
                 maxLength={14}
               />
-            </div>
+            </FormFieldGroup>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <FormFieldGroup columns={2}>
               <Input
                 label={t.profile.user.fields.email}
                 type="email"
@@ -702,7 +572,7 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
                 disabled={!isEditing}
                 placeholder="(00) 00000-0000"
               />
-            </div>
+            </FormFieldGroup>
 
             <AddressForm
               data={data}
@@ -806,7 +676,6 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
                   {resources.map((resource) => (
                     <ResourcePermissionSection
                       key={resource}
-                      resource={resource}
                       resourceLabel={t.team.permissions.resources[resource] || resource}
                       permissions={
                         (permissions[section] as Record<string, ResourcePermissions>)[resource]

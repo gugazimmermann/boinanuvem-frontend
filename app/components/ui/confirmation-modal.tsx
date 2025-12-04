@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "./button";
 import type { ConfirmationModalProps } from "~/types";
 
-export type { ConfirmationModalProps };
+export type { ConfirmationModalProps } from "~/types";
 
 export function ConfirmationModal({
   isOpen,
@@ -15,22 +15,34 @@ export function ConfirmationModal({
   variant = "danger",
   icon,
   isLoading = false,
-}: ConfirmationModalProps) {
+}: Readonly<ConfirmationModalProps>) {
   const [isProcessing, setIsProcessing] = useState(false);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const handleConfirm = async () => {
     setIsProcessing(true);
     try {
       await onConfirm();
-      onClose();
+      if (isMountedRef.current) {
+        onClose();
+      }
     } catch (error) {
       console.error("Error in confirmation:", error);
     } finally {
-      setIsProcessing(false);
+      if (isMountedRef.current) {
+        setIsProcessing(false);
+      }
     }
   };
 
-  if (!isOpen) return null;
+  if (isOpen === false) return null;
 
   const variantStyles = {
     danger: {
@@ -53,7 +65,8 @@ export function ConfirmationModal({
     },
   };
 
-  const styles = variantStyles[variant];
+  const variantKey: keyof typeof variantStyles = variant || "danger";
+  const styles = variantStyles[variantKey];
   const defaultIcon = (
     <svg
       className={`h-6 w-6 ${styles.iconColor}`}

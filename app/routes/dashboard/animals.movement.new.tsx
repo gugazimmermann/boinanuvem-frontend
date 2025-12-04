@@ -1,7 +1,12 @@
-import { useState, useEffect, useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router";
-import { Button, Input, Alert, Select, FileUpload } from "~/components/ui";
+import { Button, Input, FixedAlert, Select, FileUpload } from "~/components/ui";
 import { useTranslation } from "~/i18n";
+import {
+  ResponsibleSelectionSection,
+  ObservationField,
+  FormActions,
+} from "~/components/dashboard/shared";
 import { ROUTES } from "~/routes.config";
 import { mockProperties } from "~/mocks/properties";
 import { getLocationsByPropertyId } from "~/services/locations.service";
@@ -14,6 +19,8 @@ import { mockEmployees } from "~/mocks/employees";
 import { mockServiceProviders } from "~/mocks/service-providers";
 import { mockCompanies } from "~/mocks/companies";
 import type { Animal, Property } from "~/types";
+import { useMovementForm, type MovementFormBaseData } from "~/hooks/use-movement-form";
+import { useAlert } from "~/hooks/use-alert";
 
 export function meta() {
   return [
@@ -30,6 +37,16 @@ export async function loader({ request }: { request: Request }) {
   return createRouteGuard(undefined, "add")({ request });
 }
 
+const getAnimalPropertyId = (animalId: string): string | undefined => {
+  const movements = getAnimalMovementsByAnimalId(animalId);
+  if (movements.length === 0) return undefined;
+  const sortedMovements = movements.toSorted(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+  const lastMovement = sortedMovements[0];
+  return lastMovement.propertyId;
+};
+
 export default function NewAnimalMovement() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -40,64 +57,70 @@ export default function NewAnimalMovement() {
     [location.state?.animalIds]
   );
 
-  const [animals, setAnimals] = useState<Animal[]>([]);
+  const animals = useMemo(() => {
+    if (animalIds.length === 0) return [];
+    return animalIds
+      .map((id) => getAnimalById(id))
+      .filter((animal): animal is Animal => animal !== null);
+  }, [animalIds]);
+
   const company = mockCompanies[0];
   const companyId = company?.id || "";
 
-  const [formData, setFormData] = useState<{
+  type AnimalMovementFormData = MovementFormBaseData & {
     propertyId: string;
     locationId: string;
-    date: string;
-    employeeIds: string[];
-    serviceProviderIds: string[];
-    observation: string;
-  }>({
-    propertyId: "",
-    locationId: "",
-    date: new Date().toISOString().split("T")[0],
-    employeeIds: [],
-    serviceProviderIds: [],
-    observation: "",
+  };
+
+  const movementForm = useMovementForm<AnimalMovementFormData>({
+    initialData: {
+      propertyId: "",
+      locationId: "",
+    },
+    onSubmit: async () => {
+      // Custom submit logic handled separately
+    },
+    validate: (data) => {
+      const newErrors: Record<string, string> = {};
+      if (!data.propertyId?.trim()) {
+        newErrors.propertyId = t.animals.edit.propertyRequired;
+      }
+      if (!data.date?.trim()) {
+        newErrors.date = t.profile.errors.required(t.properties.details.movements.table.date);
+      }
+      if (data.employeeIds.length === 0 && data.serviceProviderIds.length === 0) {
+        newErrors.responsible =
+          t.properties.details.movements.errors.noResponsible ||
+          "Selecione pelo menos um responsável (funcionário ou prestador de serviço)";
+      }
+      return Object.keys(newErrors).length === 0 ? true : newErrors;
+    },
   });
 
-  const [files, setFiles] = useState<File[]>([]);
-
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [alertMessage, setAlertMessage] = useState<{
-    title: string;
-    variant: "success" | "error" | "warning" | "info";
-  } | null>(null);
+  const {
+    formData,
+    setFormData,
+    files,
+    setFiles,
+    errors,
+    isSubmitting,
+    alertMessage,
+    handleChange,
+    toggleSelection,
+  } = movementForm;
+  const { showAlert: showAlertMessage } = useAlert();
 
   useEffect(() => {
-    if (animalIds.length > 0) {
-      const loadedAnimals = animalIds
-        .map((id) => getAnimalById(id))
-        .filter((animal): animal is Animal => animal !== null);
-      setAnimals(loadedAnimals);
-
-      if (loadedAnimals.length > 0) {
-        const getAnimalPropertyId = (animalId: string): string | undefined => {
-          const movements = getAnimalMovementsByAnimalId(animalId);
-          if (movements.length === 0) return undefined;
-          const lastMovement = movements.sort(
-            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-          )[0];
-          return lastMovement.propertyId;
-        };
-
-        const firstPropertyId = getAnimalPropertyId(loadedAnimals[0].id);
-        if (firstPropertyId) {
-          const allSameProperty = loadedAnimals.every(
-            (a) => getAnimalPropertyId(a.id) === firstPropertyId
-          );
-          if (allSameProperty) {
-            setFormData((prev) => ({ ...prev, propertyId: firstPropertyId }));
-          }
+    if (animals.length > 0) {
+      const firstPropertyId = getAnimalPropertyId(animals[0].id);
+      if (firstPropertyId) {
+        const allSameProperty = animals.every((a) => getAnimalPropertyId(a.id) === firstPropertyId);
+        if (allSameProperty && formData.propertyId !== firstPropertyId) {
+          setFormData((prev) => ({ ...prev, propertyId: firstPropertyId }));
         }
       }
     }
-  }, [animalIds]);
+  }, [animals, setFormData, formData.propertyId]);
 
   const locations = useMemo(() => {
     if (!formData.propertyId) {
@@ -106,48 +129,10 @@ export default function NewAnimalMovement() {
     return getLocationsByPropertyId(formData.propertyId);
   }, [formData.propertyId]);
 
-  const showAlert = (
-    title: string,
-    variant: "success" | "error" | "warning" | "info" = "success"
-  ) => {
-    setAlertMessage({ title, variant });
-    setTimeout(() => {
-      setAlertMessage(null);
-    }, 3000);
-  };
-
-  const handleChange = (field: string, value: string) => {
-    setFormData((prev) => {
-      const newData = { ...prev, [field]: value };
-      if (field === "propertyId") {
-        newData.locationId = "";
-      }
-      return newData;
-    });
-    if (errors[field]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
-    }
-  };
-
-  const toggleSelection = (field: "employeeIds" | "serviceProviderIds", id: string) => {
-    setFormData((prev) => {
-      const currentIds = prev[field];
-      const newIds = currentIds.includes(id)
-        ? currentIds.filter((itemId) => itemId !== id)
-        : [...currentIds, id];
-      return { ...prev, [field]: newIds };
-    });
-    if (errors[field] || errors.responsible) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        delete newErrors.responsible;
-        return newErrors;
-      });
+  const handleFormChange = (field: string, value: string) => {
+    handleChange(field as keyof AnimalMovementFormData, value);
+    if (field === "propertyId") {
+      setFormData((prev) => ({ ...prev, locationId: "" }));
     }
   };
 
@@ -162,92 +147,80 @@ export default function NewAnimalMovement() {
   }, [companyId]);
 
   const sortedEmployees = useMemo(() => {
-    return [...employees].sort((a, b) => a.name.localeCompare(b.name));
+    return [...employees].toSorted((a, b) => a.name.localeCompare(b.name));
   }, [employees]);
 
   const sortedServiceProviders = useMemo(() => {
-    return [...serviceProviders].sort((a, b) => a.name.localeCompare(b.name));
+    return [...serviceProviders].toSorted((a, b) => a.name.localeCompare(b.name));
   }, [serviceProviders]);
 
-  const validate = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
+  const validateForm = (): boolean => {
+    const validationErrors: Record<string, string> = {};
     if (!formData.propertyId?.trim()) {
-      newErrors.propertyId = t.animals.edit.propertyRequired;
+      validationErrors.propertyId = t.animals.edit.propertyRequired;
     }
     if (!formData.date?.trim()) {
-      newErrors.date = t.profile.errors.required(t.properties.details.movements.table.date);
+      validationErrors.date = t.profile.errors.required(t.properties.details.movements.table.date);
     }
     if (formData.employeeIds.length === 0 && formData.serviceProviderIds.length === 0) {
-      newErrors.responsible =
+      validationErrors.responsible =
         t.properties.details.movements.errors.noResponsible ||
         "Selecione pelo menos um responsável (funcionário ou prestador de serviço)";
     }
+    return Object.keys(validationErrors).length === 0;
+  };
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const createMovementForAnimal = (animal: Animal): boolean => {
+    const currentPropertyId = getAnimalPropertyId(animal.id);
+    const shouldCreateMovement =
+      formData.propertyId && (formData.propertyId !== currentPropertyId || formData.locationId);
+
+    if (!shouldCreateMovement) {
+      return true;
+    }
+
+    try {
+      const fileIds = files.map((_, index) => `file-${Date.now()}-${index}`);
+      const movement = addAnimalMovement({
+        animalIds: [animal.id],
+        propertyId: formData.propertyId,
+        locationId: formData.locationId || "",
+        date: formData.date,
+        companyId: animal.companyId,
+        employeeIds: formData.employeeIds,
+        serviceProviderIds: formData.serviceProviderIds,
+        observation: formData.observation.trim() || undefined,
+        fileIds: fileIds.length > 0 ? fileIds : undefined,
+      });
+      return !!movement;
+    } catch (error) {
+      console.error("Error creating movement:", error);
+      return false;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate() || animals.length === 0) return;
+    if (animals.length === 0) return;
 
-    setIsSubmitting(true);
-    try {
-      let successCount = 0;
+    if (!validateForm()) {
+      return;
+    }
 
-      for (const animal of animals) {
-        const getAnimalPropertyId = (animalId: string): string | undefined => {
-          const movements = getAnimalMovementsByAnimalId(animalId);
-          if (movements.length === 0) return undefined;
-          const lastMovement = movements.sort(
-            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-          )[0];
-          return lastMovement.propertyId;
-        };
-        const currentPropertyId = getAnimalPropertyId(animal.id);
-
-        if (
-          formData.propertyId &&
-          (formData.propertyId !== currentPropertyId || formData.locationId)
-        ) {
-          try {
-            const fileIds = files.map((_, index) => `file-${Date.now()}-${index}`);
-            const movement = addAnimalMovement({
-              animalIds: [animal.id],
-              propertyId: formData.propertyId,
-              locationId: formData.locationId || "",
-              date: formData.date,
-              companyId: animal.companyId,
-              employeeIds: formData.employeeIds,
-              serviceProviderIds: formData.serviceProviderIds,
-              observation: formData.observation.trim() || undefined,
-              fileIds: fileIds.length > 0 ? fileIds : undefined,
-            });
-            if (movement) {
-              successCount++;
-            }
-          } catch (error) {
-            console.error("Error creating movement:", error);
-          }
-        } else {
-          successCount++;
-        }
+    let successCount = 0;
+    for (const animal of animals) {
+      if (createMovementForAnimal(animal)) {
+        successCount++;
       }
+    }
 
-      if (successCount > 0) {
-        showAlert(t.animals.movement.success(successCount, animals.length), "success");
-        setTimeout(() => {
-          navigate(ROUTES.ANIMALS);
-        }, 1500);
-      } else {
-        showAlert(t.animals.movement.error, "error");
-      }
-    } catch (error) {
-      console.error("Error creating movements:", error);
-      showAlert(t.animals.movement.error, "error");
-    } finally {
-      setIsSubmitting(false);
+    if (successCount > 0) {
+      showAlertMessage(t.animals.movement.success(successCount, animals.length), "success");
+      setTimeout(() => {
+        navigate(ROUTES.ANIMALS);
+      }, 1500);
+    } else {
+      showAlertMessage(t.animals.movement.error, "error");
     }
   };
 
@@ -268,11 +241,7 @@ export default function NewAnimalMovement() {
 
   return (
     <div className="space-y-6">
-      {alertMessage && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-          <Alert title={alertMessage.title} variant={alertMessage.variant} />
-        </div>
-      )}
+      <FixedAlert alertMessage={alertMessage} />
 
       <div className="flex items-center justify-between">
         <div>
@@ -311,7 +280,7 @@ export default function NewAnimalMovement() {
               <Select
                 label={t.animals.edit.propertyLabel}
                 value={formData.propertyId}
-                onChange={(e) => handleChange("propertyId", e.target.value)}
+                onChange={(e) => handleFormChange("propertyId", e.target.value)}
                 error={errors.propertyId}
                 disabled={isSubmitting}
                 required
@@ -329,7 +298,7 @@ export default function NewAnimalMovement() {
                 label={t.properties.details.movements.table.date}
                 type="date"
                 value={formData.date}
-                onChange={(e) => handleChange("date", e.target.value)}
+                onChange={(e) => handleFormChange("date", e.target.value)}
                 error={errors.date}
                 disabled={isSubmitting}
                 required
@@ -340,7 +309,7 @@ export default function NewAnimalMovement() {
               <Select
                 label={t.animals.movement.locationLabel}
                 value={formData.locationId}
-                onChange={(e) => handleChange("locationId", e.target.value)}
+                onChange={(e) => handleFormChange("locationId", e.target.value)}
                 error={errors.locationId}
                 disabled={isSubmitting}
                 options={[
@@ -353,102 +322,37 @@ export default function NewAnimalMovement() {
               />
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {t.employees.table.name}
-                </label>
-                <div className="border border-gray-300 dark:border-gray-600 rounded-md p-4 max-h-48 overflow-y-auto">
-                  {sortedEmployees.length === 0 ? (
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {t.properties.details.movements.noEmployees ||
-                        "Nenhum funcionário disponível"}
-                    </p>
-                  ) : (
-                    <div className="space-y-2">
-                      {sortedEmployees.map((employee) => (
-                        <label
-                          key={employee.id}
-                          className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={formData.employeeIds.includes(employee.id)}
-                            onChange={() => toggleSelection("employeeIds", employee.id)}
-                            disabled={isSubmitting}
-                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-                          />
-                          <span className="text-sm text-gray-900 dark:text-gray-100">
-                            {employee.name}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
+            <ResponsibleSelectionSection
+              employees={sortedEmployees}
+              serviceProviders={sortedServiceProviders}
+              selectedEmployeeIds={formData.employeeIds}
+              selectedServiceProviderIds={formData.serviceProviderIds}
+              onToggleEmployee={(id) => toggleSelection("employeeIds", id)}
+              onToggleServiceProvider={(id) => toggleSelection("serviceProviderIds", id)}
+              error={errors.employeeIds || errors.serviceProviderIds || errors.responsible}
+              disabled={isSubmitting}
+              translationKeys={{
+                employeesLabel: t.employees.table.name,
+                serviceProvidersLabel: t.serviceProviders.table.name,
+                noEmployees:
+                  t.properties.details.movements.noEmployees || "Nenhum funcionário disponível",
+                noServiceProviders:
+                  t.properties.details.movements.noServiceProviders ||
+                  "Nenhum prestador de serviço disponível",
+              }}
+            />
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {t.serviceProviders.table.name}
-                </label>
-                <div className="border border-gray-300 dark:border-gray-600 rounded-md p-4 max-h-48 overflow-y-auto">
-                  {sortedServiceProviders.length === 0 ? (
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {t.properties.details.movements.noServiceProviders ||
-                        "Nenhum prestador de serviço disponível"}
-                    </p>
-                  ) : (
-                    <div className="space-y-2">
-                      {sortedServiceProviders.map((provider) => (
-                        <label
-                          key={provider.id}
-                          className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={formData.serviceProviderIds.includes(provider.id)}
-                            onChange={() => toggleSelection("serviceProviderIds", provider.id)}
-                            disabled={isSubmitting}
-                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-                          />
-                          <span className="text-sm text-gray-900 dark:text-gray-100">
-                            {provider.name}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-            {(errors.employeeIds || errors.serviceProviderIds || errors.responsible) && (
-              <p className="text-sm text-red-500">
-                {errors.employeeIds || errors.serviceProviderIds || errors.responsible}
-              </p>
-            )}
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t.properties.details.movements.observation}
-              </label>
-              <textarea
-                value={formData.observation}
-                onChange={(e) => handleChange("observation", e.target.value)}
-                disabled={isSubmitting}
-                rows={4}
-                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200 resize-none ${
-                  errors.observation ? "border-red-500" : "border-gray-300 dark:border-gray-600"
-                }`}
-                placeholder={
-                  t.properties.details.movements.observationPlaceholder ||
-                  "Adicione observações sobre esta movimentação..."
-                }
-              />
-              {errors.observation && (
-                <p className="mt-1 text-sm text-red-500">{errors.observation}</p>
-              )}
-            </div>
+            <ObservationField
+              label={t.properties.details.movements.observation}
+              value={formData.observation}
+              onChange={(value) => handleFormChange("observation", value)}
+              error={errors.observation}
+              disabled={isSubmitting}
+              placeholder={
+                t.properties.details.movements.observationPlaceholder ||
+                "Adicione observações sobre esta movimentação..."
+              }
+            />
 
             <FileUpload
               label={t.properties.details.movements.files}
@@ -463,19 +367,13 @@ export default function NewAnimalMovement() {
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate(ROUTES.ANIMALS)}
-              disabled={isSubmitting}
-            >
-              {t.profile.company.cancel}
-            </Button>
-            <Button type="submit" variant="primary" disabled={isSubmitting}>
-              {isSubmitting ? t.common.loading : t.animals.movement.save}
-            </Button>
-          </div>
+          <FormActions
+            onCancel={() => navigate(ROUTES.ANIMALS)}
+            isSubmitting={isSubmitting}
+            cancelLabel={t.profile.company.cancel}
+            submitLabel={t.animals.movement.save}
+            loadingLabel={t.common.loading}
+          />
         </form>
       </div>
     </div>

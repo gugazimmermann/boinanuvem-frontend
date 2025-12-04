@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import {
   getPropertyById,
   getPropertiesByCompanyId,
@@ -8,76 +8,73 @@ import {
 } from "../properties.service";
 import { mockProperties } from "~/mocks/properties";
 import type { PropertyFormData } from "~/types";
-import { AreaType } from "~/types/location";
-
-vi.mock("~/mocks/properties", () => ({
-  mockProperties: [],
-}));
+import { AreaType } from "~/types";
 
 describe("properties.service", () => {
   beforeEach(() => {
     mockProperties.length = 0;
     mockProperties.push(
       {
-        id: "550e8400-e29b-41d4-a716-446655440010",
-        name: "Property One",
-        code: "P001",
-        area: { value: 1000, type: AreaType.HECTARES },
-        status: "active" as const,
-        street: "Main St",
-        number: "100",
-        complement: "",
-        neighborhood: "Downtown",
-        city: "City",
-        state: "SC",
-        zipCode: "88000000",
+        id: "property-1",
         companyId: "company-1",
-        createdAt: "2020-01-01",
+        code: "PROP001",
+        name: "Property 1",
+        area: { value: 100, type: AreaType.HECTARES },
+        status: "active",
+        street: "Street 1",
+        number: "123",
+        complement: "",
+        neighborhood: "Neighborhood 1",
+        city: "City 1",
+        state: "State 1",
+        zipCode: "12345-678",
+        createdAt: "2025-01-01",
       },
       {
-        id: "550e8400-e29b-41d4-a716-446655440011",
-        name: "Property Two",
-        code: "P002",
-        area: { value: 2000, type: AreaType.HECTARES },
-        status: "active" as const,
-        street: "Second St",
-        number: "200",
-        complement: "",
-        neighborhood: "Uptown",
-        city: "City",
-        state: "SC",
-        zipCode: "88000001",
+        id: "property-2",
         companyId: "company-1",
-        createdAt: "2020-01-02",
+        code: "PROP002",
+        name: "Property 2",
+        area: { value: 200, type: AreaType.HECTARES },
+        status: "active",
+        street: "Street 2",
+        number: "456",
+        complement: "",
+        neighborhood: "Neighborhood 2",
+        city: "City 2",
+        state: "State 2",
+        zipCode: "12345-679",
+        createdAt: "2025-01-02",
       },
       {
-        id: "550e8400-e29b-41d4-a716-446655440012",
-        name: "Property Three",
-        code: "P003",
-        area: { value: 3000, type: AreaType.HECTARES },
-        status: "active" as const,
-        street: "Third St",
-        number: "300",
-        complement: "",
-        neighborhood: "Suburb",
-        city: "City",
-        state: "SC",
-        zipCode: "88000002",
+        id: "property-3",
         companyId: "company-2",
-        createdAt: "2020-01-03",
+        code: "PROP003",
+        name: "Property 3",
+        area: { value: 150, type: AreaType.HECTARES },
+        status: "active",
+        street: "Street 3",
+        number: "789",
+        complement: "",
+        neighborhood: "Neighborhood 3",
+        city: "City 3",
+        state: "State 3",
+        zipCode: "12345-680",
+        createdAt: "2025-01-03",
       }
     );
   });
 
   describe("getPropertyById", () => {
     it("should return property when ID exists", () => {
-      const result = getPropertyById("550e8400-e29b-41d4-a716-446655440010");
+      const result = getPropertyById("property-1");
       expect(result).toBeDefined();
-      expect(result?.name).toBe("Property One");
+      expect(result?.id).toBe("property-1");
+      expect(result?.name).toBe("Property 1");
     });
 
     it("should return undefined when ID does not exist", () => {
-      const result = getPropertyById("nonexistent-id");
+      const result = getPropertyById("property-nonexistent");
       expect(result).toBeUndefined();
     });
 
@@ -88,33 +85,34 @@ describe("properties.service", () => {
   });
 
   describe("getPropertiesByCompanyId", () => {
-    it("should return properties for specific company", () => {
+    it("should return all properties for a company", () => {
       const result = getPropertiesByCompanyId("company-1");
       expect(result).toHaveLength(2);
-      expect(result.every((property) => property.companyId === "company-1")).toBe(true);
+      expect(result[0]?.id).toBe("property-1");
+      expect(result[1]?.id).toBe("property-2");
     });
 
     it("should return empty array when company has no properties", () => {
-      const result = getPropertiesByCompanyId("company-999");
+      const result = getPropertiesByCompanyId("company-nonexistent");
       expect(result).toHaveLength(0);
     });
   });
 
   describe("addProperty", () => {
-    it("should add new property with generated ID", () => {
+    it("should add a new property with generated ID", () => {
       const formData: PropertyFormData = {
-        name: "New Property",
-        code: "P004",
-        area: { value: 1500, type: AreaType.HECTARES },
-        status: "active" as const,
-        street: "New St",
-        number: "400",
-        complement: "",
-        neighborhood: "New Area",
-        city: "City",
-        state: "SC",
-        zipCode: "88000003",
         companyId: "company-1",
+        code: "PROP004",
+        name: "Property 4",
+        area: { value: 300, type: AreaType.HECTARES },
+        status: "active",
+        street: "Street 4",
+        number: "101",
+        complement: "",
+        neighborhood: "Neighborhood 4",
+        city: "City 4",
+        state: "State 4",
+        zipCode: "12345-681",
       };
 
       const initialLength = mockProperties.length;
@@ -122,43 +120,70 @@ describe("properties.service", () => {
 
       expect(mockProperties).toHaveLength(initialLength + 1);
       expect(result.id).toBeDefined();
-      expect(result.name).toBe("New Property");
+      expect(result.companyId).toBe("company-1");
+      expect(result.name).toBe("Property 4");
       expect(result.createdAt).toBeDefined();
+    });
+
+    it("should generate ID with correct prefix", () => {
+      const formData: PropertyFormData = {
+        companyId: "company-1",
+        code: "PROP004",
+        name: "Property 4",
+        area: { value: 300, type: AreaType.HECTARES },
+        status: "active",
+        street: "Street 4",
+        number: "101",
+        complement: "",
+        neighborhood: "Neighborhood 4",
+        city: "City 4",
+        state: "State 4",
+        zipCode: "12345-681",
+      };
+
+      const result = addProperty(formData);
+      expect(result.id).toContain("550e8400-e29b-41d4-a716");
     });
   });
 
   describe("updateProperty", () => {
-    it("should update existing property", () => {
-      const result = updateProperty("550e8400-e29b-41d4-a716-446655440010", {
-        name: "Updated Property",
-      });
+    it("should update property when ID exists", () => {
+      const updateData: Partial<PropertyFormData> = {
+        name: "Updated Property 1",
+        area: { value: 120, type: AreaType.HECTARES },
+      };
 
+      const result = updateProperty("property-1", updateData);
       expect(result).toBe(true);
-      const updated = mockProperties.find((p) => p.id === "550e8400-e29b-41d4-a716-446655440010");
-      expect(updated?.name).toBe("Updated Property");
+
+      const updated = mockProperties.find((p) => p.id === "property-1");
+      expect(updated?.name).toBe("Updated Property 1");
+      expect(updated?.area.value).toBe(120);
     });
 
-    it("should return false when property does not exist", () => {
-      const result = updateProperty("nonexistent-id", { name: "New Name" });
+    it("should return false when ID does not exist", () => {
+      const updateData: Partial<PropertyFormData> = {
+        name: "Updated Property",
+      };
+
+      const result = updateProperty("property-nonexistent", updateData);
       expect(result).toBe(false);
     });
   });
 
   describe("deleteProperty", () => {
-    it("should delete existing property", () => {
+    it("should delete property when ID exists", () => {
       const initialLength = mockProperties.length;
-      const result = deleteProperty("550e8400-e29b-41d4-a716-446655440010");
+      const result = deleteProperty("property-1");
 
       expect(result).toBe(true);
       expect(mockProperties).toHaveLength(initialLength - 1);
-      expect(
-        mockProperties.find((p) => p.id === "550e8400-e29b-41d4-a716-446655440010")
-      ).toBeUndefined();
+      expect(mockProperties.find((p) => p.id === "property-1")).toBeUndefined();
     });
 
-    it("should return false when property does not exist", () => {
+    it("should return false when ID does not exist", () => {
       const initialLength = mockProperties.length;
-      const result = deleteProperty("nonexistent-id");
+      const result = deleteProperty("property-nonexistent");
 
       expect(result).toBe(false);
       expect(mockProperties).toHaveLength(initialLength);

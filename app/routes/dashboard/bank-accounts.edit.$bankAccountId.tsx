@@ -1,19 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
-import { Input, Select, Button, Alert } from "~/components/ui";
+import { Input, Select, Button, FixedAlert } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { ROUTES, getBankAccountViewRoute } from "~/routes.config";
 import { getBankAccountById, updateBankAccount } from "~/services/bank-account.service";
 import type { BankAccountType } from "~/types";
+import { createFormMeta } from "~/utils/route-helpers";
+import { useAlert } from "~/hooks/use-alert";
 
 export function meta() {
-  return [
-    { title: "Editar Conta Bancária - Boi na Nuvem" },
-    {
-      name: "description",
-      content: "Editar conta bancária",
-    },
-  ];
+  return createFormMeta("Editar", "Conta Bancária", "Editar conta bancária");
 }
 
 export async function loader({ request }: { request: Request }) {
@@ -61,10 +57,7 @@ export default function EditBankAccount() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [alertMessage, setAlertMessage] = useState<{
-    title: string;
-    variant: "success" | "error" | "warning" | "info";
-  } | null>(null);
+  const { alertMessage, showAlert } = useAlert();
 
   if (!bankAccount) {
     return (
@@ -78,16 +71,6 @@ export default function EditBankAccount() {
       </div>
     );
   }
-
-  const showAlert = (
-    title: string,
-    variant: "success" | "error" | "warning" | "info" = "success"
-  ) => {
-    setAlertMessage({ title, variant });
-    setTimeout(() => {
-      setAlertMessage(null);
-    }, 3000);
-  };
 
   const handleChange = (field: keyof typeof formData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -164,11 +147,7 @@ export default function EditBankAccount() {
 
   return (
     <div className="space-y-6">
-      {alertMessage && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-          <Alert title={alertMessage.title} variant={alertMessage.variant} />
-        </div>
-      )}
+      <FixedAlert alertMessage={alertMessage} />
 
       <div className="flex items-center justify-between">
         <div>

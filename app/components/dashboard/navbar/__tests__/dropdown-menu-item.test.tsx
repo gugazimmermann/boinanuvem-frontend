@@ -1,49 +1,88 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router";
 import { DropdownMenuItem } from "../dropdown-menu-item";
+import { BrowserRouter } from "react-router";
 
-const wrapper = ({ children }: { children: React.ReactNode }) => (
-  <MemoryRouter>{children}</MemoryRouter>
+const TestWrapper = ({ children }: { children: React.ReactNode }) => (
+  <BrowserRouter>{children}</BrowserRouter>
 );
 
 describe("DropdownMenuItem", () => {
-  it("should render as link when href is provided", () => {
-    render(<DropdownMenuItem href="/test">Link Item</DropdownMenuItem>, { wrapper });
-    const link = screen.getByText("Link Item").closest("a");
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should render as Link when href is provided", () => {
+    render(
+      <TestWrapper>
+        <DropdownMenuItem href="/test">Test Link</DropdownMenuItem>
+      </TestWrapper>
+    );
+    const link = screen.getByText("Test Link").closest("a");
     expect(link).toHaveAttribute("href", "/test");
   });
 
-  it("should render as button when onClick is provided", async () => {
+  it("should render as button when onClick is provided without href", () => {
     const onClick = vi.fn();
-    const user = userEvent.setup();
-    render(<DropdownMenuItem onClick={onClick}>Button Item</DropdownMenuItem>);
-
-    const button = screen.getByText("Button Item").closest("button");
-    if (button) {
-      await user.click(button);
-      expect(onClick).toHaveBeenCalledTimes(1);
-    }
+    render(
+      <TestWrapper>
+        <DropdownMenuItem onClick={onClick}>Test Button</DropdownMenuItem>
+      </TestWrapper>
+    );
+    const button = screen.getByText("Test Button");
+    expect(button.tagName).toBe("BUTTON");
   });
 
   it("should render as div when neither href nor onClick is provided", () => {
-    render(<DropdownMenuItem>Div Item</DropdownMenuItem>);
-    const div = screen.getByText("Div Item").closest("div");
-    expect(div).toBeInTheDocument();
+    render(
+      <TestWrapper>
+        <DropdownMenuItem>Test Div</DropdownMenuItem>
+      </TestWrapper>
+    );
+    const div = screen.getByText("Test Div");
+    expect(div.tagName).toBe("DIV");
   });
 
-  it("should call onClick when link is clicked", async () => {
+  it("should call onClick when clicked with href", async () => {
     const onClick = vi.fn();
     const user = userEvent.setup();
     render(
-      <DropdownMenuItem href="/test" onClick={onClick}>
-        Link with onClick
-      </DropdownMenuItem>,
-      { wrapper }
+      <TestWrapper>
+        <DropdownMenuItem href="/test" onClick={onClick}>
+          Test Link
+        </DropdownMenuItem>
+      </TestWrapper>
     );
+    const link = screen.getByText("Test Link");
+    await user.click(link);
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
 
-    const link = screen.getByText("Link with onClick");
+  it("should call onClick when clicked without href", async () => {
+    const onClick = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <TestWrapper>
+        <DropdownMenuItem onClick={onClick}>Test Button</DropdownMenuItem>
+      </TestWrapper>
+    );
+    const button = screen.getByText("Test Button");
+    await user.click(button);
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("should call onClick when href is provided and link is clicked", async () => {
+    const onClick = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <TestWrapper>
+        <DropdownMenuItem href="/test" onClick={onClick}>
+          Test Link
+        </DropdownMenuItem>
+      </TestWrapper>
+    );
+    const link = screen.getByText("Test Link");
     await user.click(link);
     expect(onClick).toHaveBeenCalledTimes(1);
   });

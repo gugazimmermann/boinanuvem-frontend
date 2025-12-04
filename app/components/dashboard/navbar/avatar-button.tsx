@@ -1,9 +1,9 @@
 import { DASHBOARD_COLORS } from "../utils/colors";
 
 interface AvatarButtonProps {
-  onClick: () => void;
-  isOpen: boolean;
-  initial?: string;
+  readonly onClick: () => void;
+  readonly isOpen: boolean;
+  readonly initial?: string;
 }
 
 export function AvatarButton({ onClick, isOpen, initial = "U" }: AvatarButtonProps) {

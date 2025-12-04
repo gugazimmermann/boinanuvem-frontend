@@ -9,7 +9,12 @@ const badgeVariants = {
   danger: "text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30",
 };
 
-export function TableHeader({ title, badge, description, actions = [] }: TableHeaderProps) {
+export function TableHeader({
+  title,
+  badge,
+  description,
+  actions = [],
+}: Readonly<TableHeaderProps>) {
   return (
     <div className="sm:flex sm:items-center sm:justify-between">
       <div>
@@ -32,9 +37,9 @@ export function TableHeader({ title, badge, description, actions = [] }: TableHe
 
       {actions.length > 0 && (
         <div className="flex items-center mt-4 gap-x-3 sm:mt-0">
-          {actions.map((action, index) => (
+          {actions.map((action) => (
             <Button
-              key={index}
+              key={action.label || action.onClick.toString()}
               variant={action.variant || "outline"}
               size="sm"
               onClick={action.onClick}

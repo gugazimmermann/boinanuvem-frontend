@@ -3,13 +3,13 @@ import { useNavigate } from "react-router";
 import {
   Table,
   StatusBadge,
-  TableActionButtons,
-  ConfirmationModal,
-  Alert,
   type TableColumn,
   type TableAction,
   type TableFilter,
 } from "~/components/ui";
+import { DeleteModalSection } from "~/components/dashboard/common/delete-modal-section";
+import { createActionColumn } from "~/utils/table-action-column";
+import { createAddButtonAction } from "~/utils/header-action-helpers";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
 import { formatCurrency } from "~/utils/currency";
@@ -88,7 +88,8 @@ export default function Sales() {
     initialSortDirection: "desc",
     language,
     customFilter: (sale, searchValue, propertyFilter, dateRange) => {
-      if (searchValue) {
+      const matchesSearch = (() => {
+        if (!searchValue) return true;
         const searchLower = searchValue.toLowerCase();
         const property = getPropertyById(sale.propertyId);
         const propertyName = property?.name?.toLowerCase() || "";
@@ -103,36 +104,33 @@ export default function Sales() {
           .toLowerCase();
         const totalPrice = formatCurrency(sale.totalPrice, language).toLowerCase();
         const observation = sale.observation?.toLowerCase() || "";
-
         const searchText = `${propertyName} ${buyerName} ${animalCodes} ${totalPrice} ${observation}`;
-        if (!searchText.includes(searchLower)) {
-          return false;
-        }
-      }
+        return searchText.includes(searchLower);
+      })();
+
+      if (!matchesSearch) return false;
 
       if (propertyFilter !== "all" && sale.propertyId !== propertyFilter) {
         return false;
       }
 
-      if (dateRange.startDate || dateRange.endDate) {
+      const matchesDateRange = (() => {
+        if (!dateRange.startDate && !dateRange.endDate) return true;
         const saleDate = new Date(sale.saleDate);
         if (dateRange.startDate) {
           const start = new Date(dateRange.startDate);
           start.setHours(0, 0, 0, 0);
-          if (saleDate < start) {
-            return false;
-          }
+          if (saleDate < start) return false;
         }
         if (dateRange.endDate) {
           const end = new Date(dateRange.endDate);
           end.setHours(23, 59, 59, 999);
-          if (saleDate > end) {
-            return false;
-          }
+          if (saleDate > end) return false;
         }
-      }
+        return true;
+      })();
 
-      return true;
+      return matchesDateRange;
     },
     dateField: "saleDate",
     propertyField: "propertyId",
@@ -165,15 +163,17 @@ export default function Sales() {
         label: t.sales?.table?.saleType,
         sortable: true,
         render: (_, row) => {
-          const typeLabel =
-            row.saleType === SaleTypeEnum.SLAUGHTERHOUSE
-              ? t.sales?.saleTypes?.slaughterhouse
-              : row.saleType === SaleTypeEnum.AUCTION
-                ? t.sales?.saleTypes?.auction
-                : t.sales?.saleTypes?.otherFarm;
+          let typeLabel: string | undefined;
+          if (row.saleType === SaleTypeEnum.SLAUGHTERHOUSE) {
+            typeLabel = t.sales?.saleTypes?.slaughterhouse;
+          } else if (row.saleType === SaleTypeEnum.AUCTION) {
+            typeLabel = t.sales?.saleTypes?.auction;
+          } else {
+            typeLabel = t.sales?.saleTypes?.otherFarm;
+          }
 
           if (row.saleType === SaleTypeEnum.SLAUGHTERHOUSE) {
-            return <StatusBadge label={typeLabel} variant="danger" />;
+            return <StatusBadge label={typeLabel || ""} variant="danger" />;
           } else if (row.saleType === SaleTypeEnum.AUCTION) {
             return (
               <div className="inline px-3 py-1 text-sm font-normal rounded-full text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30">
@@ -181,7 +181,7 @@ export default function Sales() {
               </div>
             );
           } else {
-            return <StatusBadge label={typeLabel} variant="warning" />;
+            return <StatusBadge label={typeLabel || ""} variant="warning" />;
           }
         },
       },
@@ -230,23 +230,16 @@ export default function Sales() {
           }
         },
       },
-      {
-        key: "actions",
-        label: "",
-        headerClassName: "relative",
-        render: (_, row) => (
-          <TableActionButtons
-            onEdit={() => {
-              navigate(getSaleEditRoute(row.id));
-            }}
-            onDelete={() => {
-              handleDeleteClick(row);
-            }}
-            canEdit={canEdit("records", "sales")}
-            canDelete={canRemove("records", "sales")}
-          />
-        ),
-      },
+      createActionColumn<Sale>({
+        onEdit: (row) => {
+          navigate(getSaleEditRoute(row.id));
+        },
+        onDelete: (row) => {
+          handleDeleteClick(row);
+        },
+        canEdit: canEdit("records", "sales"),
+        canDelete: canRemove("records", "sales"),
+      }),
     ],
     [t, language, navigate, handleDeleteClick, canEdit, canRemove]
   );
@@ -255,27 +248,12 @@ export default function Sales() {
     () =>
       canAdd("records", "sales")
         ? [
-            {
-              label: t.sales?.addSale,
-              variant: "primary",
-              leftIcon: (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                  className="w-5 h-5"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              ),
-              onClick: () => navigate(ROUTES.SALES_NEW),
-            },
+            createAddButtonAction({
+              label: t.sales?.addSale || "Adicionar Venda",
+              onClick: () => {
+                navigate(ROUTES.SALES_NEW);
+              },
+            }),
           ]
         : [],
     [canAdd, t, navigate]
@@ -337,26 +315,22 @@ export default function Sales() {
             : t.sales?.emptyState?.description,
           onClearSearch: recordList.clearAllFilters,
           clearSearchLabel: t.common?.clearSearch,
-          onAddNew: () => navigate(ROUTES.SALES_NEW),
+          onAddNew: () => {
+            navigate(ROUTES.SALES_NEW);
+          },
           addNewLabel: t.sales?.addSale,
         }}
       />
 
-      {alertMessage && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-          <Alert title={alertMessage.title} variant={alertMessage.variant} />
-        </div>
-      )}
-
-      <ConfirmationModal
-        isOpen={isDeleteModalOpen}
+      <DeleteModalSection
+        alertMessage={alertMessage ?? undefined}
+        isDeleteModalOpen={isDeleteModalOpen}
         onClose={handleCloseModal}
         onConfirm={handleDelete}
-        title={t.sales?.deleteModal?.title}
-        message={t.sales?.deleteModal?.message}
-        confirmLabel={t.sales?.deleteModal?.confirm}
-        cancelLabel={t.sales?.deleteModal?.cancel}
-        variant="danger"
+        title={t.sales?.deleteModal?.title || "Excluir Venda"}
+        message={t.sales?.deleteModal?.message || "Tem certeza que deseja excluir a venda?"}
+        confirmLabel={t.sales?.deleteModal?.confirm || "Excluir"}
+        cancelLabel={t.sales?.deleteModal?.cancel || "Cancelar"}
       />
     </div>
   );

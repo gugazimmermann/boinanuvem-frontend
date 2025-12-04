@@ -1,5 +1,5 @@
 export function maskCNPJ(value: string): string {
-  const numbers = value.replace(/\D/g, "");
+  const numbers = value.replaceAll(/\D/g, "");
 
   if (numbers.length <= 2) return numbers;
   if (numbers.length <= 5) return `${numbers.slice(0, 2)}.${numbers.slice(2)}`;
@@ -12,11 +12,11 @@ export function maskCNPJ(value: string): string {
 }
 
 export function unmaskCNPJ(value: string): string {
-  return value.replace(/\D/g, "");
+  return value.replaceAll(/\D/g, "");
 }
 
 export function maskPhone(value: string): string {
-  const numbers = value.replace(/\D/g, "");
+  const numbers = value.replaceAll(/\D/g, "");
 
   if (numbers.length === 0) return "";
   if (numbers.length <= 2) return `(${numbers}`;
@@ -28,11 +28,11 @@ export function maskPhone(value: string): string {
 }
 
 export function unmaskPhone(value: string): string {
-  return value.replace(/\D/g, "");
+  return value.replaceAll(/\D/g, "");
 }
 
 export function maskCEP(value: string): string {
-  const numbers = value.replace(/\D/g, "");
+  const numbers = value.replaceAll(/\D/g, "");
 
   if (numbers.length === 0) return "";
   if (numbers.length <= 2) return numbers;
@@ -41,11 +41,11 @@ export function maskCEP(value: string): string {
 }
 
 export function unmaskCEP(value: string): string {
-  return value.replace(/\D/g, "");
+  return value.replaceAll(/\D/g, "");
 }
 
 export function maskCPF(value: string): string {
-  const numbers = value.replace(/\D/g, "");
+  const numbers = value.replaceAll(/\D/g, "");
 
   if (numbers.length === 0) return "";
   if (numbers.length <= 3) return numbers;
@@ -56,7 +56,7 @@ export function maskCPF(value: string): string {
 }
 
 export function unmaskCPF(value: string): string {
-  return value.replace(/\D/g, "");
+  return value.replaceAll(/\D/g, "");
 }
 
 export function createMaskHandler(
@@ -70,7 +70,7 @@ export function createMaskHandler(
 }
 
 export function maskDate(value: string): string {
-  const digits = value.replace(/\D/g, "");
+  const digits = value.replaceAll(/\D/g, "");
   if (digits.length <= 2) {
     return digits;
   }
@@ -81,7 +81,7 @@ export function maskDate(value: string): string {
 }
 
 export function unmaskDate(value: string): string {
-  return value.replace(/\D/g, "");
+  return value.replaceAll(/\D/g, "");
 }
 
 export function dateToISO(dateString: string): string {
@@ -90,7 +90,7 @@ export function dateToISO(dateString: string): string {
   const day = unmasked.slice(0, 2);
   const month = unmasked.slice(2, 4);
   const year = unmasked.slice(4, 8);
-  if (parseInt(day) > 31 || parseInt(month) > 12) return "";
+  if (Number.parseInt(day) > 31 || Number.parseInt(month) > 12) return "";
   return `${year}-${month}-${day}`;
 }
 

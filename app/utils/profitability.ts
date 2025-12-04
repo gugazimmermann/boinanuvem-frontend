@@ -1,6 +1,5 @@
 import { getAnimalTotalCost } from "~/services/location-costs.service";
 import { getAcquisitionByAnimalId } from "~/services/acquisitions.service";
-import { getBirthByAnimalId } from "~/services/births.service";
 
 const ARROBA_KG = 30;
 
@@ -32,8 +31,7 @@ export function calculateAnimalProfitability(
   const acquisitionItem = acquisition?.acquisitionItems.find((item) => item.animalId === animalId);
   const acquisitionCost = acquisitionItem?.price || 0;
 
-  const birth = getBirthByAnimalId(animalId);
-  const birthCost = birth ? 0 : 0;
+  const birthCost = 0;
 
   const totalAccumulatedCost = totalCost + acquisitionCost + birthCost;
 

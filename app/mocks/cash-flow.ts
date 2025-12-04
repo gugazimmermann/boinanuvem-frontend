@@ -49,7 +49,20 @@ function getRealisticDate(index: number, total: number): string {
   const date = new Date(year, month - 1, day);
   if (date > TODAY) {
     const daysAgo = Math.floor(Math.random() * 30);
-    date.setTime(TODAY.getTime() - daysAgo * 24 * 60 * 60 * 1000);
+    const adjustedDate = new Date(TODAY.getTime() - daysAgo * 24 * 60 * 60 * 1000);
+    date.setTime(adjustedDate.getTime());
+  }
+
+  // Ensure date is not before 2020
+  const minDate = new Date(2020, 0, 1);
+  if (date < minDate) {
+    date.setTime(minDate.getTime());
+  }
+
+  // Double-check: ensure the final date year is at least 2020
+  const finalYear = date.getFullYear();
+  if (finalYear < 2020) {
+    date.setFullYear(2020, 0, 1);
   }
 
   return date.toISOString().split("T")[0];

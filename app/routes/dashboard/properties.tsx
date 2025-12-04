@@ -90,9 +90,9 @@ export default function Properties() {
 
   const filterOptions = useMemo(
     () => [
-      { label: t.properties.filters.all, value: "all" },
-      { label: t.properties.filters.active, value: "active" },
-      { label: t.properties.filters.inactive, value: "inactive" },
+      { label: t.properties.filters.all, value: "all" as const },
+      { label: t.properties.filters.active, value: "active" as const },
+      { label: t.properties.filters.inactive, value: "inactive" as const },
     ],
     [t]
   );

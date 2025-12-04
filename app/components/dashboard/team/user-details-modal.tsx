@@ -5,12 +5,12 @@ import { maskPhone } from "~/components/site/utils/masks";
 import type { UserFormData } from "./user-form-modal";
 
 interface UserDetailsModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  user: UserFormData & {
-    id: string;
-    status: "active" | "inactive" | "pending";
-    lastAccess?: string;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly user: UserFormData & {
+    readonly id: string;
+    readonly status: "active" | "inactive" | "pending";
+    readonly lastAccess?: string;
   };
 }
 
@@ -18,7 +18,12 @@ export function UserDetailsModal({ isOpen, onClose, user }: UserDetailsModalProp
   const t = useTranslation();
   const { language } = useLanguage();
 
-  const localeForDateTime = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
+  const getLocaleForDateTime = () => {
+    if (language === "en") return "en-US";
+    if (language === "es") return "es-ES";
+    return "pt-BR";
+  };
+  const localeForDateTime = getLocaleForDateTime();
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "-";
@@ -37,9 +42,11 @@ export function UserDetailsModal({ isOpen, onClose, user }: UserDetailsModalProp
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen px-4 py-4 text-center sm:block sm:p-0">
-        <div
-          className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75 dark:bg-opacity-50 cursor-pointer"
+        <button
+          type="button"
+          className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75 dark:bg-opacity-50 cursor-pointer border-0 p-0"
           onClick={onClose}
+          aria-label="Close modal"
         />
 
         <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-200 dark:border-gray-700">
@@ -87,7 +94,7 @@ export function UserDetailsModal({ isOpen, onClose, user }: UserDetailsModalProp
                       {t.team.table.status}:
                     </span>
                     <p className="text-sm text-gray-900 dark:text-gray-100">
-                      {t.team.status[user.status]}
+                      {(t.team.status as Record<string, string>)[user.status] || user.status}
                     </p>
                   </div>
                   <div>

@@ -59,6 +59,12 @@ for (let i = 0; i < founderCounts.fazenda; i++) {
   if (!animal) continue;
 
   const birthDate = getFounderBirthDate(animal.createdAt, i);
+  const animalCreatedAt = new Date(animal.createdAt);
+  const minCreatedAt = new Date(
+    Math.max(animalCreatedAt.getTime(), new Date("2020-01-01").getTime())
+  );
+  const birthDateObj = new Date(birthDate);
+  const createdAt = minCreatedAt > birthDateObj ? minCreatedAt : birthDateObj;
   births.push({
     id: generateBirthId(birthIndex++),
     animalId: animal.id,
@@ -69,7 +75,7 @@ for (let i = 0; i < founderCounts.fazenda; i++) {
     fatherId: undefined,
     purity: BirthPurity.PO,
     observation: "Animal fundador do rebanho",
-    createdAt: animal.createdAt,
+    createdAt: createdAt.toISOString().split("T")[0],
     companyId: COMPANY_ID,
   });
 }
@@ -79,6 +85,12 @@ for (let i = 0; i < founderCounts.chacara; i++) {
   if (!animal) continue;
 
   const birthDate = getFounderBirthDate(animal.createdAt, i);
+  const animalCreatedAt = new Date(animal.createdAt);
+  const minCreatedAt = new Date(
+    Math.max(animalCreatedAt.getTime(), new Date("2020-01-01").getTime())
+  );
+  const birthDateObj = new Date(birthDate);
+  const createdAt = minCreatedAt > birthDateObj ? minCreatedAt : birthDateObj;
   births.push({
     id: generateBirthId(birthIndex++),
     animalId: animal.id,
@@ -89,7 +101,7 @@ for (let i = 0; i < founderCounts.chacara; i++) {
     fatherId: undefined,
     purity: BirthPurity.PO,
     observation: "Animal fundador do rebanho",
-    createdAt: animal.createdAt,
+    createdAt: createdAt.toISOString().split("T")[0],
     companyId: COMPANY_ID,
   });
 }
@@ -99,6 +111,12 @@ for (let i = 0; i < founderCounts.sitio; i++) {
   if (!animal) continue;
 
   const birthDate = getFounderBirthDate(animal.createdAt, i);
+  const animalCreatedAt = new Date(animal.createdAt);
+  const minCreatedAt = new Date(
+    Math.max(animalCreatedAt.getTime(), new Date("2020-01-01").getTime())
+  );
+  const birthDateObj = new Date(birthDate);
+  const createdAt = minCreatedAt > birthDateObj ? minCreatedAt : birthDateObj;
   births.push({
     id: generateBirthId(birthIndex++),
     animalId: animal.id,
@@ -109,7 +127,7 @@ for (let i = 0; i < founderCounts.sitio; i++) {
     fatherId: undefined,
     purity: BirthPurity.PO,
     observation: "Animal fundador do rebanho",
-    createdAt: animal.createdAt,
+    createdAt: createdAt.toISOString().split("T")[0],
     companyId: COMPANY_ID,
   });
 }
@@ -211,6 +229,9 @@ function addBirthsFromBreedingsForProperty(
         const genderRandom = Math.random();
         const gender = genderRandom < 0.52 ? "male" : "female";
 
+        const minCreatedAt = new Date("2020-01-01");
+        const createdAt = birthDate > minCreatedAt ? birthDate : minCreatedAt;
+
         births.push({
           id: generateBirthId(currentBirthIndex),
           animalId: newAnimalId,
@@ -221,7 +242,7 @@ function addBirthsFromBreedingsForProperty(
           fatherId: father?.id,
           purity,
           observation: `Nascimento resultante de cobertura ${breeding.method === "natural" ? "natural" : "por IA"} em ${breeding.date}`,
-          createdAt: birthDate.toISOString().split("T")[0],
+          createdAt: createdAt.toISOString().split("T")[0],
           companyId: COMPANY_ID,
         });
 

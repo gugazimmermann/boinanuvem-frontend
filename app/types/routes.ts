@@ -1,4 +1,2 @@
-import type { ROUTES, ROUTE_NAMES } from "~/routes.config";
-
-export type RoutePath = (typeof ROUTES)[keyof typeof ROUTES];
-export type RouteName = (typeof ROUTE_NAMES)[keyof typeof ROUTE_NAMES];
+// RoutePath and RouteName are now defined in routes.config.ts to avoid circular dependency
+export type { RoutePath, RouteName } from "~/routes.config";

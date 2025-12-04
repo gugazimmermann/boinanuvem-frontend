@@ -3,11 +3,11 @@ import { type ReactNode } from "react";
 type AlertVariant = "success" | "error" | "warning" | "info";
 
 interface AlertProps {
-  title: string;
-  message?: string;
-  variant?: AlertVariant;
-  icon?: ReactNode;
-  className?: string;
+  readonly title: string;
+  readonly message?: string;
+  readonly variant?: AlertVariant;
+  readonly icon?: ReactNode;
+  readonly className?: string;
 }
 
 const variantStyles: Record<AlertVariant, { bg: string; text: string; iconBg: string }> = {

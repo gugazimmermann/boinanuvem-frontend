@@ -1,17 +1,14 @@
 import { useState, useMemo } from "react";
 import { useTranslation } from "~/i18n";
-import { useLanguage } from "~/contexts/language-context";
 import { translations } from "~/i18n/translations";
 import { mockCompanies } from "~/mocks/companies";
 import { getPropertiesByCompanyId } from "~/services/properties.service";
 import { getExpectedBirthsForecast } from "~/services/reproductive-indexes.service";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale/pt-BR";
-import { enUS } from "date-fns/locale/en-US";
-import { es } from "date-fns/locale/es";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { ChartWrapper, getTooltipStyle, getChartColors, StatCard } from "~/components/dashboard";
 import { useTheme } from "~/contexts/theme-context";
+import { useDateLocale } from "~/hooks/use-date-locale";
 
 const ALL_PROPERTIES_ID = "all";
 
@@ -33,7 +30,6 @@ export function meta() {
 
 export default function BirthForecastPage() {
   const t = useTranslation();
-  const { language } = useLanguage();
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const chartColors = getChartColors(isDark);
@@ -44,16 +40,7 @@ export default function BirthForecastPage() {
     properties.length > 0 ? ALL_PROPERTIES_ID : ""
   );
 
-  const dateLocale = useMemo(() => {
-    switch (language) {
-      case "en":
-        return enUS;
-      case "es":
-        return es;
-      default:
-        return ptBR;
-    }
-  }, [language]);
+  const dateLocale = useDateLocale();
 
   const expectedBirthsForecast = useMemo(() => {
     if (selectedPropertyId === ALL_PROPERTIES_ID && company) {
@@ -68,7 +55,7 @@ export default function BirthForecastPage() {
     if (!expectedBirthsForecast.monthly || expectedBirthsForecast.monthly.length === 0) return [];
     return expectedBirthsForecast.monthly.map((item) => {
       const [year, month] = item.month.split("-");
-      const monthDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+      const monthDate = new Date(Number.parseInt(year), Number.parseInt(month) - 1, 1);
       const monthName = format(monthDate, "MMM yyyy", { locale: dateLocale });
       return {
         month: monthName,

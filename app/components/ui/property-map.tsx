@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import type { Map, Marker } from "leaflet";
 
 interface PropertyMapProps {
-  latitude: number;
-  longitude: number;
-  propertyName: string;
-  className?: string;
+  readonly latitude: number;
+  readonly longitude: number;
+  readonly propertyName: string;
+  readonly className?: string;
 }
 
 export function PropertyMap({
@@ -25,7 +25,7 @@ export function PropertyMap({
   }, []);
 
   useEffect(() => {
-    if (!isClient || !mapRef.current) return;
+    if (isClient === false || mapRef.current === null) return;
 
     let mounted = true;
 
@@ -46,10 +46,8 @@ export function PropertyMap({
             "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
         });
 
-        if (!mapInstanceRef.current) {
-          mapInstanceRef.current = L.default
-            .map(mapRef.current!)
-            .setView([latitude, longitude], 15);
+        if (!mapInstanceRef.current && mapRef.current) {
+          mapInstanceRef.current = L.default.map(mapRef.current).setView([latitude, longitude], 15);
 
           L.default
             .tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -61,7 +59,7 @@ export function PropertyMap({
 
           markerRef.current = L.default.marker([latitude, longitude]).addTo(mapInstanceRef.current);
         } else {
-          mapInstanceRef.current.setView([latitude, longitude], 15);
+          mapInstanceRef.current?.setView([latitude, longitude], 15);
           if (markerRef.current) {
             markerRef.current.setLatLng([latitude, longitude]);
           }
@@ -90,7 +88,7 @@ export function PropertyMap({
     return cleanup;
   }, [isClient, latitude, longitude, propertyName]);
 
-  if (!isClient) {
+  if (isClient === false) {
     return (
       <div
         className={`w-full h-full min-h-[400px] rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center ${className}`}

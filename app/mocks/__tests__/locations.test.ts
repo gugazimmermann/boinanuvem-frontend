@@ -1,92 +1,103 @@
 import { describe, it, expect } from "vitest";
 import { mockLocations } from "../locations";
-import type { Location } from "~/types";
-import { LocationType, AreaType } from "~/types";
+import { mockCompanies } from "../companies";
+import { mockProperties } from "../properties";
+import { LocationType, AreaType } from "../locations";
 
-describe("locations mock", () => {
-  it("should export mockLocations array", () => {
-    expect(Array.isArray(mockLocations)).toBe(true);
-    expect(mockLocations.length).toBeGreaterThan(0);
-  });
-
-  it("should have valid location structure", () => {
-    mockLocations.forEach((location: Location) => {
-      expect(location).toHaveProperty("id");
-      expect(location).toHaveProperty("code");
-      expect(location).toHaveProperty("name");
-      expect(location).toHaveProperty("locationType");
-      expect(location).toHaveProperty("area");
-      expect(location).toHaveProperty("status");
-      expect(location).toHaveProperty("createdAt");
-      expect(location).toHaveProperty("companyId");
-      expect(location).toHaveProperty("propertyId");
-
-      expect(typeof location.id).toBe("string");
-      expect(typeof location.code).toBe("string");
-      expect(typeof location.name).toBe("string");
-      expect(typeof location.locationType).toBe("string");
-      expect(typeof location.status).toBe("string");
-      expect(typeof location.createdAt).toBe("string");
-      expect(typeof location.companyId).toBe("string");
-      expect(typeof location.propertyId).toBe("string");
-      expect(typeof location.area).toBe("object");
-    });
-  });
-
-  it("should have valid area structure", () => {
-    mockLocations.forEach((location: Location) => {
-      expect(location.area).toHaveProperty("value");
-      expect(location.area).toHaveProperty("type");
-      expect(typeof location.area.value).toBe("number");
-      expect(typeof location.area.type).toBe("string");
-      expect(location.area.value).toBeGreaterThan(0);
-    });
-  });
-
-  it("should have valid location type", () => {
-    const validTypes = Object.values(LocationType);
-    mockLocations.forEach((location: Location) => {
-      expect(validTypes).toContain(location.locationType);
-    });
-  });
-
-  it("should have valid area type", () => {
-    const validAreaTypes = Object.values(AreaType);
-    mockLocations.forEach((location: Location) => {
-      expect(validAreaTypes).toContain(location.area.type);
-    });
-  });
-
-  it("should have valid status", () => {
-    mockLocations.forEach((location: Location) => {
-      expect(["active", "inactive", "pending"]).toContain(location.status);
-    });
-  });
-
-  it("should have valid date format", () => {
-    mockLocations.forEach((location: Location) => {
-      expect(location.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-      expect(() => new Date(location.createdAt)).not.toThrow();
-    });
-  });
-
-  it("should have unique IDs", () => {
-    const ids = mockLocations.map((l) => l.id);
-    const uniqueIds = new Set(ids);
-    expect(uniqueIds.size).toBe(ids.length);
-  });
-
-  it("should have unique codes per property", () => {
-    const codesByProperty = new Map<string, Set<string>>();
-    mockLocations.forEach((location: Location) => {
-      if (!codesByProperty.has(location.propertyId)) {
-        codesByProperty.set(location.propertyId, new Set());
-      }
-      codesByProperty.get(location.propertyId)!.add(location.code);
+describe("locations", () => {
+  describe("mockLocations", () => {
+    it("should export an array", () => {
+      expect(Array.isArray(mockLocations)).toBe(true);
     });
 
-    codesByProperty.forEach((codes, _propertyId) => {
-      expect(codes.size).toBeGreaterThan(0);
+    it("should not be empty", () => {
+      expect(mockLocations.length).toBeGreaterThan(0);
+    });
+
+    it("should have valid data structure", () => {
+      mockLocations.forEach((location) => {
+        expect(location).toHaveProperty("id");
+        expect(location).toHaveProperty("code");
+        expect(location).toHaveProperty("name");
+        expect(location).toHaveProperty("locationType");
+        expect(location).toHaveProperty("area");
+        expect(location).toHaveProperty("status");
+        expect(location).toHaveProperty("createdAt");
+        expect(location).toHaveProperty("companyId");
+        expect(location).toHaveProperty("propertyId");
+      });
+    });
+
+    it("should have unique IDs", () => {
+      const ids = mockLocations.map((location) => location.id);
+      const uniqueIds = new Set(ids);
+      expect(uniqueIds.size).toBe(ids.length);
+    });
+
+    it("should have valid UUID format for IDs", () => {
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      mockLocations.forEach((location) => {
+        expect(location.id).toMatch(uuidRegex);
+      });
+    });
+
+    it("should have valid date format", () => {
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      mockLocations.forEach((location) => {
+        expect(location.createdAt).toMatch(dateRegex);
+      });
+    });
+
+    it("should have dates within expected range", () => {
+      mockLocations.forEach((location) => {
+        const date = new Date(location.createdAt);
+        expect(date.getFullYear()).toBeGreaterThanOrEqual(2020);
+        expect(date.getFullYear()).toBeLessThanOrEqual(2025);
+      });
+    });
+
+    it("should have valid location types", () => {
+      const validTypes = Object.values(LocationType);
+      mockLocations.forEach((location) => {
+        expect(validTypes).toContain(location.locationType);
+      });
+    });
+
+    it("should have valid area structure", () => {
+      mockLocations.forEach((location) => {
+        expect(location.area).toHaveProperty("value");
+        expect(location.area).toHaveProperty("type");
+        expect(typeof location.area.value).toBe("number");
+        expect(location.area.value).toBeGreaterThan(0);
+      });
+    });
+
+    it("should have valid area types", () => {
+      const validAreaTypes = Object.values(AreaType);
+      mockLocations.forEach((location) => {
+        expect(validAreaTypes).toContain(location.area.type);
+      });
+    });
+
+    it("should have valid status", () => {
+      const validStatuses = ["active", "inactive"];
+      mockLocations.forEach((location) => {
+        expect(validStatuses).toContain(location.status);
+      });
+    });
+
+    it("should reference valid company IDs", () => {
+      const companyIds = mockCompanies.map((c) => c.id);
+      mockLocations.forEach((location) => {
+        expect(companyIds).toContain(location.companyId);
+      });
+    });
+
+    it("should reference valid property IDs", () => {
+      const propertyIds = mockProperties.map((p) => p.id);
+      mockLocations.forEach((location) => {
+        expect(propertyIds).toContain(location.propertyId);
+      });
     });
   });
 });

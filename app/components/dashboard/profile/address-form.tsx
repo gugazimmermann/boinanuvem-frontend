@@ -1,4 +1,4 @@
-import { Input, Select } from "~/components/ui";
+import { Input, Select, FormFieldGroup } from "~/components/ui";
 import { useCEPLookup } from "~/components/site/hooks/use-cep-lookup";
 import { mapCEPDataToAddressForm } from "~/components/site/utils/cep-utils";
 import { maskCEP, unmaskCEP } from "~/components/site/utils/masks";
@@ -7,10 +7,10 @@ import type { AddressFormData } from "~/components/site/utils/cep-utils";
 import { BRAZILIAN_STATES } from "~/utils/brazilian-states";
 
 interface AddressFormProps {
-  data: Partial<AddressFormData>;
-  errors: Record<string, string>;
-  onChange: (field: keyof AddressFormData, value: string) => void;
-  disabled?: boolean;
+  readonly data: Partial<AddressFormData>;
+  readonly errors: Record<string, string>;
+  readonly onChange: (field: keyof AddressFormData, value: string) => void;
+  readonly disabled?: boolean;
 }
 
 export function AddressForm({ data, errors, onChange, disabled = false }: AddressFormProps) {
@@ -19,11 +19,11 @@ export function AddressForm({ data, errors, onChange, disabled = false }: Addres
 
   const handleZipCodeSuccess = (cepData: Parameters<typeof mapCEPDataToAddressForm>[0]) => {
     const mappedData = mapCEPDataToAddressForm(cepData, data);
-    Object.entries(mappedData).forEach(([key, value]) => {
-      if (value && key !== "zipCode") {
+    for (const [key, value] of Object.entries(mappedData)) {
+      if (value && key !== "zipCode" && typeof value === "string") {
         onChange(key as keyof AddressFormData, value);
       }
-    });
+    }
   };
 
   const { loading: zipCodeLoading } = useCEPLookup(unmaskCEP(data.zipCode || ""), {
@@ -33,7 +33,7 @@ export function AddressForm({ data, errors, onChange, disabled = false }: Addres
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <FormFieldGroup columns={3}>
         <div className="md:col-span-1">
           <Input
             label={fieldLabels.zipCode}
@@ -54,9 +54,9 @@ export function AddressForm({ data, errors, onChange, disabled = false }: Addres
             disabled={disabled || zipCodeLoading}
           />
         </div>
-      </div>
+      </FormFieldGroup>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <FormFieldGroup columns={3}>
         <div>
           <Input
             label={fieldLabels.number}
@@ -75,9 +75,9 @@ export function AddressForm({ data, errors, onChange, disabled = false }: Addres
             disabled={disabled || zipCodeLoading}
           />
         </div>
-      </div>
+      </FormFieldGroup>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <FormFieldGroup columns={3}>
         <div>
           <Input
             label={fieldLabels.neighborhood}
@@ -109,7 +109,7 @@ export function AddressForm({ data, errors, onChange, disabled = false }: Addres
             }))}
           />
         </div>
-      </div>
+      </FormFieldGroup>
     </div>
   );
 }

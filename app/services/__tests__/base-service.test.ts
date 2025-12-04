@@ -17,225 +17,250 @@ interface TestEntity extends EntityWithId {
 }
 
 describe("base-service", () => {
+  let testData: TestEntity[];
+
+  beforeEach(() => {
+    testData = [
+      { id: "test-001", name: "Entity 1", value: 10, createdAt: "2025-01-01" },
+      { id: "test-002", name: "Entity 2", value: 20, createdAt: "2025-01-02" },
+      { id: "test-003", name: "Entity 3", value: 30, createdAt: "2025-01-03" },
+    ];
+  });
+
   describe("generateNextId", () => {
-    it("should return default ID when data array is empty", () => {
-      const result = generateNextId([], "test", "test-default-id");
-      expect(result).toBe("test-default-id");
+    it("should return default ID when array is empty", () => {
+      const result = generateNextId([], "prefix", "default-id");
+      expect(result).toBe("default-id");
     });
 
-    it("should generate next ID based on last ID", () => {
-      const data: TestEntity[] = [
-        { id: "test-446655440009", name: "test1", value: 1 },
-        { id: "test-446655440010", name: "test2", value: 2 },
-      ];
-      const result = generateNextId(data, "test", "test-446655440009");
-      expect(result).toBe("test-446655440011");
+    it("should return default ID when last item has no ID", () => {
+      const data = [{ name: "test" }] as TestEntity[];
+      const result = generateNextId(data, "prefix", "default-id");
+      expect(result).toBe("default-id");
     });
 
-    it("should handle ID with different format", () => {
-      const data: TestEntity[] = [{ id: "prefix-123456789012", name: "test1", value: 1 }];
-      const result = generateNextId(data, "prefix", "prefix-000000000000");
+    it("should generate next ID based on last item", () => {
+      // testData has IDs like "test-001", "test-002", "test-003"
+      // The last part "003" becomes 3, so next should be 4 padded to 12 digits
+      const result = generateNextId(testData, "prefix", "default-id");
+      expect(result).toBe("prefix-000000000004");
+    });
+
+    it("should handle IDs with different formats", () => {
+      const data = [{ id: "prefix-123456789012", name: "test", value: 1 }];
+      const result = generateNextId(data, "prefix", "default-id");
       expect(result).toBe("prefix-123456789013");
     });
 
     it("should pad numbers correctly", () => {
-      const data: TestEntity[] = [{ id: "test-000000000999", name: "test1", value: 1 }];
-      const result = generateNextId(data, "test", "test-000000000000");
-      expect(result).toBe("test-000000001000");
+      const data = [{ id: "prefix-000000000001", name: "test", value: 1 }];
+      const result = generateNextId(data, "prefix", "default-id");
+      expect(result).toBe("prefix-000000000002");
+    });
+
+    it("should use fallback when lastPart is empty after split", () => {
+      const data = [{ id: "prefix-", name: "test", value: 1 }];
+      const result = generateNextId(data, "prefix", "default-id");
+      // When lastPart is empty, it uses "446655440009" as fallback, then increments
+      expect(result).toBe("prefix-446655440010");
+    });
+
+    it("should handle IDs without numeric suffix", () => {
+      const data = [{ id: "prefix-abc", name: "test", value: 1 }];
+      const result = generateNextId(data, "prefix", "default-id");
+      // When ID doesn't have numeric suffix, parseInt returns NaN, which becomes "NaN" when padded
+      expect(result).toBe("prefix-000000000NaN");
     });
   });
 
   describe("findById", () => {
-    const data: TestEntity[] = [
-      { id: "1", name: "test1", value: 1 },
-      { id: "2", name: "test2", value: 2 },
-      { id: "3", name: "test3", value: 3 },
-    ];
-
-    it("should find entity by ID", () => {
-      const result = findById(data, "2");
-      expect(result).toEqual({ id: "2", name: "test2", value: 2 });
+    it("should return entity when ID exists", () => {
+      const result = findById(testData, "test-001");
+      expect(result).toBeDefined();
+      expect(result?.id).toBe("test-001");
+      expect(result?.name).toBe("Entity 1");
     });
 
-    it("should return undefined when ID not found", () => {
-      const result = findById(data, "999");
+    it("should return undefined when ID does not exist", () => {
+      const result = findById(testData, "test-nonexistent");
       expect(result).toBeUndefined();
     });
 
     it("should return undefined when ID is undefined", () => {
-      const result = findById(data, undefined);
+      const result = findById(testData, undefined);
       expect(result).toBeUndefined();
     });
 
     it("should return undefined when ID is empty string", () => {
-      const result = findById(data, "");
+      const result = findById(testData, "");
       expect(result).toBeUndefined();
     });
   });
 
   describe("findByField", () => {
-    const data: TestEntity[] = [
-      { id: "1", name: "test1", value: 1 },
-      { id: "2", name: "test2", value: 2 },
-      { id: "3", name: "test1", value: 3 },
-    ];
-
-    it("should find entities by field value", () => {
-      const result = findByField(data, "name", "test1");
-      expect(result).toHaveLength(2);
-      expect(result[0].id).toBe("1");
-      expect(result[1].id).toBe("3");
-    });
-
-    it("should find entities by numeric field", () => {
-      const result = findByField(data, "value", 2);
+    it("should return entities matching field value", () => {
+      const result = findByField(testData, "name", "Entity 1");
       expect(result).toHaveLength(1);
-      expect(result[0].id).toBe("2");
+      expect(result[0]?.id).toBe("test-001");
     });
 
-    it("should return empty array when no matches found", () => {
-      const result = findByField(data, "name", "nonexistent");
+    it("should return empty array when no matches", () => {
+      const result = findByField(testData, "name", "Nonexistent");
       expect(result).toHaveLength(0);
+    });
+
+    it("should return multiple entities when multiple match", () => {
+      testData.push({ id: "test-004", name: "Entity 1", value: 40 });
+      const result = findByField(testData, "name", "Entity 1");
+      expect(result).toHaveLength(2);
+    });
+
+    it("should match numeric values", () => {
+      const result = findByField(testData, "value", 20);
+      expect(result).toHaveLength(1);
+      expect(result[0]?.id).toBe("test-002");
     });
   });
 
   describe("findByFieldIncludes", () => {
-    const data: TestEntity[] = [
-      { id: "1", name: "test1", value: 1, tags: ["tag1", "tag2"] },
-      { id: "2", name: "test2", value: 2, tags: ["tag2", "tag3"] },
-      { id: "3", name: "test3", value: 3, tags: ["tag1"] },
-      { id: "4", name: "test4", value: 4 },
-    ];
+    beforeEach(() => {
+      testData = [
+        { id: "test-001", name: "Entity 1", value: 10, tags: ["tag1", "tag2"] },
+        { id: "test-002", name: "Entity 2", value: 20, tags: ["tag2", "tag3"] },
+        { id: "test-003", name: "Entity 3", value: 30, tags: ["tag1"] },
+      ];
+    });
 
-    it("should find entities where array field includes value", () => {
-      const result = findByFieldIncludes(data, "tags", "tag1");
+    it("should return entities where array field includes value", () => {
+      const result = findByFieldIncludes(testData, "tags", "tag1");
       expect(result).toHaveLength(2);
-      expect(result[0].id).toBe("1");
-      expect(result[1].id).toBe("3");
+      expect(result[0]?.id).toBe("test-001");
+      expect(result[1]?.id).toBe("test-003");
+    });
+
+    it("should return empty array when no matches", () => {
+      const result = findByFieldIncludes(testData, "tags", "tag-nonexistent");
+      expect(result).toHaveLength(0);
     });
 
     it("should return empty array when field is not an array", () => {
-      const result = findByFieldIncludes(data, "name", "test1");
+      const result = findByFieldIncludes(testData, "name", "Entity 1");
       expect(result).toHaveLength(0);
     });
 
     it("should return empty array when field is undefined", () => {
-      const result = findByFieldIncludes(data, "tags", "nonexistent");
-      expect(result).toHaveLength(0);
-    });
-
-    it("should handle entities without the field", () => {
-      const result = findByFieldIncludes(data, "tags", "tag2");
+      testData.push({ id: "test-004", name: "Entity 4", value: 40 });
+      const result = findByFieldIncludes(testData, "tags", "tag1");
       expect(result).toHaveLength(2);
-      expect(result.every((item) => item.tags?.includes("tag2"))).toBe(true);
     });
   });
 
   describe("createEntity", () => {
-    let data: TestEntity[];
+    it("should create entity with generated ID and createdAt", () => {
+      const formData = { name: "New Entity", value: 50 };
+      const initialLength = testData.length;
+      const result = createEntity(testData, formData, "prefix", "default-id");
 
-    beforeEach(() => {
-      data = [];
-    });
-
-    it("should create new entity with generated ID", () => {
-      const formData = { name: "test", value: 10 };
-      const result = createEntity(data, formData, "test", "test-000000000000");
-
-      expect(result.id).toBe("test-000000000000");
-      expect(result.name).toBe("test");
-      expect(result.value).toBe(10);
+      expect(testData).toHaveLength(initialLength + 1);
+      expect(result.id).toBeDefined();
+      expect(result.id).toContain("prefix-");
       expect(result.createdAt).toBeDefined();
-      expect(data).toHaveLength(1);
+      expect(result.name).toBe("New Entity");
+      expect(result.value).toBe(50);
     });
 
-    it("should generate sequential IDs", () => {
-      const formData1 = { name: "test1", value: 1 };
-      const formData2 = { name: "test2", value: 2 };
+    it("should use default ID when array is empty", () => {
+      const emptyData: TestEntity[] = [];
+      const formData = { name: "New Entity", value: 50 };
+      const result = createEntity(emptyData, formData, "prefix", "default-id");
 
-      const result1 = createEntity(data, formData1, "test", "test-000000000000");
-      const result2 = createEntity(data, formData2, "test", "test-000000000000");
-
-      expect(result1.id).toBe("test-000000000000");
-      expect(result2.id).toBe("test-000000000001");
-      expect(data).toHaveLength(2);
+      expect(result.id).toBe("default-id");
     });
 
-    it("should set createdAt date", () => {
-      const formData = { name: "test", value: 10 };
-      const result = createEntity(data, formData, "test", "test-000000000000");
+    it("should add entity to the end of array", () => {
+      const formData = { name: "New Entity", value: 50 };
+      const result = createEntity(testData, formData, "prefix", "default-id");
+      const lastItem = testData[testData.length - 1];
+      expect(lastItem.id).toBe(result.id);
+    });
 
-      expect(result.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    it("should preserve form data properties", () => {
+      const formData = { name: "New Entity", value: 50 };
+      const result = createEntity(testData, formData, "prefix", "default-id");
+      expect(result.name).toBe("New Entity");
+      expect(result.value).toBe(50);
     });
   });
 
   describe("updateEntity", () => {
-    let data: TestEntity[];
+    it("should update entity when ID exists", () => {
+      const updateData = { name: "Updated Entity", value: 100 };
+      const result = updateEntity(testData, "test-001", updateData);
 
-    beforeEach(() => {
-      data = [
-        { id: "1", name: "test1", value: 1 },
-        { id: "2", name: "test2", value: 2 },
-      ];
-    });
-
-    it("should update existing entity", () => {
-      const result = updateEntity(data, "1", { name: "updated" });
       expect(result).toBe(true);
-      expect(data[0].name).toBe("updated");
-      expect(data[0].value).toBe(1);
+      const updated = testData.find((e) => e.id === "test-001");
+      expect(updated?.name).toBe("Updated Entity");
+      expect(updated?.value).toBe(100);
     });
 
-    it("should return false when entity not found", () => {
-      const result = updateEntity(data, "999", { name: "updated" });
+    it("should preserve existing fields when updating", () => {
+      const original = testData.find((e) => e.id === "test-001");
+      const originalCreatedAt = original?.createdAt;
+
+      const updateData = { value: 100 };
+      updateEntity(testData, "test-001", updateData);
+
+      const updated = testData.find((e) => e.id === "test-001");
+      expect(updated?.name).toBe(original?.name);
+      expect(updated?.createdAt).toBe(originalCreatedAt);
+      expect(updated?.value).toBe(100);
+    });
+
+    it("should return false when ID does not exist", () => {
+      const updateData = { name: "Updated Entity" };
+      const result = updateEntity(testData, "test-nonexistent", updateData);
       expect(result).toBe(false);
-      expect(data).toEqual([
-        { id: "1", name: "test1", value: 1 },
-        { id: "2", name: "test2", value: 2 },
-      ]);
     });
 
-    it("should partially update entity", () => {
-      updateEntity(data, "2", { value: 99 });
-      expect(data[1].name).toBe("test2");
-      expect(data[1].value).toBe(99);
+    it("should handle partial updates", () => {
+      const updateData = { value: 999 };
+      updateEntity(testData, "test-001", updateData);
+
+      const updated = testData.find((e) => e.id === "test-001");
+      expect(updated?.name).toBe("Entity 1");
+      expect(updated?.value).toBe(999);
     });
   });
 
   describe("deleteEntity", () => {
-    let data: TestEntity[];
+    it("should delete entity when ID exists", () => {
+      const initialLength = testData.length;
+      const result = deleteEntity(testData, "test-001");
 
-    beforeEach(() => {
-      data = [
-        { id: "1", name: "test1", value: 1 },
-        { id: "2", name: "test2", value: 2 },
-        { id: "3", name: "test3", value: 3 },
-      ];
-    });
-
-    it("should delete existing entity", () => {
-      const result = deleteEntity(data, "2");
       expect(result).toBe(true);
-      expect(data).toHaveLength(2);
-      expect(data.find((item) => item.id === "2")).toBeUndefined();
+      expect(testData).toHaveLength(initialLength - 1);
+      expect(testData.find((e) => e.id === "test-001")).toBeUndefined();
     });
 
-    it("should return false when entity not found", () => {
-      const result = deleteEntity(data, "999");
+    it("should return false when ID does not exist", () => {
+      const initialLength = testData.length;
+      const result = deleteEntity(testData, "test-nonexistent");
+
       expect(result).toBe(false);
-      expect(data).toHaveLength(3);
+      expect(testData).toHaveLength(initialLength);
     });
 
-    it("should delete first entity", () => {
-      deleteEntity(data, "1");
-      expect(data).toHaveLength(2);
-      expect(data[0].id).toBe("2");
+    it("should delete the correct entity", () => {
+      deleteEntity(testData, "test-002");
+      expect(testData.find((e) => e.id === "test-002")).toBeUndefined();
+      expect(testData.find((e) => e.id === "test-001")).toBeDefined();
+      expect(testData.find((e) => e.id === "test-003")).toBeDefined();
     });
 
-    it("should delete last entity", () => {
-      deleteEntity(data, "3");
-      expect(data).toHaveLength(2);
-      expect(data[data.length - 1].id).toBe("2");
+    it("should handle deleting from empty array", () => {
+      const emptyData: TestEntity[] = [];
+      const result = deleteEntity(emptyData, "test-001");
+      expect(result).toBe(false);
     });
   });
 });

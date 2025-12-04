@@ -33,6 +33,64 @@ export function meta() {
   ];
 }
 
+function getNavigationRouteFromParams(
+  fromLocationId: string | null,
+  fromEmployeeId: string | null,
+  fromServiceProviderId: string | null,
+  fromSupplierId: string | null,
+  fromBuyerId: string | null,
+  fromAnimalId: string | null
+): string | null {
+  if (fromLocationId && getLocationById(fromLocationId)) {
+    return `${getLocationViewRoute(fromLocationId)}?tab=observations`;
+  }
+  if (fromEmployeeId && getEmployeeById(fromEmployeeId)) {
+    return `${getEmployeeViewRoute(fromEmployeeId)}?tab=observations`;
+  }
+  if (fromServiceProviderId && getServiceProviderById(fromServiceProviderId)) {
+    return `${getServiceProviderViewRoute(fromServiceProviderId)}?tab=observations`;
+  }
+  if (fromSupplierId && getSupplierById(fromSupplierId)) {
+    return `${getSupplierViewRoute(fromSupplierId)}?tab=observations`;
+  }
+  if (fromBuyerId && getBuyerById(fromBuyerId)) {
+    return `${getBuyerViewRoute(fromBuyerId)}?tab=observations`;
+  }
+  if (fromAnimalId && getAnimalById(fromAnimalId)) {
+    return `${getAnimalViewRoute(fromAnimalId)}?tab=observations`;
+  }
+  return null;
+}
+
+function getNavigationRouteFromEntities(
+  location: ReturnType<typeof getLocationById> | undefined,
+  employee: ReturnType<typeof getEmployeeById> | undefined,
+  serviceProvider: ReturnType<typeof getServiceProviderById> | undefined,
+  supplier: ReturnType<typeof getSupplierById> | undefined,
+  buyer: ReturnType<typeof getBuyerById> | undefined,
+  animal: ReturnType<typeof getAnimalById> | undefined
+): string {
+  if (location) {
+    return `${getLocationViewRoute(location.id)}?tab=observations`;
+  }
+  if (employee) {
+    return `${getEmployeeViewRoute(employee.id)}?tab=observations`;
+  }
+  if (serviceProvider) {
+    return `${getServiceProviderViewRoute(serviceProvider.id)}?tab=observations`;
+  }
+  if (supplier) {
+    return `${getSupplierViewRoute(supplier.id)}?tab=observations`;
+  }
+  if (buyer) {
+    return `${getBuyerViewRoute(buyer.id)}?tab=observations`;
+  }
+  if (animal) {
+    return `${getAnimalViewRoute(animal.id)}?tab=observations`;
+  }
+  return ROUTES.LOCATIONS;
+}
+
 export default function ObservationDetails() {
   const { observationId } = useParams<{ observationId: string }>();
   const navigate = useNavigate();
@@ -90,6 +148,28 @@ export default function ObservationDetails() {
   const buyer = buyerObservation ? getBuyerById(buyerObservation.buyerId) : undefined;
   const animal = animalObservation ? getAnimalById(animalObservation.animalId) : undefined;
 
+  const getNavigationRoute = (): string => {
+    const routeFromParams = getNavigationRouteFromParams(
+      fromLocationId,
+      fromEmployeeId,
+      fromServiceProviderId,
+      fromSupplierId,
+      fromBuyerId,
+      fromAnimalId
+    );
+    if (routeFromParams) {
+      return routeFromParams;
+    }
+    return getNavigationRouteFromEntities(
+      location,
+      employee,
+      serviceProvider,
+      supplier,
+      buyer,
+      animal
+    );
+  };
+
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
     return new Intl.DateTimeFormat("pt-BR", {
@@ -116,33 +196,7 @@ export default function ObservationDetails() {
           <Button
             variant="outline"
             onClick={() => {
-              if (fromLocationId && getLocationById(fromLocationId)) {
-                navigate(`${getLocationViewRoute(fromLocationId)}?tab=observations`);
-              } else if (fromEmployeeId && getEmployeeById(fromEmployeeId)) {
-                navigate(`${getEmployeeViewRoute(fromEmployeeId)}?tab=observations`);
-              } else if (fromServiceProviderId && getServiceProviderById(fromServiceProviderId)) {
-                navigate(`${getServiceProviderViewRoute(fromServiceProviderId)}?tab=observations`);
-              } else if (fromSupplierId && getSupplierById(fromSupplierId)) {
-                navigate(`${getSupplierViewRoute(fromSupplierId)}?tab=observations`);
-              } else if (fromBuyerId && getBuyerById(fromBuyerId)) {
-                navigate(`${getBuyerViewRoute(fromBuyerId)}?tab=observations`);
-              } else if (fromAnimalId && getAnimalById(fromAnimalId)) {
-                navigate(`${getAnimalViewRoute(fromAnimalId)}?tab=observations`);
-              } else if (location) {
-                navigate(`${getLocationViewRoute(location.id)}?tab=observations`);
-              } else if (employee) {
-                navigate(`${getEmployeeViewRoute(employee.id)}?tab=observations`);
-              } else if (serviceProvider) {
-                navigate(`${getServiceProviderViewRoute(serviceProvider.id)}?tab=observations`);
-              } else if (supplier) {
-                navigate(`${getSupplierViewRoute(supplier.id)}?tab=observations`);
-              } else if (buyer) {
-                navigate(`${getBuyerViewRoute(buyer.id)}?tab=observations`);
-              } else if (animal) {
-                navigate(`${getAnimalViewRoute(animal.id)}?tab=observations`);
-              } else {
-                navigate(ROUTES.LOCATIONS);
-              }
+              navigate(getNavigationRoute());
             }}
             leftIcon={
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -165,8 +219,9 @@ export default function ObservationDetails() {
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
             {t.locations.table.name}
           </h2>
-          <div
-            className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
+          <button
+            type="button"
+            className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer w-full text-left border-0 bg-transparent"
             onClick={() => navigate(`${getLocationViewRoute(location.id)}?tab=observations`)}
           >
             <div>
@@ -183,7 +238,7 @@ export default function ObservationDetails() {
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
-          </div>
+          </button>
         </div>
       )}
 
@@ -192,8 +247,9 @@ export default function ObservationDetails() {
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
             {t.employees.table.name}
           </h2>
-          <div
-            className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
+          <button
+            type="button"
+            className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer w-full text-left border-0 bg-transparent"
             onClick={() => navigate(`${getEmployeeViewRoute(employee.id)}?tab=observations`)}
           >
             <div>
@@ -210,7 +266,7 @@ export default function ObservationDetails() {
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
-          </div>
+          </button>
         </div>
       )}
 
@@ -219,8 +275,9 @@ export default function ObservationDetails() {
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
             {t.serviceProviders.table.name}
           </h2>
-          <div
-            className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
+          <button
+            type="button"
+            className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer w-full text-left border-0 bg-transparent"
             onClick={() =>
               navigate(`${getServiceProviderViewRoute(serviceProvider.id)}?tab=observations`)
             }
@@ -239,7 +296,7 @@ export default function ObservationDetails() {
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
-          </div>
+          </button>
         </div>
       )}
 
@@ -248,8 +305,9 @@ export default function ObservationDetails() {
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
             {t.suppliers.table.name}
           </h2>
-          <div
-            className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
+          <button
+            type="button"
+            className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer w-full text-left border-0 bg-transparent"
             onClick={() => navigate(`${getSupplierViewRoute(supplier.id)}?tab=observations`)}
           >
             <div>
@@ -266,7 +324,7 @@ export default function ObservationDetails() {
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
-          </div>
+          </button>
         </div>
       )}
 
@@ -275,8 +333,9 @@ export default function ObservationDetails() {
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
             {t.buyers.table.name}
           </h2>
-          <div
-            className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
+          <button
+            type="button"
+            className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer w-full text-left border-0 bg-transparent"
             onClick={() => navigate(`${getBuyerViewRoute(buyer.id)}?tab=observations`)}
           >
             <div>
@@ -291,7 +350,7 @@ export default function ObservationDetails() {
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
-          </div>
+          </button>
         </div>
       )}
 
@@ -300,8 +359,9 @@ export default function ObservationDetails() {
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
             {t.animals.table.code}
           </h2>
-          <div
-            className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
+          <button
+            type="button"
+            className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer w-full text-left border-0 bg-transparent"
             onClick={() => navigate(`${getAnimalViewRoute(animal.id)}?tab=observations`)}
           >
             <div>
@@ -318,7 +378,7 @@ export default function ObservationDetails() {
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
-          </div>
+          </button>
         </div>
       )}
 

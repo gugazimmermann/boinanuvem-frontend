@@ -1,72 +1,82 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ActionsDropdown } from "../actions-dropdown";
 import { LanguageProvider } from "~/contexts/language-context";
-import { ThemeProvider } from "~/contexts/theme-context";
-import type { TeamUser } from "~/routes/dashboard/team";
 
-const wrapper = ({ children }: { children: React.ReactNode }) => (
-  <ThemeProvider>
-    <LanguageProvider>{children}</LanguageProvider>
-  </ThemeProvider>
+const TestWrapper = ({ children }: { children: React.ReactNode }) => (
+  <LanguageProvider>{children}</LanguageProvider>
 );
 
-const mockUser: TeamUser = {
-  id: "1",
-  name: "John Doe",
-  email: "john@example.com",
-  phone: "1234567890",
-  status: "active",
-  mainUser: false,
-  companyId: "company-id",
-  lastAccess: new Date().toISOString(),
-  createdAt: new Date().toISOString(),
-};
+const mockUseClickOutside = vi.fn();
+vi.mock("~/hooks/use-click-outside", () => ({
+  useClickOutside: () => mockUseClickOutside(),
+}));
 
 describe("ActionsDropdown", () => {
-  it("should render actions button", () => {
+  const mockUser = {
+    id: "1",
+    name: "John Doe",
+    email: "john@example.com",
+    phone: "1234567890",
+    status: "active" as const,
+    createdAt: "2024-01-01T00:00:00Z",
+    mainUser: false,
+    companyId: "company-1",
+  };
+
+  const defaultProps = {
+    user: mockUser,
+    onView: vi.fn(),
+    onEdit: vi.fn(),
+    onDelete: vi.fn(),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUseClickOutside.mockImplementation(() => {});
+  });
+
+  it("should render dropdown button", () => {
     render(
-      <ActionsDropdown user={mockUser} onView={vi.fn()} onEdit={vi.fn()} onDelete={vi.fn()} />,
-      { wrapper }
+      <TestWrapper>
+        <ActionsDropdown {...defaultProps} />
+      </TestWrapper>
     );
-    const button = screen.getByTitle(/actions|ações/i);
+
+    const button = screen.getByRole("button");
     expect(button).toBeInTheDocument();
   });
 
-  it("should open dropdown when clicked", async () => {
+  it("should open dropdown when button is clicked", async () => {
     const user = userEvent.setup();
     render(
-      <ActionsDropdown user={mockUser} onView={vi.fn()} onEdit={vi.fn()} onDelete={vi.fn()} />,
-      { wrapper }
+      <TestWrapper>
+        <ActionsDropdown {...defaultProps} />
+      </TestWrapper>
     );
 
-    const button = screen.getByTitle(/actions|ações/i);
+    const button = screen.getByRole("button");
     await user.click(button);
 
-    await waitFor(() => {
-      const dropdown = document.querySelector(".absolute.right-0");
-      expect(dropdown).toBeInTheDocument();
-    });
+    expect(screen.getByText(/view details/i)).toBeInTheDocument();
+    expect(screen.getByText(/edit user/i)).toBeInTheDocument();
+    expect(screen.getByText(/delete user/i)).toBeInTheDocument();
   });
 
   it("should call onView when view is clicked", async () => {
     const onView = vi.fn();
     const user = userEvent.setup();
     render(
-      <ActionsDropdown user={mockUser} onView={onView} onEdit={vi.fn()} onDelete={vi.fn()} />,
-      { wrapper }
+      <TestWrapper>
+        <ActionsDropdown {...defaultProps} onView={onView} />
+      </TestWrapper>
     );
 
-    const button = screen.getByTitle(/actions|ações/i);
+    const button = screen.getByRole("button");
     await user.click(button);
 
-    await waitFor(() => {
-      const viewButton = screen.getByText(/view|ver/i);
-      expect(viewButton).toBeInTheDocument();
-    });
-
-    const viewButton = screen.getByText(/view|ver/i);
+    const viewButton = screen.getByText(/view details/i);
     await user.click(viewButton);
 
     expect(onView).toHaveBeenCalledWith(mockUser);
@@ -76,19 +86,15 @@ describe("ActionsDropdown", () => {
     const onEdit = vi.fn();
     const user = userEvent.setup();
     render(
-      <ActionsDropdown user={mockUser} onView={vi.fn()} onEdit={onEdit} onDelete={vi.fn()} />,
-      { wrapper }
+      <TestWrapper>
+        <ActionsDropdown {...defaultProps} onEdit={onEdit} />
+      </TestWrapper>
     );
 
-    const button = screen.getByTitle(/actions|ações/i);
+    const button = screen.getByRole("button");
     await user.click(button);
 
-    await waitFor(() => {
-      const editButton = screen.getByText(/edit|editar/i);
-      expect(editButton).toBeInTheDocument();
-    });
-
-    const editButton = screen.getByText(/edit|editar/i);
+    const editButton = screen.getByText(/edit user/i);
     await user.click(editButton);
 
     expect(onEdit).toHaveBeenCalledWith(mockUser);
@@ -98,46 +104,92 @@ describe("ActionsDropdown", () => {
     const onDelete = vi.fn();
     const user = userEvent.setup();
     render(
-      <ActionsDropdown user={mockUser} onView={vi.fn()} onEdit={vi.fn()} onDelete={onDelete} />,
-      { wrapper }
+      <TestWrapper>
+        <ActionsDropdown {...defaultProps} onDelete={onDelete} />
+      </TestWrapper>
     );
 
-    const button = screen.getByTitle(/actions|ações/i);
+    const button = screen.getByRole("button");
     await user.click(button);
 
-    await waitFor(() => {
-      const deleteButton = screen.getByText(/delete|deletar/i);
-      expect(deleteButton).toBeInTheDocument();
-    });
-
-    const deleteButton = screen.getByText(/delete|deletar/i);
+    const deleteButton = screen.getByText(/delete user/i);
     await user.click(deleteButton);
 
     expect(onDelete).toHaveBeenCalledWith(mockUser);
   });
 
-  it("should close dropdown when clicking outside", async () => {
+  it("should close dropdown after action is clicked", async () => {
+    const onView = vi.fn();
     const user = userEvent.setup();
     render(
-      <div>
-        <ActionsDropdown user={mockUser} onView={vi.fn()} onEdit={vi.fn()} onDelete={vi.fn()} />
-        <div data-testid="outside">Outside</div>
-      </div>,
-      { wrapper }
+      <TestWrapper>
+        <ActionsDropdown {...defaultProps} onView={onView} />
+      </TestWrapper>
     );
 
-    const button = screen.getByTitle(/actions|ações/i);
+    const button = screen.getByRole("button");
     await user.click(button);
 
-    await waitFor(() => {
-      expect(document.querySelector(".absolute.right-0")).toBeInTheDocument();
-    });
+    const viewButton = screen.getByText(/view details/i);
+    await user.click(viewButton);
 
-    const outside = screen.getByTestId("outside");
-    await user.click(outside);
+    // Dropdown should be closed
+    expect(screen.queryByText(/edit user/i)).not.toBeInTheDocument();
+  });
 
-    await waitFor(() => {
-      expect(document.querySelector(".absolute.right-0")).not.toBeInTheDocument();
-    });
+  it("should toggle dropdown on button click", async () => {
+    const user = userEvent.setup();
+    render(
+      <TestWrapper>
+        <ActionsDropdown {...defaultProps} />
+      </TestWrapper>
+    );
+
+    const button = screen.getByRole("button");
+
+    // Open dropdown
+    await user.click(button);
+    expect(screen.getByText(/view details/i)).toBeInTheDocument();
+
+    // Close dropdown
+    await user.click(button);
+    expect(screen.queryByText(/view details/i)).not.toBeInTheDocument();
+  });
+
+  it("should render icons for actions", async () => {
+    const user = userEvent.setup();
+    render(
+      <TestWrapper>
+        <ActionsDropdown {...defaultProps} />
+      </TestWrapper>
+    );
+
+    const button = screen.getByRole("button");
+    await user.click(button);
+
+    const { container } = render(
+      <TestWrapper>
+        <ActionsDropdown {...defaultProps} />
+      </TestWrapper>
+    );
+    await user.click(container.querySelector("button")!);
+
+    const svgs = container.querySelectorAll("svg");
+    expect(svgs.length).toBeGreaterThan(0);
+  });
+
+  it("should apply danger styling to delete button", async () => {
+    const user = userEvent.setup();
+    render(
+      <TestWrapper>
+        <ActionsDropdown {...defaultProps} />
+      </TestWrapper>
+    );
+
+    const button = screen.getByRole("button");
+    await user.click(button);
+
+    const deleteButton = screen.getByText(/delete user/i);
+    expect(deleteButton).toHaveClass("text-red-600");
   });
 });

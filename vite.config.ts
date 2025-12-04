@@ -27,7 +27,7 @@ export default defineConfig(({ mode }) => {
       },
       coverage: {
         provider: "v8",
-        reporter: ["text", "json", "html"],
+        reporter: ["text", "json", "html", "lcov"],
         exclude: [
           "node_modules/",
           "build/",
@@ -37,6 +37,10 @@ export default defineConfig(({ mode }) => {
           "**/types/**",
           "**/root.tsx",
           "**/translations/*.ts",
+          "**/test-utils.ts",
+          "**/i18n/index.ts",
+          "**/index.ts",
+          "**/index.tsx",
         ],
       },
     },

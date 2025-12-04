@@ -3,17 +3,17 @@ import { useTranslation } from "~/i18n";
 import type { FeeItem } from "~/types/records";
 
 export interface FeeManagerProps {
-  fees: FeeItem[];
-  onAddFee: () => void;
-  onRemoveFee: (feeId: string) => void;
-  onUpdateFee: (feeId: string, field: "name" | "amount", value: string) => void;
-  disabled?: boolean;
-  feesLabel?: string;
-  addFeeLabel?: string;
-  feeNameLabel?: string;
-  feeNamePlaceholder?: string;
-  feeAmountLabel?: string;
-  feeAmountPlaceholder?: string;
+  readonly fees: FeeItem[];
+  readonly onAddFee: () => void;
+  readonly onRemoveFee: (feeId: string) => void;
+  readonly onUpdateFee: (feeId: string, field: "name" | "amount", value: string) => void;
+  readonly disabled?: boolean;
+  readonly feesLabel?: string;
+  readonly addFeeLabel?: string;
+  readonly feeNameLabel?: string;
+  readonly feeNamePlaceholder?: string;
+  readonly feeAmountLabel?: string;
+  readonly feeAmountPlaceholder?: string;
 }
 
 export function FeeManager({

@@ -2,13 +2,13 @@ import { type ReactNode } from "react";
 import { COLORS } from "../constants";
 
 interface HeadingProps {
-  children: ReactNode;
-  level?: 1 | 2 | 3 | 4;
-  color?: "primary" | "secondary" | "dark" | "custom";
-  customColor?: string;
-  className?: string;
-  highlight?: string;
-  highlightColor?: string;
+  readonly children: ReactNode;
+  readonly level?: 1 | 2 | 3 | 4;
+  readonly color?: "primary" | "secondary" | "dark" | "custom";
+  readonly customColor?: string;
+  readonly className?: string;
+  readonly highlight?: string;
+  readonly highlightColor?: string;
 }
 
 const levelStyles = {
@@ -41,7 +41,7 @@ export function Heading({
   const content =
     highlight && typeof children === "string"
       ? children.split(highlight).map((part, index, array) => (
-          <span key={index}>
+          <span key={`${part}-${index}`}>
             {part}
             {index < array.length - 1 && <span style={{ color: highlightColor }}>{highlight}</span>}
           </span>

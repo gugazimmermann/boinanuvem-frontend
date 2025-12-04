@@ -1,7 +1,7 @@
 import type { CEPData, AddressFormData } from "~/types";
 import { maskCEP } from "./masks";
 
-export type { AddressFormData };
+export type { AddressFormData } from "~/types";
 
 export function mapCEPDataToAddressForm(
   data: CEPData,

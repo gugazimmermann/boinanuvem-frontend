@@ -11,6 +11,7 @@ export default tseslint.config(
       "node_modules/**",
       ".react-router/**",
       "dist/**",
+      ".scannerwork/**",
       "*.config.js",
       "*.config.ts",
     ],

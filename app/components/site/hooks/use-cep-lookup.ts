@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { CEPData, UseCEPLookupOptions, UseCEPLookupReturn } from "~/types";
 
-export type { CEPData, UseCEPLookupOptions, UseCEPLookupReturn };
+export type { CEPData, UseCEPLookupOptions, UseCEPLookupReturn } from "~/types";
 
 export function useCEPLookup(cep: string, options: UseCEPLookupOptions = {}): UseCEPLookupReturn {
   const { debounceMs = 800, onSuccess, onError, enabled = true } = options;
@@ -19,7 +19,7 @@ export function useCEPLookup(cep: string, options: UseCEPLookupOptions = {}): Us
   }, [onSuccess, onError]);
 
   const formatCEP = useCallback((value: string): string => {
-    return value.replace(/\D/g, "");
+    return value.replaceAll(/\D/g, "");
   }, []);
 
   const fetchCEP = useCallback(

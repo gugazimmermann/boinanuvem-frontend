@@ -91,7 +91,7 @@ export default [
     route(ROUTE_NAMES.MOVEMENTS_VIEW, "routes/dashboard/movements.$movementId.tsx"),
     route(ROUTE_NAMES.OBSERVATIONS_VIEW, "routes/dashboard/observations.$observationId.tsx"),
     route(ROUTE_NAMES.PROFILE, "routes/dashboard/profile.tsx"),
-    route(ROUTE_NAMES.USER_PROFILE, "routes/dashboard/profile.user.$userId.tsx"),
+    route(ROUTE_NAMES.USER_PROFILE, "routes/dashboard/profile.$userId.tsx"),
     route(ROUTE_NAMES.TEAM, "routes/dashboard/team.tsx"),
     route(ROUTE_NAMES.TEAM_NEW, "routes/dashboard/team.new.tsx"),
     route(ROUTE_NAMES.TEAM_EDIT, "routes/dashboard/team.edit.$userId.tsx"),

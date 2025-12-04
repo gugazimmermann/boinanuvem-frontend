@@ -2,9 +2,9 @@ import { type ReactNode } from "react";
 import { Link } from "react-router";
 
 interface DropdownMenuItemProps {
-  href?: string;
-  onClick?: () => void;
-  children: ReactNode;
+  readonly href?: string;
+  readonly onClick?: () => void;
+  readonly children: ReactNode;
 }
 
 export function DropdownMenuItem({ href, onClick, children }: DropdownMenuItemProps) {

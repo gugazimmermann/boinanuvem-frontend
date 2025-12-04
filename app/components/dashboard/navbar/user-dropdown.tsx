@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
+import { useClickOutside } from "~/hooks/use-click-outside";
 import { useNavigate } from "react-router";
 import { AvatarButton } from "./avatar-button";
 import { DropdownMenu } from "./dropdown-menu";
@@ -24,10 +25,10 @@ type MenuItem =
     };
 
 interface UserDropdownProps {
-  name?: string;
-  email?: string;
-  initial?: string;
-  menuItems?: MenuItem[];
+  readonly name?: string;
+  readonly email?: string;
+  readonly initial?: string;
+  readonly menuItems?: MenuItem[];
 }
 
 const createMenuItems = (
@@ -45,14 +46,18 @@ const createMenuItems = (
   items.push({ label: t.userDropdown.userProfile, href: `${ROUTES.PROFILE}?tab=user` });
 
   if (isMainUser) {
-    items.push({ label: t.userDropdown.team, href: ROUTES.TEAM });
-    items.push({ label: t.userDropdown.payments, href: ROUTES.PAYMENTS });
+    items.push(
+      { label: t.userDropdown.team, href: ROUTES.TEAM },
+      { label: t.userDropdown.payments, href: ROUTES.PAYMENTS }
+    );
   }
 
-  items.push({ divider: true });
-  items.push({ label: t.userDropdown.help, href: ROUTES.HELP });
-  items.push({ divider: true });
-  items.push({ label: t.userDropdown.logout, onClick: onLogout });
+  items.push(
+    { divider: true },
+    { label: t.userDropdown.help, href: ROUTES.HELP },
+    { divider: true },
+    { label: t.userDropdown.logout, onClick: onLogout }
+  );
 
   return items;
 };
@@ -62,7 +67,7 @@ const getInitials = (name: string): string => {
   const parts = name.trim().split(/\s+/);
   if (parts.length === 0) return "U";
   if (parts.length === 1) return parts[0][0]?.toUpperCase() || "U";
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  return (parts[0][0] + (parts.at(-1)?.[0] ?? "")).toUpperCase();
 };
 
 export function UserDropdown({ name, email, initial, menuItems }: UserDropdownProps) {
@@ -85,21 +90,7 @@ export function UserDropdown({ name, email, initial, menuItems }: UserDropdownPr
 
   const items = menuItems || createMenuItems(t as TranslationKey, handleLogout, currentUser);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isOpen]);
+  useClickOutside(dropdownRef as React.RefObject<HTMLElement>, isOpen, () => setIsOpen(false));
 
   return (
     <div className="relative inline-block" ref={dropdownRef}>
@@ -112,10 +103,13 @@ export function UserDropdown({ name, email, initial, menuItems }: UserDropdownPr
         <hr className="border-gray-200 dark:border-gray-700" />
         {items.map((item, index) =>
           item.divider ? (
-            <hr key={index} className="border-gray-200 dark:border-gray-700" />
+            <hr
+              key={`divider-${index}-${items.length}`}
+              className="border-gray-200 dark:border-gray-700"
+            />
           ) : (
             <DropdownMenuItem
-              key={index}
+              key={item.href || item.label || `item-${item.label}-${index}`}
               href={item.href}
               onClick={item.onClick || (item.href ? () => setIsOpen(false) : undefined)}
             >

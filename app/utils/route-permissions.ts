@@ -110,7 +110,7 @@ export function getRoutePermission(route: string): string | null {
   }
 
   for (const [routePattern, permission] of Object.entries(ROUTE_PERMISSION_MAP)) {
-    const pattern = routePattern.replace(/:[^/]+/g, "[^/]+");
+    const pattern = routePattern.replaceAll(/:[^/]+/g, "[^/]+");
     const regex = new RegExp(`^${pattern}$`);
 
     if (regex.test(route)) {

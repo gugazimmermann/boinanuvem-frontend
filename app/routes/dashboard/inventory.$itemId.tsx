@@ -12,7 +12,7 @@ import {
   type SortDirection,
   type TableAction,
   FileUpload,
-  Alert,
+  FixedAlert,
 } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
@@ -39,15 +39,10 @@ import { InventoryItemDetails as InventoryItemDetailsComponent } from "~/compone
 import { getUnitLabel, formatInventoryDate } from "~/utils/inventory-utils";
 import { formatCurrency } from "~/utils/formatting";
 import { mockCompanies } from "~/mocks/companies";
+import { createViewMeta } from "~/utils/route-helpers";
 
 export function meta() {
-  return [
-    { title: "Detalhes do Item de Estoque - Boi na Nuvem" },
-    {
-      name: "description",
-      content: "Visualização detalhada do item de estoque",
-    },
-  ];
+  return createViewMeta("Item de Estoque", "Visualização detalhada do item de estoque");
 }
 
 export async function loader({ request }: { request: Request }) {
@@ -65,8 +60,13 @@ export default function InventoryItemDetailsPage() {
 
   const formatDateTime = (dateString: string) => {
     const dateFormat = language === "en" ? "MM/dd/yyyy HH:mm" : "dd/MM/yyyy HH:mm";
+    const getDateLocale = () => {
+      if (language === "en") return enUS;
+      if (language === "es") return es;
+      return ptBR;
+    };
     return format(new Date(dateString), dateFormat, {
-      locale: language === "en" ? enUS : language === "es" ? es : ptBR,
+      locale: getDateLocale(),
     });
   };
 
@@ -87,6 +87,12 @@ export default function InventoryItemDetailsPage() {
   const itemsPerPage = 10;
   const [searchValue, setSearchValue] = useState("");
   const [showObservationForm, setShowObservationForm] = useState(false);
+
+  const getLocaleString = (lang: string): string => {
+    if (lang === "en") return "en-US";
+    if (lang === "es") return "es-ES";
+    return "pt-BR";
+  };
   const [observationText, setObservationText] = useState("");
   const [observationFiles, setObservationFiles] = useState<File[]>([]);
   const [isSubmittingObservation, setIsSubmittingObservation] = useState(false);
@@ -179,13 +185,14 @@ export default function InventoryItemDetailsPage() {
     );
   });
 
-  const sortedMovements = [...filteredMovements].sort((a, b) => {
+  const sortedMovements = filteredMovements.toSorted((a, b) => {
     if (!sortState.column || !sortState.direction) {
       return new Date(b.date).getTime() - new Date(a.date).getTime();
     }
 
-    let aValue: string | number | undefined;
-    let bValue: string | number | undefined;
+    type SortValue = string | number | undefined;
+    let aValue: SortValue;
+    let bValue: SortValue;
 
     if (sortState.column === "date") {
       aValue = new Date(a.date).getTime();
@@ -194,16 +201,17 @@ export default function InventoryItemDetailsPage() {
       aValue = a.quantity;
       bValue = b.quantity;
     } else {
-      aValue = a[sortState.column as keyof InventoryMovement] as string | number | undefined;
-      bValue = b[sortState.column as keyof InventoryMovement] as string | number | undefined;
+      type InventorySortValue = string | number | undefined;
+      aValue = a[sortState.column as keyof InventoryMovement] as InventorySortValue;
+      bValue = b[sortState.column as keyof InventoryMovement] as InventorySortValue;
     }
 
     if (aValue == null && bValue == null) return 0;
     if (aValue == null) return 1;
     if (bValue == null) return -1;
 
+    const locale = getLocaleString(language);
     let comparison = 0;
-    const locale = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
     if (typeof aValue === "string" && typeof bValue === "string") {
       comparison = aValue.localeCompare(bValue, locale, { sensitivity: "base" });
     } else if (typeof aValue === "number" && typeof bValue === "number") {
@@ -243,13 +251,11 @@ export default function InventoryItemDetailsPage() {
             t.inventory.movements.types[row.type as keyof typeof t.inventory.movements.types] ||
             row.type
           }
-          variant={
-            row.type === InventoryMovementType.PURCHASE
-              ? "success"
-              : row.type === InventoryMovementType.CONSUMPTION
-                ? "danger"
-                : "default"
-          }
+          variant={(() => {
+            if (row.type === InventoryMovementType.PURCHASE) return "success";
+            if (row.type === InventoryMovementType.CONSUMPTION) return "danger";
+            return "default";
+          })()}
         />
       ),
     },
@@ -427,7 +433,9 @@ export default function InventoryItemDetailsPage() {
               setSearchValue("");
             },
             clearSearchLabel: t.common.clearSearch,
-            onAddNew: () => navigate(getInventoryMovementNewRoute(item.id)),
+            onAddNew: () => {
+              navigate(getInventoryMovementNewRoute(item.id));
+            },
             addNewLabel: t.inventory.movements.addMovement,
           }}
         />
@@ -449,13 +457,14 @@ export default function InventoryItemDetailsPage() {
               return false;
             });
 
-            const sortedObservations = [...filteredObservations].sort((a, b) => {
+            const sortedObservations = filteredObservations.toSorted((a, b) => {
               if (!observationsSortState.column || !observationsSortState.direction) {
                 return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
               }
 
-              let aValue: string | number | undefined;
-              let bValue: string | number | undefined;
+              type SortValue = string | number | undefined;
+              let aValue: SortValue;
+              let bValue: SortValue;
 
               if (observationsSortState.column === "date") {
                 aValue = new Date(a.createdAt).getTime();
@@ -478,8 +487,8 @@ export default function InventoryItemDetailsPage() {
               if (aValue == null) return 1;
               if (bValue == null) return -1;
 
+              const locale = getLocaleString(language);
               let comparison = 0;
-              const locale = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
               if (typeof aValue === "string" && typeof bValue === "string") {
                 comparison = aValue.localeCompare(bValue, locale, {
                   sensitivity: "base",
@@ -584,11 +593,7 @@ export default function InventoryItemDetailsPage() {
 
             return (
               <div className="space-y-8">
-                {observationAlert && (
-                  <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-                    <Alert title={observationAlert.title} variant={observationAlert.variant} />
-                  </div>
-                )}
+                <FixedAlert alertMessage={observationAlert} />
 
                 {showObservationForm && (
                   <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
@@ -681,7 +686,7 @@ export default function InventoryItemDetailsPage() {
                     header={{
                       title: "Observações",
                       badge: {
-                        label: `${filteredObservations.length} ${filteredObservations.length !== 1 ? "Observações" : "Observação"}`,
+                        label: `${filteredObservations.length} ${filteredObservations.length === 1 ? "Observação" : "Observações"}`,
                         variant: "primary",
                       },
                       description: "Gerencie as observações deste item de estoque",

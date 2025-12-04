@@ -1,13 +1,13 @@
 import { useTranslation } from "~/i18n";
 
 export interface DateRangeFilterProps {
-  startDate: string;
-  endDate: string;
-  onStartDateChange: (value: string) => void;
-  onEndDateChange: (value: string) => void;
-  startDateLabel?: string;
-  endDateLabel?: string;
-  className?: string;
+  readonly startDate: string;
+  readonly endDate: string;
+  readonly onStartDateChange: (value: string) => void;
+  readonly onEndDateChange: (value: string) => void;
+  readonly startDateLabel?: string;
+  readonly endDateLabel?: string;
+  readonly className?: string;
 }
 
 export function DateRangeFilter({

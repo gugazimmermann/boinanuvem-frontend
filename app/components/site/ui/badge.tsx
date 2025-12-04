@@ -1,9 +1,9 @@
 import { type ReactNode } from "react";
 
 interface BadgeProps {
-  children: ReactNode;
-  color?: string;
-  className?: string;
+  readonly children: ReactNode;
+  readonly color?: string;
+  readonly className?: string;
 }
 
 export function Badge({ children, color, className = "" }: BadgeProps) {

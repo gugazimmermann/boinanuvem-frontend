@@ -12,52 +12,52 @@ import {
 import { useListPage } from "~/hooks/use-list-page";
 import { useAlert } from "~/hooks/use-alert";
 import { useDeleteHandler } from "~/hooks/use-delete-handler";
-import { useTableFilters } from "~/hooks/use-table-filters";
+import { useTableFilters, type FilterValue } from "~/hooks/use-table-filters";
 import { usePermissions } from "~/utils/permissions";
 import type { Language } from "~/types";
 
 export interface RegistrationListPageConfig<
   T extends { id: string; name?: string; status?: "active" | "inactive" },
 > {
-  data: T[];
-  columns: TableColumn<T>[];
+  readonly data: T[];
+  readonly columns: TableColumn<T>[];
 
-  title: string;
-  description: string;
-  badgeLabel: (count: number) => string;
-  searchPlaceholder: string;
-  emptyStateTitle: string;
-  emptyStateDescription: (searchValue: string) => string;
-  emptyStateDescriptionWithoutSearch: string;
-  addButtonLabel: string;
+  readonly title: string;
+  readonly description: string;
+  readonly badgeLabel: (count: number) => string;
+  readonly searchPlaceholder: string;
+  readonly emptyStateTitle: string;
+  readonly emptyStateDescription: (searchValue: string) => string;
+  readonly emptyStateDescriptionWithoutSearch: string;
+  readonly addButtonLabel: string;
 
-  newRoute: string;
-  viewRoute: (id: string) => string;
-  editRoute?: (id: string) => string;
+  readonly newRoute: string;
+  readonly viewRoute: (id: string) => string;
+  readonly editRoute?: (id: string) => string;
 
-  deleteService: (item: T) => boolean;
-  deleteSuccessMessage: string;
-  deleteErrorMessage: string;
-  deleteModalTitle: string;
-  deleteModalMessage: (name: string) => string;
-  deleteModalConfirm: string;
-  deleteModalCancel: string;
-  onDeleteSuccess?: (item: T) => void;
-  onDeleteClick?: (item: T) => void;
+  readonly deleteService: (item: T) => boolean;
+  readonly deleteSuccessMessage: string;
+  readonly deleteErrorMessage: string;
+  readonly deleteModalTitle: string;
+  readonly deleteModalMessage: (name: string) => string;
+  readonly deleteModalConfirm: string;
+  readonly deleteModalCancel: string;
+  readonly onDeleteSuccess?: (item: T) => void;
+  readonly onDeleteClick?: (item: T) => void;
 
-  permissionSection: "registration" | "records" | "breedings" | "finances";
-  permissionResource: string;
+  readonly permissionSection: "registration" | "records" | "breedings" | "finances";
+  readonly permissionResource: string;
 
-  language?: Language;
-  itemsPerPage?: number;
-  initialSortColumn?: string;
-  initialSortDirection?: SortDirection;
-  searchFields?: Array<keyof T | ((item: T) => string)>;
-  customFilter?: (item: T, searchValue: string, activeFilter: string) => boolean;
-  filterOptions?: Array<{ label: string; value: string }>;
-  onRowClick?: (item: T) => void;
-  headerActions?: TableAction[];
-  additionalFilters?: TableFilter[];
+  readonly language?: Language;
+  readonly itemsPerPage?: number;
+  readonly initialSortColumn?: string;
+  readonly initialSortDirection?: SortDirection;
+  readonly searchFields?: Array<keyof T | ((item: T) => string)>;
+  readonly customFilter?: (item: T, searchValue: string, activeFilter: string) => boolean;
+  readonly filterOptions?: Array<{ label: string; value: FilterValue }>;
+  readonly onRowClick?: (item: T) => void;
+  readonly headerActions?: TableAction[];
+  readonly additionalFilters?: TableFilter[];
 }
 
 export function RegistrationListPage<
@@ -165,7 +165,9 @@ export function RegistrationListPage<
               />
             </svg>
           ),
-          onClick: () => navigate(newRoute),
+          onClick: () => {
+            navigate(newRoute);
+          },
         },
       ]
     : [];
@@ -216,7 +218,9 @@ export function RegistrationListPage<
             : emptyStateDescriptionWithoutSearch,
           onClearSearch: listPage.clearSearch,
           clearSearchLabel: "Clear search",
-          onAddNew: () => navigate(newRoute),
+          onAddNew: () => {
+            navigate(newRoute);
+          },
           addNewLabel: addButtonLabel,
         }}
       />

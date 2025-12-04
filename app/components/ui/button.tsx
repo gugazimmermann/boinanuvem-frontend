@@ -195,8 +195,9 @@ export const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonPr
           className={combinedClassName}
           style={variantStyle}
           onMouseEnter={(e) => {
-            if (variantStyle["--hover-bg"]) {
-              e.currentTarget.style.backgroundColor = variantStyle["--hover-bg"] as string;
+            const hoverBg = variantStyle["--hover-bg"];
+            if (hoverBg) {
+              e.currentTarget.style.backgroundColor = hoverBg;
             }
           }}
           onMouseLeave={(e) => {
@@ -225,8 +226,9 @@ export const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonPr
         className={combinedClassName}
         style={variantStyle}
         onMouseEnter={(e) => {
-          if (variantStyle["--hover-bg"]) {
-            e.currentTarget.style.backgroundColor = variantStyle["--hover-bg"] as string;
+          const hoverBg = variantStyle["--hover-bg"];
+          if (hoverBg) {
+            e.currentTarget.style.backgroundColor = hoverBg;
           }
         }}
         onMouseLeave={(e) => {

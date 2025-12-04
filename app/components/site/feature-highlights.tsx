@@ -22,7 +22,7 @@ export function FeatureHighlights() {
           const isEven = index % 2 === 0;
           return (
             <div
-              key={index}
+              key={feature.title}
               className={`p-6 lg:p-8 rounded-2xl transition-all duration-300 hover:shadow-xl hover:-translate-y-2 ${
                 isEven
                   ? "bg-white dark:bg-gray-800 border-2 border-primary/20 hover:border-primary/40"

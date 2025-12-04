@@ -2,18 +2,18 @@ import type { TableFilter } from "./types";
 import type { ReactNode } from "react";
 
 interface TableFiltersProps {
-  filters?: TableFilter[];
-  search?: {
-    placeholder?: string;
-    value: string;
-    onChange: (value: string) => void;
+  readonly filters?: TableFilter[];
+  readonly search?: {
+    readonly placeholder?: string;
+    readonly value: string;
+    readonly onChange: (value: string) => void;
   };
-  selectedCountLabel?: ReactNode;
-  selectedActionButton?: ReactNode;
-  additionalContent?: ReactNode;
-  middleContent?: ReactNode;
-  rightContent?: ReactNode;
-  belowContent?: ReactNode;
+  readonly selectedCountLabel?: ReactNode;
+  readonly selectedActionButton?: ReactNode;
+  readonly additionalContent?: ReactNode;
+  readonly middleContent?: ReactNode;
+  readonly rightContent?: ReactNode;
+  readonly belowContent?: ReactNode;
 }
 
 export function TableFilters({
@@ -34,6 +34,7 @@ export function TableFilters({
     !hasSearch &&
     !selectedCountLabel &&
     !selectedActionButton &&
+    !additionalContent &&
     !rightContent &&
     !middleContent &&
     !belowContent

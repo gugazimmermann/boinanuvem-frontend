@@ -47,6 +47,9 @@ function generateBreedingsForProperty(propertyId: string, startBreedingIndex: nu
     return birth?.gender === "male";
   });
   let breedingIndex = startBreedingIndex;
+  const actualToday = new Date();
+  const actualTwoYearsAgo = new Date(actualToday);
+  actualTwoYearsAgo.setFullYear(actualTwoYearsAgo.getFullYear() - 2);
   const twoYearsAgo = new Date(TODAY);
   twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
 
@@ -71,14 +74,39 @@ function generateBreedingsForProperty(propertyId: string, startBreedingIndex: nu
       let breedingDate: Date;
 
       if (b === 0) {
+        // First breeding: generate within last 18 months from actual today
         const monthsAgo = Math.floor(Math.random() * 18);
-        breedingDate = new Date(TODAY);
+        breedingDate = new Date(actualToday);
         breedingDate.setMonth(breedingDate.getMonth() - monthsAgo);
         breedingDate.setDate(breedingDate.getDate() + Math.floor(Math.random() * 30) - 15);
 
-        if (breedingDate > TODAY) {
-          breedingDate = new Date(TODAY);
+        // Ensure not in future (date-only comparison)
+        const breedingDateOnlyCheck = new Date(
+          breedingDate.getFullYear(),
+          breedingDate.getMonth(),
+          breedingDate.getDate()
+        );
+        const actualTodayOnlyCheck = new Date(
+          actualToday.getFullYear(),
+          actualToday.getMonth(),
+          actualToday.getDate()
+        );
+        if (breedingDateOnlyCheck.getTime() > actualTodayOnlyCheck.getTime()) {
+          breedingDate = new Date(actualTodayOnlyCheck);
           breedingDate.setDate(breedingDate.getDate() - Math.floor(Math.random() * 30));
+          breedingDate.setHours(0, 0, 0, 0);
+        }
+
+        // Ensure not before two years ago (date-only comparison)
+        const actualTwoYearsAgoOnlyCheck = new Date(
+          actualTwoYearsAgo.getFullYear(),
+          actualTwoYearsAgo.getMonth(),
+          actualTwoYearsAgo.getDate()
+        );
+        if (breedingDateOnlyCheck.getTime() < actualTwoYearsAgoOnlyCheck.getTime()) {
+          breedingDate = new Date(actualTwoYearsAgoOnlyCheck);
+          breedingDate.setDate(breedingDate.getDate() + Math.floor(Math.random() * 30));
+          breedingDate.setHours(0, 0, 0, 0);
         }
       } else {
         const previousDate = breedingDates[b - 1];
@@ -91,17 +119,118 @@ function generateBreedingsForProperty(propertyId: string, startBreedingIndex: nu
         breedingDate.setMonth(breedingDate.getMonth() - monthsBefore);
         breedingDate.setDate(breedingDate.getDate() + Math.floor(Math.random() * 30) - 15);
 
-        if (breedingDate < twoYearsAgo) {
-          const maxDate = new Date(previousDate);
-          maxDate.setMonth(maxDate.getMonth() - 12);
-          if (maxDate > twoYearsAgo) {
-            breedingDate = new Date(maxDate);
-            breedingDate.setDate(breedingDate.getDate() + Math.floor(Math.random() * 30) - 15);
-          } else {
+        // Ensure at least 12 months before previous date (date-only comparison)
+        const previousDateOnly = new Date(
+          previousDate.getFullYear(),
+          previousDate.getMonth(),
+          previousDate.getDate()
+        );
+        const minAllowedDate = new Date(previousDateOnly);
+        minAllowedDate.setMonth(minAllowedDate.getMonth() - 12);
+        const breedingDateOnlyCheck2 = new Date(
+          breedingDate.getFullYear(),
+          breedingDate.getMonth(),
+          breedingDate.getDate()
+        );
+        if (breedingDateOnlyCheck2.getTime() > minAllowedDate.getTime()) {
+          breedingDate = new Date(minAllowedDate);
+          breedingDate.setHours(0, 0, 0, 0);
+        }
+
+        // Ensure not before two years ago (date-only comparison)
+        const actualTwoYearsAgoOnlyCheck2 = new Date(
+          actualTwoYearsAgo.getFullYear(),
+          actualTwoYearsAgo.getMonth(),
+          actualTwoYearsAgo.getDate()
+        );
+        if (breedingDateOnlyCheck2.getTime() < actualTwoYearsAgoOnlyCheck2.getTime()) {
+          // Check if we can fit this breeding while maintaining 12 months gap
+          const maxPossibleDate = new Date(previousDateOnly);
+          maxPossibleDate.setMonth(maxPossibleDate.getMonth() - 12);
+          maxPossibleDate.setHours(0, 0, 0, 0);
+
+          if (maxPossibleDate.getTime() < actualTwoYearsAgoOnlyCheck2.getTime()) {
+            // Cannot fit another breeding with 12 month gap, stop here
             numBreedings = b;
             break;
+          } else {
+            // Use the latest possible date that's still 12 months before previous
+            breedingDate = new Date(maxPossibleDate);
+            // Add some variation but keep it before previous date by at least 12 months
+            const dayOffset = Math.floor(Math.random() * 16) - 15; // Range: -15 to 0
+            breedingDate.setDate(breedingDate.getDate() + dayOffset);
+            breedingDate.setHours(0, 0, 0, 0);
+
+            // Re-verify 12 month gap (date-only)
+            const recheckMinDate = new Date(previousDateOnly);
+            recheckMinDate.setMonth(recheckMinDate.getMonth() - 12);
+            recheckMinDate.setHours(0, 0, 0, 0);
+            const breedingDateOnlyRecheck = new Date(
+              breedingDate.getFullYear(),
+              breedingDate.getMonth(),
+              breedingDate.getDate()
+            );
+            if (breedingDateOnlyRecheck.getTime() > recheckMinDate.getTime()) {
+              breedingDate = new Date(recheckMinDate);
+              breedingDate.setHours(0, 0, 0, 0);
+            }
+
+            // Re-verify two years ago limit (date-only)
+            const breedingDateOnlyFinal = new Date(
+              breedingDate.getFullYear(),
+              breedingDate.getMonth(),
+              breedingDate.getDate()
+            );
+            if (breedingDateOnlyFinal.getTime() < actualTwoYearsAgoOnlyCheck2.getTime()) {
+              breedingDate = new Date(actualTwoYearsAgoOnlyCheck2);
+              breedingDate.setHours(0, 0, 0, 0);
+            }
           }
         }
+      }
+
+      // Final validation: Ensure the date is within the last two years from the actual current date
+      // Use date-only comparison to avoid time component issues
+      const breedingDateOnly = new Date(
+        breedingDate.getFullYear(),
+        breedingDate.getMonth(),
+        breedingDate.getDate()
+      );
+      const actualTwoYearsAgoOnly = new Date(
+        actualTwoYearsAgo.getFullYear(),
+        actualTwoYearsAgo.getMonth(),
+        actualTwoYearsAgo.getDate()
+      );
+      const actualTodayOnly = new Date(
+        actualToday.getFullYear(),
+        actualToday.getMonth(),
+        actualToday.getDate()
+      );
+
+      // Ensure the date is not before two years ago (using date-only comparison)
+      if (breedingDateOnly.getTime() < actualTwoYearsAgoOnly.getTime()) {
+        breedingDate = new Date(actualTwoYearsAgoOnly);
+        breedingDate.setHours(0, 0, 0, 0);
+      }
+      // Ensure the date is not in the future (using date-only comparison)
+      if (breedingDateOnly.getTime() > actualTodayOnly.getTime()) {
+        breedingDate = new Date(actualTodayOnly);
+        breedingDate.setHours(0, 0, 0, 0);
+      }
+
+      // Final double-check: ensure date-only is within bounds
+      const finalDateOnly = new Date(
+        breedingDate.getFullYear(),
+        breedingDate.getMonth(),
+        breedingDate.getDate()
+      );
+      if (finalDateOnly.getTime() < actualTwoYearsAgoOnly.getTime()) {
+        breedingDate = new Date(actualTwoYearsAgoOnly);
+        breedingDate.setHours(0, 0, 0, 0);
+      }
+      if (finalDateOnly.getTime() > actualTodayOnly.getTime()) {
+        breedingDate = new Date(actualTodayOnly);
+        breedingDate.setHours(0, 0, 0, 0);
       }
 
       breedingDates.push(breedingDate);

@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router";
-import { Input, Button, Alert, Select } from "~/components/ui";
+import { Input, Button, FixedAlert, Select } from "~/components/ui";
 import { useTranslation } from "~/i18n";
+import { ResponsibleSelectionSection } from "~/components/dashboard/shared";
 import { ROUTES } from "~/routes.config";
 import { addSanitaryControl } from "~/services/sanitary-controls.service";
 import { getAnimalsByCompanyId, getAnimalById } from "~/services/animals.service";
@@ -19,6 +20,7 @@ import { mockCompanies } from "~/mocks/companies";
 import { mockEmployees } from "~/mocks/employees";
 import { mockServiceProviders } from "~/mocks/service-providers";
 import { getUnitLabel } from "~/utils/inventory-utils";
+import { useAlert } from "~/hooks/use-alert";
 
 export function meta() {
   return [
@@ -107,10 +109,7 @@ export default function NewSanitaryControl() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [alertMessage, setAlertMessage] = useState<{
-    title: string;
-    variant: "success" | "error" | "warning" | "info";
-  } | null>(null);
+  const { alertMessage, showAlert } = useAlert();
   const [selectedMedicineId, setSelectedMedicineId] = useState<string>("");
 
   const availableMedicinesVaccines = useMemo(() => {
@@ -164,16 +163,6 @@ export default function NewSanitaryControl() {
       return item.usageAmount;
     }
     return 0;
-  };
-
-  const showAlert = (
-    title: string,
-    variant: "success" | "error" | "warning" | "info" = "success"
-  ) => {
-    setAlertMessage({ title, variant });
-    setTimeout(() => {
-      setAlertMessage(null);
-    }, 3000);
   };
 
   const handleChange = (field: keyof typeof formData, value: string | string[]) => {
@@ -246,43 +235,105 @@ export default function NewSanitaryControl() {
     }));
   };
 
-  const validate = () => {
-    const newErrors: Record<string, string> = {};
-
+  const validateBasicFields = (newErrors: Record<string, string>): void => {
     if (formData.animalIds.length === 0) {
       newErrors.animalIds = t.medicineAdministrations.new.errors?.animalRequired;
     }
-
     if (!formData.date) {
       newErrors.date = t.medicineAdministrations.new.errors?.dateRequired;
     }
-
     if (formData.appliedMedicines.length === 0) {
       newErrors.appliedMedicines =
         t.medicineAdministrations.new.errors?.atLeastOneMedicine ||
         "Pelo menos um medicamento ou vacina deve ser aplicado";
     }
+  };
+
+  const validateMedicineStockForAnimal = (
+    animalId: string,
+    appliedMedicines: Array<{ itemId: string; quantity: number }>,
+    newErrors: Record<string, string>
+  ): void => {
+    const locationInfo = getAnimalLocationInfo(animalId);
+    if (!locationInfo.propertyId) return;
+
+    for (const applied of appliedMedicines) {
+      const item = getInventoryItemById(applied.itemId);
+      if (item) {
+        const currentStock = getCurrentStock(applied.itemId, locationInfo.propertyId);
+        if (currentStock < applied.quantity) {
+          newErrors[`medicine_${applied.itemId}_${animalId}`] =
+            t.medicineAdministrations.new.insufficientStock;
+        }
+      }
+    }
+  };
+
+  const validate = () => {
+    const newErrors: Record<string, string> = {};
+    validateBasicFields(newErrors);
 
     if (formData.appliedMedicines.length > 0 && formData.animalIds.length > 0) {
       for (const animalId of formData.animalIds) {
-        const locationInfo = getAnimalLocationInfo(animalId);
-        if (locationInfo.propertyId) {
-          for (const applied of formData.appliedMedicines) {
-            const item = getInventoryItemById(applied.itemId);
-            if (item) {
-              const currentStock = getCurrentStock(applied.itemId, locationInfo.propertyId);
-              if (currentStock < applied.quantity) {
-                newErrors[`medicine_${applied.itemId}_${animalId}`] =
-                  t.medicineAdministrations.new.insufficientStock;
-              }
-            }
-          }
-        }
+        validateMedicineStockForAnimal(animalId, formData.appliedMedicines, newErrors);
       }
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const processAppliedMedicines = (animalWeight: number) => {
+    return formData.appliedMedicines.map((applied) => {
+      const item = getInventoryItemById(applied.itemId);
+      const calculatedDosage = item ? calculateDosage(item, animalWeight) : applied.quantity;
+      return {
+        itemId: applied.itemId,
+        quantity: applied.quantity,
+        calculatedDosage,
+      };
+    });
+  };
+
+  const recordInventoryMovements = (animalId: string) => {
+    const locationInfo = getAnimalLocationInfo(animalId);
+    if (!formData.appliedMedicines.length || !locationInfo.propertyId) {
+      return;
+    }
+
+    for (const applied of formData.appliedMedicines) {
+      const item = getInventoryItemById(applied.itemId);
+      if (!item) continue;
+
+      addInventoryMovement({
+        itemId: applied.itemId,
+        type: InventoryMovementType.CONSUMPTION,
+        quantity: applied.quantity,
+        date: formData.date,
+        propertyId: locationInfo.propertyId,
+        locationId: locationInfo.locationId ?? undefined,
+        companyId,
+        description: t.medicineAdministrations.new.appliedDescription,
+        unitPrice: item.unitPrice,
+      });
+    }
+  };
+
+  const processAnimalAdministration = (animalId: string) => {
+    const animalWeight = getAnimalLatestWeight(animalId);
+    const appliedMedicinesData = processAppliedMedicines(animalWeight);
+
+    const administrationData = {
+      animalId,
+      date: formData.date,
+      appliedMedicines: appliedMedicinesData,
+      employeeIds: formData.employeeIds,
+      serviceProviderIds: formData.serviceProviderIds,
+      observation: formData.observation || undefined,
+      companyId,
+    };
+    addSanitaryControl(administrationData);
+    recordInventoryMovements(animalId);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -292,47 +343,7 @@ export default function NewSanitaryControl() {
     setIsSubmitting(true);
     try {
       for (const animalId of formData.animalIds) {
-        const animalWeight = getAnimalLatestWeight(animalId);
-        const appliedMedicinesData = formData.appliedMedicines.map((applied) => {
-          const item = getInventoryItemById(applied.itemId);
-          const calculatedDosage = item ? calculateDosage(item, animalWeight) : applied.quantity;
-          return {
-            itemId: applied.itemId,
-            quantity: applied.quantity,
-            calculatedDosage,
-          };
-        });
-
-        const administrationData = {
-          animalId,
-          date: formData.date,
-          appliedMedicines: appliedMedicinesData,
-          employeeIds: formData.employeeIds,
-          serviceProviderIds: formData.serviceProviderIds,
-          observation: formData.observation || undefined,
-          companyId,
-        };
-        addSanitaryControl(administrationData);
-
-        const locationInfo = getAnimalLocationInfo(animalId);
-        if (formData.appliedMedicines.length > 0 && locationInfo.propertyId) {
-          for (const applied of formData.appliedMedicines) {
-            const item = getInventoryItemById(applied.itemId);
-            if (item) {
-              addInventoryMovement({
-                itemId: applied.itemId,
-                type: InventoryMovementType.CONSUMPTION,
-                quantity: applied.quantity,
-                date: formData.date,
-                propertyId: locationInfo.propertyId,
-                locationId: locationInfo.locationId ? locationInfo.locationId : undefined,
-                companyId,
-                description: t.medicineAdministrations.new.appliedDescription,
-                unitPrice: item.unitPrice,
-              });
-            }
-          }
-        }
+        processAnimalAdministration(animalId);
       }
 
       const animalCount = formData.animalIds.length;
@@ -364,11 +375,7 @@ export default function NewSanitaryControl() {
 
   return (
     <div className="space-y-8">
-      {alertMessage && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-          <Alert title={alertMessage.title} variant={alertMessage.variant} />
-        </div>
-      )}
+      <FixedAlert alertMessage={alertMessage} />
 
       <div className="flex items-center justify-between">
         <div>
@@ -588,7 +595,7 @@ export default function NewSanitaryControl() {
                                       step="0.01"
                                       value={applied.quantity.toString()}
                                       onChange={(e) => {
-                                        const qty = parseFloat(e.target.value) || 0;
+                                        const qty = Number.parseFloat(e.target.value) || 0;
                                         updateMedicineQuantity(applied.itemId, qty);
                                       }}
                                       disabled={isSubmitting}
@@ -671,72 +678,23 @@ export default function NewSanitaryControl() {
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t.medicineAdministrations.new.employeesLabel}
-              </label>
-              <div className="border border-gray-300 dark:border-gray-600 rounded-md p-4 max-h-48 overflow-y-auto">
-                {employees.length === 0 ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {t.medicineAdministrations.new.noEmployees}
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {employees.map((employee) => (
-                      <label
-                        key={employee.id}
-                        className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={formData.employeeIds.includes(employee.id)}
-                          onChange={() => toggleSelection("employeeIds", employee.id)}
-                          disabled={isSubmitting}
-                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-                        />
-                        <span className="text-sm text-gray-900 dark:text-gray-100">
-                          {employee.name}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t.medicineAdministrations.new.serviceProvidersLabel}
-              </label>
-              <div className="border border-gray-300 dark:border-gray-600 rounded-md p-4 max-h-48 overflow-y-auto">
-                {serviceProviders.length === 0 ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {t.medicineAdministrations.new.noServiceProviders ||
-                      "Nenhum prestador de serviço cadastrado"}
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {serviceProviders.map((serviceProvider) => (
-                      <label
-                        key={serviceProvider.id}
-                        className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={formData.serviceProviderIds.includes(serviceProvider.id)}
-                          onChange={() => toggleSelection("serviceProviderIds", serviceProvider.id)}
-                          disabled={isSubmitting}
-                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-                        />
-                        <span className="text-sm text-gray-900 dark:text-gray-100">
-                          {serviceProvider.name}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+            <ResponsibleSelectionSection
+              employees={employees}
+              serviceProviders={serviceProviders}
+              selectedEmployeeIds={formData.employeeIds}
+              selectedServiceProviderIds={formData.serviceProviderIds}
+              onToggleEmployee={(id) => toggleSelection("employeeIds", id)}
+              onToggleServiceProvider={(id) => toggleSelection("serviceProviderIds", id)}
+              disabled={isSubmitting}
+              translationKeys={{
+                employeesLabel: t.medicineAdministrations.new.employeesLabel,
+                serviceProvidersLabel: t.medicineAdministrations.new.serviceProvidersLabel,
+                noEmployees: t.medicineAdministrations.new.noEmployees,
+                noServiceProviders:
+                  t.medicineAdministrations.new.noServiceProviders ||
+                  "Nenhum prestador de serviço cadastrado",
+              }}
+            />
           </div>
 
           <div className="mt-4">

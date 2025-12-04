@@ -68,19 +68,19 @@ export const Pricing = memo(function Pricing({ plans }: PricingProps) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs text-gray-600 dark:text-gray-400">
           <div className="flex items-center justify-center">
             <span className="mr-1">🌐</span>
-            Multi-idioma (PT/EN/ES)
+            <span>Multi-idioma (PT/EN/ES)</span>
           </div>
           <div className="flex items-center justify-center">
             <span className="mr-1">🌙</span>
-            Modo Escuro/Claro
+            <span>Modo Escuro/Claro</span>
           </div>
           <div className="flex items-center justify-center">
             <span className="mr-1">📱</span>
-            Design Responsivo
+            <span>Design Responsivo</span>
           </div>
           <div className="flex items-center justify-center">
             <span className="mr-1">☁️</span>
-            Armazenamento na Nuvem
+            <span>Armazenamento na Nuvem</span>
           </div>
         </div>
       </div>
@@ -175,9 +175,9 @@ export const Pricing = memo(function Pricing({ plans }: PricingProps) {
                   </p>
                 </div>
                 <ul className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar flex-1">
-                  {plan.features.map((feature, idx) => (
+                  {plan.features.map((feature) => (
                     <li
-                      key={idx}
+                      key={feature}
                       className="flex items-start text-sm text-gray-700 dark:text-gray-300"
                     >
                       <span className="mr-2 text-primary mt-0.5 flex-shrink-0">✓</span>

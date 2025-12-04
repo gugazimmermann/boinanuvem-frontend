@@ -1,12 +1,32 @@
 import { useMemo } from "react";
 import { useLanguage } from "~/contexts/language-context";
 import { getLocaleForDateTime } from "~/utils/formatting";
-import type { SortDirection } from "~/components/ui";
+import { getStringValue } from "~/utils/string-helpers";
 import type { CashFlow, AccountsPayable, AccountsReceivable } from "~/types";
 
 export interface SortState {
   column: string | null;
-  direction: SortDirection;
+  direction: "asc" | "desc";
+}
+
+function compareFinanceValues(aValue: unknown, bValue: unknown, locale: string): number {
+  if (aValue == null && bValue == null) return 0;
+  if (aValue == null) return 1;
+  if (bValue == null) return -1;
+
+  if (typeof aValue === "string" && typeof bValue === "string") {
+    return aValue.localeCompare(bValue, locale, {
+      sensitivity: "base",
+    });
+  }
+
+  if (typeof aValue === "number" && typeof bValue === "number") {
+    return aValue - bValue;
+  }
+
+  const aStr = getStringValue(aValue);
+  const bStr = getStringValue(bValue);
+  return aStr.localeCompare(bStr, locale);
 }
 
 export function useFinanceSort<T extends CashFlow | AccountsPayable | AccountsReceivable>(
@@ -24,22 +44,7 @@ export function useFinanceSort<T extends CashFlow | AccountsPayable | AccountsRe
     return [...data].sort((a, b) => {
       const aValue = a[sortState.column!];
       const bValue = b[sortState.column!];
-
-      if (aValue == null && bValue == null) return 0;
-      if (aValue == null) return 1;
-      if (bValue == null) return -1;
-
-      let comparison = 0;
-      if (typeof aValue === "string" && typeof bValue === "string") {
-        comparison = aValue.localeCompare(bValue, localeForDateTime, {
-          sensitivity: "base",
-        });
-      } else if (typeof aValue === "number" && typeof bValue === "number") {
-        comparison = aValue - bValue;
-      } else {
-        comparison = String(aValue).localeCompare(String(bValue), localeForDateTime);
-      }
-
+      const comparison = compareFinanceValues(aValue, bValue, localeForDateTime);
       return sortState.direction === "asc" ? comparison : -comparison;
     });
   }, [data, sortState, localeForDateTime]);

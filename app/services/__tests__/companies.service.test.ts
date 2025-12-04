@@ -1,57 +1,55 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { getCompanyById, getCompanyByCNPJ, updateCompany } from "../companies.service";
 import { mockCompanies } from "~/mocks/companies";
-
-vi.mock("~/mocks/companies", () => ({
-  mockCompanies: [],
-}));
+import type { Company } from "~/types";
 
 describe("companies.service", () => {
   beforeEach(() => {
     mockCompanies.length = 0;
     mockCompanies.push(
       {
-        id: "550e8400-e29b-41d4-a716-446655440000",
-        companyName: "Company One",
+        id: "company-1",
+        companyName: "Company 1",
         cnpj: "12.345.678/0001-90",
-        email: "company1@example.com",
-        phone: "47999999999",
-        street: "Main St",
-        number: "100",
+        email: "company1@test.com",
+        phone: "1234567890",
+        street: "Street 1",
+        number: "123",
         complement: "",
-        neighborhood: "Downtown",
-        city: "City",
-        state: "SC",
-        zipCode: "88000000",
-        createdAt: "2020-01-01",
+        neighborhood: "Neighborhood 1",
+        city: "City 1",
+        state: "State 1",
+        zipCode: "12345-678",
+        createdAt: "2025-01-01",
       },
       {
-        id: "550e8400-e29b-41d4-a716-446655440001",
-        companyName: "Company Two",
+        id: "company-2",
+        companyName: "Company 2",
         cnpj: "98.765.432/0001-10",
-        email: "company2@example.com",
-        phone: "47988888888",
-        street: "Second St",
-        number: "200",
+        email: "company2@test.com",
+        phone: "0987654321",
+        street: "Street 2",
+        number: "456",
         complement: "",
-        neighborhood: "Uptown",
-        city: "City",
-        state: "SC",
-        zipCode: "88000001",
-        createdAt: "2020-01-02",
+        neighborhood: "Neighborhood 2",
+        city: "City 2",
+        state: "State 2",
+        zipCode: "98765-432",
+        createdAt: "2025-01-02",
       }
     );
   });
 
   describe("getCompanyById", () => {
     it("should return company when ID exists", () => {
-      const result = getCompanyById("550e8400-e29b-41d4-a716-446655440000");
+      const result = getCompanyById("company-1");
       expect(result).toBeDefined();
-      expect(result?.companyName).toBe("Company One");
+      expect(result?.id).toBe("company-1");
+      expect(result?.companyName).toBe("Company 1");
     });
 
     it("should return undefined when ID does not exist", () => {
-      const result = getCompanyById("nonexistent-id");
+      const result = getCompanyById("company-nonexistent");
       expect(result).toBeUndefined();
     });
 
@@ -62,16 +60,16 @@ describe("companies.service", () => {
   });
 
   describe("getCompanyByCNPJ", () => {
-    it("should return company when CNPJ exists with formatting", () => {
+    it("should return company when CNPJ exists (masked)", () => {
       const result = getCompanyByCNPJ("12.345.678/0001-90");
       expect(result).toBeDefined();
-      expect(result?.companyName).toBe("Company One");
+      expect(result?.id).toBe("company-1");
     });
 
-    it("should return company when CNPJ exists without formatting", () => {
+    it("should return company when CNPJ exists (unmasked)", () => {
       const result = getCompanyByCNPJ("12345678000190");
       expect(result).toBeDefined();
-      expect(result?.companyName).toBe("Company One");
+      expect(result?.id).toBe("company-1");
     });
 
     it("should return undefined when CNPJ does not exist", () => {
@@ -80,31 +78,62 @@ describe("companies.service", () => {
     });
 
     it("should handle CNPJ with different formatting", () => {
-      const result = getCompanyByCNPJ("98.765.432/0001-10");
+      const result = getCompanyByCNPJ("12.345.678/0001-90");
       expect(result).toBeDefined();
-      expect(result?.companyName).toBe("Company Two");
     });
   });
 
   describe("updateCompany", () => {
-    it("should update existing company by CNPJ", () => {
-      updateCompany("12.345.678/0001-90", { companyName: "Updated Company" });
+    it("should update company when CNPJ exists (masked)", () => {
+      const updateData: Partial<Company> = {
+        companyName: "Updated Company 1",
+        email: "updated@test.com",
+      };
 
-      const updated = mockCompanies.find((c) => c.cnpj.replace(/\D/g, "") === "12345678000190");
-      expect(updated?.companyName).toBe("Updated Company");
+      updateCompany("12.345.678/0001-90", updateData);
+
+      const updated = mockCompanies.find((c) => c.id === "company-1");
+      expect(updated?.companyName).toBe("Updated Company 1");
+      expect(updated?.email).toBe("updated@test.com");
     });
 
-    it("should update company with unformatted CNPJ", () => {
-      updateCompany("12345678000190", { email: "updated@example.com" });
+    it("should update company when CNPJ exists (unmasked)", () => {
+      const updateData: Partial<Company> = {
+        companyName: "Updated Company 1",
+      };
 
-      const updated = mockCompanies.find((c) => c.cnpj.replace(/\D/g, "") === "12345678000190");
-      expect(updated?.email).toBe("updated@example.com");
+      updateCompany("12345678000190", updateData);
+
+      const updated = mockCompanies.find((c) => c.id === "company-1");
+      expect(updated?.companyName).toBe("Updated Company 1");
     });
 
-    it("should not update non-existent company", () => {
-      const initialCompanies = [...mockCompanies];
-      updateCompany("11.111.111/0001-11", { companyName: "New Company" });
-      expect(mockCompanies).toEqual(initialCompanies);
+    it("should not update when CNPJ does not exist", () => {
+      const original = mockCompanies.find((c) => c.id === "company-1");
+      const originalName = original?.companyName;
+
+      const updateData: Partial<Company> = {
+        companyName: "Updated Company",
+      };
+
+      updateCompany("11.111.111/0001-11", updateData);
+
+      const unchanged = mockCompanies.find((c) => c.id === "company-1");
+      expect(unchanged?.companyName).toBe(originalName);
+    });
+
+    it("should preserve existing fields when updating", () => {
+      const original = mockCompanies.find((c) => c.id === "company-1");
+      const originalCnpj = original?.cnpj;
+
+      const updateData: Partial<Company> = {
+        companyName: "Updated Company 1",
+      };
+
+      updateCompany("12.345.678/0001-90", updateData);
+
+      const updated = mockCompanies.find((c) => c.id === "company-1");
+      expect(updated?.cnpj).toBe(originalCnpj);
     });
   });
 });

@@ -1,12 +1,12 @@
 import { useParams, useNavigate, useSearchParams } from "react-router";
-import { useMemo } from "react";
-import { differenceInMonths, differenceInDays, format } from "date-fns";
-import { ptBR } from "date-fns/locale/pt-BR";
-import { enUS } from "date-fns/locale/en-US";
-import { es } from "date-fns/locale/es";
+import { format } from "date-fns";
+import React from "react";
 import { Button, Table, Tooltip, StatusBadge, type TableColumn } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
+import { useDateLocale } from "~/hooks/use-date-locale";
+import { getLocaleForDateTime } from "~/utils/formatting";
+import { EntityListCard } from "~/components/dashboard/shared/entity-list-card";
 import {
   ROUTES,
   getPropertyViewRoute,
@@ -15,21 +15,23 @@ import {
   getServiceProviderViewRoute,
   getAnimalViewRoute,
 } from "~/routes.config";
-import { getEmployeeById as getEmployeeByIdForCheck } from "~/services/employees.service";
-import { getServiceProviderById as getServiceProviderByIdForCheck } from "~/services/service-providers.service";
+import {
+  getEmployeeById,
+  getEmployeeById as getEmployeeByIdForCheck,
+} from "~/services/employees.service";
+import {
+  getServiceProviderById,
+  getServiceProviderById as getServiceProviderByIdForCheck,
+} from "~/services/service-providers.service";
 import { getLocationMovementById } from "~/services/location-movements.service";
 import { getAnimalMovementById } from "~/services/animal-movements.service";
 import { getPropertyById } from "~/services/properties.service";
 import { getLocationById } from "~/services/locations.service";
-import { getEmployeeById } from "~/services/employees.service";
-import { getServiceProviderById } from "~/services/service-providers.service";
 import { getAnimalById } from "~/services/animals.service";
-import { getBirthByAnimalId } from "~/services/births.service";
-import { getWeighingsByAnimalId } from "~/services/weighings.service";
-import { getBreedingsByAnimalId } from "~/services/breedings.service";
 import type { LocationMovement } from "~/types/location-movement";
 import type { AnimalMovement } from "~/types/animal-movement";
 import type { Animal } from "~/types";
+import { createAnimalTableColumns } from "~/utils/animal-table-columns";
 
 export function meta() {
   return [
@@ -52,19 +54,9 @@ export default function MovementDetails() {
   const [searchParams] = useSearchParams();
   const t = useTranslation();
   const { language } = useLanguage();
+  const dateLocale = useDateLocale();
 
-  const dateLocale = useMemo(() => {
-    switch (language) {
-      case "en":
-        return enUS;
-      case "es":
-        return es;
-      default:
-        return ptBR;
-    }
-  }, [language]);
-
-  const localeForDateTime = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
+  const localeForDateTime = getLocaleForDateTime(language);
   const locationMovement = movementId ? getLocationMovementById(movementId) : undefined;
   const animalMovement = movementId ? getAnimalMovementById(movementId) : undefined;
   const movement = locationMovement || animalMovement;
@@ -91,16 +83,18 @@ export default function MovementDetails() {
   }
 
   const property = getPropertyById(movement.propertyId);
-  const locations = isLocationMovement
-    ? (movement as LocationMovement).locationIds
+  const locations = (() => {
+    if (isLocationMovement) {
+      return (movement as LocationMovement).locationIds
         .map((id) => getLocationById(id))
-        .filter((loc): loc is NonNullable<typeof loc> => loc !== undefined)
-    : isAnimalMovement
-      ? (() => {
-          const location = getLocationById((movement as AnimalMovement).locationId);
-          return location ? [location] : [];
-        })()
-      : [];
+        .filter((loc): loc is NonNullable<typeof loc> => loc !== undefined);
+    }
+    if (isAnimalMovement) {
+      const location = getLocationById((movement as AnimalMovement).locationId);
+      return location ? [location] : [];
+    }
+    return [];
+  })();
   const employees = movement.employeeIds
     .map((id) => getEmployeeById(id))
     .filter((emp): emp is NonNullable<typeof emp> => emp !== undefined);
@@ -203,127 +197,51 @@ export default function MovementDetails() {
                 <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
                   {t.properties.table.name}
                 </p>
-                <span
-                  className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-900/50 mt-1"
+                <button
+                  type="button"
+                  className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-900/50 mt-1 border-0"
                   onClick={() => navigate(getPropertyViewRoute(property.id))}
                 >
                   {property.name} ({property.code})
-                </span>
+                </button>
               </div>
             )}
           </div>
         </div>
 
-        {locations.length > 0 && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-              {t.properties.details.movements.table.locations}
-            </h2>
-            <div className="space-y-2">
-              {locations.map((location) => (
-                <div
-                  key={location.id}
-                  className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
-                  onClick={() => navigate(getLocationViewRoute(location.id))}
-                >
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {location.name}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{location.code}</p>
-                  </div>
-                  <svg
-                    className="w-4 h-4 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        <EntityListCard
+          title={t.properties.details.movements.table.locations}
+          entities={locations.map((location) => ({
+            id: location.id,
+            name: location.name,
+            subtitle: location.code,
+          }))}
+          onEntityClick={(entity) => navigate(getLocationViewRoute(entity.id))}
+        />
 
-        {(employees.length > 0 || serviceProviders.length > 0) && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-              {t.properties.details.movements.table.responsible}
-            </h2>
-            <div className="space-y-2">
-              {employees.map((employee) => (
-                <div
-                  key={employee.id}
-                  className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
-                  onClick={() =>
-                    navigate(`${getEmployeeViewRoute(employee.id)}?fromMovement=${movement.id}`)
-                  }
-                >
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {employee.name}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {t.employees.table.name}
-                    </p>
-                  </div>
-                  <svg
-                    className="w-4 h-4 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                </div>
-              ))}
-              {serviceProviders.map((provider) => (
-                <div
-                  key={provider.id}
-                  className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
-                  onClick={() =>
-                    navigate(
-                      `${getServiceProviderViewRoute(provider.id)}?fromMovement=${movement.id}`
-                    )
-                  }
-                >
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {provider.name}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {t.serviceProviders.table.name}
-                    </p>
-                  </div>
-                  <svg
-                    className="w-4 h-4 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        <EntityListCard
+          title={t.properties.details.movements.table.responsible}
+          entities={[
+            ...employees.map((employee) => ({
+              id: employee.id,
+              name: employee.name,
+              subtitle: t.employees.table.name,
+            })),
+            ...serviceProviders.map((provider) => ({
+              id: provider.id,
+              name: provider.name,
+              subtitle: t.serviceProviders.table.name,
+            })),
+          ]}
+          onEntityClick={(entity) => {
+            const isEmployee = employees.some((e) => e.id === entity.id);
+            if (isEmployee) {
+              navigate(`${getEmployeeViewRoute(entity.id)}?fromMovement=${movement.id}`);
+            } else {
+              navigate(`${getServiceProviderViewRoute(entity.id)}?fromMovement=${movement.id}`);
+            }
+          }}
+        />
 
         {movement.observation && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
@@ -399,280 +317,52 @@ export default function MovementDetails() {
             {t.animals.title} ({animals.length})
           </h2>
           {(() => {
-            const columns: TableColumn<Animal>[] = [
-              {
-                key: "code",
-                label: t.animals.table.registration,
-                sortable: true,
-                render: (_, row) => (
-                  <div>
-                    <h2 className="font-medium text-gray-800 dark:text-gray-200">{row.code}</h2>
-                    <p className="text-sm font-normal text-gray-600 dark:text-gray-400">
-                      {row.registrationNumber}
-                    </p>
-                  </div>
-                ),
-              },
-              {
-                key: "breed",
-                label: t.animals.table.breed,
-                sortable: true,
-                render: (_, row) => {
-                  const birth = getBirthByAnimalId(row.id);
-                  if (!birth || !birth.breed) {
-                    return <span className="text-gray-700 dark:text-gray-300">-</span>;
-                  }
-                  return (
-                    <span className="text-gray-700 dark:text-gray-300">
-                      {t.animals.breeds[birth.breed] || birth.breed}
-                    </span>
-                  );
+            const columns: TableColumn<Animal>[] = createAnimalTableColumns({
+              language,
+              dateLocale,
+              translations: {
+                table: {
+                  registration: t.animals.table.registration,
+                  breed: t.animals.table.breed,
+                  purity: t.animals.table.purity,
+                  gender: t.animals.table.gender,
+                  birthDate: t.animals.table.birthDate,
+                  acquisitionDate: t.animals.table.acquisitionDate,
+                  weight: t.animals.table.weight,
+                  weightInArrobas: t.animals.table.weightInArrobas,
+                  lastWeighingDate: t.animals.table.lastWeighingDate,
+                  gmd: t.animals.table.gmd,
+                  breedingStatus: t.animals.table.breedingStatus,
+                  breedingStatusPregnant: t.animals.table.breedingStatusPregnant,
+                  status: t.animals.table.status,
+                  active: t.animals.table.active,
+                  inactive: t.animals.table.inactive,
+                },
+                breeds: t.animals.breeds,
+                purity: t.animals.purity,
+                gender: t.animals.gender,
+                common: {
+                  month: t.common.month,
+                  months: t.common.months,
+                  daysAgo: t.common.daysAgo,
+                  dailyAverageGain: t.common.dailyAverageGain,
                 },
               },
-              {
-                key: "purity",
-                label: t.animals.table.purity,
-                sortable: true,
-                render: (_, row) => {
-                  const birth = getBirthByAnimalId(row.id);
-                  if (!birth || !birth.purity) {
-                    return <span className="text-gray-700 dark:text-gray-300">-</span>;
-                  }
-                  return (
-                    <span className="text-gray-700 dark:text-gray-300">
-                      {t.animals.purity[birth.purity]}
-                    </span>
-                  );
-                },
+              formatDateFn: (date, lang) => {
+                const dateFormat = lang === "en" ? "MM/dd/yyyy" : "dd/MM/yyyy";
+                return format(date instanceof Date ? date : new Date(date), dateFormat, {
+                  locale: dateLocale,
+                });
               },
-              {
-                key: "gender",
-                label: t.animals.table.gender,
-                sortable: true,
-                render: (_, row) => {
-                  const birth = getBirthByAnimalId(row.id);
-                  if (!birth || !birth.gender) {
-                    return <span className="text-gray-700 dark:text-gray-300">-</span>;
-                  }
-                  return (
-                    <span className="text-gray-700 dark:text-gray-300">
-                      {birth.gender ? t.animals.gender[birth.gender] : "-"}
-                    </span>
-                  );
-                },
-              },
-              {
-                key: "birthDate",
-                label: t.animals.table.birthDate,
-                sortable: true,
-                render: (_, row) => {
-                  const birth = getBirthByAnimalId(row.id);
-                  if (!birth || !birth.birthDate) {
-                    return <span className="text-gray-700 dark:text-gray-300">-</span>;
-                  }
-
-                  const birthDate = new Date(birth.birthDate);
-                  const today = new Date();
-                  const months = differenceInMonths(today, birthDate);
-                  const dateFormat =
-                    language === "en"
-                      ? "MM/dd/yyyy"
-                      : language === "es"
-                        ? "dd/MM/yyyy"
-                        : "dd/MM/yyyy";
-                  const formattedDate = format(birthDate, dateFormat, { locale: dateLocale });
-
-                  return (
-                    <Tooltip content={formattedDate}>
-                      <span className="text-gray-700 dark:text-gray-300 border-b border-dotted border-gray-400 dark:border-gray-500 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
-                        {months} {months === 1 ? t.common.month : t.common.months}
-                      </span>
-                    </Tooltip>
-                  );
-                },
-              },
-              {
-                key: "acquisitionDate",
-                label: t.animals.table.acquisitionDate,
-                sortable: true,
-                render: (_, row) => {
-                  if (!row.acquisitionDate) {
-                    return <span className="text-gray-700 dark:text-gray-300">-</span>;
-                  }
-
-                  const acquisitionDate = new Date(row.acquisitionDate);
-                  const today = new Date();
-                  const months = differenceInMonths(today, acquisitionDate);
-                  const dateFormat =
-                    language === "en"
-                      ? "MM/dd/yyyy"
-                      : language === "es"
-                        ? "dd/MM/yyyy"
-                        : "dd/MM/yyyy";
-                  const formattedDate = format(acquisitionDate, dateFormat, { locale: dateLocale });
-
-                  return (
-                    <Tooltip content={formattedDate}>
-                      <span className="text-gray-700 dark:text-gray-300 border-b border-dotted border-gray-400 dark:border-gray-500 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
-                        {months} {months === 1 ? t.common.month : t.common.months}
-                      </span>
-                    </Tooltip>
-                  );
-                },
-              },
-              {
-                key: "weight",
-                label: t.animals.table.weight,
-                sortable: true,
-                render: (_, row) => {
-                  const weighings = getWeighingsByAnimalId(row.id);
-                  const lastWeighing = weighings.sort(
-                    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-                  )[0];
-                  return (
-                    <span className="text-gray-700 dark:text-gray-300">
-                      {lastWeighing ? `${lastWeighing.weight}` : "-"}
-                    </span>
-                  );
-                },
-              },
-              {
-                key: "weightInArrobas",
-                label: t.animals.table.weightInArrobas,
-                sortable: true,
-                render: (_, row) => {
-                  const weighings = getWeighingsByAnimalId(row.id);
-                  const lastWeighing = weighings.sort(
-                    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-                  )[0];
-                  const weightInArrobas = lastWeighing
-                    ? (lastWeighing.weight / 30).toFixed(2)
-                    : null;
-                  return (
-                    <span className="text-gray-700 dark:text-gray-300">
-                      {weightInArrobas ? `${weightInArrobas}` : "-"}
-                    </span>
-                  );
-                },
-              },
-              {
-                key: "lastWeighingDate",
-                label: t.animals.table.lastWeighingDate,
-                sortable: true,
-                render: (_, row) => {
-                  const weighings = getWeighingsByAnimalId(row.id);
-                  const lastWeighing = weighings.sort(
-                    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-                  )[0];
-                  if (!lastWeighing)
-                    return <span className="text-gray-700 dark:text-gray-300">-</span>;
-
-                  const dateFormat =
-                    language === "en"
-                      ? "MM/dd/yyyy"
-                      : language === "es"
-                        ? "dd/MM/yyyy"
-                        : "dd/MM/yyyy";
-                  const formattedDate = format(new Date(lastWeighing.date), dateFormat, {
-                    locale: dateLocale,
-                  });
-                  const today = new Date();
-                  const weighingDate = new Date(lastWeighing.date);
-                  const daysAgo = differenceInDays(today, weighingDate);
-                  const tooltipText = t.common.daysAgo(daysAgo);
-
-                  return (
-                    <Tooltip content={tooltipText}>
-                      <span className="text-gray-700 dark:text-gray-300 border-b border-dotted border-gray-400 dark:border-gray-500 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
-                        {formattedDate}
-                      </span>
-                    </Tooltip>
-                  );
-                },
-              },
-              {
-                key: "gmd",
-                label: (
-                  <Tooltip content={t.common.dailyAverageGain} position="bottom">
-                    <span className="border-b border-dotted border-gray-400 dark:border-gray-500 hover:border-blue-500 dark:hover:border-blue-400 transition-colors cursor-help">
-                      {t.animals.table.gmd}
-                    </span>
-                  </Tooltip>
-                ),
-                sortable: true,
-                render: (_, row) => {
-                  const weighings = getWeighingsByAnimalId(row.id);
-                  const sortedWeighings = weighings.sort(
-                    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-                  );
-
-                  if (sortedWeighings.length < 2) {
-                    return <span className="text-gray-700 dark:text-gray-300">-</span>;
-                  }
-
-                  const lastWeighing = sortedWeighings[0];
-                  const previousWeighing = sortedWeighings[1];
-
-                  const weightDifference = lastWeighing.weight - previousWeighing.weight;
-                  const daysDifference = differenceInDays(
-                    new Date(lastWeighing.date),
-                    new Date(previousWeighing.date)
-                  );
-
-                  if (daysDifference === 0) {
-                    return <span className="text-gray-700 dark:text-gray-300">-</span>;
-                  }
-
-                  const gpd = (weightDifference / daysDifference).toFixed(2);
-                  return <span className="text-gray-700 dark:text-gray-300">{gpd}</span>;
-                },
-              },
-              {
-                key: "breedingStatus",
-                label: t.animals.table.breedingStatus,
-                sortable: false,
-                render: (_, row) => {
-                  const birth = getBirthByAnimalId(row.id);
-                  if (!birth || birth.gender !== "female") {
-                    return <span className="text-gray-700 dark:text-gray-300">-</span>;
-                  }
-                  const breedings = getBreedingsByAnimalId(row.id);
-                  if (breedings.length === 0) {
-                    return <span className="text-gray-700 dark:text-gray-300">-</span>;
-                  }
-                  const hasConfirmed = breedings.some((b) => b.confirmed === true);
-
-                  if (hasConfirmed) {
-                    return (
-                      <StatusBadge
-                        label={t.animals.table.breedingStatusPregnant}
-                        variant="success"
-                      />
-                    );
-                  } else {
-                    return (
-                      <StatusBadge
-                        label={t.animals.table.breedingStatusPregnant}
-                        variant="warning"
-                      />
-                    );
-                  }
-                },
-              },
-              {
-                key: "status",
-                label: t.animals.table.status,
-                sortable: true,
-                render: (_, row) => (
-                  <StatusBadge
-                    label={
-                      row.status === "active" ? t.animals.table.active : t.animals.table.inactive
-                    }
-                    variant={row.status === "active" ? "success" : "default"}
-                  />
-                ),
-              },
-            ];
+              TooltipComponent: Tooltip as React.ComponentType<{
+                content: string;
+                position?: string;
+                children: React.ReactNode;
+              }>,
+              StatusBadgeComponent: StatusBadge,
+              includeProperties: false,
+              includeActions: false,
+            });
 
             return (
               <Table

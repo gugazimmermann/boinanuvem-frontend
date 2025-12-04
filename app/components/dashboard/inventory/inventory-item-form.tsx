@@ -1,4 +1,4 @@
-import { Input, Select, FileUpload } from "~/components/ui";
+import { Input, Select, FileUpload, FormFieldGroup } from "~/components/ui";
 import type { InventoryItemCategory, Property, Supplier, BankAccount } from "~/types";
 import { InventoryItemCategory as Category, PaymentMethod } from "~/types";
 import type { InventoryFormData } from "~/hooks/use-inventory-form";
@@ -10,14 +10,14 @@ import {
 } from "~/utils/inventory-utils";
 
 export interface InventoryItemFormProps {
-  formData: InventoryFormData;
-  errors: Record<string, string>;
-  isSubmitting: boolean;
-  onFieldChange: (
+  readonly formData: InventoryFormData;
+  readonly errors: Record<string, string>;
+  readonly isSubmitting: boolean;
+  readonly onFieldChange: (
     field: keyof InventoryFormData,
     value: string | boolean | string[] | PaymentMethod
   ) => void;
-  translations: {
+  readonly translations: {
     inventory: {
       table: {
         code: string;
@@ -80,13 +80,13 @@ export interface InventoryItemFormProps {
       };
     };
   };
-  suppliers: Supplier[];
-  properties: Property[];
-  bankAccounts: BankAccount[];
-  showInitialStock?: boolean;
-  showObservation?: boolean;
-  observationFiles?: File[];
-  onObservationFilesChange?: (files: File[]) => void;
+  readonly suppliers: Supplier[];
+  readonly properties: Property[];
+  readonly bankAccounts: BankAccount[];
+  readonly showInitialStock?: boolean;
+  readonly showObservation?: boolean;
+  readonly observationFiles?: File[];
+  readonly onObservationFilesChange?: (files: File[]) => void;
 }
 
 export function InventoryItemForm({
@@ -126,7 +126,7 @@ export function InventoryItemForm({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <FormFieldGroup columns={3}>
         <Input
           label={t.inventory.table.code}
           value={formData.code}
@@ -144,7 +144,7 @@ export function InventoryItemForm({
           className="md:col-span-2"
           required
         />
-      </div>
+      </FormFieldGroup>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -162,7 +162,7 @@ export function InventoryItemForm({
         {errors.description && <p className="mt-1 text-sm text-red-500">{errors.description}</p>}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <FormFieldGroup columns={2}>
         <Select
           label={t.inventory.table.category}
           value={formData.category}
@@ -182,9 +182,9 @@ export function InventoryItemForm({
             required
           />
         )}
-      </div>
+      </FormFieldGroup>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <FormFieldGroup columns={2}>
         <Select
           label={t.inventory.table.unit}
           value={formData.unit}
@@ -205,14 +205,14 @@ export function InventoryItemForm({
           step="0.01"
           placeholder={t.inventory.new.unitPricePlaceholder}
         />
-      </div>
+      </FormFieldGroup>
 
       {formData.category === Category.FERTILIZER && (
         <div className="space-y-4 border-t border-b border-gray-200 dark:border-gray-700 pt-4 pb-4">
           <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
             {t.inventory.new.nitrogenContent || "Nitrogen Content"}
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormFieldGroup columns={2}>
             <Input
               label={t.inventory.new.nitrogenContentLabel || "Nitrogen Content (kg per unit)"}
               type="number"
@@ -224,7 +224,7 @@ export function InventoryItemForm({
               step="0.01"
               placeholder="e.g., 10 (kg of nitrogen per unit)"
             />
-          </div>
+          </FormFieldGroup>
         </div>
       )}
 
@@ -233,7 +233,7 @@ export function InventoryItemForm({
           <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
             {t.inventory.new.usageMethod}
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <FormFieldGroup columns={3}>
             <Input
               label={t.inventory.new.usageAmount}
               type="number"
@@ -261,7 +261,7 @@ export function InventoryItemForm({
               error={errors.usageBasis}
               disabled={isSubmitting}
             />
-          </div>
+          </FormFieldGroup>
         </div>
       )}
 
@@ -302,13 +302,13 @@ export function InventoryItemForm({
               id="createCashFlowTransaction"
               checked={formData.createCashFlowTransaction}
               onChange={(e) => onFieldChange("createCashFlowTransaction", e.target.checked)}
-              disabled={isSubmitting || parseFloat(formData.initialStock || "0") === 0}
+              disabled={isSubmitting || Number.parseFloat(formData.initialStock || "0") === 0}
               className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
             />
             <label
               htmlFor="createCashFlowTransaction"
               className={`text-sm font-medium ${
-                parseFloat(formData.initialStock || "0") === 0
+                Number.parseFloat(formData.initialStock || "0") === 0
                   ? "text-gray-400 dark:text-gray-500"
                   : "text-gray-700 dark:text-gray-300"
               }`}
@@ -318,7 +318,7 @@ export function InventoryItemForm({
           </div>
 
           {formData.createCashFlowTransaction && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormFieldGroup columns={2}>
               <Select
                 label={t.inventory.movements.new.paymentMethod}
                 value={formData.paymentMethod}
@@ -342,7 +342,7 @@ export function InventoryItemForm({
                 error={errors.bankAccountId}
                 disabled={isSubmitting}
               />
-            </div>
+            </FormFieldGroup>
           )}
 
           <div className="flex items-center gap-2">
@@ -351,13 +351,13 @@ export function InventoryItemForm({
               id="createAccountPayable"
               checked={formData.createAccountPayable}
               onChange={(e) => onFieldChange("createAccountPayable", e.target.checked)}
-              disabled={isSubmitting || parseFloat(formData.initialStock || "0") === 0}
+              disabled={isSubmitting || Number.parseFloat(formData.initialStock || "0") === 0}
               className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
             />
             <label
               htmlFor="createAccountPayable"
               className={`text-sm font-medium ${
-                parseFloat(formData.initialStock || "0") === 0
+                Number.parseFloat(formData.initialStock || "0") === 0
                   ? "text-gray-400 dark:text-gray-500"
                   : "text-gray-700 dark:text-gray-300"
               }`}
@@ -367,7 +367,7 @@ export function InventoryItemForm({
           </div>
 
           {formData.createAccountPayable && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <FormFieldGroup columns={3}>
               <Input
                 label={t.inventory.movements.new.dueDate}
                 type="date"
@@ -401,7 +401,7 @@ export function InventoryItemForm({
                 error={errors.accountPayableBankAccountId}
                 disabled={isSubmitting}
               />
-            </div>
+            </FormFieldGroup>
           )}
         </div>
       )}
@@ -431,7 +431,7 @@ export function InventoryItemForm({
         {errors.propertyIds && <p className="mt-1 text-sm text-red-500">{errors.propertyIds}</p>}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <FormFieldGroup columns={3}>
         <div className="flex items-center gap-2 pt-6">
           <input
             type="checkbox"
@@ -468,7 +468,7 @@ export function InventoryItemForm({
           disabled={isSubmitting || !formData.hasExpiration}
           required={formData.hasExpiration}
         />
-      </div>
+      </FormFieldGroup>
 
       {showObservation && (
         <>

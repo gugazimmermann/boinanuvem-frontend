@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { CNPJData, UseCNPJLookupOptions, UseCNPJLookupReturn } from "~/types";
 
-export type { CNPJData, UseCNPJLookupOptions, UseCNPJLookupReturn };
+export type { CNPJData, UseCNPJLookupOptions, UseCNPJLookupReturn } from "~/types";
 
 export function useCNPJLookup(
   cnpj: string,
@@ -22,7 +22,7 @@ export function useCNPJLookup(
   }, [onSuccess, onError]);
 
   const formatCNPJ = useCallback((value: string): string => {
-    return value.replace(/\D/g, "");
+    return value.replaceAll(/\D/g, "");
   }, []);
 
   const fetchCNPJ = useCallback(

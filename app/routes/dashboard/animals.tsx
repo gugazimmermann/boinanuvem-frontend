@@ -1,23 +1,24 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router";
-import { differenceInMonths, differenceInDays } from "date-fns";
 import {
   TableActionButtons,
   AnimalRegistrationModal,
   Tooltip,
   Button,
+  Table,
+  StatusBadge,
+  ConfirmationModal,
+  FixedAlert,
   type TableColumn,
   type TableAction,
+  type TableFilter,
 } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
 import { mockAnimals } from "~/mocks/animals";
 import { deleteAnimal } from "~/services/animals.service";
-import type { Animal } from "~/types";
-import { getPropertyById } from "~/services/properties.service";
-import { getWeighingsByAnimalId } from "~/services/weighings.service";
 import { getBirthByAnimalId } from "~/services/births.service";
-import { getBreedingsByAnimalId } from "~/services/breedings.service";
+import type { Animal } from "~/types";
 import {
   ROUTES,
   getAnimalEditRoute,
@@ -30,7 +31,8 @@ import { createRegistrationMeta, createRegistrationLoader } from "~/utils/route-
 import { useAlert } from "~/hooks/use-alert";
 import { useDeleteHandler } from "~/hooks/use-delete-handler";
 import { useListPage } from "~/hooks/use-list-page";
-import { Table, StatusBadge, ConfirmationModal, Alert, type TableFilter } from "~/components/ui";
+import { useDateLocale } from "~/hooks/use-date-locale";
+import { createAnimalTableColumns } from "~/utils/animal-table-columns";
 
 export function meta() {
   return createRegistrationMeta("Animais", "Gerenciamento de animais do Boi na Nuvem");
@@ -43,6 +45,7 @@ export async function loader({ request }: { request: Request }) {
 export default function Animals() {
   const t = useTranslation();
   const { language } = useLanguage();
+  const dateLocale = useDateLocale();
   const navigate = useNavigate();
   const { canAdd, canEdit, canRemove } = usePermissions();
   const [animals, setAnimals] = useState<Animal[]>([...mockAnimals]);
@@ -101,264 +104,49 @@ export default function Animals() {
   });
 
   const columns: TableColumn<Animal>[] = useMemo(() => {
-    return [
-      {
-        key: "code",
-        label: t.animals.table.registration,
-        sortable: true,
-        render: (_, row) => (
-          <div>
-            <h2 className="font-medium text-gray-800 dark:text-gray-200">{row.code}</h2>
-            <p className="text-sm font-normal text-gray-600 dark:text-gray-400">
-              {row.registrationNumber}
-            </p>
-          </div>
-        ),
-      },
-      {
-        key: "breed",
-        label: t.animals.table.breed,
-        sortable: true,
-        render: (_, row) => {
-          const birth = getBirthByAnimalId(row.id);
-          if (!birth || !birth.breed) {
-            return <span className="text-gray-700 dark:text-gray-300">-</span>;
-          }
-          return (
-            <span className="text-gray-700 dark:text-gray-300">
-              {t.animals.breeds[birth.breed] || birth.breed}
-            </span>
-          );
+    return createAnimalTableColumns({
+      language,
+      dateLocale,
+      translations: {
+        table: {
+          registration: t.animals.table.registration,
+          breed: t.animals.table.breed,
+          purity: t.animals.table.purity,
+          gender: t.animals.table.gender,
+          birthDate: t.animals.table.birthDate,
+          acquisitionDate: t.animals.table.acquisitionDate,
+          weight: t.animals.table.weight,
+          weightInArrobas: t.animals.table.weightInArrobas,
+          lastWeighingDate: t.animals.table.lastWeighingDate,
+          gmd: t.animals.table.gmd,
+          properties: t.animals.table.properties,
+          breedingStatus: t.animals.table.breedingStatus,
+          breedingStatusPregnant: t.animals.table.breedingStatusPregnant,
+          status: t.animals.table.status,
+          active: t.animals.table.active,
+          inactive: t.animals.table.inactive,
+          sold: t.animals.table.sold,
+        },
+        breeds: t.animals.breeds,
+        purity: t.animals.purity,
+        gender: t.animals.gender,
+        common: {
+          month: t.common.month,
+          months: t.common.months,
+          daysAgo: t.common.daysAgo,
+          dailyAverageGain: t.common.dailyAverageGain,
         },
       },
-      {
-        key: "purity",
-        label: t.animals.table.purity,
-        sortable: true,
-        render: (_, row) => {
-          const birth = getBirthByAnimalId(row.id);
-          if (!birth || !birth.purity) {
-            return <span className="text-gray-700 dark:text-gray-300">-</span>;
-          }
-          return (
-            <span className="text-gray-700 dark:text-gray-300">
-              {t.animals.purity[birth.purity]}
-            </span>
-          );
-        },
-      },
-      {
-        key: "gender",
-        label: t.animals.table.gender,
-        sortable: true,
-        render: (_, row) => {
-          const birth = getBirthByAnimalId(row.id);
-          if (!birth || !birth.gender) {
-            return <span className="text-gray-700 dark:text-gray-300">-</span>;
-          }
-          return (
-            <span className="text-gray-700 dark:text-gray-300">
-              {birth.gender ? t.animals.gender[birth.gender] : "-"}
-            </span>
-          );
-        },
-      },
-      {
-        key: "birthDate",
-        label: t.animals.table.birthDate,
-        sortable: true,
-        render: (_, row) => {
-          const birth = getBirthByAnimalId(row.id);
-          if (!birth || !birth.birthDate) {
-            return <span className="text-gray-700 dark:text-gray-300">-</span>;
-          }
-
-          const birthDate = new Date(birth.birthDate);
-          const today = new Date();
-          const months = differenceInMonths(today, birthDate);
-          const formattedDate = formatDate(birthDate, language);
-
-          return (
-            <Tooltip content={formattedDate}>
-              <span className="text-gray-700 dark:text-gray-300 border-b border-dotted border-gray-400 dark:border-gray-500 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
-                {months} {months === 1 ? t.common.month : t.common.months}
-              </span>
-            </Tooltip>
-          );
-        },
-      },
-      {
-        key: "acquisitionDate",
-        label: t.animals.table.acquisitionDate,
-        sortable: true,
-        render: (_, row) => {
-          if (!row.acquisitionDate) {
-            return <span className="text-gray-700 dark:text-gray-300">-</span>;
-          }
-
-          const acquisitionDate = new Date(row.acquisitionDate);
-          const today = new Date();
-          const months = differenceInMonths(today, acquisitionDate);
-          const formattedDate = formatDate(acquisitionDate, language);
-
-          return (
-            <Tooltip content={formattedDate}>
-              <span className="text-gray-700 dark:text-gray-300 border-b border-dotted border-gray-400 dark:border-gray-500 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
-                {months} {months === 1 ? t.common.month : t.common.months}
-              </span>
-            </Tooltip>
-          );
-        },
-      },
-      {
-        key: "weight",
-        label: t.animals.table.weight,
-        sortable: true,
-        render: (_, row) => {
-          const weighings = getWeighingsByAnimalId(row.id);
-          const lastWeighing = weighings.sort(
-            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-          )[0];
-          return (
-            <span className="text-gray-700 dark:text-gray-300">
-              {lastWeighing ? `${lastWeighing.weight}` : "-"}
-            </span>
-          );
-        },
-      },
-      {
-        key: "weightInArrobas",
-        label: t.animals.table.weightInArrobas,
-        sortable: true,
-        render: (_, row) => {
-          const weighings = getWeighingsByAnimalId(row.id);
-          const lastWeighing = weighings.sort(
-            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-          )[0];
-          const weightInArrobas = lastWeighing ? (lastWeighing.weight / 30).toFixed(2) : null;
-          return (
-            <span className="text-gray-700 dark:text-gray-300">
-              {weightInArrobas ? `${weightInArrobas}` : "-"}
-            </span>
-          );
-        },
-      },
-      {
-        key: "lastWeighingDate",
-        label: t.animals.table.lastWeighingDate,
-        sortable: true,
-        render: (_, row) => {
-          const weighings = getWeighingsByAnimalId(row.id);
-          const lastWeighing = weighings.sort(
-            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-          )[0];
-          if (!lastWeighing) return <span className="text-gray-700 dark:text-gray-300">-</span>;
-
-          const formattedDate = formatDate(new Date(lastWeighing.date), language);
-          const today = new Date();
-          const weighingDate = new Date(lastWeighing.date);
-          const daysAgo = differenceInDays(today, weighingDate);
-          const tooltipText = t.common.daysAgo(daysAgo);
-
-          return (
-            <Tooltip content={tooltipText}>
-              <span className="text-gray-700 dark:text-gray-300 border-b border-dotted border-gray-400 dark:border-gray-500 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
-                {formattedDate}
-              </span>
-            </Tooltip>
-          );
-        },
-      },
-      {
-        key: "gmd",
-        label: (
-          <Tooltip content={t.common.dailyAverageGain} position="bottom">
-            <span className="border-b border-dotted border-gray-400 dark:border-gray-500 hover:border-blue-500 dark:hover:border-blue-400 transition-colors cursor-help">
-              {t.animals.table.gmd}
-            </span>
-          </Tooltip>
-        ),
-        sortable: true,
-        render: (_, row) => {
-          const weighings = getWeighingsByAnimalId(row.id);
-          const sortedWeighings = weighings.sort(
-            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-          );
-
-          if (sortedWeighings.length < 2) {
-            return <span className="text-gray-700 dark:text-gray-300">-</span>;
-          }
-
-          const lastWeighing = sortedWeighings[0];
-          const previousWeighing = sortedWeighings[1];
-
-          const weightDifference = lastWeighing.weight - previousWeighing.weight;
-          const daysDifference = differenceInDays(
-            new Date(lastWeighing.date),
-            new Date(previousWeighing.date)
-          );
-
-          if (daysDifference === 0) {
-            return <span className="text-gray-700 dark:text-gray-300">-</span>;
-          }
-
-          const gpd = (weightDifference / daysDifference).toFixed(2);
-          return <span className="text-gray-700 dark:text-gray-300">{gpd}</span>;
-        },
-      },
-      {
-        key: "properties",
-        label: t.animals.table.properties,
-        sortable: false,
-        render: (_, row) => {
-          const property = getPropertyById(row.propertyId);
-          return (
-            <span className="text-gray-700 dark:text-gray-300">
-              {property ? property.name : "-"}
-            </span>
-          );
-        },
-      },
-      {
-        key: "breedingStatus",
-        label: t.animals.table.breedingStatus,
-        sortable: false,
-        render: (_, row) => {
-          const birth = getBirthByAnimalId(row.id);
-          if (!birth || birth.gender !== "female") {
-            return <span className="text-gray-700 dark:text-gray-300">-</span>;
-          }
-          const breedings = getBreedingsByAnimalId(row.id);
-          if (breedings.length === 0) {
-            return <span className="text-gray-700 dark:text-gray-300">-</span>;
-          }
-          const hasConfirmed = breedings.some((b) => b.confirmed === true);
-
-          if (hasConfirmed) {
-            return <StatusBadge label={t.animals.table.breedingStatusPregnant} variant="success" />;
-          } else {
-            return <StatusBadge label={t.animals.table.breedingStatusPregnant} variant="warning" />;
-          }
-        },
-      },
-      {
-        key: "status",
-        label: t.animals.table.status,
-        sortable: true,
-        render: (_, row) => {
-          let label: string = t.animals.table.active;
-          let variant: "success" | "default" | "warning" = "success";
-          if (row.status === "inactive") {
-            label = t.animals.table.inactive;
-            variant = "default";
-          } else if (row.status === "sold") {
-            label = t.animals.table.sold || "Vendido";
-            variant = "warning";
-          }
-          return <StatusBadge label={label} variant={variant} />;
-        },
-      },
-      {
+      formatDateFn: formatDate,
+      TooltipComponent: Tooltip as React.ComponentType<{
+        content: string;
+        position?: string;
+        children: React.ReactNode;
+      }>,
+      StatusBadgeComponent: StatusBadge,
+      includeProperties: true,
+      includeActions: true,
+      actionsColumn: {
         key: "actions",
         label: "",
         headerClassName: "relative",
@@ -371,8 +159,20 @@ export default function Animals() {
           />
         ),
       },
-    ];
-  }, [t, language, navigate, canEdit, canRemove, deleteHandler]);
+      onStatusRender: (animal) => {
+        let label: string = t.animals.table.active;
+        let variant: "success" | "default" | "warning" = "success";
+        if (animal.status === "inactive") {
+          label = t.animals.table.inactive;
+          variant = "default";
+        } else if (animal.status === "sold") {
+          label = t.animals.table.sold || "Vendido";
+          variant = "warning";
+        }
+        return { label, variant };
+      },
+    });
+  }, [t, language, dateLocale, navigate, canEdit, canRemove, deleteHandler]);
 
   const headerActions: TableAction[] = canAdd("registration", "animals")
     ? [
@@ -487,11 +287,11 @@ export default function Animals() {
           selectedRows: selectedAnimals,
           onSelectionChange: (newSelection) => {
             const stringSet = new Set<string>();
-            newSelection.forEach((id) => {
+            for (const id of newSelection) {
               if (typeof id === "string") {
                 stringSet.add(id);
               }
-            });
+            }
             setSelectedAnimals(stringSet);
           },
           getRowId: (row) => row.id,
@@ -509,11 +309,7 @@ export default function Animals() {
         }}
       />
 
-      {alertMessage && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-          <Alert title={alertMessage.title} variant={alertMessage.variant} />
-        </div>
-      )}
+      <FixedAlert alertMessage={alertMessage} />
 
       <ConfirmationModal
         isOpen={deleteHandler.isDeleteModalOpen}
@@ -521,7 +317,7 @@ export default function Animals() {
         onConfirm={deleteHandler.handleDelete}
         title={t.animals.deleteModal.title}
         message={t.animals.deleteModal.message(
-          (deleteHandler.selectedItem as Animal | null)?.registrationNumber || ""
+          deleteHandler.selectedItem?.registrationNumber || ""
         )}
         confirmLabel={t.animals.deleteModal.confirm}
         cancelLabel={t.animals.deleteModal.cancel}

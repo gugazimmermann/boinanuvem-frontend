@@ -1,14 +1,13 @@
-import { parseISO } from "date-fns";
-import { format } from "date-fns";
+import { parseISO, format } from "date-fns";
 import { formatRelativeTime, type FormatRelativeTimeOptions } from "~/utils/date";
 
 interface RecentListItemProps {
-  icon: string;
-  date: string;
-  title: string;
-  subtitle?: string;
-  color?: "purple" | "pink" | "emerald";
-  formatRelativeTimeOptions: FormatRelativeTimeOptions;
+  readonly icon: string;
+  readonly date: string;
+  readonly title: string;
+  readonly subtitle?: string;
+  readonly color?: "purple" | "pink" | "emerald";
+  readonly formatRelativeTimeOptions: FormatRelativeTimeOptions;
 }
 
 export function RecentListItem({

@@ -12,14 +12,14 @@ export function useDateFilters() {
   const t = useTranslation();
 
   const yearOptions = useMemo<DateFilterOptions[]>(() => {
-    const options: DateFilterOptions[] = [{ value: "all", label: t.cashFlow.filters.allYears }];
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
 
-    options.push({ value: String(currentYear - 1), label: String(currentYear - 1) });
-    options.push({ value: String(currentYear), label: String(currentYear) });
-
-    return options;
+    return [
+      { value: "all", label: t.cashFlow.filters.allYears },
+      { value: String(currentYear - 1), label: String(currentYear - 1) },
+      { value: String(currentYear), label: String(currentYear) },
+    ];
   }, [t]);
 
   const monthOptions = useMemo<DateFilterOptions[]>(() => {

@@ -1,16 +1,15 @@
-import type { InventoryItem } from "~/types";
+import type { InventoryItem, Language } from "~/types";
 import { InventoryItemCategory } from "~/types";
 import { getSupplierById } from "~/services/suppliers.service";
 import { getPropertyById } from "~/services/properties.service";
 import { getUnitLabel, formatInventoryDate } from "~/utils/inventory-utils";
-import type { Language } from "~/types";
 
 export interface InventoryItemDetailsProps {
-  item: InventoryItem;
-  currentStock: number;
-  isLowStock: boolean;
-  isExpiring: boolean;
-  translations: {
+  readonly item: InventoryItem;
+  readonly currentStock: number;
+  readonly isLowStock: boolean;
+  readonly isExpiring: boolean;
+  readonly translations: {
     inventory: {
       table: {
         code: string;
@@ -41,8 +40,8 @@ export interface InventoryItemDetailsProps {
       units: Record<string, string>;
     };
   };
-  language: Language;
-  onSupplierClick?: (supplierId: string) => void;
+  readonly language: Language;
+  readonly onSupplierClick?: (supplierId: string) => void;
 }
 
 export function InventoryItemDetails({
@@ -116,11 +115,15 @@ export function InventoryItemDetails({
                 </p>
                 <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
                   {item.usageAmount} {getUnitLabel(item.usageUnit, item.usageAmount, t)}{" "}
-                  {item.usageBasis === "per_animal"
-                    ? t.inventory.new.usageBasisOptions?.perAnimal || "por animal"
-                    : item.usageBasis === "per_kg"
-                      ? t.inventory.new.usageBasisOptions?.perKg || "por kg"
-                      : item.usageBasis}
+                  {(() => {
+                    if (item.usageBasis === "per_animal") {
+                      return t.inventory.new.usageBasisOptions?.perAnimal || "por animal";
+                    }
+                    if (item.usageBasis === "per_kg") {
+                      return t.inventory.new.usageBasisOptions?.perKg || "por kg";
+                    }
+                    return item.usageBasis;
+                  })()}
                 </p>
               </div>
             )}

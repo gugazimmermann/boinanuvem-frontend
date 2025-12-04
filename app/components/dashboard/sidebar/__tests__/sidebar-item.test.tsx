@@ -1,157 +1,239 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { SidebarItem } from "../sidebar-item";
 
-const wrapper = ({ children }: { children: React.ReactNode }) => (
-  <MemoryRouter initialEntries={["/dashboard"]}>{children}</MemoryRouter>
-);
+const TestWrapper = ({
+  children,
+  initialEntries,
+}: {
+  children: React.ReactNode;
+  initialEntries?: string[];
+}) => <MemoryRouter initialEntries={initialEntries || ["/dashboard"]}>{children}</MemoryRouter>;
+
+vi.mock("../utils/colors", () => ({
+  DASHBOARD_COLORS: {
+    primary: "#3b82f6",
+  },
+}));
 
 describe("SidebarItem", () => {
-  it("should render sidebar item", () => {
-    render(<SidebarItem translationKey="test" label="Test Item" path="/test" />, { wrapper });
-    expect(screen.getByText("Test Item")).toBeInTheDocument();
+  const defaultProps = {
+    label: "Dashboard",
+    path: "/dashboard",
+    icon: "📊",
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it("should render with icon", () => {
-    render(<SidebarItem translationKey="test" label="Test Item" path="/test" icon="📊" />, {
-      wrapper,
-    });
+  it("should render simple item", () => {
+    render(
+      <TestWrapper>
+        <SidebarItem {...defaultProps} />
+      </TestWrapper>
+    );
+
+    expect(screen.getByText("Dashboard")).toBeInTheDocument();
+  });
+
+  it("should render icon", () => {
+    render(
+      <TestWrapper>
+        <SidebarItem {...defaultProps} />
+      </TestWrapper>
+    );
+
     expect(screen.getByText("📊")).toBeInTheDocument();
   });
 
-  it("should render as link when no subItems", () => {
-    render(<SidebarItem translationKey="test" label="Test Item" path="/test" />, { wrapper });
-    const link = screen.getByText("Test Item").closest("a");
-    expect(link).toHaveAttribute("href", "/test");
-  });
-
-  it("should call onToggle when clicked with subItems", async () => {
-    const user = userEvent.setup();
-    const subItems = [
-      { label: "Sub Item 1", path: "/test/sub1" },
-      { label: "Sub Item 2", path: "/test/sub2" },
-    ];
-    const handleToggle = vi.fn();
-
+  it("should render as link when no subitems", () => {
     render(
-      <SidebarItem
-        translationKey="test"
-        label="Test Item"
-        path="/test"
-        subItems={subItems}
-        isExpanded={false}
-        onToggle={handleToggle}
-      />,
-      { wrapper }
+      <TestWrapper>
+        <SidebarItem {...defaultProps} />
+      </TestWrapper>
     );
 
-    const item = screen.getByText("Test Item").closest("div");
-    if (item) {
-      await user.click(item);
-      expect(handleToggle).toHaveBeenCalledTimes(1);
+    const link = screen.getByText("Dashboard").closest("a");
+    expect(link).toHaveAttribute("href", "/dashboard");
+  });
+
+  it("should apply active style when path matches location", () => {
+    render(
+      <TestWrapper initialEntries={["/dashboard"]}>
+        <SidebarItem {...defaultProps} />
+      </TestWrapper>
+    );
+
+    const link = screen.getByText("Dashboard").closest("a");
+    expect(link).toBeInTheDocument();
+    // Check if style is applied (may be rgb or hex format)
+    const bgColor = link?.getAttribute("style");
+    expect(bgColor).toContain("background");
+  });
+
+  it("should render as button when subitems exist", () => {
+    const subItems = [
+      { label: "Sub Item 1", path: "/sub1" },
+      { label: "Sub Item 2", path: "/sub2" },
+    ];
+
+    render(
+      <TestWrapper>
+        <SidebarItem {...defaultProps} subItems={subItems} />
+      </TestWrapper>
+    );
+
+    const button = screen.getByText("Dashboard").closest("button");
+    expect(button).toBeInTheDocument();
+  });
+
+  it("should toggle expansion when button is clicked", async () => {
+    const onToggle = vi.fn();
+    const subItems = [{ label: "Sub Item 1", path: "/sub1" }];
+
+    const user = userEvent.setup();
+    render(
+      <TestWrapper>
+        <SidebarItem {...defaultProps} subItems={subItems} onToggle={onToggle} />
+      </TestWrapper>
+    );
+
+    const button = screen.getByText("Dashboard").closest("button");
+    if (button) {
+      await user.click(button);
+      expect(onToggle).toHaveBeenCalledTimes(1);
     }
   });
 
-  it("should render subItems when expanded", () => {
-    const subItems = [{ label: "Sub Item", path: "/test/sub" }];
+  it("should render subitems when expanded", () => {
+    const subItems = [
+      { label: "Sub Item 1", path: "/sub1" },
+      { label: "Sub Item 2", path: "/sub2" },
+    ];
 
     render(
-      <SidebarItem
-        translationKey="test"
-        label="Test Item"
-        path="/test"
-        subItems={subItems}
-        isExpanded={true}
-        onToggle={() => {}}
-      />,
-      { wrapper }
+      <TestWrapper>
+        <SidebarItem {...defaultProps} subItems={subItems} isExpanded={true} />
+      </TestWrapper>
     );
 
-    expect(screen.getByText("Sub Item")).toBeInTheDocument();
+    expect(screen.getByText("Sub Item 1")).toBeInTheDocument();
+    expect(screen.getByText("Sub Item 2")).toBeInTheDocument();
   });
 
-  describe("Mobile sidebar close behavior", () => {
-    it("should call onItemClick callback when main item is clicked", async () => {
-      const user = userEvent.setup();
-      const handleItemClick = vi.fn();
+  it("should not render subitems when not expanded", () => {
+    const subItems = [{ label: "Sub Item 1", path: "/sub1" }];
 
-      render(
+    render(
+      <TestWrapper>
+        <SidebarItem {...defaultProps} subItems={subItems} isExpanded={false} />
+      </TestWrapper>
+    );
+
+    expect(screen.queryByText("Sub Item 1")).not.toBeInTheDocument();
+  });
+
+  it("should show chevron icon when subitems exist", () => {
+    const subItems = [{ label: "Sub Item 1", path: "/sub1" }];
+
+    const { container } = render(
+      <TestWrapper>
+        <SidebarItem {...defaultProps} subItems={subItems} />
+      </TestWrapper>
+    );
+
+    const svg = container.querySelector("svg");
+    expect(svg).toBeInTheDocument();
+  });
+
+  it("should rotate chevron when expanded", () => {
+    const subItems = [{ label: "Sub Item 1", path: "/sub1" }];
+
+    const { container } = render(
+      <TestWrapper>
+        <SidebarItem {...defaultProps} subItems={subItems} isExpanded={true} />
+      </TestWrapper>
+    );
+
+    const svg = container.querySelector("svg");
+    expect(svg).toHaveClass("rotate-90");
+  });
+
+  it("should apply active style when subitem path matches location", () => {
+    const subItems = [{ label: "Sub Item 1", path: "/sub1" }];
+
+    render(
+      <TestWrapper initialEntries={["/sub1"]}>
+        <SidebarItem {...defaultProps} subItems={subItems} />
+      </TestWrapper>
+    );
+
+    const button = screen.getByText("Dashboard").closest("button");
+    expect(button).toBeInTheDocument();
+    // Check if style is applied (may be rgb or hex format)
+    const bgColor = button?.getAttribute("style");
+    expect(bgColor).toContain("background");
+  });
+
+  it("should call onItemClick when subitem is clicked", async () => {
+    const onItemClick = vi.fn();
+    const subItems = [{ label: "Sub Item 1", path: "/sub1" }];
+
+    const user = userEvent.setup();
+    render(
+      <TestWrapper>
         <SidebarItem
-          translationKey="test"
-          label="Test Item"
-          path="/test"
-          onItemClick={handleItemClick}
-        />,
-        { wrapper }
-      );
-
-      const link = screen.getByText("Test Item").closest("a");
-      if (link) {
-        await user.click(link);
-        expect(handleItemClick).toHaveBeenCalledTimes(1);
-      }
-    });
-
-    it("should call onItemClick callback when sub-item is clicked", async () => {
-      const user = userEvent.setup();
-      const handleItemClick = vi.fn();
-      const subItems = [{ label: "Sub Item", path: "/test/sub" }];
-
-      render(
-        <SidebarItem
-          translationKey="test"
-          label="Test Item"
-          path="/test"
+          {...defaultProps}
           subItems={subItems}
           isExpanded={true}
-          onToggle={() => {}}
-          onItemClick={handleItemClick}
-        />,
-        { wrapper }
-      );
+          onItemClick={onItemClick}
+        />
+      </TestWrapper>
+    );
 
-      const subItemLink = screen.getByText("Sub Item").closest("a");
-      if (subItemLink) {
-        await user.click(subItemLink);
-        expect(handleItemClick).toHaveBeenCalledTimes(1);
-      }
-    });
+    const subItemLink = screen.getByText("Sub Item 1");
+    await user.click(subItemLink);
+    expect(onItemClick).toHaveBeenCalledTimes(1);
+  });
 
-    it("should not call onItemClick when it is not provided", async () => {
-      const user = userEvent.setup();
+  it("should handle keyboard navigation", async () => {
+    const onToggle = vi.fn();
+    const subItems = [{ label: "Sub Item 1", path: "/sub1" }];
 
-      render(<SidebarItem translationKey="test" label="Test Item" path="/test" />, { wrapper });
+    const user = userEvent.setup();
+    render(
+      <TestWrapper>
+        <SidebarItem {...defaultProps} subItems={subItems} onToggle={onToggle} />
+      </TestWrapper>
+    );
 
-      const link = screen.getByText("Test Item").closest("a");
-      if (link) {
-        await user.click(link);
+    const button = screen.getByText("Dashboard").closest("button");
+    if (button) {
+      button.focus();
+      await user.keyboard("{Enter}");
+      expect(onToggle).toHaveBeenCalled();
+    }
+  });
 
-        expect(link).toBeInTheDocument();
-      }
-    });
+  it("should handle space key for keyboard navigation", async () => {
+    const onToggle = vi.fn();
+    const subItems = [{ label: "Sub Item 1", path: "/sub1" }];
 
-    it("should close sidebar when navigating to a route (mobile behavior)", async () => {
-      const user = userEvent.setup();
-      const handleItemClick = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <TestWrapper>
+        <SidebarItem {...defaultProps} subItems={subItems} onToggle={onToggle} />
+      </TestWrapper>
+    );
 
-      render(
-        <SidebarItem
-          translationKey="test"
-          label="Test Item"
-          path="/test"
-          onItemClick={handleItemClick}
-        />,
-        { wrapper }
-      );
-
-      const link = screen.getByText("Test Item").closest("a");
-      if (link) {
-        await user.click(link);
-
-        expect(handleItemClick).toHaveBeenCalled();
-      }
-    });
+    const button = screen.getByText("Dashboard").closest("button");
+    if (button) {
+      button.focus();
+      await user.keyboard(" ");
+      expect(onToggle).toHaveBeenCalled();
+    }
   });
 });

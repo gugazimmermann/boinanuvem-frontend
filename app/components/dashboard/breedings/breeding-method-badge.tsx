@@ -3,8 +3,8 @@ import type { BreedingMethod } from "~/types";
 import { getBreedingMethodLabel } from "~/utils/breeding";
 
 export interface BreedingMethodBadgeProps {
-  method: BreedingMethod;
-  className?: string;
+  readonly method: BreedingMethod;
+  readonly className?: string;
 }
 
 export function BreedingMethodBadge({ method, className = "" }: BreedingMethodBadgeProps) {

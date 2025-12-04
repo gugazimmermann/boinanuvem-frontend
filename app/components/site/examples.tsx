@@ -32,8 +32,8 @@ export function Examples() {
           proporcionando visão completa, análises avançadas e controle total da sua fazenda.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {FEATURES_LIST.map((feature, index) => (
-            <div key={index} className="flex items-start gap-3">
+          {FEATURES_LIST.map((feature) => (
+            <div key={feature} className="flex items-start gap-3">
               <span className="text-xl mt-1" style={{ color: COLORS.primaryLight }}>
                 ✓
               </span>

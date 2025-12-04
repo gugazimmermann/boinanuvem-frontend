@@ -1,12 +1,12 @@
 import { type ReactNode, type CSSProperties } from "react";
 
 interface SectionProps {
-  children: ReactNode;
-  id?: string;
-  className?: string;
-  backgroundColor?: string;
-  style?: CSSProperties;
-  padding?: "sm" | "md" | "lg";
+  readonly children: ReactNode;
+  readonly id?: string;
+  readonly className?: string;
+  readonly backgroundColor?: string;
+  readonly style?: CSSProperties;
+  readonly padding?: "sm" | "md" | "lg";
 }
 
 const paddingStyles = {

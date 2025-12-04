@@ -1,12 +1,13 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useTranslation } from "~/i18n";
-import type { TeamUser } from "~/routes/dashboard/team";
+import type { TeamUser } from "~/types";
+import { useClickOutside } from "~/hooks/use-click-outside";
 
 interface ActionsDropdownProps {
-  user: TeamUser;
-  onView: (user: TeamUser) => void;
-  onEdit: (user: TeamUser) => void;
-  onDelete: (user: TeamUser) => void;
+  readonly user: TeamUser;
+  readonly onView: (user: TeamUser) => void;
+  readonly onEdit: (user: TeamUser) => void;
+  readonly onDelete: (user: TeamUser) => void;
 }
 
 export function ActionsDropdown({ user, onView, onEdit, onDelete }: ActionsDropdownProps) {
@@ -14,21 +15,7 @@ export function ActionsDropdown({ user, onView, onEdit, onDelete }: ActionsDropd
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isOpen]);
+  useClickOutside(dropdownRef as React.RefObject<HTMLElement>, isOpen, () => setIsOpen(false));
 
   const handleView = () => {
     onView(user);

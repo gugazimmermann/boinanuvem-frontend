@@ -8,3 +8,6 @@
 
 # Test Coverage
 /coverage/
+
+# SonarQube
+/.scannerwork/

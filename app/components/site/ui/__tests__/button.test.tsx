@@ -4,87 +4,170 @@ import userEvent from "@testing-library/user-event";
 import { Button } from "../button";
 
 describe("Button", () => {
-  it("should render button", () => {
+  it("should render as button element by default", () => {
     render(<Button>Click me</Button>);
-    expect(screen.getByText("Click me")).toBeInTheDocument();
+    const button = screen.getByRole("button", { name: "Click me" });
+    expect(button.tagName).toBe("BUTTON");
   });
 
-  it("should render as anchor when href is provided", () => {
+  it("should render as anchor element when href provided", () => {
     render(<Button href="/test">Link</Button>);
-    const link = screen.getByText("Link").closest("a");
-    expect(link).toBeInTheDocument();
+    const link = screen.getByRole("link", { name: "Link" });
+    expect(link.tagName).toBe("A");
     expect(link).toHaveAttribute("href", "/test");
   });
 
-  it("should apply primary variant by default", () => {
-    render(<Button>Primary</Button>);
-    const button = screen.getByText("Primary").closest("button");
-    expect(button).toBeInTheDocument();
+  it("should render with primary variant by default", () => {
+    const { container } = render(<Button>Primary</Button>);
+    const button = container.querySelector("button");
+    expect(button).toHaveStyle({ backgroundColor: expect.any(String) });
   });
 
-  it("should apply secondary variant", () => {
-    render(<Button variant="secondary">Secondary</Button>);
-    const button = screen.getByText("Secondary").closest("button");
-    expect(button).toBeInTheDocument();
+  it("should render with secondary variant", () => {
+    const { container } = render(<Button variant="secondary">Secondary</Button>);
+    const button = container.querySelector("button");
+    expect(button).toHaveClass("text-white");
   });
 
-  it("should apply outline variant", () => {
-    render(<Button variant="outline">Outline</Button>);
-    const button = screen.getByText("Outline").closest("button");
-    expect(button).toBeInTheDocument();
+  it("should render with outline variant", () => {
+    const { container } = render(<Button variant="outline">Outline</Button>);
+    const button = container.querySelector("button");
+    expect(button).toHaveClass("border-2");
   });
 
-  it("should apply size styles", () => {
-    const { rerender } = render(<Button size="sm">Small</Button>);
-    expect(screen.getByText("Small")).toBeInTheDocument();
-
-    rerender(<Button size="md">Medium</Button>);
-    expect(screen.getByText("Medium")).toBeInTheDocument();
-
-    rerender(<Button size="lg">Large</Button>);
-    expect(screen.getByText("Large")).toBeInTheDocument();
+  it("should render with sm size", () => {
+    const { container } = render(<Button size="sm">Small</Button>);
+    const button = container.querySelector("button");
+    expect(button).toHaveClass("text-sm");
   });
 
-  it("should apply fullWidth style", () => {
-    render(<Button fullWidth>Full Width</Button>);
-    const button = screen.getByText("Full Width").closest("button");
-    expect(button?.className).toContain("w-full");
+  it("should render with md size by default", () => {
+    const { container } = render(<Button>Medium</Button>);
+    const button = container.querySelector("button");
+    expect(button).toHaveClass("text-base");
   });
 
-  it("should apply custom className", () => {
-    render(<Button className="custom-class">Custom</Button>);
-    const button = screen.getByText("Custom").closest("button");
-    expect(button?.className).toContain("custom-class");
+  it("should render with lg size", () => {
+    const { container } = render(<Button size="lg">Large</Button>);
+    const button = container.querySelector("button");
+    expect(button).toHaveClass("text-lg");
+  });
+
+  it("should render with full width", () => {
+    const { container } = render(<Button fullWidth>Full Width</Button>);
+    const button = container.querySelector("button");
+    expect(button).toHaveClass("w-full");
   });
 
   it("should handle click events", async () => {
     const handleClick = vi.fn();
     const user = userEvent.setup();
-    render(<Button onClick={handleClick}>Click</Button>);
-
-    await user.click(screen.getByText("Click"));
+    render(<Button onClick={handleClick}>Click me</Button>);
+    await user.click(screen.getByRole("button"));
     expect(handleClick).toHaveBeenCalledTimes(1);
   });
 
-  it("should pass through button props", () => {
-    render(
-      <Button type="submit" disabled>
-        Submit
-      </Button>
-    );
-    const button = screen.getByText("Submit") as HTMLButtonElement;
-    expect(button.type).toBe("submit");
-    expect(button.disabled).toBe(true);
+  it("should be disabled when disabled prop is true", () => {
+    render(<Button disabled>Disabled</Button>);
+    const button = screen.getByRole("button");
+    expect(button).toBeDisabled();
   });
 
-  it("should pass through anchor props", () => {
+  it("should not call onClick when disabled", async () => {
+    const handleClick = vi.fn();
+    const user = userEvent.setup();
     render(
-      <Button href="/test" target="_blank" rel="noopener">
+      <Button disabled onClick={handleClick}>
+        Disabled
+      </Button>
+    );
+    await user.click(screen.getByRole("button"));
+    expect(handleClick).not.toHaveBeenCalled();
+  });
+
+  it("should forward ref to button element", () => {
+    const ref = vi.fn();
+    render(<Button ref={ref}>Ref Button</Button>);
+    expect(ref).toHaveBeenCalled();
+  });
+
+  it("should forward ref to anchor element when href provided", () => {
+    const ref = vi.fn();
+    render(
+      <Button href="/test" ref={ref}>
+        Ref Link
+      </Button>
+    );
+    expect(ref).toHaveBeenCalled();
+  });
+
+  it("should apply custom className", () => {
+    const { container } = render(<Button className="custom-class">Custom</Button>);
+    const button = container.querySelector("button");
+    expect(button).toHaveClass("custom-class");
+  });
+
+  it("should pass through other button props", () => {
+    render(<Button type="submit">Submit</Button>);
+    const button = screen.getByRole("button");
+    expect(button).toHaveAttribute("type", "submit");
+  });
+
+  it("should pass through anchor props when href provided", () => {
+    render(
+      <Button href="/test" target="_blank">
         Link
       </Button>
     );
-    const link = screen.getByText("Link").closest("a");
+    const link = screen.getByRole("link");
     expect(link).toHaveAttribute("target", "_blank");
-    expect(link).toHaveAttribute("rel", "noopener");
+  });
+
+  it("should apply primary variant styles correctly", () => {
+    const { container } = render(<Button variant="primary">Primary</Button>);
+    const button = container.querySelector("button");
+    expect(button).toHaveStyle({ backgroundColor: expect.any(String) });
+  });
+
+  it("should apply secondary variant styles correctly", () => {
+    const { container } = render(<Button variant="secondary">Secondary</Button>);
+    const button = container.querySelector("button");
+    expect(button).toHaveStyle({ backgroundColor: expect.any(String) });
+  });
+
+  it("should apply outline variant styles correctly", () => {
+    const { container } = render(<Button variant="outline">Outline</Button>);
+    const button = container.querySelector("button");
+    // Outline variant sets borderColor, color, and backgroundColor via style
+    expect(button?.style.borderColor).toBeTruthy();
+    expect(button?.style.color).toBeTruthy();
+    expect(button?.style.backgroundColor).toBeTruthy();
+  });
+
+  it("should render children correctly", () => {
+    render(<Button>Test Content</Button>);
+    expect(screen.getByText("Test Content")).toBeInTheDocument();
+  });
+
+  it("should render complex children", () => {
+    render(
+      <Button>
+        <span>Icon</span> Text
+      </Button>
+    );
+    expect(screen.getByText("Icon")).toBeInTheDocument();
+    expect(screen.getByText("Text")).toBeInTheDocument();
+  });
+
+  it("should apply inline-block display when not fullWidth", () => {
+    const { container } = render(<Button>Test</Button>);
+    const button = container.querySelector("button");
+    expect(button).toHaveClass("inline-block");
+  });
+
+  it("should apply block display when fullWidth", () => {
+    const { container } = render(<Button fullWidth>Test</Button>);
+    const button = container.querySelector("button");
+    expect(button).toHaveClass("block");
   });
 });

@@ -10,12 +10,13 @@ export class PlansService {
    * @param params - Query parameters for filtering plans
    * @returns Promise resolving to an array of plans
    */
-  async getPlans(params: GetPlansParams = { status: "active" }): Promise<Plan[]> {
+  async getPlans(params?: GetPlansParams): Promise<Plan[]> {
+    const finalParams: GetPlansParams = params || { status: "active" };
     try {
       const queryParams: Record<string, string> = {};
 
-      if (params.status) {
-        queryParams.status = params.status;
+      if (finalParams.status) {
+        queryParams.status = finalParams.status;
       }
 
       const plans: PlansApiResponse = await apiClient.get("/plans", queryParams);
@@ -55,6 +56,7 @@ export const plansService = new PlansService();
  * @param params - Query parameters for filtering plans
  * @returns Promise resolving to an array of plans
  */
-export async function fetchPlans(params: GetPlansParams = { status: "active" }): Promise<Plan[]> {
-  return plansService.getPlans(params);
+export async function fetchPlans(params?: GetPlansParams): Promise<Plan[]> {
+  const finalParams: GetPlansParams = params || { status: "active" };
+  return plansService.getPlans(finalParams);
 }

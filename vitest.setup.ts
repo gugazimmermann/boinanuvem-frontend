@@ -64,6 +64,22 @@ global.ResizeObserver = class ResizeObserver {
 
 
 
+// Global mock for users.service to support AuthProvider in tests
+// This ensures getUserById is available when TestProviders uses the real AuthProvider
+// The mock calls the original implementation first, and only provides a fallback if the user doesn't exist
+vi.mock("~/services/users.service", async (importOriginal: () => Promise<Record<string, unknown>>) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getUserById: vi.fn((id: string) => {
+      // Call the original implementation first
+      const originalResult = (actual as { getUserById: (id: string) => unknown }).getUserById(id);
+      // If user exists, return it; otherwise provide a fallback for AuthProvider
+      return originalResult || (id ? { id, mainUser: false } : undefined);
+    }),
+  };
+});
+
 const originalError = console.error;
 console.error = (...args: unknown[]) => {
   const message = typeof args[0] === "string" ? args[0] : "";

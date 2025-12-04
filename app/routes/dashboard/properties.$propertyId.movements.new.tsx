@@ -1,7 +1,12 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router";
-import { Button, Input, Alert, FileUpload } from "~/components/ui";
+import { Button, Input, FixedAlert, FileUpload } from "~/components/ui";
 import { useTranslation } from "~/i18n";
+import {
+  ResponsibleSelectionSection,
+  ObservationField,
+  FormActions,
+} from "~/components/dashboard/shared";
 import {
   getPropertyViewRoute,
   getLocationViewRoute,
@@ -17,6 +22,7 @@ import {
 } from "~/services/service-providers.service";
 import { addLocationMovement } from "~/services/location-movements.service";
 import { LocationMovementType } from "~/types";
+import { useAlert } from "~/hooks/use-alert";
 
 export function meta() {
   return [
@@ -63,10 +69,7 @@ export default function NewMovement() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [alertMessage, setAlertMessage] = useState<{
-    title: string;
-    variant: "success" | "error" | "warning" | "info";
-  } | null>(null);
+  const { alertMessage, showAlert } = useAlert();
 
   useEffect(() => {
     if (property) {
@@ -100,7 +103,7 @@ export default function NewMovement() {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
           <p className="text-gray-600 dark:text-gray-400 mb-4">{t.properties.emptyState.title}</p>
           <Button variant="outline" onClick={() => navigate("/dashboard/propriedades")}>
-            {t.team.new.back}
+            {t.common.back}
           </Button>
         </div>
       </div>
@@ -140,16 +143,6 @@ export default function NewMovement() {
           ...allServiceProviders.filter((prov) => prov.id !== serviceProviderIdParam),
         ]
       : allServiceProviders;
-
-  const showAlert = (
-    title: string,
-    variant: "success" | "error" | "warning" | "info" = "success"
-  ) => {
-    setAlertMessage({ title, variant });
-    setTimeout(() => {
-      setAlertMessage(null);
-    }, 3000);
-  };
 
   const handleChange = (field: keyof typeof formData, value: string | string[]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -254,11 +247,7 @@ export default function NewMovement() {
 
   return (
     <div className="space-y-6">
-      {alertMessage && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-          <Alert title={alertMessage.title} variant={alertMessage.variant} />
-        </div>
-      )}
+      <FixedAlert alertMessage={alertMessage} />
 
       <div className="flex items-center justify-between">
         <div>
@@ -371,96 +360,34 @@ export default function NewMovement() {
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t.employees.table.name}
-              </label>
-              <div className="border border-gray-300 dark:border-gray-600 rounded-md p-4 max-h-48 overflow-y-auto">
-                {sortedEmployees.length === 0 ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {t.properties.details.movements.noEmployees}
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {sortedEmployees.map((employee) => (
-                      <label
-                        key={employee.id}
-                        className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={formData.employeeIds.includes(employee.id)}
-                          onChange={() => toggleSelection("employeeIds", employee.id)}
-                          disabled={isSubmitting}
-                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-                        />
-                        <span className="text-sm text-gray-900 dark:text-gray-100">
-                          {employee.name}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+          <ResponsibleSelectionSection
+            employees={sortedEmployees}
+            serviceProviders={sortedServiceProviders}
+            selectedEmployeeIds={formData.employeeIds}
+            selectedServiceProviderIds={formData.serviceProviderIds}
+            onToggleEmployee={(id) => toggleSelection("employeeIds", id)}
+            onToggleServiceProvider={(id) => toggleSelection("serviceProviderIds", id)}
+            error={errors.responsible}
+            disabled={isSubmitting}
+            translationKeys={{
+              employeesLabel: t.employees.table.name,
+              serviceProvidersLabel: t.serviceProviders.table.name,
+              noEmployees: t.properties.details.movements.noEmployees,
+              noServiceProviders: t.properties.details.movements.noServiceProviders,
+            }}
+          />
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t.serviceProviders.table.name}
-              </label>
-              <div className="border border-gray-300 dark:border-gray-600 rounded-md p-4 max-h-48 overflow-y-auto">
-                {sortedServiceProviders.length === 0 ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {t.properties.details.movements.noServiceProviders}
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {sortedServiceProviders.map((provider) => (
-                      <label
-                        key={provider.id}
-                        className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={formData.serviceProviderIds.includes(provider.id)}
-                          onChange={() => toggleSelection("serviceProviderIds", provider.id)}
-                          disabled={isSubmitting}
-                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-                        />
-                        <span className="text-sm text-gray-900 dark:text-gray-100">
-                          {provider.name}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-          {errors.responsible && <p className="text-sm text-red-500">{errors.responsible}</p>}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {t.properties.details.movements.observation}
-            </label>
-            <textarea
-              value={formData.observation}
-              onChange={(e) => handleChange("observation", e.target.value)}
-              disabled={isSubmitting}
-              rows={4}
-              className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200 resize-none ${
-                errors.observation ? "border-red-500" : "border-gray-300 dark:border-gray-600"
-              }`}
-              placeholder={
-                t.properties.details.movements.observationPlaceholder ||
-                "Adicione observações sobre esta movimentação..."
-              }
-            />
-            {errors.observation && (
-              <p className="mt-1 text-sm text-red-500">{errors.observation}</p>
-            )}
-          </div>
+          <ObservationField
+            label={t.properties.details.movements.observation}
+            value={formData.observation}
+            onChange={(value) => handleChange("observation", value)}
+            error={errors.observation}
+            disabled={isSubmitting}
+            placeholder={
+              t.properties.details.movements.observationPlaceholder ||
+              "Adicione observações sobre esta movimentação..."
+            }
+          />
 
           <FileUpload
             label={t.properties.details.movements.files}
@@ -474,25 +401,19 @@ export default function NewMovement() {
             }
           />
 
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                if (locationIdParam) {
-                  navigate(`${getLocationViewRoute(locationIdParam)}?tab=movements`);
-                } else {
-                  navigate(`${getPropertyViewRoute(property.id)}?tab=movements`);
-                }
-              }}
-              disabled={isSubmitting}
-            >
-              {t.common.cancel}
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {t.common.save}
-            </Button>
-          </div>
+          <FormActions
+            onCancel={() => {
+              if (locationIdParam) {
+                navigate(`${getLocationViewRoute(locationIdParam)}?tab=movements`);
+              } else {
+                navigate(`${getPropertyViewRoute(property.id)}?tab=movements`);
+              }
+            }}
+            isSubmitting={isSubmitting}
+            cancelLabel={t.common.cancel}
+            submitLabel={t.common.save}
+            loadingLabel={t.common.loading}
+          />
         </form>
       </div>
     </div>

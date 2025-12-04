@@ -4,7 +4,7 @@ import { ROUTES } from "../../../routes.config";
 import { UserDropdown } from "./user-dropdown";
 
 interface NavbarProps {
-  onToggleSidebar: () => void;
+  readonly onToggleSidebar: () => void;
 }
 
 export function Navbar({ onToggleSidebar }: NavbarProps) {

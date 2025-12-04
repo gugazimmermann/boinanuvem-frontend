@@ -1,8 +1,7 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import type { LanguageInfo } from "~/types";
-import type { Language } from "~/types";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import type { Language, LanguageInfo } from "~/types";
 
-export type { Language };
+export type { Language } from "~/types";
 
 export const LANGUAGES: Record<Language, LanguageInfo> = {
   pt: {
@@ -30,9 +29,9 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<Language>(() => {
-    if (typeof window !== "undefined") {
+export function LanguageProvider({ children }: { readonly children: ReactNode }) {
+  const [language, setLanguage] = useState<Language>(() => {
+    if (globalThis.window !== undefined) {
       const stored = localStorage.getItem("language") as Language | null;
       if (stored && LANGUAGES[stored]) return stored;
 
@@ -49,17 +48,14 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = language;
   }, [language]);
 
-  const setLanguage = (newLanguage: Language) => {
-    setLanguageState(newLanguage);
-  };
-
   const languageInfo = LANGUAGES[language];
 
-  return (
-    <LanguageContext.Provider value={{ language, setLanguage, languageInfo }}>
-      {children}
-    </LanguageContext.Provider>
+  const contextValue = useMemo(
+    () => ({ language, setLanguage, languageInfo }),
+    [language, setLanguage, languageInfo]
   );
+
+  return <LanguageContext.Provider value={contextValue}>{children}</LanguageContext.Provider>;
 }
 
 export function useLanguage() {

@@ -5,12 +5,12 @@ import { useLanguage } from "~/contexts/language-context";
 import { DASHBOARD_COLORS } from "../utils/colors";
 import type { ActivityLogEntry } from "~/types";
 
-export type { ActivityLogEntry };
+export type { ActivityLogEntry } from "~/types";
 
 interface ActivityLogProps {
-  logs: ActivityLogEntry[];
-  showUser?: boolean;
-  emptyMessage?: string;
+  readonly logs: ActivityLogEntry[];
+  readonly showUser?: boolean;
+  readonly emptyMessage?: string;
 }
 
 export function ActivityLog({
@@ -24,7 +24,12 @@ export function ActivityLog({
   const [searchValue, setSearchValue] = useState("");
   const itemsPerPage = 10;
 
-  const localeForDateTime = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
+  const getLocaleForDateTime = () => {
+    if (language === "en") return "en-US";
+    if (language === "es") return "es-ES";
+    return "pt-BR";
+  };
+  const localeForDateTime = getLocaleForDateTime();
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);

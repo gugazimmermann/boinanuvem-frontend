@@ -1,5 +1,10 @@
 import type { Sale, SaleFormData } from "~/types";
-import { SalePaymentMethod } from "~/types";
+import {
+  SalePaymentMethod,
+  CashFlowCategory,
+  PaymentMethod,
+  AccountsReceivableStatus,
+} from "~/types";
 import { mockSales } from "~/mocks/sales";
 import { findById, findByField, createEntity, updateEntity, deleteEntity } from "./base-service";
 import { updateAnimal, getAnimalById } from "./animals.service";
@@ -9,8 +14,6 @@ import {
   deleteAccountsReceivable,
   updateAccountsReceivable,
 } from "./accounts-receivable.service";
-import { CashFlowCategory, PaymentMethod } from "~/types";
-import { AccountsReceivableStatus } from "~/types";
 import { getTotalFees } from "~/utils/fees";
 
 const ID_PREFIX = "sa0e8400-e29b-41d4-a716";
@@ -55,12 +58,12 @@ export function getSalesBySaleType(companyId: string, saleType: string): Sale[] 
 export function addSale(data: SaleFormData): Sale {
   const sale = createEntity(mockSales, data, ID_PREFIX, DEFAULT_ID);
 
-  data.saleItems.forEach((item) => {
+  for (const item of data.saleItems) {
     const animal = getAnimalById(item.animalId);
     if (animal) {
       updateAnimal(item.animalId, { status: "sold" });
     }
-  });
+  }
 
   const totalFees = getTotalFees(data.fees, data.transportationFee, data.additionalFees);
   const totalAmount = data.totalPrice + totalFees;
@@ -105,6 +108,94 @@ export function addSale(data: SaleFormData): Sale {
   return sale;
 }
 
+function updateAnimalStatuses(
+  previousIds: string[],
+  newIds: string[],
+  status: "active" | "sold"
+): void {
+  const removedIds = previousIds.filter((id) => !newIds.includes(id));
+  for (const animalId of removedIds) {
+    const animal = getAnimalById(animalId);
+    if (animal) {
+      updateAnimal(animalId, { status });
+    }
+  }
+}
+
+function getAnimalCodes(saleItems: (typeof mockSales)[0]["saleItems"]): string {
+  return saleItems
+    .map((item) => {
+      const animal = getAnimalById(item.animalId);
+      return animal?.code || item.animalId;
+    })
+    .join(", ");
+}
+
+function calculateTotalAmount(data: Partial<SaleFormData>, existingSale: Sale): number {
+  const totalFees = getTotalFees(
+    data.fees ?? existingSale.fees,
+    data.transportationFee ?? existingSale.transportationFee,
+    data.additionalFees ?? existingSale.additionalFees
+  );
+  return (data.totalPrice ?? existingSale.totalPrice) + totalFees;
+}
+
+function handlePaymentMethodChange(
+  existingSale: Sale,
+  paymentMethod: SalePaymentMethod,
+  data: Partial<SaleFormData>,
+  saleItems: typeof existingSale.saleItems,
+  totalAmount: number,
+  animalCodes: string
+): { linkedCashFlowId?: string; linkedAccountsReceivableId?: string } {
+  if (existingSale.linkedCashFlowId) {
+    deleteCashFlow(existingSale.linkedCashFlowId);
+  }
+  if (existingSale.linkedAccountsReceivableId) {
+    deleteAccountsReceivable(existingSale.linkedAccountsReceivableId);
+  }
+
+  if (paymentMethod === SalePaymentMethod.CASH_FLOW) {
+    const cashFlow = addCashFlow({
+      companyId: existingSale.companyId,
+      type: "income",
+      amount: totalAmount,
+      date: data.saleDate ?? existingSale.saleDate,
+      description: `Venda de animais: ${animalCodes}`,
+      category: CashFlowCategory.CATTLE_SALES,
+      paymentMethod: PaymentMethod.CASH,
+      status: "completed",
+      buyerId: data.buyerId ?? existingSale.buyerId,
+      propertyId: data.propertyId ?? existingSale.propertyId,
+    });
+    return { linkedCashFlowId: cashFlow.id, linkedAccountsReceivableId: undefined };
+  }
+
+  const accountsReceivable = addAccountsReceivable({
+    companyId: existingSale.companyId,
+    buyerId: data.buyerId ?? existingSale.buyerId,
+    amount: totalAmount,
+    dueDate: data.saleDate ?? existingSale.saleDate,
+    description: `Venda de animais: ${animalCodes}`,
+    category: CashFlowCategory.CATTLE_SALES,
+    paymentMethod: PaymentMethod.CASH,
+    status: AccountsReceivableStatus.UNPAID,
+    propertyId: data.propertyId ?? existingSale.propertyId,
+  });
+  return { linkedCashFlowId: undefined, linkedAccountsReceivableId: accountsReceivable.id };
+}
+
+function updateLinkedFinancialRecords(existingSale: Sale, totalAmount: number): void {
+  if (existingSale.linkedCashFlowId) {
+    updateCashFlow(existingSale.linkedCashFlowId, { amount: totalAmount });
+  }
+  if (existingSale.linkedAccountsReceivableId) {
+    updateAccountsReceivable(existingSale.linkedAccountsReceivableId, {
+      amount: totalAmount,
+    });
+  }
+}
+
 export function updateSale(saleId: string, data: Partial<SaleFormData>): boolean {
   const existingSale = getSaleById(saleId);
   if (!existingSale) return false;
@@ -114,125 +205,60 @@ export function updateSale(saleId: string, data: Partial<SaleFormData>): boolean
     ? data.saleItems.map((item) => item.animalId)
     : previousAnimalIds;
 
-  const removedAnimalIds = previousAnimalIds.filter((id) => !newAnimalIds.includes(id));
-  removedAnimalIds.forEach((animalId) => {
-    const animal = getAnimalById(animalId);
-    if (animal) {
-      updateAnimal(animalId, { status: "active" });
-    }
-  });
-
+  updateAnimalStatuses(previousAnimalIds, newAnimalIds, "active");
   if (data.saleItems) {
-    const addedAnimalIds = newAnimalIds.filter((id) => !previousAnimalIds.includes(id));
-    addedAnimalIds.forEach((animalId) => {
-      updateAnimal(animalId, { status: "sold" });
-    });
+    updateAnimalStatuses(previousAnimalIds, newAnimalIds, "sold");
   }
 
-  if (data.paymentMethod && data.paymentMethod !== existingSale.paymentMethod) {
-    const totalFees = getTotalFees(
-      data.fees || existingSale.fees,
-      data.transportationFee || existingSale.transportationFee,
-      data.additionalFees || existingSale.additionalFees
+  const saleItems = data.saleItems ?? existingSale.saleItems;
+  const hasPaymentMethodChange =
+    data.paymentMethod && data.paymentMethod !== existingSale.paymentMethod;
+
+  if (hasPaymentMethodChange && data.paymentMethod) {
+    const totalAmount = calculateTotalAmount(data, existingSale);
+    const animalCodes = getAnimalCodes(saleItems);
+    const financialLinks = handlePaymentMethodChange(
+      existingSale,
+      data.paymentMethod,
+      data,
+      saleItems,
+      totalAmount,
+      animalCodes
     );
-    const totalAmount = (data.totalPrice || existingSale.totalPrice) + totalFees;
-
-    const animalCodes = (data.saleItems || existingSale.saleItems)
-      .map((item) => {
-        const animal = getAnimalById(item.animalId);
-        return animal?.code || item.animalId;
-      })
-      .join(", ");
-
-    if (existingSale.linkedCashFlowId) {
-      deleteCashFlow(existingSale.linkedCashFlowId);
-    }
-    if (existingSale.linkedAccountsReceivableId) {
-      deleteAccountsReceivable(existingSale.linkedAccountsReceivableId);
-    }
-
-    let linkedCashFlowId: string | undefined;
-    let linkedAccountsReceivableId: string | undefined;
-
-    if (data.paymentMethod === SalePaymentMethod.CASH_FLOW) {
-      const cashFlow = addCashFlow({
-        companyId: existingSale.companyId,
-        type: "income",
-        amount: totalAmount,
-        date: data.saleDate || existingSale.saleDate,
-        description: `Venda de animais: ${animalCodes}`,
-        category: CashFlowCategory.CATTLE_SALES,
-        paymentMethod: PaymentMethod.CASH,
-        status: "completed",
-        buyerId: data.buyerId || existingSale.buyerId,
-        propertyId: data.propertyId || existingSale.propertyId,
-      });
-      linkedCashFlowId = cashFlow.id;
-      linkedAccountsReceivableId = undefined;
-    } else {
-      const accountsReceivable = addAccountsReceivable({
-        companyId: existingSale.companyId,
-        buyerId: data.buyerId || existingSale.buyerId,
-        amount: totalAmount,
-        dueDate: data.saleDate || existingSale.saleDate,
-        description: `Venda de animais: ${animalCodes}`,
-        category: CashFlowCategory.CATTLE_SALES,
-        paymentMethod: PaymentMethod.CASH,
-        status: AccountsReceivableStatus.UNPAID,
-        propertyId: data.propertyId || existingSale.propertyId,
-      });
-      linkedAccountsReceivableId = accountsReceivable.id;
-      linkedCashFlowId = undefined;
-    }
 
     const updateData: Partial<SaleFormData> & {
       linkedCashFlowId?: string;
       linkedAccountsReceivableId?: string;
     } = {
       ...data,
-      linkedCashFlowId,
-      linkedAccountsReceivableId,
+      ...financialLinks,
     };
     return updateEntity(mockSales, saleId, updateData);
-  } else {
-    if (
-      data.totalPrice !== undefined ||
-      data.transportationFee !== undefined ||
-      data.additionalFees !== undefined
-    ) {
-      const totalFees = getTotalFees(
-        data.fees || existingSale.fees,
-        data.transportationFee || existingSale.transportationFee,
-        data.additionalFees || existingSale.additionalFees
-      );
-      const totalAmount = (data.totalPrice || existingSale.totalPrice) + totalFees;
-
-      if (existingSale.linkedCashFlowId) {
-        updateCashFlow(existingSale.linkedCashFlowId, { amount: totalAmount });
-      }
-      if (existingSale.linkedAccountsReceivableId) {
-        updateAccountsReceivable(existingSale.linkedAccountsReceivableId, {
-          amount: totalAmount,
-        });
-      }
-    }
-
-    return updateEntity(mockSales, saleId, data);
   }
 
-  return true;
+  const hasPriceChange =
+    data.totalPrice !== undefined ||
+    data.transportationFee !== undefined ||
+    data.additionalFees !== undefined;
+
+  if (hasPriceChange) {
+    const totalAmount = calculateTotalAmount(data, existingSale);
+    updateLinkedFinancialRecords(existingSale, totalAmount);
+  }
+
+  return updateEntity(mockSales, saleId, data);
 }
 
 export function deleteSale(saleId: string): boolean {
   const sale = getSaleById(saleId);
   if (!sale) return false;
 
-  sale.saleItems.forEach((item) => {
+  for (const item of sale.saleItems) {
     const animal = getAnimalById(item.animalId);
     if (animal) {
       updateAnimal(item.animalId, { status: "active" });
     }
-  });
+  }
 
   if (sale.linkedCashFlowId) {
     deleteCashFlow(sale.linkedCashFlowId);

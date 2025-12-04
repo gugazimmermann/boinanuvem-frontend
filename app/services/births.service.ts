@@ -31,6 +31,162 @@ export function deleteBirth(birthId: string): boolean {
   return deleteEntity(mockBirths, birthId);
 }
 
+const PURITY_SEQUENCE: BirthPurity[] = [
+  BirthPurity.PO,
+  BirthPurity.F1,
+  BirthPurity.F2,
+  BirthPurity.F3,
+  BirthPurity.F4,
+  BirthPurity.F5,
+  BirthPurity.PC,
+];
+
+function getNextPurity(purity: BirthPurity): BirthPurity | null {
+  const index = PURITY_SEQUENCE.indexOf(purity);
+  return index >= 0 && index < PURITY_SEQUENCE.length - 1 ? PURITY_SEQUENCE[index + 1] : null;
+}
+
+function getPurityWhenOneMissing(
+  motherBirth: Birth | undefined,
+  fatherBirth: Birth | undefined
+): BirthPurity | null {
+  if (!motherBirth && !fatherBirth) {
+    return BirthPurity.PO;
+  }
+
+  const motherPurity = motherBirth?.purity;
+  const fatherPurity = fatherBirth?.purity;
+  const availablePurity = motherPurity || fatherPurity;
+
+  if (!availablePurity) return null;
+
+  if (motherPurity && !fatherBirth) {
+    return getNextPurity(motherPurity);
+  }
+  if (!motherBirth && fatherPurity) {
+    return getNextPurity(fatherPurity);
+  }
+
+  return null;
+}
+
+function checkPOPOCombination(motherBreed?: string, fatherBreed?: string): BirthPurity | null {
+  if (motherBreed === fatherBreed) {
+    return BirthPurity.PO;
+  }
+  return BirthPurity.F1;
+}
+
+function checkPOAndF1Combination(): BirthPurity {
+  return BirthPurity.F2;
+}
+
+function checkF1F1Combination(): BirthPurity {
+  return BirthPurity.F2;
+}
+
+function checkPOAndF2Combination(): BirthPurity {
+  return BirthPurity.F3;
+}
+
+function checkPOAndF3Combination(): BirthPurity {
+  return BirthPurity.F4;
+}
+
+function checkPOAndF4Combination(): BirthPurity {
+  return BirthPurity.F5;
+}
+
+function checkPOAndF5OrPCCombination(
+  motherPurity: BirthPurity,
+  fatherPurity: BirthPurity
+): BirthPurity | null {
+  if (
+    (motherPurity === BirthPurity.PO && fatherPurity === BirthPurity.F5) ||
+    (motherPurity === BirthPurity.F5 && fatherPurity === BirthPurity.PO) ||
+    motherPurity === BirthPurity.PC ||
+    fatherPurity === BirthPurity.PC
+  ) {
+    return BirthPurity.PC;
+  }
+  return null;
+}
+
+function getPurityForPOPO(motherBreed?: string, fatherBreed?: string): BirthPurity | null {
+  return checkPOPOCombination(motherBreed, fatherBreed);
+}
+
+function getPurityForPOAndF1(): BirthPurity | null {
+  return checkPOAndF1Combination();
+}
+
+function getPurityForF1F1(): BirthPurity | null {
+  return checkF1F1Combination();
+}
+
+function getPurityForPOAndF2(): BirthPurity | null {
+  return checkPOAndF2Combination();
+}
+
+function getPurityForPOAndF3(): BirthPurity | null {
+  return checkPOAndF3Combination();
+}
+
+function getPurityForPOAndF4(): BirthPurity | null {
+  return checkPOAndF4Combination();
+}
+
+function checkPOAndFCombination(
+  motherPurity: BirthPurity,
+  fatherPurity: BirthPurity,
+  fLevel: BirthPurity
+): boolean {
+  return (
+    (motherPurity === BirthPurity.PO && fatherPurity === fLevel) ||
+    (motherPurity === fLevel && fatherPurity === BirthPurity.PO)
+  );
+}
+
+function getPurityWhenBothPresent(
+  motherBirth: Birth,
+  fatherBirth: Birth,
+  motherBreed?: string,
+  fatherBreed?: string
+): BirthPurity | null {
+  const motherPurity = motherBirth.purity;
+  const fatherPurity = fatherBirth.purity;
+
+  if (!motherPurity || !fatherPurity) {
+    return null;
+  }
+
+  if (motherPurity === BirthPurity.PO && fatherPurity === BirthPurity.PO) {
+    return getPurityForPOPO(motherBreed, fatherBreed);
+  }
+
+  if (checkPOAndFCombination(motherPurity, fatherPurity, BirthPurity.F1)) {
+    return getPurityForPOAndF1();
+  }
+
+  if (motherPurity === BirthPurity.F1 && fatherPurity === BirthPurity.F1) {
+    return getPurityForF1F1();
+  }
+
+  if (checkPOAndFCombination(motherPurity, fatherPurity, BirthPurity.F2)) {
+    return getPurityForPOAndF2();
+  }
+
+  if (checkPOAndFCombination(motherPurity, fatherPurity, BirthPurity.F3)) {
+    return getPurityForPOAndF3();
+  }
+
+  if (checkPOAndFCombination(motherPurity, fatherPurity, BirthPurity.F4)) {
+    return getPurityForPOAndF4();
+  }
+
+  return checkPOAndF5OrPCCombination(motherPurity, fatherPurity);
+}
+
 export function calculatePurity(
   motherBirth: Birth | undefined,
   fatherBirth: Birth | undefined,
@@ -41,103 +197,16 @@ export function calculatePurity(
     return BirthPurity.PO;
   }
 
-  if (
-    motherBirth?.purity === BirthPurity.PO &&
-    fatherBirth?.purity === BirthPurity.PO &&
-    motherBreed === fatherBreed
-  ) {
-    return BirthPurity.PO;
-  }
-
-  if (
-    (motherBirth?.purity === BirthPurity.PO && fatherBirth?.purity === BirthPurity.F1) ||
-    (motherBirth?.purity === BirthPurity.F1 && fatherBirth?.purity === BirthPurity.PO)
-  ) {
-    return BirthPurity.F2;
-  }
-
-  if (motherBirth?.purity === BirthPurity.F1 && fatherBirth?.purity === BirthPurity.F1) {
-    return BirthPurity.F2;
-  }
-
-  if (
-    (motherBirth?.purity === BirthPurity.PO && fatherBirth?.purity === BirthPurity.F2) ||
-    (motherBirth?.purity === BirthPurity.F2 && fatherBirth?.purity === BirthPurity.PO)
-  ) {
-    return BirthPurity.F3;
-  }
-
-  if (
-    (motherBirth?.purity === BirthPurity.PO && fatherBirth?.purity === BirthPurity.F3) ||
-    (motherBirth?.purity === BirthPurity.F3 && fatherBirth?.purity === BirthPurity.PO)
-  ) {
-    return BirthPurity.F4;
-  }
-
-  if (
-    (motherBirth?.purity === BirthPurity.PO && fatherBirth?.purity === BirthPurity.F4) ||
-    (motherBirth?.purity === BirthPurity.F4 && fatherBirth?.purity === BirthPurity.PO)
-  ) {
-    return BirthPurity.F5;
-  }
-
-  if (
-    (motherBirth?.purity === BirthPurity.PO && fatherBirth?.purity === BirthPurity.F5) ||
-    (motherBirth?.purity === BirthPurity.F5 && fatherBirth?.purity === BirthPurity.PO) ||
-    motherBirth?.purity === BirthPurity.PC ||
-    fatherBirth?.purity === BirthPurity.PC
-  ) {
-    return BirthPurity.PC;
-  }
-
-  if (
-    motherBirth?.purity === BirthPurity.PO &&
-    fatherBirth?.purity === BirthPurity.PO &&
-    motherBreed !== fatherBreed
-  ) {
-    return BirthPurity.F1;
-  }
-
-  if (
-    (motherBirth?.purity === BirthPurity.PO && !fatherBirth) ||
-    (!motherBirth && fatherBirth?.purity === BirthPurity.PO)
-  ) {
-    return BirthPurity.F1;
-  }
-
-  if (
-    (motherBirth?.purity === BirthPurity.F1 && !fatherBirth) ||
-    (!motherBirth && fatherBirth?.purity === BirthPurity.F1)
-  ) {
-    return BirthPurity.F2;
-  }
-
-  if (
-    (motherBirth?.purity === BirthPurity.F2 && !fatherBirth) ||
-    (!motherBirth && fatherBirth?.purity === BirthPurity.F2)
-  ) {
-    return BirthPurity.F3;
-  }
-
-  if (
-    (motherBirth?.purity === BirthPurity.F3 && !fatherBirth) ||
-    (!motherBirth && fatherBirth?.purity === BirthPurity.F3)
-  ) {
-    return BirthPurity.F4;
-  }
-
-  if (
-    (motherBirth?.purity === BirthPurity.F4 && !fatherBirth) ||
-    (!motherBirth && fatherBirth?.purity === BirthPurity.F4)
-  ) {
-    return BirthPurity.F5;
-  }
-
-  if (
-    (motherBirth?.purity === BirthPurity.F5 && !fatherBirth) ||
-    (!motherBirth && fatherBirth?.purity === BirthPurity.F5)
-  ) {
-    return BirthPurity.PC;
+  if (motherBirth && fatherBirth) {
+    const result = getPurityWhenBothPresent(motherBirth, fatherBirth, motherBreed, fatherBreed);
+    if (result !== null) {
+      return result;
+    }
+  } else {
+    const result = getPurityWhenOneMissing(motherBirth, fatherBirth);
+    if (result !== null) {
+      return result;
+    }
   }
 
   return BirthPurity.F1;
@@ -156,7 +225,8 @@ export function getCalvingIntervalsByAnimalId(animalId: string): number[] {
     return [];
   }
 
-  const sortedBirths = [...birthsAsMother].sort(
+  const birthsArray = [...birthsAsMother];
+  const sortedBirths = birthsArray.toSorted(
     (a, b) => new Date(a.birthDate).getTime() - new Date(b.birthDate).getTime()
   );
 

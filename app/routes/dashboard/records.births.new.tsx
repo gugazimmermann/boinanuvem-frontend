@@ -1,19 +1,23 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router";
-import { Input, Select, Button, Alert } from "~/components/ui";
+import { Input, Select, Button, FixedAlert } from "~/components/ui";
 import { useTranslation } from "~/i18n";
+import {
+  ResponsibleSelectionSection,
+  ObservationField,
+  FormActions,
+} from "~/components/dashboard/shared";
 import { ROUTES } from "~/routes.config";
-import { addBirth, calculatePurity } from "~/services/births.service";
+import { addBirth, calculatePurity, getBirthByAnimalId } from "~/services/births.service";
 import { unconfirmMostRecentBreedingForAnimal } from "~/services/breedings.service";
-import { addAnimal } from "~/services/animals.service";
+import { addAnimal, getAnimalsByCompanyId, getAnimalById } from "~/services/animals.service";
 import { addWeighing } from "~/services/weighings.service";
 import type { BirthFormData, AnimalFormData, WeighingFormData, Property } from "~/types";
 import { mockCompanies } from "~/mocks/companies";
-import { getAnimalsByCompanyId, getAnimalById } from "~/services/animals.service";
-import { getBirthByAnimalId } from "~/services/births.service";
 import { mockProperties } from "~/mocks/properties";
 import { mockEmployees } from "~/mocks/employees";
 import { mockServiceProviders } from "~/mocks/service-providers";
+import { useAlert } from "~/hooks/use-alert";
 
 export function meta() {
   return [
@@ -111,10 +115,7 @@ export default function NewBirth() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [alertMessage, setAlertMessage] = useState<{
-    title: string;
-    variant: "success" | "error" | "warning" | "info";
-  } | null>(null);
+  const { alertMessage, showAlert } = useAlert();
 
   useEffect(() => {
     if (animals.length > 0) {
@@ -142,16 +143,6 @@ export default function NewBirth() {
       }
     }
   }, [preSelectedData.motherId, preSelectedData.fatherId, animals, femaleAnimals, maleAnimals]);
-
-  const showAlert = (
-    title: string,
-    variant: "success" | "error" | "warning" | "info" = "success"
-  ) => {
-    setAlertMessage({ title, variant });
-    setTimeout(() => {
-      setAlertMessage(null);
-    }, 3000);
-  };
 
   const handleChange = (field: keyof typeof formData, value: string | string[]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -238,7 +229,7 @@ export default function NewBirth() {
         animalId: newAnimal.id,
         birthDate: formData.birthDate,
         breed: calculatedBreed,
-        gender: formData.gender ? (formData.gender as "male" | "female") : undefined,
+        gender: formData.gender || undefined,
         motherId: formData.motherId || undefined,
         fatherId: formData.fatherId || undefined,
         purity,
@@ -255,7 +246,7 @@ export default function NewBirth() {
         const weighingData: WeighingFormData = {
           animalId: newAnimal.id,
           date: formData.weighingDate,
-          weight: parseFloat(formData.weight),
+          weight: Number.parseFloat(formData.weight),
           employeeIds: formData.employeeIds,
           serviceProviderIds: formData.serviceProviderIds,
           observation: formData.weighingObservation || undefined,
@@ -278,11 +269,7 @@ export default function NewBirth() {
 
   return (
     <div className="space-y-6">
-      {alertMessage && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-          <Alert title={alertMessage.title} variant={alertMessage.variant} />
-        </div>
-      )}
+      <FixedAlert alertMessage={alertMessage} />
 
       <div className="flex items-center justify-between">
         <div>
@@ -459,104 +446,43 @@ export default function NewBirth() {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      {t.births.new.employeesLabel}
-                    </label>
-                    <div className="border border-gray-300 dark:border-gray-600 rounded-md p-4 max-h-48 overflow-y-auto">
-                      {employees.length === 0 ? (
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          {t.births.new.noEmployees}
-                        </p>
-                      ) : (
-                        <div className="space-y-2">
-                          {employees.map((employee) => (
-                            <label
-                              key={employee.id}
-                              className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={formData.employeeIds.includes(employee.id)}
-                                onChange={() => toggleSelection("employeeIds", employee.id)}
-                                disabled={isSubmitting}
-                                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-                              />
-                              <span className="text-sm text-gray-900 dark:text-gray-100">
-                                {employee.name}
-                              </span>
-                            </label>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                <ResponsibleSelectionSection
+                  employees={employees}
+                  serviceProviders={serviceProviders}
+                  selectedEmployeeIds={formData.employeeIds}
+                  selectedServiceProviderIds={formData.serviceProviderIds}
+                  onToggleEmployee={(id) => toggleSelection("employeeIds", id)}
+                  onToggleServiceProvider={(id) => toggleSelection("serviceProviderIds", id)}
+                  disabled={isSubmitting}
+                  translationKeys={{
+                    employeesLabel: t.births.new.employeesLabel,
+                    serviceProvidersLabel: t.births.new.serviceProvidersLabel,
+                    noEmployees: t.births.new.noEmployees,
+                    noServiceProviders: t.births.new.noServiceProviders,
+                  }}
+                  className="mt-4"
+                />
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      {t.births.new.serviceProvidersLabel}
-                    </label>
-                    <div className="border border-gray-300 dark:border-gray-600 rounded-md p-4 max-h-48 overflow-y-auto">
-                      {serviceProviders.length === 0 ? (
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          {t.births.new.noServiceProviders}
-                        </p>
-                      ) : (
-                        <div className="space-y-2">
-                          {serviceProviders.map((provider) => (
-                            <label
-                              key={provider.id}
-                              className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={formData.serviceProviderIds.includes(provider.id)}
-                                onChange={() => toggleSelection("serviceProviderIds", provider.id)}
-                                disabled={isSubmitting}
-                                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-                              />
-                              <span className="text-sm text-gray-900 dark:text-gray-100">
-                                {provider.name}
-                              </span>
-                            </label>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {t.births.new.weighingObservationLabel}
-                  </label>
-                  <textarea
-                    value={formData.weighingObservation}
-                    onChange={(e) => handleChange("weighingObservation", e.target.value)}
-                    disabled={isSubmitting}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200"
-                    placeholder={t.births.new.weighingObservationPlaceholder}
-                  />
-                </div>
+                <ObservationField
+                  label={t.births.new.weighingObservationLabel}
+                  value={formData.weighingObservation}
+                  onChange={(value) => handleChange("weighingObservation", value)}
+                  disabled={isSubmitting}
+                  rows={3}
+                  placeholder={t.births.new.weighingObservationPlaceholder}
+                  className="mt-4"
+                />
               </div>
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate(ROUTES.ANIMALS)}
-              disabled={isSubmitting}
-            >
-              {t.common.cancel}
-            </Button>
-            <Button type="submit" variant="primary" disabled={isSubmitting}>
-              {isSubmitting ? t.common.loading : t.births.new.addButton}
-            </Button>
-          </div>
+          <FormActions
+            onCancel={() => navigate(ROUTES.ANIMALS)}
+            isSubmitting={isSubmitting}
+            cancelLabel={t.common.cancel}
+            submitLabel={t.births.new.addButton}
+            loadingLabel={t.common.loading}
+          />
         </form>
       </div>
     </div>

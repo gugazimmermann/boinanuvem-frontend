@@ -54,7 +54,7 @@ export function useDashboardData(companyId: string, filters?: DashboardFilters) 
     }
 
     const lastWeighingByAnimal = new Map<string, { weight: number; date: string }>();
-    filteredWeighings.forEach((weighing) => {
+    for (const weighing of filteredWeighings) {
       const existing = lastWeighingByAnimal.get(weighing.animalId);
       if (!existing || new Date(weighing.date).getTime() > new Date(existing.date).getTime()) {
         lastWeighingByAnimal.set(weighing.animalId, {
@@ -62,12 +62,12 @@ export function useDashboardData(companyId: string, filters?: DashboardFilters) 
           date: weighing.date,
         });
       }
-    });
+    }
 
     let weight = 0;
-    lastWeighingByAnimal.forEach((weighing) => {
+    for (const weighing of lastWeighingByAnimal.values()) {
       weight += weighing.weight;
-    });
+    }
 
     return weight;
   }, [animals, companyId, filters]);

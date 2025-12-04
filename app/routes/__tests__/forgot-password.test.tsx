@@ -1,115 +1,57 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { createMemoryRouter, RouterProvider } from "react-router";
-import type { RouteObject } from "react-router";
-import type { ComponentProps } from "react";
-import { LanguageProvider } from "~/contexts/language-context";
-import { ThemeProvider } from "~/contexts/theme-context";
-import { AuthProvider } from "~/contexts/auth-context";
-import ForgotPassword, { meta, loader as forgotPasswordLoader } from "../forgot-password";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router";
+import { loader, meta, links, default as ForgotPassword } from "../forgot-password";
 import { ROUTES } from "~/routes.config";
-import type { TeamUser } from "~/types";
-import { getUserById } from "~/services/users.service";
-import { AuthInput, AuthButton } from "~/components/site/ui";
+import { requireGuest } from "~/utils/route-guard";
 
-const mockNavigate = vi.fn();
+vi.mock("~/utils/route-guard", () => ({
+  requireGuest: vi.fn(() => Promise.resolve(null)),
+  useRequireGuest: vi.fn(),
+}));
 
-const mockUser: TeamUser = {
-  id: "test-user-id",
-  name: "Test User",
-  email: "test@example.com",
-  phone: "1234567890",
-  status: "active",
-  mainUser: false,
-  companyId: "company-id",
-  createdAt: "2025-01-01",
-  permissions: {} as never,
-};
-
-vi.mock("react-router", async () => {
-  const actual = await vi.importActual("react-router");
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-  };
-});
-
-vi.mock("~/services/users.service", () => ({
-  getUserById: vi.fn((id: string) => {
-    if (id === "test-user-id") return mockUser;
-    return null;
-  }),
+vi.mock("~/components/site/hooks", () => ({
+  usePasswordReset: vi.fn(() => ({
+    email: "",
+    error: "",
+    isLoading: false,
+    setEmail: vi.fn(),
+    handleSendCode: vi.fn((e: React.FormEvent) => {
+      e.preventDefault();
+    }),
+  })),
 }));
 
 vi.mock("~/components/site/auth-layout", () => ({
-  AuthLayout: ({ children }: { children: React.ReactNode }) => (
+  AuthLayout: vi.fn(({ children }: { children: React.ReactNode }) => (
     <div data-testid="auth-layout">{children}</div>
-  ),
+  )),
 }));
 
-vi.mock("~/components/site/ui", async () => {
-  const actual =
-    await vi.importActual<typeof import("~/components/site/ui")>("~/components/site/ui");
-  return {
-    ...actual,
-    AuthInput: ({
-      type,
-      placeholder,
-      value,
-      onChange,
-      ...props
-    }: ComponentProps<typeof AuthInput> & { fullWidth?: boolean }) => {
-      const { fullWidth: _fullWidth, showPasswordToggle: _showPasswordToggle, ...rest } = props;
-
-      const inputProps = onChange
-        ? { value: value || "", onChange }
-        : { defaultValue: value || "" };
-      return (
-        <input
-          data-testid={`auth-input-${type}`}
-          type={type}
-          placeholder={placeholder}
-          {...inputProps}
-          {...rest}
-        />
-      );
-    },
-    AuthButton: ({
-      children,
-      fullWidth: _fullWidth,
-      onClick,
-      type,
-      ...props
-    }: ComponentProps<typeof AuthButton>) => (
-      <button
-        data-testid="auth-button"
-        type={type as "button" | "submit" | "reset" | undefined}
-        onClick={onClick as React.MouseEventHandler<HTMLButtonElement> | undefined}
-        {...(props as React.ButtonHTMLAttributes<HTMLButtonElement>)}
-      >
-        {children}
-      </button>
-    ),
-    AuthCard: ({
-      children,
+vi.mock("~/components/site/ui", () => ({
+  AuthCard: vi.fn(
+    ({
       title,
       subtitle,
+      children,
       footer,
     }: {
+      title: string;
+      subtitle: string;
       children: React.ReactNode;
-      title?: string;
-      subtitle?: string;
       footer?: React.ReactNode;
     }) => (
       <div data-testid="auth-card">
-        <div>Boi na Nuvem</div>
-        {title && <h3>{title}</h3>}
-        {subtitle && <p>{subtitle}</p>}
+        <h1>{title}</h1>
+        <p>{subtitle}</p>
         {children}
         {footer}
       </div>
-    ),
-    AuthFooter: ({
+    )
+  ),
+  AuthFooter: vi.fn(
+    ({
       question,
       linkText,
       linkRoute,
@@ -119,160 +61,384 @@ vi.mock("~/components/site/ui", async () => {
       linkRoute: string;
     }) => (
       <div data-testid="auth-footer">
-        <span>{question} </span>
+        <span>{question}</span>
         <a href={linkRoute}>{linkText}</a>
       </div>
-    ),
-    AuthFormError: ({ error }: { error?: string }) =>
-      error ? <div data-testid="auth-form-error">{error}</div> : null,
-  };
-});
+    )
+  ),
+  AuthFormError: vi.fn(({ error }: { error?: string }) =>
+    error ? <div data-testid="auth-form-error">{error}</div> : null
+  ),
+  AuthButton: vi.fn(
+    ({
+      children,
+      type,
+      disabled,
+      onClick,
+    }: {
+      children: React.ReactNode;
+      type?: string;
+      disabled?: boolean;
+      onClick?: () => void;
+    }) => (
+      <button type={type as "button" | "submit" | "reset"} disabled={disabled} onClick={onClick}>
+        {children}
+      </button>
+    )
+  ),
+}));
 
-describe("ForgotPassword", () => {
-  const createRouter = (isAuthenticated = false, includeLoader = false) => {
-    if (isAuthenticated && typeof window !== "undefined") {
-      localStorage.setItem("currentUserId", "test-user-id");
-    } else if (typeof window !== "undefined") {
-      localStorage.removeItem("currentUserId");
-    }
-    const routeConfig: RouteObject = {
-      path: "/forgot-password",
-      element: (
-        <LanguageProvider>
-          <ThemeProvider>
-            <AuthProvider>
-              <ForgotPassword />
-            </AuthProvider>
-          </ThemeProvider>
-        </LanguageProvider>
-      ),
-      ...(includeLoader && { loader: forgotPasswordLoader }),
-    };
-    return createMemoryRouter(
-      [
-        routeConfig,
-        {
-          path: ROUTES.DASHBOARD,
-          element: <div data-testid="dashboard-page">Dashboard</div>,
-        },
-      ],
-      {
-        initialEntries: ["/forgot-password"],
-      }
-    );
-  };
+vi.mock("~/components/ui", () => ({
+  Input: vi.fn(
+    ({
+      type,
+      placeholder,
+      value,
+      onChange,
+      error,
+      "aria-label": ariaLabel,
+    }: {
+      type?: string;
+      placeholder?: string;
+      value?: string;
+      onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+      error?: string;
+      "aria-label"?: string;
+    }) => (
+      <div>
+        <input
+          type={type}
+          placeholder={placeholder}
+          value={value}
+          onChange={onChange}
+          aria-label={ariaLabel}
+          data-error={error}
+        />
+        {error && <span data-testid="input-error">{error}</span>}
+      </div>
+    )
+  ),
+}));
 
+vi.mock("~/i18n", () => ({
+  useTranslation: vi.fn(() => ({
+    common: {
+      emailRequired: "Email é obrigatório",
+      invalidEmail: "Email inválido",
+      sendCodeError: "Erro ao enviar código",
+      ariaLabels: {
+        email: "Email",
+      },
+    },
+  })),
+}));
+
+const TestWrapper = ({ children }: { children: React.ReactNode }) => (
+  <MemoryRouter>{children}</MemoryRouter>
+);
+
+describe("forgot-password", () => {
   beforeEach(() => {
-    if (typeof window !== "undefined") {
-      localStorage.clear();
-    }
     vi.clearAllMocks();
-    mockNavigate.mockClear();
-    vi.mocked(getUserById).mockReturnValue(mockUser);
   });
 
-  it("should render forgot password form", () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    expect(screen.getByTestId("auth-layout")).toBeInTheDocument();
-    expect(screen.getByText("Esqueceu a senha?")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Email")).toBeInTheDocument();
-    expect(screen.getByText("Enviar Código")).toBeInTheDocument();
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
-  it("should have login link", () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    const loginLink = screen.getByText("Entrar");
-    expect(loginLink).toBeInTheDocument();
-    expect(loginLink.closest("a")).toHaveAttribute("href", ROUTES.LOGIN);
-  });
-
-  it("should have correct meta function", () => {
-    const metaData = meta();
-    expect(metaData.length).toBeGreaterThan(2);
-    expect(metaData).toContainEqual({ title: "Esqueceu a Senha - Boi na Nuvem" });
-    expect(metaData).toContainEqual({
-      name: "description",
-      content: expect.stringContaining("Recupere sua senha da conta Boi na Nuvem"),
+  describe("loader", () => {
+    it("should call requireGuest", async () => {
+      await loader();
+      expect(requireGuest).toHaveBeenCalled();
     });
-    type MetaTag = { title?: string; name?: string; property?: string; content?: string };
-    expect(metaData.some((m: MetaTag) => m.property === "og:title")).toBe(true);
-    expect(
-      metaData.some((m: MetaTag) => m.name === "robots" && m.content?.includes("noindex"))
-    ).toBe(true);
   });
 
-  it("should render description text", () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
+  describe("meta", () => {
+    it("should return SEO meta tags", () => {
+      const result = meta();
+      expect(result).toBeDefined();
+      expect(Array.isArray(result)).toBe(true);
+    });
 
-    expect(
-      screen.getByText("Digite seu email para receber um código de recuperação")
-    ).toBeInTheDocument();
+    it("should include noindex", () => {
+      const result = meta();
+      const robotsTag = result.find((tag) => "name" in tag && tag.name === "robots");
+      expect(robotsTag).toBeDefined();
+      if (robotsTag && "content" in robotsTag) {
+        expect(robotsTag.content).toContain("noindex");
+      }
+    });
   });
 
-  it("should render form with email input", () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    const emailInput = screen.getByPlaceholderText("Email");
-    expect(emailInput).toBeInTheDocument();
-    expect(emailInput).toHaveAttribute("type", "email");
+  describe("links", () => {
+    it("should return canonical link", () => {
+      const result = links();
+      expect(result).toHaveLength(1);
+      expect(result[0].rel).toBe("canonical");
+      expect(result[0].href).toBe("https://boinanuvem.com.br/esqueceu-senha");
+    });
   });
 
-  it("should render submit button", () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
+  describe("ForgotPassword component", () => {
+    it("should render AuthLayout", () => {
+      render(
+        <TestWrapper>
+          <ForgotPassword />
+        </TestWrapper>
+      );
 
-    const submitButton = screen.getByText("Enviar Código");
-    expect(submitButton).toBeInTheDocument();
-    expect(submitButton.closest("button")).toHaveAttribute("type", "submit");
-  });
+      expect(screen.getByTestId("auth-layout")).toBeInTheDocument();
+    });
 
-  it("should handle form submission", () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
+    it("should render AuthCard with correct title and subtitle", () => {
+      render(
+        <TestWrapper>
+          <ForgotPassword />
+        </TestWrapper>
+      );
 
-    const form = screen.getByPlaceholderText("Email").closest("form");
-    expect(form).toBeInTheDocument();
+      expect(screen.getByText("Esqueceu a senha?")).toBeInTheDocument();
+      expect(
+        screen.getByText("Digite seu email para receber um código de recuperação")
+      ).toBeInTheDocument();
+    });
 
-    const submitButton = screen.getByText("Enviar Código");
-    fireEvent.click(submitButton);
-  });
+    it("should render email input", () => {
+      render(
+        <TestWrapper>
+          <ForgotPassword />
+        </TestWrapper>
+      );
 
-  it("should allow email input", () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
+      const input = screen.getByPlaceholderText("Email");
+      expect(input).toBeInTheDocument();
+    });
 
-    const emailInput = screen.getByPlaceholderText("Email") as HTMLInputElement;
-    expect(emailInput).toBeInTheDocument();
+    it("should render submit button", () => {
+      render(
+        <TestWrapper>
+          <ForgotPassword />
+        </TestWrapper>
+      );
 
-    expect(emailInput).toHaveAttribute("type", "email");
-  });
+      const button = screen.getByText("Enviar Código");
+      expect(button).toBeInTheDocument();
+    });
 
-  it("should render brand name", () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
+    it("should render AuthFooter with link to login", () => {
+      render(
+        <TestWrapper>
+          <ForgotPassword />
+        </TestWrapper>
+      );
 
-    expect(screen.getByText("Boi na Nuvem")).toBeInTheDocument();
-  });
+      const footer = screen.getByTestId("auth-footer");
+      expect(footer).toBeInTheDocument();
+      expect(screen.getByText("Lembrou sua senha?")).toBeInTheDocument();
+      const link = screen.getByText("Entrar");
+      expect(link).toHaveAttribute("href", ROUTES.LOGIN);
+    });
 
-  it("should render footer with login link text", () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
+    it("should display error message when error exists", async () => {
+      const { usePasswordReset } = await import("~/components/site/hooks");
+      vi.mocked(usePasswordReset).mockReturnValueOnce({
+        email: "",
+        error: "emailRequired",
+        isLoading: false,
+        setEmail: vi.fn(),
+        handleSendCode: vi.fn((e: React.FormEvent) => {
+          e.preventDefault();
+        }),
+      });
 
-    expect(screen.getByText("Lembrou sua senha?")).toBeInTheDocument();
-  });
+      render(
+        <TestWrapper>
+          <ForgotPassword />
+        </TestWrapper>
+      );
 
-  it("should redirect to dashboard when user is already authenticated", async () => {
-    const router = createRouter(true, true);
-    render(<RouterProvider router={router} />);
+      expect(screen.getByTestId("auth-form-error")).toBeInTheDocument();
+    });
 
-    await waitFor(() => {
-      expect(screen.getByTestId("dashboard-page")).toBeInTheDocument();
+    it("should show loading state on button when isLoading is true", async () => {
+      const { usePasswordReset } = await import("~/components/site/hooks");
+      vi.mocked(usePasswordReset).mockReturnValueOnce({
+        email: "",
+        error: "",
+        isLoading: true,
+        setEmail: vi.fn(),
+        handleSendCode: vi.fn((e: React.FormEvent) => {
+          e.preventDefault();
+        }),
+      });
+
+      render(
+        <TestWrapper>
+          <ForgotPassword />
+        </TestWrapper>
+      );
+
+      const button = screen.getByText("Enviando...");
+      expect(button).toBeInTheDocument();
+      expect(button).toBeDisabled();
+    });
+
+    it("should call setEmail when input value changes", async () => {
+      const mockSetEmail = vi.fn();
+      const { usePasswordReset } = await import("~/components/site/hooks");
+      vi.mocked(usePasswordReset).mockReturnValueOnce({
+        email: "",
+        error: "",
+        isLoading: false,
+        setEmail: mockSetEmail,
+        handleSendCode: vi.fn((e: React.FormEvent) => {
+          e.preventDefault();
+        }),
+      });
+
+      render(
+        <TestWrapper>
+          <ForgotPassword />
+        </TestWrapper>
+      );
+
+      const input = screen.getByPlaceholderText("Email");
+      await userEvent.type(input, "test@example.com");
+
+      expect(mockSetEmail).toHaveBeenCalled();
+    });
+
+    it("should display error message for emailRequired", async () => {
+      const { usePasswordReset } = await import("~/components/site/hooks");
+      vi.mocked(usePasswordReset).mockReturnValueOnce({
+        email: "",
+        error: "emailRequired",
+        isLoading: false,
+        setEmail: vi.fn(),
+        handleSendCode: vi.fn((e: React.FormEvent) => {
+          e.preventDefault();
+        }),
+      });
+
+      render(
+        <TestWrapper>
+          <ForgotPassword />
+        </TestWrapper>
+      );
+
+      expect(screen.getByTestId("auth-form-error")).toHaveTextContent("Email é obrigatório");
+      expect(screen.getByTestId("input-error")).toHaveTextContent("Email é obrigatório");
+    });
+
+    it("should display error message for invalidEmail", async () => {
+      const { usePasswordReset } = await import("~/components/site/hooks");
+      vi.mocked(usePasswordReset).mockReturnValueOnce({
+        email: "",
+        error: "invalidEmail",
+        isLoading: false,
+        setEmail: vi.fn(),
+        handleSendCode: vi.fn((e: React.FormEvent) => {
+          e.preventDefault();
+        }),
+      });
+
+      render(
+        <TestWrapper>
+          <ForgotPassword />
+        </TestWrapper>
+      );
+
+      expect(screen.getByTestId("auth-form-error")).toHaveTextContent("Email inválido");
+      expect(screen.getByTestId("input-error")).toHaveTextContent("Email inválido");
+    });
+
+    it("should display error message for sendCodeError", async () => {
+      const { usePasswordReset } = await import("~/components/site/hooks");
+      vi.mocked(usePasswordReset).mockReturnValueOnce({
+        email: "",
+        error: "sendCodeError",
+        isLoading: false,
+        setEmail: vi.fn(),
+        handleSendCode: vi.fn((e: React.FormEvent) => {
+          e.preventDefault();
+        }),
+      });
+
+      render(
+        <TestWrapper>
+          <ForgotPassword />
+        </TestWrapper>
+      );
+
+      expect(screen.getByTestId("auth-form-error")).toHaveTextContent("Erro ao enviar código");
+    });
+
+    it("should display fallback error message for unknown error", async () => {
+      const { usePasswordReset } = await import("~/components/site/hooks");
+      vi.mocked(usePasswordReset).mockReturnValueOnce({
+        email: "",
+        error: "unknownError",
+        isLoading: false,
+        setEmail: vi.fn(),
+        handleSendCode: vi.fn((e: React.FormEvent) => {
+          e.preventDefault();
+        }),
+      });
+
+      render(
+        <TestWrapper>
+          <ForgotPassword />
+        </TestWrapper>
+      );
+
+      expect(screen.getByTestId("auth-form-error")).toHaveTextContent("Erro ao enviar código");
+    });
+
+    it("should not show input error when error is not emailRequired or invalidEmail", async () => {
+      const { usePasswordReset } = await import("~/components/site/hooks");
+      vi.mocked(usePasswordReset).mockReturnValueOnce({
+        email: "",
+        error: "sendCodeError",
+        isLoading: false,
+        setEmail: vi.fn(),
+        handleSendCode: vi.fn((e: React.FormEvent) => {
+          e.preventDefault();
+        }),
+      });
+
+      render(
+        <TestWrapper>
+          <ForgotPassword />
+        </TestWrapper>
+      );
+
+      expect(screen.queryByTestId("input-error")).not.toBeInTheDocument();
+    });
+
+    it("should call handleSendCode when form is submitted", async () => {
+      const mockHandleSendCode = vi.fn((e: React.FormEvent) => {
+        e.preventDefault();
+      });
+      const { usePasswordReset } = await import("~/components/site/hooks");
+      vi.mocked(usePasswordReset).mockReturnValueOnce({
+        email: "test@example.com",
+        error: "",
+        isLoading: false,
+        setEmail: vi.fn(),
+        handleSendCode: mockHandleSendCode,
+      });
+
+      render(
+        <TestWrapper>
+          <ForgotPassword />
+        </TestWrapper>
+      );
+
+      const form = screen.getByPlaceholderText("Email").closest("form");
+      if (form) {
+        await userEvent.click(screen.getByText("Enviar Código"));
+        expect(mockHandleSendCode).toHaveBeenCalled();
+      }
     });
   });
 });

@@ -1,6 +1,6 @@
 interface StepIndicatorProps {
-  currentStep: number;
-  totalSteps: number;
+  readonly currentStep: number;
+  readonly totalSteps: number;
 }
 
 export function StepIndicator({ currentStep, totalSteps }: StepIndicatorProps) {

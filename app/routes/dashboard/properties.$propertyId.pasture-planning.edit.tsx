@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
-import { Button, Alert, PasturePlanningTable } from "~/components/ui";
+import { Button, FixedAlert, PasturePlanningTable } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { getPropertyViewRoute } from "~/routes.config";
 import { getPropertyById, updateProperty } from "~/services/properties.service";
 import type { PasturePlanningMonth } from "~/types/property";
+import { useAlert } from "~/hooks/use-alert";
 
 export function meta() {
   return [
@@ -69,66 +70,61 @@ export default function EditPasturePlanning() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [alertMessage, setAlertMessage] = useState<{
-    title: string;
-    variant: "success" | "error" | "warning" | "info";
-  } | null>(null);
+  const { alertMessage, showAlert } = useAlert();
 
-  const showAlert = (
-    title: string,
-    variant: "success" | "error" | "warning" | "info" = "success"
-  ) => {
-    setAlertMessage({ title, variant });
-    setTimeout(() => {
-      setAlertMessage(null);
-    }, 3000);
+  const validateMonth = (
+    month: (typeof pasturePlanning)[0],
+    index: number,
+    newErrors: Record<string, string>
+  ): void => {
+    const minTemp = month.min;
+    const maxTemp = month.max;
+    const precipitation = month.precipitation;
+
+    if (Number.isNaN(minTemp)) {
+      newErrors[`pasturePlanning.${index}.min`] = t.profile.errors.required(
+        t.properties.details.pasturePlanning.minTemp
+      );
+    } else if (minTemp < -50 || minTemp > 50) {
+      newErrors[`pasturePlanning.${index}.min`] = t.properties.edit.validation.temperatureRange;
+    }
+
+    if (Number.isNaN(maxTemp)) {
+      newErrors[`pasturePlanning.${index}.max`] = t.profile.errors.required(
+        t.properties.details.pasturePlanning.maxTemp
+      );
+    } else if (maxTemp < -50 || maxTemp > 50) {
+      newErrors[`pasturePlanning.${index}.max`] = t.properties.edit.validation.temperatureRange;
+    }
+
+    if (minTemp > maxTemp) {
+      newErrors[`pasturePlanning.${index}.min`] =
+        t.properties.edit.validation.minTempGreaterThanMax;
+    }
+
+    if (Number.isNaN(precipitation)) {
+      newErrors[`pasturePlanning.${index}.precipitation`] = t.profile.errors.required(
+        t.properties.details.pasturePlanning.precipitation
+      );
+    } else if (precipitation < 0) {
+      newErrors[`pasturePlanning.${index}.precipitation`] =
+        t.properties.edit.validation.precipitationNonNegative;
+    }
+
+    if (!month.classification) {
+      newErrors[`pasturePlanning.${index}.classification`] = t.profile.errors.required(
+        t.properties.details.pasturePlanning.forage
+      );
+    }
   };
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
 
     if (pasturePlanning) {
-      pasturePlanning.forEach((month, index) => {
-        const minTemp = month.min;
-        const maxTemp = month.max;
-        const precipitation = month.precipitation;
-
-        if (isNaN(minTemp)) {
-          newErrors[`pasturePlanning.${index}.min`] = t.profile.errors.required(
-            t.properties.details.pasturePlanning.minTemp
-          );
-        } else if (minTemp < -50 || minTemp > 50) {
-          newErrors[`pasturePlanning.${index}.min`] = t.properties.edit.validation.temperatureRange;
-        }
-
-        if (isNaN(maxTemp)) {
-          newErrors[`pasturePlanning.${index}.max`] = t.profile.errors.required(
-            t.properties.details.pasturePlanning.maxTemp
-          );
-        } else if (maxTemp < -50 || maxTemp > 50) {
-          newErrors[`pasturePlanning.${index}.max`] = t.properties.edit.validation.temperatureRange;
-        }
-
-        if (minTemp > maxTemp) {
-          newErrors[`pasturePlanning.${index}.min`] =
-            t.properties.edit.validation.minTempGreaterThanMax;
-        }
-
-        if (isNaN(precipitation)) {
-          newErrors[`pasturePlanning.${index}.precipitation`] = t.profile.errors.required(
-            t.properties.details.pasturePlanning.precipitation
-          );
-        } else if (precipitation < 0) {
-          newErrors[`pasturePlanning.${index}.precipitation`] =
-            t.properties.edit.validation.precipitationNonNegative;
-        }
-
-        if (!month.classification) {
-          newErrors[`pasturePlanning.${index}.classification`] = t.profile.errors.required(
-            t.properties.details.pasturePlanning.forage
-          );
-        }
-      });
+      for (let index = 0; index < pasturePlanning.length; index++) {
+        validateMonth(pasturePlanning[index], index, newErrors);
+      }
     }
 
     setErrors(newErrors);
@@ -171,7 +167,7 @@ export default function EditPasturePlanning() {
             onClick={() => navigate(getPropertyViewRoute(propertyId!))}
             className="mt-4"
           >
-            {t.team.new.back}
+            {t.common.back}
           </Button>
         </div>
       </div>
@@ -180,11 +176,7 @@ export default function EditPasturePlanning() {
 
   return (
     <div className="space-y-8">
-      {alertMessage && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-          <Alert title={alertMessage.title} variant={alertMessage.variant} />
-        </div>
-      )}
+      <FixedAlert alertMessage={alertMessage} />
 
       <div className="flex items-center justify-between">
         <div>
@@ -207,7 +199,7 @@ export default function EditPasturePlanning() {
           onClick={() => propertyId && navigate(getPropertyViewRoute(propertyId))}
           disabled={isSubmitting}
         >
-          {t.team.new.back}
+          {t.common.back}
         </Button>
       </div>
 

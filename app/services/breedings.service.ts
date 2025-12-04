@@ -26,7 +26,7 @@ export function getNextAttemptNumber(animalId: string): number {
 
   let mostRecentBirthDate: string | null = null;
   if (birthsAsMother.length > 0) {
-    const sortedBirths = [...birthsAsMother].sort(
+    const sortedBirths = birthsAsMother.toSorted(
       (a, b) => new Date(b.birthDate).getTime() - new Date(a.birthDate).getTime()
     );
     mostRecentBirthDate = sortedBirths[0].birthDate;
@@ -43,9 +43,10 @@ export function getNextAttemptNumber(animalId: string): number {
     return maxAttempt + 1;
   }
 
+  const mostRecentBirthDateValue = mostRecentBirthDate;
   const aiBreedingsAfterBirth = aiBreedings.filter((b) => {
     const breedingDate = new Date(b.date).getTime();
-    const birthDate = new Date(mostRecentBirthDate!).getTime();
+    const birthDate = new Date(mostRecentBirthDateValue).getTime();
     return breedingDate > birthDate;
   });
 
@@ -70,20 +71,21 @@ export function getMostRecentConfirmedBreeding(animalId: string): Breeding | und
     return undefined;
   }
 
-  return confirmedBreedings.sort(
+  const sortedBreedings = confirmedBreedings.toSorted(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  )[0];
+  );
+  return sortedBreedings[0];
 }
 
 export function getPregnantAnimals(companyId: string): string[] {
   const breedings = getBreedingsByCompanyId(companyId);
   const uniqueAnimalIds = new Set<string>();
 
-  breedings.forEach((breeding) => {
+  for (const breeding of breedings) {
     if (breeding.confirmed === true) {
       uniqueAnimalIds.add(breeding.animalId);
     }
-  });
+  }
 
   return Array.from(uniqueAnimalIds);
 }
@@ -125,11 +127,11 @@ export function getPregnantCowsByPropertyId(propertyId: string): string[] {
   const breedings = getBreedingsByPropertyId(propertyId);
   const uniqueAnimalIds = new Set<string>();
 
-  breedings.forEach((breeding) => {
+  for (const breeding of breedings) {
     if (breeding.confirmed === true) {
       uniqueAnimalIds.add(breeding.animalId);
     }
-  });
+  }
 
   return Array.from(uniqueAnimalIds);
 }
@@ -162,9 +164,10 @@ export function unconfirmMostRecentBreedingForAnimal(animalId: string): boolean 
     return false;
   }
 
-  const mostRecentBreeding = confirmedBreedings.sort(
+  const sortedBreedings = confirmedBreedings.toSorted(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  )[0];
+  );
+  const mostRecentBreeding = sortedBreedings[0];
 
   return updateBreeding(mostRecentBreeding.id, { confirmed: false });
 }

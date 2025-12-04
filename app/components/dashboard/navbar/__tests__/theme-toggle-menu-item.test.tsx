@@ -1,33 +1,55 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { ThemeProvider } from "~/contexts/theme-context";
 import { ThemeToggleMenuItem } from "../theme-toggle-menu-item";
 
-const wrapper = ({ children }: { children: React.ReactNode }) => (
-  <ThemeProvider>{children}</ThemeProvider>
-);
+const mockToggleTheme = vi.fn();
+const mockUseTheme = vi.fn(() => ({
+  theme: "light" as const,
+  toggleTheme: mockToggleTheme,
+}));
+
+vi.mock("~/contexts/theme-context", () => ({
+  useTheme: () => mockUseTheme(),
+}));
 
 describe("ThemeToggleMenuItem", () => {
-  it("should render theme toggle button", () => {
-    render(<ThemeToggleMenuItem />, { wrapper });
-    expect(screen.getByText(/Tema/i)).toBeInTheDocument();
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should render theme toggle menu item", () => {
+    render(<ThemeToggleMenuItem />);
+    expect(screen.getByText(/Tema/)).toBeInTheDocument();
   });
 
   it("should call toggleTheme when clicked", async () => {
     const user = userEvent.setup();
-    render(<ThemeToggleMenuItem />, { wrapper });
-
-    const button = screen.getByText(/Tema/i).closest("button");
+    render(<ThemeToggleMenuItem />);
+    const button = screen.getByText(/Tema/).closest("button");
     if (button) {
       await user.click(button);
-      expect(button).toBeInTheDocument();
+      expect(mockToggleTheme).toHaveBeenCalledTimes(1);
     }
   });
 
-  it("should display current theme", () => {
-    render(<ThemeToggleMenuItem />, { wrapper });
-    const themeTexts = screen.getAllByText(/Claro|Escuro/i);
-    expect(themeTexts.length).toBeGreaterThan(0);
+  it("should display 'Claro' when theme is dark", () => {
+    mockUseTheme.mockReturnValueOnce({
+      theme: "dark" as const,
+      toggleTheme: mockToggleTheme,
+    });
+    render(<ThemeToggleMenuItem />);
+    expect(screen.getByText("Tema Claro")).toBeInTheDocument();
+    expect(screen.getByText("Escuro")).toBeInTheDocument();
+  });
+
+  it("should display 'Escuro' when theme is light", () => {
+    mockUseTheme.mockReturnValueOnce({
+      theme: "light" as const,
+      toggleTheme: mockToggleTheme,
+    });
+    render(<ThemeToggleMenuItem />);
+    expect(screen.getByText("Tema Escuro")).toBeInTheDocument();
+    expect(screen.getByText("Claro")).toBeInTheDocument();
   });
 });

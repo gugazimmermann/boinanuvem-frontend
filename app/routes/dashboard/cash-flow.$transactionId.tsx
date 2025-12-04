@@ -21,7 +21,7 @@ import {
   addCashFlowObservation,
 } from "~/services/cash-flow-observations.service";
 import type { CashFlowObservation } from "~/types/cash-flow-observation";
-import { ObservationSection } from "~/components/dashboard/finance/observation-section";
+import { ObservationSection } from "~/components/dashboard/observations/observation-section";
 import { FinanceDetailCard } from "~/components/dashboard/finance/finance-detail-card";
 
 export function meta() {
@@ -56,18 +56,22 @@ export default function CashFlowDetails() {
     setObservations(initialObservations);
   }, [initialObservations]);
 
-  const supplier =
-    transaction?.type === "expense" && transaction?.supplierId
-      ? getSupplierById(transaction.supplierId)
+  const getRelatedEntities = () => {
+    const supplier =
+      transaction?.type === "expense" && transaction?.supplierId
+        ? getSupplierById(transaction.supplierId)
+        : null;
+    const buyer =
+      transaction?.type === "income" && transaction?.buyerId
+        ? getBuyerById(transaction.buyerId)
+        : null;
+    const employee = transaction?.employeeId ? getEmployeeById(transaction.employeeId) : null;
+    const serviceProvider = transaction?.serviceProviderId
+      ? getServiceProviderById(transaction.serviceProviderId)
       : null;
-  const buyer =
-    transaction?.type === "income" && transaction?.buyerId
-      ? getBuyerById(transaction.buyerId)
-      : null;
-  const employee = transaction?.employeeId ? getEmployeeById(transaction.employeeId) : null;
-  const serviceProvider = transaction?.serviceProviderId
-    ? getServiceProviderById(transaction.serviceProviderId)
-    : null;
+    return { supplier, buyer, employee, serviceProvider };
+  };
+  const { supplier, buyer, employee, serviceProvider } = getRelatedEntities();
   const property = transaction?.propertyId ? getPropertyById(transaction.propertyId) : null;
 
   const handleAddObservation = async (observationText: string, files: File[]) => {
@@ -227,36 +231,45 @@ export default function CashFlowDetails() {
         <ObservationSection<CashFlowObservation>
           observations={observations}
           onAddObservation={handleAddObservation}
+          useSelfManagedForm={true}
+          title={t.cashFlow.details.observations || "Observações"}
+          description={
+            t.cashFlow.details.observationsDescription || "Gerencie as observações desta transação"
+          }
+          searchPlaceholder={t.cashFlow.details.searchObservations || "Buscar observações..."}
+          emptyStateTitle={t.cashFlow.details.noObservations || "Nenhuma observação registrada"}
+          emptyStateDescription={
+            t.cashFlow.details.noObservationsDescription ||
+            "Adicione sua primeira observação sobre esta transação."
+          }
+          emptyStateDescriptionWithSearch={
+            typeof t.cashFlow.details.noObservationsWithSearch === "function"
+              ? t.cashFlow.details.noObservationsWithSearch
+              : t.cashFlow.details.noObservationsWithSearch ||
+                ((search: string) => `Nenhuma observação encontrada para "${search}"`)
+          }
           translationKeys={{
-            title: t.cashFlow.details.observations || "Observações",
-            description:
-              t.cashFlow.details.observationsDescription ||
-              "Gerencie as observações desta transação",
-            addObservation: t.cashFlow.details.addObservation || "Adicionar Observação",
+            observationDate: t.cashFlow.details.observationDate || "Data",
             observation: t.cashFlow.details.observation || "Observação",
+            files: t.cashFlow.details.files || "Anexos",
+            addObservation: t.cashFlow.details.addObservation || "Adicionar Observação",
+            newObservation: t.cashFlow.details.addObservation || "Adicionar Observação",
             observationPlaceholder:
               t.cashFlow.details.observationPlaceholder ||
               "Digite sua observação sobre esta transação...",
+            filesHelper:
+              t.cashFlow.details.filesHelper || "Você pode fazer upload de múltiplos arquivos",
             observationRequired:
               t.cashFlow.details.observationRequired || "Por favor, insira uma observação",
             observationAdded:
               t.cashFlow.details.observationAdded || "Observação adicionada com sucesso!",
             observationError: t.cashFlow.details.observationError || "Erro ao adicionar observação",
-            files: t.cashFlow.details.files || "Anexos",
-            filesHelper:
-              t.cashFlow.details.filesHelper || "Você pode fazer upload de múltiplos arquivos",
-            searchObservations: t.cashFlow.details.searchObservations || "Buscar observações...",
-            noObservations: t.cashFlow.details.noObservations || "Nenhuma observação registrada",
-            noObservationsWithSearch:
-              typeof t.cashFlow.details.noObservationsWithSearch === "function"
-                ? t.cashFlow.details.noObservationsWithSearch
-                : t.cashFlow.details.noObservationsWithSearch ||
-                  ((search: string) => `Nenhuma observação encontrada para "${search}"`),
-            noObservationsDescription:
-              t.cashFlow.details.noObservationsDescription ||
-              "Adicione sua primeira observação sobre esta transação.",
-            observationDate: t.cashFlow.details.observationDate || "Data",
+            cancel: t.common.cancel,
+            save: t.common.save,
+            clearSearch: t.common.clearSearch,
           }}
+          entityId={transaction.id}
+          entityType="cashFlow"
         />
       )}
     </div>

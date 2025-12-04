@@ -16,7 +16,7 @@ import {
   addAccountsPayableObservation,
 } from "~/services/accounts-payable-observations.service";
 import type { AccountsPayableObservation } from "~/types/accounts-payable-observation";
-import { ObservationSection } from "~/components/dashboard/finance/observation-section";
+import { ObservationSection } from "~/components/dashboard/observations/observation-section";
 import { FinanceDetailCard } from "~/components/dashboard/finance/finance-detail-card";
 import { getStatusVariant } from "~/utils/finance";
 
@@ -169,13 +169,14 @@ export default function AccountsPayableDetails() {
           },
           {
             label: t.accountsPayable.details.bankAccount,
-            value: bankAccount
-              ? `${bankAccount.bankName} - ${bankAccount.accountNumber} (${
-                  bankAccount.accountType === "checking"
-                    ? t.bankAccounts.accountTypes.checking
-                    : t.bankAccounts.accountTypes.savings
-                })`
-              : "-",
+            value: (() => {
+              if (!bankAccount) return "-";
+              const accountTypeLabel =
+                bankAccount.accountType === "checking"
+                  ? t.bankAccounts.accountTypes.checking
+                  : t.bankAccounts.accountTypes.savings;
+              return `${bankAccount.bankName} - ${bankAccount.accountNumber} (${accountTypeLabel})`;
+            })(),
             condition: !!bankAccount,
           },
           {
@@ -206,39 +207,49 @@ export default function AccountsPayableDetails() {
       <ObservationSection<AccountsPayableObservation>
         observations={observations}
         onAddObservation={handleAddObservation}
+        useSelfManagedForm={true}
+        title={t.accountsPayable.details.observations || "Observações"}
+        description={
+          t.accountsPayable.details.observationsDescription ||
+          "Gerencie as observações desta conta a pagar"
+        }
+        searchPlaceholder={t.accountsPayable.details.searchObservations || "Buscar observações..."}
+        emptyStateTitle={
+          t.accountsPayable.details.noObservations || "Nenhuma observação registrada"
+        }
+        emptyStateDescription={
+          t.accountsPayable.details.noObservationsDescription ||
+          "Adicione sua primeira observação sobre esta conta a pagar."
+        }
+        emptyStateDescriptionWithSearch={
+          typeof t.accountsPayable.details.noObservationsWithSearch === "function"
+            ? t.accountsPayable.details.noObservationsWithSearch
+            : t.accountsPayable.details.noObservationsWithSearch ||
+              ((search: string) => `Nenhuma observação encontrada para "${search}"`)
+        }
         translationKeys={{
-          title: t.accountsPayable.details.observations || "Observações",
-          description:
-            t.accountsPayable.details.observationsDescription ||
-            "Gerencie as observações desta conta a pagar",
-          addObservation: t.accountsPayable.details.addObservation || "Adicionar Observação",
+          observationDate: t.accountsPayable.details.observationDate || "Data",
           observation: t.accountsPayable.details.observation || "Observação",
+          files: t.accountsPayable.details.files || "Anexos",
+          addObservation: t.accountsPayable.details.addObservation || "Adicionar Observação",
+          newObservation: t.accountsPayable.details.addObservation || "Adicionar Observação",
           observationPlaceholder:
             t.accountsPayable.details.observationPlaceholder ||
             "Digite sua observação sobre esta conta a pagar...",
+          filesHelper:
+            t.accountsPayable.details.filesHelper || "Você pode fazer upload de múltiplos arquivos",
           observationRequired:
             t.accountsPayable.details.observationRequired || "Por favor, insira uma observação",
           observationAdded:
             t.accountsPayable.details.observationAdded || "Observação adicionada com sucesso!",
           observationError:
             t.accountsPayable.details.observationError || "Erro ao adicionar observação",
-          files: t.accountsPayable.details.files || "Anexos",
-          filesHelper:
-            t.accountsPayable.details.filesHelper || "Você pode fazer upload de múltiplos arquivos",
-          searchObservations:
-            t.accountsPayable.details.searchObservations || "Buscar observações...",
-          noObservations:
-            t.accountsPayable.details.noObservations || "Nenhuma observação registrada",
-          noObservationsWithSearch:
-            typeof t.accountsPayable.details.noObservationsWithSearch === "function"
-              ? t.accountsPayable.details.noObservationsWithSearch
-              : t.accountsPayable.details.noObservationsWithSearch ||
-                ((search: string) => `Nenhuma observação encontrada para "${search}"`),
-          noObservationsDescription:
-            t.accountsPayable.details.noObservationsDescription ||
-            "Adicione sua primeira observação sobre esta conta a pagar.",
-          observationDate: t.accountsPayable.details.observationDate || "Data",
+          cancel: t.common.cancel,
+          save: t.common.save,
+          clearSearch: t.common.clearSearch,
         }}
+        entityId={transaction.id}
+        entityType="accountsPayable"
       />
     </div>
   );

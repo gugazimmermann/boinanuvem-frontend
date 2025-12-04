@@ -2,12 +2,12 @@ import { useTranslation } from "~/i18n";
 import type { Property } from "~/types";
 
 export interface PropertyFilterProps {
-  value: string;
-  onChange: (value: string) => void;
-  properties: Property[];
-  label?: string;
-  allPropertiesLabel?: string;
-  className?: string;
+  readonly value: string;
+  readonly onChange: (value: string) => void;
+  readonly properties: Property[];
+  readonly label?: string;
+  readonly allPropertiesLabel?: string;
+  readonly className?: string;
 }
 
 export function PropertyFilter({

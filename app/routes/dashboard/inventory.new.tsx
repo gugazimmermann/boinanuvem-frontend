@@ -1,15 +1,15 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { Button, Alert } from "~/components/ui";
 import { useTranslation } from "~/i18n";
+import { FormPageLayout } from "~/components/dashboard/forms/form-page-layout";
 import { ROUTES } from "~/routes.config";
 import { addInventoryItem } from "~/services/inventory.service";
 import { addInventoryMovement } from "~/services/inventory-movements.service";
+import { addInventoryObservation } from "~/services/inventory-observations.service";
+import { getBankAccountsByCompanyId } from "~/services/bank-account.service";
 import { setNitrogenContent } from "~/services/nitrogen-content.service";
 import { addCashFlow } from "~/services/cash-flow.service";
 import { addAccountsPayable } from "~/services/accounts-payable.service";
-import { addInventoryObservation } from "~/services/inventory-observations.service";
-import { getBankAccountsByCompanyId } from "~/services/bank-account.service";
 import type {
   InventoryItemFormData,
   InventoryMovementFormData,
@@ -23,6 +23,14 @@ import { mockSuppliers } from "~/mocks/suppliers";
 import { useInventoryForm } from "~/hooks/use-inventory-form";
 import { InventoryItemForm } from "~/components/dashboard/inventory/inventory-item-form";
 import { getCategoryForCashFlow } from "~/utils/inventory-utils";
+import { useAlert } from "~/hooks/use-alert";
+import {
+  getUsageFields,
+  getCustomCategory,
+  getExpirationDate,
+  handleNitrogenContent,
+  getInitialStock,
+} from "~/utils/inventory-form-helpers";
 
 export function meta() {
   return [
@@ -52,19 +60,116 @@ export default function NewInventoryItem() {
 
   const [observationFiles, setObservationFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [alertMessage, setAlertMessage] = useState<{
-    title: string;
-    variant: "success" | "error" | "warning" | "info";
-  } | null>(null);
+  const { alertMessage, showAlert } = useAlert();
 
-  const showAlert = (
-    title: string,
-    variant: "success" | "error" | "warning" | "info" = "success"
-  ) => {
-    setAlertMessage({ title, variant });
-    setTimeout(() => {
-      setAlertMessage(null);
-    }, 3000);
+  const createCashFlowTransaction = (
+    item: { category: InventoryItemCategory },
+    totalAmount: number
+  ): string | undefined => {
+    if (!formData.createCashFlowTransaction) return undefined;
+
+    const cashFlowData: CashFlowFormData = {
+      companyId,
+      type: "expense",
+      amount: totalAmount,
+      date: new Date().toISOString().split("T")[0],
+      description: formData.description.trim() || t.inventory.new.initialStockDescription,
+      category: getCategoryForCashFlow(item.category),
+      paymentMethod: formData.paymentMethod,
+      status: "completed",
+      supplierId: formData.supplierId,
+      propertyId: formData.propertyIds[0],
+      bankAccountId: formData.bankAccountId || undefined,
+    };
+    const cashFlow = addCashFlow(cashFlowData);
+    return cashFlow.id;
+  };
+
+  const createAccountPayableTransaction = (
+    item: { category: InventoryItemCategory },
+    totalAmount: number
+  ): void => {
+    if (!formData.createAccountPayable) return;
+
+    const accountPayableData: AccountsPayableFormData = {
+      companyId,
+      supplierId: formData.supplierId,
+      amount: totalAmount,
+      dueDate: formData.dueDate,
+      description: formData.description.trim() || t.inventory.new.initialStockDescription,
+      category: getCategoryForCashFlow(item.category),
+      paymentMethod: formData.accountPayablePaymentMethod,
+      status: AccountsPayableStatus.UNPAID,
+      propertyId: formData.propertyIds[0],
+      bankAccountId: formData.accountPayableBankAccountId || undefined,
+    };
+    addAccountsPayable(accountPayableData);
+  };
+
+  const handleInitialStockTransactions = (
+    item: { id: string; name: string; category: InventoryItemCategory; unitPrice?: number },
+    initialStock: number
+  ): string | undefined => {
+    if (initialStock <= 0 || !formData.supplierId) {
+      return undefined;
+    }
+
+    const unitPrice = formData.unitPrice?.trim()
+      ? Number.parseFloat(formData.unitPrice)
+      : item.unitPrice || 0;
+
+    if (unitPrice <= 0) {
+      return undefined;
+    }
+
+    const totalAmount = initialStock * unitPrice;
+    const cashFlowId = createCashFlowTransaction(item, totalAmount);
+    createAccountPayableTransaction(item, totalAmount);
+
+    return cashFlowId;
+  };
+
+  const createInitialStockMovement = (
+    item: { id: string; unitPrice?: number },
+    initialStock: number,
+    cashFlowId: string | undefined
+  ): void => {
+    if (initialStock <= 0 || formData.propertyIds.length === 0) return;
+
+    const unitPrice = formData.unitPrice?.trim()
+      ? Number.parseFloat(formData.unitPrice)
+      : item.unitPrice || 0;
+    const movementType = formData.supplierId
+      ? InventoryMovementType.PURCHASE
+      : InventoryMovementType.ADJUSTMENT;
+
+    const movementData: InventoryMovementFormData = {
+      itemId: item.id,
+      type: movementType,
+      quantity: initialStock,
+      unitPrice: unitPrice > 0 ? unitPrice : undefined,
+      date: new Date().toISOString().split("T")[0],
+      description: formData.description.trim() || t.inventory.new.initialStockDescription,
+      supplierId: formData.supplierId || undefined,
+      cashFlowId,
+      propertyId: formData.propertyIds[0],
+      companyId,
+      expirationDate:
+        formData.hasExpiration && formData.expirationDate ? formData.expirationDate : undefined,
+    };
+    addInventoryMovement(movementData);
+  };
+
+  const createObservation = (itemId: string): void => {
+    if (!formData.observation?.trim()) return;
+
+    const fileIds = observationFiles.map((_, index) => `file-inventory-obs-${Date.now()}-${index}`);
+
+    addInventoryObservation({
+      itemId,
+      observation: formData.observation.trim(),
+      fileIds: fileIds.length > 0 ? fileIds : undefined,
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -73,146 +178,31 @@ export default function NewInventoryItem() {
 
     setIsSubmitting(true);
     try {
+      const usageFields = getUsageFields(formData);
       const itemData: InventoryItemFormData = {
         code: formData.code.trim(),
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
         category: formData.category,
-        customCategory:
-          formData.category === InventoryItemCategory.CUSTOM && formData.customCategory.trim()
-            ? formData.customCategory.trim()
-            : undefined,
+        customCategory: getCustomCategory(formData),
         unit: formData.unit,
-        minimumStock: parseFloat(formData.minimumStock),
-        unitPrice:
-          formData.unitPrice && formData.unitPrice.trim()
-            ? parseFloat(formData.unitPrice)
-            : undefined,
+        minimumStock: Number.parseFloat(formData.minimumStock),
+        unitPrice: formData.unitPrice?.trim() ? Number.parseFloat(formData.unitPrice) : undefined,
         supplierId: formData.supplierId || undefined,
         hasExpiration: formData.hasExpiration,
-        expirationDate:
-          formData.hasExpiration && formData.expirationDate ? formData.expirationDate : undefined,
-        usageAmount:
-          (formData.category === InventoryItemCategory.MEDICINES ||
-            formData.category === InventoryItemCategory.VACCINES) &&
-          formData.usageAmount &&
-          formData.usageAmount.trim()
-            ? parseFloat(formData.usageAmount)
-            : undefined,
-        usageUnit:
-          (formData.category === InventoryItemCategory.MEDICINES ||
-            formData.category === InventoryItemCategory.VACCINES) &&
-          formData.usageUnit &&
-          formData.usageUnit.trim()
-            ? formData.usageUnit.trim()
-            : undefined,
-        usageBasis:
-          (formData.category === InventoryItemCategory.MEDICINES ||
-            formData.category === InventoryItemCategory.VACCINES) &&
-          formData.usageBasis &&
-          formData.usageBasis.trim()
-            ? formData.usageBasis.trim()
-            : undefined,
+        expirationDate: getExpirationDate(formData),
+        ...usageFields,
         companyId,
         propertyIds: formData.propertyIds,
       };
       const newItem = addInventoryItem(itemData);
 
-      if (
-        formData.category === InventoryItemCategory.FERTILIZER &&
-        formData.nitrogenContent &&
-        formData.nitrogenContent.trim()
-      ) {
-        const nitrogenKgPerUnit = parseFloat(formData.nitrogenContent);
-        if (!isNaN(nitrogenKgPerUnit) && nitrogenKgPerUnit >= 0) {
-          setNitrogenContent(newItem.id, nitrogenKgPerUnit);
-        }
-      }
+      handleNitrogenContent(newItem.id, formData, setNitrogenContent);
 
-      const initialStock =
-        formData.initialStock && formData.initialStock.trim()
-          ? parseFloat(formData.initialStock)
-          : 0;
-      let cashFlowId: string | undefined;
-
-      if (initialStock > 0 && formData.propertyIds.length > 0) {
-        const unitPrice =
-          formData.unitPrice && formData.unitPrice.trim()
-            ? parseFloat(formData.unitPrice)
-            : newItem.unitPrice || 0;
-        const totalAmount = initialStock * unitPrice;
-
-        if (formData.createCashFlowTransaction && formData.supplierId && unitPrice > 0) {
-          const cashFlowData: CashFlowFormData = {
-            companyId,
-            type: "expense",
-            amount: totalAmount,
-            date: new Date().toISOString().split("T")[0],
-            description:
-              formData.description.trim() ||
-              `${t.inventory.movements.new.purchaseOf} ${newItem.name}`,
-            category: getCategoryForCashFlow(formData.category),
-            paymentMethod: formData.paymentMethod,
-            status: "completed",
-            supplierId: formData.supplierId,
-            propertyId: formData.propertyIds[0],
-            bankAccountId: formData.bankAccountId || undefined,
-          };
-
-          const cashFlow = addCashFlow(cashFlowData);
-          cashFlowId = cashFlow.id;
-        }
-
-        if (formData.createAccountPayable && formData.supplierId && unitPrice > 0) {
-          const accountPayableData: AccountsPayableFormData = {
-            companyId,
-            supplierId: formData.supplierId,
-            amount: totalAmount,
-            dueDate: formData.dueDate,
-            description:
-              formData.description.trim() ||
-              `${t.inventory.movements.new.purchaseOf} ${newItem.name}`,
-            category: getCategoryForCashFlow(formData.category),
-            paymentMethod: formData.accountPayablePaymentMethod || undefined,
-            status: AccountsPayableStatus.UNPAID,
-            propertyId: formData.propertyIds[0],
-            bankAccountId: formData.accountPayableBankAccountId || undefined,
-          };
-
-          addAccountsPayable(accountPayableData);
-        }
-
-        const movementType = formData.supplierId
-          ? InventoryMovementType.PURCHASE
-          : InventoryMovementType.ADJUSTMENT;
-        const movementData: InventoryMovementFormData = {
-          itemId: newItem.id,
-          type: movementType,
-          quantity: initialStock,
-          unitPrice: unitPrice > 0 ? unitPrice : undefined,
-          date: new Date().toISOString().split("T")[0],
-          description: formData.description.trim() || t.inventory.new.initialStockDescription,
-          supplierId: formData.supplierId || undefined,
-          cashFlowId,
-          propertyId: formData.propertyIds[0],
-          companyId,
-          expirationDate:
-            formData.hasExpiration && formData.expirationDate ? formData.expirationDate : undefined,
-        };
-        addInventoryMovement(movementData);
-      }
-
-      if (formData.observation?.trim()) {
-        const fileIds = observationFiles.map(
-          (_, index) => `file-inventory-obs-${Date.now()}-${index}`
-        );
-
-        addInventoryObservation({
-          itemId: newItem.id,
-          observation: formData.observation.trim(),
-          fileIds: fileIds.length > 0 ? fileIds : undefined,
-        });
-      }
+      const initialStock = getInitialStock(formData.initialStock);
+      const cashFlowId = handleInitialStockTransactions(newItem, initialStock);
+      createInitialStockMovement(newItem, initialStock, cashFlowId);
+      createObservation(newItem.id);
 
       showAlert(t.inventory.new.success, "success");
       setTimeout(() => {
@@ -227,63 +217,35 @@ export default function NewInventoryItem() {
   };
 
   return (
-    <div className="space-y-8">
-      {alertMessage && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-          <Alert title={alertMessage.title} variant={alertMessage.variant} />
-        </div>
-      )}
-
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-            {t.inventory.addItem}
-          </h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {t.inventory.new.description}
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          onClick={() => navigate(ROUTES.INVENTORY)}
-          disabled={isSubmitting}
-        >
-          {t.common.back}
-        </Button>
-      </div>
-
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-        <form onSubmit={handleSubmit} className="space-y-8">
-          <InventoryItemForm
-            formData={formData}
-            errors={errors}
-            isSubmitting={isSubmitting}
-            onFieldChange={handleChange}
-            translations={t}
-            suppliers={mockSuppliers}
-            properties={mockProperties}
-            bankAccounts={bankAccounts}
-            showInitialStock={true}
-            showObservation={true}
-            observationFiles={observationFiles}
-            onObservationFilesChange={setObservationFiles}
-          />
-
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate(ROUTES.INVENTORY)}
-              disabled={isSubmitting}
-            >
-              {t.common.cancel}
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {t.common.save}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <FormPageLayout
+      alertMessage={alertMessage}
+      title={t.inventory.addItem}
+      description={t.inventory.new.description}
+      backButtonLabel={t.common.back}
+      onBack={() => navigate(ROUTES.INVENTORY)}
+      isSubmitting={isSubmitting}
+      submitButtonLabel={t.common.save}
+      cancelButtonLabel={t.common.cancel}
+      onSubmit={handleSubmit}
+      onCancel={() => navigate(ROUTES.INVENTORY)}
+      containerClassName="space-y-8"
+      formSpacing="space-y-8"
+      titleSize="3xl"
+    >
+      <InventoryItemForm
+        formData={formData}
+        errors={errors}
+        isSubmitting={isSubmitting}
+        onFieldChange={handleChange}
+        translations={t}
+        suppliers={mockSuppliers}
+        properties={mockProperties}
+        bankAccounts={bankAccounts}
+        showInitialStock={true}
+        showObservation={true}
+        observationFiles={observationFiles}
+        onObservationFilesChange={setObservationFiles}
+      />
+    </FormPageLayout>
   );
 }

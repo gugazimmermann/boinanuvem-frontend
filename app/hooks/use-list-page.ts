@@ -2,6 +2,8 @@ import { useState, useMemo, useCallback } from "react";
 import type { SortDirection } from "~/components/ui";
 import type { Language } from "~/types";
 import { getLocaleForDateTime } from "~/utils/formatting";
+import { getStringValue } from "~/utils/string-helpers";
+import { paginateItems } from "~/utils/table-helpers";
 
 export interface UseListPageOptions<T> {
   data: T[];
@@ -39,37 +41,96 @@ export function useListPage<T extends Record<string, unknown>>(options: UseListP
 
   const localeForDateTime = getLocaleForDateTime(language);
 
+  const checkFieldMatch = useCallback(
+    (field: keyof T | ((item: T) => string), item: T, searchValue: string): boolean => {
+      if (typeof field === "function") {
+        return field(item).toLowerCase().includes(searchValue.toLowerCase());
+      }
+      const value = item[field];
+      if (value == null) return false;
+      const valueStr = getStringValue(value);
+      return valueStr.toLowerCase().includes(searchValue.toLowerCase());
+    },
+    []
+  );
+
+  const matchesSearchValue = useCallback(
+    (item: T, searchValue: string): boolean => {
+      if (searchFields.length > 0) {
+        return searchFields.some((field) => checkFieldMatch(field, item, searchValue));
+      }
+
+      return Object.values(item).some((value) => {
+        if (value == null) return false;
+        const valueStr = getStringValue(value);
+        return valueStr.toLowerCase().includes(searchValue.toLowerCase());
+      });
+    },
+    [searchFields, checkFieldMatch]
+  );
+
+  const matchesStatusFilter = useCallback(
+    (item: T): boolean => {
+      if (activeFilter === "all" || !("status" in item)) {
+        return true;
+      }
+      return item.status === activeFilter;
+    },
+    [activeFilter]
+  );
+
   const filteredData = useMemo(() => {
     return data.filter((item) => {
       if (customFilter) {
         return customFilter(item, searchValue, activeFilter);
       }
 
-      let matchesSearch = true;
-      if (searchValue) {
-        if (searchFields.length > 0) {
-          matchesSearch = searchFields.some((field) => {
-            if (typeof field === "function") {
-              return field(item).toLowerCase().includes(searchValue.toLowerCase());
-            }
-            const value = item[field];
-            return value ? String(value).toLowerCase().includes(searchValue.toLowerCase()) : false;
-          });
-        } else {
-          matchesSearch = Object.values(item).some((value) =>
-            value ? String(value).toLowerCase().includes(searchValue.toLowerCase()) : false
-          );
-        }
-      }
-
-      let matchesFilter = true;
-      if (activeFilter !== "all" && "status" in item) {
-        matchesFilter = item.status === activeFilter;
-      }
-
+      const matchesSearch = searchValue ? matchesSearchValue(item, searchValue) : true;
+      const matchesFilter = matchesStatusFilter(item);
       return matchesSearch && matchesFilter;
     });
-  }, [data, searchValue, activeFilter, searchFields, customFilter]);
+  }, [data, searchValue, activeFilter, customFilter, matchesSearchValue, matchesStatusFilter]);
+
+  const normalizeSortValue = useCallback(
+    (value: unknown, column: string): unknown => {
+      if (column === "area" && typeof value === "object" && value !== null) {
+        return (value as { value?: number }).value;
+      }
+      if (dateFields.includes(column) && typeof value === "string") {
+        return new Date(value).getTime();
+      }
+      return value;
+    },
+    [dateFields]
+  );
+
+  const convertDateValue = useCallback(
+    (value: unknown, column: string): unknown => {
+      if (!dateFields.includes(column)) return value;
+      if (typeof value === "string") {
+        return new Date(value).getTime();
+      }
+      return value;
+    },
+    [dateFields]
+  );
+
+  const compareValues = useCallback((aValue: unknown, bValue: unknown, locale: string): number => {
+    if (aValue == null && bValue == null) return 0;
+    if (aValue == null) return 1;
+    if (bValue == null) return -1;
+
+    if (typeof aValue === "string" && typeof bValue === "string") {
+      return aValue.localeCompare(bValue, locale, { sensitivity: "base" });
+    }
+    if (typeof aValue === "number" && typeof bValue === "number") {
+      return aValue - bValue;
+    }
+
+    const aStr = getStringValue(aValue);
+    const bStr = getStringValue(bValue);
+    return aStr.localeCompare(bStr, locale);
+  }, []);
 
   const sortedData = useMemo(() => {
     if (!sortState.column || !sortState.direction) {
@@ -77,47 +138,27 @@ export function useListPage<T extends Record<string, unknown>>(options: UseListP
     }
 
     return [...filteredData].sort((a, b) => {
-      let aValue = a[sortState.column!];
-      let bValue = b[sortState.column!];
+      let aValue = normalizeSortValue(a[sortState.column!], sortState.column!);
+      let bValue = normalizeSortValue(b[sortState.column!], sortState.column!);
 
-      if (sortState.column === "area" && typeof aValue === "object" && aValue !== null) {
-        aValue = (aValue as { value?: number }).value;
-        bValue = (bValue as { value?: number }).value;
-      }
+      aValue = convertDateValue(aValue, sortState.column!);
+      bValue = convertDateValue(bValue, sortState.column!);
 
-      if (dateFields.includes(sortState.column!) && (aValue || bValue)) {
-        if (typeof aValue === "string") {
-          aValue = new Date(aValue).getTime();
-        }
-        if (typeof bValue === "string") {
-          bValue = new Date(bValue).getTime();
-        }
-      }
-
-      if (aValue == null && bValue == null) return 0;
-      if (aValue == null) return 1;
-      if (bValue == null) return -1;
-
-      let comparison = 0;
-      if (typeof aValue === "string" && typeof bValue === "string") {
-        comparison = aValue.localeCompare(bValue, localeForDateTime, {
-          sensitivity: "base",
-        });
-      } else if (typeof aValue === "number" && typeof bValue === "number") {
-        comparison = aValue - bValue;
-      } else {
-        comparison = String(aValue).localeCompare(String(bValue), localeForDateTime);
-      }
-
+      const comparison = compareValues(aValue, bValue, localeForDateTime);
       return sortState.direction === "asc" ? comparison : -comparison;
     });
-  }, [filteredData, sortState, localeForDateTime, dateFields]);
+  }, [
+    filteredData,
+    sortState,
+    localeForDateTime,
+    normalizeSortValue,
+    convertDateValue,
+    compareValues,
+  ]);
 
-  const paginatedData = useMemo(() => {
-    return sortedData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const { paginatedItems: paginatedData, totalPages } = useMemo(() => {
+    return paginateItems(sortedData, currentPage, itemsPerPage);
   }, [sortedData, currentPage, itemsPerPage]);
-
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
   const handleSort = useCallback((column: string, direction: SortDirection) => {
     setSortState({ column, direction });

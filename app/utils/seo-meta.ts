@@ -59,7 +59,11 @@ export interface CanonicalLinkOptions {
 
 export function createCanonicalLink(options: CanonicalLinkOptions) {
   const { url, canonical } = options;
-  const canonicalUrl = canonical ? `${SITE_URL}${canonical}` : url ? `${SITE_URL}${url}` : SITE_URL;
+  const canonicalUrl = (() => {
+    if (canonical) return `${SITE_URL}${canonical}`;
+    if (url) return `${SITE_URL}${url}`;
+    return SITE_URL;
+  })();
 
   return [{ rel: "canonical", href: canonicalUrl }];
 }

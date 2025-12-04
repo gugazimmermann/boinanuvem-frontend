@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
-import type { InventoryItem, SortDirection } from "~/types";
+import type { InventoryItem, SortDirection, Language } from "~/types";
 import { getCurrentStock } from "~/services/inventory.service";
-import type { Language } from "~/types";
 
 export interface UseInventoryFiltersOptions {
   items: InventoryItem[];
@@ -44,8 +43,9 @@ export function useInventoryFilters(options: UseInventoryFiltersOptions) {
         return 0;
       }
 
-      let aValue: string | number | undefined;
-      let bValue: string | number | undefined;
+      type SortValue = string | number | undefined;
+      let aValue: SortValue;
+      let bValue: SortValue;
 
       if (sortState.column === "currentStock") {
         aValue = getCurrentStock(a.id);
@@ -60,7 +60,12 @@ export function useInventoryFilters(options: UseInventoryFiltersOptions) {
       if (bValue == null) return -1;
 
       let comparison = 0;
-      const locale = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
+      const getLocale = () => {
+        if (language === "en") return "en-US";
+        if (language === "es") return "es-ES";
+        return "pt-BR";
+      };
+      const locale = getLocale();
       if (typeof aValue === "string" && typeof bValue === "string") {
         comparison = aValue.localeCompare(bValue, locale, {
           sensitivity: "base",

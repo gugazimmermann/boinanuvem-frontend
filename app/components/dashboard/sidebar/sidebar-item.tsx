@@ -2,24 +2,23 @@ import { Link, useLocation } from "react-router";
 import { DASHBOARD_COLORS } from "../utils/colors";
 
 interface SidebarSubItemProps {
-  label: string;
-  path: string;
-  icon?: string;
+  readonly label: string;
+  readonly path: string;
+  readonly icon?: string;
 }
 
 interface SidebarItemProps {
-  translationKey: string;
-  label: string;
-  path: string;
-  icon?: string;
-  subItems?: SidebarSubItemProps[];
-  isExpanded?: boolean;
-  onToggle?: () => void;
-  onItemClick?: () => void;
+  readonly label: string;
+  readonly path: string;
+  readonly icon?: string;
+  readonly subItems?: SidebarSubItemProps[];
+  readonly isExpanded?: boolean;
+  readonly onToggle?: () => void;
+  readonly onItemClick?: () => void;
 }
 
 interface SidebarSubItemPropsWithCallback extends SidebarSubItemProps {
-  onItemClick?: () => void;
+  readonly onItemClick?: () => void;
 }
 
 function SidebarSubItem({ label, path, icon, onItemClick }: SidebarSubItemPropsWithCallback) {
@@ -72,16 +71,23 @@ export function SidebarItem({
   const className = `${baseClasses} ${isActive ? activeClasses : inactiveClasses}`;
   const activeStyle = isActive ? { backgroundColor: DASHBOARD_COLORS.primary } : undefined;
 
-  const handleItemClick = () => {
-    if (onItemClick) {
-      onItemClick();
-    }
-  };
+  const handleItemClick = onItemClick;
 
   if (subItems && subItems.length > 0) {
     return (
       <div>
-        <div className={className} style={activeStyle} onClick={onToggle}>
+        <button
+          type="button"
+          className={className}
+          style={activeStyle}
+          onClick={onToggle}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onToggle?.();
+            }
+          }}
+        >
           {icon && <span className="text-lg">{icon}</span>}
           <span className="font-medium flex-1">{label}</span>
           <svg
@@ -92,7 +98,7 @@ export function SidebarItem({
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
-        </div>
+        </button>
         {isExpanded && (
           <div className="mt-1 space-y-1">
             {subItems.map((subItem) => (

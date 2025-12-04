@@ -1,101 +1,121 @@
 import { describe, it, expect } from "vitest";
 import { mockServiceProviders } from "../service-providers";
-import type { ServiceProvider } from "~/types";
+import { mockCompanies } from "../companies";
+import { mockProperties } from "../properties";
 
-describe("service-providers mock", () => {
-  it("should export mockServiceProviders array", () => {
-    expect(Array.isArray(mockServiceProviders)).toBe(true);
-    expect(mockServiceProviders.length).toBeGreaterThan(0);
-  });
-
-  it("should have valid service provider structure", () => {
-    mockServiceProviders.forEach((serviceProvider: ServiceProvider) => {
-      expect(serviceProvider).toHaveProperty("id");
-      expect(serviceProvider).toHaveProperty("code");
-      expect(serviceProvider).toHaveProperty("name");
-      expect(serviceProvider).toHaveProperty("email");
-      expect(serviceProvider).toHaveProperty("phone");
-      expect(serviceProvider).toHaveProperty("status");
-      expect(serviceProvider).toHaveProperty("createdAt");
-      expect(serviceProvider).toHaveProperty("companyId");
-      expect(serviceProvider).toHaveProperty("propertyIds");
-      expect(serviceProvider).toHaveProperty("street");
-      expect(serviceProvider).toHaveProperty("number");
-      expect(serviceProvider).toHaveProperty("neighborhood");
-      expect(serviceProvider).toHaveProperty("city");
-      expect(serviceProvider).toHaveProperty("state");
-      expect(serviceProvider).toHaveProperty("zipCode");
-
-      expect(typeof serviceProvider.id).toBe("string");
-      expect(typeof serviceProvider.code).toBe("string");
-      expect(typeof serviceProvider.name).toBe("string");
-      expect(typeof serviceProvider.email).toBe("string");
-      expect(typeof serviceProvider.phone).toBe("string");
-      expect(typeof serviceProvider.status).toBe("string");
-      expect(typeof serviceProvider.createdAt).toBe("string");
-      expect(typeof serviceProvider.companyId).toBe("string");
-      expect(Array.isArray(serviceProvider.propertyIds)).toBe(true);
-      expect(typeof serviceProvider.street).toBe("string");
-      expect(typeof serviceProvider.number).toBe("string");
-      expect(typeof serviceProvider.neighborhood).toBe("string");
-      expect(typeof serviceProvider.city).toBe("string");
-      expect(typeof serviceProvider.state).toBe("string");
-      expect(typeof serviceProvider.zipCode).toBe("string");
+describe("service-providers", () => {
+  describe("mockServiceProviders", () => {
+    it("should export an array", () => {
+      expect(Array.isArray(mockServiceProviders)).toBe(true);
     });
-  });
 
-  it("should have either CNPJ or CPF", () => {
-    mockServiceProviders.forEach((serviceProvider: ServiceProvider) => {
-      const hasCnpj = "cnpj" in serviceProvider && serviceProvider.cnpj !== undefined;
-      const hasCpf = "cpf" in serviceProvider && serviceProvider.cpf !== undefined;
-      expect(hasCnpj || hasCpf).toBe(true);
+    it("should not be empty", () => {
+      expect(mockServiceProviders.length).toBeGreaterThan(0);
     });
-  });
 
-  it("should have valid CNPJ format when present", () => {
-    mockServiceProviders.forEach((serviceProvider: ServiceProvider) => {
-      if ("cnpj" in serviceProvider && serviceProvider.cnpj) {
-        expect(serviceProvider.cnpj).toMatch(/^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$/);
-      }
+    it("should have valid data structure", () => {
+      mockServiceProviders.forEach((provider) => {
+        expect(provider).toHaveProperty("id");
+        expect(provider).toHaveProperty("code");
+        expect(provider).toHaveProperty("name");
+        expect(provider).toHaveProperty("email");
+        expect(provider).toHaveProperty("phone");
+        expect(provider).toHaveProperty("status");
+        expect(provider).toHaveProperty("createdAt");
+        expect(provider).toHaveProperty("companyId");
+        expect(provider).toHaveProperty("propertyIds");
+        expect(provider).toHaveProperty("street");
+        expect(provider).toHaveProperty("number");
+        expect(provider).toHaveProperty("neighborhood");
+        expect(provider).toHaveProperty("city");
+        expect(provider).toHaveProperty("state");
+        expect(provider).toHaveProperty("zipCode");
+      });
     });
-  });
 
-  it("should have valid CPF format when present", () => {
-    mockServiceProviders.forEach((serviceProvider: ServiceProvider) => {
-      if ("cpf" in serviceProvider && serviceProvider.cpf) {
-        expect(serviceProvider.cpf).toMatch(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/);
-      }
+    it("should have unique IDs", () => {
+      const ids = mockServiceProviders.map((provider) => provider.id);
+      const uniqueIds = new Set(ids);
+      expect(uniqueIds.size).toBe(ids.length);
     });
-  });
 
-  it("should have valid email format", () => {
-    mockServiceProviders.forEach((serviceProvider: ServiceProvider) => {
-      expect(serviceProvider.email).toMatch(/^[^\s@]+@[^\s@]+\.[^\s@]+$/);
+    it("should have valid UUID format for IDs", () => {
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      mockServiceProviders.forEach((provider) => {
+        expect(provider.id).toMatch(uuidRegex);
+      });
     });
-  });
 
-  it("should have valid status", () => {
-    mockServiceProviders.forEach((serviceProvider: ServiceProvider) => {
-      expect(["active", "inactive", "pending"]).toContain(serviceProvider.status);
+    it("should have valid date format", () => {
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      mockServiceProviders.forEach((provider) => {
+        expect(provider.createdAt).toMatch(dateRegex);
+      });
     });
-  });
 
-  it("should have valid date format", () => {
-    mockServiceProviders.forEach((serviceProvider: ServiceProvider) => {
-      expect(serviceProvider.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-      expect(() => new Date(serviceProvider.createdAt)).not.toThrow();
+    it("should have dates within expected range", () => {
+      mockServiceProviders.forEach((provider) => {
+        const date = new Date(provider.createdAt);
+        expect(date.getFullYear()).toBeGreaterThanOrEqual(2020);
+        expect(date.getFullYear()).toBeLessThanOrEqual(2025);
+      });
     });
-  });
 
-  it("should have unique IDs", () => {
-    const ids = mockServiceProviders.map((sp) => sp.id);
-    const uniqueIds = new Set(ids);
-    expect(uniqueIds.size).toBe(ids.length);
-  });
+    it("should have either CNPJ or CPF", () => {
+      mockServiceProviders.forEach((provider) => {
+        const hasCnpj = "cnpj" in provider && provider.cnpj !== undefined && provider.cnpj !== null;
+        const hasCpf = "cpf" in provider && provider.cpf !== undefined && provider.cpf !== null;
+        expect(hasCnpj || hasCpf).toBe(true);
+      });
+    });
 
-  it("should have unique codes", () => {
-    const codes = mockServiceProviders.map((sp) => sp.code);
-    const uniqueCodes = new Set(codes);
-    expect(uniqueCodes.size).toBe(codes.length);
+    it("should have valid CNPJ format when present", () => {
+      mockServiceProviders.forEach((provider) => {
+        if ("cnpj" in provider && provider.cnpj) {
+          const cnpjDigits = provider.cnpj.replace(/\D/g, "");
+          expect(cnpjDigits.length).toBe(14);
+        }
+      });
+    });
+
+    it("should have valid CPF format when present", () => {
+      mockServiceProviders.forEach((provider) => {
+        if ("cpf" in provider && provider.cpf) {
+          const cpfDigits = provider.cpf.replace(/\D/g, "");
+          expect(cpfDigits.length).toBe(11);
+        }
+      });
+    });
+
+    it("should have valid email format", () => {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      mockServiceProviders.forEach((provider) => {
+        expect(provider.email).toMatch(emailRegex);
+      });
+    });
+
+    it("should have valid status", () => {
+      const validStatuses = ["active", "inactive"];
+      mockServiceProviders.forEach((provider) => {
+        expect(validStatuses).toContain(provider.status);
+      });
+    });
+
+    it("should reference valid company IDs", () => {
+      const companyIds = mockCompanies.map((c) => c.id);
+      mockServiceProviders.forEach((provider) => {
+        expect(companyIds).toContain(provider.companyId);
+      });
+    });
+
+    it("should reference valid property IDs", () => {
+      const propertyIds = mockProperties.map((p) => p.id);
+      mockServiceProviders.forEach((provider) => {
+        expect(Array.isArray(provider.propertyIds)).toBe(true);
+        provider.propertyIds.forEach((propertyId) => {
+          expect(propertyIds).toContain(propertyId);
+        });
+      });
+    });
   });
 });

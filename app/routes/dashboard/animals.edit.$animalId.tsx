@@ -1,20 +1,16 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
-import { Input, Select, Button, Alert } from "~/components/ui";
+import { Input, Select, Button, FixedAlert } from "~/components/ui";
 import { useTranslation } from "~/i18n";
+import { useAlert } from "~/hooks/use-alert";
 import { ROUTES, getAnimalViewRoute } from "~/routes.config";
 import { getAnimalById, updateAnimal } from "~/services/animals.service";
 import type { AnimalFormData, Property } from "~/types";
 import { mockProperties } from "~/mocks/properties";
+import { createFormMeta } from "~/utils/route-helpers";
 
 export function meta() {
-  return [
-    { title: "Editar Animal - Boi na Nuvem" },
-    {
-      name: "description",
-      content: "Editar animal",
-    },
-  ];
+  return createFormMeta("Editar", "Animal", "Editar animal");
 }
 
 export async function loader({ request }: { request: Request }) {
@@ -56,20 +52,7 @@ export default function EditAnimal() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [alertMessage, setAlertMessage] = useState<{
-    title: string;
-    variant: "success" | "error" | "warning" | "info";
-  } | null>(null);
-
-  const showAlert = (
-    title: string,
-    variant: "success" | "error" | "warning" | "info" = "success"
-  ) => {
-    setAlertMessage({ title, variant });
-    setTimeout(() => {
-      setAlertMessage(null);
-    }, 3000);
-  };
+  const { alertMessage, showAlert } = useAlert();
 
   const handleChange = (field: keyof typeof formData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -146,11 +129,7 @@ export default function EditAnimal() {
 
   return (
     <div className="space-y-6">
-      {alertMessage && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-          <Alert title={alertMessage.title} variant={alertMessage.variant} />
-        </div>
-      )}
+      <FixedAlert alertMessage={alertMessage} />
 
       <div className="flex items-center justify-between">
         <div>

@@ -14,10 +14,10 @@ import { format, subYears } from "date-fns";
 import { Tooltip } from "~/components/ui/tooltip";
 
 interface ProductionIndexesProps {
-  propertyId: string;
-  period?: {
-    startDate?: string;
-    endDate?: string;
+  readonly propertyId: string;
+  readonly period?: {
+    readonly startDate?: string;
+    readonly endDate?: string;
   };
 }
 

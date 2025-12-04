@@ -36,21 +36,21 @@ export function getAnimalMovementById(movementId: string): AnimalMovement | unde
 export function getAnimalsByLastMovementLocation(locationId: string): string[] {
   const movementsByAnimal = new Map<string, AnimalMovement>();
 
-  mockAnimalMovements.forEach((movement) => {
-    movement.animalIds.forEach((animalId) => {
+  for (const movement of mockAnimalMovements) {
+    for (const animalId of movement.animalIds) {
       const existing = movementsByAnimal.get(animalId);
       if (!existing || new Date(movement.date) > new Date(existing.date)) {
         movementsByAnimal.set(animalId, movement);
       }
-    });
-  });
+    }
+  }
 
   const animalIds: string[] = [];
-  movementsByAnimal.forEach((movement, animalId) => {
+  for (const [animalId, movement] of movementsByAnimal) {
     if (movement.locationId === locationId) {
       animalIds.push(animalId);
     }
-  });
+  }
 
   return animalIds;
 }

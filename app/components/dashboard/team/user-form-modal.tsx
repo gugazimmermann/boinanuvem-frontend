@@ -1,18 +1,19 @@
 import { useState, useEffect } from "react";
-import { Input, Button } from "~/components/ui";
+import { Input, Button, FormFieldGroup } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { maskPhone } from "~/components/site/utils/masks";
+import { isValidEmail } from "~/utils/email-validation";
 import { DASHBOARD_COLORS } from "../utils/colors";
 import type { UserFormData } from "~/types";
 
-export type { UserFormData };
+export type { UserFormData } from "~/types";
 
 interface UserFormModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (data: UserFormData) => Promise<void>;
-  initialData?: UserFormData | null;
-  isEditing?: boolean;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly onSubmit: (data: UserFormData) => Promise<void>;
+  readonly initialData?: UserFormData | null;
+  readonly isEditing?: boolean;
 }
 
 export function UserFormModal({
@@ -60,11 +61,12 @@ export function UserFormModal({
   }, [isOpen, initialData]);
 
   const handleChange = (field: keyof UserFormData, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-    if (errors[field]) {
+    setFormData((prev: UserFormData) => ({ ...prev, [field]: value }));
+    const fieldStr = String(field);
+    if (errors[fieldStr]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
-        delete newErrors[field];
+        delete newErrors[fieldStr];
         return newErrors;
       });
     }
@@ -79,7 +81,7 @@ export function UserFormModal({
     }
     if (!formData.email?.trim()) {
       newErrors.email = t.profile.errors.required(fields.email);
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    } else if (!isValidEmail(formData.email)) {
       newErrors.email = t.profile.errors.invalid(fields.email);
     }
     if (!formData.phone?.trim()) {
@@ -123,9 +125,16 @@ export function UserFormModal({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen px-4 py-4 text-center sm:block sm:p-0">
-        <div
-          className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75 dark:bg-opacity-50 cursor-pointer"
+        <button
+          type="button"
+          className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75 dark:bg-opacity-50 cursor-pointer border-0 p-0"
           onClick={onClose}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              onClose();
+            }
+          }}
+          aria-label="Close modal"
         />
 
         <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full border border-gray-200 dark:border-gray-700">
@@ -141,7 +150,7 @@ export function UserFormModal({
           <form onSubmit={handleSubmit}>
             <div className="px-6 py-5 max-h-[calc(100vh-250px)] overflow-y-auto">
               <div className="space-y-5">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <FormFieldGroup columns={2}>
                   <Input
                     label={t.team.addModal.fields.name}
                     value={formData.name}
@@ -168,7 +177,7 @@ export function UserFormModal({
                     disabled={isSubmitting}
                     placeholder="(00) 00000-0000"
                   />
-                </div>
+                </FormFieldGroup>
 
                 {isEditing && (
                   <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
@@ -185,7 +194,7 @@ export function UserFormModal({
                               password: "",
                               confirmPassword: "",
                             }));
-                            setErrors((prev) => {
+                            setErrors((prev: Record<string, string>) => {
                               const newErrors = { ...prev };
                               delete newErrors.password;
                               delete newErrors.confirmPassword;
@@ -210,7 +219,10 @@ export function UserFormModal({
                 )}
 
                 {(!isEditing || changePassword) && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-3 border-t border-gray-200 dark:border-gray-700">
+                  <FormFieldGroup
+                    columns={2}
+                    className="pt-3 border-t border-gray-200 dark:border-gray-700"
+                  >
                     <Input
                       label={t.team.addModal.fields.password}
                       type="password"
@@ -228,18 +240,18 @@ export function UserFormModal({
                       error={errors.confirmPassword}
                       disabled={isSubmitting}
                     />
-                  </div>
+                  </FormFieldGroup>
                 )}
               </div>
             </div>
 
             <div className="px-6 py-4 sm:flex sm:flex-row-reverse gap-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
               <Button type="submit" variant="primary" disabled={isSubmitting}>
-                {isSubmitting
-                  ? t.common.loading
-                  : isEditing
-                    ? t.team.editModal.save
-                    : t.team.addModal.add}
+                {(() => {
+                  if (isSubmitting) return t.common.loading;
+                  if (isEditing) return t.team.editModal.save;
+                  return t.team.addModal.add;
+                })()}
               </Button>
               <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
                 {isEditing ? t.team.editModal.cancel : t.team.addModal.cancel}

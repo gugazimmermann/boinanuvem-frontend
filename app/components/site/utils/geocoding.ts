@@ -1,6 +1,6 @@
 import type { GeocodeResult, GeocodeError } from "~/types";
 
-export type { GeocodeResult, GeocodeError };
+export type { GeocodeResult, GeocodeError } from "~/types";
 
 export function buildAddressString(address: {
   street: string;
@@ -38,7 +38,8 @@ export async function geocodeAddress(address: {
   }
 
   try {
-    const street = `${address.street}${address.number ? ` ${address.number}` : ""}`;
+    const streetNumber = address.number ? ` ${address.number}` : "";
+    const street = `${address.street}${streetNumber}`;
     const city = address.city;
     const state = address.state;
     const country = "Brazil";

@@ -25,7 +25,7 @@ export class ApiError extends Error {
  * Generic API client for making HTTP requests
  */
 export class ApiClient {
-  private baseUrl: string;
+  private readonly baseUrl: string;
 
   constructor(baseUrl: string = API_BASE_URL) {
     this.baseUrl = baseUrl;
@@ -38,9 +38,9 @@ export class ApiClient {
     const url = new URL(`${this.baseUrl}${endpoint}`);
 
     if (params) {
-      Object.entries(params).forEach(([key, value]) => {
+      for (const [key, value] of Object.entries(params)) {
         url.searchParams.append(key, value);
-      });
+      }
     }
 
     const response = await fetch(url.toString(), {

@@ -1,413 +1,507 @@
-# Boi na Nuvem - Frontend Application
+# Boi na Nuvem Frontend
 
-A cutting-edge, full-stack React application built with React Router v7 and React 19, featuring a comprehensive dashboard for modern livestock management, team collaboration, and agricultural property management. This enterprise-grade application provides a complete digital solution for cattle operations, from advanced animal tracking and breeding management to financial analytics and reproductive performance monitoring.
+**Complete cattle farm management system for beef cattle operations**
 
-## 🚀 Core Features & Capabilities
+🌐 **Live Website:** [https://www.boinanuvem.com.br/](https://www.boinanuvem.com.br/)
 
-### 🏗️ Modern Architecture & Performance
-- **Next-Generation Stack**: Built with React Router v7, React 19, TypeScript 5.9, and Vite 7
-- **Server-Side Rendering (SSR)**: Optimized for performance, SEO, and faster initial page loads
-- **Advanced SEO Optimization**: 
-  - Comprehensive Open Graph and Twitter Cards implementation
-  - Schema.org structured data for rich search results
-  - Dynamic sitemap generation and robots.txt configuration
-  - Meta tag optimization for social media sharing
-- **Enterprise Internationalization**: 
-  - Full i18n support for Portuguese (pt), English (en), and Spanish (es)
-  - Type-safe translation system with comprehensive coverage
-  - Locale-aware date, number, and currency formatting
-  - Dynamic language switching without page reload
-- **Advanced Theme System**: 
-  - Dark and light mode with intelligent system preference detection
-  - Smooth theme transitions and persistent user preferences
-  - Tailwind CSS v4 integration with custom design tokens
-- **Mobile-First Responsive Design**: 
-  - Optimized for all device sizes from mobile to desktop
-  - Touch-friendly interfaces and gesture support
-  - Progressive Web App (PWA) capabilities
-- **Complete Type Safety**: 
-  - Strict TypeScript configuration with zero tolerance for type errors
-  - Full type coverage across components, services, and utilities
-  - Auto-generated types for enhanced developer experience
+Boi na Nuvem is a modern, comprehensive web platform for managing rural properties specialized in beef cattle operations. The system provides complete control over properties, pastures, animals, reproduction, finances, inventory, and sales—all integrated into a single platform with advanced analytics and detailed reports.
 
-### 🐄 Advanced Livestock Management System
+## Table of Contents
 
-#### 📋 Comprehensive Animal Management
-- **Complete Animal Registry**: 
-  - Detailed animal profiles with breed classification, gender tracking, and birth information
-  - Parent-child relationship management with automatic purity calculation (PO, F1, F2, F3, F4, F5, PC)
-  - Advanced animal identification with customizable coding systems
-  - Full CRUD operations with intuitive interfaces for viewing, editing, and managing animals
-  - Bulk operations for efficient management of large herds
-- **Intelligent Search & Filtering**: 
-  - Multi-criteria search across animal attributes (breed, gender, age, location, status)
-  - Advanced filtering with date ranges, weight ranges, and custom parameters
-  - Saved search configurations for frequently used filters
-  - Real-time search results with pagination for large datasets
-#### 📦 Enterprise Inventory Management System
-- **Advanced Inventory Registry**: 
-  - Complete inventory item registration with hierarchical categories and subcategories
-  - Multi-unit support with automatic conversion calculations
-  - Minimum stock level configuration with automated alert systems
-  - Expiration date tracking with proactive notification systems
-- **Intelligent Usage Method Configuration**: 
-  - **Medicine & Vaccine Dosage Management**: Precise dosage configuration with amount, unit, and basis (per animal or per kg)
-  - **Structured Dosage Information**: Detailed administration guidelines for accurate veterinary care
-  - **Automatic Dosage Calculation**: Real-time calculation during sanitary control and weighing processes
-  - **Weight-Based Calculations**: Dynamic dosage adjustment based on current animal weights
-- **Real-Time Stock Management**: 
-  - Automatic stock level calculation based on all movement types
-  - Multi-location inventory tracking with transfer capabilities
-  - Inventory movement types: Purchase, Sale, Adjustment, Consumption with full audit trails
-  - Supplier association and purchase order management
-- **Comprehensive Observation System**: 
-  - Multiple observations per inventory item with rich text support
-  - File attachment capabilities (photos, documents, certificates)
-  - Complete observation history with user attribution and timestamps
-  - Searchable observation database for quick information retrieval
-- **Seamless Financial Integration**: 
-  - **Automatic Transaction Creation**: When adding inventory with suppliers, automatically generate:
-    - Cash flow transactions with payment method and bank account selection
-    - Accounts payable records with due dates and payment terms
-  - **Complete Financial Traceability**: Full integration between inventory purchases and financial records
-  - **Cost Center Management**: Track costs by department, location, or project
-- **Advanced Location-Based Cost Analytics**: 
-  - **Granular Cost Tracking**: Monitor inventory consumption costs by specific locations
-  - **Per-Animal Cost Calculation**: Detailed cost allocation based on animal presence and consumption
-  - **Time-Weighted Allocation**: Intelligent cost distribution using animal movement history
-  - **Comprehensive Cost Analysis**: 
-    - Total consumption costs by location and time period
-    - Individual animal cost breakdown across all locations
-    - Detailed consumption history with item-level cost attribution
-    - Date range filtering for flexible reporting periods
-- **Birth Records**: Track and manage animal births with parent relationships
-  - Automatic purity calculation (PO, F1, F2, F3, F4, F5, PC) based on parent breeds
-  - Birth date tracking and gender recording
-  - Parent-child relationship management
-- **Acquisitions**: Comprehensive animal acquisition management system with batch processing and profitability tracking
-  - **Batch Acquisitions**: Register multiple animals in a single acquisition transaction
-  - **Flexible Pricing Modes**: Individual pricing per animal or total lot price with automatic equal distribution
-  - **Cost Per Arroba Calculation**: Automatic calculation of cost per arroba at acquisition (1 arroba = 30 kg)
-  - **Flexible Fee System**: Add multiple custom fees/taxes (transportation, handling, and any additional fees) with custom names and amounts
-  - **Supplier Management**: Link acquisitions to suppliers from the suppliers registry
-  - **Payment Methods**: Choose between cash flow (immediate payment) or accounts payable (deferred payment)
-  - **Financial Integration**: Automatic creation of cash flow transactions or accounts payable records linked to acquisitions
-  - **Profitability Tracking**: Base cost per arroba stored for each animal, used for profitability calculations at sale
-  - **Acquisition List Page**: Full list view of all acquisitions with filtering, search, and sorting capabilities
-  - **Cost Distribution**: Total acquisition costs (including fees) automatically distributed evenly among animals in batch acquisitions
-  - **Acquisition History**: Complete history of all acquisitions accessible from animal details pages
-- **Deaths**: Record and manage animal deaths with comprehensive tracking
-  - Death date and cause of death recording
-  - Optional observation notes for detailed information
-  - Automatic animal status update to inactive upon death registration
-  - Prevents duplicate death records for the same animal
-  - Dead animals excluded from active lists but remain accessible for historical references
-- **Sales**: Complete animal sales management system with profitability analysis
-  - Register sales of one or multiple animals simultaneously
-  - Flexible pricing modes: individual per animal or total lot price with automatic equal distribution
-  - Support for different sale types: slaughterhouses, other farms, and auctions
-  - Buyer information linked to suppliers/clients registry
-  - Sale date, weight of each animal at sale
-  - **Flexible Fee System**: Add multiple custom fees/taxes (transportation, handling, and any additional fees) with custom names and amounts
-  - Automatic animal status update to 'Sold' upon sale completion
-  - Sold animals removed from active animal lists but remain accessible for historical references
-  - Automatic financial integration: creates cash flow transaction or accounts receivable based on payment method
-  - Full sale history tracking for each animal
-  - **Enhanced Profitability Calculation**: Comprehensive profitability analysis including:
-    - Acquisition cost per arroba (from purchase)
-    - Sale arroba value (sale price / sale weight in arrobas)
-    - Spread per arroba (profit or loss per arroba)
-    - Total spread (total profit or loss for the transaction)
-    - Comparison against accumulated costs (acquisition, inventory consumption, etc.)
-  - Comprehensive sales analytics: price per kilogram, price per head, carcass value, age at sale, profitability metrics
-  - Filtering capabilities: by buyer, category, date range, or batch
-- **Weighings**: 
-  - Track animal weight measurements over time with trend analysis
-  - **Session Weighings**: Register multiple weighings in a single session without page navigation
-  - **Session Tracking**: View all weighings registered in the current session with a comprehensive modal
-  - **Weight Analysis**: Automatic calculation of weight difference, last weight, and GMD (Daily Average Gain) for each weighing
-  - **Efficient Data Entry**: Form preserves employee and service provider selections between registrations for faster data entry
-  - **Large Dataset Support**: Paginated table with search and sorting capabilities to handle 500+ weighings efficiently
-  - **Medicine/Vaccine Administration During Weighing**: Apply medicines or vaccines during the weighing process
-    - Automatic dosage calculation based on animal weight and usage method
-    - Automatic inventory stock reduction
-    - Automatic cost attribution to the animal
-    - Support for multiple medicines/vaccines per weighing
-- **Sanitary Control**: Comprehensive sanitary control management system
-  - **Standalone Administration**: Register medicine/vaccine administration independently of weighing
-  - **Multiple Animal Selection**: Apply medicines/vaccines to one or more animals simultaneously
-  - **Automatic Dosage Calculation**: Weight-based dosage calculation for each selected animal
-    - Uses latest recorded weight for each animal
-    - Supports "per animal" and "per kg" dosage bases
-    - Displays calculated dosage for single animal selection
-    - Shows dosage basis information for multiple animals
-  - **Inventory Integration**: Automatic stock reduction when medicines/vaccines are applied
-  - **Cost Tracking**: Automatic cost attribution to animals based on location and property
-  - **History Tracking**: Complete history of sanitary control records in animal details page
-    - Tab-based organization in animal profile
-    - Sortable and paginated history table
-    - Displays date, applied items, quantities, responsible parties, and observations
-    - Quick access to add new records from animal details page
-  - **Employee and Service Provider Tracking**: Record responsible parties for each administration
-  - **Observation Support**: Add observations to each sanitary control record
-- **Animal Movements**: Track animal movements between properties and locations with responsible parties, observations, and file attachments
-  - Movement type tracking (entry, exit, transfer)
-  - Responsible party assignment
-  - File attachment support for movement documentation
-- **Location Movements**: Monitor location-based movements and activities
-  - Track activities and changes at specific locations
-  - Movement type categorization
-- **Animal Observations**: Record detailed observations for individual animals with file attachments
-  - Rich text observations
-  - File attachment support
-  - Observation history tracking
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [Architecture & Technical Stack](#architecture--technical-stack)
+- [Project Structure](#project-structure)
+- [Core Features Documentation](#core-features-documentation)
+- [Development Setup](#development-setup)
+- [API Architecture](#api-architecture)
+- [Routing System](#routing-system)
+- [Authentication & Authorization](#authentication--authorization)
+- [Internationalization](#internationalization)
+- [Theming System](#theming-system)
+- [Testing](#testing)
+- [Code Quality & Linting](#code-quality--linting)
+- [Build & Deployment](#build--deployment)
+- [Development Workflow](#development-workflow)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+- [Support](#support)
 
-### Breeding Management
-- **Breeding Records**: Register and manage breeding records with multiple methods
-  - Natural breeding and artificial insemination tracking
-  - Bull and inseminator assignment
-  - Breeding date and confirmation status
-- **Unconfirmed Breedings**: View and manage unconfirmed breeding records
-  - Confirmation workflow
-  - Discard functionality for invalid records
-- **Pregnant Cows**: Track and monitor pregnant animals
-  - Pregnancy status management
-  - Expected birth date calculation
-- **Reproductive Indexes**: Comprehensive reproductive performance analytics
-  - **Fertility Rate**: Percentage of pregnant cows relative to exposed cows
-  - **Birth Rate**: Percentage of calves born relative to pregnant females
-  - **Calving Interval**: Average time between consecutive calvings
-  - **Culling Rate**: Percentage of replaced females relative to total
-  - **Intrauterine Mortality Index**: Percentage of gestation losses
-  - **Bull-to-Cow Ratio**: Relationship between number of bulls and exposed cows
-  - Monthly and annual trend charts
-  - Property-level and aggregated company-wide analysis
-- **Birth Forecast**: Predict expected births based on confirmed breedings
-  - Monthly birth forecasts up to 9 months ahead
-  - Visual charts showing expected births by month
-  - Property and company-level forecasting
+## Overview
+
+### Purpose
+
+Boi na Nuvem is designed to digitize and streamline cattle farm management operations. It serves as a comprehensive solution for farm owners, managers, and agricultural professionals who need to track, analyze, and optimize their cattle operations.
+
+### Target Audience
+
+- **Farm Owners**: Manage multiple properties and track overall farm performance
+- **Farm Managers**: Oversee daily operations, animal health, and financial management
+- **Veterinarians**: Track animal health records, vaccinations, and treatments
+- **Financial Managers**: Monitor cash flow, accounts payable/receivable, and profitability
+- **Agricultural Consultants**: Analyze production data and provide recommendations
+
+### Key Value Propositions
+
+1. **Complete Integration**: All farm management aspects in one unified platform
+2. **Real-time Analytics**: Advanced dashboards with actionable insights
+3. **Scalability**: Support for multiple properties and large herds
+4. **User-friendly Interface**: Intuitive design with dark mode support
+5. **Mobile-responsive**: Access from any device, anywhere
+6. **Data-driven Decisions**: Comprehensive reports and profitability analysis
+7. **Team Collaboration**: Granular permission system for multi-user environments
+
+## Key Features
 
 ### Property & Location Management
-- **Properties**: Manage multiple properties with detailed information
-  - Property registration with address and geolocation
-  - Interactive maps with Leaflet integration
-  - Property-specific analytics and reports
-- **Locations**: Track specific locations within properties
-  - Location types (pasture, corral, barn, etc.)
-  - Area tracking and management
-  - Location-specific observations
-- **Interactive Maps**: Visual property and location mapping with Leaflet
-  - Geocoding integration for address-to-coordinates conversion
-  - Map visualization for properties and locations
-- **Location Observations**: Record observations for locations
-  - Location-specific notes and documentation
-  - File attachment support
-- **Pasture Planning**: Visual planning tools for pasture management
-  - Pasture allocation and planning
-  - Breeding season planning based on climate data
-  - Forage quality classification based on temperature and precipitation
+- Multi-property support with complete address and geolocation data
+- Pasture organization (pastures, corrals, barns)
+- Interactive maps integration (Leaflet)
+- Climate-based pasture planning
+- Breeding season configuration
+- Capacity monitoring and pasture rotation management
 
-### People & Business Management
-- **Employees**: Manage employee records and information with observation tracking
-  - Employee registration and profile management
-  - Observation history
-  - Role and responsibility tracking
-- **Service Providers**: Track service provider relationships and observations
-  - Service provider registration
-  - Service history tracking
-  - Observation and note management
-- **Suppliers**: Manage supplier information and relationships with observation records
-  - Supplier registration with CNPJ lookup
-  - Purchase history tracking
-  - Observation management
-- **Buyers**: Track buyer information and transactions with observation history
-  - Buyer registration
-  - Transaction history
-  - Observation tracking
-- **Observations**: Comprehensive observation system for locations, employees, service providers, suppliers, buyers, animals, inventory items, and financial entities
-  - Rich text observations
-  - File attachment support
-  - Date and author tracking
-  - Multiple observations per entity with full CRUD operations
-  - Initial observations when creating new records (for financial entities)
+### Animal Management
+- Complete animal registration with genetic history
+- Weight tracking over time with growth trend analysis
+- Vaccination and treatment history
+- Movement tracking between pastures
+- Daily weight gain (GMD) calculations
+- Animal lifecycle management (birth to sale/death)
 
-### User & Team Management
-- **Authentication**: Complete authentication flow (login, register, password recovery)
-  - Secure login system with form validation and error handling
-  - Multi-step user registration with company and user data collection
-  - Password recovery and reset functionality with code verification
-  - **Optimized Auth Pages**: Refactored authentication pages with DRY principles
-    - Shared components: `AuthCard`, `AuthFooter`, `AuthFormError`, `AddressForm`, `StepIndicator`
-    - Shared hooks: `useAuthForm`, `useFormValidation`, `usePasswordReset`
-    - Shared utilities: `auth-meta`, `auth-helpers`
-    - Consistent UI/UX across all auth pages
-    - Full i18n support for all auth-related strings
-    - Reduced code duplication by ~60%
-- **Team Management**: User management with permissions and role-based access
-  - Add, edit, and remove team members
-  - User role assignment
-  - Team member profile management
-  - Row-click navigation to user details
-- **Profile Management**: User and company profile management with activity logs
-  - User profile editing
-  - Company profile management
-  - Activity log tracking
-  - User-specific permissions viewing and editing (for main user)
-- **Permissions System**: Comprehensive granular permission management for team members
-  - **Main User**: Special administrative user with full system access
-    - **Automatic Full Permissions**: Main users automatically have all permissions granted (bypasses permission checks)
-    - **Permission Management**: Only main users can view and edit permissions for other team members
-    - **Activity Logs Access**: Main users have exclusive access to view activity logs for all users
-    - **Company Ownership**: Typically the company owner or primary administrator
-    - **Unrestricted Access**: Can access all features and data regardless of permission settings
-  - **Regular Users**: Team members with specific permission assignments
-    - **Granular Permissions**: Each user has specific permissions assigned by the main user
-    - **Permission-Based Access**: Access to features is controlled by assigned permissions
-    - **View-Only Permissions**: Can view their own permissions but cannot modify them
-  - **Section-based organization**: Permissions organized into logical sections
-    - **Registration**: Property, Location, Employee, Service Provider, Supplier, Buyer, Animals
-    - **Records**: Births, Acquisitions, Weighings
-    - **Breedings**: Breedings, Unconfirmed Breedings, Pregnant Cows, Reproductive Indexes, Birth Forecast
-    - **Finances**: Cash Flow, Accounts Payable, Accounts Receivable, Bank Accounts
-  - **Action-level access control**: Four permission actions per resource
-    - **View**: Read-only access to view data
-    - **Add**: Create new records
-    - **Edit**: Modify existing records
-    - **Remove**: Delete records
-  - **Permission assignment interface**: Intuitive UI for managing user permissions
-    - Section and resource grouping
-    - Bulk selection (select all) per resource
-    - Visual permission indicators
-    - **Editable by main user only** - Regular users cannot modify permissions
-  - **Permission visibility**: View permissions on user profile pages
-    - Main users can view and edit all user permissions
-    - Regular users can view their own permissions (read-only)
-  - **Default permissions**: Configurable default permission sets for new users
-    - New users start with no permissions by default
-    - Main user assigns appropriate permissions during user creation or later
+### Reproduction Management
+- Breeding records and tracking
+- Pregnancy monitoring and confirmation
+- Unconfirmed breeding management
+- Birth forecasting based on breeding dates
+- Reproductive indexes (fertility rate, birth rate, calving interval)
+- Genetic management and lineage tracking
 
 ### Financial Management
-- **Financial Dashboard**: Comprehensive overview with income, expenses, and cash flow metrics
-  - Income vs expenses visualization
-  - Monthly cash flow charts
-  - Payment status overview
-  - Key financial metrics at a glance
-- **Cash Flow Management**: Track income and expenses with detailed categorization
-  - Income and expense recording
-  - Category-based organization
-  - Payment method tracking
-  - Date and description management
-  - **Observations System**: Add multiple observations with file attachments to each transaction
-    - Initial observation when creating new transactions
-    - Multiple observations on transaction detail pages
-    - File attachment support (photos, documents)
-    - Complete observation history tracking
-- **Accounts Payable**: Manage bills and payments with due date tracking and status monitoring
-  - Bill registration with due dates
-  - Payment status tracking (pending, paid, overdue)
-  - Payment date recording
-  - Supplier relationship linking
-  - **Observations System**: Add multiple observations with file attachments to each account
-    - Initial observation when creating new accounts
-    - Multiple observations on account detail pages
-    - File attachment support (photos, documents)
-    - Complete observation history tracking
-- **Accounts Receivable**: Track receivables with payment status and overdue management
-  - Receivable registration
-  - Payment status tracking
-  - Buyer relationship linking
-  - Overdue identification
-  - **Observations System**: Add multiple observations with file attachments to each account
-    - Initial observation when creating new accounts
-    - Multiple observations on account detail pages
-    - File attachment support (photos, documents)
-    - Complete observation history tracking
-- **Bank Accounts**: Manage multiple bank accounts with balance tracking
-  - Bank account registration
-  - Account type management (checking, savings, etc.)
-  - Balance tracking
-  - Account details management
-- **Financial Analytics**: Visual charts and graphs for income vs expenses, monthly cash flow, and payment status
-  - Recharts integration for data visualization
-  - Interactive charts and graphs
-  - Period-based filtering
-- **Transaction Management**: Complete CRUD operations for all financial transactions
-  - Create, read, update, and delete operations
-  - Transaction history
-  - Detailed transaction views
-- **Inventory Cost Analysis**: Track and analyze inventory consumption costs
-  - Location-based cost tracking for inventory consumption
-  - Per-animal cost calculation based on location presence
-  - Time-weighted cost allocation using animal movement history
-  - Cost breakdown by location and consumption period
-  - Date range filtering for cost analysis
-  - Integration with animal movement tracking for accurate cost allocation
+- Cash flow tracking (income and expenses)
+- Accounts payable and receivable
+- Multiple bank account management
+- Financial dashboard with visual analytics
+- Profitability analysis per animal and per lot
+- ROI calculations
+- Payment scheduling and tracking
 
-### Dashboard & Analytics
-- **Comprehensive Dashboard**: Overview with key metrics and statistics
-  - Financial summaries with monthly income, expenses, and net cash flow
-  - Accounts payable and receivable overview
-  - Recent births and breedings tracking
-  - Real-time activity feed aggregating various events
-  - Quick stats for employees, suppliers, and buyers
-  - Weight trends chart showing animal weight progression
-  - Financial trends chart with income vs expenses visualization
-  - Quick access to main features
-  - Key performance indicators
-- **Property Dashboard**: Enhanced property details with comprehensive information
-  - Property statistics (total animals, active animals, total weight, animal units, stocking rate, density, average weight)
-  - Breeding season visualization with month badges
-  - Pasture planning integration
-  - Related entities overview (employees, service providers, suppliers, buyers)
-  - Property-specific financial analytics
-- **Animal Dashboard**: Detailed animal analytics and tracking
-  - Key metrics (weight, weight in arrobas, GMD, age)
-  - Additional metrics (status, breed, gender, purity)
-  - Reproductive statistics (total births, confirmed/pending breedings, average calving interval, total offspring)
-  - Location and property information with movement tracking
-  - Cost information (total cost, cost per kg)
-  - Weighing statistics (total weighings, first/last weighing, weight gain, average monthly gain)
-  - Weight trend chart showing progression over time
-  - Recent activity summary (weighings, breedings, movements)
-- **Data Visualization**: Charts and graphs using Recharts
-  - Line charts for trends (weight, financial)
-  - Bar charts for comparisons
-  - Area charts for cumulative data
-  - Pie charts for distribution
-  - Responsive chart containers
-- **Activity Logs**: Track user and system activities
-  - User action logging
-  - System event tracking
-  - Activity history viewing
-- **Help Center**: Comprehensive FAQ and help documentation
-  - **53+ FAQs** covering all major features and workflows
-  - **9 Categories**: Getting Started, Animals, Locations, Relationships, Records, Financial, Analytics, Team, and Technical
-  - **Quick Start Guide**: Step-by-step instructions for new users
-  - **Contact Support**: Support channels and contact information
-  - **Category Filtering**: Filter FAQs by category for easy navigation
-  - **Fully Internationalized**: All help content available in Portuguese, English, and Spanish
-  - **Comprehensive Coverage**: FAQs for animal management, locations, employees, service providers, suppliers, buyers, observations, weighings (including session weighings), acquisitions (including batch acquisitions, cost per arroba, and profitability spread), deaths, sales (including pricing modes, payment methods, flexible fees, and profitability), movements, inventory management (including observations, financial integration, and location-based cost tracking), financial management (including observations for cash flow, accounts payable, and accounts receivable, and animal inventory costs), reproductive indexes, birth forecast, dashboard metrics, pasture planning, breeding season, search & filtering, data organization, and best practices
+### Inventory Management
+- Stock tracking for feed, medications, and supplies
+- Inventory movement history
+- Consumption analysis by location
+- Cost calculation per animal
+- Consumption analysis based on animal presence in pastures
+- Low stock alerts and reorder management
 
-## 📋 Prerequisites & System Requirements
+### Sales & Analytics
+- Sales records with multiple modalities (slaughterhouse, other farms, auctions)
+- Complete profitability analysis
+- Cost per arroba calculations
+- Sale price, spread, and profit margin analysis
+- ROI calculations
+- Complete sales history with advanced metrics
+- Sales analytics dashboard
 
-### Required Software
-- **Node.js**: Version 20.x or higher (LTS recommended for stability)
-- **Package Manager**: npm (included with Node.js), yarn, or pnpm
-- **Git**: For version control and repository management
-- **Modern Web Browser**: Chrome 90+, Firefox 88+, Safari 14+, or Edge 90+
+### Team Management
+- User management and profiles
+- Granular permission system (per-section, per-resource, per-action)
+- Activity logs
+- Employee, service provider, supplier, and buyer management
+- Main user vs. regular user distinction
 
-### Development Environment
-- **Operating System**: Windows 10/11, macOS 10.15+, or Linux (Ubuntu 18.04+)
-- **Memory**: Minimum 8GB RAM (16GB recommended for optimal performance)
-- **Storage**: At least 4GB free space for dependencies and build artifacts
-- **Network**: Stable internet connection for package downloads and API communication
+### Dashboards & Reports
+- Main dashboard with general metrics
+- Property-level dashboard
+- Animal-level dashboard
+- Financial dashboard
+- Profitability analyses
+- Interactive visualizations with charts (Recharts)
+- Export capabilities
 
-### Optional but Recommended
-- **VS Code**: With recommended extensions for React, TypeScript, and Tailwind CSS
-- **React Developer Tools**: Browser extension for debugging React components
-- **Git GUI**: GitKraken, SourceTree, or GitHub Desktop for visual Git management
+## Architecture & Technical Stack
 
-## 🚀 Quick Start
+### Frontend Framework
+
+**React Router v7** with Server-Side Rendering (SSR)
+- Full-stack framework with file-based routing
+- Built-in data loading with loaders
+- Error boundaries and fallbacks
+- Type-safe route definitions
+
+**React 19**
+- Latest React features with concurrent rendering
+- Context API for state management
+- Custom hooks for reusable logic
+
+### State Management
+
+The application uses React Context API for global state:
+
+- **AuthContext**: User authentication and session management
+- **ThemeContext**: Dark/light mode theme switching
+- **LanguageContext**: Internationalization and language preferences
+
+### Styling
+
+**Tailwind CSS v4**
+- Utility-first CSS framework
+- Dark mode support with system preference detection
+- Responsive design utilities
+- Custom theme configuration
+
+### Data Visualization
+
+- **Recharts**: Interactive charts and graphs for analytics
+- **Leaflet**: Interactive maps for property and location visualization
+
+### API Layer
+
+**Custom ApiClient Pattern**
+- Centralized HTTP client with error handling
+- Service layer architecture (40+ services)
+- Type-safe request/response handling
+- Base service utilities for CRUD operations
+
+### Type Safety
+
+**TypeScript 5.9**
+- Strict mode enabled
+- Complete type coverage
+- Type-safe route definitions
+- Comprehensive type definitions for all entities
+
+### Build Tool
+
+**Vite 7**
+- Fast development server with HMR
+- Optimized production builds
+- React Router plugin integration
+- TypeScript path aliases support
+
+### Testing
+
+**Vitest 4**
+- Fast unit and integration testing
+- Testing Library for component testing
+- Coverage reporting with v8
+- Test utilities and mocks
+
+### Code Quality
+
+- **ESLint 9**: Code linting with TypeScript and React plugins
+- **Prettier 3**: Code formatting
+- **SonarQube**: Static code analysis
+- **Husky**: Git hooks for pre-commit checks
+
+### DevOps
+
+- **Docker**: Multi-stage builds for production
+- **Node.js 20**: Runtime environment
+- **Render.com**: Deployment platform
+
+## Project Structure
+
+```
+boinanuvem-frontend/
+├── app/                          # Main application code
+│   ├── components/               # React components
+│   │   ├── dashboard/           # Dashboard-specific components
+│   │   │   ├── [181 files]     # 157 TSX, 24 TS files
+│   │   ├── site/                # Public site components
+│   │   │   ├── [82 files]       # 56 TSX, 26 TS files
+│   │   └── ui/                  # Reusable UI components
+│   │       ├── [47 files]       # 46 TSX, 1 TS file
+│   ├── contexts/                # React Context providers
+│   │   ├── auth-context.tsx     # Authentication context
+│   │   ├── language-context.tsx # Internationalization context
+│   │   └── theme-context.tsx    # Theme management context
+│   ├── hooks/                    # Custom React hooks
+│   │   ├── [41 hooks]           # Reusable business logic hooks
+│   ├── i18n/                     # Internationalization
+│   │   ├── translations/        # Translation files (pt, en, es)
+│   │   ├── index.ts             # i18n configuration
+│   │   └── use-translation.ts   # Translation hook
+│   ├── mocks/                    # Mock data for development/testing
+│   │   ├── [35 mock files]      # Entity mock data
+│   ├── routes/                   # React Router routes
+│   │   ├── dashboard/           # Dashboard routes
+│   │   │   ├── [82 route files] # Feature-specific routes
+│   │   ├── api.invoices.$invoiceId.tsx
+│   │   ├── dashboard.tsx        # Dashboard layout route
+│   │   ├── home.tsx             # Home page route
+│   │   ├── login.tsx            # Login route
+│   │   └── [other public routes]
+│   ├── services/                # API service layer
+│   │   ├── [87 service files]   # Entity-specific services
+│   │   ├── api-client.ts        # Base API client
+│   │   └── base-service.ts     # Base service utilities
+│   ├── types/                    # TypeScript type definitions
+│   │   ├── [49 type files]      # Entity and utility types
+│   ├── utils/                    # Utility functions
+│   │   ├── [84 utility files]   # Helper functions and utilities
+│   ├── root.tsx                  # Root component and layout
+│   ├── routes.config.ts          # Route constants and helpers
+│   └── routes.ts                 # Route configuration
+├── build/                        # Production build output
+│   ├── client/                   # Client-side assets
+│   └── server/                   # Server-side code
+├── coverage/                     # Test coverage reports
+├── public/                       # Static public assets
+│   ├── flags/                    # Country flag images
+│   ├── images/                   # Application images
+│   └── robots.txt
+├── docker-compose.yml            # Docker Compose configuration
+├── Dockerfile                    # Docker production build
+├── eslint.config.js              # ESLint configuration
+├── package.json                  # Dependencies and scripts
+├── react-router.config.ts        # React Router configuration
+├── render.yaml                   # Render.com deployment config
+├── sonar-project.properties      # SonarQube configuration
+├── tsconfig.json                 # TypeScript configuration
+├── vite.config.ts                # Vite configuration
+└── vitest.setup.ts               # Vitest setup file
+```
+
+### Component Organization
+
+**Dashboard Components** (`app/components/dashboard/`)
+- Organized by feature domain (properties, animals, finances, etc.)
+- Shared components for lists, forms, and detail views
+- Reusable UI patterns
+
+**Site Components** (`app/components/site/`)
+- Public-facing components (homepage, pricing, etc.)
+- Marketing and informational pages
+- SEO-optimized components
+
+**UI Components** (`app/components/ui/`)
+- Reusable, generic UI components
+- Form inputs, buttons, modals, etc.
+- Design system components
+
+### Service Layer Architecture
+
+Services follow a consistent pattern:
+- Entity-specific service files (e.g., `animals.service.ts`)
+- Base service utilities for common CRUD operations
+- Type-safe API client for HTTP requests
+- Error handling and response transformation
+
+### Route Configuration
+
+Routes are centrally defined in `routes.config.ts`:
+- Type-safe route constants
+- Helper functions for dynamic route generation
+- Route permission mapping
+- Route action mapping (view, create, edit, delete)
+
+## Core Features Documentation
+
+### Property & Location Management
+
+**Properties**
+- Multi-property support with unique codes and names
+- Complete address information with geolocation
+- Area tracking (hectares)
+- Status management (active/inactive)
+- Pasture planning configuration
+- Breeding season configuration
+
+**Locations**
+- Hierarchical organization within properties
+- Location types: pastures, corrals, barns, etc.
+- Capacity tracking
+- Inventory movement tracking per location
+- Cost analysis per location
+
+**Pasture Planning**
+- Monthly pasture quality classification
+- Climate-based planning
+- User customization support
+- Visual planning interface
+
+### Animal Management
+
+**Animal Registration**
+- Complete animal profiles with identification codes
+- Genetic information and lineage tracking
+- Property and location assignment
+- Status tracking (active, sold, deceased)
+
+**Weight Tracking**
+- Historical weight records
+- Daily weight gain (GMD) calculations
+- Growth trend analysis
+- Visual weight charts
+
+**Health Records**
+- Vaccination history
+- Treatment records
+- Sanitary control tracking
+- Medication administration logs
+
+**Animal Movements**
+- Movement history between locations
+- Movement reasons and notes
+- Date and time tracking
+- Location-based analytics
+
+### Reproduction Management
+
+**Breeding Records**
+- Breeding date and bull information
+- Cow pregnancy status
+- Breeding confirmation tracking
+- Unconfirmed breeding management
+
+**Pregnancy Management**
+- Pregnancy confirmation and tracking
+- Expected calving dates
+- Pregnancy status dashboard
+- Reproductive health monitoring
+
+**Birth Forecasting**
+- Automated birth date calculations
+- Breeding-based predictions
+- Calendar view of expected births
+- Preparation reminders
+
+**Reproductive Indexes**
+- Fertility rate calculations
+- Birth rate metrics
+- Calving interval analysis
+- Culling rate tracking
+- Comprehensive reproductive reports
+
+### Financial Management
+
+**Cash Flow**
+- Income and expense tracking
+- Transaction categorization
+- Date-based filtering and reporting
+- Cash flow visualization
+
+**Accounts Payable**
+- Bill tracking and scheduling
+- Payment status management
+- Due date monitoring
+- Payment history
+
+**Accounts Receivable**
+- Invoice tracking
+- Payment collection management
+- Overdue account alerts
+- Receivable analytics
+
+**Bank Accounts**
+- Multiple account management
+- Account balance tracking
+- Transaction reconciliation
+- Account-specific reporting
+
+**Financial Analytics**
+- Profitability analysis per animal
+- Cost per arroba calculations
+- ROI analysis
+- Financial dashboard with key metrics
+- Revenue and expense trends
+
+### Inventory Management
+
+**Inventory Items**
+- Complete item catalog (feed, medications, supplies)
+- Unit of measurement tracking
+- Stock level monitoring
+- Cost tracking
+
+**Inventory Movements**
+- Stock in/out transactions
+- Location-based movements
+- Consumption tracking
+- Movement history and audit trail
+
+**Consumption Analysis**
+- Consumption by location
+- Consumption by animal
+- Time-based consumption trends
+- Cost analysis per animal
+
+### Sales & Analytics
+
+**Sales Records**
+- Multiple sale modalities (slaughterhouse, farms, auctions)
+- Buyer information
+- Sale date and pricing
+- Animal lot management
+
+**Profitability Analysis**
+- Cost per arroba calculation
+- Sale price analysis
+- Spread and margin calculations
+- ROI per sale and per animal
+
+**Sales Analytics**
+- Sales history and trends
+- Revenue analysis
+- Buyer performance
+- Sales dashboard with key metrics
+
+### Team Management
+
+**User Management**
+- User profiles and authentication
+- Role assignment
+- Team member management
+- User activity tracking
+
+**Permission System**
+- Granular permissions (section.resource.action)
+- Permission categories:
+  - Registration (properties, locations, employees, etc.)
+  - Records (births, acquisitions, sales, etc.)
+  - Breedings (breeding records, reproductive indexes)
+  - Finances (cash flow, accounts payable/receivable)
+  - Reports (analytics, financial reports, etc.)
+- Main user vs. regular user distinction
+- Permission inheritance and defaults
+
+### Dashboards
+
+**Main Dashboard**
+- Overview metrics and KPIs
+- Quick access to key features
+- Recent activity feed
+- System-wide statistics
+
+**Property Dashboard**
+- Property-specific metrics
+- Animal count and status
+- Financial summary
+- Production indexes
+
+**Animal Dashboard**
+- Individual animal details
+- Health and weight history
+- Financial performance
+- Related records and movements
+
+**Financial Dashboard**
+- Cash flow overview
+- Accounts payable/receivable summary
+- Profitability metrics
+- Financial trends and charts
+
+## Development Setup
+
+### Prerequisites
+
+- **Node.js** 20 or higher
+- **npm** (comes with Node.js) or **yarn**
+- **Git** for version control
+- **Docker** (optional, for containerized development)
+
+### Installation
 
 1. **Clone the repository:**
 ```bash
@@ -420,918 +514,810 @@ cd boinanuvem-frontend
 npm install
 ```
 
-3. **Start the development server:**
+3. **Configure environment variables:**
+```bash
+# Create .env file if needed (currently using default API_BASE_URL)
+# API_BASE_URL=http://localhost:3000/api
+```
+
+4. **Start the development server:**
 ```bash
 npm run dev
 ```
 
-The application will be available at `http://localhost:5173` with Hot Module Replacement (HMR) enabled.
+The application will be available at `http://localhost:5173`
 
-## 🛠️ Installation
+### Docker Setup
 
-For detailed installation instructions, follow the Quick Start guide above. The project uses npm by default, but you can use yarn or pnpm as well.
-
-## 🏃 Development
-
-### Development Server
-
-Start the development server with Hot Module Replacement (HMR):
-
+**Development:**
 ```bash
-npm run dev
+docker-compose up
 ```
 
-The application will be available at `http://localhost:5173`.
-
-### Development Features
-
-- **Hot Module Replacement (HMR)**: Instant updates without page refresh
-- **TypeScript**: Full type checking and IntelliSense support
-- **ESLint**: Real-time code quality checks
-- **Fast Refresh**: React component state preservation during development
-
-### Available Scripts
-
-- `npm run dev` - Start development server with Hot Module Replacement (HMR)
-- `npm run build` - Build for production (creates optimized SSR build)
-- `npm run start` - Start production server (requires build first)
-- `npm run typecheck` - Run TypeScript type checking (generates React Router types and validates TypeScript)
-- `npm run lint` - Run ESLint to check code quality
-- `npm run lint:fix` - Run ESLint and automatically fix issues
-- `npm run format` - Format code using Prettier
-- `npm run format:check` - Check code formatting without making changes
-- `npm test` - Run tests in watch mode
-- `npm run test:ui` - Run tests with Vitest UI
-- `npm run test:coverage` - Run tests and generate coverage report
-- `npm run test:run` - Run tests once (CI mode)
-- `npm run test:watch` - Run tests in watch mode
-
-## 🏗️ Project Structure
-
-```
-boinanuvem-frontend/
-├── app/
-│   ├── components/          # Reusable UI components
-│   │   ├── dashboard/       # Dashboard-specific components
-│   │   │   ├── navbar/     # Navigation bar components
-│   │   │   ├── sidebar/    # Sidebar navigation
-│   │   │   ├── profile/     # Profile management components
-│   │   │   ├── team/       # Team management components
-│   │   │   └── utils/      # Dashboard utilities
-│   │   ├── site/           # Public site components
-│   │   │   ├── hooks/      # Custom hooks (CEP lookup, CNPJ lookup, auth forms, etc.)
-│   │   │   ├── ui/         # Site-specific UI components (auth components, etc.)
-│   │   │   └── utils/      # Site utilities (masks, geocoding, etc.)
-│   │   │   ├── auth-card.tsx      # Reusable auth card container
-│   │   │   ├── auth-footer.tsx    # Reusable auth footer with navigation
-│   │   │   ├── auth-form-error.tsx # Shared error message component
-│   │   │   ├── address-form.tsx   # Reusable address form with CEP lookup
-│   │   │   └── step-indicator.tsx # Multi-step form indicator
-│   │   └── ui/             # Base UI components (tables, modals, inputs, etc.)
-│   ├── contexts/           # React contexts (theme, language)
-│   ├── i18n/               # Internationalization
-│   │   ├── __tests__/     # i18n translation tests
-│   │   └── translations/   # Translation files (pt, en, es)
-│   ├── mocks/              # Mock data for development
-│   │   └── __tests__/     # Mock data function tests
-│   ├── routes/             # Route components
-│   │   ├── dashboard/      # Dashboard route components
-│   │   │   └── __tests__/ # Route component tests
-│   │   └── *.tsx          # Public routes (home, login, register, etc.)
-│   ├── services/           # Service layer (data access and business logic)
-│   │   ├── __tests__/     # Service tests
-│   │   └── *.service.ts   # Service files for each entity
-│   ├── types/              # TypeScript type definitions
-│   ├── utils/              # Utility functions
-│   │   ├── auth-meta.ts    # Shared auth meta() function generator
-│   │   ├── auth-helpers.ts # Auth validation and formatting helpers
-│   │   └── seo-meta.ts     # SEO meta tags utility (Open Graph, Twitter Cards, etc.)
-│   ├── root.tsx           # Root layout component
-│   ├── routes.ts          # Route configuration
-│   └── routes.config.ts   # Route constants and helpers
-├── public/                 # Static assets (images, flags, favicon, robots.txt)
-├── build/                  # Production build output (generated)
-│   ├── client/            # Client-side assets
-│   └── server/            # Server-side code
-├── Dockerfile             # Docker configuration
-├── vite.config.ts         # Vite configuration (includes Vitest config)
-├── react-router.config.ts # React Router configuration
-├── tsconfig.json          # TypeScript configuration
-├── vitest.d.ts            # Vitest type declarations
-├── vitest.setup.ts        # Vitest setup file
-└── eslint.config.js       # ESLint configuration
-```
-
-### Service Layer Architecture
-
-The application uses a service layer pattern to abstract data access and business logic. All services follow a consistent pattern with CRUD operations and data filtering capabilities:
-
-- **Core Entity Services**: 
-  - `animals.service.ts` - Animal management and queries
-  - `users.service.ts` - User and authentication management
-  - `companies.service.ts` - Company profile management
-  - `properties.service.ts` - Property management and queries
-  - `locations.service.ts` - Location management within properties
-  - `employees.service.ts` - Employee management
-  - `suppliers.service.ts` - Supplier management
-  - `buyers.service.ts` - Buyer management
-  - `service-providers.service.ts` - Service provider management
-  - `inventory.service.ts` - Inventory item management and stock tracking
-
-- **Record Services**: 
-  - `births.service.ts` - Birth record management with purity calculation
-  - `weighings.service.ts` - Weight measurement tracking
-  - `acquisitions.service.ts` - Animal acquisition records
-  - `deaths.service.ts` - Animal death record management
-  - `breedings.service.ts` - Breeding record management
-  - `sanitary-controls.service.ts` - Sanitary control record management (medicine/vaccine administration)
-  - `sales.service.ts` - Animal sales management with financial integration
-  - `sales-analytics.service.ts` - Sales metrics and profitability calculations
-
-- **Movement Services**: 
-  - `animal-movements.service.ts` - Animal movement tracking between properties/locations
-  - `location-movements.service.ts` - Location-based movement tracking
-  - `inventory-movements.service.ts` - Inventory movement tracking (purchase, sale, adjustment, consumption)
-
-- **Observation Services**: 
-  - `animal-observations.service.ts` - Animal observation management
-  - `location-observations.service.ts` - Location observation management
-  - `employee-observations.service.ts` - Employee observation management
-  - `service-provider-observations.service.ts` - Service provider observation management
-  - `supplier-observations.service.ts` - Supplier observation management
-  - `buyer-observations.service.ts` - Buyer observation management
-  - `inventory-observations.service.ts` - Inventory item observation management
-  - `cash-flow-observations.service.ts` - Cash flow transaction observation management
-  - `accounts-payable-observations.service.ts` - Accounts payable observation management
-  - `accounts-receivable-observations.service.ts` - Accounts receivable observation management
-
-- **Financial Services**: 
-  - `cash-flow.service.ts` - Income and expense tracking
-  - `accounts-payable.service.ts` - Bills and payments management
-  - `accounts-receivable.service.ts` - Receivables management
-  - `bank-account.service.ts` - Bank account management
-
-- **Analytics Services**: 
-  - `reproductive-indexes.service.ts` - Reproductive performance calculations
-    - Fertility rate, birth rate, calving interval
-    - Culling rate, intrauterine mortality index
-    - Bull-to-cow ratio
-    - Expected births forecast
-  - `location-costs.service.ts` - Inventory consumption cost tracking and analysis
-    - Location-based consumption cost calculation
-    - Per-animal cost allocation based on location presence
-    - Time-weighted cost distribution using animal movement history
-    - Cost breakdown by location and consumption period
-    - Date range filtering for cost analysis
-
-All services are exported through `app/services/index.ts` for centralized access. Services use mock data for development and can be easily replaced with API calls in production.
-
-### Mock Data System
-
-The application includes a comprehensive mock data system for development and testing:
-
-- **Mock Data Files**: Located in `app/mocks/` directory
-  - `animals.ts` - Animal mock data with relationships
-  - `births.ts` - Birth records with parent relationships
-  - `deaths.ts` - Death records with cause and observation tracking
-  - `breedings.ts` - Breeding records with confirmation status
-  - `weighings.ts` - Weight measurement records
-  - `acquisitions.ts` - Acquisition records
-  - `sanitary-controls.ts` - Sanitary control records (medicine/vaccine administrations)
-  - `companies.ts` - Company profiles
-  - `properties.ts` - Property data with locations
-  - `locations.ts` - Location data within properties
-  - `employees.ts` - Employee records
-  - `suppliers.ts` - Supplier information
-  - `buyers.ts` - Buyer information
-  - `service-providers.ts` - Service provider records
-  - `users.ts` - User accounts and authentication
-  - `inventory.ts` - Inventory item records
-  - `inventory-movements.ts` - Inventory movement records
-  - `animal-movements.ts` - Animal movement records
-  - `location-movements.ts` - Location movement records
-  - `animal-observations.ts` - Animal observation records
-  - `location-observations.ts` - Location observation records
-  - `employee-observations.ts` - Employee observation records
-  - `service-provider-observations.ts` - Service provider observation records
-  - `supplier-observations.ts` - Supplier observation records
-  - `buyer-observations.ts` - Buyer observation records
-  - `inventory-observations.ts` - Inventory item observation records
-  - `cash-flow-observations.ts` - Cash flow transaction observation records
-  - `accounts-payable-observations.ts` - Accounts payable observation records
-  - `accounts-receivable-observations.ts` - Accounts receivable observation records
-  - `cash-flow.ts` - Cash flow transactions
-  - `accounts-payable.ts` - Accounts payable records
-  - `accounts-receivable.ts` - Accounts receivable records
-  - `bank-accounts.ts` - Bank account records
-  - `sales.ts` - Animal sales records
-
-- **Mock Data Features**:
-  - **Realistic and Consistent Data**: Mock data spans 2020-2025 with higher density in recent years
-  - **Comprehensive Relationships**: Proper parent-child relationships, property-location associations, and entity connections
-  - **Realistic Quantities**: ~300 animals across multiple properties, with realistic distribution
-  - **Consistent Dates**: All dates are properly aligned (births, acquisitions, weighings, movements, transactions)
-  - **Realistic Intervals**: Breeding intervals (12-15 months), gestation periods (280-290 days), movement spacing (30-180 days)
-  - **Proper Gender Distribution**: Realistic gender ratios for births and acquisitions
-  - **Age-Based Calculations**: Weight calculations based on age, breed, and gender
-  - **Comprehensive Test Coverage**: Full test suite for all mock data functions with validation
-  - **Type-Safe Generation**: Fully typed mock data with proper interfaces
-  - **Circular Dependency Resolution**: Smart lazy loading to handle complex data relationships
-  - **Consistent Data Structure**: Uniform data structure across all entities
-
-## 🔍 SEO & Meta Tags
-
-The application includes comprehensive SEO optimization for better search engine visibility and social media sharing:
-
-### SEO Features
-
-- **Open Graph Tags**: Complete Open Graph implementation for Facebook, LinkedIn, and other social platforms
-  - `og:title`, `og:description`, `og:image`, `og:url`, `og:type`, `og:site_name`, `og:locale`
-  - Optimized social sharing previews
-- **Twitter Card Tags**: Twitter/X Card support for enhanced link previews
-  - `twitter:card`, `twitter:title`, `twitter:description`, `twitter:image`
-  - Large image card format for better visual presentation
-- **Structured Data (JSON-LD)**: Schema.org structured data for rich snippets
-  - Organization schema with contact information
-  - SoftwareApplication schema with features and ratings
-  - Enhanced search result appearance
-- **Meta Tags**: Comprehensive meta tag management
-  - Title and description optimization
-  - Canonical URLs to prevent duplicate content
-  - Robots meta tags for indexing control
-  - Theme color and viewport optimization
-- **Sitemap**: Dynamic XML sitemap generation
-  - Automatic sitemap at `/sitemap.xml`
-  - Includes all public routes with priorities and change frequencies
-  - Search engine crawler guidance
-- **robots.txt**: Search engine crawler instructions
-  - Allows public pages for indexing
-  - Disallows dashboard and authentication routes
-  - Sitemap reference for crawlers
-
-### SEO Implementation
-
-The SEO system is implemented through:
-
-- **SEO Utility** (`app/utils/seo-meta.ts`): Centralized SEO meta tag generation
-  - `createSEOMeta()` function for generating comprehensive meta tags
-  - Configurable options for title, description, image, URL, type, and indexing
-  - Automatic Open Graph and Twitter Card tag generation
-- **Route-Level SEO**: Each route can define its own meta tags
-  - Public routes (home, terms, privacy) with full SEO optimization
-  - Authentication routes with noindex for privacy
-  - Canonical URLs for all public pages
-- **Structured Data**: JSON-LD structured data on home page
-  - Organization information with contact details
-  - SoftwareApplication details with features
-  - Enhanced search result rich snippets
-
-### SEO Best Practices
-
-- **Unique Meta Descriptions**: Each page has optimized, unique descriptions
-- **Canonical URLs**: Prevents duplicate content issues
-- **Social Media Optimization**: Rich previews for all major platforms
-- **Search Engine Friendly**: Proper robots.txt and sitemap configuration
-- **Structured Data**: Enhanced search result appearance with rich snippets
-
-## 🌐 Internationalization
-
-The application supports multiple languages with full internationalization (i18n) support:
-- **Portuguese (pt)** - Default language
-- **English (en)** - Full translation coverage
-- **Spanish (es)** - Full translation coverage
-
-### Translation System
-
-Language files are located in `app/i18n/translations/`. The language context provides translation hooks throughout the application using the `useTranslation` hook.
-
-### Translation Coverage
-
-All user-facing strings are internationalized, including:
-- **Navigation**: Menu items, breadcrumbs, page titles
-- **Forms**: Labels, placeholders, validation messages
-- **Tables**: Headers, filters, pagination controls
-- **Actions**: Button labels, tooltips, confirmations
-- **Notifications**: Success, error, and info messages
-- **Data**: Animal movement types, breeding methods, financial categories
-- **Analytics**: Chart labels, metric names, date formats
-
-### Using Translations
-
-```typescript
-import { useTranslation } from "~/i18n/use-translation";
-
-function MyComponent() {
-  const { t } = useTranslation();
-  
-  return <h1>{t.animals.title}</h1>;
-}
-```
-
-The application uses a comprehensive translation system with:
-- **Type-safe translation keys** - Full TypeScript support
-- **Fallback support** - Defaults to Portuguese if translation is missing
-- **Locale-aware formatting** - Dates and numbers formatted according to locale
-- **Dynamic language switching** - Change language without page reload
-- **Complete auth translations** - All authentication-related strings available in pt, en, and es
-
-## 🎨 Theming
-
-The application supports both **light** and **dark** themes with comprehensive theme management:
-
-### Theme Features
-
-- **Automatic System Detection**: Detects and applies system theme preference on first visit
-- **Manual Theme Switching**: Users can manually toggle between light and dark themes
-- **Persistent Preferences**: Theme selection is saved in localStorage and persists across sessions
-- **Smooth Transitions**: Theme changes apply smoothly without page reload
-- **Consistent Styling**: All components respect the selected theme using Tailwind CSS dark mode
-
-### Theme Implementation
-
-The theme is managed through React Context (`ThemeContext`) and uses Tailwind CSS's dark mode classes. Theme preferences are automatically synced across all components.
-
-## 🐳 Docker Deployment
-
-### Build Docker Image
-
+**Production Build:**
 ```bash
+# Build the image
 docker build -t boinanuvem-frontend .
-```
 
-### Run Container
-
-```bash
+# Run the container
 docker run -p 3000:3000 boinanuvem-frontend
 ```
 
-The application will be available at `http://localhost:3000`.
+### Common Development Tasks
 
-### Docker Multi-Stage Build
+**Type Checking:**
+```bash
+npm run typecheck
+```
 
-The Dockerfile uses a multi-stage build process to optimize image size and build time:
-1. **development-dependencies-env**: Installs all dependencies (including dev dependencies)
-2. **production-dependencies-env**: Installs production dependencies only
-3. **build-env**: Builds the application for production
-4. **Final stage**: Creates minimal production image with only runtime dependencies
+**Linting:**
+```bash
+npm run lint
+npm run lint:fix  # Auto-fix issues
+```
 
-This approach results in a smaller final image (~200MB) while maintaining all necessary functionality.
+**Code Formatting:**
+```bash
+npm run format
+npm run format:check  # Check without fixing
+```
 
-## 📦 Production Build
+**Running Tests:**
+```bash
+npm run test          # Watch mode
+npm run test:run      # Single run
+npm run test:coverage # With coverage
+npm run test:ui       # Visual interface
+```
 
-Create a production build:
+## API Architecture
 
+### ApiClient Pattern
+
+The application uses a centralized API client (`app/services/api-client.ts`) that provides:
+
+- **Type-safe HTTP methods**: GET, POST, PUT, DELETE
+- **Error handling**: Custom `ApiError` class with status codes
+- **Request/Response types**: Generic type parameters for type safety
+- **Base URL configuration**: Configurable API endpoint
+
+**Example Usage:**
+```typescript
+import { apiClient } from '~/services/api-client';
+
+// GET request
+const animals = await apiClient.get<Animal[]>('/animals', { companyId: '123' });
+
+// POST request
+const newAnimal = await apiClient.post<Animal>('/animals', animalData);
+
+// PUT request
+await apiClient.put<Animal>(`/animals/${id}`, updatedData);
+
+// DELETE request
+await apiClient.delete(`/animals/${id}`);
+```
+
+### Service Layer Structure
+
+The service layer consists of 40+ entity-specific services, each following a consistent pattern:
+
+**Service Pattern:**
+```typescript
+// Example: animals.service.ts
+export function getAnimalById(id: string): Animal | undefined
+export function getAnimalsByCompanyId(companyId: string): Animal[]
+export function addAnimal(data: AnimalFormData): Animal
+export function updateAnimal(id: string, data: Partial<AnimalFormData>): boolean
+export function deleteAnimal(id: string): boolean
+```
+
+**Base Service Utilities** (`app/services/base-service.ts`):
+- `findById`: Find entity by ID
+- `findByField`: Find entities by field value
+- `createEntity`: Create new entity with ID generation
+- `updateEntity`: Update existing entity
+- `deleteEntity`: Delete entity
+- `generateNextId`: Generate sequential IDs
+
+### Error Handling
+
+**ApiError Class:**
+```typescript
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+    public response?: Response
+  )
+}
+```
+
+**Error Handling Pattern:**
+- HTTP errors are caught and transformed into `ApiError` instances
+- Status codes are preserved for proper error handling
+- Error responses can be accessed for detailed error information
+
+### Request/Response Types
+
+All API interactions are fully typed:
+- Request bodies use TypeScript interfaces
+- Response types are explicitly defined
+- Generic type parameters ensure type safety throughout the application
+
+## Routing System
+
+### React Router v7 Configuration
+
+Routes are defined in `app/routes.ts` using React Router's file-based routing:
+
+```typescript
+export default [
+  index("routes/home.tsx"),
+  route("entrar", "routes/login.tsx"),
+  route("dashboard", "routes/dashboard.tsx", [
+    // Nested routes
+  ]),
+];
+```
+
+### Route Constants
+
+All routes are centrally defined in `app/routes.config.ts`:
+
+```typescript
+export const ROUTES = {
+  HOME: "/",
+  LOGIN: "/entrar",
+  DASHBOARD: "/dashboard",
+  PROPERTIES: "/dashboard/propriedades",
+  // ... 90+ route definitions
+} as const;
+```
+
+### Route Helpers
+
+Helper functions for dynamic route generation:
+
+```typescript
+// Property routes
+getPropertyEditRoute(propertyId: string): string
+getPropertyViewRoute(propertyId: string): string
+
+// Generic entity routes
+getAnimalEditRoute(id: string): string
+getLocationViewRoute(id: string): string
+// ... etc.
+```
+
+### Protected Routes
+
+Routes are protected using route guards:
+
+**Authentication Guard:**
+- Checks for authenticated user
+- Redirects to login if not authenticated
+
+**Permission Guard:**
+- Checks user permissions for specific routes
+- Validates section.resource.action permissions
+- Redirects to dashboard if access denied
+
+**Main User Guard:**
+- Restricts team management routes to main users only
+- Regular users are redirected if attempting access
+
+### Route Permission Mapping
+
+Routes are mapped to permissions in `app/utils/route-permissions.ts`:
+
+```typescript
+// Example mapping
+"/dashboard/propriedades" → "registration.property.view"
+"/dashboard/propriedades/novo" → "registration.property.create"
+"/dashboard/propriedades/:id/editar" → "registration.property.edit"
+```
+
+### Dynamic Route Generation
+
+Routes support dynamic parameters:
+- `:propertyId`, `:animalId`, `:locationId`, etc.
+- Route helpers generate type-safe route paths
+- Parameters are validated and typed
+
+## Authentication & Authorization
+
+### Authentication System
+
+**AuthContext** (`app/contexts/auth-context.tsx`):
+- Manages current user session
+- Provides `login`, `logout`, and `isAuthenticated` functions
+- Stores user ID in localStorage
+- Provides current user information throughout the app
+
+**Authentication Flow:**
+1. User submits login credentials
+2. `authenticateUser` service validates credentials
+3. On success, user ID is stored in localStorage
+4. AuthContext updates with user information
+5. User is redirected to dashboard
+
+**Session Management:**
+- User ID stored in localStorage as `currentUserId`
+- Session persists across page refreshes
+- Logout clears localStorage and redirects to login
+
+### Authorization System
+
+**Permission Structure:**
+Permissions are organized hierarchically:
+```
+section.resource.action
+
+Examples:
+- registration.property.view
+- records.sales.create
+- finances.cashFlow.edit
+- breedings.breedings.remove
+```
+
+**Permission Sections:**
+- `registration`: Properties, locations, employees, suppliers, buyers, inventory, animals
+- `records`: Births, acquisitions, weighings, sales, deaths, movements
+- `breedings`: Breeding records, unconfirmed breedings, pregnant cows, indexes
+- `finances`: Cash flow, accounts payable/receivable, bank accounts
+- `reports`: Analytics, financial reports, animal reports, production reports
+
+**Permission Actions:**
+- `view`: Read access
+- `create`: Create new records
+- `edit`: Modify existing records
+- `remove`: Delete records
+
+**User Types:**
+- **Main User**: Full access to all features, including team management
+- **Regular User**: Access based on assigned permissions
+
+**Permission Checking:**
+```typescript
+// Route guard example
+createRouteGuard(
+  ROUTES.PROPERTIES,
+  'view' // Required action
+)
+
+// Component-level permission check
+const canEdit = hasPermission('registration', 'property', 'edit', user);
+```
+
+### Route Guards
+
+**createRouteGuard:**
+- Validates user authentication
+- Checks route-specific permissions
+- Redirects unauthorized users
+- Supports custom redirect destinations
+
+**requireMainUser:**
+- Restricts access to main users only
+- Used for team management routes
+- Automatically redirects regular users
+
+**requireGuest:**
+- Ensures user is not authenticated
+- Used for login/register pages
+- Redirects authenticated users to dashboard
+
+## Internationalization
+
+### i18n System Structure
+
+**Translation Files** (`app/i18n/translations/`):
+- `pt.ts`: Portuguese (default)
+- `en.ts`: English
+- `es.ts`: Spanish
+
+**Translation Hook** (`app/i18n/use-translation.ts`):
+```typescript
+const { t } = useTranslation();
+const title = t('common.loading'); // "Carregando..."
+```
+
+### Language Context
+
+**LanguageProvider** (`app/contexts/language-context.tsx`):
+- Manages current language selection
+- Detects browser language preference
+- Persists language choice in localStorage
+- Updates document language attribute
+
+**Supported Languages:**
+- Portuguese (pt) - Default
+- English (en)
+- Spanish (es)
+
+**Language Switching:**
+```typescript
+const { language, setLanguage, languageInfo } = useLanguage();
+setLanguage('en'); // Switch to English
+```
+
+### Locale-Specific Formatting
+
+- Date formatting using `date-fns` with locale support
+- Number formatting based on language
+- Currency formatting for financial data
+
+## Theming System
+
+### Theme Implementation
+
+**ThemeContext** (`app/contexts/theme-context.tsx`):
+- Manages light/dark theme state
+- Detects system preference on first load
+- Persists theme choice in localStorage
+- Applies theme class to document root
+
+**Theme Detection:**
+```typescript
+// System preference detection
+const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+// Stored preference takes precedence
+const theme = localStorage.getItem('theme') || (prefersDark ? 'dark' : 'light');
+```
+
+### Theme Usage
+
+**Theme Hook:**
+```typescript
+const { theme, toggleTheme, setTheme } = useTheme();
+
+// Toggle between light and dark
+toggleTheme();
+
+// Set specific theme
+setTheme('dark');
+```
+
+### CSS Variable Usage
+
+Tailwind CSS v4 uses CSS variables for theming:
+- Dark mode classes automatically applied
+- Smooth transitions between themes
+- Consistent color scheme across components
+
+### System Preference Detection
+
+On first visit, the system:
+1. Checks for stored theme preference
+2. Falls back to system preference if no stored value
+3. Applies theme immediately to prevent flash
+4. Allows manual override at any time
+
+## Testing
+
+### Testing Strategy
+
+The project uses **Vitest** for unit and integration testing with the following approach:
+
+- **Unit Tests**: Test individual functions and utilities
+- **Component Tests**: Test React components with Testing Library
+- **Service Tests**: Test API service layer with mocks
+- **Integration Tests**: Test route loaders and data flow
+
+### Test Organization
+
+Tests are co-located with source files in `__tests__` directories:
+
+```
+app/
+├── components/
+│   └── dashboard/
+│       └── __tests__/
+│           └── [component].test.tsx
+├── hooks/
+│   └── __tests__/
+│       └── [hook].test.ts
+├── services/
+│   └── __tests__/
+│       └── [service].test.ts
+└── routes/
+    └── __tests__/
+        └── [route].test.tsx
+```
+
+### Running Tests
+
+```bash
+# Watch mode (development)
+npm run test
+
+# Single run
+npm run test:run
+
+# With coverage report
+npm run test:coverage
+
+# Visual test interface
+npm run test:ui
+
+# Watch specific file
+npm run test -- animals.service.test.ts
+```
+
+### Test Utilities and Mocks
+
+**Mock Data** (`app/mocks/`):
+- Entity-specific mock data files
+- Consistent data structure for testing
+- 35+ mock data files covering all entities
+
+**Test Setup** (`vitest.setup.ts`):
+- Global test configuration
+- Testing Library setup
+- Mock service configuration
+
+### Coverage Requirements
+
+**Coverage Configuration:**
+- Provider: v8
+- Reporters: text, json, html, lcov
+- Exclusions: node_modules, build, config files, types, translations
+
+**Coverage Goals:**
+- Maintain above 80% code coverage
+- Focus on business logic and utilities
+- Component tests for critical user flows
+
+### Testing Library
+
+**Component Testing:**
+```typescript
+import { render, screen } from '@testing-library/react';
+import { AnimalList } from './AnimalList';
+
+test('renders animal list', () => {
+  render(<AnimalList animals={mockAnimals} />);
+  expect(screen.getByText('Animal Name')).toBeInTheDocument();
+});
+```
+
+**User Interaction Testing:**
+```typescript
+import userEvent from '@testing-library/user-event';
+
+test('handles form submission', async () => {
+  const user = userEvent.setup();
+  render(<AnimalForm />);
+  await user.type(screen.getByLabelText('Name'), 'New Animal');
+  await user.click(screen.getByRole('button', { name: 'Submit' }));
+  // Assertions...
+});
+```
+
+## Code Quality & Linting
+
+### ESLint Configuration
+
+**Configuration** (`eslint.config.js`):
+- TypeScript ESLint recommended rules
+- React and React Hooks plugins
+- Custom rules for unused variables
+- Ignores: build, node_modules, config files
+
+**Key Rules:**
+- React in JSX scope: off (React 19)
+- Prop types: off (using TypeScript)
+- Unused vars: warn (with ignore patterns for `_` prefix)
+
+### Prettier Setup
+
+**Formatting:**
+- Automatic code formatting on save
+- Consistent code style across the project
+- Format check in CI/CD pipeline
+
+**Configuration:**
+- Default Prettier settings
+- Formats: TypeScript, TSX, JavaScript, JSON, CSS, Markdown
+
+### TypeScript Strict Mode
+
+**Strict Configuration:**
+- `strict: true` in tsconfig.json
+- All strict type checking enabled
+- No implicit any
+- Strict null checks
+- Strict function types
+
+### SonarQube Integration
+
+**Configuration** (`sonar-project.properties`):
+- Code quality analysis
+- Security vulnerability detection
+- Code smell identification
+- Technical debt tracking
+
+**Running Analysis:**
+```bash
+npm run sonar          # Run SonarQube analysis
+npm run sonar:test     # Run tests with coverage + analysis
+```
+
+### Pre-commit Hooks
+
+**Husky** (`package.json`):
+- Pre-commit hook setup
+- Runs linting and formatting checks
+- Prevents commits with linting errors
+
+## Build & Deployment
+
+### Production Build Process
+
+**Build Command:**
 ```bash
 npm run build
 ```
 
-The build output will be in the `build/` directory:
-```
-build/
-├── client/    # Static assets
-└── server/    # Server-side code
-```
+**Build Output:**
+- `build/client/`: Client-side assets (HTML, CSS, JS)
+- `build/server/`: Server-side code for SSR
+- Optimized and minified for production
 
-### Running Production Build
+### SSR Configuration
 
+**React Router SSR:**
+- Server-side rendering enabled in `react-router.config.ts`
+- Improved initial load performance
+- SEO optimization
+- Hydration on client side
+
+### Docker Multi-stage Build
+
+**Dockerfile Stages:**
+1. **development-dependencies-env**: Install all dependencies
+2. **production-dependencies-env**: Install production dependencies only
+3. **build-env**: Build the application
+4. **Final stage**: Copy production files and dependencies
+
+**Build Optimization:**
+- Separate dependency installation stages
+- Production dependencies only in final image
+- Reduced image size
+- Faster build times
+
+### Render.com Deployment
+
+**Configuration** (`render.yaml`):
+- Web service type
+- Docker runtime
+- Environment variables
+- Health check path
+- Port configuration (10000)
+
+**Environment Variables:**
+- `NODE_ENV=production`
+- `PORT=10000`
+
+### Production Server
+
+**Start Command:**
 ```bash
 npm run start
 ```
 
-## 🚢 Deployment
-
-### Platform Options
-
-The containerized application can be deployed to any platform that supports Docker:
-
-- **AWS ECS** - Elastic Container Service
-- **Google Cloud Run** - Serverless container platform
-- **Azure Container Apps** - Managed container platform
-- **Digital Ocean App Platform** - Platform-as-a-Service
-- **Fly.io** - Global application platform
-- **Railway** - Modern deployment platform
-
-### Environment Variables
-
-Make sure to configure the following environment variables for production:
-
-- `NODE_ENV=production` - Set to production mode
-- Any API endpoints or service URLs your application requires
-- Additional environment-specific configuration as needed
-
-### Docker Deployment
-
-The application includes a Dockerfile for containerized deployment. The Dockerfile uses a multi-stage build process to optimize the final image size:
-
-1. **development-dependencies-env**: Installs all dependencies (including dev dependencies)
-2. **production-dependencies-env**: Installs production dependencies only
-3. **build-env**: Builds the application for production
-4. **Final stage**: Creates minimal production image with only necessary files
-
-This approach results in a smaller final image while maintaining all necessary functionality.
-
-## 🧪 Testing
-
-The project uses **Vitest** for unit and integration testing with **React Testing Library** for component testing.
-
-### Running Tests
-
-Run all tests:
-```bash
-npm test
-```
-
-Run tests with UI (interactive mode):
-```bash
-npm run test:ui
-```
-
-Run tests and generate coverage report:
-```bash
-npm run test:coverage
-```
-
-Run tests in watch mode:
-```bash
-npm run test:watch
-```
-
-### Test Coverage
-
-The project maintains comprehensive test coverage covering:
-- **Components**: UI components, dashboard components, and site components
-- **Hooks**: Custom React hooks (CEP lookup, CNPJ lookup, auto-rotate, smooth scroll)
-- **Contexts**: Theme and language contexts
-- **Services**: Service layer functions for data access and business logic
-- **Utilities**: Helper functions and utilities
-- **Types**: Type definitions and validations
-- **i18n**: Translation keys and internationalization
-- **Mocks**: Mock data functions and data management with comprehensive validation
-  - **Mock Data Tests**: Dedicated test suites for all mock data files
-  - **Structure Validation**: Tests ensure proper data structure and relationships
-  - **Date Validation**: All dates validated to be within expected ranges (2020-2025)
-  - **Relationship Validation**: Parent-child, property-location, and entity relationships verified
-  - **Realism Checks**: Tests validate realistic intervals, quantities, and distributions
-- **Routes**: Route components and navigation, including comprehensive coverage for:
-  - Dashboard routes (movements, observations, properties, animals, finances, etc.)
-  - Authentication flows (login, register, password recovery)
-  - Public site routes
-
-**Current Test Status**: 
-- ✅ **2,698 tests passing** across 233 test files
-- ✅ **100% pass rate** with zero failures
-- ✅ **Comprehensive mock data validation** ensuring data quality and consistency
-- ✅ **Full service layer coverage** with proper mocking strategies
-- ✅ **Complete inventory and sanitary control test coverage** including usage method fields, dosage calculation, and multi-animal administration
-- ✅ **Complete auth pages test coverage** including login, register, forgot-password, and new-password flows
-
-Coverage reports are generated in the `coverage/` directory and can be viewed by opening `coverage/index.html` in a browser. The project continuously improves test coverage with focus on edge cases, user interactions, and navigation flows.
-
-### Test Structure
-
-Tests are located alongside their source files in `__tests__` directories:
-```
-app/
-├── components/
-│   ├── ui/
-│   │   └── __tests__/     # UI component tests
-│   ├── dashboard/
-│   │   └── __tests__/     # Dashboard component tests
-│   └── site/
-│       └── __tests__/     # Site component tests
-├── contexts/
-│   └── __tests__/         # Context tests
-├── hooks/
-│   └── __tests__/         # Hook tests
-└── utils/
-    └── __tests__/         # Utility tests
-```
-
-### Testing Tools
-
-- **Vitest** - Fast unit test framework
-- **React Testing Library** - Component testing utilities
-- **@testing-library/jest-dom** - Custom DOM matchers
-- **@testing-library/user-event** - User interaction simulation
-- **jsdom** - DOM implementation for Node.js testing environment
-
-### Auth Components & Hooks
-
-The application includes a comprehensive set of shared authentication components and hooks:
-
-**Shared Components:**
-- `AuthCard` - Reusable card container with logo, title, subtitle, and footer support
-- `AuthFooter` - Footer component with navigation links for auth pages
-- `AuthFormError` - Standardized error message display component
-- `AddressForm` - Reusable address form with integrated CEP lookup
-- `StepIndicator` - Multi-step form progress indicator
-
-**Shared Hooks:**
-- `useAuthForm` - Form state management for email/password forms with validation
-- `useFormValidation` - Validation utilities with common validators (email, required, minLength, etc.)
-- `usePasswordReset` - Complete password reset flow management (email → code → new password)
-
-**Shared Utilities:**
-- `auth-meta.ts` - Shared meta() function generator for auth pages
-- `auth-helpers.ts` - Common validation and formatting helpers
-
-These shared components and hooks ensure:
-- **Consistency** - Uniform UI/UX across all authentication pages
-- **Maintainability** - Single source of truth for auth-related functionality
-- **DRY Principles** - ~60% reduction in code duplication
-- **Type Safety** - Full TypeScript support with proper types
-- **i18n Support** - All strings properly internationalized
-
-### Test Code Standards
-
-- Test files follow clean code principles with descriptive test names
-- All test files are comment-free to maintain clarity and focus on test behavior
-- Tests are self-documenting through clear naming conventions and structure
-- Comprehensive coverage of edge cases, error handling, and user interactions
-- Proper use of `act()` for state updates in React component tests
-- Mock services and hooks to isolate component behavior
-
-### Recent Improvements
-
-- **Mock Data Enhancement**: Comprehensive overhaul of mock data system
-  - **Realistic Data Generation**: All mock data now spans 2020-2025 with higher density in recent years
-  - **Increased Data Volume**: ~300 animals (up from ~210), with proper distribution across properties
-  - **Consistent Relationships**: Proper parent-child relationships, property-location associations
-  - **Realistic Intervals**: Breeding intervals (12-15 months), gestation periods (280-290 days)
-  - **Age-Based Calculations**: Weight calculations based on age, breed, and gender
-  - **Proper Date Alignment**: All dates properly aligned (births, acquisitions, weighings, movements)
-  - **Circular Dependency Resolution**: Smart lazy loading to handle complex data relationships
-  - **Comprehensive Test Coverage**: Full test suite for all mock data with structure, date, and relationship validation
-
-- **Dashboard Enhancements**: 
-  - **Main Dashboard**: Added financial summaries, recent births/breedings, activity feed, weight and financial trend charts
-  - **Property Dashboard**: Enhanced with comprehensive statistics, breeding season visualization, related entities overview
-  - **Animal Dashboard**: Complete analytics with reproductive statistics, location tracking, cost information, weighing statistics, and weight trend charts
-
-- **Test Suite Improvements**:
-  - **All Tests Passing**: 2,698 tests passing across 233 test files (100% pass rate)
-  - **Mock Data Tests**: Dedicated test suites for all mock data files with comprehensive validation
-  - **Service Mock Updates**: Proper mocking strategies for all services in component tests
-  - **Test Reliability**: Fixed circular dependency issues in test environment
-  - **Auth Pages Tests**: Complete test coverage for all authentication flows with proper component mocking
-
-- **Code Quality Improvements**:
-  - **TypeScript**: Zero type errors, full type safety across all files
-  - **ESLint**: Zero errors and warnings, React hooks compliance, proper type usage
-  - **React Hooks**: All hooks properly ordered and called unconditionally
-  - **Type Safety**: Removed all `any` types, proper type inference throughout
-  - **Auth Pages Refactoring**: Applied DRY principles to authentication pages
-    - Created shared components reducing code duplication by ~60%
-    - Extracted reusable hooks for form management and validation
-    - Consistent error handling and loading states across all auth pages
-    - Full i18n support for all auth-related strings in all languages
-
-- **SEO Enhancements**: Comprehensive SEO optimization implementation
-  - **Open Graph & Twitter Cards**: Full social media meta tag support for rich link previews
-  - **Structured Data**: JSON-LD schema.org markup for Organization and SoftwareApplication
-  - **Sitemap & robots.txt**: Dynamic sitemap generation and crawler instructions
-  - **Canonical URLs**: Proper canonical URL implementation to prevent duplicate content
-  - **Enhanced Meta Tags**: Comprehensive meta tag system with SEO utility
-  - **Search Engine Optimization**: All public routes optimized for search engines
-
-- **Comprehensive Inventory Test Coverage**: Complete test suites for inventory routes, services, and mocks
-  - Inventory list page tests (rendering, search, filters, pagination, sorting, deletion)
-  - New inventory item form tests (form submission, validation, financial integration)
-  - Edit inventory item form tests (data pre-population, form submission, validation)
-  - Inventory item details page tests (data display, stock status, expiration tracking)
-  - Inventory movement form tests (movement types, validation, financial options)
-  - Service layer tests (CRUD operations, stock calculation, filtering)
-  - Mock data structure validation tests
-
-- **Alert Component Migration**: Replaced all vanilla `alert()` calls with the custom Alert component
-  - Updated user profile, company profile, and registration components
-  - Updated all related tests to check for Alert component rendering instead of `global.alert` calls
-  - Consistent UI experience with styled alerts, animations, and auto-dismiss functionality
-
-## 🔐 Permissions & Access Control
-
-### Main User vs Regular Users
-
-The application implements a two-tier user system with distinct permission models:
-
-#### Main User
-
-The **main user** is a special administrative account that serves as the company owner or primary administrator:
-
-- **Full System Access**: Automatically bypasses all permission checks and has unrestricted access to all features
-- **Permission Management**: Exclusive right to view and edit permissions for all team members
-- **Activity Logs**: Can view activity logs for all users in the company
-- **Company Administration**: Typically the first user created for a company or designated as the main user
-- **No Permission Restrictions**: All routes, features, and data are accessible regardless of permission settings
-
-**Technical Implementation:**
-- Identified by `mainUser: true` property on the user object
-- Permission checks automatically return `true` for main users
-- Uses `usePermissions()` hook which returns `isMainUser()` helper function
-
-#### Regular Users
-
-**Regular users** are team members with specific, granular permissions:
-
-- **Assigned Permissions**: Each user has a specific set of permissions assigned by the main user
-- **Permission-Based Access**: Access to features is strictly controlled by assigned permissions
-- **View-Only Permissions**: Can view their own permissions but cannot modify them
-- **Restricted Access**: Can only access features and data for which they have explicit permissions
-
-**Permission Structure:**
-- Permissions are organized into sections (Registration, Records, Breedings, Finances)
-- Each resource has four actions: View, Add, Edit, Remove
-- Permissions are stored per user and checked on every route and action
-
-### Permission System Architecture
-
-The permissions system uses a hierarchical structure:
-
-```
-UserPermissions
-├── registration/
-│   ├── property (view, add, edit, remove)
-│   ├── location (view, add, edit, remove)
-│   ├── employee (view, add, edit, remove)
-│   ├── serviceProvider (view, add, edit, remove)
-│   ├── supplier (view, add, edit, remove)
-│   ├── buyer (view, add, edit, remove)
-│   └── animals (view, add, edit, remove)
-├── records/
-│   ├── births (view, add, edit, remove)
-│   ├── acquisitions (view, add, edit, remove)
-│   ├── weighings (view, add, edit, remove)
-│   ├── sales (view, add, edit, remove)
-│   └── sanitaryControl (view, add, edit, remove)
-├── breedings/
-│   ├── breedings (view, add, edit, remove)
-│   ├── unconfirmedBreedings (view, add, edit, remove)
-│   ├── pregnantCows (view, add, edit, remove)
-│   ├── reproductiveIndexes (view, add, edit, remove)
-│   └── birthForecast (view, add, edit, remove)
-└── finances/
-    ├── cashFlow (view, add, edit, remove)
-    ├── accountsPayable (view, add, edit, remove)
-    ├── accountsReceivable (view, add, edit, remove)
-    └── bankAccounts (view, add, edit, remove)
-```
-
-### Using Permissions in Code
-
-The application provides a `usePermissions()` hook for checking permissions:
-
-```typescript
-import { usePermissions } from "~/utils/permissions";
-
-function MyComponent() {
-  const { canView, canAdd, canEdit, canRemove, isMainUser } = usePermissions();
-  
-  // Check specific permissions
-  if (canView("registration", "animals")) {
-    // Show animals list
-  }
-  
-  // Check if user is main user
-  if (isMainUser()) {
-    // Show admin-only features
-  }
-  
-  // Check multiple permissions
-  const canManageAnimals = canAdd("registration", "animals") && 
-                           canEdit("registration", "animals");
-}
-```
-
-### Route Protection
-
-Routes are protected using route guards that check permissions:
-
-```typescript
-// Require specific permission
-export const loader = createRouteGuard(
-  "registration.animals",
-  "view"
-);
-
-// Require main user
-export const loader = requireMainUser();
-```
-
-### Permission Assignment Workflow
-
-1. **User Creation**: Main user creates a new team member
-2. **Default Permissions**: New user starts with no permissions (all false)
-3. **Permission Assignment**: Main user assigns appropriate permissions via the user profile page
-4. **Permission Updates**: Main user can modify permissions at any time
-5. **Permission Validation**: System validates permissions on every action and route access
-
-## 🧪 Code Quality
-
-### Pre-commit Hooks
-
-This project uses **Husky** to run pre-commit checks. Before each commit, the following checks are automatically executed:
-- **TypeScript type checking** - Ensures type safety
-- **ESLint code quality checks** - Validates code style and best practices
-- **Prettier code formatting validation** - Ensures consistent code formatting
-- **Test suite execution** - Runs all tests to prevent regressions
-
-This ensures code quality and consistency across the project. All checks must pass before a commit can be completed.
-
-### Git Hooks Setup
-
-Husky is automatically set up when you run `npm install` (via the `prepare` script). If you need to manually set up hooks:
-
-```bash
-npm run prepare
-```
-
-### Type Checking
-
-Run TypeScript type checking:
-
-```bash
-npm run typecheck
-```
-
-This command generates React Router types and runs the TypeScript compiler. The project maintains strict TypeScript configuration with full type safety across all components, utilities, services, and mock data functions.
-
-**Current Type Safety Status**:
-- ✅ **Zero TypeScript errors** - All type errors resolved
-- ✅ **Full type coverage** - All components, services, and utilities fully typed
-- ✅ **Strict mode compliance** - Strict TypeScript configuration enforced
-- ✅ **Type-safe translations** - Full TypeScript support for i18n keys
-
-### Type Safety Features
-
-- **Strict Mode**: Full TypeScript strict mode enabled
-- **Type Inference**: Comprehensive type inference for better developer experience
-- **Generic Components**: Reusable generic components with proper type constraints
-- **Mock Data Types**: Fully typed mock data with proper interfaces
-- **Service Layer Types**: All service functions properly typed with return types
-- **Route Types**: React Router type generation for route safety
-
-### Linting
-
-Check code quality with ESLint:
-
-```bash
-npm run lint
-```
-
-Automatically fix linting issues:
-
-```bash
-npm run lint:fix
-```
-
-The project uses ESLint with TypeScript-specific rules, React hooks rules, and accessibility checks. All code follows consistent linting standards with:
-- ✅ **Zero errors** - All ESLint errors resolved
-- ✅ **Zero warnings** - All warnings addressed or properly suppressed
-- ✅ **React Hooks Compliance** - All hooks called unconditionally and in correct order
-- ✅ **TypeScript Best Practices** - Proper type usage, no `any` types, strict mode compliance
-- ✅ **Code Quality Standards** - Consistent code style and best practices throughout
-
-### Code Formatting
-
-Format code with Prettier:
-
-```bash
-npm run format
-```
-
-Check formatting without making changes:
-
-```bash
-npm run format:check
-```
-
-## 🛠️ Technology Stack & Architecture
-
-### 🏗️ Core Framework & Runtime
-- **React Router v7** (^7.9.2) - Next-generation full-stack React framework with advanced SSR capabilities
-- **React 19** (^19.1.1) - Latest React with concurrent features, automatic batching, and improved performance
-- **TypeScript 5.9** (^5.9.2) - Advanced type safety with strict mode and enhanced developer experience
-- **Vite 7** (^7.1.7) - Ultra-fast build tool with Hot Module Replacement (HMR) and optimized production builds
-- **Node.js 20+** - Modern JavaScript runtime with enhanced performance and security features
-
-### 🎯 Advanced Features & Capabilities
-- **Server-Side Rendering (SSR)** - Optimized for SEO, performance, and faster initial page loads
-- **Progressive Enhancement** - Works without JavaScript and enhances with client-side features
-- **Advanced SEO Optimization** - Complete Open Graph, Twitter Cards, structured data, dynamic sitemap, and robots.txt
-- **Enterprise Type Safety** - Comprehensive TypeScript coverage with strict mode and zero tolerance for type errors
-- **Multi-Language Internationalization** - Full i18n support for Portuguese, English, and Spanish with type-safe translations
-- **WCAG 2.1 Accessibility Compliance** - Screen reader support, keyboard navigation, and inclusive design patterns
-- **Mobile-First Responsive Design** - Optimized for all device sizes with touch-friendly interfaces
-
-### 🎨 Styling & User Interface
-- **Tailwind CSS v4** (^4.1.13) - Latest utility-first CSS framework with advanced features
-- **Custom Design System** - Comprehensive component library with consistent design tokens
-- **@tailwindcss/vite** (^4.1.13) - Seamless Tailwind CSS integration with Vite
-- **Dark/Light Theme System** - Intelligent theme switching with system preference detection
-- **Advanced Animations** - Smooth transitions and micro-interactions for enhanced user experience
-
-### 📊 Data Visualization & Mapping
-- **Recharts** (^3.4.1) - Professional chart library for comprehensive data visualization
-  - Interactive line charts for trend analysis and performance tracking
-  - Responsive bar charts for comparative data analysis
-  - Area charts for cumulative data visualization
-  - Pie charts for distribution analysis
-  - Custom tooltips and legends with branded styling
-- **Leaflet** (^1.9.4) - Advanced interactive mapping for property and location visualization
-  - Geocoding integration for address-to-coordinate conversion
-  - Custom map markers and layers for property identification
-  - Interactive property boundaries and location mapping
-  - Satellite and terrain view support
-- **date-fns** (^4.1.0) - Comprehensive date utility library
-  - Full locale support for Portuguese, English, and Spanish
-  - Advanced date formatting and manipulation functions
-  - Timezone-aware date calculations and comparisons
-
-### 🧪 Testing & Quality Assurance
-- **Vitest** (^4.0.9) - Next-generation testing framework with native ESM support and fast execution
-- **React Testing Library** (^16.3.0) - Best-practice component testing utilities focusing on user behavior
-- **@testing-library/jest-dom** (^6.9.1) - Custom DOM matchers for more expressive assertions
-- **@testing-library/user-event** (^14.6.1) - Advanced user interaction simulation for realistic testing
-- **jsdom** (^27.2.0) - Fast DOM implementation for Node.js testing environment
-- **@vitest/coverage-v8** (^4.0.9) - Advanced code coverage reporting with V8 engine integration
-- **@vitest/ui** (^4.0.9) - Interactive testing interface for enhanced debugging and development
-
-### 🔧 Development Tools & Code Quality
-- **ESLint** (^9.39.1) - Advanced code linting with TypeScript-specific rules and React best practices
-- **Prettier** (^3.6.2) - Opinionated code formatting for consistent style across the codebase
-- **TypeScript ESLint** (^8.46.4) - Comprehensive TypeScript linting rules and type checking
-- **Husky** (^9.1.7) - Git hooks for automated pre-commit quality checks and validation
-- **vite-tsconfig-paths** (^5.1.4) - TypeScript path mapping support for clean import statements
-
-### 🚀 Production & Deployment
-- **@react-router/node** (^7.9.2) - Node.js adapter for server-side rendering and API integration
-- **@react-router/serve** (^7.9.2) - Production server with optimized performance and caching
-- **isbot** (^5.1.31) - Intelligent bot detection for SSR optimization and performance tuning
-- **Docker Support** - Multi-stage Docker builds for optimized production deployments
-- **Alpine Linux** - Lightweight container base for minimal production footprint
-
-### 🔐 Security & Authentication
-- **bcryptjs** (^2.4.3) - Secure password hashing and validation utilities
-- **JWT Integration** - Seamless integration with backend JWT authentication system
-- **CSRF Protection** - Built-in protection against cross-site request forgery attacks
-- **XSS Prevention** - Automatic sanitization and protection against cross-site scripting
-
-## 🔧 Troubleshooting
+Uses `@react-router/serve` to serve the built application with SSR support.
+
+## Development Workflow
+
+### Branch Strategy
+
+- **main**: Production-ready code
+- **develop**: Integration branch for features
+- **feature/**: Feature development branches
+- **fix/**: Bug fix branches
+- **hotfix/**: Critical production fixes
+
+### Commit Conventions
+
+Follow conventional commits:
+- `feat:` New feature
+- `fix:` Bug fix
+- `docs:` Documentation changes
+- `style:` Code style changes
+- `refactor:` Code refactoring
+- `test:` Test additions/changes
+- `chore:` Maintenance tasks
+
+### Pull Request Process
+
+1. Create feature branch from `develop`
+2. Implement changes with tests
+3. Ensure all tests pass
+4. Run linting and formatting
+5. Create pull request with description
+6. Code review and approval
+7. Merge to `develop`
+8. Deploy to staging for testing
+9. Merge to `main` for production
+
+### Code Review Guidelines
+
+**Review Checklist:**
+- Code follows project style guide
+- Tests are included and passing
+- No linting errors
+- TypeScript types are correct
+- Documentation updated if needed
+- Performance considerations addressed
+- Security best practices followed
+
+### Release Process
+
+1. Update version in `package.json`
+2. Update CHANGELOG.md
+3. Create release branch
+4. Run full test suite
+5. Build production bundle
+6. Deploy to production
+7. Tag release in Git
+8. Merge back to `develop` and `main`
+
+## Troubleshooting
 
 ### Common Issues
 
-**Port already in use:**
-```bash
-# Kill the process using port 5173
-lsof -ti:5173 | xargs kill -9
-```
-
-**Type errors after installation:**
-```bash
-# Regenerate React Router types
-npm run typecheck
-```
-
-**Module not found errors:**
+**Development Server Won't Start:**
 ```bash
 # Clear node_modules and reinstall
 rm -rf node_modules package-lock.json
 npm install
+
+# Check Node.js version (requires 20+)
+node --version
 ```
 
-**Build failures:**
+**Type Errors:**
 ```bash
-# Clear build cache and rebuild
-rm -rf build .react-router
+# Regenerate React Router types
+npm run typecheck
+
+# Clear TypeScript cache
+rm -rf .react-router/types
+npm run typecheck
+```
+
+**Build Failures:**
+```bash
+# Clear build directory
+rm -rf build
+
+# Rebuild
 npm run build
 ```
 
-## 📝 License
+**Test Failures:**
+```bash
+# Clear test cache
+npm run test:run -- --clearCache
 
-This project is proprietary software. All rights reserved.
+# Run specific test file
+npm run test -- animals.service.test.ts
+```
 
-## 👥 Contributing
+**Linting Errors:**
+```bash
+# Auto-fix issues
+npm run lint:fix
 
-Contributions are welcome! Please follow these guidelines:
+# Check specific file
+npx eslint app/services/animals.service.ts
+```
 
-1. **Fork the repository** and create a feature branch
-2. **Follow code style** - Run `npm run lint` and `npm run format` before committing
-3. **Write tests** - Ensure all new features have test coverage
-4. **Update documentation** - Keep the README and code comments up to date
-5. **Submit a pull request** - Include a clear description of changes
+**Docker Issues:**
+```bash
+# Rebuild Docker image
+docker build --no-cache -t boinanuvem-frontend .
 
-### Development Workflow
+# Check Docker logs
+docker logs <container-id>
+```
 
-1. Create a new branch from `main`
-2. Make your changes
-3. Run tests: `npm test`
-4. Run type checking: `npm run typecheck`
-5. Run linting: `npm run lint`
-6. Format code: `npm run format`
-7. Commit changes (pre-commit hooks will run automatically)
-8. Push and create a pull request
+### Performance Issues
+
+**Slow Development Server:**
+- Check for large files in `node_modules`
+- Clear Vite cache: `rm -rf node_modules/.vite`
+- Restart development server
+
+**Large Bundle Size:**
+- Analyze bundle: `npm run build -- --analyze`
+- Check for unnecessary dependencies
+- Use dynamic imports for large components
+
+### Browser Compatibility
+
+**Supported Browsers:**
+- Chrome (latest)
+- Firefox (latest)
+- Safari (latest)
+- Edge (latest)
+
+**Issues with Older Browsers:**
+- Check browser console for errors
+- Verify polyfills are included
+- Test in target browser versions
+
+## Contributing
+
+### Getting Started
+
+1. Fork the repository
+2. Clone your fork
+3. Create a feature branch
+4. Make your changes
+5. Write tests
+6. Ensure all tests pass
+7. Submit a pull request
+
+### Code Style Requirements
+
+- Follow ESLint configuration
+- Use Prettier for formatting
+- Write self-documenting code
+- Add comments for complex logic
+- Follow existing code patterns
+
+### Testing Requirements
+
+- Write tests for new features
+- Maintain or improve test coverage
+- Test edge cases and error scenarios
+- Ensure tests are fast and reliable
+
+### Documentation Requirements
+
+- Update README for significant changes
+- Document new features and APIs
+- Add JSDoc comments for public functions
+- Update type definitions
+
+### Pull Request Template
+
+When submitting a PR, include:
+- Description of changes
+- Related issue numbers
+- Testing performed
+- Screenshots (if UI changes)
+- Breaking changes (if any)
+
+## Support
+
+### Contact Information
+
+- **Website**: [https://www.boinanuvem.com.br/](https://www.boinanuvem.com.br/)
+- **Email**: contato@boinanuvem.com.br
+- **Phone**: +55-11-9999-9999
+
+### Getting Help
+
+- Check this README for common issues
+- Review existing issues on the repository
+- Contact support through the website
+- Submit bug reports with detailed information
+
+### Reporting Bugs
+
+When reporting bugs, include:
+- Steps to reproduce
+- Expected behavior
+- Actual behavior
+- Browser and OS information
+- Console errors (if any)
+- Screenshots (if applicable)
 
 ---
 
-Built with ❤️ using React Router and modern web technologies.
-
+**Developed with ❤️ for the Brazilian agribusiness industry**

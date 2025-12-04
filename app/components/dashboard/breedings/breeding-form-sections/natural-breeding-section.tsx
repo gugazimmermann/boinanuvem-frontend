@@ -5,13 +5,13 @@ import { getBirthByAnimalId } from "~/services/births.service";
 import type { Animal } from "~/types";
 
 export interface NaturalBreedingSectionProps {
-  bulls: Animal[];
-  selectedBullId: string;
-  searchValue: string;
-  onSearchChange: (value: string) => void;
-  onBullSelect: (bullId: string) => void;
-  error?: string;
-  disabled?: boolean;
+  readonly bulls: Animal[];
+  readonly selectedBullId: string;
+  readonly searchValue: string;
+  readonly onSearchChange: (value: string) => void;
+  readonly onBullSelect: (bullId: string) => void;
+  readonly error?: string;
+  readonly disabled?: boolean;
 }
 
 export function NaturalBreedingSection({

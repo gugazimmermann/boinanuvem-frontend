@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import {
   Table,
   Button,
-  Alert,
+  FixedAlert,
   ConfirmationModal,
   type TableColumn,
   type TableAction,
@@ -26,6 +26,7 @@ import { BreedingMethodBadge } from "~/components/dashboard/breedings/breeding-m
 import { formatBreedingDate } from "~/utils/breeding";
 import { getPropertiesByCompanyId } from "~/services/properties.service";
 import { getAnimalViewRoute } from "~/routes.config";
+import { getStringValue } from "~/utils/string-helpers";
 
 export function meta() {
   const t = translations.pt;
@@ -52,7 +53,6 @@ export default function UnconfirmedBreedings() {
 
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [_refreshKey, setRefreshKey] = useState(0);
   const { showAlert, alertMessage } = useAlert();
 
   const properties = useMemo(
@@ -75,6 +75,19 @@ export default function UnconfirmedBreedings() {
     (breeding) => breeding.semenCode || "",
   ];
 
+  const checkBreedingFieldMatch = (
+    field: keyof EnrichedBreeding | ((item: EnrichedBreeding) => string),
+    breeding: EnrichedBreeding,
+    searchValue: string
+  ): boolean => {
+    if (typeof field === "function") {
+      return field(breeding).toLowerCase().includes(searchValue.toLowerCase());
+    }
+    const value = breeding[field];
+    if (!value) return false;
+    return getStringValue(value).toLowerCase().includes(searchValue.toLowerCase());
+  };
+
   const listPage = useListPage({
     data: enrichedBreedings,
     itemsPerPage: 10,
@@ -83,16 +96,10 @@ export default function UnconfirmedBreedings() {
     language,
     searchFields,
     customFilter: (breeding, searchValue, activeFilter) => {
-      const matchesSearch = searchFields.some((field) => {
-        if (typeof field === "function") {
-          return field(breeding).toLowerCase().includes(searchValue.toLowerCase());
-        }
-        const value = breeding[field];
-        return value ? String(value).toLowerCase().includes(searchValue.toLowerCase()) : false;
-      });
-
+      const matchesSearch = searchFields.some((field) =>
+        checkBreedingFieldMatch(field, breeding, searchValue)
+      );
       const matchesFilter = activeFilter === "all" || breeding.animal?.propertyId === activeFilter;
-
       return matchesSearch && matchesFilter;
     },
     dateFields: ["date"],
@@ -117,7 +124,6 @@ export default function UnconfirmedBreedings() {
         showAlert(t.breedings.unconfirmed.confirmSuccess, "success");
         setConfirmModalOpen(false);
         setSelectedBreeding(null);
-        setRefreshKey((prev) => prev + 1);
       } else {
         showAlert(t.breedings.unconfirmed.confirmError, "error");
       }
@@ -136,7 +142,6 @@ export default function UnconfirmedBreedings() {
         showAlert(t.breedings.unconfirmed.deleteSuccess, "success");
         setDeleteModalOpen(false);
         setSelectedBreeding(null);
-        setRefreshKey((prev) => prev + 1);
       } else {
         showAlert(t.breedings.unconfirmed.deleteError, "error");
       }
@@ -251,11 +256,12 @@ export default function UnconfirmedBreedings() {
       label: t.breedings.unconfirmed.confirmAll,
       variant: "primary",
       onClick: () => {
-        const promises = listPage.paginatedData.map((breeding) => confirmBreeding(breeding.id));
+        const promises = listPage.paginatedData.map((breeding) =>
+          Promise.resolve(confirmBreeding(breeding.id))
+        );
         Promise.all(promises)
           .then(() => {
             showAlert(t.breedings.unconfirmed.confirmAllSuccess, "success");
-            setRefreshKey((prev) => prev + 1);
           })
           .catch(() => {
             showAlert(t.breedings.unconfirmed.confirmAllError, "error");
@@ -266,11 +272,7 @@ export default function UnconfirmedBreedings() {
 
   return (
     <div>
-      {alertMessage && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-          <Alert title={alertMessage.title} variant={alertMessage.variant} />
-        </div>
-      )}
+      <FixedAlert alertMessage={alertMessage} />
 
       <Table<(typeof enrichedBreedings)[0]>
         columns={columns}

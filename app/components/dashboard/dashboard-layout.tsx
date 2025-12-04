@@ -31,7 +31,6 @@ export function DashboardLayout() {
 
     if (isSidebarOpen) {
       document.addEventListener("mousedown", handleClickOutside);
-
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";

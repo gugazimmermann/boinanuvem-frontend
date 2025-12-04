@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
-import { Button, Alert } from "~/components/ui";
+import { Button, FixedAlert } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { getPropertyViewRoute } from "~/routes.config";
 import { getPropertyById, updateProperty } from "~/services/properties.service";
+import { useAlert } from "~/hooks/use-alert";
 
 export function meta() {
   return [
@@ -53,20 +54,7 @@ export default function EditBreedingSeason() {
   }, [property]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [alertMessage, setAlertMessage] = useState<{
-    title: string;
-    variant: "success" | "error" | "warning" | "info";
-  } | null>(null);
-
-  const showAlert = (
-    title: string,
-    variant: "success" | "error" | "warning" | "info" = "success"
-  ) => {
-    setAlertMessage({ title, variant });
-    setTimeout(() => {
-      setAlertMessage(null);
-    }, 3000);
-  };
+  const { alertMessage, showAlert } = useAlert();
 
   const handleMonthToggle = (month: string) => {
     setSelectedMonths((prev) => {
@@ -115,7 +103,7 @@ export default function EditBreedingSeason() {
             onClick={() => navigate(getPropertyViewRoute(propertyId!))}
             className="mt-4"
           >
-            {t.team.new.back}
+            {t.common.back}
           </Button>
         </div>
       </div>
@@ -131,11 +119,7 @@ export default function EditBreedingSeason() {
 
   return (
     <div className="space-y-6">
-      {alertMessage && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-          <Alert title={alertMessage.title} variant={alertMessage.variant} />
-        </div>
-      )}
+      <FixedAlert alertMessage={alertMessage} />
 
       <div className="flex items-center justify-between">
         <div>
@@ -158,7 +142,7 @@ export default function EditBreedingSeason() {
           onClick={() => propertyId && navigate(getPropertyViewRoute(propertyId))}
           disabled={isSubmitting}
         >
-          {t.team.new.back}
+          {t.common.back}
         </Button>
       </div>
 
@@ -173,9 +157,7 @@ export default function EditBreedingSeason() {
                 {ALL_MONTHS.map((month) => {
                   const isSelected = selectedMonths.includes(month);
                   const monthTranslation =
-                    t.properties.details.pasturePlanning.breedingSeason.months[
-                      month as keyof typeof t.properties.details.pasturePlanning.breedingSeason.months
-                    ] || month;
+                    t.properties.details.pasturePlanning.breedingSeason.months[month] || month;
                   return (
                     <label
                       key={month}

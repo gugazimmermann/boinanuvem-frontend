@@ -8,7 +8,7 @@ export { FeatureHighlights } from "./feature-highlights";
 export { Examples } from "./examples";
 export { Pricing } from "./pricing";
 export { FAQs } from "./faqs";
-export { CTA } from "./cta";
+export { Cta } from "./Cta";
 export { Blog } from "./blog";
 export { Footer } from "./footer";
 export { ScrollToTop } from "./scroll-to-top";

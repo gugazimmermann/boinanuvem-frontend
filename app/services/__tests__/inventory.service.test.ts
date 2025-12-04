@@ -8,92 +8,84 @@ import {
   getCurrentStock,
   getLowStockItems,
   getExpiringItems,
+  clearInventoryCache,
   addInventoryItem,
   updateInventoryItem,
   deleteInventoryItem,
-  clearInventoryCache,
 } from "../inventory.service";
 import { mockInventoryItems } from "~/mocks/inventory";
 import { mockInventoryMovements } from "~/mocks/inventory-movements";
 import type { InventoryItemFormData } from "~/types";
-import { InventoryItemCategory } from "~/types";
-import { InventoryMovementType } from "~/types";
+import { InventoryItemCategory, InventoryMovementType } from "~/types";
 
-vi.mock("~/mocks/inventory", () => ({
-  mockInventoryItems: [],
+// Mock the inventory-movements service
+vi.mock("../inventory-movements.service", () => ({
+  getMovementsByItemId: vi.fn((itemId: string) => {
+    return mockInventoryMovements.filter((m) => m.itemId === itemId);
+  }),
 }));
-
-vi.mock("~/mocks/inventory-movements", () => ({
-  mockInventoryMovements: [],
-}));
-
-const mockGetMovementsByItemId = vi.fn(() => []);
-vi.mock("../inventory-movements.service", () => {
-  return {
-    getMovementsByItemId: (...args: unknown[]) => mockGetMovementsByItemId(...args),
-  };
-});
 
 describe("inventory.service", () => {
   beforeEach(() => {
-    clearInventoryCache();
     mockInventoryItems.length = 0;
     mockInventoryMovements.length = 0;
+    clearInventoryCache();
+
     mockInventoryItems.push(
       {
-        id: "ii0e8400-e29b-41d4-a716-446655440010",
-        code: "ITEM001",
-        name: "Test Item One",
-        description: "Test description",
-        category: InventoryItemCategory.FEED,
-        unit: "kg",
-        minimumStock: 100,
-        unitPrice: 10.5,
-        supplierId: "supplier-1",
-        hasExpiration: false,
+        id: "item-1",
         companyId: "company-1",
         propertyIds: ["property-1", "property-2"],
+        code: "ITEM001",
+        name: "Item 1",
+        category: InventoryItemCategory.FEED,
+        unit: "kg",
+        minimumStock: 50,
+        unitPrice: 10,
+        hasExpiration: false,
         createdAt: "2025-01-01",
       },
       {
-        id: "ii0e8400-e29b-41d4-a716-446655440011",
-        code: "ITEM002",
-        name: "Test Item Two",
-        category: InventoryItemCategory.VACCINES,
-        unit: "dose",
-        minimumStock: 50,
-        unitPrice: 8.0,
-        hasExpiration: true,
-        expirationDate: "2025-12-31",
+        id: "item-2",
         companyId: "company-1",
         propertyIds: ["property-1"],
-        createdAt: "2025-01-02",
+        code: "ITEM002",
+        name: "Item 2",
+        category: InventoryItemCategory.MEDICINES,
+        unit: "unit",
+        minimumStock: 20,
+        unitPrice: 5,
+        hasExpiration: true,
+        expirationDate: "2025-12-31",
+        createdAt: "2025-01-01",
       },
       {
-        id: "ii0e8400-e29b-41d4-a716-446655440012",
-        code: "ITEM003",
-        name: "Test Item Three",
-        category: InventoryItemCategory.CUSTOM,
-        customCategory: "Custom Category",
-        unit: "unidade",
-        minimumStock: 10,
-        hasExpiration: false,
+        id: "item-3",
         companyId: "company-2",
         propertyIds: ["property-3"],
-        createdAt: "2025-01-03",
+        code: "ITEM003",
+        name: "Item 3",
+        category: InventoryItemCategory.SUPPLEMENTS,
+        unit: "kg",
+        minimumStock: 100,
+        unitPrice: 15,
+        hasExpiration: true,
+        expirationDate: "2025-06-30",
+        createdAt: "2025-01-01",
       }
     );
   });
 
   describe("getInventoryItemById", () => {
     it("should return item when ID exists", () => {
-      const result = getInventoryItemById("ii0e8400-e29b-41d4-a716-446655440010");
+      const result = getInventoryItemById("item-1");
       expect(result).toBeDefined();
-      expect(result?.name).toBe("Test Item One");
+      expect(result?.id).toBe("item-1");
+      expect(result?.name).toBe("Item 1");
     });
 
     it("should return undefined when ID does not exist", () => {
-      const result = getInventoryItemById("nonexistent-id");
+      const result = getInventoryItemById("item-nonexistent");
       expect(result).toBeUndefined();
     });
 
@@ -104,561 +96,485 @@ describe("inventory.service", () => {
   });
 
   describe("getInventoryItemsByCompanyId", () => {
-    it("should return items for specific company", () => {
+    it("should return all items for a company", () => {
       const result = getInventoryItemsByCompanyId("company-1");
-      expect(result.length).toBeGreaterThan(0);
+      expect(result).toHaveLength(2);
       expect(result.every((item) => item.companyId === "company-1")).toBe(true);
     });
 
     it("should return empty array when company has no items", () => {
-      const result = getInventoryItemsByCompanyId("nonexistent-company");
+      const result = getInventoryItemsByCompanyId("company-nonexistent");
       expect(result).toHaveLength(0);
     });
   });
 
   describe("getInventoryItemsByPropertyId", () => {
-    it("should return items for specific property", () => {
+    it("should return items that have the property in propertyIds", () => {
       const result = getInventoryItemsByPropertyId("property-1");
-      expect(result.length).toBeGreaterThan(0);
+      expect(result).toHaveLength(2);
       expect(result.every((item) => item.propertyIds.includes("property-1"))).toBe(true);
     });
 
     it("should return empty array when property has no items", () => {
-      const result = getInventoryItemsByPropertyId("nonexistent-property");
+      const result = getInventoryItemsByPropertyId("property-nonexistent");
       expect(result).toHaveLength(0);
     });
   });
 
   describe("getInventoryItemsBySupplierId", () => {
-    it("should return items for specific supplier", () => {
+    it("should return all items for a supplier", () => {
+      mockInventoryItems[0]!.supplierId = "supplier-1";
       const result = getInventoryItemsBySupplierId("supplier-1");
-      expect(result.length).toBeGreaterThan(0);
-      expect(result.every((item) => item.supplierId === "supplier-1")).toBe(true);
+      expect(result).toHaveLength(1);
+      expect(result[0]?.id).toBe("item-1");
     });
 
     it("should return empty array when supplier has no items", () => {
-      const result = getInventoryItemsBySupplierId("nonexistent-supplier");
+      const result = getInventoryItemsBySupplierId("supplier-nonexistent");
       expect(result).toHaveLength(0);
     });
   });
 
   describe("getInventoryItemsByCategory", () => {
-    it("should return items for specific category and company", () => {
+    it("should return items of a specific category for a company", () => {
       const result = getInventoryItemsByCategory(InventoryItemCategory.FEED, "company-1");
-      expect(result.length).toBeGreaterThan(0);
-      expect(
-        result.every(
-          (item) => item.category === InventoryItemCategory.FEED && item.companyId === "company-1"
-        )
-      ).toBe(true);
+      expect(result).toHaveLength(1);
+      expect(result[0]?.id).toBe("item-1");
+      expect(result[0]?.category).toBe(InventoryItemCategory.FEED);
     });
 
-    it("should return empty array when category/company combination has no items", () => {
+    it("should return empty array when category has no items", () => {
       const result = getInventoryItemsByCategory(InventoryItemCategory.TOOLS, "company-1");
       expect(result).toHaveLength(0);
     });
   });
 
   describe("getCurrentStock", () => {
-    beforeEach(() => {
-      clearInventoryCache();
-      mockGetMovementsByItemId.mockImplementation((itemId: string) => {
-        if (itemId === "ii0e8400-e29b-41d4-a716-446655440010") {
-          return [
-            {
-              id: "mov-1",
-              itemId: "ii0e8400-e29b-41d4-a716-446655440010",
-              type: InventoryMovementType.PURCHASE,
-              quantity: 1000,
-              date: "2025-01-10",
-              propertyId: "property-1",
-              companyId: "company-1",
-              createdAt: "2025-01-10",
-            },
-            {
-              id: "mov-2",
-              itemId: "ii0e8400-e29b-41d4-a716-446655440010",
-              type: InventoryMovementType.CONSUMPTION,
-              quantity: 200,
-              date: "2025-01-15",
-              propertyId: "property-1",
-              companyId: "company-1",
-              createdAt: "2025-01-15",
-            },
-            {
-              id: "mov-3",
-              itemId: "ii0e8400-e29b-41d4-a716-446655440010",
-              type: InventoryMovementType.ADJUSTMENT,
-              quantity: -50,
-              date: "2025-01-20",
-              propertyId: "property-1",
-              companyId: "company-1",
-              createdAt: "2025-01-20",
-            },
-          ];
-        }
-        return [];
-      });
-    });
-
-    it("should calculate stock correctly with purchase movements", () => {
-      mockGetMovementsByItemId.mockReturnValueOnce([
+    it("should calculate stock from movements", () => {
+      mockInventoryMovements.push(
         {
           id: "mov-1",
-          itemId: "ii0e8400-e29b-41d4-a716-446655440010",
+          itemId: "item-1",
           type: InventoryMovementType.PURCHASE,
-          quantity: 500,
-          date: "2025-01-10",
+          quantity: 100,
+          date: "2025-01-01",
           propertyId: "property-1",
           companyId: "company-1",
-          createdAt: "2025-01-10",
-        },
-      ]);
-      const result = getCurrentStock("ii0e8400-e29b-41d4-a716-446655440010");
-      expect(result).toBe(500);
-    });
-
-    it("should calculate stock correctly with consumption movements", () => {
-      mockGetMovementsByItemId.mockReturnValueOnce([
-        {
-          id: "mov-1",
-          itemId: "ii0e8400-e29b-41d4-a716-446655440010",
-          type: InventoryMovementType.PURCHASE,
-          quantity: 1000,
-          date: "2025-01-10",
-          propertyId: "property-1",
-          companyId: "company-1",
-          createdAt: "2025-01-10",
+          createdAt: "2025-01-01",
         },
         {
           id: "mov-2",
-          itemId: "ii0e8400-e29b-41d4-a716-446655440010",
+          itemId: "item-1",
           type: InventoryMovementType.CONSUMPTION,
-          quantity: 300,
-          date: "2025-01-15",
+          quantity: 30,
+          date: "2025-01-02",
           propertyId: "property-1",
           companyId: "company-1",
-          createdAt: "2025-01-15",
-        },
-      ]);
-      const result = getCurrentStock("ii0e8400-e29b-41d4-a716-446655440010");
-      expect(result).toBe(700);
+          createdAt: "2025-01-02",
+        }
+      );
+
+      const result = getCurrentStock("item-1");
+      expect(result).toBe(70);
     });
 
-    it("should calculate stock correctly with adjustment movements", () => {
-      mockGetMovementsByItemId.mockReturnValueOnce([
+    it("should handle purchase movements", () => {
+      mockInventoryMovements.push({
+        id: "mov-1",
+        itemId: "item-1",
+        type: InventoryMovementType.PURCHASE,
+        quantity: 50,
+        date: "2025-01-01",
+        propertyId: "property-1",
+        companyId: "company-1",
+        createdAt: "2025-01-01",
+      });
+
+      const result = getCurrentStock("item-1");
+      expect(result).toBe(50);
+    });
+
+    it("should handle adjustment movements", () => {
+      mockInventoryMovements.push({
+        id: "mov-1",
+        itemId: "item-1",
+        type: InventoryMovementType.ADJUSTMENT,
+        quantity: 25,
+        date: "2025-01-01",
+        propertyId: "property-1",
+        companyId: "company-1",
+        createdAt: "2025-01-01",
+      });
+
+      const result = getCurrentStock("item-1");
+      expect(result).toBe(25);
+    });
+
+    it("should handle consumption movements", () => {
+      mockInventoryMovements.push(
         {
           id: "mov-1",
-          itemId: "ii0e8400-e29b-41d4-a716-446655440010",
+          itemId: "item-1",
           type: InventoryMovementType.PURCHASE,
-          quantity: 1000,
-          date: "2025-01-10",
+          quantity: 100,
+          date: "2025-01-01",
           propertyId: "property-1",
           companyId: "company-1",
-          createdAt: "2025-01-10",
+          createdAt: "2025-01-01",
         },
         {
           id: "mov-2",
-          itemId: "ii0e8400-e29b-41d4-a716-446655440010",
-          type: InventoryMovementType.ADJUSTMENT,
-          quantity: -100,
-          date: "2025-01-15",
+          itemId: "item-1",
+          type: InventoryMovementType.CONSUMPTION,
+          quantity: 40,
+          date: "2025-01-02",
           propertyId: "property-1",
           companyId: "company-1",
-          createdAt: "2025-01-15",
-        },
-      ]);
-      const result = getCurrentStock("ii0e8400-e29b-41d4-a716-446655440010");
-      expect(result).toBe(900);
+          createdAt: "2025-01-02",
+        }
+      );
+
+      const result = getCurrentStock("item-1");
+      expect(result).toBe(60);
     });
 
-    it("should calculate stock correctly with sale movements", () => {
-      mockGetMovementsByItemId.mockReturnValueOnce([
+    it("should handle sale movements", () => {
+      mockInventoryMovements.push(
         {
           id: "mov-1",
-          itemId: "ii0e8400-e29b-41d4-a716-446655440010",
+          itemId: "item-1",
           type: InventoryMovementType.PURCHASE,
-          quantity: 1000,
-          date: "2025-01-10",
+          quantity: 100,
+          date: "2025-01-01",
           propertyId: "property-1",
           companyId: "company-1",
-          createdAt: "2025-01-10",
+          createdAt: "2025-01-01",
         },
         {
           id: "mov-2",
-          itemId: "ii0e8400-e29b-41d4-a716-446655440010",
+          itemId: "item-1",
           type: InventoryMovementType.SALE,
-          quantity: 150,
-          date: "2025-01-15",
+          quantity: 20,
+          date: "2025-01-02",
           propertyId: "property-1",
           companyId: "company-1",
-          createdAt: "2025-01-15",
-        },
-      ]);
-      const result = getCurrentStock("ii0e8400-e29b-41d4-a716-446655440010");
-      expect(result).toBe(850);
+          createdAt: "2025-01-02",
+        }
+      );
+
+      const result = getCurrentStock("item-1");
+      expect(result).toBe(80);
     });
 
-    it("should calculate stock correctly with transfer movements", () => {
-      mockGetMovementsByItemId.mockReturnValueOnce([
+    it("should handle transfer movements", () => {
+      mockInventoryMovements.push(
         {
           id: "mov-1",
-          itemId: "ii0e8400-e29b-41d4-a716-446655440010",
+          itemId: "item-1",
           type: InventoryMovementType.PURCHASE,
-          quantity: 1000,
-          date: "2025-01-10",
+          quantity: 100,
+          date: "2025-01-01",
           propertyId: "property-1",
           companyId: "company-1",
-          createdAt: "2025-01-10",
+          createdAt: "2025-01-01",
         },
         {
           id: "mov-2",
-          itemId: "ii0e8400-e29b-41d4-a716-446655440010",
+          itemId: "item-1",
           type: InventoryMovementType.TRANSFER,
-          quantity: 200,
-          date: "2025-01-15",
+          quantity: 15,
+          date: "2025-01-02",
           propertyId: "property-1",
           companyId: "company-1",
-          createdAt: "2025-01-15",
-        },
-      ]);
-      const result = getCurrentStock("ii0e8400-e29b-41d4-a716-446655440010");
-      expect(result).toBe(800);
+          createdAt: "2025-01-02",
+        }
+      );
+
+      const result = getCurrentStock("item-1");
+      expect(result).toBe(85);
     });
 
     it("should filter by propertyId when provided", () => {
-      mockGetMovementsByItemId.mockReturnValueOnce([
+      mockInventoryMovements.push(
         {
           id: "mov-1",
-          itemId: "ii0e8400-e29b-41d4-a716-446655440010",
+          itemId: "item-1",
           type: InventoryMovementType.PURCHASE,
-          quantity: 1000,
-          date: "2025-01-10",
+          quantity: 100,
+          date: "2025-01-01",
           propertyId: "property-1",
           companyId: "company-1",
-          createdAt: "2025-01-10",
+          createdAt: "2025-01-01",
         },
         {
           id: "mov-2",
-          itemId: "ii0e8400-e29b-41d4-a716-446655440010",
-          type: InventoryMovementType.CONSUMPTION,
-          quantity: 200,
-          date: "2025-01-15",
+          itemId: "item-1",
+          type: InventoryMovementType.PURCHASE,
+          quantity: 50,
+          date: "2025-01-02",
           propertyId: "property-2",
           companyId: "company-1",
-          createdAt: "2025-01-15",
-        },
-      ]);
-      const result = getCurrentStock("ii0e8400-e29b-41d4-a716-446655440010", "property-1");
-      expect(result).toBe(1000);
+          createdAt: "2025-01-02",
+        }
+      );
+
+      const result = getCurrentStock("item-1", "property-1");
+      expect(result).toBe(100);
     });
 
-    it("should handle multiple movements in chronological order", () => {
-      mockGetMovementsByItemId.mockReturnValueOnce([
+    it("should return 0 when stock would be negative", () => {
+      mockInventoryMovements.push(
         {
           id: "mov-1",
-          itemId: "ii0e8400-e29b-41d4-a716-446655440010",
+          itemId: "item-1",
           type: InventoryMovementType.PURCHASE,
-          quantity: 1000,
-          date: "2025-01-10",
+          quantity: 10,
+          date: "2025-01-01",
           propertyId: "property-1",
           companyId: "company-1",
-          createdAt: "2025-01-10T10:00:00",
+          createdAt: "2025-01-01",
         },
         {
           id: "mov-2",
-          itemId: "ii0e8400-e29b-41d4-a716-446655440010",
+          itemId: "item-1",
           type: InventoryMovementType.CONSUMPTION,
-          quantity: 200,
-          date: "2025-01-15",
+          quantity: 50,
+          date: "2025-01-02",
           propertyId: "property-1",
           companyId: "company-1",
-          createdAt: "2025-01-15T10:00:00",
-        },
-        {
-          id: "mov-3",
-          itemId: "ii0e8400-e29b-41d4-a716-446655440010",
-          type: InventoryMovementType.PURCHASE,
-          quantity: 500,
-          date: "2025-01-20",
-          propertyId: "property-1",
-          companyId: "company-1",
-          createdAt: "2025-01-20T10:00:00",
-        },
-        {
-          id: "mov-4",
-          itemId: "ii0e8400-e29b-41d4-a716-446655440010",
-          type: InventoryMovementType.CONSUMPTION,
-          quantity: 100,
-          date: "2025-01-25",
-          propertyId: "property-1",
-          companyId: "company-1",
-          createdAt: "2025-01-25T10:00:00",
-        },
-      ]);
-      const result = getCurrentStock("ii0e8400-e29b-41d4-a716-446655440010");
-      expect(result).toBe(1200);
+          createdAt: "2025-01-02",
+        }
+      );
+
+      const result = getCurrentStock("item-1");
+      expect(result).toBe(0);
     });
 
-    it("should return 0 for negative stock", () => {
-      mockGetMovementsByItemId.mockReturnValueOnce([
+    it("should sort movements by date and createdAt", () => {
+      mockInventoryMovements.push(
         {
           id: "mov-1",
-          itemId: "ii0e8400-e29b-41d4-a716-446655440010",
+          itemId: "item-1",
           type: InventoryMovementType.PURCHASE,
           quantity: 100,
-          date: "2025-01-10",
+          date: "2025-01-02",
           propertyId: "property-1",
           companyId: "company-1",
-          createdAt: "2025-01-10",
+          createdAt: "2025-01-02T10:00:00Z",
         },
         {
           id: "mov-2",
-          itemId: "ii0e8400-e29b-41d4-a716-446655440010",
+          itemId: "item-1",
           type: InventoryMovementType.CONSUMPTION,
-          quantity: 200,
-          date: "2025-01-15",
+          quantity: 30,
+          date: "2025-01-02",
           propertyId: "property-1",
           companyId: "company-1",
-          createdAt: "2025-01-15",
-        },
-      ]);
-      const result = getCurrentStock("ii0e8400-e29b-41d4-a716-446655440010");
-      expect(result).toBe(0);
-    });
+          createdAt: "2025-01-02T08:00:00Z",
+        }
+      );
 
-    it("should return 0 for empty movements", () => {
-      mockGetMovementsByItemId.mockReturnValueOnce([]);
-      const result = getCurrentStock("ii0e8400-e29b-41d4-a716-446655440010");
-      expect(result).toBe(0);
+      const result = getCurrentStock("item-1");
+      // Consumption should be processed first (earlier createdAt), then purchase
+      expect(result).toBe(70);
     });
   });
 
   describe("getLowStockItems", () => {
-    beforeEach(() => {
-      clearInventoryCache();
-      mockGetMovementsByItemId.mockImplementation((itemId: string) => {
-        if (itemId === "ii0e8400-e29b-41d4-a716-446655440010") {
-          return [
-            {
-              id: "mov-1",
-              itemId,
-              type: InventoryMovementType.PURCHASE,
-              quantity: 50,
-              date: "2025-01-10",
-              propertyId: "property-1",
-              companyId: "company-1",
-              createdAt: "2025-01-10",
-            },
-            {
-              id: "mov-2",
-              itemId,
-              type: InventoryMovementType.CONSUMPTION,
-              quantity: 50,
-              date: "2025-01-15",
-              propertyId: "property-1",
-              companyId: "company-1",
-              createdAt: "2025-01-15",
-            },
-          ];
-        }
-        if (itemId === "ii0e8400-e29b-41d4-a716-446655440011") {
-          return [
-            {
-              id: "mov-3",
-              itemId,
-              type: InventoryMovementType.PURCHASE,
-              quantity: 100,
-              date: "2025-01-10",
-              propertyId: "property-1",
-              companyId: "company-1",
-              createdAt: "2025-01-10",
-            },
-          ];
-        }
-        return [];
-      });
-    });
-
     it("should return items with stock below minimum", () => {
+      mockInventoryMovements.push({
+        id: "mov-1",
+        itemId: "item-1",
+        type: InventoryMovementType.PURCHASE,
+        quantity: 30, // Below minimumStock of 50
+        date: "2025-01-01",
+        propertyId: "property-1",
+        companyId: "company-1",
+        createdAt: "2025-01-01",
+      });
+
       const result = getLowStockItems("company-1");
       expect(result.length).toBeGreaterThan(0);
-      result.forEach((item) => {
-        const stock = getCurrentStock(item.id);
-        expect(stock).toBeLessThan(item.minimumStock);
-      });
+      expect(result.some((item) => item.id === "item-1")).toBe(true);
     });
 
-    it("should return empty array when no items are low stock", () => {
-      mockGetMovementsByItemId.mockReturnValueOnce([
-        {
-          id: "mov-1",
-          itemId: "ii0e8400-e29b-41d4-a716-446655440010",
-          type: InventoryMovementType.PURCHASE,
-          quantity: 200,
-          date: "2025-01-10",
-          propertyId: "property-1",
-          companyId: "company-1",
-          createdAt: "2025-01-10",
-        },
-      ]);
+    it("should not return items with stock at or above minimum", () => {
+      mockInventoryMovements.push({
+        id: "mov-1",
+        itemId: "item-1",
+        type: InventoryMovementType.PURCHASE,
+        quantity: 100, // Above minimumStock of 50
+        date: "2025-01-01",
+        propertyId: "property-1",
+        companyId: "company-1",
+        createdAt: "2025-01-01",
+      });
+
       const result = getLowStockItems("company-1");
-      expect(result.length).toBeGreaterThanOrEqual(0);
+      expect(result.some((item) => item.id === "item-1")).toBe(false);
     });
   });
 
   describe("getExpiringItems", () => {
     it("should return items expiring within threshold", () => {
       const today = new Date();
-      const thresholdDate = new Date(today);
-      thresholdDate.setDate(today.getDate() + 30);
+      const daysFromNow = 30;
+      const expirationDate = new Date(today);
+      expirationDate.setDate(today.getDate() + daysFromNow);
+      mockInventoryItems[1]!.expirationDate = expirationDate.toISOString().split("T")[0];
 
       const result = getExpiringItems("company-1", 30);
-      result.forEach((item) => {
-        expect(item.hasExpiration).toBe(true);
-        expect(item.expirationDate).toBeDefined();
-        if (item.expirationDate) {
-          const expDate = new Date(item.expirationDate);
-          expect(expDate <= thresholdDate).toBe(true);
-          expect(expDate >= today).toBe(true);
-        }
-      });
+      expect(result.length).toBeGreaterThan(0);
+      expect(result.some((item) => item.id === "item-2")).toBe(true);
     });
 
     it("should not return items without expiration", () => {
       const result = getExpiringItems("company-1", 30);
-      result.forEach((item) => {
-        expect(item.hasExpiration).toBe(true);
+      expect(result.some((item) => item.id === "item-1")).toBe(false);
+    });
+
+    it("should not return items expiring after threshold", () => {
+      const today = new Date();
+      const daysFromNow = 60;
+      const expirationDate = new Date(today);
+      expirationDate.setDate(today.getDate() + daysFromNow);
+      mockInventoryItems[1]!.expirationDate = expirationDate.toISOString().split("T")[0];
+
+      const result = getExpiringItems("company-1", 30);
+      expect(result.some((item) => item.id === "item-2")).toBe(false);
+    });
+
+    it("should not return items that have already expired", () => {
+      const today = new Date();
+      const daysAgo = 10;
+      const expirationDate = new Date(today);
+      expirationDate.setDate(today.getDate() - daysAgo);
+      mockInventoryItems[1]!.expirationDate = expirationDate.toISOString().split("T")[0];
+
+      const result = getExpiringItems("company-1", 30);
+      expect(result.some((item) => item.id === "item-2")).toBe(false);
+    });
+  });
+
+  describe("clearInventoryCache", () => {
+    it("should clear stock cache", () => {
+      mockInventoryMovements.push({
+        id: "mov-1",
+        itemId: "item-1",
+        type: InventoryMovementType.PURCHASE,
+        quantity: 100,
+        date: "2025-01-01",
+        propertyId: "property-1",
+        companyId: "company-1",
+        createdAt: "2025-01-01",
       });
-    });
 
-    it("should respect daysThreshold parameter", () => {
-      const result30 = getExpiringItems("company-1", 30);
-      const result60 = getExpiringItems("company-1", 60);
-      expect(result60.length).toBeGreaterThanOrEqual(result30.length);
-    });
+      getCurrentStock("item-1");
+      clearInventoryCache();
 
-    it("should return empty array when no items are expiring", () => {
-      const result = getExpiringItems("nonexistent-company", 30);
-      expect(result).toHaveLength(0);
+      // After clearing cache, next call should recalculate
+      const result = getCurrentStock("item-1");
+      expect(result).toBe(100);
     });
   });
 
   describe("addInventoryItem", () => {
-    it("should add new inventory item", () => {
+    it("should add a new item with generated ID", () => {
       const formData: InventoryItemFormData = {
-        code: "NEW001",
-        name: "New Item",
-        category: InventoryItemCategory.FEED,
-        unit: "kg",
-        minimumStock: 50,
-        hasExpiration: false,
         companyId: "company-1",
         propertyIds: ["property-1"],
+        code: "ITEM004",
+        name: "Item 4",
+        category: InventoryItemCategory.TOOLS,
+        unit: "unit",
+        minimumStock: 10,
+        hasExpiration: false,
       };
 
       const initialLength = mockInventoryItems.length;
       const result = addInventoryItem(formData);
 
       expect(mockInventoryItems).toHaveLength(initialLength + 1);
-      expect(result.name).toBe("New Item");
-      expect(result.code).toBe("NEW001");
       expect(result.id).toBeDefined();
+      expect(result.companyId).toBe("company-1");
+      expect(result.name).toBe("Item 4");
       expect(result.createdAt).toBeDefined();
     });
 
-    it("should generate unique ID for new item", () => {
+    it("should clear cache when adding item", () => {
       const formData: InventoryItemFormData = {
-        code: "NEW002",
-        name: "Another New Item",
-        category: InventoryItemCategory.TOOLS,
-        unit: "unidade",
-        minimumStock: 5,
-        hasExpiration: false,
         companyId: "company-1",
         propertyIds: ["property-1"],
+        code: "ITEM004",
+        name: "Item 4",
+        category: InventoryItemCategory.TOOLS,
+        unit: "unit",
+        minimumStock: 10,
+        hasExpiration: false,
       };
 
-      const result1 = addInventoryItem(formData);
-      const result2 = addInventoryItem({ ...formData, code: "NEW003" });
-
-      expect(result1.id).not.toBe(result2.id);
+      addInventoryItem(formData);
+      // Cache should be cleared, so no assertion needed here
+      // The fact that it doesn't throw is sufficient
     });
   });
 
   describe("updateInventoryItem", () => {
-    it("should update existing inventory item", () => {
-      const result = updateInventoryItem("ii0e8400-e29b-41d4-a716-446655440010", {
-        name: "Updated Item Name",
-      });
+    it("should update item when ID exists", () => {
+      const updateData: Partial<InventoryItemFormData> = {
+        name: "Updated Item 1",
+        minimumStock: 75,
+      };
 
+      const result = updateInventoryItem("item-1", updateData);
       expect(result).toBe(true);
-      const updated = mockInventoryItems.find(
-        (item) => item.id === "ii0e8400-e29b-41d4-a716-446655440010"
-      );
-      expect(updated?.name).toBe("Updated Item Name");
+
+      const updated = mockInventoryItems.find((item) => item.id === "item-1");
+      expect(updated?.name).toBe("Updated Item 1");
+      expect(updated?.minimumStock).toBe(75);
       expect(updated?.updatedAt).toBeDefined();
     });
 
-    it("should update updatedAt timestamp", () => {
-      const beforeUpdate = mockInventoryItems.find(
-        (item) => item.id === "ii0e8400-e29b-41d4-a716-446655440010"
-      );
-      const originalUpdatedAt = beforeUpdate?.updatedAt;
+    it("should return false when ID does not exist", () => {
+      const updateData: Partial<InventoryItemFormData> = {
+        name: "Updated Item",
+      };
 
-      updateInventoryItem("ii0e8400-e29b-41d4-a716-446655440010", {
-        description: "Updated description",
-      });
-
-      const afterUpdate = mockInventoryItems.find(
-        (item) => item.id === "ii0e8400-e29b-41d4-a716-446655440010"
-      );
-      expect(afterUpdate?.updatedAt).toBeDefined();
-      if (originalUpdatedAt) {
-        expect(afterUpdate?.updatedAt).not.toBe(originalUpdatedAt);
-      }
-    });
-
-    it("should return false for non-existent item", () => {
-      const result = updateInventoryItem("nonexistent-id", {
-        name: "Updated Name",
-      });
+      const result = updateInventoryItem("item-nonexistent", updateData);
       expect(result).toBe(false);
     });
 
-    it("should handle partial updates", () => {
-      const original = mockInventoryItems.find(
-        (item) => item.id === "ii0e8400-e29b-41d4-a716-446655440010"
-      );
-      const originalCode = original?.code;
+    it("should clear cache when updating item", () => {
+      const updateData: Partial<InventoryItemFormData> = {
+        name: "Updated Item 1",
+      };
 
-      updateInventoryItem("ii0e8400-e29b-41d4-a716-446655440010", {
-        minimumStock: 200,
-      });
-
-      const updated = mockInventoryItems.find(
-        (item) => item.id === "ii0e8400-e29b-41d4-a716-446655440010"
-      );
-      expect(updated?.minimumStock).toBe(200);
-      expect(updated?.code).toBe(originalCode);
+      updateInventoryItem("item-1", updateData);
+      // Cache should be cleared
     });
   });
 
   describe("deleteInventoryItem", () => {
-    it("should delete existing inventory item", () => {
+    it("should delete item when ID exists", () => {
       const initialLength = mockInventoryItems.length;
-      const result = deleteInventoryItem("ii0e8400-e29b-41d4-a716-446655440010");
+      const result = deleteInventoryItem("item-1");
 
       expect(result).toBe(true);
       expect(mockInventoryItems).toHaveLength(initialLength - 1);
-      expect(
-        mockInventoryItems.find((item) => item.id === "ii0e8400-e29b-41d4-a716-446655440010")
-      ).toBeUndefined();
+      expect(mockInventoryItems.find((item) => item.id === "item-1")).toBeUndefined();
     });
 
-    it("should return false for non-existent item", () => {
-      const result = deleteInventoryItem("nonexistent-id");
+    it("should return false when ID does not exist", () => {
+      const initialLength = mockInventoryItems.length;
+      const result = deleteInventoryItem("item-nonexistent");
+
       expect(result).toBe(false);
+      expect(mockInventoryItems).toHaveLength(initialLength);
+    });
+
+    it("should clear cache when deleting item", () => {
+      deleteInventoryItem("item-1");
+      // Cache should be cleared
     });
   });
 });

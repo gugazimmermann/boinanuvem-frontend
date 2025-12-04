@@ -3,10 +3,10 @@ import { Input, Select } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 
 interface PasturePlanningTableProps {
-  data: PasturePlanningMonth[];
-  onChange: (data: PasturePlanningMonth[]) => void;
-  errors?: Record<string, string>;
-  disabled?: boolean;
+  readonly data: PasturePlanningMonth[];
+  readonly onChange: (data: PasturePlanningMonth[]) => void;
+  readonly errors?: Record<string, string>;
+  readonly disabled?: boolean;
 }
 
 const CLASSIFICATIONS = [
@@ -92,10 +92,10 @@ export function PasturePlanningTable({
                 <Input
                   type="number"
                   step="0.01"
-                  value={isNaN(month.min) ? "" : month.min.toString()}
+                  value={Number.isNaN(month.min) ? "" : month.min.toString()}
                   onChange={(e) => {
-                    const val = e.target.value === "" ? 0 : parseFloat(e.target.value);
-                    handleChange(index, "min", isNaN(val) ? 0 : val);
+                    const val = e.target.value === "" ? 0 : Number.parseFloat(e.target.value);
+                    handleChange(index, "min", Number.isNaN(val) ? 0 : val);
                   }}
                   error={errors[`pasturePlanning.${index}.min`]}
                   disabled={disabled}
@@ -107,10 +107,10 @@ export function PasturePlanningTable({
                 <Input
                   type="number"
                   step="0.01"
-                  value={isNaN(month.max) ? "" : month.max.toString()}
+                  value={Number.isNaN(month.max) ? "" : month.max.toString()}
                   onChange={(e) => {
-                    const val = e.target.value === "" ? 0 : parseFloat(e.target.value);
-                    handleChange(index, "max", isNaN(val) ? 0 : val);
+                    const val = e.target.value === "" ? 0 : Number.parseFloat(e.target.value);
+                    handleChange(index, "max", Number.isNaN(val) ? 0 : val);
                   }}
                   error={errors[`pasturePlanning.${index}.max`]}
                   disabled={disabled}
@@ -123,10 +123,10 @@ export function PasturePlanningTable({
                   type="number"
                   step="0.01"
                   min="0"
-                  value={isNaN(month.precipitation) ? "" : month.precipitation.toString()}
+                  value={Number.isNaN(month.precipitation) ? "" : month.precipitation.toString()}
                   onChange={(e) => {
-                    const val = e.target.value === "" ? 0 : parseFloat(e.target.value);
-                    handleChange(index, "precipitation", isNaN(val) ? 0 : val);
+                    const val = e.target.value === "" ? 0 : Number.parseFloat(e.target.value);
+                    handleChange(index, "precipitation", Number.isNaN(val) ? 0 : val);
                   }}
                   error={errors[`pasturePlanning.${index}.precipitation`]}
                   disabled={disabled}

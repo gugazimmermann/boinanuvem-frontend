@@ -23,13 +23,11 @@ import {
 } from "~/routes.config";
 import { getBankAccountById } from "~/services/bank-account.service";
 import { getCashFlowByBankAccountId, deleteCashFlow } from "~/services/cash-flow.service";
-import { getSupplierById } from "~/services/suppliers.service";
-import { getBuyerById } from "~/services/buyers.service";
-import { getEmployeeById } from "~/services/employees.service";
-import { getServiceProviderById } from "~/services/service-providers.service";
 import { getPropertyById } from "~/services/properties.service";
+import { renderEntityName } from "~/utils/entity-name-renderer";
 import { mockSuppliers } from "~/mocks/suppliers";
 import { mockBuyers } from "~/mocks/buyers";
+import { sortItems } from "~/utils/table-helpers";
 import type { CashFlow } from "~/types";
 
 export function meta() {
@@ -149,30 +147,10 @@ export default function BankAccountDetails() {
     );
   });
 
-  const sortedTransactions = [...filteredTransactions].sort((a, b) => {
-    if (!sortState.column || !sortState.direction) {
-      return 0;
-    }
-
-    const aValue = a[sortState.column];
-    const bValue = b[sortState.column];
-
-    if (aValue == null && bValue == null) return 0;
-    if (aValue == null) return 1;
-    if (bValue == null) return -1;
-
-    let comparison = 0;
-    if (typeof aValue === "string" && typeof bValue === "string") {
-      comparison = aValue.localeCompare(bValue, "pt-BR", {
-        sensitivity: "base",
-      });
-    } else if (typeof aValue === "number" && typeof bValue === "number") {
-      comparison = aValue - bValue;
-    } else {
-      comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
-    }
-
-    return sortState.direction === "asc" ? comparison : -comparison;
+  const sortedTransactions = sortItems({
+    items: filteredTransactions,
+    sortState,
+    locale: "pt-BR",
   });
 
   const paginatedTransactions = sortedTransactions.slice(
@@ -237,16 +215,14 @@ export default function BankAccountDetails() {
   ];
 
   const getYearOptions = (): Array<{ value: string; label: string }> => {
-    const options: Array<{ value: string; label: string }> = [
-      { value: "all", label: t.cashFlow.filters.allYears },
-    ];
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
 
-    options.push({ value: String(currentYear - 1), label: String(currentYear - 1) });
-    options.push({ value: String(currentYear), label: String(currentYear) });
-
-    return options;
+    return [
+      { value: "all", label: t.cashFlow.filters.allYears },
+      { value: String(currentYear - 1), label: String(currentYear - 1) },
+      { value: String(currentYear), label: String(currentYear) },
+    ];
   };
 
   const getMonthOptions = (): Array<{ value: string; label: string }> => {
@@ -337,33 +313,14 @@ export default function BankAccountDetails() {
       key: "supplierBuyer",
       label: "",
       sortable: false,
-      render: (_, row) => {
-        if (row.type === "expense" && row.supplierId) {
-          const supplier = getSupplierById(row.supplierId);
-          return <span className="text-gray-700 dark:text-gray-300">{supplier?.name || "-"}</span>;
-        }
-        if (row.type === "expense" && row.employeeId) {
-          const employee = getEmployeeById(row.employeeId);
-          return <span className="text-gray-700 dark:text-gray-300">{employee?.name || "-"}</span>;
-        }
-        if (row.type === "expense" && row.serviceProviderId) {
-          const serviceProvider = getServiceProviderById(row.serviceProviderId);
-          return (
-            <span className="text-gray-700 dark:text-gray-300">{serviceProvider?.name || "-"}</span>
-          );
-        }
-        if (row.type === "income" && row.buyerId) {
-          const buyer = getBuyerById(row.buyerId);
-          return <span className="text-gray-700 dark:text-gray-300">{buyer?.name || "-"}</span>;
-        }
-        if (row.type === "income" && row.serviceProviderId) {
-          const serviceProvider = getServiceProviderById(row.serviceProviderId);
-          return (
-            <span className="text-gray-700 dark:text-gray-300">{serviceProvider?.name || "-"}</span>
-          );
-        }
-        return <span className="text-gray-400 dark:text-gray-500">-</span>;
-      },
+      render: (_, row) =>
+        renderEntityName({
+          supplierId: row.supplierId,
+          employeeId: row.employeeId,
+          serviceProviderId: row.serviceProviderId,
+          buyerId: row.buyerId,
+          type: row.type,
+        }),
     },
     {
       key: "paymentMethod",

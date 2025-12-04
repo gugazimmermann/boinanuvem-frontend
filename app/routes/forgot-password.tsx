@@ -1,5 +1,6 @@
 import { AuthLayout } from "../components/site/auth-layout";
-import { AuthCard, AuthFooter, AuthFormError, AuthInput, AuthButton } from "../components/site/ui";
+import { AuthCard, AuthFooter, AuthFormError, AuthButton } from "../components/site/ui";
+import { Input } from "../components/ui";
 import { usePasswordReset } from "../components/site/hooks";
 import { ROUTES } from "../routes.config";
 import { requireGuest, useRequireGuest } from "../utils/route-guard";
@@ -57,7 +58,7 @@ export default function ForgotPassword() {
           <AuthFormError error={error ? getErrorMessage(error) : undefined} />
 
           <div className="w-full">
-            <AuthInput
+            <Input
               type="email"
               placeholder="Email"
               aria-label={t.common.ariaLabels.email}

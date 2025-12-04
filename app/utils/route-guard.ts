@@ -9,7 +9,7 @@ import { useAuth } from "~/contexts/auth-context";
 const CURRENT_USER_ID_KEY = "currentUserId";
 
 function getCurrentUser() {
-  if (typeof window === "undefined") {
+  if (globalThis.window === undefined) {
     return null;
   }
 
@@ -55,7 +55,7 @@ export function createRouteGuard(
   redirectTo: string = ROUTES.DASHBOARD
 ) {
   return ({ request }: { request?: Request } = {}) => {
-    if (typeof window === "undefined") {
+    if (globalThis.window === undefined) {
       return null;
     }
 
@@ -66,10 +66,10 @@ export function createRouteGuard(
           const url = new URL(request.url);
           actualRoute = url.pathname;
         } catch {
-          actualRoute = window.location.pathname;
+          actualRoute = globalThis.window.location.pathname;
         }
       } else {
-        actualRoute = window.location.pathname;
+        actualRoute = globalThis.window.location.pathname;
       }
     }
 
@@ -81,7 +81,7 @@ export function createRouteGuard(
 
     const teamRoutes = [ROUTES.TEAM, ROUTES.TEAM_NEW, ROUTES.TEAM_EDIT, ROUTES.TEAM_PERMISSIONS];
     const isTeamRoute = teamRoutes.some((teamRoute) => {
-      const pattern = teamRoute.replace(/:[^/]+/g, "[^/]+");
+      const pattern = teamRoute.replaceAll(/:[^/]+/g, "[^/]+");
       const regex = new RegExp(`^${pattern}$`);
       return regex.test(actualRoute);
     });
@@ -112,7 +112,7 @@ export function createRouteGuard(
 
 export function requireMainUser(redirectTo: string = ROUTES.DASHBOARD) {
   return ({ request: _request }: { request?: Request } = {}) => {
-    if (typeof window === "undefined") {
+    if (globalThis.window === undefined) {
       return null;
     }
 
@@ -131,7 +131,7 @@ export function requireMainUser(redirectTo: string = ROUTES.DASHBOARD) {
 }
 
 export async function requireGuest() {
-  if (typeof window !== "undefined") {
+  if (globalThis.window !== undefined) {
     const userId = localStorage.getItem(CURRENT_USER_ID_KEY);
     if (userId) {
       throw redirect(ROUTES.DASHBOARD);

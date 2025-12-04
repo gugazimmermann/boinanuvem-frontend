@@ -7,7 +7,7 @@
     "vitest.d.ts"
   ],
   "compilerOptions": {
-    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "lib": ["DOM", "DOM.Iterable", "ES2023"],
     "types": ["node", "vite/client", "@testing-library/jest-dom", "vitest/globals"],
     "target": "ES2022",
     "module": "ES2022",

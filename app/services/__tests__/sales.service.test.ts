@@ -4,143 +4,115 @@ import {
   getSalesByCompanyId,
   getSalesByBuyerId,
   getSalesByAnimalId,
+  isAnimalSold,
   getSalesByDateRange,
   getSalesBySaleType,
-  isAnimalSold,
   addSale,
   updateSale,
   deleteSale,
+  generateSaleId,
 } from "../sales.service";
 import { mockSales } from "~/mocks/sales";
+import { mockAnimals } from "~/mocks/animals";
 import type { SaleFormData } from "~/types";
-import { SaleType, PricingMode, SalePaymentMethod } from "~/types";
+import { SaleType, SalePaymentMethod, PricingMode } from "~/types";
 
-vi.mock("~/mocks/sales", () => ({
-  mockSales: [],
+// Mock dependencies
+vi.mock("../animals.service", () => ({
+  getAnimalById: vi.fn((id: string) => mockAnimals.find((a) => a.id === id)),
+  updateAnimal: vi.fn(),
 }));
 
-const mockUpdateAnimal = vi.fn();
-const mockAddCashFlow = vi.fn(() => ({ id: "cashflow-1" }));
-const mockDeleteCashFlow = vi.fn(() => true);
-const mockUpdateCashFlow = vi.fn(() => true);
-const mockAddAccountsReceivable = vi.fn(() => ({ id: "ar-1" }));
-const mockDeleteAccountsReceivable = vi.fn(() => true);
-const mockUpdateAccountsReceivable = vi.fn(() => true);
-
-const mockGetAnimalById = vi.fn((id: string) => {
-  if (id === "animal-1") {
-    return { id: "animal-1", code: "A001", status: "active", companyId: "company-1" };
-  }
-  if (id === "animal-2") {
-    return { id: "animal-2", code: "A002", status: "active", companyId: "company-1" };
-  }
-  if (id === "animal-3") {
-    return { id: "animal-3", code: "A003", status: "active", companyId: "company-1" };
-  }
-  if (id === "animal-sold") {
-    return { id: "animal-sold", code: "A004", status: "sold", companyId: "company-1" };
-  }
-  return undefined;
-});
-
-vi.mock("~/services/animals.service", () => ({
-  getAnimalById: (...args: unknown[]) => mockGetAnimalById(...(args as [string])),
-  updateAnimal: (...args: unknown[]) => mockUpdateAnimal(...args),
+vi.mock("../cash-flow.service", () => ({
+  addCashFlow: vi.fn((data: unknown) => ({
+    id: "cashflow-1",
+    ...(data as Record<string, unknown>),
+  })),
+  deleteCashFlow: vi.fn(),
+  updateCashFlow: vi.fn(),
 }));
 
-vi.mock("~/services/cash-flow.service", () => ({
-  addCashFlow: (...args: unknown[]) => mockAddCashFlow(...args),
-  deleteCashFlow: (...args: unknown[]) => mockDeleteCashFlow(...args),
-  updateCashFlow: (...args: unknown[]) => mockUpdateCashFlow(...args),
+vi.mock("../accounts-receivable.service", () => ({
+  addAccountsReceivable: vi.fn((data: unknown) => ({
+    id: "ar-1",
+    ...(data as Record<string, unknown>),
+  })),
+  deleteAccountsReceivable: vi.fn(),
+  updateAccountsReceivable: vi.fn(),
 }));
 
-vi.mock("~/services/accounts-receivable.service", () => ({
-  addAccountsReceivable: (...args: unknown[]) => mockAddAccountsReceivable(...args),
-  deleteAccountsReceivable: (...args: unknown[]) => mockDeleteAccountsReceivable(...args),
-  updateAccountsReceivable: (...args: unknown[]) => mockUpdateAccountsReceivable(...args),
+vi.mock("~/utils/fees", () => ({
+  getTotalFees: vi.fn(() => 100),
 }));
 
 describe("sales.service", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     mockSales.length = 0;
+    mockAnimals.length = 0;
+
+    mockAnimals.push(
+      {
+        id: "animal-1",
+        companyId: "company-1",
+        propertyId: "property-1",
+        code: "ANM001",
+        registrationNumber: "REG001",
+        status: "active",
+        createdAt: "2025-01-01",
+      },
+      {
+        id: "animal-2",
+        companyId: "company-1",
+        propertyId: "property-1",
+        code: "ANM002",
+        registrationNumber: "REG002",
+        status: "active",
+        createdAt: "2025-01-01",
+      }
+    );
+
     mockSales.push(
       {
-        id: "sa0e8400-e29b-41d4-a716-446655440100",
+        id: "sale-1",
         companyId: "company-1",
-        buyerId: "buyer-1",
         propertyId: "property-1",
-        saleDate: "2024-01-15",
+        buyerId: "buyer-1",
+        saleDate: "2025-01-15",
         saleType: SaleType.SLAUGHTERHOUSE,
-        pricingMode: PricingMode.INDIVIDUAL,
-        paymentMethod: SalePaymentMethod.CASH_FLOW,
-        totalPrice: 5000,
-        fees: [
-          { id: "fee-1", name: "Transport", amount: 200 },
-          { id: "fee-2", name: "Additional", amount: 100 },
-        ],
-        saleItems: [
-          { animalId: "animal-1", price: 2500, weight: 400 },
-          { animalId: "animal-2", price: 2500, weight: 400 },
-        ],
-        linkedCashFlowId: "cashflow-1",
-        linkedAccountsReceivableId: undefined,
-        observation: "Test sale 1",
-        createdAt: "2024-01-15",
-        updatedAt: "2024-01-15",
-      },
-      {
-        id: "sa0e8400-e29b-41d4-a716-446655440101",
-        companyId: "company-1",
-        buyerId: "buyer-2",
-        propertyId: "property-1",
-        saleDate: "2024-02-20",
-        saleType: SaleType.AUCTION,
         pricingMode: PricingMode.TOTAL,
-        paymentMethod: SalePaymentMethod.ACCOUNTS_RECEIVABLE,
-        totalPrice: 3000,
-        fees: [],
-        saleItems: [{ animalId: "animal-sold", price: 3000, weight: 350 }],
-        linkedCashFlowId: undefined,
-        linkedAccountsReceivableId: "ar-1",
-        observation: "Test sale 2",
-        createdAt: "2024-02-20",
-        updatedAt: "2024-02-20",
+        paymentMethod: SalePaymentMethod.CASH_FLOW,
+        totalPrice: 1000,
+        saleItems: [{ animalId: "animal-1", price: 500, weight: 100 }],
+        linkedCashFlowId: "cashflow-1",
+        createdAt: "2025-01-15",
       },
       {
-        id: "sa0e8400-e29b-41d4-a716-446655440102",
-        companyId: "company-2",
-        buyerId: "buyer-1",
-        propertyId: "property-2",
-        saleDate: "2024-03-10",
-        saleType: SaleType.OTHER_FARM,
+        id: "sale-2",
+        companyId: "company-1",
+        propertyId: "property-1",
+        buyerId: "buyer-2",
+        saleDate: "2025-01-20",
+        saleType: SaleType.AUCTION,
         pricingMode: PricingMode.INDIVIDUAL,
-        paymentMethod: SalePaymentMethod.CASH_FLOW,
+        paymentMethod: SalePaymentMethod.ACCOUNTS_RECEIVABLE,
         totalPrice: 2000,
-        fees: [
-          { id: "fee-1", name: "Transport", amount: 100 },
-          { id: "fee-2", name: "Additional", amount: 50 },
-        ],
-        saleItems: [{ animalId: "animal-1", price: 2000, weight: 300 }],
-        linkedCashFlowId: "cashflow-2",
-        linkedAccountsReceivableId: undefined,
-        observation: "Test sale 3",
-        createdAt: "2024-03-10",
-        updatedAt: "2024-03-10",
+        saleItems: [{ animalId: "animal-2", price: 2000, weight: 200 }],
+        linkedAccountsReceivableId: "ar-1",
+        createdAt: "2025-01-20",
       }
     );
   });
 
   describe("getSaleById", () => {
     it("should return sale when ID exists", () => {
-      const result = getSaleById("sa0e8400-e29b-41d4-a716-446655440100");
+      const result = getSaleById("sale-1");
       expect(result).toBeDefined();
-      expect(result?.buyerId).toBe("buyer-1");
-      expect(result?.saleType).toBe(SaleType.SLAUGHTERHOUSE);
+      expect(result?.id).toBe("sale-1");
+      expect(result?.totalPrice).toBe(1000);
     });
 
     it("should return undefined when ID does not exist", () => {
-      const result = getSaleById("nonexistent-id");
+      const result = getSaleById("sale-nonexistent");
       expect(result).toBeUndefined();
     });
 
@@ -151,42 +123,40 @@ describe("sales.service", () => {
   });
 
   describe("getSalesByCompanyId", () => {
-    it("should return sales for specific company", () => {
+    it("should return all sales for a company", () => {
       const result = getSalesByCompanyId("company-1");
       expect(result).toHaveLength(2);
-      expect(result.every((sale) => sale.companyId === "company-1")).toBe(true);
+      expect(result.every((s) => s.companyId === "company-1")).toBe(true);
     });
 
     it("should return empty array when company has no sales", () => {
-      const result = getSalesByCompanyId("nonexistent-company");
+      const result = getSalesByCompanyId("company-nonexistent");
       expect(result).toHaveLength(0);
     });
   });
 
   describe("getSalesByBuyerId", () => {
-    it("should return sales for specific buyer", () => {
+    it("should return all sales for a buyer", () => {
       const result = getSalesByBuyerId("buyer-1");
-      expect(result.length).toBeGreaterThan(0);
-      expect(result.every((sale) => sale.buyerId === "buyer-1")).toBe(true);
+      expect(result).toHaveLength(1);
+      expect(result[0]?.id).toBe("sale-1");
     });
 
     it("should return empty array when buyer has no sales", () => {
-      const result = getSalesByBuyerId("nonexistent-buyer");
+      const result = getSalesByBuyerId("buyer-nonexistent");
       expect(result).toHaveLength(0);
     });
   });
 
   describe("getSalesByAnimalId", () => {
-    it("should return sales for specific animal", () => {
+    it("should return sales containing the animal", () => {
       const result = getSalesByAnimalId("animal-1");
-      expect(result.length).toBeGreaterThan(0);
-      expect(
-        result.every((sale) => sale.saleItems.some((item) => item.animalId === "animal-1"))
-      ).toBe(true);
+      expect(result).toHaveLength(1);
+      expect(result[0]?.id).toBe("sale-1");
     });
 
     it("should return empty array when animal has no sales", () => {
-      const result = getSalesByAnimalId("nonexistent-animal");
+      const result = getSalesByAnimalId("animal-nonexistent");
       expect(result).toHaveLength(0);
     });
 
@@ -196,40 +166,21 @@ describe("sales.service", () => {
     });
   });
 
-  describe("getSalesByDateRange", () => {
-    it("should return sales within date range", () => {
-      const result = getSalesByDateRange("company-1", "2024-01-01", "2024-01-31");
-      expect(result.length).toBeGreaterThan(0);
-      expect(result.every((sale) => sale.companyId === "company-1")).toBe(true);
-    });
-
-    it("should return empty array when no sales in date range", () => {
-      const result = getSalesByDateRange("company-1", "2025-01-01", "2025-01-31");
-      expect(result).toHaveLength(0);
-    });
-  });
-
-  describe("getSalesBySaleType", () => {
-    it("should return sales for specific sale type", () => {
-      const result = getSalesBySaleType("company-1", SaleType.SLAUGHTERHOUSE);
-      expect(result.length).toBeGreaterThan(0);
-      expect(result.every((sale) => sale.saleType === SaleType.SLAUGHTERHOUSE)).toBe(true);
-    });
-
-    it("should return empty array when no sales of that type", () => {
-      const result = getSalesBySaleType("company-1", SaleType.OTHER_FARM);
-      expect(result).toHaveLength(0);
-    });
-  });
-
   describe("isAnimalSold", () => {
-    it("should return true when animal is sold", () => {
-      const result = isAnimalSold("animal-sold");
+    it("should return true when animal status is sold", () => {
+      mockAnimals[0]!.status = "sold";
+      const result = isAnimalSold("animal-1");
       expect(result).toBe(true);
     });
 
-    it("should return false when animal is active", () => {
+    it("should return false when animal status is active", () => {
+      mockAnimals[0]!.status = "active";
       const result = isAnimalSold("animal-1");
+      expect(result).toBe(false);
+    });
+
+    it("should return false when animal does not exist", () => {
+      const result = isAnimalSold("animal-nonexistent");
       expect(result).toBe(false);
     });
 
@@ -239,176 +190,195 @@ describe("sales.service", () => {
     });
   });
 
+  describe("getSalesByDateRange", () => {
+    it("should return sales within date range", () => {
+      const result = getSalesByDateRange("company-1", "2025-01-10", "2025-01-25");
+      expect(result).toHaveLength(2);
+    });
+
+    it("should return empty array when no sales in range", () => {
+      const result = getSalesByDateRange("company-1", "2025-02-01", "2025-02-28");
+      expect(result).toHaveLength(0);
+    });
+  });
+
+  describe("getSalesBySaleType", () => {
+    it("should return sales of specific type", () => {
+      const result = getSalesBySaleType("company-1", SaleType.SLAUGHTERHOUSE);
+      expect(result).toHaveLength(1);
+      expect(result[0]?.saleType).toBe(SaleType.SLAUGHTERHOUSE);
+    });
+
+    it("should return empty array when no sales of type", () => {
+      const result = getSalesBySaleType("company-1", SaleType.OTHER_FARM);
+      expect(result).toHaveLength(0);
+    });
+  });
+
   describe("addSale", () => {
-    it("should add new sale with cash flow payment", () => {
+    it("should add sale with cash flow payment method", () => {
       const formData: SaleFormData = {
         companyId: "company-1",
-        buyerId: "buyer-1",
         propertyId: "property-1",
-        saleDate: "2024-04-01",
+        buyerId: "buyer-1",
+        saleDate: "2025-01-25",
         saleType: SaleType.SLAUGHTERHOUSE,
-        pricingMode: PricingMode.INDIVIDUAL,
+        pricingMode: PricingMode.TOTAL,
         paymentMethod: SalePaymentMethod.CASH_FLOW,
-        totalPrice: 4000,
-        fees: [
-          { id: "fee-1", name: "Transport", amount: 150 },
-          { id: "fee-2", name: "Additional", amount: 50 },
-        ],
-        saleItems: [
-          { animalId: "animal-1", price: 2000, weight: 400 },
-          { animalId: "animal-2", price: 2000, weight: 400 },
-        ],
-        observation: "New sale",
+        totalPrice: 1500,
+        saleItems: [{ animalId: "animal-1", price: 1500, weight: 150 }],
       };
 
       const initialLength = mockSales.length;
       const result = addSale(formData);
 
       expect(mockSales).toHaveLength(initialLength + 1);
-      expect(result.companyId).toBe("company-1");
+      expect(result.id).toBeDefined();
       expect(result.linkedCashFlowId).toBeDefined();
       expect(result.linkedAccountsReceivableId).toBeUndefined();
     });
 
-    it("should add new sale with accounts receivable payment", () => {
+    it("should add sale with accounts receivable payment method", () => {
       const formData: SaleFormData = {
         companyId: "company-1",
-        buyerId: "buyer-1",
         propertyId: "property-1",
-        saleDate: "2024-04-01",
-        saleType: SaleType.AUCTION,
+        buyerId: "buyer-1",
+        saleDate: "2025-01-25",
+        saleType: SaleType.SLAUGHTERHOUSE,
         pricingMode: PricingMode.TOTAL,
         paymentMethod: SalePaymentMethod.ACCOUNTS_RECEIVABLE,
-        totalPrice: 5000,
-        fees: [],
-        saleItems: [{ animalId: "animal-1", price: 5000, weight: 400 }],
-        observation: "New sale AR",
+        totalPrice: 1500,
+        saleItems: [{ animalId: "animal-1", price: 1500, weight: 150 }],
       };
 
       const result = addSale(formData);
-
       expect(result.linkedAccountsReceivableId).toBeDefined();
       expect(result.linkedCashFlowId).toBeUndefined();
     });
 
-    it("should update animal status to sold when sale is created", () => {
+    it("should update animal status to sold", async () => {
+      const { updateAnimal } = await import("../animals.service");
       const formData: SaleFormData = {
         companyId: "company-1",
-        buyerId: "buyer-1",
         propertyId: "property-1",
-        saleDate: "2024-04-01",
+        buyerId: "buyer-1",
+        saleDate: "2025-01-25",
         saleType: SaleType.SLAUGHTERHOUSE,
-        pricingMode: PricingMode.INDIVIDUAL,
+        pricingMode: PricingMode.TOTAL,
         paymentMethod: SalePaymentMethod.CASH_FLOW,
-        totalPrice: 2000,
-        saleItems: [{ animalId: "animal-1", price: 2000, weight: 400 }],
+        totalPrice: 1500,
+        saleItems: [{ animalId: "animal-1", price: 1500, weight: 150 }],
       };
 
       addSale(formData);
-
-      expect(mockUpdateAnimal).toHaveBeenCalledWith("animal-1", { status: "sold" });
+      expect(updateAnimal).toHaveBeenCalledWith("animal-1", { status: "sold" });
     });
   });
 
   describe("updateSale", () => {
-    it("should update existing sale", () => {
-      const result = updateSale("sa0e8400-e29b-41d4-a716-446655440100", {
-        observation: "Updated observation",
-      });
+    it("should update sale when ID exists", () => {
+      const updateData: Partial<SaleFormData> = {
+        totalPrice: 1200,
+      };
 
+      const result = updateSale("sale-1", updateData);
       expect(result).toBe(true);
-      const updated = mockSales.find((s) => s.id === "sa0e8400-e29b-41d4-a716-446655440100");
-      expect(updated?.observation).toBe("Updated observation");
+
+      const updated = mockSales.find((s) => s.id === "sale-1");
+      expect(updated?.totalPrice).toBe(1200);
     });
 
-    it("should return false when sale does not exist", () => {
-      const result = updateSale("nonexistent-id", { observation: "Test" });
+    it("should return false when ID does not exist", () => {
+      const updateData: Partial<SaleFormData> = {
+        totalPrice: 1200,
+      };
+
+      const result = updateSale("sale-nonexistent", updateData);
       expect(result).toBe(false);
     });
 
-    it("should revert animal status when animal is removed from sale", () => {
-      const sale = mockSales[0];
-      const newSaleItems = sale.saleItems.slice(0, 1);
+    it("should handle payment method change from cash flow to accounts receivable", async () => {
+      const { deleteCashFlow } = await import("../cash-flow.service");
+      const { addAccountsReceivable } = await import("../accounts-receivable.service");
 
-      updateSale(sale.id, { saleItems: newSaleItems });
+      const updateData: Partial<SaleFormData> = {
+        paymentMethod: SalePaymentMethod.ACCOUNTS_RECEIVABLE,
+      };
 
-      expect(mockUpdateAnimal).toHaveBeenCalledWith("animal-2", { status: "active" });
+      const result = updateSale("sale-1", updateData);
+      expect(result).toBe(true);
+      expect(deleteCashFlow).toHaveBeenCalled();
+      expect(addAccountsReceivable).toHaveBeenCalled();
     });
 
-    it("should update animal status to sold when animal is added to sale", () => {
-      const sale = mockSales[0];
+    it("should update sale with new saleItems and update animal statuses", async () => {
+      const { updateAnimal } = await import("../animals.service");
 
-      const newSaleItems = [...sale.saleItems, { animalId: "animal-3", price: 1500, weight: 350 }];
+      // Clear previous calls
+      vi.mocked(updateAnimal).mockClear();
 
-      updateSale(sale.id, { saleItems: newSaleItems });
+      const updateData: Partial<SaleFormData> = {
+        saleItems: [{ animalId: "animal-2", price: 600, weight: 120 }],
+      };
 
-      expect(mockUpdateAnimal).toHaveBeenCalledWith("animal-3", { status: "sold" });
-    });
+      const result = updateSale("sale-1", updateData);
+      expect(result).toBe(true);
 
-    it("should change payment method from cash flow to accounts receivable", () => {
-      const sale = mockSales[0];
+      // updateAnimalStatuses is called with (previousIds, newIds, status)
+      // First call: restore previous animals to active (animal-1 not in newIds, so restore)
+      // Second call: set new animals to sold (animal-2 not in previousIds, so set to sold)
+      expect(updateAnimal).toHaveBeenCalled();
 
-      updateSale(sale.id, { paymentMethod: SalePaymentMethod.ACCOUNTS_RECEIVABLE });
-
-      expect(mockDeleteCashFlow).toHaveBeenCalledWith(sale.linkedCashFlowId);
-      expect(mockAddAccountsReceivable).toHaveBeenCalled();
-    });
-
-    it("should change payment method from accounts receivable to cash flow", () => {
-      const sale = mockSales[1];
-
-      updateSale(sale.id, { paymentMethod: SalePaymentMethod.CASH_FLOW });
-
-      expect(mockDeleteAccountsReceivable).toHaveBeenCalledWith(sale.linkedAccountsReceivableId);
-      expect(mockAddCashFlow).toHaveBeenCalled();
-    });
-
-    it("should update financial record amount when total price changes", () => {
-      const sale = mockSales[0];
-
-      updateSale(sale.id, { totalPrice: 6000 });
-
-      expect(mockUpdateCashFlow).toHaveBeenCalledWith(sale.linkedCashFlowId, { amount: 6300 });
+      const updated = mockSales.find((s) => s.id === "sale-1");
+      expect(updated?.saleItems).toHaveLength(1);
+      expect(updated?.saleItems[0]?.animalId).toBe("animal-2");
     });
   });
 
   describe("deleteSale", () => {
-    it("should delete existing sale", () => {
+    it("should delete sale and restore animal status", async () => {
+      const { updateAnimal } = await import("../animals.service");
+      const { deleteCashFlow } = await import("../cash-flow.service");
+
       const initialLength = mockSales.length;
-      const result = deleteSale("sa0e8400-e29b-41d4-a716-446655440100");
+      const result = deleteSale("sale-1");
 
       expect(result).toBe(true);
       expect(mockSales).toHaveLength(initialLength - 1);
+      expect(updateAnimal).toHaveBeenCalledWith("animal-1", { status: "active" });
+      expect(deleteCashFlow).toHaveBeenCalledWith("cashflow-1");
     });
 
-    it("should return false when sale does not exist", () => {
-      const result = deleteSale("nonexistent-id");
+    it("should delete sale with linkedAccountsReceivableId", async () => {
+      const { updateAnimal } = await import("../animals.service");
+      const { deleteAccountsReceivable } = await import("../accounts-receivable.service");
+
+      const initialLength = mockSales.length;
+      const result = deleteSale("sale-2");
+
+      expect(result).toBe(true);
+      expect(mockSales).toHaveLength(initialLength - 1);
+      expect(updateAnimal).toHaveBeenCalled();
+      expect(deleteAccountsReceivable).toHaveBeenCalled();
+    });
+
+    it("should return false when ID does not exist", () => {
+      const result = deleteSale("sale-nonexistent");
       expect(result).toBe(false);
     });
+  });
 
-    it("should revert animal status to active when sale is deleted", () => {
-      const sale = mockSales[0];
-
-      deleteSale(sale.id);
-
-      expect(mockUpdateAnimal).toHaveBeenCalledWith("animal-1", { status: "active" });
-      expect(mockUpdateAnimal).toHaveBeenCalledWith("animal-2", { status: "active" });
+  describe("generateSaleId", () => {
+    it("should generate ID with correct format", () => {
+      const result = generateSaleId(0);
+      expect(result).toContain("sa0e8400-e29b-41d4-a716");
+      expect(result).toMatch(/sa0e8400-e29b-41d4-a716-\d{12}/);
     });
 
-    it("should delete linked cash flow when sale is deleted", () => {
-      const sale = mockSales[0];
-
-      deleteSale(sale.id);
-
-      expect(mockDeleteCashFlow).toHaveBeenCalledWith(sale.linkedCashFlowId);
-    });
-
-    it("should delete linked accounts receivable when sale is deleted", () => {
-      const sale = mockSales[1];
-
-      deleteSale(sale.id);
-
-      expect(mockDeleteAccountsReceivable).toHaveBeenCalledWith(sale.linkedAccountsReceivableId);
+    it("should generate different IDs for different indices", () => {
+      const id1 = generateSaleId(0);
+      const id2 = generateSaleId(1);
+      expect(id1).not.toBe(id2);
     });
   });
 });

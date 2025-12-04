@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { isValidEmail } from "~/utils/email-validation";
 
 interface UsePasswordResetOptions {
   onSendCode?: (email: string) => Promise<void>;
@@ -24,7 +25,7 @@ export function usePasswordReset({ onSendCode, onResetPassword }: UsePasswordRes
         return;
       }
 
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      if (!isValidEmail(email.trim())) {
         setError("invalidEmail");
         return;
       }
@@ -106,6 +107,7 @@ export function usePasswordReset({ onSendCode, onResetPassword }: UsePasswordRes
     setCode,
     setNewPassword,
     setConfirmPassword,
+    setStep,
     handleSendCode,
     handleResetPassword,
     reset,

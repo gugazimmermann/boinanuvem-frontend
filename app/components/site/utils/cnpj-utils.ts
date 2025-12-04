@@ -1,11 +1,10 @@
-import type { CNPJData } from "~/types";
-import type { CompanyFormData } from "~/types";
+import type { CNPJData, CompanyFormData } from "~/types";
 import { maskPhone, maskCEP, maskCNPJ } from "./masks";
 
-export type { CompanyFormData };
+export type { CompanyFormData } from "~/types";
 
 export function formatCNPJ(value: string): string {
-  return value.replace(/\D/g, "");
+  return value.replaceAll(/\D/g, "");
 }
 
 export function formatPhone(fullPhone: string): string {

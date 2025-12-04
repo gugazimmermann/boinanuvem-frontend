@@ -47,9 +47,10 @@ export const Services = memo(function Services() {
         </div>
         <div className="space-y-4 order-1 md:order-2 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
           {SERVICES.map((item, index) => (
-            <div
-              key={index}
-              className={`cursor-pointer p-6 rounded-xl transition-all duration-300 ${
+            <button
+              type="button"
+              key={item.title}
+              className={`cursor-pointer p-6 rounded-xl transition-all duration-300 text-left w-full ${
                 activeTab === index
                   ? "border-l-4 border-primary shadow-lg scale-[1.02]"
                   : "hover:shadow-md hover:scale-[1.01] hover:border-l-2 hover:border-primary/30"
@@ -82,7 +83,7 @@ export const Services = memo(function Services() {
                   )}
                 </div>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       </div>
@@ -106,7 +107,7 @@ export const Services = memo(function Services() {
 
             return (
               <div
-                key={index}
+                key={feature.title}
                 className={`p-8 rounded-2xl relative overflow-hidden ${
                   isEven ? "bg-gray-100 dark:bg-gray-800" : "bg-gray-50 dark:bg-gray-900"
                 }`}

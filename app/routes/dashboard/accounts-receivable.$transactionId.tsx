@@ -14,7 +14,7 @@ import {
   addAccountsReceivableObservation,
 } from "~/services/accounts-receivable-observations.service";
 import type { AccountsReceivableObservation } from "~/types/accounts-receivable-observation";
-import { ObservationSection } from "~/components/dashboard/finance/observation-section";
+import { ObservationSection } from "~/components/dashboard/observations/observation-section";
 import { FinanceDetailCard } from "~/components/dashboard/finance/finance-detail-card";
 import { getStatusVariant } from "~/utils/finance";
 
@@ -156,13 +156,14 @@ export default function AccountsReceivableDetails() {
           },
           {
             label: t.accountsReceivable.details.bankAccount,
-            value: bankAccount
-              ? `${bankAccount.bankName} - ${bankAccount.accountNumber} (${
-                  bankAccount.accountType === "checking"
-                    ? t.bankAccounts.accountTypes.checking
-                    : t.bankAccounts.accountTypes.savings
-                })`
-              : "-",
+            value: (() => {
+              if (!bankAccount) return "-";
+              const accountTypeLabel =
+                bankAccount.accountType === "checking"
+                  ? t.bankAccounts.accountTypes.checking
+                  : t.bankAccounts.accountTypes.savings;
+              return `${bankAccount.bankName} - ${bankAccount.accountNumber} (${accountTypeLabel})`;
+            })(),
             condition: !!bankAccount,
           },
           {
@@ -193,40 +194,52 @@ export default function AccountsReceivableDetails() {
       <ObservationSection<AccountsReceivableObservation>
         observations={observations}
         onAddObservation={handleAddObservation}
+        useSelfManagedForm={true}
+        title={t.accountsReceivable.details.observations || "Observações"}
+        description={
+          t.accountsReceivable.details.observationsDescription ||
+          "Gerencie as observações desta conta a receber"
+        }
+        searchPlaceholder={
+          t.accountsReceivable.details.searchObservations || "Buscar observações..."
+        }
+        emptyStateTitle={
+          t.accountsReceivable.details.noObservations || "Nenhuma observação registrada"
+        }
+        emptyStateDescription={
+          t.accountsReceivable.details.noObservationsDescription ||
+          "Adicione sua primeira observação sobre esta conta a receber."
+        }
+        emptyStateDescriptionWithSearch={
+          typeof t.accountsReceivable.details.noObservationsWithSearch === "function"
+            ? t.accountsReceivable.details.noObservationsWithSearch
+            : t.accountsReceivable.details.noObservationsWithSearch ||
+              ((search: string) => `Nenhuma observação encontrada para "${search}"`)
+        }
         translationKeys={{
-          title: t.accountsReceivable.details.observations || "Observações",
-          description:
-            t.accountsReceivable.details.observationsDescription ||
-            "Gerencie as observações desta conta a receber",
-          addObservation: t.accountsReceivable.details.addObservation || "Adicionar Observação",
+          observationDate: t.accountsReceivable.details.observationDate || "Data",
           observation: t.accountsReceivable.details.observation || "Observação",
+          files: t.accountsReceivable.details.files || "Anexos",
+          addObservation: t.accountsReceivable.details.addObservation || "Adicionar Observação",
+          newObservation: t.accountsReceivable.details.addObservation || "Adicionar Observação",
           observationPlaceholder:
             t.accountsReceivable.details.observationPlaceholder ||
             "Digite sua observação sobre esta conta a receber...",
+          filesHelper:
+            t.accountsReceivable.details.filesHelper ||
+            "Você pode fazer upload de múltiplos arquivos",
           observationRequired:
             t.accountsReceivable.details.observationRequired || "Por favor, insira uma observação",
           observationAdded:
             t.accountsReceivable.details.observationAdded || "Observação adicionada com sucesso!",
           observationError:
             t.accountsReceivable.details.observationError || "Erro ao adicionar observação",
-          files: t.accountsReceivable.details.files || "Anexos",
-          filesHelper:
-            t.accountsReceivable.details.filesHelper ||
-            "Você pode fazer upload de múltiplos arquivos",
-          searchObservations:
-            t.accountsReceivable.details.searchObservations || "Buscar observações...",
-          noObservations:
-            t.accountsReceivable.details.noObservations || "Nenhuma observação registrada",
-          noObservationsWithSearch:
-            typeof t.accountsReceivable.details.noObservationsWithSearch === "function"
-              ? t.accountsReceivable.details.noObservationsWithSearch
-              : t.accountsReceivable.details.noObservationsWithSearch ||
-                ((search: string) => `Nenhuma observação encontrada para "${search}"`),
-          noObservationsDescription:
-            t.accountsReceivable.details.noObservationsDescription ||
-            "Adicione sua primeira observação sobre esta conta a receber.",
-          observationDate: t.accountsReceivable.details.observationDate || "Data",
+          cancel: t.common.cancel,
+          save: t.common.save,
+          clearSearch: t.common.clearSearch,
         }}
+        entityId={transaction.id}
+        entityType="accountsReceivable"
       />
     </div>
   );

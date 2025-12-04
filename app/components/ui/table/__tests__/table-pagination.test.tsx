@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { TablePagination } from "../table-pagination";
@@ -10,85 +10,138 @@ describe("TablePagination", () => {
     onPageChange: vi.fn(),
   };
 
-  it("should return null when totalPages is 1", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should render when totalPages > 1", () => {
+    render(<TablePagination {...defaultProps} />);
+    expect(screen.getByRole("button", { name: /anterior/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /próximo/i })).toBeInTheDocument();
+  });
+
+  it("should return null when totalPages <= 1", () => {
     const { container } = render(<TablePagination {...defaultProps} totalPages={1} />);
     expect(container.firstChild).toBeNull();
   });
 
-  it("should render pagination controls", () => {
-    render(<TablePagination {...defaultProps} />);
-    expect(screen.getByText(/anterior|previous/i)).toBeInTheDocument();
-    expect(screen.getByText(/Próximo|Next/i)).toBeInTheDocument();
+  it("should call onPageChange when previous button clicked", async () => {
+    const onPageChange = vi.fn();
+    const user = userEvent.setup();
+    render(<TablePagination {...defaultProps} currentPage={2} onPageChange={onPageChange} />);
+    await user.click(screen.getByRole("button", { name: /anterior/i }));
+    expect(onPageChange).toHaveBeenCalledWith(1);
   });
 
-  it("should render page numbers for pages less than 10", () => {
-    render(<TablePagination {...defaultProps} totalPages={5} />);
-    expect(screen.getByText("1")).toBeInTheDocument();
-    expect(screen.getByText("5")).toBeInTheDocument();
-  });
-
-  it("should call onPageChange when page number is clicked", async () => {
+  it("should call onPageChange when next button clicked", async () => {
     const onPageChange = vi.fn();
     const user = userEvent.setup();
     render(<TablePagination {...defaultProps} onPageChange={onPageChange} />);
-
-    const pageButton = screen.getByText("2");
-    await user.click(pageButton);
-
+    await user.click(screen.getByRole("button", { name: /próximo/i }));
     expect(onPageChange).toHaveBeenCalledWith(2);
-  });
-
-  it("should call onPageChange when previous button is clicked", async () => {
-    const onPageChange = vi.fn();
-    const user = userEvent.setup();
-    render(<TablePagination {...defaultProps} currentPage={2} onPageChange={onPageChange} />);
-
-    const prevButton = screen.getByText(/anterior|previous/i).closest("button");
-    if (prevButton) {
-      await user.click(prevButton);
-      expect(onPageChange).toHaveBeenCalledWith(1);
-    }
-  });
-
-  it("should call onPageChange when next button is clicked", async () => {
-    const onPageChange = vi.fn();
-    const user = userEvent.setup();
-    render(<TablePagination {...defaultProps} currentPage={2} onPageChange={onPageChange} />);
-
-    const nextButton = screen.getByText(/Próximo|Next/i).closest("button");
-    if (nextButton) {
-      await user.click(nextButton);
-      expect(onPageChange).toHaveBeenCalledWith(3);
-    }
   });
 
   it("should disable previous button on first page", () => {
     render(<TablePagination {...defaultProps} currentPage={1} />);
-    const prevButton = screen.getByText(/anterior|previous/i).closest("button");
+    const prevButton = screen.getByRole("button", { name: /anterior/i });
     expect(prevButton).toBeDisabled();
   });
 
   it("should disable next button on last page", () => {
-    render(<TablePagination {...defaultProps} currentPage={5} totalPages={5} />);
-    const nextButton = screen.getByText(/Próximo|Next/i).closest("button");
+    render(<TablePagination {...defaultProps} currentPage={5} />);
+    const nextButton = screen.getByRole("button", { name: /próximo/i });
     expect(nextButton).toBeDisabled();
   });
 
-  it("should highlight current page", () => {
-    render(<TablePagination {...defaultProps} currentPage={3} />);
-    const currentPageButton = screen.getByText("3").closest("button");
-    expect(currentPageButton?.className).toContain("bg-blue-100");
+  it("should call onPageChange when page number clicked", async () => {
+    const onPageChange = vi.fn();
+    const user = userEvent.setup();
+    render(<TablePagination {...defaultProps} onPageChange={onPageChange} />);
+    const pageButton = screen.getByRole("button", { name: "2" });
+    await user.click(pageButton);
+    expect(onPageChange).toHaveBeenCalledWith(2);
+  });
+
+  it("should highlight active page", () => {
+    const { container } = render(<TablePagination {...defaultProps} currentPage={3} />);
+    const activeButton = container.querySelector('button[class*="bg-blue-100"]');
+    expect(activeButton).toBeInTheDocument();
+    expect(activeButton?.textContent).toBe("3");
   });
 
   it("should render ellipsis for large page counts", () => {
-    render(<TablePagination {...defaultProps} currentPage={5} totalPages={20} />);
+    render(<TablePagination {...defaultProps} currentPage={5} totalPages={15} />);
     const ellipsis = screen.getAllByText("...");
     expect(ellipsis.length).toBeGreaterThan(0);
+    expect(ellipsis[0]).toBeInTheDocument();
   });
 
-  it("should apply slim styling when slim is true", () => {
+  it("should render all page numbers when totalPages <= 10", () => {
+    render(<TablePagination {...defaultProps} totalPages={5} />);
+    for (let i = 1; i <= 5; i++) {
+      expect(screen.getByRole("button", { name: String(i) })).toBeInTheDocument();
+    }
+  });
+
+  it("should render page numbers for start position", () => {
+    render(<TablePagination {...defaultProps} currentPage={2} totalPages={15} />);
+    expect(screen.getByRole("button", { name: "1" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "2" })).toBeInTheDocument();
+  });
+
+  it("should render page numbers for end position", () => {
+    render(<TablePagination {...defaultProps} currentPage={14} totalPages={15} />);
+    expect(screen.getByRole("button", { name: "14" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "15" })).toBeInTheDocument();
+  });
+
+  it("should render page numbers for middle position", () => {
+    render(<TablePagination {...defaultProps} currentPage={8} totalPages={15} />);
+    expect(screen.getByRole("button", { name: "8" })).toBeInTheDocument();
+  });
+
+  it("should render in slim mode", () => {
     const { container } = render(<TablePagination {...defaultProps} slim={true} />);
-    const pagination = container.querySelector(".mt-2");
-    expect(pagination).toBeInTheDocument();
+    const button = container.querySelector("button");
+    expect(button).toHaveClass("text-xs");
+  });
+
+  it("should not render page numbers in mobile view for 10+ pages", () => {
+    render(<TablePagination {...defaultProps} currentPage={5} totalPages={15} />);
+    const pageNumbersContainer = screen.queryByRole("button", { name: "5" });
+    expect(pageNumbersContainer).toBeInTheDocument();
+  });
+
+  it("should handle page change at boundaries", async () => {
+    const onPageChange = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <TablePagination
+        {...defaultProps}
+        currentPage={1}
+        totalPages={3}
+        onPageChange={onPageChange}
+      />
+    );
+    await user.click(screen.getByRole("button", { name: "3" }));
+    expect(onPageChange).toHaveBeenCalledWith(3);
+  });
+
+  it("should not call onPageChange when clicking disabled previous", async () => {
+    const onPageChange = vi.fn();
+    const user = userEvent.setup();
+    render(<TablePagination {...defaultProps} currentPage={1} onPageChange={onPageChange} />);
+    const prevButton = screen.getByRole("button", { name: /anterior/i });
+    await user.click(prevButton);
+    expect(onPageChange).not.toHaveBeenCalled();
+  });
+
+  it("should not call onPageChange when clicking disabled next", async () => {
+    const onPageChange = vi.fn();
+    const user = userEvent.setup();
+    render(<TablePagination {...defaultProps} currentPage={5} onPageChange={onPageChange} />);
+    const nextButton = screen.getByRole("button", { name: /próximo/i });
+    await user.click(nextButton);
+    expect(onPageChange).not.toHaveBeenCalled();
   });
 });

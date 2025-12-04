@@ -11,6 +11,30 @@ import { AreaChartConfig } from "~/components/dashboard/charts/area-chart-config
 import { ActivityItem } from "~/components/dashboard/activity-item";
 import { RecentListItem } from "~/components/dashboard/recent-list-item";
 
+function ProductionIndexesSkeleton() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {Array.from({ length: 8 }, (_, index) => (
+        <div
+          key={index}
+          className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-5 border border-gray-200 dark:border-gray-700 animate-pulse"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32"></div>
+            <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+          </div>
+          <div className="mb-3">
+            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
+          </div>
+          <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-20"></div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const ProductionIndexes = lazy(() =>
   import("~/components/dashboard/production-indexes/production-indexes").then((module) => ({
     default: module.ProductionIndexes,
@@ -59,7 +83,7 @@ export function meta() {
   ];
 }
 
-function aggregateIndexes(
+function collectPropertyIndexes(
   properties: Array<{ id: string }>,
   period?: { startDate?: string; endDate?: string }
 ) {
@@ -72,60 +96,105 @@ function aggregateIndexes(
   const allKgNitrogenPerAU: KgNitrogenPerAUResult[] = [];
   const allKgMeatPerKgNitrogen: KgMeatPerKgNitrogenResult[] = [];
 
-  properties.forEach((property) => {
+  for (const property of properties) {
     allAdgResults.push(...getAverageDailyGain(property.id, period));
-
     const carcassYield = getCarcassYield(property.id, period);
     allCarcassYields.push(carcassYield);
     allAdcResults.push(...getAverageDailyCarcassGain(property.id, period, carcassYield.yield));
-
     allDaysOnFeed.push(...getDaysOnFeed(property.id, period));
     allSlaughterAges.push(getSlaughterAge(property.id, period));
     allArrobaProductions.push(getArrobaProductionPerHectare(property.id, period));
     allKgNitrogenPerAU.push(getKgNitrogenPerAU(property.id, period));
     allKgMeatPerKgNitrogen.push(getKgMeatPerKgNitrogen(property.id, period));
-  });
+  }
 
-  const averageAdg =
-    allAdgResults.length > 0
-      ? allAdgResults.reduce((sum, r) => sum + r.adg, 0) / allAdgResults.length
-      : 0;
+  return {
+    allAdgResults,
+    allAdcResults,
+    allDaysOnFeed,
+    allCarcassYields,
+    allSlaughterAges,
+    allArrobaProductions,
+    allKgNitrogenPerAU,
+    allKgMeatPerKgNitrogen,
+  };
+}
 
-  const averageAdc =
-    allAdcResults.length > 0
-      ? allAdcResults.reduce((sum, r) => sum + r.adc, 0) / allAdcResults.length
-      : 0;
+function calculateAverage(
+  results: Array<{ adg?: number; adc?: number; days?: number }>,
+  field: "adg" | "adc" | "days"
+): number {
+  if (results.length === 0) return 0;
+  return (
+    results.reduce((sum, r) => {
+      let value: number | undefined;
+      if (field === "adg") {
+        value = r.adg;
+      } else if (field === "adc") {
+        value = r.adc;
+      } else {
+        value = r.days;
+      }
+      return sum + (value || 0);
+    }, 0) / results.length
+  );
+}
 
-  const averageDaysOnFeed =
-    allDaysOnFeed.length > 0
-      ? allDaysOnFeed.reduce((sum, r) => sum + r.days, 0) / allDaysOnFeed.length
-      : 0;
+function calculateAverageFromNumbers(numbers: number[]): number {
+  if (numbers.length === 0) return 0;
+  return numbers.reduce((sum, age) => sum + age, 0) / numbers.length;
+}
 
+function aggregateCarcassYield(allCarcassYields: CarcassYieldResult[]): CarcassYieldResult {
   const totalCarcassWeight = allCarcassYields.reduce((sum, r) => sum + r.carcassWeight, 0);
   const totalLiveWeight = allCarcassYields.reduce((sum, r) => sum + r.liveWeight, 0);
   const totalCount = allCarcassYields.reduce((sum, r) => sum + r.count, 0);
-  const aggregatedCarcassYield: CarcassYieldResult = {
+  return {
     yield: totalLiveWeight > 0 ? (totalCarcassWeight / totalLiveWeight) * 100 : 0,
     carcassWeight: totalCarcassWeight,
     liveWeight: totalLiveWeight,
     count: totalCount,
   };
+}
 
+function aggregateSlaughterAge(allSlaughterAges: SlaughterAgeResult[]): SlaughterAgeResult {
   const allAges: number[] = [];
-  allSlaughterAges.forEach((sa) => {
+  for (const sa of allSlaughterAges) {
     if (sa.count > 0) {
       for (let i = 0; i < sa.count; i++) {
         allAges.push(sa.averageAge);
       }
     }
-  });
-  const aggregatedSlaughterAge: SlaughterAgeResult = {
-    averageAge:
-      allAges.length > 0 ? allAges.reduce((sum, age) => sum + age, 0) / allAges.length : 0,
+  }
+  return {
+    averageAge: allAges.length > 0 ? calculateAverageFromNumbers(allAges) : 0,
     minAge: allAges.length > 0 ? Math.min(...allAges) : 0,
     maxAge: allAges.length > 0 ? Math.max(...allAges) : 0,
     count: allAges.length,
   };
+}
+
+function aggregateIndexes(
+  properties: Array<{ id: string }>,
+  period?: { startDate?: string; endDate?: string }
+) {
+  const {
+    allAdgResults,
+    allAdcResults,
+    allDaysOnFeed,
+    allCarcassYields,
+    allSlaughterAges,
+    allArrobaProductions,
+    allKgNitrogenPerAU,
+    allKgMeatPerKgNitrogen,
+  } = collectPropertyIndexes(properties, period);
+
+  const averageAdg = calculateAverage(allAdgResults, "adg");
+  const averageAdc = calculateAverage(allAdcResults, "adc");
+  const averageDaysOnFeed = calculateAverage(allDaysOnFeed, "days");
+
+  const aggregatedCarcassYield = aggregateCarcassYield(allCarcassYields);
+  const aggregatedSlaughterAge = aggregateSlaughterAge(allSlaughterAges);
 
   const totalArrobas = allArrobaProductions.reduce((sum, r) => sum + r.totalArrobas, 0);
   const totalArea = allArrobaProductions.reduce((sum, r) => sum + r.areaInHectares, 0);
@@ -215,7 +284,7 @@ export default function Dashboard() {
 
   const dashboardFilters = useMemo(
     () => ({
-      propertyId: selectedPropertyId !== ALL_PROPERTIES_ID ? selectedPropertyId : undefined,
+      propertyId: selectedPropertyId === ALL_PROPERTIES_ID ? undefined : selectedPropertyId,
       startDate: selectedPeriod.startDate,
       endDate: selectedPeriod.endDate,
     }),
@@ -279,10 +348,10 @@ export default function Dashboard() {
   const weightAggregator = useCallback((monthWeighings: Weighing[]) => {
     let totalWeight = 0;
     let count = 0;
-    monthWeighings.forEach((weighing) => {
+    for (const weighing of monthWeighings) {
       totalWeight += weighing.weight;
       count++;
-    });
+    }
     const avgWeight = count > 0 ? totalWeight / count : 0;
     return { averageWeight: Math.round(avgWeight) };
   }, []);
@@ -339,9 +408,9 @@ export default function Dashboard() {
 
   const animalDistributionByStatus = useMemo(() => {
     const statusCounts: Record<string, number> = {};
-    animals.forEach((animal) => {
+    for (const animal of animals) {
       statusCounts[animal.status] = (statusCounts[animal.status] || 0) + 1;
-    });
+    }
 
     const statusTranslations: Record<string, string> = {
       active: t.animals.table.active,
@@ -530,520 +599,525 @@ export default function Dashboard() {
             </h2>
           </div>
 
-          {showAggregated &&
-          (isCalculatingIndexes ||
-            (aggregatedIndexesRaw === null && selectedPropertyId === ALL_PROPERTIES_ID)) ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[...Array(8)].map((_, index) => (
-                <div
-                  key={index}
-                  className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-5 border border-gray-200 dark:border-gray-700 animate-pulse"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32"></div>
-                    <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
-                  </div>
-                  <div className="mb-3">
-                    <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
-                  </div>
-                  <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
-                    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-20"></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : showAggregated && aggregatedIndexes ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-5 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                      {t.productionIndexes.averageDailyGain.title}
-                    </h3>
-                    <Tooltip
-                      content={t.productionIndexes.averageDailyGain.description}
-                      position="top"
+          {(() => {
+            const isLoading =
+              showAggregated &&
+              (isCalculatingIndexes ||
+                (aggregatedIndexesRaw === null && selectedPropertyId === ALL_PROPERTIES_ID));
+            const hasAggregatedData = showAggregated && aggregatedIndexes;
+
+            if (isLoading) {
+              return (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {Array.from({ length: 8 }, (_, index) => (
+                    <div
+                      key={index}
+                      className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-5 border border-gray-200 dark:border-gray-700 animate-pulse"
                     >
-                      <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
-                      </button>
-                    </Tooltip>
-                  </div>
-                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                    <span className="text-lg">📈</span>
-                  </div>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32"></div>
+                        <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+                      </div>
+                      <div className="mb-3">
+                        <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
+                      </div>
+                      <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-20"></div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="mb-3">
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    {aggregatedIndexes.averageAdg.toFixed(2)}{" "}
-                    <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
-                      kg/dia
-                    </span>
-                  </p>
-                </div>
-                <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      {t.productionIndexes.averageDailyGain.animals}:
-                    </span>
-                    <span className="font-semibold text-gray-900 dark:text-gray-100">
-                      {aggregatedIndexes.adgResultsCount}
-                    </span>
-                  </div>
-                </div>
-              </div>
+              );
+            }
 
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-5 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                      {t.productionIndexes.averageDailyCarcassGain.title}
-                    </h3>
-                    <Tooltip
-                      content={t.productionIndexes.averageDailyCarcassGain.description}
-                      position="top"
-                    >
-                      <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
+            if (hasAggregatedData) {
+              return (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-5 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                          {t.productionIndexes.averageDailyGain.title}
+                        </h3>
+                        <Tooltip
+                          content={t.productionIndexes.averageDailyGain.description}
+                          position="top"
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
-                      </button>
-                    </Tooltip>
-                  </div>
-                  <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                    <span className="text-lg">🥩</span>
-                  </div>
-                </div>
-                <div className="mb-3">
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    {aggregatedIndexes.averageAdc.toFixed(2)}{" "}
-                    <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
-                      kg/dia
-                    </span>
-                  </p>
-                </div>
-                <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      {t.productionIndexes.averageDailyCarcassGain.carcassYield}:
-                    </span>
-                    <span className="font-semibold text-gray-900 dark:text-gray-100">
-                      {aggregatedIndexes.carcassYield.yield.toFixed(2)}%
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-5 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                      {t.productionIndexes.daysOnFeed.title}
-                    </h3>
-                    <Tooltip content={t.productionIndexes.daysOnFeed.description} position="top">
-                      <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
-                      </button>
-                    </Tooltip>
-                  </div>
-                  <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-                    <span className="text-lg">⏱️</span>
-                  </div>
-                </div>
-                <div className="mb-3">
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    {Math.round(aggregatedIndexes.averageDaysOnFeed)}{" "}
-                    <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
-                      dias
-                    </span>
-                  </p>
-                </div>
-                <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      {t.productionIndexes.daysOnFeed.animals}:
-                    </span>
-                    <span className="font-semibold text-gray-900 dark:text-gray-100">
-                      {aggregatedIndexes.daysOnFeedCount}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-5 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                      {t.productionIndexes.carcassYield.title}
-                    </h3>
-                    <Tooltip content={t.productionIndexes.carcassYield.description} position="top">
-                      <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
-                      </button>
-                    </Tooltip>
-                  </div>
-                  <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
-                    <span className="text-lg">📊</span>
-                  </div>
-                </div>
-                <div className="mb-3">
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    {aggregatedIndexes.carcassYield.yield.toFixed(2)}
-                    <span className="text-sm font-normal text-gray-500 dark:text-gray-400">%</span>
-                  </p>
-                </div>
-                <div className="pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      {t.productionIndexes.carcassYield.count}:
-                    </span>
-                    <span className="font-semibold text-gray-900 dark:text-gray-100">
-                      {aggregatedIndexes.carcassYield.count}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      {t.productionIndexes.carcassYield.carcassWeight}:
-                    </span>
-                    <span className="font-semibold text-gray-900 dark:text-gray-100">
-                      {aggregatedIndexes.carcassYield.carcassWeight.toFixed(2)} kg
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      {t.productionIndexes.carcassYield.liveWeight}:
-                    </span>
-                    <span className="font-semibold text-gray-900 dark:text-gray-100">
-                      {aggregatedIndexes.carcassYield.liveWeight.toFixed(2)} kg
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-5 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                      {t.productionIndexes.slaughterAge.title}
-                    </h3>
-                    <Tooltip content={t.productionIndexes.slaughterAge.description} position="top">
-                      <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
-                      </button>
-                    </Tooltip>
-                  </div>
-                  <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
-                    <span className="text-lg">🎯</span>
-                  </div>
-                </div>
-                <div className="mb-3">
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    {aggregatedIndexes.slaughterAge.averageAge > 0 ? (
-                      <>
-                        {Math.round(aggregatedIndexes.slaughterAge.averageAge / 30)}{" "}
+                          <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
+                            </svg>
+                          </button>
+                        </Tooltip>
+                      </div>
+                      <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                        <span className="text-lg">📈</span>
+                      </div>
+                    </div>
+                    <div className="mb-3">
+                      <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                        {aggregatedIndexes.averageAdg.toFixed(2)}{" "}
                         <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
-                          meses
+                          kg/dia
                         </span>
-                      </>
-                    ) : (
-                      "-"
-                    )}
-                  </p>
-                </div>
-                {aggregatedIndexes.slaughterAge.averageAge > 0 && (
-                  <div className="pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-gray-600 dark:text-gray-400">
-                        {t.productionIndexes.slaughterAge.min}:
-                      </span>
-                      <span className="font-semibold text-gray-900 dark:text-gray-100">
-                        {Math.round(aggregatedIndexes.slaughterAge.minAge / 30)} meses
-                      </span>
+                      </p>
                     </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-gray-600 dark:text-gray-400">
-                        {t.productionIndexes.slaughterAge.max}:
-                      </span>
-                      <span className="font-semibold text-gray-900 dark:text-gray-100">
-                        {Math.round(aggregatedIndexes.slaughterAge.maxAge / 30)} meses
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-gray-600 dark:text-gray-400">
-                        {t.productionIndexes.slaughterAge.count}:
-                      </span>
-                      <span className="font-semibold text-gray-900 dark:text-gray-100">
-                        {aggregatedIndexes.slaughterAge.count}
-                      </span>
+                    <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          {t.productionIndexes.averageDailyGain.animals}:
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">
+                          {aggregatedIndexes.adgResultsCount}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                )}
-              </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-5 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                      {t.productionIndexes.arrobaProductionPerHectare.title}
-                    </h3>
-                    <Tooltip
-                      content={t.productionIndexes.arrobaProductionPerHectare.description}
-                      position="top"
-                    >
-                      <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-5 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                          {t.productionIndexes.averageDailyCarcassGain.title}
+                        </h3>
+                        <Tooltip
+                          content={t.productionIndexes.averageDailyCarcassGain.description}
+                          position="top"
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
-                      </button>
-                    </Tooltip>
+                          <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
+                            </svg>
+                          </button>
+                        </Tooltip>
+                      </div>
+                      <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                        <span className="text-lg">🥩</span>
+                      </div>
+                    </div>
+                    <div className="mb-3">
+                      <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                        {aggregatedIndexes.averageAdc.toFixed(2)}{" "}
+                        <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                          kg/dia
+                        </span>
+                      </p>
+                    </div>
+                    <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          {t.productionIndexes.averageDailyCarcassGain.carcassYield}:
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">
+                          {aggregatedIndexes.carcassYield.yield.toFixed(2)}%
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
-                    <span className="text-lg">🌾</span>
-                  </div>
-                </div>
-                <div className="mb-3">
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    {aggregatedIndexes.arrobaProduction.arrobasPerHectare.toFixed(2)}{" "}
-                    <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
-                      @/ha
-                    </span>
-                  </p>
-                </div>
-                <div className="pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      {t.productionIndexes.arrobaProductionPerHectare.totalArrobas}:
-                    </span>
-                    <span className="font-semibold text-gray-900 dark:text-gray-100">
-                      {aggregatedIndexes.arrobaProduction.totalArrobas.toFixed(2)} @
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      {t.productionIndexes.arrobaProductionPerHectare.areaInHectares}:
-                    </span>
-                    <span className="font-semibold text-gray-900 dark:text-gray-100">
-                      {aggregatedIndexes.arrobaProduction.areaInHectares.toFixed(2)} ha
-                    </span>
-                  </div>
-                </div>
-              </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-5 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                      {t.productionIndexes.kgNitrogenPerAU.title}
-                    </h3>
-                    <Tooltip
-                      content={t.productionIndexes.kgNitrogenPerAU.description}
-                      position="top"
-                    >
-                      <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-5 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                          {t.productionIndexes.daysOnFeed.title}
+                        </h3>
+                        <Tooltip
+                          content={t.productionIndexes.daysOnFeed.description}
+                          position="top"
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
-                      </button>
-                    </Tooltip>
+                          <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
+                            </svg>
+                          </button>
+                        </Tooltip>
+                      </div>
+                      <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                        <span className="text-lg">⏱️</span>
+                      </div>
+                    </div>
+                    <div className="mb-3">
+                      <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                        {Math.round(aggregatedIndexes.averageDaysOnFeed)}{" "}
+                        <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                          dias
+                        </span>
+                      </p>
+                    </div>
+                    <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          {t.productionIndexes.daysOnFeed.animals}:
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">
+                          {aggregatedIndexes.daysOnFeedCount}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
-                    <span className="text-lg">🌱</span>
-                  </div>
-                </div>
-                <div className="mb-3">
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    {aggregatedIndexes.kgNitrogenPerAU.kgNitrogenPerAU.toFixed(2)}{" "}
-                    <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
-                      kg N/AU
-                    </span>
-                  </p>
-                </div>
-                <div className="pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      {t.productionIndexes.kgNitrogenPerAU.totalNitrogen}:
-                    </span>
-                    <span className="font-semibold text-gray-900 dark:text-gray-100">
-                      {aggregatedIndexes.kgNitrogenPerAU.totalNitrogen.toFixed(2)} kg
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      {t.productionIndexes.kgNitrogenPerAU.animalUnits}:
-                    </span>
-                    <span className="font-semibold text-gray-900 dark:text-gray-100">
-                      {aggregatedIndexes.kgNitrogenPerAU.animalUnits.toFixed(2)} AU
-                    </span>
-                  </div>
-                </div>
-              </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-5 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                      {t.productionIndexes.kgMeatPerKgNitrogen.title}
-                    </h3>
-                    <Tooltip
-                      content={t.productionIndexes.kgMeatPerKgNitrogen.description}
-                      position="top"
-                    >
-                      <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-5 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                          {t.productionIndexes.carcassYield.title}
+                        </h3>
+                        <Tooltip
+                          content={t.productionIndexes.carcassYield.description}
+                          position="top"
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
-                      </button>
-                    </Tooltip>
+                          <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
+                            </svg>
+                          </button>
+                        </Tooltip>
+                      </div>
+                      <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
+                        <span className="text-lg">📊</span>
+                      </div>
+                    </div>
+                    <div className="mb-3">
+                      <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                        {aggregatedIndexes.carcassYield.yield.toFixed(2)}
+                        <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                          %
+                        </span>
+                      </p>
+                    </div>
+                    <div className="pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          {t.productionIndexes.carcassYield.count}:
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">
+                          {aggregatedIndexes.carcassYield.count}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          {t.productionIndexes.carcassYield.carcassWeight}:
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">
+                          {aggregatedIndexes.carcassYield.carcassWeight.toFixed(2)} kg
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          {t.productionIndexes.carcassYield.liveWeight}:
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">
+                          {aggregatedIndexes.carcassYield.liveWeight.toFixed(2)} kg
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="w-10 h-10 bg-teal-100 dark:bg-teal-900/30 rounded-lg flex items-center justify-center">
-                    <span className="text-lg">⚡</span>
-                  </div>
-                </div>
-                <div className="mb-3">
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    {aggregatedIndexes.kgMeatPerKgNitrogen.kgMeatPerKgNitrogen.toFixed(2)}{" "}
-                    <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
-                      kg/kg N
-                    </span>
-                  </p>
-                </div>
-                <div className="pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      {t.productionIndexes.kgMeatPerKgNitrogen.totalWeightGain}:
-                    </span>
-                    <span className="font-semibold text-gray-900 dark:text-gray-100">
-                      {aggregatedIndexes.kgMeatPerKgNitrogen.totalWeightGain.toFixed(2)} kg
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      {t.productionIndexes.kgMeatPerKgNitrogen.totalNitrogen}:
-                    </span>
-                    <span className="font-semibold text-gray-900 dark:text-gray-100">
-                      {aggregatedIndexes.kgMeatPerKgNitrogen.totalNitrogen.toFixed(2)} kg
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            selectedPropertyId && (
-              <Suspense
-                fallback={
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {[...Array(8)].map((_, index) => (
-                      <div
-                        key={index}
-                        className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-5 border border-gray-200 dark:border-gray-700 animate-pulse"
-                      >
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32"></div>
-                          <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-5 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                          {t.productionIndexes.slaughterAge.title}
+                        </h3>
+                        <Tooltip
+                          content={t.productionIndexes.slaughterAge.description}
+                          position="top"
+                        >
+                          <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
+                            </svg>
+                          </button>
+                        </Tooltip>
+                      </div>
+                      <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
+                        <span className="text-lg">🎯</span>
+                      </div>
+                    </div>
+                    <div className="mb-3">
+                      <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                        {aggregatedIndexes.slaughterAge.averageAge > 0 ? (
+                          <>
+                            {Math.round(aggregatedIndexes.slaughterAge.averageAge / 30)}{" "}
+                            <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                              meses
+                            </span>
+                          </>
+                        ) : (
+                          "-"
+                        )}
+                      </p>
+                    </div>
+                    {aggregatedIndexes.slaughterAge.averageAge > 0 && (
+                      <div className="pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-600 dark:text-gray-400">
+                            {t.productionIndexes.slaughterAge.min}:
+                          </span>
+                          <span className="font-semibold text-gray-900 dark:text-gray-100">
+                            {Math.round(aggregatedIndexes.slaughterAge.minAge / 30)} meses
+                          </span>
                         </div>
-                        <div className="mb-3">
-                          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-600 dark:text-gray-400">
+                            {t.productionIndexes.slaughterAge.max}:
+                          </span>
+                          <span className="font-semibold text-gray-900 dark:text-gray-100">
+                            {Math.round(aggregatedIndexes.slaughterAge.maxAge / 30)} meses
+                          </span>
                         </div>
-                        <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
-                          <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-20"></div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-600 dark:text-gray-400">
+                            {t.productionIndexes.slaughterAge.count}:
+                          </span>
+                          <span className="font-semibold text-gray-900 dark:text-gray-100">
+                            {aggregatedIndexes.slaughterAge.count}
+                          </span>
                         </div>
                       </div>
-                    ))}
+                    )}
                   </div>
-                }
-              >
-                <ProductionIndexes propertyId={selectedPropertyId} period={selectedPeriod} />
-              </Suspense>
-            )
-          )}
+
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-5 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                          {t.productionIndexes.arrobaProductionPerHectare.title}
+                        </h3>
+                        <Tooltip
+                          content={t.productionIndexes.arrobaProductionPerHectare.description}
+                          position="top"
+                        >
+                          <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
+                            </svg>
+                          </button>
+                        </Tooltip>
+                      </div>
+                      <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
+                        <span className="text-lg">🌾</span>
+                      </div>
+                    </div>
+                    <div className="mb-3">
+                      <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                        {aggregatedIndexes.arrobaProduction.arrobasPerHectare.toFixed(2)}{" "}
+                        <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                          @/ha
+                        </span>
+                      </p>
+                    </div>
+                    <div className="pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          {t.productionIndexes.arrobaProductionPerHectare.totalArrobas}:
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">
+                          {aggregatedIndexes.arrobaProduction.totalArrobas.toFixed(2)} @
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          {t.productionIndexes.arrobaProductionPerHectare.areaInHectares}:
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">
+                          {aggregatedIndexes.arrobaProduction.areaInHectares.toFixed(2)} ha
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-5 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                          {t.productionIndexes.kgNitrogenPerAU.title}
+                        </h3>
+                        <Tooltip
+                          content={t.productionIndexes.kgNitrogenPerAU.description}
+                          position="top"
+                        >
+                          <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
+                            </svg>
+                          </button>
+                        </Tooltip>
+                      </div>
+                      <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
+                        <span className="text-lg">🌱</span>
+                      </div>
+                    </div>
+                    <div className="mb-3">
+                      <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                        {aggregatedIndexes.kgNitrogenPerAU.kgNitrogenPerAU.toFixed(2)}{" "}
+                        <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                          kg N/AU
+                        </span>
+                      </p>
+                    </div>
+                    <div className="pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          {t.productionIndexes.kgNitrogenPerAU.totalNitrogen}:
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">
+                          {aggregatedIndexes.kgNitrogenPerAU.totalNitrogen.toFixed(2)} kg
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          {t.productionIndexes.kgNitrogenPerAU.animalUnits}:
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">
+                          {aggregatedIndexes.kgNitrogenPerAU.animalUnits.toFixed(2)} AU
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-5 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                          {t.productionIndexes.kgMeatPerKgNitrogen.title}
+                        </h3>
+                        <Tooltip
+                          content={t.productionIndexes.kgMeatPerKgNitrogen.description}
+                          position="top"
+                        >
+                          <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
+                            </svg>
+                          </button>
+                        </Tooltip>
+                      </div>
+                      <div className="w-10 h-10 bg-teal-100 dark:bg-teal-900/30 rounded-lg flex items-center justify-center">
+                        <span className="text-lg">⚡</span>
+                      </div>
+                    </div>
+                    <div className="mb-3">
+                      <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                        {aggregatedIndexes.kgMeatPerKgNitrogen.kgMeatPerKgNitrogen.toFixed(2)}{" "}
+                        <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                          kg/kg N
+                        </span>
+                      </p>
+                    </div>
+                    <div className="pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          {t.productionIndexes.kgMeatPerKgNitrogen.totalWeightGain}:
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">
+                          {aggregatedIndexes.kgMeatPerKgNitrogen.totalWeightGain.toFixed(2)} kg
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          {t.productionIndexes.kgMeatPerKgNitrogen.totalNitrogen}:
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">
+                          {aggregatedIndexes.kgMeatPerKgNitrogen.totalNitrogen.toFixed(2)} kg
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            if (selectedPropertyId) {
+              return (
+                <Suspense fallback={<ProductionIndexesSkeleton />}>
+                  <ProductionIndexes propertyId={selectedPropertyId} period={selectedPeriod} />
+                </Suspense>
+              );
+            }
+
+            return null;
+          })()}
         </div>
       )}
 
@@ -1203,7 +1277,7 @@ export default function Dashboard() {
               >
                 {animalDistributionByStatus.map((entry, index) => {
                   const colors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
-                  return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />;
+                  return <Cell key={entry.name} fill={colors[index % colors.length]} />;
                 })}
               </Pie>
               <RechartsTooltip {...getTooltipStyle(isDark)} />
@@ -1224,7 +1298,7 @@ export default function Dashboard() {
             {activities.length > 0 ? (
               activities.map((activity, index) => (
                 <ActivityItem
-                  key={index}
+                  key={`${activity.type}-${activity.date}-${index}`}
                   icon={activity.icon}
                   title={activity.title}
                   date={activity.date}

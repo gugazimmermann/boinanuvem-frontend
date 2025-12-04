@@ -1,93 +1,73 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { createMemoryRouter, RouterProvider } from "react-router";
-import type { RouteObject } from "react-router";
-import type { ComponentProps } from "react";
-import { LanguageProvider } from "~/contexts/language-context";
-import { ThemeProvider } from "~/contexts/theme-context";
-import { AuthProvider } from "~/contexts/auth-context";
-import Login, { loader as loginLoader } from "../login";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter, useNavigate } from "react-router";
+import { loader, meta, links, default as Login } from "../login";
 import { ROUTES } from "~/routes.config";
-import { AuthInput, AuthButton } from "~/components/site/ui";
+import { requireGuest } from "~/utils/route-guard";
+import { authenticateUser } from "~/services/users.service";
+import { useAuth } from "~/contexts/auth-context";
 import type { TeamUser } from "~/types";
-import { getUserById } from "~/services/users.service";
 
-const mockNavigate = vi.fn();
-
-const mockUser: TeamUser = {
-  id: "test-user-id",
-  name: "Test User",
-  email: "test@example.com",
-  phone: "1234567890",
-  status: "active",
-  mainUser: false,
-  companyId: "company-id",
-  createdAt: "2025-01-01",
-  permissions: {} as never,
-};
-
-vi.mock("react-router", async () => {
-  const actual = await vi.importActual("react-router");
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-  };
-});
+vi.mock("~/utils/route-guard", () => ({
+  requireGuest: vi.fn(() => Promise.resolve(null)),
+  useRequireGuest: vi.fn(),
+}));
 
 vi.mock("~/services/users.service", () => ({
-  getUserById: vi.fn((id: string) => {
-    if (id === "test-user-id") return mockUser;
-    return null;
-  }),
-  authenticateUser: vi.fn(() => Promise.resolve(mockUser)),
+  authenticateUser: vi.fn(),
+}));
+
+vi.mock("~/contexts/auth-context", () => ({
+  useAuth: vi.fn(() => ({
+    login: vi.fn(),
+    isAuthenticated: false,
+  })),
+}));
+
+vi.mock("~/components/site/hooks", () => ({
+  useAuthForm: vi.fn(() => ({
+    email: "",
+    password: "",
+    error: "",
+    isLoading: false,
+    setEmail: vi.fn(),
+    setPassword: vi.fn(),
+    handleSubmit: vi.fn((e: React.FormEvent) => {
+      e.preventDefault();
+    }),
+  })),
 }));
 
 vi.mock("~/components/site/auth-layout", () => ({
-  AuthLayout: ({ children }: { children: React.ReactNode }) => (
+  AuthLayout: vi.fn(({ children }: { children: React.ReactNode }) => (
     <div data-testid="auth-layout">{children}</div>
-  ),
+  )),
 }));
 
-vi.mock("~/components/site/ui", async () => {
-  const actual =
-    await vi.importActual<typeof import("~/components/site/ui")>("~/components/site/ui");
-  return {
-    ...actual,
-    AuthInput: ({
-      type,
-      placeholder,
-      showPasswordToggle: _showPasswordToggle,
-      ...props
-    }: ComponentProps<typeof AuthInput> & { fullWidth?: boolean }) => (
-      <input data-testid={`auth-input-${type}`} type={type} placeholder={placeholder} {...props} />
-    ),
-    AuthButton: ({ children, ...props }: ComponentProps<typeof AuthButton>) => (
-      <button
-        data-testid="auth-button"
-        {...(props as React.ButtonHTMLAttributes<HTMLButtonElement>)}
-      >
-        {children}
-      </button>
-    ),
-    AuthCard: ({
-      children,
+vi.mock("~/components/site/ui", () => ({
+  AuthCard: vi.fn(
+    ({
       title,
       subtitle,
+      children,
       footer,
     }: {
+      title: string;
+      subtitle: string;
       children: React.ReactNode;
-      title?: string;
-      subtitle?: string;
       footer?: React.ReactNode;
     }) => (
       <div data-testid="auth-card">
-        {title && <h3>{title}</h3>}
-        {subtitle && <p>{subtitle}</p>}
+        <h1>{title}</h1>
+        <p>{subtitle}</p>
         {children}
         {footer}
       </div>
-    ),
-    AuthFooter: ({
+    )
+  ),
+  AuthFooter: vi.fn(
+    ({
       question,
       linkText,
       linkRoute,
@@ -97,125 +77,595 @@ vi.mock("~/components/site/ui", async () => {
       linkRoute: string;
     }) => (
       <div data-testid="auth-footer">
-        <span>{question} </span>
+        <span>{question}</span>
         <a href={linkRoute}>{linkText}</a>
       </div>
-    ),
-    AuthFormError: ({ error }: { error?: string }) =>
-      error ? <div data-testid="auth-form-error">{error}</div> : null,
+    )
+  ),
+  AuthFormError: vi.fn(({ error }: { error?: string }) =>
+    error ? <div data-testid="auth-form-error">{error}</div> : null
+  ),
+  AuthButton: vi.fn(
+    ({
+      children,
+      type,
+      disabled,
+      onClick,
+    }: {
+      children: React.ReactNode;
+      type?: string;
+      disabled?: boolean;
+      onClick?: () => void;
+    }) => (
+      <button type={type as "button" | "submit" | "reset"} disabled={disabled} onClick={onClick}>
+        {children}
+      </button>
+    )
+  ),
+}));
+
+vi.mock("~/components/ui", () => ({
+  Input: vi.fn(
+    ({
+      type,
+      placeholder,
+      value,
+      onChange,
+      error,
+      showPasswordToggle,
+      "aria-label": ariaLabel,
+    }: {
+      type?: string;
+      placeholder?: string;
+      value?: string;
+      onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+      error?: string;
+      showPasswordToggle?: boolean;
+      "aria-label"?: string;
+    }) => (
+      <div>
+        <input
+          type={type}
+          placeholder={placeholder}
+          value={value}
+          onChange={onChange}
+          aria-label={ariaLabel}
+          data-error={error}
+          data-password-toggle={showPasswordToggle}
+        />
+        {error && <span data-testid="input-error">{error}</span>}
+      </div>
+    )
+  ),
+}));
+
+vi.mock("react-router", async () => {
+  const actual = await vi.importActual("react-router");
+  return {
+    ...actual,
+    useNavigate: vi.fn(() => vi.fn()),
   };
 });
 
-describe("Login", () => {
-  const createRouter = (isAuthenticated = false, includeLoader = false) => {
-    if (isAuthenticated && typeof window !== "undefined") {
-      localStorage.setItem("currentUserId", "test-user-id");
-    } else if (typeof window !== "undefined") {
-      localStorage.removeItem("currentUserId");
-    }
-    const routeConfig: RouteObject = {
-      path: "/login",
-      element: (
-        <LanguageProvider>
-          <ThemeProvider>
-            <AuthProvider>
-              <Login />
-            </AuthProvider>
-          </ThemeProvider>
-        </LanguageProvider>
-      ),
-      ...(includeLoader && { loader: loginLoader }),
-    };
-    return createMemoryRouter(
-      [
-        routeConfig,
-        {
-          path: ROUTES.DASHBOARD,
-          element: <div data-testid="dashboard-page">Dashboard</div>,
-        },
-      ],
-      {
-        initialEntries: ["/login"],
-      }
-    );
-  };
+vi.mock("~/i18n", () => ({
+  useTranslation: vi.fn(() => ({
+    common: {
+      emailRequired: "Email é obrigatório",
+      passwordRequired: "Senha é obrigatória",
+      invalidCredentials: "Credenciais inválidas",
+      loginError: "Erro ao fazer login",
+      ariaLabels: {
+        email: "Email",
+        password: "Senha",
+      },
+    },
+  })),
+}));
 
+const TestWrapper = ({ children }: { children: React.ReactNode }) => (
+  <MemoryRouter>{children}</MemoryRouter>
+);
+
+describe("login", () => {
   beforeEach(() => {
-    if (typeof window !== "undefined") {
-      localStorage.clear();
-    }
     vi.clearAllMocks();
-    vi.mocked(getUserById).mockReturnValue(mockUser);
   });
 
-  it("should render login form", () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    expect(screen.getByTestId("auth-layout")).toBeInTheDocument();
-    expect(screen.getByTestId("auth-input-email")).toBeInTheDocument();
-    expect(screen.getByTestId("auth-input-password")).toBeInTheDocument();
-    expect(screen.getByTestId("auth-button")).toBeInTheDocument();
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
-  it("should display login form elements", () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
-
-    expect(screen.getByPlaceholderText("Email")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Senha")).toBeInTheDocument();
-    expect(screen.getByText("Entrar")).toBeInTheDocument();
-    expect(screen.getByText("Bem-vindo de volta")).toBeInTheDocument();
-    expect(screen.getByText("Faça login ou crie uma conta")).toBeInTheDocument();
+  describe("loader", () => {
+    it("should call requireGuest", async () => {
+      await loader();
+      expect(requireGuest).toHaveBeenCalled();
+    });
   });
 
-  it("should navigate to dashboard on form submit", async () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
+  describe("meta", () => {
+    it("should return SEO meta tags", () => {
+      const result = meta();
+      expect(result).toBeDefined();
+      expect(Array.isArray(result)).toBe(true);
+    });
 
-    const emailInput = screen.getByTestId("auth-input-email");
-    const passwordInput = screen.getByTestId("auth-input-password");
+    it("should include noindex", () => {
+      const result = meta();
+      const robotsTag = result.find((tag) => "name" in tag && tag.name === "robots");
+      expect(robotsTag).toBeDefined();
+      if (robotsTag && "content" in robotsTag) {
+        expect(robotsTag.content).toContain("noindex");
+      }
+    });
+  });
 
-    fireEvent.change(emailInput, { target: { value: "test@example.com" } });
-    fireEvent.change(passwordInput, { target: { value: "password123" } });
+  describe("links", () => {
+    it("should return canonical link", () => {
+      const result = links();
+      expect(result).toHaveLength(1);
+      expect(result[0].rel).toBe("canonical");
+      expect(result[0].href).toBe("https://boinanuvem.com.br/entrar");
+    });
+  });
 
-    const form = emailInput.closest("form");
-    if (form) {
-      fireEvent.submit(form);
-      await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith(ROUTES.DASHBOARD);
+  describe("Login component", () => {
+    it("should render AuthLayout", () => {
+      render(
+        <TestWrapper>
+          <Login />
+        </TestWrapper>
+      );
+
+      expect(screen.getByTestId("auth-layout")).toBeInTheDocument();
+    });
+
+    it("should render AuthCard with correct title and subtitle", () => {
+      render(
+        <TestWrapper>
+          <Login />
+        </TestWrapper>
+      );
+
+      expect(screen.getByText("Bem-vindo de volta")).toBeInTheDocument();
+      expect(screen.getByText("Faça login ou crie uma conta")).toBeInTheDocument();
+    });
+
+    it("should render email and password inputs", () => {
+      render(
+        <TestWrapper>
+          <Login />
+        </TestWrapper>
+      );
+
+      const emailInput = screen.getByPlaceholderText("Email");
+      const passwordInput = screen.getByPlaceholderText("Senha");
+      expect(emailInput).toBeInTheDocument();
+      expect(passwordInput).toBeInTheDocument();
+    });
+
+    it("should render submit button", () => {
+      render(
+        <TestWrapper>
+          <Login />
+        </TestWrapper>
+      );
+
+      const button = screen.getByText("Entrar");
+      expect(button).toBeInTheDocument();
+    });
+
+    it("should render forgot password link", () => {
+      render(
+        <TestWrapper>
+          <Login />
+        </TestWrapper>
+      );
+
+      const link = screen.getByText("Esqueceu a senha?");
+      expect(link).toBeInTheDocument();
+      expect(link.closest("a")).toHaveAttribute("href", ROUTES.FORGOT_PASSWORD);
+    });
+
+    it("should render AuthFooter with link to register", () => {
+      render(
+        <TestWrapper>
+          <Login />
+        </TestWrapper>
+      );
+
+      const footer = screen.getByTestId("auth-footer");
+      expect(footer).toBeInTheDocument();
+      expect(screen.getByText("Não tem uma conta?")).toBeInTheDocument();
+      const link = screen.getByText("Registrar");
+      expect(link).toHaveAttribute("href", ROUTES.REGISTER);
+    });
+
+    it("should display error message when error exists", async () => {
+      const { useAuthForm } = await import("~/components/site/hooks");
+      vi.mocked(useAuthForm).mockReturnValueOnce({
+        email: "",
+        password: "",
+        error: "invalidCredentials",
+        isLoading: false,
+        setEmail: vi.fn(),
+        setPassword: vi.fn(),
+        handleSubmit: vi.fn((e: React.FormEvent) => {
+          e.preventDefault();
+        }),
       });
-    }
-  });
 
-  it("should have forgot password link", () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
+      render(
+        <TestWrapper>
+          <Login />
+        </TestWrapper>
+      );
 
-    const forgotPasswordLink = screen.getByText("Esqueceu a senha?");
-    expect(forgotPasswordLink).toBeInTheDocument();
-    expect(forgotPasswordLink.closest("a")).toHaveAttribute("href", ROUTES.FORGOT_PASSWORD);
-  });
+      expect(screen.getByTestId("auth-form-error")).toBeInTheDocument();
+    });
 
-  it("should have register link", () => {
-    const router = createRouter();
-    render(<RouterProvider router={router} />);
+    it("should show loading state on button when isLoading is true", async () => {
+      const { useAuthForm } = await import("~/components/site/hooks");
+      vi.mocked(useAuthForm).mockReturnValueOnce({
+        email: "",
+        password: "",
+        error: "",
+        isLoading: true,
+        setEmail: vi.fn(),
+        setPassword: vi.fn(),
+        handleSubmit: vi.fn((e: React.FormEvent) => {
+          e.preventDefault();
+        }),
+      });
 
-    const registerLink = screen.getByText("Registrar");
-    expect(registerLink).toBeInTheDocument();
-    expect(registerLink.closest("a")).toHaveAttribute("href", ROUTES.REGISTER);
-  });
+      render(
+        <TestWrapper>
+          <Login />
+        </TestWrapper>
+      );
 
-  it("should have correct meta function", () => {
-    expect(Login).toBeDefined();
-  });
+      const button = screen.getByText("Entrando...");
+      expect(button).toBeInTheDocument();
+      expect(button).toBeDisabled();
+    });
 
-  it("should redirect to dashboard when user is already authenticated", async () => {
-    const router = createRouter(true, true);
-    render(<RouterProvider router={router} />);
+    it("should call setEmail when email input value changes", async () => {
+      const mockSetEmail = vi.fn();
+      const { useAuthForm } = await import("~/components/site/hooks");
+      vi.mocked(useAuthForm).mockReturnValueOnce({
+        email: "",
+        password: "",
+        error: "",
+        isLoading: false,
+        setEmail: mockSetEmail,
+        setPassword: vi.fn(),
+        handleSubmit: vi.fn((e: React.FormEvent) => {
+          e.preventDefault();
+        }),
+      });
 
-    await waitFor(() => {
-      expect(screen.getByTestId("dashboard-page")).toBeInTheDocument();
+      render(
+        <TestWrapper>
+          <Login />
+        </TestWrapper>
+      );
+
+      const emailInput = screen.getByPlaceholderText("Email");
+      await userEvent.type(emailInput, "test@example.com");
+
+      expect(mockSetEmail).toHaveBeenCalled();
+    });
+
+    it("should call setPassword when password input value changes", async () => {
+      const mockSetPassword = vi.fn();
+      const { useAuthForm } = await import("~/components/site/hooks");
+      vi.mocked(useAuthForm).mockReturnValueOnce({
+        email: "",
+        password: "",
+        error: "",
+        isLoading: false,
+        setEmail: vi.fn(),
+        setPassword: mockSetPassword,
+        handleSubmit: vi.fn((e: React.FormEvent) => {
+          e.preventDefault();
+        }),
+      });
+
+      render(
+        <TestWrapper>
+          <Login />
+        </TestWrapper>
+      );
+
+      const passwordInput = screen.getByPlaceholderText("Senha");
+      await userEvent.type(passwordInput, "password123");
+
+      expect(mockSetPassword).toHaveBeenCalled();
+    });
+
+    it("should display error message for emailRequired", async () => {
+      const { useAuthForm } = await import("~/components/site/hooks");
+      vi.mocked(useAuthForm).mockReturnValueOnce({
+        email: "",
+        password: "",
+        error: "emailRequired",
+        isLoading: false,
+        setEmail: vi.fn(),
+        setPassword: vi.fn(),
+        handleSubmit: vi.fn((e: React.FormEvent) => {
+          e.preventDefault();
+        }),
+      });
+
+      render(
+        <TestWrapper>
+          <Login />
+        </TestWrapper>
+      );
+
+      expect(screen.getByTestId("auth-form-error")).toHaveTextContent("Email é obrigatório");
+      expect(screen.getByTestId("input-error")).toHaveTextContent("Email é obrigatório");
+    });
+
+    it("should display error message for passwordRequired", async () => {
+      const { useAuthForm } = await import("~/components/site/hooks");
+      vi.mocked(useAuthForm).mockReturnValueOnce({
+        email: "",
+        password: "",
+        error: "passwordRequired",
+        isLoading: false,
+        setEmail: vi.fn(),
+        setPassword: vi.fn(),
+        handleSubmit: vi.fn((e: React.FormEvent) => {
+          e.preventDefault();
+        }),
+      });
+
+      render(
+        <TestWrapper>
+          <Login />
+        </TestWrapper>
+      );
+
+      expect(screen.getByTestId("auth-form-error")).toHaveTextContent("Senha é obrigatória");
+      expect(screen.getByTestId("input-error")).toHaveTextContent("Senha é obrigatória");
+    });
+
+    it("should display error message for invalidCredentials", async () => {
+      const { useAuthForm } = await import("~/components/site/hooks");
+      vi.mocked(useAuthForm).mockReturnValueOnce({
+        email: "",
+        password: "",
+        error: "invalidCredentials",
+        isLoading: false,
+        setEmail: vi.fn(),
+        setPassword: vi.fn(),
+        handleSubmit: vi.fn((e: React.FormEvent) => {
+          e.preventDefault();
+        }),
+      });
+
+      render(
+        <TestWrapper>
+          <Login />
+        </TestWrapper>
+      );
+
+      expect(screen.getByTestId("auth-form-error")).toHaveTextContent("Credenciais inválidas");
+    });
+
+    it("should display error message for unknownError", async () => {
+      const { useAuthForm } = await import("~/components/site/hooks");
+      vi.mocked(useAuthForm).mockReturnValueOnce({
+        email: "",
+        password: "",
+        error: "unknownError",
+        isLoading: false,
+        setEmail: vi.fn(),
+        setPassword: vi.fn(),
+        handleSubmit: vi.fn((e: React.FormEvent) => {
+          e.preventDefault();
+        }),
+      });
+
+      render(
+        <TestWrapper>
+          <Login />
+        </TestWrapper>
+      );
+
+      expect(screen.getByTestId("auth-form-error")).toHaveTextContent("Erro ao fazer login");
+    });
+
+    it("should display fallback error message for unknown error key", async () => {
+      const { useAuthForm } = await import("~/components/site/hooks");
+      vi.mocked(useAuthForm).mockReturnValueOnce({
+        email: "",
+        password: "",
+        error: "someOtherError",
+        isLoading: false,
+        setEmail: vi.fn(),
+        setPassword: vi.fn(),
+        handleSubmit: vi.fn((e: React.FormEvent) => {
+          e.preventDefault();
+        }),
+      });
+
+      render(
+        <TestWrapper>
+          <Login />
+        </TestWrapper>
+      );
+
+      expect(screen.getByTestId("auth-form-error")).toHaveTextContent("Erro ao fazer login");
+    });
+
+    it("should not show email input error when error is not emailRequired", async () => {
+      const { useAuthForm } = await import("~/components/site/hooks");
+      vi.mocked(useAuthForm).mockReturnValueOnce({
+        email: "",
+        password: "",
+        error: "passwordRequired",
+        isLoading: false,
+        setEmail: vi.fn(),
+        setPassword: vi.fn(),
+        handleSubmit: vi.fn((e: React.FormEvent) => {
+          e.preventDefault();
+        }),
+      });
+
+      render(
+        <TestWrapper>
+          <Login />
+        </TestWrapper>
+      );
+
+      const emailInput = screen.getByPlaceholderText("Email");
+      expect(emailInput).not.toHaveAttribute(
+        "data-error",
+        expect.stringContaining("Email é obrigatório")
+      );
+    });
+
+    it("should not show password input error when error is not passwordRequired", async () => {
+      const { useAuthForm } = await import("~/components/site/hooks");
+      vi.mocked(useAuthForm).mockReturnValueOnce({
+        email: "",
+        password: "",
+        error: "emailRequired",
+        isLoading: false,
+        setEmail: vi.fn(),
+        setPassword: vi.fn(),
+        handleSubmit: vi.fn((e: React.FormEvent) => {
+          e.preventDefault();
+        }),
+      });
+
+      render(
+        <TestWrapper>
+          <Login />
+        </TestWrapper>
+      );
+
+      const passwordInput = screen.getByPlaceholderText("Senha");
+      expect(passwordInput).not.toHaveAttribute(
+        "data-error",
+        expect.stringContaining("Senha é obrigatória")
+      );
+    });
+
+    it("should call handleSubmit when form is submitted", async () => {
+      const mockHandleSubmit = vi.fn((e: React.FormEvent) => {
+        e.preventDefault();
+      });
+      const { useAuthForm } = await import("~/components/site/hooks");
+      vi.mocked(useAuthForm).mockReturnValueOnce({
+        email: "test@example.com",
+        password: "password123",
+        error: "",
+        isLoading: false,
+        setEmail: vi.fn(),
+        setPassword: vi.fn(),
+        handleSubmit: mockHandleSubmit,
+      });
+
+      render(
+        <TestWrapper>
+          <Login />
+        </TestWrapper>
+      );
+
+      const submitButton = screen.getByText("Entrar");
+      await userEvent.click(submitButton);
+
+      expect(mockHandleSubmit).toHaveBeenCalled();
+    });
+
+    it("should pass correct onSubmit callback to useAuthForm", async () => {
+      const mockNavigate = vi.fn();
+      const mockLogin = vi.fn();
+      const mockUser = { id: "123" };
+
+      vi.mocked(useNavigate).mockReturnValue(mockNavigate);
+      vi.mocked(useAuth).mockReturnValue({
+        currentUser: null,
+        login: mockLogin,
+        logout: vi.fn(),
+        isAuthenticated: false,
+      });
+      vi.mocked(authenticateUser).mockResolvedValue(mockUser as TeamUser);
+
+      const { useAuthForm } = await import("~/components/site/hooks");
+      let capturedOnSubmit: ((email: string, password: string) => Promise<void>) | undefined;
+
+      vi.mocked(useAuthForm).mockImplementation(
+        (options: { onSubmit: (email: string, password: string) => Promise<void> }) => {
+          capturedOnSubmit = options.onSubmit;
+          return {
+            email: "test@example.com",
+            password: "password123",
+            error: "",
+            isLoading: false,
+            setEmail: vi.fn(),
+            setPassword: vi.fn(),
+            handleSubmit: vi.fn((e: React.FormEvent) => {
+              e.preventDefault();
+            }),
+          };
+        }
+      );
+
+      render(
+        <TestWrapper>
+          <Login />
+        </TestWrapper>
+      );
+
+      // Test that onSubmit callback is properly set up and works correctly
+      expect(capturedOnSubmit).toBeDefined();
+      if (capturedOnSubmit) {
+        const promise = capturedOnSubmit("test@example.com", "password123");
+        await promise;
+
+        expect(authenticateUser).toHaveBeenCalledWith("test@example.com", "password123");
+        expect(mockLogin).toHaveBeenCalledWith("123");
+        expect(mockNavigate).toHaveBeenCalledWith(ROUTES.DASHBOARD);
+      }
+    });
+
+    it("should throw error when authenticateUser returns null in onSubmit", async () => {
+      vi.mocked(authenticateUser).mockResolvedValue(null);
+
+      const { useAuthForm } = await import("~/components/site/hooks");
+      let capturedOnSubmit: ((email: string, password: string) => Promise<void>) | undefined;
+
+      vi.mocked(useAuthForm).mockImplementation(
+        (options: { onSubmit: (email: string, password: string) => Promise<void> }) => {
+          capturedOnSubmit = options.onSubmit;
+          return {
+            email: "test@example.com",
+            password: "password123",
+            error: "",
+            isLoading: false,
+            setEmail: vi.fn(),
+            setPassword: vi.fn(),
+            handleSubmit: vi.fn((e: React.FormEvent) => {
+              e.preventDefault();
+            }),
+          };
+        }
+      );
+
+      render(
+        <TestWrapper>
+          <Login />
+        </TestWrapper>
+      );
+
+      if (capturedOnSubmit) {
+        await expect(capturedOnSubmit("test@example.com", "password123")).rejects.toThrow(
+          "invalidCredentials"
+        );
+      }
     });
   });
 });

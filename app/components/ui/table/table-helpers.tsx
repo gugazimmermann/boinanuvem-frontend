@@ -2,8 +2,8 @@ import type { ReactNode } from "react";
 import { COLORS } from "../../site/constants";
 
 interface StatusBadgeProps {
-  label: string;
-  variant?: "success" | "warning" | "danger" | "info" | "default";
+  readonly label: string;
+  readonly variant?: "success" | "warning" | "danger" | "info" | "default";
 }
 
 const statusBadgeVariants = {
@@ -36,10 +36,10 @@ export function StatusBadge({ label, variant = "default" }: StatusBadgeProps) {
 }
 
 interface ProgressBarProps {
-  value: number;
-  max?: number;
-  className?: string;
-  barClassName?: string;
+  readonly value: number;
+  readonly max?: number;
+  readonly className?: string;
+  readonly barClassName?: string;
 }
 
 export function ProgressBar({
@@ -63,9 +63,9 @@ export function ProgressBar({
 }
 
 interface UserAvatarsProps {
-  users: Array<{ name: string; avatar?: string }>;
-  maxVisible?: number;
-  size?: "sm" | "md" | "lg";
+  readonly users: Array<{ name: string; avatar?: string }>;
+  readonly maxVisible?: number;
+  readonly size?: "sm" | "md" | "lg";
 }
 
 const avatarSizes = {
@@ -81,9 +81,9 @@ export function UserAvatars({ users, maxVisible = 4, size = "md" }: UserAvatarsP
 
   return (
     <div className="flex items-center">
-      {visibleUsers.map((user, index) => (
+      {visibleUsers.map((user) => (
         <img
-          key={index}
+          key={user.name}
           src={
             user.avatar ||
             `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`
@@ -104,10 +104,10 @@ export function UserAvatars({ users, maxVisible = 4, size = "md" }: UserAvatarsP
 }
 
 interface ActionButtonProps {
-  onClick: () => void;
-  icon?: ReactNode;
-  label?: string;
-  className?: string;
+  readonly onClick: () => void;
+  readonly icon?: ReactNode;
+  readonly label?: string;
+  readonly className?: string;
 }
 
 export function ActionButton({ onClick, icon, label, className = "" }: ActionButtonProps) {
@@ -138,13 +138,13 @@ export function ActionButton({ onClick, icon, label, className = "" }: ActionBut
 }
 
 interface TableActionButtonsProps {
-  onView?: () => void;
-  onEdit?: () => void;
-  onDelete?: () => void;
-  className?: string;
-  canView?: boolean;
-  canEdit?: boolean;
-  canDelete?: boolean;
+  readonly onView?: () => void;
+  readonly onEdit?: () => void;
+  readonly onDelete?: () => void;
+  readonly className?: string;
+  readonly canView?: boolean;
+  readonly canEdit?: boolean;
+  readonly canDelete?: boolean;
 }
 
 export function TableActionButtons({

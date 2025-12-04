@@ -1,17 +1,6 @@
-import { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams, Link } from "react-router";
-import {
-  differenceInMonths,
-  differenceInDays,
-  format,
-  startOfMonth,
-  endOfMonth,
-  subMonths,
-  parseISO,
-} from "date-fns";
-import { ptBR } from "date-fns/locale/pt-BR";
-import { enUS } from "date-fns/locale/en-US";
-import { es } from "date-fns/locale/es";
+import { differenceInDays, format } from "date-fns";
 import {
   Button,
   StatusBadge,
@@ -19,7 +8,6 @@ import {
   TableActionButtons,
   ConfirmationModal,
   AnimalRegistrationModal,
-  Alert,
   Select,
   type TableColumn,
   type TableAction,
@@ -42,29 +30,6 @@ import {
   getBuyerViewRoute,
   getMovementViewRoute,
   getMovementNewRoute,
-} from "~/routes.config";
-import { getPropertyById } from "~/services/properties.service";
-import { getLocationsByPropertyId, getLocationById } from "~/services/locations.service";
-import { getEmployeesByPropertyId, getEmployeeById } from "~/services/employees.service";
-import {
-  getServiceProvidersByPropertyId,
-  getServiceProviderById,
-} from "~/services/service-providers.service";
-import { getSuppliersByPropertyId } from "~/services/suppliers.service";
-import { getBuyersByPropertyId } from "~/services/buyers.service";
-import { getLocationMovementsByPropertyId } from "~/services/location-movements.service";
-import { getAnimalMovementsByPropertyId } from "~/services/animal-movements.service";
-import { getAnimalsByPropertyId, deleteAnimal, getAnimalById } from "~/services/animals.service";
-import { getBirthByAnimalId } from "~/services/births.service";
-import { getWeighingsByAnimalId } from "~/services/weighings.service";
-import { getBreedingsByAnimalId } from "~/services/breedings.service";
-import { getExpectedBirthsForecast } from "~/services/reproductive-indexes.service";
-import { getCashFlowByPropertyId } from "~/services/cash-flow.service";
-import { getAccountsReceivableByPropertyId } from "~/services/accounts-receivable.service";
-import { getAccountsPayableByPropertyId } from "~/services/accounts-payable.service";
-import { getSupplierById } from "~/services/suppliers.service";
-import { getBuyerById } from "~/services/buyers.service";
-import {
   getAnimalViewRoute,
   getAnimalEditRoute,
   getAnimalMovementNewRoute,
@@ -75,12 +40,34 @@ import {
   getAccountsPayableViewRoute,
   getAccountsPayableEditRoute,
 } from "~/routes.config";
-import { deleteCashFlow } from "~/services/cash-flow.service";
+import { getPropertyById } from "~/services/properties.service";
+import { getLocationsByPropertyId, getLocationById } from "~/services/locations.service";
+import { getEmployeesByPropertyId, getEmployeeById } from "~/services/employees.service";
+import {
+  getServiceProvidersByPropertyId,
+  getServiceProviderById,
+} from "~/services/service-providers.service";
+import { getSuppliersByPropertyId, getSupplierById } from "~/services/suppliers.service";
+import { getBuyersByPropertyId, getBuyerById } from "~/services/buyers.service";
+import { getLocationMovementsByPropertyId } from "~/services/location-movements.service";
+import { getAnimalMovementsByPropertyId } from "~/services/animal-movements.service";
+import { getAnimalsByPropertyId, deleteAnimal, getAnimalById } from "~/services/animals.service";
+import { getBirthByAnimalId } from "~/services/births.service";
+import { getWeighingsByAnimalId } from "~/services/weighings.service";
+import { getExpectedBirthsForecast } from "~/services/reproductive-indexes.service";
+import { getCashFlowByPropertyId } from "~/services/cash-flow.service";
+import { getAccountsReceivableByPropertyId } from "~/services/accounts-receivable.service";
+import { getAccountsPayableByPropertyId } from "~/services/accounts-payable.service";
 import { usePermissions } from "~/utils/permissions";
-import { deleteAccountsReceivable } from "~/services/accounts-receivable.service";
-import { deleteAccountsPayable } from "~/services/accounts-payable.service";
+import { useFinanceTransactionHandlers } from "~/hooks/use-finance-transaction-handlers";
+import type { UnifiedTransaction } from "~/hooks/use-finance-transactions";
+import { createMovementsTableColumns } from "~/utils/movements-table-columns";
+import { sortItems } from "~/utils/sorting";
+import { toSafeString } from "~/utils/table-helpers";
+import { renderEntityName } from "~/utils/entity-name-renderer";
 import type {
   Location,
+  Property,
   Employee,
   ServiceProvider,
   Supplier,
@@ -91,423 +78,17 @@ import type {
   CashFlow,
   AccountsReceivable,
   AccountsPayable,
+  Language,
 } from "~/types";
 import { AreaType } from "~/types";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
 import { LocationTypeBadge } from "~/components/dashboard/utils/location-type-badge";
-import {
-  LineChart,
-  Line,
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from "recharts";
-import { useTheme } from "~/contexts/theme-context";
-import { ChartWrapper, getTooltipStyle, getChartColors } from "~/components/dashboard";
-import { AccountsPayableStatus, AccountsReceivableStatus } from "~/types";
 import { ReproductiveIndexes } from "~/components/dashboard/reproductive-indexes/reproductive-indexes";
-
+import { FinanceDashboard } from "~/components/dashboard/finance/finance-dashboard";
+import { useAlert } from "~/hooks/use-alert";
+import { useDateLocale } from "~/hooks/use-date-locale";
 import { formatAreaType, formatNumber } from "~/utils/formatting";
-
-const monthNames = [
-  "Jan",
-  "Fev",
-  "Mar",
-  "Abr",
-  "Mai",
-  "Jun",
-  "Jul",
-  "Ago",
-  "Set",
-  "Out",
-  "Nov",
-  "Dez",
-];
-
-interface PropertyFinanceDashboardProps {
-  propertyId: string;
-}
-
-function PropertyFinanceDashboard({ propertyId }: PropertyFinanceDashboardProps) {
-  const t = useTranslation();
-  const { language } = useLanguage();
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
-
-  const cashFlowData = useMemo(() => getCashFlowByPropertyId(propertyId), [propertyId]);
-  const accountsPayableData = useMemo(
-    () => getAccountsPayableByPropertyId(propertyId),
-    [propertyId]
-  );
-  const accountsReceivableData = useMemo(
-    () => getAccountsReceivableByPropertyId(propertyId),
-    [propertyId]
-  );
-
-  const currentDate = useMemo(() => new Date(), []);
-  const currentMonthStart = useMemo(() => startOfMonth(currentDate), [currentDate]);
-  const currentMonthEnd = useMemo(() => endOfMonth(currentDate), [currentDate]);
-
-  const currentMonthCashFlow = cashFlowData.filter((transaction) => {
-    const transactionDate = parseISO(transaction.date);
-    return transactionDate >= currentMonthStart && transactionDate <= currentMonthEnd;
-  });
-
-  const localeForCurrency = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat(localeForCurrency, {
-      style: "currency",
-      currency: "BRL",
-    }).format(value);
-  };
-
-  const totalIncome = currentMonthCashFlow
-    .filter((t) => t.type === "income")
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const totalExpenses = currentMonthCashFlow
-    .filter((t) => t.type === "expense")
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const netCashFlow = totalIncome - totalExpenses;
-
-  const unpaidPayable = accountsPayableData.filter(
-    (ap) =>
-      ap.status === AccountsPayableStatus.UNPAID || ap.status === AccountsPayableStatus.OVERDUE
-  );
-  const totalAccountsPayable = unpaidPayable.reduce((sum, ap) => {
-    const remainingAmount = ap.paidAmount ? ap.amount - ap.paidAmount : ap.amount;
-    return sum + remainingAmount;
-  }, 0);
-
-  const unpaidReceivable = accountsReceivableData.filter(
-    (ar) =>
-      ar.status === AccountsReceivableStatus.UNPAID ||
-      ar.status === AccountsReceivableStatus.OVERDUE
-  );
-  const totalAccountsReceivable = unpaidReceivable.reduce((sum, ar) => {
-    const remainingAmount = ar.paidAmount ? ar.amount - ar.paidAmount : ar.amount;
-    return sum + remainingAmount;
-  }, 0);
-
-  const today = useMemo(() => {
-    const date = new Date();
-    date.setHours(0, 0, 0, 0);
-    return date;
-  }, []);
-
-  const overduePayable = useMemo(
-    () =>
-      accountsPayableData.filter((ap) => {
-        const dueDate = parseISO(ap.dueDate);
-        dueDate.setHours(0, 0, 0, 0);
-        return (
-          (ap.status === AccountsPayableStatus.UNPAID ||
-            ap.status === AccountsPayableStatus.OVERDUE) &&
-          dueDate < today
-        );
-      }),
-    [accountsPayableData, today]
-  );
-
-  const overdueReceivable = useMemo(
-    () =>
-      accountsReceivableData.filter((ar) => {
-        const dueDate = parseISO(ar.dueDate);
-        dueDate.setHours(0, 0, 0, 0);
-        return (
-          (ar.status === AccountsReceivableStatus.UNPAID ||
-            ar.status === AccountsReceivableStatus.OVERDUE) &&
-          dueDate < today
-        );
-      }),
-    [accountsReceivableData, today]
-  );
-
-  const totalOverduePayable = useMemo(() => {
-    return overduePayable.reduce((sum, ap) => {
-      const remainingAmount = ap.paidAmount ? ap.amount - ap.paidAmount : ap.amount;
-      return sum + remainingAmount;
-    }, 0);
-  }, [overduePayable]);
-
-  const totalOverdueReceivable = useMemo(() => {
-    return overdueReceivable.reduce((sum, ar) => {
-      const remainingAmount = ar.paidAmount ? ar.amount - ar.paidAmount : ar.amount;
-      return sum + remainingAmount;
-    }, 0);
-  }, [overdueReceivable]);
-
-  const totalOverdue = totalOverduePayable + totalOverdueReceivable;
-
-  const monthlyData = useMemo(() => {
-    const months: Record<string, { month: string; income: number; expenses: number; net: number }> =
-      {};
-
-    for (let i = 11; i >= 0; i--) {
-      const monthDate = subMonths(currentDate, i);
-      const monthKey = format(monthDate, "yyyy-MM");
-      const monthStart = startOfMonth(monthDate);
-      const monthEnd = endOfMonth(monthDate);
-
-      months[monthKey] = {
-        month: monthNames[monthDate.getMonth()],
-        income: 0,
-        expenses: 0,
-        net: 0,
-      };
-
-      cashFlowData.forEach((transaction) => {
-        const transactionDate = parseISO(transaction.date);
-        if (transactionDate >= monthStart && transactionDate <= monthEnd) {
-          if (transaction.type === "income") {
-            months[monthKey].income += transaction.amount;
-          } else {
-            months[monthKey].expenses += transaction.amount;
-          }
-        }
-      });
-
-      months[monthKey].net = months[monthKey].income - months[monthKey].expenses;
-    }
-
-    return Object.values(months);
-  }, [cashFlowData, currentDate]);
-
-  const expenseCategoriesData = useMemo(() => {
-    const categories: Record<string, number> = {};
-
-    cashFlowData.forEach((transaction) => {
-      if (transaction.type === "expense") {
-        const categoryKey = transaction.category;
-        const categoryName = t.cashFlow.categories[categoryKey] || categoryKey;
-
-        if (!categories[categoryName]) {
-          categories[categoryName] = 0;
-        }
-
-        categories[categoryName] += transaction.amount;
-      }
-    });
-
-    return Object.entries(categories)
-      .map(([name, value]) => ({ name, value }))
-      .filter((item) => item.value > 0)
-      .sort((a, b) => b.value - a.value);
-  }, [cashFlowData, t]);
-
-  const chartColors = getChartColors(isDark);
-  const tooltipStyle = getTooltipStyle(isDark);
-
-  return (
-    <div className="space-y-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                {t.financesDashboard.cards.totalIncome}
-              </p>
-              <p className="text-xl font-bold text-green-600 dark:text-green-400 mt-1">
-                {formatCurrency(totalIncome)}
-              </p>
-            </div>
-            <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-              <span className="text-lg">📈</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                {t.financesDashboard.cards.totalExpenses}
-              </p>
-              <p className="text-xl font-bold text-red-600 dark:text-red-400 mt-1">
-                {formatCurrency(totalExpenses)}
-              </p>
-            </div>
-            <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
-              <span className="text-lg">📉</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                {t.financesDashboard.cards.netCashFlow}
-              </p>
-              <p
-                className={`text-xl font-bold mt-1 ${
-                  netCashFlow >= 0
-                    ? "text-green-600 dark:text-green-400"
-                    : "text-red-600 dark:text-red-400"
-                }`}
-              >
-                {formatCurrency(netCashFlow)}
-              </p>
-            </div>
-            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-              <span className="text-lg">💰</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                {t.financesDashboard.cards.accountsPayable}
-              </p>
-              <p className="text-xl font-bold text-orange-600 dark:text-orange-400 mt-1">
-                {formatCurrency(totalAccountsPayable)}
-              </p>
-            </div>
-            <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
-              <span className="text-lg">📤</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                {t.financesDashboard.cards.accountsReceivable}
-              </p>
-              <p className="text-xl font-bold text-blue-600 dark:text-blue-400 mt-1">
-                {formatCurrency(totalAccountsReceivable)}
-              </p>
-            </div>
-            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-              <span className="text-lg">📥</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                {t.financesDashboard.cards.overdue}
-              </p>
-              <p className="text-xl font-bold text-red-600 dark:text-red-400 mt-1">
-                {formatCurrency(totalOverdue)}
-              </p>
-            </div>
-            <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
-              <span className="text-lg">⚠️</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartWrapper
-          title={t.financesDashboard.charts.incomeVsExpenses}
-          isEmpty={monthlyData.length === 0}
-          emptyMessage={t.financesDashboard.charts.noData}
-        >
-          <LineChart data={monthlyData}>
-            <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
-            <XAxis dataKey="month" tick={{ fill: chartColors.text, fontSize: 12 }} />
-            <YAxis
-              tick={{ fill: chartColors.text, fontSize: 12 }}
-              tickFormatter={(value) => t.common.currency.formatShort(value)}
-            />
-            <Tooltip {...tooltipStyle} formatter={(value: number) => formatCurrency(value)} />
-            <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
-            <Line
-              type="monotone"
-              dataKey="income"
-              stroke={chartColors.income}
-              strokeWidth={2}
-              name={t.financesDashboard.charts.income}
-            />
-            <Line
-              type="monotone"
-              dataKey="expenses"
-              stroke={chartColors.expense}
-              strokeWidth={2}
-              name={t.financesDashboard.charts.expenses}
-            />
-          </LineChart>
-        </ChartWrapper>
-
-        <ChartWrapper
-          title={t.financesDashboard.charts.monthlyCashFlow}
-          isEmpty={monthlyData.length === 0}
-          emptyMessage={t.financesDashboard.charts.noData}
-        >
-          <AreaChart data={monthlyData}>
-            <defs>
-              <linearGradient id="colorNet" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={chartColors.net} stopOpacity={0.8} />
-                <stop offset="95%" stopColor={chartColors.net} stopOpacity={0.1} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
-            <XAxis dataKey="month" tick={{ fill: chartColors.text, fontSize: 12 }} />
-            <YAxis
-              tick={{ fill: chartColors.text, fontSize: 12 }}
-              tickFormatter={(value) => t.common.currency.formatShort(value)}
-            />
-            <Tooltip {...tooltipStyle} formatter={(value: number) => formatCurrency(value)} />
-            <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
-            <Area
-              type="monotone"
-              dataKey="net"
-              stroke={chartColors.net}
-              fillOpacity={1}
-              fill="url(#colorNet)"
-              name={t.financesDashboard.charts.netCashFlow}
-            />
-          </AreaChart>
-        </ChartWrapper>
-
-        <ChartWrapper
-          title={t.financesDashboard.charts.expenseCategories}
-          isEmpty={expenseCategoriesData.length === 0}
-          emptyMessage={t.financesDashboard.charts.noData}
-          height={400}
-          className="lg:col-span-2"
-        >
-          <BarChart data={expenseCategoriesData} layout="vertical">
-            <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
-            <XAxis
-              type="number"
-              tick={{ fill: chartColors.text, fontSize: 12 }}
-              tickFormatter={(value) => t.common.currency.formatShort(value)}
-            />
-            <YAxis
-              type="category"
-              dataKey="name"
-              tick={{ fill: chartColors.text, fontSize: 11 }}
-              width={150}
-            />
-            <Tooltip {...tooltipStyle} formatter={(value: number) => formatCurrency(value)} />
-            <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
-            <Bar
-              dataKey="value"
-              fill={chartColors.expense}
-              name={t.financesDashboard.charts.expenses}
-            />
-          </BarChart>
-        </ChartWrapper>
-      </div>
-    </div>
-  );
-}
+import { createAnimalTableColumns } from "~/utils/animal-table-columns";
 
 export function meta() {
   return [
@@ -524,6 +105,909 @@ export async function loader({ request }: { request: Request }) {
   return createRouteGuard(undefined, "view")({ request });
 }
 
+function getFinanceEditRoute(transactionType: string, id: string): string {
+  if (transactionType === "cashFlow") {
+    return getCashFlowEditRoute(id);
+  }
+  if (transactionType === "receivable") {
+    return getAccountsReceivableEditRoute(id);
+  }
+  return getAccountsPayableEditRoute(id);
+}
+
+function getFinanceCanEditPermission(
+  transactionType: string,
+  canEdit: (module: string, resource: string) => boolean
+): boolean {
+  if (transactionType === "cashFlow") {
+    return canEdit("finances", "cashFlow");
+  }
+  if (transactionType === "receivable") {
+    return canEdit("finances", "accountsReceivable");
+  }
+  return canEdit("finances", "accountsPayable");
+}
+
+function getFinanceCanDeletePermission(
+  transactionType: string,
+  canRemove: (module: string, resource: string) => boolean
+): boolean {
+  if (transactionType === "cashFlow") {
+    return canRemove("finances", "cashFlow");
+  }
+  if (transactionType === "receivable") {
+    return canRemove("finances", "accountsReceivable");
+  }
+  return canRemove("finances", "accountsPayable");
+}
+
+function matchesFinanceSearch(
+  transaction: UnifiedTransaction,
+  searchLower: string,
+  formatCurrency: (value: number) => string,
+  t: {
+    cashFlow: {
+      categories: Record<string, string>;
+      paymentMethods: Record<string, string>;
+    };
+  }
+): boolean {
+  const property = transaction.propertyId ? getPropertyById(transaction.propertyId) : null;
+  const propertyName = property?.name?.toLowerCase() || "";
+  const category = transaction.category
+    ? t.cashFlow.categories[transaction.category]?.toLowerCase() || ""
+    : "";
+  const paymentMethod = transaction.paymentMethod
+    ? t.cashFlow.paymentMethods[transaction.paymentMethod]?.toLowerCase() || ""
+    : "";
+  const amount = formatCurrency(transaction.amount).toLowerCase();
+
+  const supplierName = transaction.supplierId
+    ? getSupplierById(transaction.supplierId)?.name?.toLowerCase() || ""
+    : "";
+  const buyerName = transaction.buyerId
+    ? getBuyerById(transaction.buyerId)?.name?.toLowerCase() || ""
+    : "";
+  const employeeName = transaction.employeeId
+    ? getEmployeeById(transaction.employeeId)?.name?.toLowerCase() || ""
+    : "";
+  const serviceProviderName = transaction.serviceProviderId
+    ? getServiceProviderById(transaction.serviceProviderId)?.name?.toLowerCase() || ""
+    : "";
+
+  return (
+    transaction.description.toLowerCase().includes(searchLower) ||
+    transaction.referenceNumber?.toLowerCase().includes(searchLower) ||
+    propertyName.includes(searchLower) ||
+    category.includes(searchLower) ||
+    paymentMethod.includes(searchLower) ||
+    amount.includes(searchLower) ||
+    supplierName.includes(searchLower) ||
+    buyerName.includes(searchLower) ||
+    employeeName.includes(searchLower) ||
+    serviceProviderName.includes(searchLower)
+  );
+}
+
+function matchesFinanceFilters(
+  transaction: UnifiedTransaction,
+  financeActiveFilter: string,
+  financeSelectedYear: string,
+  financeSelectedMonth: string
+): boolean {
+  const matchesFilter =
+    financeActiveFilter === "all" ||
+    (financeActiveFilter === "income" && transaction.type === "income") ||
+    (financeActiveFilter === "expense" && transaction.type === "expense");
+
+  const matchesYear =
+    financeSelectedYear === "all" || transaction.date.startsWith(financeSelectedYear);
+
+  const monthStr = financeSelectedMonth === "all" ? null : financeSelectedMonth.padStart(2, "0");
+  const matchesMonth =
+    financeSelectedMonth === "all" ||
+    (monthStr !== null && transaction.date.substring(5, 7) === monthStr);
+
+  return Boolean(matchesFilter && matchesYear && matchesMonth);
+}
+
+type UnifiedMovement =
+  | (LocationMovement & { movementType: "location" } & Record<string, unknown>)
+  | (AnimalMovement & { movementType: "animal" } & Record<string, unknown>);
+
+function filterMovementsBySearch(
+  movements: UnifiedMovement[],
+  searchValue: string,
+  formatDate: (dateString: string) => string,
+  movementTypes: Record<string, string>
+): UnifiedMovement[] {
+  if (!searchValue) return movements;
+
+  const searchLower = searchValue.toLowerCase();
+
+  return movements.filter((movement) => {
+    if (movement.movementType === "location") {
+      const typeText =
+        movementTypes[(movement as LocationMovement).type as keyof typeof movementTypes] ||
+        (movement as LocationMovement).type;
+      if (typeText.toLowerCase().includes(searchLower)) return true;
+    } else {
+      const animalMovementText = movementTypes.animal_movement.toLowerCase();
+      if (animalMovementText.includes(searchLower) || "animal".toLowerCase().includes(searchLower))
+        return true;
+    }
+
+    const dateText = formatDate(movement.date);
+    if (dateText.toLowerCase().includes(searchLower)) return true;
+
+    const locationIds =
+      movement.movementType === "location"
+        ? (movement as LocationMovement).locationIds
+        : [(movement as AnimalMovement).locationId];
+    const locationNames = locationIds
+      .map((id) => {
+        const location = getLocationById(id);
+        return location ? `${location.name} ${location.code}`.toLowerCase() : id.toLowerCase();
+      })
+      .join(" ");
+    if (locationNames.includes(searchLower)) return true;
+
+    if (movement.movementType === "animal") {
+      const animalNames = (movement as AnimalMovement).animalIds
+        .map((id) => {
+          const animal = getAnimalById(id);
+          return animal ? `${animal.code} ${animal.registrationNumber}`.toLowerCase() : "";
+        })
+        .filter((name) => name !== "")
+        .join(" ");
+      if (animalNames.includes(searchLower)) return true;
+    }
+
+    const employeeNames = movement.employeeIds
+      .map((id) => {
+        const employee = getEmployeeById(id);
+        return employee ? employee.name.toLowerCase() : "";
+      })
+      .filter((name) => name !== "")
+      .join(" ");
+    if (employeeNames.includes(searchLower)) return true;
+
+    const providerNames = movement.serviceProviderIds
+      .map((id) => {
+        const provider = getServiceProviderById(id);
+        return provider ? provider.name.toLowerCase() : "";
+      })
+      .filter((name) => name !== "")
+      .join(" ");
+    if (providerNames.includes(searchLower)) return true;
+
+    return false;
+  });
+}
+
+type MovementSortValue = string | number | undefined;
+
+function getMovementSortValue(item: UnifiedMovement, column: string): MovementSortValue {
+  if (column === "date") {
+    return new Date(item.date).getTime();
+  } else if (column === "locations") {
+    const locationIds =
+      item.movementType === "location"
+        ? (item as LocationMovement).locationIds
+        : [(item as AnimalMovement).locationId];
+    const locationNames = locationIds
+      .map((id) => {
+        const location = getLocationById(id);
+        return location ? `${location.name} (${location.code})` : id;
+      })
+      .toSorted((a, b) => a.localeCompare(b))
+      .join(", ");
+    return locationNames;
+  } else if (column === "type") {
+    if (item.movementType === "location") {
+      return (item as LocationMovement).type;
+    } else {
+      return "animal";
+    }
+  }
+  if (item.movementType === "location") {
+    return (item as LocationMovement)[column as keyof LocationMovement] as
+      | string
+      | number
+      | undefined;
+  }
+  return (item as AnimalMovement)[column as keyof AnimalMovement] as string | number | undefined;
+}
+
+type AnimalSortValue = string | number | undefined;
+
+function getLastWeighing(animalId: string) {
+  const weighings = getWeighingsByAnimalId(animalId);
+  const sorted = weighings.toSorted(
+    (x, y) => new Date(y.date).getTime() - new Date(x.date).getTime()
+  );
+  return sorted[0];
+}
+
+function calculateGMD(animalId: string): number {
+  const weighings = getWeighingsByAnimalId(animalId);
+  const sorted = weighings.toSorted(
+    (x, y) => new Date(y.date).getTime() - new Date(x.date).getTime()
+  );
+  if (sorted.length < 2) {
+    return 0;
+  }
+  const weightDiff = sorted[0].weight - sorted[1].weight;
+  const daysDiff = differenceInDays(new Date(sorted[0].date), new Date(sorted[1].date));
+  return daysDiff > 0 ? weightDiff / daysDiff : 0;
+}
+
+function getBirthFieldValue(animalId: string, field: "breed" | "purity" | "gender"): string {
+  const birth = getBirthByAnimalId(animalId);
+  if (field === "breed") return birth?.breed || "";
+  if (field === "purity") return birth?.purity || "";
+  return birth?.gender || "";
+}
+
+function getAnimalSortValue(
+  animal: Animal,
+  column: string,
+  _localeForDateTime: string
+): AnimalSortValue {
+  const columnHandlers: Record<string, () => AnimalSortValue> = {
+    code: () => animal.code,
+    registrationNumber: () => animal.registrationNumber,
+    breed: () => getBirthFieldValue(animal.id, "breed"),
+    purity: () => getBirthFieldValue(animal.id, "purity"),
+    gender: () => getBirthFieldValue(animal.id, "gender"),
+    birthDate: () => {
+      const birth = getBirthByAnimalId(animal.id);
+      return birth?.birthDate ? new Date(birth.birthDate).getTime() : 0;
+    },
+    acquisitionDate: () => {
+      return animal.acquisitionDate ? new Date(animal.acquisitionDate).getTime() : 0;
+    },
+    weight: () => {
+      const lastWeighing = getLastWeighing(animal.id);
+      return lastWeighing?.weight || 0;
+    },
+    weightInArrobas: () => {
+      const lastWeighing = getLastWeighing(animal.id);
+      return lastWeighing ? lastWeighing.weight / 30 : 0;
+    },
+    lastWeighingDate: () => {
+      const lastWeighing = getLastWeighing(animal.id);
+      return lastWeighing ? new Date(lastWeighing.date).getTime() : 0;
+    },
+    gmd: () => calculateGMD(animal.id),
+  };
+
+  const handler = columnHandlers[column];
+  if (handler) {
+    return handler();
+  }
+
+  return animal[column as keyof Animal] as AnimalSortValue;
+}
+
+function getActiveTab(tabParam: string | null): string {
+  const validTabs = [
+    "info",
+    "animals",
+    "locations",
+    "registrations",
+    "activities",
+    "movements",
+    "finance",
+    "indices-reprodutivos",
+  ];
+  return validTabs.includes(tabParam || "") ? tabParam! : "information";
+}
+
+function getRegistrationsSubTab(subTabParam: string | null): string {
+  const validSubTabs = ["serviceProviders", "suppliers", "buyers"];
+  return validSubTabs.includes(subTabParam || "") ? subTabParam! : "employees";
+}
+
+function getFinanceSubTab(subTabParam: string | null): string {
+  return subTabParam === "transactions" ? "transactions" : "dashboard";
+}
+
+function convertToHectares(value: number, type: AreaType): number {
+  switch (type) {
+    case AreaType.HECTARES:
+      return value;
+    case AreaType.SQUARE_METERS:
+      return value / 10000;
+    case AreaType.SQUARE_FEET:
+      return value / 107639;
+    case AreaType.ACRES:
+      return value * 0.404686;
+    case AreaType.SQUARE_KILOMETERS:
+      return value * 100;
+    case AreaType.SQUARE_MILES:
+      return value * 258.999;
+    default:
+      return value;
+  }
+}
+
+function calculatePropertyStats(
+  propertyAnimals: Animal[],
+  property: Property,
+  animalsCount: number
+): {
+  totalWeight: number;
+  animalUnits: number;
+  areaInHectares: number;
+  stockingRate: number;
+  density: number;
+  averageWeight: number;
+} {
+  const calculateTotalWeight = () => {
+    let totalWeight = 0;
+    for (const animal of propertyAnimals) {
+      const weighings = getWeighingsByAnimalId(animal.id);
+      if (weighings.length > 0) {
+        const sortedWeighings = weighings.toSorted(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+        );
+        const lastWeighing = sortedWeighings[0];
+        totalWeight += lastWeighing.weight;
+      }
+    }
+    return totalWeight;
+  };
+
+  const totalWeight = calculateTotalWeight();
+  const animalUnits = totalWeight > 0 ? totalWeight / 450 : 0;
+  const areaInHectares = convertToHectares(property.area.value, property.area.type);
+  const stockingRate = areaInHectares > 0 && animalUnits > 0 ? animalUnits / areaInHectares : 0;
+  const density = areaInHectares > 0 && animalsCount > 0 ? animalsCount / areaInHectares : 0;
+  const averageWeight = animalsCount > 0 ? totalWeight / animalsCount : 0;
+
+  return { totalWeight, animalUnits, areaInHectares, stockingRate, density, averageWeight };
+}
+
+function calculateNextMonthExpected(expectedBirthsForecast: {
+  monthly: Array<{ month: string; expectedBirths: number }>;
+  total: number;
+}): number {
+  if (!expectedBirthsForecast.monthly || expectedBirthsForecast.monthly.length === 0) return 0;
+  const today = new Date();
+  const nextMonthKey = `${today.getFullYear()}-${String(today.getMonth() + 2).padStart(2, "0")}`;
+  const nextMonth = expectedBirthsForecast.monthly.find((item) => item.month === nextMonthKey);
+  return nextMonth?.expectedBirths || 0;
+}
+
+import { getLocaleForDateTime } from "~/utils/locale-helpers";
+
+function getLocaleForLanguage(lang: string): string {
+  return getLocaleForDateTime(lang);
+}
+
+function createDeleteAnimalHandler(
+  selectedAnimal: Animal | null,
+  setSelectedAnimal: (animal: Animal | null) => void,
+  setIsDeleteAnimalModalOpen: (open: boolean) => void,
+  showAlert: (message: string, variant: "success" | "error") => void,
+  t: ReturnType<typeof useTranslation>
+) {
+  return async () => {
+    if (!selectedAnimal) return;
+    const success = deleteAnimal(selectedAnimal.id);
+    if (success) {
+      showAlert(t.animals.success.deleted, "success");
+    } else {
+      showAlert(t.animals.errors.deleteFailed, "error");
+    }
+    setIsDeleteAnimalModalOpen(false);
+    setSelectedAnimal(null);
+  };
+}
+
+function renderPropertyTabButton(
+  tab: string,
+  label: string,
+  activeTab: string,
+  setSearchParams: (params: Record<string, string>) => void,
+  params?: Record<string, string>
+) {
+  const isActive = activeTab === tab;
+  const onClick = () => {
+    if (params) {
+      setSearchParams(params);
+    } else {
+      setSearchParams({ tab });
+    }
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      className={`
+        py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
+        ${
+          isActive
+            ? "dark:text-blue-400"
+            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+        }
+      `}
+      style={
+        isActive
+          ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
+          : undefined
+      }
+    >
+      {label}
+    </button>
+  );
+}
+
+function renderSubTabButton(
+  subTab: string,
+  label: string,
+  activeSubTab: string,
+  setSearchParams: (params: Record<string, string>) => void,
+  params: Record<string, string>
+): React.JSX.Element {
+  const isActive = activeSubTab === subTab;
+
+  return (
+    <button
+      onClick={() => setSearchParams(params)}
+      className={`
+        px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer
+        ${
+          isActive
+            ? "shadow-sm"
+            : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+        }
+      `}
+      style={
+        isActive
+          ? {
+              backgroundColor: `${DASHBOARD_COLORS.primaryLight}40`,
+              color: DASHBOARD_COLORS.primaryDark,
+            }
+          : undefined
+      }
+    >
+      {label}
+    </button>
+  );
+}
+
+function filterAnimalsBySearchAndStatus(
+  animals: Animal[],
+  searchValue: string,
+  activeFilter: string
+): Animal[] {
+  return animals.filter((animal) => {
+    const birth = getBirthByAnimalId(animal.id);
+    const breedMatch = birth?.breed
+      ? birth.breed.toLowerCase().includes(searchValue.toLowerCase())
+      : false;
+    const matchesSearch =
+      animal.registrationNumber.toLowerCase().includes(searchValue.toLowerCase()) ||
+      animal.code.toLowerCase().includes(searchValue.toLowerCase()) ||
+      breedMatch;
+
+    const matchesFilter =
+      activeFilter === "all" ||
+      (activeFilter === "active" && animal.status === "active") ||
+      (activeFilter === "inactive" && animal.status === "inactive");
+
+    return matchesSearch && matchesFilter;
+  });
+}
+
+// toSafeString is now imported from table-helpers
+
+function sortAnimals(
+  animals: Animal[],
+  sortState: { column: string | null; direction: SortDirection },
+  localeForDateTime: string
+): Animal[] {
+  return animals.toSorted((a, b) => {
+    if (!sortState.column || !sortState.direction) {
+      return 0;
+    }
+
+    const aValue = getAnimalSortValue(a, sortState.column, localeForDateTime);
+    const bValue = getAnimalSortValue(b, sortState.column, localeForDateTime);
+
+    if (aValue == null && bValue == null) return 0;
+    if (aValue == null) return 1;
+    if (bValue == null) return -1;
+
+    let comparison = 0;
+    if (typeof aValue === "string" && typeof bValue === "string") {
+      comparison = aValue.localeCompare(bValue, localeForDateTime, {
+        sensitivity: "base",
+      });
+    } else if (typeof aValue === "number" && typeof bValue === "number") {
+      comparison = aValue - bValue;
+    } else {
+      comparison = toSafeString(aValue).localeCompare(toSafeString(bValue), localeForDateTime);
+    }
+
+    return sortState.direction === "asc" ? comparison : -comparison;
+  });
+}
+
+type PropertyInformationTabProps = Readonly<{
+  property: NonNullable<ReturnType<typeof getPropertyById>>;
+  locationsCount: number;
+  animalsCount: number;
+  animalUnits: number;
+  stockingRate: number;
+  density: number;
+  averageWeight: number;
+  expectedBirthsForecast: ReturnType<typeof getExpectedBirthsForecast>;
+  nextMonthExpected: number;
+  localeForDateTime: string;
+  language: string;
+  formatDate: (dateString: string) => string;
+  navigate: (path: string) => void;
+  t: ReturnType<typeof useTranslation>;
+}>;
+
+function PropertyInformationTab({
+  property,
+  locationsCount,
+  animalsCount,
+  animalUnits,
+  stockingRate,
+  density,
+  averageWeight,
+  expectedBirthsForecast,
+  nextMonthExpected,
+  localeForDateTime,
+  language,
+  formatDate: _formatDate,
+  navigate,
+  t,
+}: PropertyInformationTabProps) {
+  return (
+    <div className="space-y-8">
+      <div>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="h-1 w-12 bg-blue-500 rounded-full"></div>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Informações Gerais</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  {t.properties.table.area}
+                </p>
+                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                  {property.area.value.toLocaleString(localeForDateTime, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}{" "}
+                  {formatAreaType(property.area.type)}
+                </p>
+              </div>
+              <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                <span className="text-lg">📏</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  {t.properties.table.locations}
+                </p>
+                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                  {locationsCount}
+                </p>
+              </div>
+              <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
+                <span className="text-lg">📍</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  {t.properties.table.animals}
+                </p>
+                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                  {formatNumber(animalsCount, language as Language)}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {animalsCount} {t.properties.details.activeAnimals.toLowerCase()}
+                </p>
+              </div>
+              <div
+                className="w-10 h-10 dark:bg-blue-900/30 rounded-lg flex items-center justify-center"
+                style={{ backgroundColor: `${DASHBOARD_COLORS.primaryLight}40` }}
+              >
+                <span className="text-lg">🐄</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  {t.properties.table.uas}
+                </p>
+                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                  {animalUnits.toLocaleString(localeForDateTime, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </p>
+              </div>
+              <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
+                <span className="text-lg">📊</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  {t.properties.table.stockingRate}
+                </p>
+                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                  {stockingRate.toLocaleString(localeForDateTime, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {t.dashboard.stats.uaPerHa}
+                </p>
+              </div>
+              <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
+                <span className="text-lg">🌱</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  {t.dashboard.stats.density}
+                </p>
+                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                  {density.toLocaleString(localeForDateTime, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {t.dashboard.stats.animalsPerHa}
+                </p>
+              </div>
+              <div className="w-10 h-10 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg flex items-center justify-center">
+                <span className="text-lg">📈</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  {t.dashboard.stats.averageWeight}
+                </p>
+                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                  {averageWeight.toFixed(0)}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {t.dashboard.stats.kgPerAnimal}
+                </p>
+              </div>
+              <div className="w-10 h-10 bg-teal-100 dark:bg-teal-900/30 rounded-lg flex items-center justify-center">
+                <span className="text-lg">⚖️</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  {t.dashboard.stats.expectedBirths}
+                </p>
+                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                  {nextMonthExpected}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {t.dashboard.stats.nextMonth} • {expectedBirthsForecast.total}{" "}
+                  {t.dashboard.stats.nextThreeMonths}
+                </p>
+                <Link
+                  to={ROUTES.BIRTH_FORECAST}
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-1 inline-block"
+                >
+                  {t.dashboard.stats.viewForecast}
+                </Link>
+              </div>
+              <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center">
+                <span className="text-lg">📅</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="h-1 w-12 bg-purple-500 rounded-full"></div>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+            {t.properties.details.relatedEntities}
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {(() => {
+            const employees = getEmployeesByPropertyId(property.id);
+            const serviceProviders = getServiceProvidersByPropertyId(property.id);
+            const suppliers = getSuppliersByPropertyId(property.id);
+            const buyers = getBuyersByPropertyId(property.id);
+
+            return (
+              <>
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                        {t.properties.details.tabs.employees}
+                      </p>
+                      <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                        {employees.length}
+                      </p>
+                    </div>
+                    <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                      <span className="text-lg">👥</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                        {t.properties.details.tabs.serviceProviders}
+                      </p>
+                      <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                        {serviceProviders.length}
+                      </p>
+                    </div>
+                    <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                      <span className="text-lg">🏥</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                        {t.properties.details.tabs.suppliers}
+                      </p>
+                      <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                        {suppliers.length}
+                      </p>
+                    </div>
+                    <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
+                      <span className="text-lg">🏭</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                        {t.properties.details.tabs.buyers}
+                      </p>
+                      <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                        {buyers.length}
+                      </p>
+                    </div>
+                    <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                      <span className="text-lg">🛒</span>
+                    </div>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
+        </div>
+      </div>
+
+      {property.pasturePlanning && property.pasturePlanning.length > 0 && (
+        <PasturePlanningGraph
+          data={property.pasturePlanning}
+          propertyId={property.id}
+          isModifiedByUser={property.pasturePlanningModifiedByUser || false}
+        />
+      )}
+
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex-1">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+              {t.properties.details.pasturePlanning.breedingSeason.title}
+            </h2>
+            {!(property.breedingSeasonModifiedByUser || false) && (
+              <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <p className="text-sm text-blue-800 dark:text-blue-300">
+                  {t.properties.details.pasturePlanning.breedingSeason.aiGeneratedNote}
+                </p>
+              </div>
+            )}
+          </div>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => navigate(getPropertyBreedingSeasonEditRoute(property.id))}
+            className="ml-4"
+          >
+            {t.properties.edit.title.split(" ")[0]}
+          </Button>
+        </div>
+        {property.breedingMonths && property.breedingMonths.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {(() => {
+              const monthOrder = [
+                "January",
+                "February",
+                "March",
+                "April",
+                "May",
+                "June",
+                "July",
+                "August",
+                "September",
+                "October",
+                "November",
+                "December",
+              ];
+              const monthsArray = [...property.breedingMonths];
+              const sortedMonths = monthsArray.toSorted(
+                (a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b)
+              );
+              return sortedMonths.map((month) => {
+                const monthTranslation =
+                  t.properties.details.pasturePlanning.breedingSeason.months[
+                    month as keyof typeof t.properties.details.pasturePlanning.breedingSeason.months
+                  ] || month;
+                return (
+                  <span
+                    key={month}
+                    className="px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-md text-sm font-medium"
+                  >
+                    {monthTranslation}
+                  </span>
+                );
+              });
+            })()}
+          </div>
+        ) : (
+          <p className="text-gray-600 dark:text-gray-400">
+            {t.properties.details.pasturePlanning.breedingSeason.noData}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function PropertyDetails() {
   const { propertyId } = useParams<{ propertyId: string }>();
   const navigate = useNavigate();
@@ -536,31 +1020,9 @@ export default function PropertyDetails() {
   const tabParam = searchParams.get("tab");
   const subTabParam = searchParams.get("subTab");
 
-  const activeTab =
-    tabParam === "info" ||
-    tabParam === "animals" ||
-    tabParam === "locations" ||
-    tabParam === "registrations" ||
-    tabParam === "activities" ||
-    tabParam === "movements" ||
-    tabParam === "finance" ||
-    tabParam === "indices-reprodutivos"
-      ? tabParam
-      : "information";
-
-  const registrationsSubTab =
-    subTabParam === "serviceProviders" || subTabParam === "suppliers" || subTabParam === "buyers"
-      ? subTabParam
-      : activeTab === "registrations"
-        ? "employees"
-        : "employees";
-
-  const financeSubTab =
-    subTabParam === "transactions"
-      ? "transactions"
-      : activeTab === "finance"
-        ? "dashboard"
-        : "dashboard";
+  const activeTab = getActiveTab(tabParam);
+  const registrationsSubTab = getRegistrationsSubTab(subTabParam);
+  const financeSubTab = getFinanceSubTab(subTabParam);
 
   const [sortState, setSortState] = useState<{
     column: string | null;
@@ -580,13 +1042,6 @@ export default function PropertyDetails() {
     column: string | null;
     direction: SortDirection;
   }>({ column: "date", direction: "desc" });
-  const [isDeleteFinanceModalOpen, setIsDeleteFinanceModalOpen] = useState(false);
-  const [selectedFinanceTransaction, setSelectedFinanceTransaction] = useState<
-    CashFlow | AccountsReceivable | AccountsPayable | null
-  >(null);
-  const [selectedFinanceTransactionType, setSelectedFinanceTransactionType] = useState<
-    "cashFlow" | "receivable" | "payable" | null
-  >(null);
   const financeItemsPerPage = 10;
 
   useEffect(() => {
@@ -606,36 +1061,63 @@ export default function PropertyDetails() {
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
   const [selectedAnimals, setSelectedAnimals] = useState<Set<string>>(new Set());
   const [isAnimalRegistrationModalOpen, setIsAnimalRegistrationModalOpen] = useState(false);
-  const [alertMessage, setAlertMessage] = useState<{
-    title: string;
-    variant: "success" | "error" | "warning" | "info";
-  } | null>(null);
+  const { showAlert, AlertDisplay } = useAlert();
+
+  // Finance transaction handlers - must be called at component level
+  const cashFlowTransactions = property ? getCashFlowByPropertyId(property.id) : [];
+  const receivableTransactions = property ? getAccountsReceivableByPropertyId(property.id) : [];
+  const payableTransactions = property ? getAccountsPayableByPropertyId(property.id) : [];
+
+  const financeHandlers = useFinanceTransactionHandlers({
+    cashFlowTransactions,
+    receivableTransactions,
+    payableTransactions,
+    onSuccess: (message) => {
+      showAlert(message, "success");
+    },
+    onError: (message) => {
+      showAlert(message, "error");
+    },
+    successMessage: t.cashFlow.success.deleted,
+    errorMessage: t.cashFlow.errors.deleteFailed,
+  });
 
   const expectedBirthsForecast = useMemo(() => {
     if (!property) return { monthly: [], total: 0 };
     return getExpectedBirthsForecast(property.id, { isPropertyId: true, monthsAhead: 9 });
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization -- property is from props and stable
   }, [property]);
 
   const nextMonthExpected = useMemo(() => {
-    if (!expectedBirthsForecast.monthly || expectedBirthsForecast.monthly.length === 0) return 0;
-    const today = new Date();
-    const nextMonthKey = `${today.getFullYear()}-${String(today.getMonth() + 2).padStart(2, "0")}`;
-    const nextMonth = expectedBirthsForecast.monthly.find((item) => item.month === nextMonthKey);
-    return nextMonth?.expectedBirths || 0;
-  }, [expectedBirthsForecast.monthly]);
+    return calculateNextMonthExpected(expectedBirthsForecast);
+  }, [expectedBirthsForecast]);
 
-  const dateLocale = useMemo(() => {
-    switch (language) {
-      case "en":
-        return enUS;
-      case "es":
-        return es;
-      default:
-        return ptBR;
-    }
-  }, [language]);
+  const dateLocale = useDateLocale();
+  const localeForDateTime = getLocaleForLanguage(language as string);
 
-  const localeForDateTime = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
+  const locations = property ? getLocationsByPropertyId(property.id) : [];
+  const locationsCount = locations.length;
+  const allPropertyAnimals = property ? getAnimalsByPropertyId(property.id) : [];
+  const propertyAnimals = allPropertyAnimals.filter((animal) => animal.status === "active");
+  const animalsCount = propertyAnimals.length;
+
+  const propertyStats = useMemo(() => {
+    if (!property) return null;
+    return calculatePropertyStats(propertyAnimals, property, animalsCount);
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization -- property is from props and stable
+  }, [propertyAnimals, property, animalsCount]);
+
+  const handleDeleteAnimal = useMemo(
+    () =>
+      createDeleteAnimalHandler(
+        selectedAnimal,
+        setSelectedAnimal,
+        setIsDeleteAnimalModalOpen,
+        showAlert,
+        t
+      ),
+    [selectedAnimal, setSelectedAnimal, setIsDeleteAnimalModalOpen, showAlert, t]
+  );
 
   if (!property) {
     return (
@@ -643,68 +1125,18 @@ export default function PropertyDetails() {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
           <p className="text-gray-600 dark:text-gray-400 mb-4">{t.properties.emptyState.title}</p>
           <Button variant="outline" onClick={() => navigate(ROUTES.PROPERTIES)}>
-            {t.team.new.back}
+            {t.common.back}
           </Button>
         </div>
       </div>
     );
   }
 
-  const locations = getLocationsByPropertyId(property.id);
-  const locationsCount = locations.length;
-  const allPropertyAnimals = getAnimalsByPropertyId(property.id);
-  const propertyAnimals = allPropertyAnimals.filter((animal) => animal.status === "active");
-  const animalsCount = propertyAnimals.length;
-
-  const calculateTotalWeight = () => {
-    let totalWeight = 0;
-    propertyAnimals.forEach((animal) => {
-      const weighings = getWeighingsByAnimalId(animal.id);
-      if (weighings.length > 0) {
-        const lastWeighing = weighings.sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        )[0];
-        totalWeight += lastWeighing.weight;
-      }
-    });
-    return totalWeight;
-  };
-
-  const totalWeight = calculateTotalWeight();
-  const animalUnits = totalWeight > 0 ? totalWeight / 450 : 0;
-
-  const convertToHectares = (value: number, type: AreaType): number => {
-    switch (type) {
-      case AreaType.HECTARES:
-        return value;
-      case AreaType.SQUARE_METERS:
-        return value / 10000;
-      case AreaType.SQUARE_FEET:
-        return value / 107639;
-      case AreaType.ACRES:
-        return value * 0.404686;
-      case AreaType.SQUARE_KILOMETERS:
-        return value * 100;
-      case AreaType.SQUARE_MILES:
-        return value * 258.999;
-      default:
-        return value;
-    }
-  };
-
-  const areaInHectares = property ? convertToHectares(property.area.value, property.area.type) : 0;
-  const stockingRate = areaInHectares > 0 && animalUnits > 0 ? animalUnits / areaInHectares : 0;
-  const density = areaInHectares > 0 && animalsCount > 0 ? animalsCount / areaInHectares : 0;
-  const averageWeight = animalsCount > 0 ? totalWeight / animalsCount : 0;
-
-  const showAlert = (
-    title: string,
-    variant: "success" | "error" | "warning" | "info" = "success"
-  ) => {
-    setAlertMessage({ title, variant });
-    setTimeout(() => {
-      setAlertMessage(null);
-    }, 3000);
+  const { animalUnits, stockingRate, density, averageWeight } = propertyStats || {
+    animalUnits: 0,
+    stockingRate: 0,
+    density: 0,
+    averageWeight: 0,
   };
 
   const handleDeleteAnimalClick = (animal: Animal) => {
@@ -712,16 +1144,33 @@ export default function PropertyDetails() {
     setIsDeleteAnimalModalOpen(true);
   };
 
-  const handleDeleteAnimal = async () => {
-    if (!selectedAnimal) return;
-    const success = deleteAnimal(selectedAnimal.id);
-    if (success) {
-      showAlert(t.animals.success.deleted, "success");
-    } else {
-      showAlert(t.animals.errors.deleteFailed, "error");
-    }
-    setIsDeleteAnimalModalOpen(false);
-    setSelectedAnimal(null);
+  const handleFinanceEdit = (transaction: UnifiedTransaction) => {
+    const editRoute = getFinanceEditRoute(transaction.transactionType, transaction.id);
+    navigate(editRoute);
+  };
+
+  const handleFinanceDelete = (transaction: UnifiedTransaction) => {
+    financeHandlers.handleDeleteClick(transaction);
+  };
+
+  const renderFinanceActions = (row: UnifiedTransaction) => {
+    const canEditValue = getFinanceCanEditPermission(
+      row.transactionType,
+      canEdit as (module: string, resource: string) => boolean
+    );
+    const canDeleteValue = getFinanceCanDeletePermission(
+      row.transactionType,
+      canRemove as (module: string, resource: string) => boolean
+    );
+
+    return (
+      <TableActionButtons
+        onEdit={() => handleFinanceEdit(row)}
+        onDelete={() => handleFinanceDelete(row)}
+        canEdit={canEditValue}
+        canDelete={canDeleteValue}
+      />
+    );
   };
 
   const formatDate = (dateString: string) => {
@@ -785,535 +1234,91 @@ export default function PropertyDetails() {
               </svg>
             }
           >
-            {t.team.new.back}
+            {t.common.back}
           </Button>
         </div>
       </div>
 
       <div className="mb-4 border-b border-gray-200 dark:border-gray-700">
         <nav className="flex space-x-8" aria-label={t.common.ariaLabels.tabs}>
-          <button
-            onClick={() => {
-              setSearchParams({});
-            }}
-            className={`
-              py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
-              ${
-                activeTab === "information"
-                  ? "dark:text-blue-400"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-              }
-            `}
-            style={
-              activeTab === "information"
-                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
-                : undefined
-            }
-          >
-            {t.properties.details.tabs.information}
-          </button>
-          <button
-            onClick={() => {
-              setSearchParams({ tab: "info" });
-            }}
-            className={`
-              py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
-              ${
-                activeTab === "info"
-                  ? "dark:text-blue-400"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-              }
-            `}
-            style={
-              activeTab === "info"
-                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
-                : undefined
-            }
-          >
-            {t.properties.details.tabs.info}
-          </button>
-          <button
-            onClick={() => {
-              setSearchParams({ tab: "animals" });
-            }}
-            className={`
-              py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
-              ${
-                activeTab === "animals"
-                  ? "dark:text-blue-400"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-              }
-            `}
-            style={
-              activeTab === "animals"
-                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
-                : undefined
-            }
-          >
-            {t.properties.details.tabs.animals}
-          </button>
-          <button
-            onClick={() => {
-              setSearchParams({ tab: "indices-reprodutivos" });
-            }}
-            className={`
-              py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
-              ${
-                activeTab === "indices-reprodutivos"
-                  ? "dark:text-blue-400"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-              }
-            `}
-            style={
-              activeTab === "indices-reprodutivos"
-                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
-                : undefined
-            }
-          >
-            {t.properties.details.tabs.reproductiveIndexes}
-          </button>
-          <button
-            onClick={() => {
-              setSearchParams({ tab: "movements" });
-            }}
-            className={`
-              py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
-              ${
-                activeTab === "movements"
-                  ? "dark:text-blue-400"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-              }
-            `}
-            style={
-              activeTab === "movements"
-                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
-                : undefined
-            }
-          >
-            {t.properties.details.tabs.movements}
-          </button>
-          <button
-            onClick={() => {
-              setSearchParams({ tab: "locations" });
-            }}
-            className={`
-              py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
-              ${
-                activeTab === "locations"
-                  ? "dark:text-blue-400"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-              }
-            `}
-            style={
-              activeTab === "locations"
-                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
-                : undefined
-            }
-          >
-            {t.properties.details.tabs.locations}
-          </button>
-          <button
-            onClick={() => {
-              setSearchParams({ tab: "registrations", subTab: "employees" });
-            }}
-            className={`
-              py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
-              ${
-                activeTab === "registrations"
-                  ? "dark:text-blue-400"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-              }
-            `}
-            style={
-              activeTab === "registrations"
-                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
-                : undefined
-            }
-          >
-            {t.properties.details.tabs.registrations}
-          </button>
-          <button
-            onClick={() => {
-              setSearchParams({ tab: "finance", subTab: "dashboard" });
-            }}
-            className={`
-              py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
-              ${
-                activeTab === "finance"
-                  ? "dark:text-blue-400"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-              }
-            `}
-            style={
-              activeTab === "finance"
-                ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
-                : undefined
-            }
-          >
-            {t.properties.details.tabs.finance}
-          </button>
-          {isMainUser() && (
-            <button
-              onClick={() => {
-                setSearchParams({ tab: "activities" });
-              }}
-              className={`
-                py-3 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer
-                ${
-                  activeTab === "activities"
-                    ? "dark:text-blue-400"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-                }
-              `}
-              style={
-                activeTab === "activities"
-                  ? { borderColor: DASHBOARD_COLORS.primary, color: DASHBOARD_COLORS.primary }
-                  : undefined
-              }
-            >
-              {t.properties.details.tabs.activities}
-            </button>
+          {renderPropertyTabButton(
+            "information",
+            t.properties.details.tabs.information,
+            activeTab,
+            setSearchParams,
+            {}
           )}
+          {renderPropertyTabButton(
+            "info",
+            t.properties.details.tabs.info,
+            activeTab,
+            setSearchParams
+          )}
+          {renderPropertyTabButton(
+            "animals",
+            t.properties.details.tabs.animals,
+            activeTab,
+            setSearchParams
+          )}
+          {renderPropertyTabButton(
+            "indices-reprodutivos",
+            t.properties.details.tabs.reproductiveIndexes,
+            activeTab,
+            setSearchParams
+          )}
+          {renderPropertyTabButton(
+            "movements",
+            t.properties.details.tabs.movements,
+            activeTab,
+            setSearchParams
+          )}
+          {renderPropertyTabButton(
+            "locations",
+            t.properties.details.tabs.locations,
+            activeTab,
+            setSearchParams
+          )}
+          {renderPropertyTabButton(
+            "registrations",
+            t.properties.details.tabs.registrations,
+            activeTab,
+            setSearchParams,
+            { tab: "registrations", subTab: "employees" }
+          )}
+          {renderPropertyTabButton(
+            "finance",
+            t.properties.details.tabs.finance,
+            activeTab,
+            setSearchParams,
+            { tab: "finance", subTab: "dashboard" }
+          )}
+          {isMainUser() &&
+            renderPropertyTabButton(
+              "activities",
+              t.properties.details.tabs.activities,
+              activeTab,
+              setSearchParams
+            )}
         </nav>
       </div>
 
       {activeTab === "information" && (
-        <div className="space-y-8">
-          <div>
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-1 w-12 bg-blue-500 rounded-full"></div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                Informações Gerais
-              </h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                      {t.properties.table.area}
-                    </p>
-                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                      {property.area.value.toLocaleString(localeForDateTime, {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}{" "}
-                      {formatAreaType(property.area.type)}
-                    </p>
-                  </div>
-                  <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                    <span className="text-lg">📏</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                      {t.properties.table.locations}
-                    </p>
-                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                      {locationsCount}
-                    </p>
-                  </div>
-                  <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
-                    <span className="text-lg">📍</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                      {t.properties.table.animals}
-                    </p>
-                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                      {formatNumber(animalsCount, language)}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {animalsCount} {t.properties.details.activeAnimals.toLowerCase()}
-                    </p>
-                  </div>
-                  <div
-                    className="w-10 h-10 dark:bg-blue-900/30 rounded-lg flex items-center justify-center"
-                    style={{ backgroundColor: `${DASHBOARD_COLORS.primaryLight}40` }}
-                  >
-                    <span className="text-lg">🐄</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                      {t.properties.table.uas}
-                    </p>
-                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                      {animalUnits.toLocaleString(localeForDateTime, {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                    </p>
-                  </div>
-                  <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
-                    <span className="text-lg">📊</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                      {t.properties.table.stockingRate}
-                    </p>
-                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                      {stockingRate.toLocaleString(localeForDateTime, {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {t.dashboard.stats.uaPerHa}
-                    </p>
-                  </div>
-                  <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
-                    <span className="text-lg">🌱</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                      {t.dashboard.stats.density}
-                    </p>
-                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                      {density.toLocaleString(localeForDateTime, {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {t.dashboard.stats.animalsPerHa}
-                    </p>
-                  </div>
-                  <div className="w-10 h-10 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg flex items-center justify-center">
-                    <span className="text-lg">📈</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                      {t.dashboard.stats.averageWeight}
-                    </p>
-                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                      {averageWeight.toFixed(0)}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {t.dashboard.stats.kgPerAnimal}
-                    </p>
-                  </div>
-                  <div className="w-10 h-10 bg-teal-100 dark:bg-teal-900/30 rounded-lg flex items-center justify-center">
-                    <span className="text-lg">⚖️</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                      {t.dashboard.stats.expectedBirths}
-                    </p>
-                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                      {nextMonthExpected}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {t.dashboard.stats.nextMonth} • {expectedBirthsForecast.total}{" "}
-                      {t.dashboard.stats.nextThreeMonths}
-                    </p>
-                    <Link
-                      to={ROUTES.BIRTH_FORECAST}
-                      className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-1 inline-block"
-                    >
-                      {t.dashboard.stats.viewForecast}
-                    </Link>
-                  </div>
-                  <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center">
-                    <span className="text-lg">📅</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-1 w-12 bg-purple-500 rounded-full"></div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                {t.properties.details.relatedEntities}
-              </h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {(() => {
-                const employees = getEmployeesByPropertyId(property.id);
-                const serviceProviders = getServiceProvidersByPropertyId(property.id);
-                const suppliers = getSuppliersByPropertyId(property.id);
-                const buyers = getBuyersByPropertyId(property.id);
-
-                return (
-                  <>
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                            {t.properties.details.tabs.employees}
-                          </p>
-                          <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                            {employees.length}
-                          </p>
-                        </div>
-                        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                          <span className="text-lg">👥</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                            {t.properties.details.tabs.serviceProviders}
-                          </p>
-                          <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                            {serviceProviders.length}
-                          </p>
-                        </div>
-                        <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-                          <span className="text-lg">🏥</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                            {t.properties.details.tabs.suppliers}
-                          </p>
-                          <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                            {suppliers.length}
-                          </p>
-                        </div>
-                        <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
-                          <span className="text-lg">🏭</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                            {t.properties.details.tabs.buyers}
-                          </p>
-                          <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                            {buyers.length}
-                          </p>
-                        </div>
-                        <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                          <span className="text-lg">🛒</span>
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
-          </div>
-
-          {property.pasturePlanning && property.pasturePlanning.length > 0 && (
-            <PasturePlanningGraph
-              data={property.pasturePlanning}
-              propertyId={property.id}
-              isModifiedByUser={property.pasturePlanningModifiedByUser || false}
-            />
-          )}
-
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex-1">
-                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                  {t.properties.details.pasturePlanning.breedingSeason.title}
-                </h2>
-                {!(property.breedingSeasonModifiedByUser || false) && (
-                  <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                    <p className="text-sm text-blue-800 dark:text-blue-300">
-                      {t.properties.details.pasturePlanning.breedingSeason.aiGeneratedNote}
-                    </p>
-                  </div>
-                )}
-              </div>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => navigate(getPropertyBreedingSeasonEditRoute(property.id))}
-                className="ml-4"
-              >
-                {t.properties.edit.title.split(" ")[0]}
-              </Button>
-            </div>
-            {property.breedingMonths && property.breedingMonths.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {(() => {
-                  const monthOrder = [
-                    "January",
-                    "February",
-                    "March",
-                    "April",
-                    "May",
-                    "June",
-                    "July",
-                    "August",
-                    "September",
-                    "October",
-                    "November",
-                    "December",
-                  ];
-                  const sortedMonths = [...property.breedingMonths].sort(
-                    (a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b)
-                  );
-                  return sortedMonths.map((month) => {
-                    const monthTranslation =
-                      t.properties.details.pasturePlanning.breedingSeason.months[
-                        month as keyof typeof t.properties.details.pasturePlanning.breedingSeason.months
-                      ] || month;
-                    return (
-                      <span
-                        key={month}
-                        className="px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-md text-sm font-medium"
-                      >
-                        {monthTranslation}
-                      </span>
-                    );
-                  });
-                })()}
-              </div>
-            ) : (
-              <p className="text-gray-600 dark:text-gray-400">
-                {t.properties.details.pasturePlanning.breedingSeason.noData}
-              </p>
-            )}
-          </div>
-        </div>
+        <PropertyInformationTab
+          property={property}
+          locationsCount={locationsCount}
+          animalsCount={animalsCount}
+          animalUnits={animalUnits}
+          stockingRate={stockingRate}
+          density={density}
+          averageWeight={averageWeight}
+          expectedBirthsForecast={expectedBirthsForecast}
+          nextMonthExpected={nextMonthExpected}
+          localeForDateTime={localeForDateTime}
+          language={language}
+          formatDate={formatDate}
+          navigate={navigate}
+          t={t}
+        />
       )}
 
       {activeTab === "info" && (
@@ -1449,146 +1454,12 @@ export default function PropertyDetails() {
         property &&
         (() => {
           const allAnimals = getAnimalsByPropertyId(property.id);
-
-          const filteredAnimals = allAnimals.filter((animal) => {
-            const birth = getBirthByAnimalId(animal.id);
-            const breedMatch = birth?.breed
-              ? birth.breed.toLowerCase().includes(animalsSearchValue.toLowerCase())
-              : false;
-            const matchesSearch =
-              animal.registrationNumber.toLowerCase().includes(animalsSearchValue.toLowerCase()) ||
-              animal.code.toLowerCase().includes(animalsSearchValue.toLowerCase()) ||
-              breedMatch;
-
-            const matchesFilter =
-              animalsActiveFilter === "all" ||
-              (animalsActiveFilter === "active" && animal.status === "active") ||
-              (animalsActiveFilter === "inactive" && animal.status === "inactive");
-
-            return matchesSearch && matchesFilter;
-          });
-
-          const sortedAnimals = [...filteredAnimals].sort((a, b) => {
-            if (!animalsSortState.column || !animalsSortState.direction) {
-              return 0;
-            }
-
-            let aValue: string | number | undefined;
-            let bValue: string | number | undefined;
-
-            if (animalsSortState.column === "code") {
-              aValue = a.code;
-              bValue = b.code;
-            } else if (animalsSortState.column === "registrationNumber") {
-              aValue = a.registrationNumber;
-              bValue = b.registrationNumber;
-            } else if (animalsSortState.column === "breed") {
-              const aBirth = getBirthByAnimalId(a.id);
-              const bBirth = getBirthByAnimalId(b.id);
-              aValue = aBirth?.breed || "";
-              bValue = bBirth?.breed || "";
-            } else if (animalsSortState.column === "purity") {
-              const aBirth = getBirthByAnimalId(a.id);
-              const bBirth = getBirthByAnimalId(b.id);
-              aValue = aBirth?.purity || "";
-              bValue = bBirth?.purity || "";
-            } else if (animalsSortState.column === "gender") {
-              const aBirth = getBirthByAnimalId(a.id);
-              const bBirth = getBirthByAnimalId(b.id);
-              aValue = aBirth?.gender || "";
-              bValue = bBirth?.gender || "";
-            } else if (animalsSortState.column === "birthDate") {
-              const aBirth = getBirthByAnimalId(a.id);
-              const bBirth = getBirthByAnimalId(b.id);
-              aValue = aBirth?.birthDate ? new Date(aBirth.birthDate).getTime() : 0;
-              bValue = bBirth?.birthDate ? new Date(bBirth.birthDate).getTime() : 0;
-            } else if (animalsSortState.column === "acquisitionDate") {
-              aValue = a.acquisitionDate ? new Date(a.acquisitionDate).getTime() : 0;
-              bValue = b.acquisitionDate ? new Date(b.acquisitionDate).getTime() : 0;
-            } else if (animalsSortState.column === "weight") {
-              const aWeighings = getWeighingsByAnimalId(a.id);
-              const bWeighings = getWeighingsByAnimalId(b.id);
-              const aLastWeighing = aWeighings.sort(
-                (x, y) => new Date(y.date).getTime() - new Date(x.date).getTime()
-              )[0];
-              const bLastWeighing = bWeighings.sort(
-                (x, y) => new Date(y.date).getTime() - new Date(x.date).getTime()
-              )[0];
-              aValue = aLastWeighing?.weight || 0;
-              bValue = bLastWeighing?.weight || 0;
-            } else if (animalsSortState.column === "weightInArrobas") {
-              const aWeighings = getWeighingsByAnimalId(a.id);
-              const bWeighings = getWeighingsByAnimalId(b.id);
-              const aLastWeighing = aWeighings.sort(
-                (x, y) => new Date(y.date).getTime() - new Date(x.date).getTime()
-              )[0];
-              const bLastWeighing = bWeighings.sort(
-                (x, y) => new Date(y.date).getTime() - new Date(x.date).getTime()
-              )[0];
-              aValue = aLastWeighing ? aLastWeighing.weight / 30 : 0;
-              bValue = bLastWeighing ? bLastWeighing.weight / 30 : 0;
-            } else if (animalsSortState.column === "lastWeighingDate") {
-              const aWeighings = getWeighingsByAnimalId(a.id);
-              const bWeighings = getWeighingsByAnimalId(b.id);
-              const aLastWeighing = aWeighings.sort(
-                (x, y) => new Date(y.date).getTime() - new Date(x.date).getTime()
-              )[0];
-              const bLastWeighing = bWeighings.sort(
-                (x, y) => new Date(y.date).getTime() - new Date(x.date).getTime()
-              )[0];
-              aValue = aLastWeighing ? new Date(aLastWeighing.date).getTime() : 0;
-              bValue = bLastWeighing ? new Date(bLastWeighing.date).getTime() : 0;
-            } else if (animalsSortState.column === "gmd") {
-              const aWeighings = getWeighingsByAnimalId(a.id);
-              const bWeighings = getWeighingsByAnimalId(b.id);
-              const aSorted = aWeighings.sort(
-                (x, y) => new Date(y.date).getTime() - new Date(x.date).getTime()
-              );
-              const bSorted = bWeighings.sort(
-                (x, y) => new Date(y.date).getTime() - new Date(x.date).getTime()
-              );
-              if (aSorted.length >= 2) {
-                const weightDiff = aSorted[0].weight - aSorted[1].weight;
-                const daysDiff = differenceInDays(
-                  new Date(aSorted[0].date),
-                  new Date(aSorted[1].date)
-                );
-                aValue = daysDiff > 0 ? weightDiff / daysDiff : 0;
-              } else {
-                aValue = 0;
-              }
-              if (bSorted.length >= 2) {
-                const weightDiff = bSorted[0].weight - bSorted[1].weight;
-                const daysDiff = differenceInDays(
-                  new Date(bSorted[0].date),
-                  new Date(bSorted[1].date)
-                );
-                bValue = daysDiff > 0 ? weightDiff / daysDiff : 0;
-              } else {
-                bValue = 0;
-              }
-            } else {
-              aValue = a[animalsSortState.column as keyof Animal] as string | number | undefined;
-              bValue = b[animalsSortState.column as keyof Animal] as string | number | undefined;
-            }
-
-            if (aValue == null && bValue == null) return 0;
-            if (aValue == null) return 1;
-            if (bValue == null) return -1;
-
-            let comparison = 0;
-            if (typeof aValue === "string" && typeof bValue === "string") {
-              comparison = aValue.localeCompare(bValue, localeForDateTime, {
-                sensitivity: "base",
-              });
-            } else if (typeof aValue === "number" && typeof bValue === "number") {
-              comparison = aValue - bValue;
-            } else {
-              comparison = String(aValue).localeCompare(String(bValue), localeForDateTime);
-            }
-
-            return animalsSortState.direction === "asc" ? comparison : -comparison;
-          });
+          const filteredAnimals = filterAnimalsBySearchAndStatus(
+            allAnimals,
+            animalsSearchValue,
+            animalsActiveFilter
+          );
+          const sortedAnimals = sortAnimals(filteredAnimals, animalsSortState, localeForDateTime);
 
           const totalPages = Math.ceil(sortedAnimals.length / itemsPerPage);
           const paginatedAnimals = sortedAnimals.slice(
@@ -1596,254 +1467,52 @@ export default function PropertyDetails() {
             animalsCurrentPage * itemsPerPage
           );
 
-          const columns: TableColumn<Animal>[] = [
-            {
-              key: "code",
-              label: t.animals.table.registration,
-              sortable: true,
-              render: (_, row) => (
-                <div>
-                  <h2 className="font-medium text-gray-800 dark:text-gray-200">{row.code}</h2>
-                  <p className="text-sm font-normal text-gray-600 dark:text-gray-400">
-                    {row.registrationNumber}
-                  </p>
-                </div>
-              ),
-            },
-            {
-              key: "breed",
-              label: t.animals.table.breed,
-              sortable: true,
-              render: (_, row) => {
-                const birth = getBirthByAnimalId(row.id);
-                if (!birth || !birth.breed) {
-                  return <span className="text-gray-700 dark:text-gray-300">-</span>;
-                }
-                return (
-                  <span className="text-gray-700 dark:text-gray-300">
-                    {t.animals.breeds[birth.breed] || birth.breed}
-                  </span>
-                );
+          const columns: TableColumn<Animal>[] = createAnimalTableColumns({
+            language,
+            dateLocale,
+            translations: {
+              table: {
+                registration: t.animals.table.registration,
+                breed: t.animals.table.breed,
+                purity: t.animals.table.purity,
+                gender: t.animals.table.gender,
+                birthDate: t.animals.table.birthDate,
+                acquisitionDate: t.animals.table.acquisitionDate,
+                weight: t.animals.table.weight,
+                weightInArrobas: t.animals.table.weightInArrobas,
+                lastWeighingDate: t.animals.table.lastWeighingDate,
+                gmd: t.animals.table.gmd,
+                breedingStatus: t.animals.table.breedingStatus,
+                breedingStatusPregnant: t.animals.table.breedingStatusPregnant,
+                status: t.animals.table.status,
+                active: t.animals.table.active,
+                inactive: t.animals.table.inactive,
+              },
+              breeds: t.animals.breeds,
+              purity: t.animals.purity,
+              gender: t.animals.gender,
+              common: {
+                month: t.common.month,
+                months: t.common.months,
+                daysAgo: t.common.daysAgo,
+                dailyAverageGain: t.common.dailyAverageGain,
               },
             },
-            {
-              key: "purity",
-              label: t.animals.table.purity,
-              sortable: true,
-              render: (_, row) => {
-                const birth = getBirthByAnimalId(row.id);
-                if (!birth || !birth.purity) {
-                  return <span className="text-gray-700 dark:text-gray-300">-</span>;
-                }
-                return (
-                  <span className="text-gray-700 dark:text-gray-300">
-                    {t.animals.purity[birth.purity]}
-                  </span>
-                );
-              },
+            formatDateFn: (date, lang) => {
+              const dateFormat = lang === "en" ? "MM/dd/yyyy" : "dd/MM/yyyy";
+              return format(date instanceof Date ? date : new Date(date), dateFormat, {
+                locale: dateLocale,
+              });
             },
-            {
-              key: "gender",
-              label: t.animals.table.gender,
-              sortable: true,
-              render: (_, row) => {
-                const birth = getBirthByAnimalId(row.id);
-                if (!birth || !birth.gender) {
-                  return <span className="text-gray-700 dark:text-gray-300">-</span>;
-                }
-                return (
-                  <span className="text-gray-700 dark:text-gray-300">
-                    {birth.gender ? t.animals.gender[birth.gender] : "-"}
-                  </span>
-                );
-              },
-            },
-            {
-              key: "birthDate",
-              label: t.animals.table.birthDate,
-              sortable: true,
-              render: (_, row) => {
-                const birth = getBirthByAnimalId(row.id);
-                if (!birth || !birth.birthDate) {
-                  return <span className="text-gray-700 dark:text-gray-300">-</span>;
-                }
-
-                const birthDate = new Date(birth.birthDate);
-                const today = new Date();
-                const months = differenceInMonths(today, birthDate);
-                const formattedDate = format(birthDate, "dd/MM/yyyy", { locale: dateLocale });
-
-                return (
-                  <UITooltip content={formattedDate}>
-                    <span className="text-gray-700 dark:text-gray-300 border-b border-dotted border-gray-400 dark:border-gray-500 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
-                      {months} {months === 1 ? t.common.month : t.common.months}
-                    </span>
-                  </UITooltip>
-                );
-              },
-            },
-            {
-              key: "acquisitionDate",
-              label: t.animals.table.acquisitionDate,
-              sortable: true,
-              render: (_, row) => {
-                if (!row.acquisitionDate) {
-                  return <span className="text-gray-700 dark:text-gray-300">-</span>;
-                }
-
-                const acquisitionDate = new Date(row.acquisitionDate);
-                const today = new Date();
-                const months = differenceInMonths(today, acquisitionDate);
-                const formattedDate = format(acquisitionDate, "dd/MM/yyyy", { locale: dateLocale });
-
-                return (
-                  <UITooltip content={formattedDate}>
-                    <span className="text-gray-700 dark:text-gray-300 border-b border-dotted border-gray-400 dark:border-gray-500 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
-                      {months} {months === 1 ? t.common.month : t.common.months}
-                    </span>
-                  </UITooltip>
-                );
-              },
-            },
-            {
-              key: "weight",
-              label: t.animals.table.weight,
-              sortable: true,
-              render: (_, row) => {
-                const weighings = getWeighingsByAnimalId(row.id);
-                const lastWeighing = weighings.sort(
-                  (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-                )[0];
-                return (
-                  <span className="text-gray-700 dark:text-gray-300">
-                    {lastWeighing ? `${lastWeighing.weight}` : "-"}
-                  </span>
-                );
-              },
-            },
-            {
-              key: "weightInArrobas",
-              label: t.animals.table.weightInArrobas,
-              sortable: true,
-              render: (_, row) => {
-                const weighings = getWeighingsByAnimalId(row.id);
-                const lastWeighing = weighings.sort(
-                  (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-                )[0];
-                const weightInArrobas = lastWeighing ? (lastWeighing.weight / 30).toFixed(2) : null;
-                return (
-                  <span className="text-gray-700 dark:text-gray-300">
-                    {weightInArrobas ? `${weightInArrobas}` : "-"}
-                  </span>
-                );
-              },
-            },
-            {
-              key: "lastWeighingDate",
-              label: t.animals.table.lastWeighingDate,
-              sortable: true,
-              render: (_, row) => {
-                const weighings = getWeighingsByAnimalId(row.id);
-                const lastWeighing = weighings.sort(
-                  (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-                )[0];
-                if (!lastWeighing)
-                  return <span className="text-gray-700 dark:text-gray-300">-</span>;
-
-                const formattedDate = format(new Date(lastWeighing.date), "dd/MM/yyyy", {
-                  locale: dateLocale,
-                });
-                const today = new Date();
-                const weighingDate = new Date(lastWeighing.date);
-                const daysAgo = differenceInDays(today, weighingDate);
-                const tooltipText = t.common.daysAgo(daysAgo);
-
-                return (
-                  <UITooltip content={tooltipText}>
-                    <span className="text-gray-700 dark:text-gray-300 border-b border-dotted border-gray-400 dark:border-gray-500 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
-                      {formattedDate}
-                    </span>
-                  </UITooltip>
-                );
-              },
-            },
-            {
-              key: "gmd",
-              label: (
-                <UITooltip content={t.common.dailyAverageGain} position="bottom">
-                  <span className="border-b border-dotted border-gray-400 dark:border-gray-500 hover:border-blue-500 dark:hover:border-blue-400 transition-colors cursor-help">
-                    {t.animals.table.gmd}
-                  </span>
-                </UITooltip>
-              ),
-              sortable: true,
-              render: (_, row) => {
-                const weighings = getWeighingsByAnimalId(row.id);
-                const sortedWeighings = weighings.sort(
-                  (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-                );
-
-                if (sortedWeighings.length < 2) {
-                  return <span className="text-gray-700 dark:text-gray-300">-</span>;
-                }
-
-                const lastWeighing = sortedWeighings[0];
-                const previousWeighing = sortedWeighings[1];
-
-                const weightDifference = lastWeighing.weight - previousWeighing.weight;
-                const daysDifference = differenceInDays(
-                  new Date(lastWeighing.date),
-                  new Date(previousWeighing.date)
-                );
-
-                if (daysDifference === 0) {
-                  return <span className="text-gray-700 dark:text-gray-300">-</span>;
-                }
-
-                const gpd = (weightDifference / daysDifference).toFixed(2);
-                return <span className="text-gray-700 dark:text-gray-300">{gpd}</span>;
-              },
-            },
-            {
-              key: "breedingStatus",
-              label: t.animals.table.breedingStatus,
-              sortable: false,
-              render: (_, row) => {
-                const birth = getBirthByAnimalId(row.id);
-                if (!birth || birth.gender !== "female") {
-                  return <span className="text-gray-700 dark:text-gray-300">-</span>;
-                }
-                const breedings = getBreedingsByAnimalId(row.id);
-                if (breedings.length === 0) {
-                  return <span className="text-gray-700 dark:text-gray-300">-</span>;
-                }
-                const hasConfirmed = breedings.some((b) => b.confirmed === true);
-
-                if (hasConfirmed) {
-                  return (
-                    <StatusBadge label={t.animals.table.breedingStatusPregnant} variant="success" />
-                  );
-                } else {
-                  return (
-                    <StatusBadge label={t.animals.table.breedingStatusPregnant} variant="warning" />
-                  );
-                }
-              },
-            },
-            {
-              key: "status",
-              label: t.animals.table.status,
-              sortable: true,
-              render: (_, row) => (
-                <StatusBadge
-                  label={
-                    row.status === "active" ? t.animals.table.active : t.animals.table.inactive
-                  }
-                  variant={row.status === "active" ? "success" : "default"}
-                />
-              ),
-            },
-            {
+            TooltipComponent: UITooltip as React.ComponentType<{
+              content: string;
+              position?: string;
+              children: React.ReactNode;
+            }>,
+            StatusBadgeComponent: StatusBadge,
+            includeProperties: false,
+            includeActions: true,
+            actionsColumn: {
               key: "actions",
               label: "",
               headerClassName: "relative",
@@ -1856,7 +1525,7 @@ export default function PropertyDetails() {
                 />
               ),
             },
-          ];
+          });
 
           const headerActions: TableAction[] = [
             {
@@ -1989,11 +1658,13 @@ export default function PropertyDetails() {
                   selectedRows: selectedAnimals,
                   onSelectionChange: (newSelection) => {
                     const stringSet = new Set<string>();
-                    newSelection.forEach((id) => {
+                    for (const id of newSelection) {
                       if (typeof id === "string") {
                         stringSet.add(id);
+                      } else {
+                        stringSet.add(String(id));
                       }
-                    });
+                    }
                     setSelectedAnimals(stringSet);
                   },
                   getRowId: (row) => row.id,
@@ -2015,11 +1686,7 @@ export default function PropertyDetails() {
                 }}
               />
 
-              {alertMessage && (
-                <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-                  <Alert title={alertMessage.title} variant={alertMessage.variant} />
-                </div>
-              )}
+              <AlertDisplay />
 
               <ConfirmationModal
                 isOpen={isDeleteAnimalModalOpen}
@@ -2050,7 +1717,8 @@ export default function PropertyDetails() {
         (() => {
           const locations = getLocationsByPropertyId(property.id);
 
-          const sortedLocations = [...locations].sort((a, b) => {
+          const locationsArray = [...locations];
+          const sortedLocations = locationsArray.toSorted((a, b) => {
             if (!sortState.column || !sortState.direction) {
               return 0;
             }
@@ -2080,7 +1748,10 @@ export default function PropertyDetails() {
             } else if (typeof aValue === "number" && typeof bValue === "number") {
               comparison = aValue - bValue;
             } else {
-              comparison = String(aValue).localeCompare(String(bValue), localeForDateTime);
+              comparison = toSafeString(aValue).localeCompare(
+                toSafeString(bValue),
+                localeForDateTime
+              );
             }
 
             return sortState.direction === "asc" ? comparison : -comparison;
@@ -2162,7 +1833,9 @@ export default function PropertyDetails() {
                 emptyState={{
                   title: t.locations.emptyState.title,
                   description: t.locations.emptyState.descriptionWithoutSearch,
-                  onAddNew: () => navigate(ROUTES.LOCATIONS_NEW),
+                  onAddNew: () => {
+                    navigate(ROUTES.LOCATIONS_NEW);
+                  },
                   addNewLabel: t.locations.addLocation,
                 }}
               />
@@ -2174,98 +1847,34 @@ export default function PropertyDetails() {
         <div className="space-y-8">
           <div className="mb-4">
             <nav className="flex space-x-3" aria-label="Sub Tabs">
-              <button
-                onClick={() => {
-                  setSearchParams({ tab: "registrations", subTab: "employees" });
-                }}
-                className={`
-                  px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer
-                  ${
-                    registrationsSubTab === "employees"
-                      ? "shadow-sm"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
-                  }
-                `}
-                style={
-                  registrationsSubTab === "employees"
-                    ? {
-                        backgroundColor: `${DASHBOARD_COLORS.primaryLight}40`,
-                        color: DASHBOARD_COLORS.primaryDark,
-                      }
-                    : undefined
-                }
-              >
-                {t.properties.details.tabs.employees}
-              </button>
-              <button
-                onClick={() => {
-                  setSearchParams({ tab: "registrations", subTab: "serviceProviders" });
-                }}
-                className={`
-                  px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer
-                  ${
-                    registrationsSubTab === "serviceProviders"
-                      ? "shadow-sm"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
-                  }
-                `}
-                style={
-                  registrationsSubTab === "serviceProviders"
-                    ? {
-                        backgroundColor: `${DASHBOARD_COLORS.primaryLight}40`,
-                        color: DASHBOARD_COLORS.primaryDark,
-                      }
-                    : undefined
-                }
-              >
-                {t.properties.details.tabs.serviceProviders}
-              </button>
-              <button
-                onClick={() => {
-                  setSearchParams({ tab: "registrations", subTab: "suppliers" });
-                }}
-                className={`
-                  px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer
-                  ${
-                    registrationsSubTab === "suppliers"
-                      ? "shadow-sm"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
-                  }
-                `}
-                style={
-                  registrationsSubTab === "suppliers"
-                    ? {
-                        backgroundColor: `${DASHBOARD_COLORS.primaryLight}40`,
-                        color: DASHBOARD_COLORS.primaryDark,
-                      }
-                    : undefined
-                }
-              >
-                {t.properties.details.tabs.suppliers}
-              </button>
-              <button
-                onClick={() => {
-                  setSearchParams({ tab: "registrations", subTab: "buyers" });
-                }}
-                className={`
-                  px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer
-                  ${
-                    registrationsSubTab === "buyers"
-                      ? "shadow-sm"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
-                  }
-                `}
-                style={
-                  registrationsSubTab === "buyers"
-                    ? {
-                        backgroundColor: `${DASHBOARD_COLORS.primaryLight}40`,
-                        color: DASHBOARD_COLORS.primaryDark,
-                      }
-                    : undefined
-                }
-              >
-                {t.properties.details.tabs.buyers}
-              </button>
+              {renderSubTabButton(
+                "employees",
+                t.properties.details.tabs.employees,
+                registrationsSubTab,
+                setSearchParams,
+                { tab: "registrations", subTab: "employees" }
+              )}
+              {renderSubTabButton(
+                "serviceProviders",
+                t.properties.details.tabs.serviceProviders,
+                registrationsSubTab,
+                setSearchParams,
+                { tab: "registrations", subTab: "serviceProviders" }
+              )}
+              {renderSubTabButton(
+                "suppliers",
+                t.properties.details.tabs.suppliers,
+                registrationsSubTab,
+                setSearchParams,
+                { tab: "registrations", subTab: "suppliers" }
+              )}
+              {renderSubTabButton(
+                "buyers",
+                t.properties.details.tabs.buyers,
+                registrationsSubTab,
+                setSearchParams,
+                { tab: "registrations", subTab: "buyers" }
+              )}
             </nav>
           </div>
 
@@ -2273,7 +1882,8 @@ export default function PropertyDetails() {
             (() => {
               const employees = getEmployeesByPropertyId(property.id);
 
-              const sortedEmployees = [...employees].sort((a, b) => {
+              const employeesArray = [...employees];
+              const sortedEmployees = employeesArray.toSorted((a, b) => {
                 if (!sortState.column || !sortState.direction) {
                   return 0;
                 }
@@ -2293,7 +1903,10 @@ export default function PropertyDetails() {
                 } else if (typeof aValue === "number" && typeof bValue === "number") {
                   comparison = aValue - bValue;
                 } else {
-                  comparison = String(aValue).localeCompare(String(bValue), localeForDateTime);
+                  comparison = toSafeString(aValue).localeCompare(
+                    toSafeString(bValue),
+                    localeForDateTime
+                  );
                 }
 
                 return sortState.direction === "asc" ? comparison : -comparison;
@@ -2375,7 +1988,9 @@ export default function PropertyDetails() {
                     emptyState={{
                       title: t.employees.emptyState.title,
                       description: t.employees.emptyState.descriptionWithoutSearch,
-                      onAddNew: () => navigate(ROUTES.EMPLOYEES_NEW),
+                      onAddNew: () => {
+                        navigate(ROUTES.EMPLOYEES_NEW);
+                      },
                       addNewLabel: t.employees.addEmployee,
                     }}
                   />
@@ -2387,7 +2002,8 @@ export default function PropertyDetails() {
             (() => {
               const serviceProviders = getServiceProvidersByPropertyId(property.id);
 
-              const sortedServiceProviders = [...serviceProviders].sort((a, b) => {
+              const serviceProvidersArray = [...serviceProviders];
+              const sortedServiceProviders = serviceProvidersArray.toSorted((a, b) => {
                 if (!sortState.column || !sortState.direction) {
                   return 0;
                 }
@@ -2407,7 +2023,10 @@ export default function PropertyDetails() {
                 } else if (typeof aValue === "number" && typeof bValue === "number") {
                   comparison = aValue - bValue;
                 } else {
-                  comparison = String(aValue).localeCompare(String(bValue), localeForDateTime);
+                  comparison = toSafeString(aValue).localeCompare(
+                    toSafeString(bValue),
+                    localeForDateTime
+                  );
                 }
 
                 return sortState.direction === "asc" ? comparison : -comparison;
@@ -2491,7 +2110,9 @@ export default function PropertyDetails() {
                     emptyState={{
                       title: t.serviceProviders.emptyState.title,
                       description: t.serviceProviders.emptyState.descriptionWithoutSearch,
-                      onAddNew: () => navigate(ROUTES.SERVICE_PROVIDERS_NEW),
+                      onAddNew: () => {
+                        navigate(ROUTES.SERVICE_PROVIDERS_NEW);
+                      },
                       addNewLabel: t.serviceProviders.addServiceProvider,
                     }}
                   />
@@ -2503,7 +2124,8 @@ export default function PropertyDetails() {
             (() => {
               const suppliers = getSuppliersByPropertyId(property.id);
 
-              const sortedSuppliers = [...suppliers].sort((a, b) => {
+              const suppliersArray = [...suppliers];
+              const sortedSuppliers = suppliersArray.toSorted((a, b) => {
                 if (!sortState.column || !sortState.direction) {
                   return 0;
                 }
@@ -2523,7 +2145,10 @@ export default function PropertyDetails() {
                 } else if (typeof aValue === "number" && typeof bValue === "number") {
                   comparison = aValue - bValue;
                 } else {
-                  comparison = String(aValue).localeCompare(String(bValue), localeForDateTime);
+                  comparison = toSafeString(aValue).localeCompare(
+                    toSafeString(bValue),
+                    localeForDateTime
+                  );
                 }
 
                 return sortState.direction === "asc" ? comparison : -comparison;
@@ -2607,7 +2232,9 @@ export default function PropertyDetails() {
                     emptyState={{
                       title: t.suppliers.emptyState.title,
                       description: t.suppliers.emptyState.descriptionWithoutSearch,
-                      onAddNew: () => navigate(ROUTES.SUPPLIERS_NEW),
+                      onAddNew: () => {
+                        navigate(ROUTES.SUPPLIERS_NEW);
+                      },
                       addNewLabel: t.suppliers.addSupplier,
                     }}
                   />
@@ -2619,7 +2246,8 @@ export default function PropertyDetails() {
             (() => {
               const buyers = getBuyersByPropertyId(property.id);
 
-              const sortedBuyers = [...buyers].sort((a, b) => {
+              const buyersArray = [...buyers];
+              const sortedBuyers = buyersArray.toSorted((a, b) => {
                 if (!sortState.column || !sortState.direction) {
                   return 0;
                 }
@@ -2639,7 +2267,10 @@ export default function PropertyDetails() {
                 } else if (typeof aValue === "number" && typeof bValue === "number") {
                   comparison = aValue - bValue;
                 } else {
-                  comparison = String(aValue).localeCompare(String(bValue), localeForDateTime);
+                  comparison = toSafeString(aValue).localeCompare(
+                    toSafeString(bValue),
+                    localeForDateTime
+                  );
                 }
 
                 return sortState.direction === "asc" ? comparison : -comparison;
@@ -2721,7 +2352,9 @@ export default function PropertyDetails() {
                     emptyState={{
                       title: t.buyers.emptyState.title,
                       description: t.buyers.emptyState.descriptionWithoutSearch,
-                      onAddNew: () => navigate(ROUTES.BUYERS_NEW),
+                      onAddNew: () => {
+                        navigate(ROUTES.BUYERS_NEW);
+                      },
                       addNewLabel: t.buyers.addBuyer,
                     }}
                   />
@@ -2788,174 +2421,24 @@ export default function PropertyDetails() {
           const locationMovements = getLocationMovementsByPropertyId(property.id);
           const animalMovements = getAnimalMovementsByPropertyId(property.id);
 
-          type UnifiedMovement =
-            | (LocationMovement & { movementType: "location" } & Record<string, unknown>)
-            | (AnimalMovement & { movementType: "animal" } & Record<string, unknown>);
-
           const movements: UnifiedMovement[] = [
             ...locationMovements.map((m) => ({ ...m, movementType: "location" as const })),
             ...animalMovements.map((m) => ({ ...m, movementType: "animal" as const })),
           ];
 
-          const filteredMovements = movements.filter((movement) => {
-            if (!searchValue) return true;
+          const filteredMovements = filterMovementsBySearch(
+            movements,
+            searchValue,
+            formatDate,
+            t.properties.details.movements.types
+          );
 
-            const searchLower = searchValue.toLowerCase();
-
-            if (movement.movementType === "location") {
-              const typeText =
-                t.properties.details.movements.types[
-                  (movement as LocationMovement)
-                    .type as keyof typeof t.properties.details.movements.types
-                ] || (movement as LocationMovement).type;
-              if (typeText.toLowerCase().includes(searchLower)) return true;
-            } else {
-              const animalMovementText =
-                t.properties.details.movements.types.animal_movement.toLowerCase();
-              if (
-                animalMovementText.includes(searchLower) ||
-                "animal".toLowerCase().includes(searchLower)
-              )
-                return true;
-            }
-
-            const dateText = formatDate(movement.date);
-            if (dateText.toLowerCase().includes(searchLower)) return true;
-
-            const locationIds =
-              movement.movementType === "location"
-                ? (movement as LocationMovement).locationIds
-                : [(movement as AnimalMovement).locationId];
-            const locationNames = locationIds
-              .map((id) => {
-                const location = getLocationById(id);
-                return location
-                  ? `${location.name} ${location.code}`.toLowerCase()
-                  : id.toLowerCase();
-              })
-              .join(" ");
-            if (locationNames.includes(searchLower)) return true;
-
-            if (movement.movementType === "animal") {
-              const animalNames = (movement as AnimalMovement).animalIds
-                .map((id) => {
-                  const animal = getAnimalById(id);
-                  return animal ? `${animal.code} ${animal.registrationNumber}`.toLowerCase() : "";
-                })
-                .filter((name) => name !== "")
-                .join(" ");
-              if (animalNames.includes(searchLower)) return true;
-            }
-
-            const employeeNames = movement.employeeIds
-              .map((id) => {
-                const employee = getEmployeeById(id);
-                return employee ? employee.name.toLowerCase() : "";
-              })
-              .filter((name) => name !== "")
-              .join(" ");
-            if (employeeNames.includes(searchLower)) return true;
-
-            const providerNames = movement.serviceProviderIds
-              .map((id) => {
-                const provider = getServiceProviderById(id);
-                return provider ? provider.name.toLowerCase() : "";
-              })
-              .filter((name) => name !== "")
-              .join(" ");
-            if (providerNames.includes(searchLower)) return true;
-
-            return false;
-          });
-
-          const sortedMovements = [...filteredMovements].sort((a, b) => {
-            if (!sortState.column || !sortState.direction) {
-              return new Date(b.date).getTime() - new Date(a.date).getTime();
-            }
-
-            let aValue: string | number | undefined;
-            let bValue: string | number | undefined;
-
-            if (sortState.column === "date") {
-              aValue = new Date(a.date).getTime();
-              bValue = new Date(b.date).getTime();
-            } else if (sortState.column === "locations") {
-              const aLocationIds =
-                a.movementType === "location"
-                  ? (a as LocationMovement).locationIds
-                  : [(a as AnimalMovement).locationId];
-              const bLocationIds =
-                b.movementType === "location"
-                  ? (b as LocationMovement).locationIds
-                  : [(b as AnimalMovement).locationId];
-              const aLocationNames = aLocationIds
-                .map((id) => {
-                  const location = getLocationById(id);
-                  return location ? `${location.name} (${location.code})` : id;
-                })
-                .sort()
-                .join(", ");
-              const bLocationNames = bLocationIds
-                .map((id) => {
-                  const location = getLocationById(id);
-                  return location ? `${location.name} (${location.code})` : id;
-                })
-                .sort()
-                .join(", ");
-              aValue = aLocationNames;
-              bValue = bLocationNames;
-            } else if (sortState.column === "type") {
-              if (a.movementType === "location") {
-                aValue = (a as LocationMovement).type;
-              } else {
-                aValue = "animal";
-              }
-              if (b.movementType === "location") {
-                bValue = (b as LocationMovement).type;
-              } else {
-                bValue = "animal";
-              }
-            } else {
-              if (a.movementType === "location") {
-                aValue = (a as LocationMovement)[sortState.column as keyof LocationMovement] as
-                  | string
-                  | number
-                  | undefined;
-              } else {
-                aValue = (a as AnimalMovement)[sortState.column as keyof AnimalMovement] as
-                  | string
-                  | number
-                  | undefined;
-              }
-              if (b.movementType === "location") {
-                bValue = (b as LocationMovement)[sortState.column as keyof LocationMovement] as
-                  | string
-                  | number
-                  | undefined;
-              } else {
-                bValue = (b as AnimalMovement)[sortState.column as keyof AnimalMovement] as
-                  | string
-                  | number
-                  | undefined;
-              }
-            }
-
-            if (aValue == null && bValue == null) return 0;
-            if (aValue == null) return 1;
-            if (bValue == null) return -1;
-
-            let comparison = 0;
-            if (typeof aValue === "string" && typeof bValue === "string") {
-              comparison = aValue.localeCompare(bValue, localeForDateTime, {
-                sensitivity: "base",
-              });
-            } else if (typeof aValue === "number" && typeof bValue === "number") {
-              comparison = aValue - bValue;
-            } else {
-              comparison = String(aValue).localeCompare(String(bValue), localeForDateTime);
-            }
-
-            return sortState.direction === "asc" ? comparison : -comparison;
+          const sortedMovements = sortItems({
+            items: filteredMovements,
+            sortState,
+            getValue: getMovementSortValue,
+            defaultSortColumn: "date",
+            defaultSortDirection: "desc",
           });
 
           const totalPages = Math.ceil(sortedMovements.length / itemsPerPage);
@@ -2964,153 +2447,37 @@ export default function PropertyDetails() {
             currentPage * itemsPerPage
           );
 
-          const columns: TableColumn<UnifiedMovement>[] = [
-            {
-              key: "date",
-              label: t.properties.details.movements.table.date,
-              sortable: true,
-              render: (_, row) => (
-                <span className="text-gray-700 dark:text-gray-300">{formatDate(row.date)}</span>
-              ),
+          const columns = createMovementsTableColumns({
+            language,
+            translationKeys: {
+              date: t.properties.details.movements.table.date,
+              type: t.properties.details.movements.table.type,
+              locations: t.properties.details.movements.table.locations,
+              animals: "Animais",
+              responsible: t.properties.details.movements.table.responsible,
+              observation: t.properties.details.movements.observation,
+              files: t.properties.details.movements.files,
+              types: t.properties.details.movements.types as Record<string, string>,
             },
-            {
-              key: "type",
-              label: t.properties.details.movements.table.type,
-              sortable: true,
-              render: (_, row) => {
-                if (row.movementType === "location") {
-                  return (
-                    <span className="text-gray-700 dark:text-gray-300">
-                      {t.properties.details.movements.types[
-                        (row as LocationMovement)
-                          .type as keyof typeof t.properties.details.movements.types
-                      ] || (row as LocationMovement).type}
-                    </span>
-                  );
-                } else {
-                  return (
-                    <span className="text-gray-700 dark:text-gray-300">
-                      {t.properties.details.movements.types.animal_movement}
-                    </span>
-                  );
-                }
-              },
+            getLocationById: (id: string) => {
+              const location = getLocationById(id);
+              return location ? { name: location.name, code: location.code } : null;
             },
-            {
-              key: "locations",
-              label: t.properties.details.movements.table.locations,
-              sortable: true,
-              render: (_, row) => {
-                const locationIds =
-                  row.movementType === "location"
-                    ? (row as LocationMovement).locationIds
-                    : [(row as AnimalMovement).locationId];
-                const locationNames = locationIds
-                  .map((id) => {
-                    const location = getLocationById(id);
-                    return location ? `${location.name} (${location.code})` : id;
-                  })
-                  .join(", ");
-                return (
-                  <span className="text-gray-700 dark:text-gray-300">{locationNames || "-"}</span>
-                );
-              },
+            getEmployeeById: (id: string) => {
+              const employee = getEmployeeById(id);
+              return employee ? { name: employee.name } : null;
             },
-            {
-              key: "animals",
-              label: "Animais",
-              sortable: false,
-              render: (_, row) => {
-                if (row.movementType === "animal") {
-                  const count = (row as AnimalMovement).animalIds.length;
-                  return <span className="text-gray-700 dark:text-gray-300">{count}</span>;
-                }
-                return <span className="text-gray-400 dark:text-gray-500">-</span>;
-              },
+            getServiceProviderById: (id: string) => {
+              const serviceProvider = getServiceProviderById(id);
+              return serviceProvider ? { name: serviceProvider.name } : null;
             },
-            {
-              key: "responsible",
-              label: t.properties.details.movements.table.responsible,
-              sortable: false,
-              render: (_, row) => {
-                const employeeNames = row.employeeIds
-                  .map((id) => {
-                    const employee = getEmployeeById(id);
-                    return employee ? employee.name : null;
-                  })
-                  .filter((name): name is string => name !== null);
-
-                const providerNames = row.serviceProviderIds
-                  .map((id) => {
-                    const provider = getServiceProviderById(id);
-                    return provider ? provider.name : null;
-                  })
-                  .filter((name): name is string => name !== null);
-
-                const allResponsibles = [...employeeNames, ...providerNames];
-                return (
-                  <span className="text-gray-700 dark:text-gray-300">
-                    {allResponsibles.length > 0 ? allResponsibles.join(", ") : "-"}
-                  </span>
-                );
-              },
+            getAnimalById: (id: string) => {
+              const animal = getAnimalById(id);
+              return animal
+                ? { code: animal.code, registrationNumber: animal.registrationNumber }
+                : null;
             },
-            {
-              key: "observation",
-              label: t.properties.details.movements.observation,
-              sortable: false,
-              render: (_, row) => {
-                const observation =
-                  row.movementType === "location"
-                    ? (row as LocationMovement).observation
-                    : (row as AnimalMovement).observation;
-                if (!observation) {
-                  return <span className="text-gray-400 dark:text-gray-500">-</span>;
-                }
-                const truncated =
-                  observation.length > 50 ? `${observation.substring(0, 50)}...` : observation;
-                return (
-                  <span className="text-gray-700 dark:text-gray-300" title={observation}>
-                    {truncated}
-                  </span>
-                );
-              },
-            },
-            {
-              key: "files",
-              label: t.properties.details.movements.files,
-              sortable: false,
-              render: (_, row) => {
-                const fileIds =
-                  row.movementType === "location"
-                    ? (row as LocationMovement).fileIds
-                    : (row as AnimalMovement).fileIds;
-                if (!fileIds || fileIds.length === 0) {
-                  return <span className="text-gray-400 dark:text-gray-500">-</span>;
-                }
-                return (
-                  <div className="flex items-center space-x-1">
-                    <svg
-                      className="h-4 w-4 text-gray-500 dark:text-gray-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                      />
-                    </svg>
-                    <span className="text-sm text-gray-700 dark:text-gray-300">
-                      {fileIds.length}
-                    </span>
-                  </div>
-                );
-              },
-            },
-          ];
+          });
 
           const headerActions: TableAction[] = [
             {
@@ -3132,7 +2499,9 @@ export default function PropertyDetails() {
                   />
                 </svg>
               ),
-              onClick: () => navigate(getMovementNewRoute(property.id)),
+              onClick: () => {
+                navigate(getMovementNewRoute(property.id));
+              },
             },
           ];
 
@@ -3144,7 +2513,7 @@ export default function PropertyDetails() {
                 header={{
                   title: t.properties.details.movements.title,
                   badge: {
-                    label: `${filteredMovements.length} ${filteredMovements.length !== 1 ? t.properties.details.movements.movements : t.properties.details.movements.movement}`,
+                    label: `${filteredMovements.length} ${filteredMovements.length === 1 ? t.properties.details.movements.movement : t.properties.details.movements.movements}`,
                     variant: "primary",
                   },
                   description: t.properties.details.movements.description,
@@ -3251,7 +2620,13 @@ export default function PropertyDetails() {
               </div>
 
               {financeSubTab === "dashboard" && (
-                <PropertyFinanceDashboard propertyId={property.id} />
+                <FinanceDashboard
+                  cashFlowData={getCashFlowByPropertyId(property.id)}
+                  accountsPayableData={getAccountsPayableByPropertyId(property.id)}
+                  accountsReceivableData={getAccountsReceivableByPropertyId(property.id)}
+                  language={language}
+                  gradientId="colorNetProperty"
+                />
               )}
 
               {financeSubTab === "transactions" &&
@@ -3322,10 +2697,6 @@ export default function PropertyDetails() {
                     serviceProviderId: ap.serviceProviderId,
                   });
 
-                  const cashFlowTransactions = getCashFlowByPropertyId(property.id);
-                  const receivableTransactions = getAccountsReceivableByPropertyId(property.id);
-                  const payableTransactions = getAccountsPayableByPropertyId(property.id);
-
                   const allTransactions: UnifiedTransaction[] = [
                     ...cashFlowTransactions.map(normalizeCashFlow),
                     ...receivableTransactions.map(normalizeReceivable),
@@ -3344,164 +2715,29 @@ export default function PropertyDetails() {
                     }).format(value);
                   };
 
-                  const handleDeleteFinanceClick = (transaction: UnifiedTransaction) => {
-                    let originalTransaction:
-                      | CashFlow
-                      | AccountsReceivable
-                      | AccountsPayable
-                      | null = null;
-                    let transactionType: "cashFlow" | "receivable" | "payable" | null = null;
-
-                    if (transaction.transactionType === "cashFlow") {
-                      const found = cashFlowTransactions.find((t) => t.id === transaction.id);
-                      if (found) {
-                        originalTransaction = found;
-                        transactionType = "cashFlow";
-                      }
-                    } else if (transaction.transactionType === "receivable") {
-                      const found = receivableTransactions.find((t) => t.id === transaction.id);
-                      if (found) {
-                        originalTransaction = found;
-                        transactionType = "receivable";
-                      }
-                    } else if (transaction.transactionType === "payable") {
-                      const found = payableTransactions.find((t) => t.id === transaction.id);
-                      if (found) {
-                        originalTransaction = found;
-                        transactionType = "payable";
-                      }
-                    }
-
-                    if (originalTransaction && transactionType) {
-                      setSelectedFinanceTransaction(originalTransaction);
-                      setSelectedFinanceTransactionType(transactionType);
-                      setIsDeleteFinanceModalOpen(true);
-                    }
-                  };
-
-                  const handleDeleteFinanceTransaction = async () => {
-                    if (!selectedFinanceTransaction || !selectedFinanceTransactionType) return;
-
-                    let success = false;
-                    if (selectedFinanceTransactionType === "cashFlow") {
-                      success = deleteCashFlow(selectedFinanceTransaction.id);
-                    } else if (selectedFinanceTransactionType === "receivable") {
-                      success = deleteAccountsReceivable(selectedFinanceTransaction.id);
-                    } else if (selectedFinanceTransactionType === "payable") {
-                      success = deleteAccountsPayable(selectedFinanceTransaction.id);
-                    }
-
-                    if (success) {
-                      showAlert(t.cashFlow.success.deleted, "success");
-                    } else {
-                      showAlert(t.cashFlow.errors.deleteFailed, "error");
-                    }
-                    setSelectedFinanceTransaction(null);
-                    setSelectedFinanceTransactionType(null);
-                  };
-
                   const filteredFinanceData = allTransactions.filter((transaction) => {
-                    let matchesSearch: boolean;
-                    if (!financeSearchValue) {
-                      matchesSearch = true;
-                    } else {
-                      const searchLower = financeSearchValue.toLowerCase();
-                      const property = transaction.propertyId
-                        ? getPropertyById(transaction.propertyId)
-                        : null;
-                      const propertyName = property?.name?.toLowerCase() || "";
-                      const category = transaction.category
-                        ? (t.cashFlow.categories as Record<string, string>)[
-                            transaction.category
-                          ]?.toLowerCase() || ""
-                        : "";
-                      const paymentMethod = transaction.paymentMethod
-                        ? (t.cashFlow.paymentMethods as Record<string, string>)[
-                            transaction.paymentMethod
-                          ]?.toLowerCase() || ""
-                        : "";
-                      const amount = formatCurrency(transaction.amount).toLowerCase();
+                    const matchesSearch = financeSearchValue
+                      ? matchesFinanceSearch(
+                          transaction,
+                          financeSearchValue.toLowerCase(),
+                          formatCurrency,
+                          t
+                        )
+                      : true;
 
-                      let supplierName = "";
-                      if (transaction.supplierId) {
-                        const supplier = getSupplierById(transaction.supplierId);
-                        supplierName = supplier?.name?.toLowerCase() || "";
-                      }
+                    const matchesFilter = matchesFinanceFilters(
+                      transaction,
+                      financeActiveFilter,
+                      financeSelectedYear,
+                      financeSelectedMonth
+                    );
 
-                      let buyerName = "";
-                      if (transaction.buyerId) {
-                        const buyer = getBuyerById(transaction.buyerId);
-                        buyerName = buyer?.name?.toLowerCase() || "";
-                      }
-
-                      let employeeName = "";
-                      if (transaction.employeeId) {
-                        const employee = getEmployeeById(transaction.employeeId);
-                        employeeName = employee?.name?.toLowerCase() || "";
-                      }
-
-                      let serviceProviderName = "";
-                      if (transaction.serviceProviderId) {
-                        const serviceProvider = getServiceProviderById(
-                          transaction.serviceProviderId
-                        );
-                        serviceProviderName = serviceProvider?.name?.toLowerCase() || "";
-                      }
-
-                      matchesSearch =
-                        transaction.description.toLowerCase().includes(searchLower) ||
-                        transaction.referenceNumber?.toLowerCase().includes(searchLower) ||
-                        propertyName.includes(searchLower) ||
-                        category.includes(searchLower) ||
-                        paymentMethod.includes(searchLower) ||
-                        amount.includes(searchLower) ||
-                        supplierName.includes(searchLower) ||
-                        buyerName.includes(searchLower) ||
-                        employeeName.includes(searchLower) ||
-                        serviceProviderName.includes(searchLower);
-                    }
-
-                    const matchesFilter =
-                      financeActiveFilter === "all" ||
-                      (financeActiveFilter === "income" && transaction.type === "income") ||
-                      (financeActiveFilter === "expense" && transaction.type === "expense");
-
-                    const matchesYear =
-                      financeSelectedYear === "all" ||
-                      transaction.date.startsWith(financeSelectedYear);
-                    const monthStr =
-                      financeSelectedMonth === "all" ? null : financeSelectedMonth.padStart(2, "0");
-                    const matchesMonth =
-                      financeSelectedMonth === "all" ||
-                      (monthStr && transaction.date.substring(5, 7) === monthStr);
-
-                    return matchesSearch && matchesFilter && matchesYear && matchesMonth;
+                    return matchesSearch && matchesFilter;
                   });
 
-                  const sortedFinanceData = [...filteredFinanceData].sort((a, b) => {
-                    if (!financeSortState.column || !financeSortState.direction) {
-                      return 0;
-                    }
-
-                    const aValue = a[financeSortState.column];
-                    const bValue = b[financeSortState.column];
-
-                    if (aValue == null && bValue == null) return 0;
-                    if (aValue == null) return 1;
-                    if (bValue == null) return -1;
-
-                    let comparison = 0;
-                    if (typeof aValue === "string" && typeof bValue === "string") {
-                      comparison = aValue.localeCompare(bValue, localeForDateTime, {
-                        sensitivity: "base",
-                      });
-                    } else if (typeof aValue === "number" && typeof bValue === "number") {
-                      comparison = aValue - bValue;
-                    } else {
-                      comparison = String(aValue).localeCompare(String(bValue), localeForDateTime);
-                    }
-
-                    return financeSortState.direction === "asc" ? comparison : -comparison;
+                  const sortedFinanceData = sortItems({
+                    items: filteredFinanceData,
+                    sortState: financeSortState,
                   });
 
                   const paginatedFinanceData = sortedFinanceData.slice(
@@ -3521,40 +2757,12 @@ export default function PropertyDetails() {
                     .reduce((sum, t) => sum + t.amount, 0);
                   const netTotal = totalIncome - totalExpenses;
 
-                  const getStatusVariant = (status: string, transactionType: string) => {
-                    if (transactionType === "cashFlow") {
-                      return "success";
-                    }
-                    switch (status) {
-                      case "paid":
-                        return "success";
-                      case "overdue":
-                        return "danger";
-                      case "partial":
-                        return "warning";
-                      default:
-                        return "default";
-                    }
-                  };
-
                   const getStatusLabel = (status: string, transactionType: string) => {
-                    if (transactionType === "cashFlow") {
-                      return t.cashFlow.table.completed;
-                    }
-                    if (transactionType === "receivable") {
-                      return (
-                        t.accountsReceivable.status[
-                          status as keyof typeof t.accountsReceivable.status
-                        ] || status
-                      );
-                    }
-                    if (transactionType === "payable") {
-                      return (
-                        t.accountsPayable.status[status as keyof typeof t.accountsPayable.status] ||
-                        status
-                      );
-                    }
-                    return status;
+                    return financeHandlers.getStatusLabel(status, transactionType, {
+                      cashFlow: { completed: t.cashFlow.table.completed },
+                      accountsReceivable: { status: t.accountsReceivable.status },
+                      accountsPayable: { status: t.accountsPayable.status },
+                    });
                   };
 
                   const financeColumns: TableColumn<UnifiedTransaction>[] = [
@@ -3595,9 +2803,7 @@ export default function PropertyDetails() {
                       sortable: true,
                       render: (_, row) => (
                         <span className="text-gray-700 dark:text-gray-300">
-                          {row.transactionType === "cashFlow"
-                            ? formatDate(row.date)
-                            : formatDate(row.date)}
+                          {formatDate(row.date)}
                         </span>
                       ),
                     },
@@ -3626,49 +2832,14 @@ export default function PropertyDetails() {
                       key: "supplierBuyer",
                       label: "",
                       sortable: false,
-                      render: (_, row) => {
-                        if (row.type === "expense" && row.supplierId) {
-                          const supplier = getSupplierById(row.supplierId);
-                          return (
-                            <span className="text-gray-700 dark:text-gray-300">
-                              {supplier?.name || "-"}
-                            </span>
-                          );
-                        }
-                        if (row.type === "expense" && row.employeeId) {
-                          const employee = getEmployeeById(row.employeeId);
-                          return (
-                            <span className="text-gray-700 dark:text-gray-300">
-                              {employee?.name || "-"}
-                            </span>
-                          );
-                        }
-                        if (row.type === "expense" && row.serviceProviderId) {
-                          const serviceProvider = getServiceProviderById(row.serviceProviderId);
-                          return (
-                            <span className="text-gray-700 dark:text-gray-300">
-                              {serviceProvider?.name || "-"}
-                            </span>
-                          );
-                        }
-                        if (row.type === "income" && row.buyerId) {
-                          const buyer = getBuyerById(row.buyerId);
-                          return (
-                            <span className="text-gray-700 dark:text-gray-300">
-                              {buyer?.name || "-"}
-                            </span>
-                          );
-                        }
-                        if (row.type === "income" && row.serviceProviderId) {
-                          const serviceProvider = getServiceProviderById(row.serviceProviderId);
-                          return (
-                            <span className="text-gray-700 dark:text-gray-300">
-                              {serviceProvider?.name || "-"}
-                            </span>
-                          );
-                        }
-                        return <span className="text-gray-400 dark:text-gray-500">-</span>;
-                      },
+                      render: (_, row) =>
+                        renderEntityName({
+                          supplierId: row.supplierId,
+                          employeeId: row.employeeId,
+                          serviceProviderId: row.serviceProviderId,
+                          buyerId: row.buyerId,
+                          type: row.type,
+                        }),
                     },
                     {
                       key: "paymentMethod",
@@ -3701,7 +2872,10 @@ export default function PropertyDetails() {
                       render: (_, row) => (
                         <StatusBadge
                           label={getStatusLabel(row.status, row.transactionType)}
-                          variant={getStatusVariant(row.status, row.transactionType)}
+                          variant={financeHandlers.getStatusVariant(
+                            row.status,
+                            row.transactionType
+                          )}
                         />
                       ),
                     },
@@ -3709,46 +2883,7 @@ export default function PropertyDetails() {
                       key: "actions",
                       label: "",
                       headerClassName: "relative",
-                      render: (_, row) => {
-                        const getEditRoute = () => {
-                          if (row.transactionType === "cashFlow") {
-                            return getCashFlowEditRoute(row.id);
-                          } else if (row.transactionType === "receivable") {
-                            return getAccountsReceivableEditRoute(row.id);
-                          } else {
-                            return getAccountsPayableEditRoute(row.id);
-                          }
-                        };
-
-                        const getCanEdit = () => {
-                          if (row.transactionType === "cashFlow") {
-                            return canEdit("finances", "cashFlow");
-                          } else if (row.transactionType === "receivable") {
-                            return canEdit("finances", "accountsReceivable");
-                          } else {
-                            return canEdit("finances", "accountsPayable");
-                          }
-                        };
-
-                        const getCanDelete = () => {
-                          if (row.transactionType === "cashFlow") {
-                            return canRemove("finances", "cashFlow");
-                          } else if (row.transactionType === "receivable") {
-                            return canRemove("finances", "accountsReceivable");
-                          } else {
-                            return canRemove("finances", "accountsPayable");
-                          }
-                        };
-
-                        return (
-                          <TableActionButtons
-                            onEdit={() => navigate(getEditRoute())}
-                            onDelete={() => handleDeleteFinanceClick(row)}
-                            canEdit={getCanEdit()}
-                            canDelete={getCanDelete()}
-                          />
-                        );
-                      },
+                      render: (_, row) => renderFinanceActions(row),
                     },
                   ];
 
@@ -3789,11 +2924,13 @@ export default function PropertyDetails() {
                     const currentDate = new Date();
                     const currentYear = currentDate.getFullYear();
 
-                    options.push({
-                      value: String(currentYear - 1),
-                      label: String(currentYear - 1),
-                    });
-                    options.push({ value: String(currentYear), label: String(currentYear) });
+                    options.push(
+                      {
+                        value: String(currentYear - 1),
+                        label: String(currentYear - 1),
+                      },
+                      { value: String(currentYear), label: String(currentYear) }
+                    );
 
                     return options;
                   };
@@ -3934,16 +3071,15 @@ export default function PropertyDetails() {
                       />
 
                       <ConfirmationModal
-                        isOpen={isDeleteFinanceModalOpen}
+                        isOpen={financeHandlers.isDeleteModalOpen}
                         onClose={() => {
-                          setIsDeleteFinanceModalOpen(false);
-                          setSelectedFinanceTransaction(null);
+                          financeHandlers.setIsDeleteModalOpen(false);
                         }}
-                        onConfirm={handleDeleteFinanceTransaction}
+                        onConfirm={financeHandlers.handleDeleteConfirm}
                         title={t.cashFlow.deleteModal.title}
                         message={t.cashFlow.deleteModal.message(
                           (
-                            selectedFinanceTransaction as
+                            financeHandlers.selectedTransaction as
                               | CashFlow
                               | AccountsReceivable
                               | AccountsPayable

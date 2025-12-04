@@ -1,7 +1,7 @@
 import { ROUTES } from "../../../routes.config";
 import type { SidebarItemConfig } from "~/types";
 
-export type { SidebarItemConfig };
+export type { SidebarItemConfig } from "~/types";
 
 export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
   { translationKey: "dashboard", path: ROUTES.DASHBOARD, icon: "📊" },

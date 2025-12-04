@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router";
+import { useParams, useNavigate, Link } from "react-router";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
 import { enUS } from "date-fns/locale/en-US";
@@ -7,6 +7,7 @@ import { Button, StatusBadge, Alert, ConfirmationModal } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
 import { usePermissions } from "~/utils/permissions";
+import { useAlert } from "~/hooks/use-alert";
 import {
   ROUTES,
   getSaleEditRoute,
@@ -22,7 +23,6 @@ import { formatCurrency } from "~/utils/currency";
 import { SaleType as SaleTypeEnum, SalePaymentMethod as SalePaymentMethodEnum } from "~/types";
 import { getTotalFees } from "~/utils/fees";
 import { useState } from "react";
-import { Link } from "react-router";
 
 export function meta() {
   return [
@@ -47,28 +47,19 @@ export default function SaleDetails() {
   const { canEdit, canRemove } = usePermissions();
   const sale = getSaleById(saleId);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [alertMessage, setAlertMessage] = useState<{
-    title: string;
-    variant: "success" | "error" | "warning" | "info";
-  } | null>(null);
+  const { alertMessage, showAlert } = useAlert();
 
-  const dateLocale = language === "en" ? enUS : language === "es" ? es : ptBR;
+  let dateLocale = ptBR;
+  if (language === "en") {
+    dateLocale = enUS;
+  } else if (language === "es") {
+    dateLocale = es;
+  }
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    const dateFormat =
-      language === "en" ? "MM/dd/yyyy" : language === "es" ? "dd/MM/yyyy" : "dd/MM/yyyy";
+    const dateFormat = language === "en" ? "MM/dd/yyyy" : "dd/MM/yyyy";
     return format(date, dateFormat, { locale: dateLocale });
-  };
-
-  const showAlert = (
-    title: string,
-    variant: "success" | "error" | "warning" | "info" = "success"
-  ) => {
-    setAlertMessage({ title, variant });
-    setTimeout(() => {
-      setAlertMessage(null);
-    }, 3000);
   };
 
   const handleDeleteClick = () => {
@@ -156,13 +147,15 @@ export default function SaleDetails() {
             </label>
             <div className="mt-1">
               <StatusBadge
-                label={
-                  sale.saleType === SaleTypeEnum.SLAUGHTERHOUSE
-                    ? t.sales?.saleTypes?.slaughterhouse || "Frigorífico"
-                    : sale.saleType === SaleTypeEnum.AUCTION
-                      ? t.sales?.saleTypes?.auction || "Leilão"
-                      : t.sales?.saleTypes?.otherFarm || "Outra Propriedade"
-                }
+                label={(() => {
+                  if (sale.saleType === SaleTypeEnum.SLAUGHTERHOUSE) {
+                    return t.sales?.saleTypes?.slaughterhouse || "Frigorífico";
+                  }
+                  if (sale.saleType === SaleTypeEnum.AUCTION) {
+                    return t.sales?.saleTypes?.auction || "Leilão";
+                  }
+                  return t.sales?.saleTypes?.otherFarm || "Outra Propriedade";
+                })()}
                 variant="default"
               />
             </div>
@@ -394,8 +387,8 @@ export default function SaleDetails() {
                       amount: sale.additionalFees,
                     });
                   }
-                  return legacyFees.map((fee, index) => (
-                    <div key={`legacy-${index}`} className="flex justify-between">
+                  return legacyFees.map((fee) => (
+                    <div key={fee.name} className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">{fee.name}:</span>
                       <span className="text-gray-900 dark:text-gray-100">
                         {formatCurrency(fee.amount, language)}

@@ -2,9 +2,9 @@ import { LocationType } from "~/types";
 import { getLocationTypeColors } from "./location-type-colors";
 
 interface LocationTypeBadgeProps {
-  locationType: LocationType;
-  label: string;
-  className?: string;
+  readonly locationType: LocationType;
+  readonly label: string;
+  readonly className?: string;
 }
 
 export function LocationTypeBadge({ locationType, label, className = "" }: LocationTypeBadgeProps) {

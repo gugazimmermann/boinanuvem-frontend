@@ -1,15 +1,16 @@
-import { useState, useCallback, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
-import { Input, Select, Button, Alert } from "~/components/ui";
+import { Button } from "~/components/ui";
 import { useTranslation } from "~/i18n";
-import { maskCEP, unmaskCEP } from "~/components/site/utils/masks";
-import { useCEPLookup, type CEPData } from "~/components/site/hooks";
-import { mapCEPDataToAddressForm } from "~/components/site/utils";
 import { ROUTES, getPropertyViewRoute } from "~/routes.config";
 import { getPropertyById, updateProperty } from "~/services/properties.service";
 import type { PropertyFormData } from "~/types";
-import { AreaType } from "~/types";
-import { BRAZILIAN_STATES } from "~/utils/brazilian-states";
+import {
+  PropertyForm,
+  type PropertyFormValues,
+} from "~/components/dashboard/properties/property-form";
+import { usePropertyForm } from "~/hooks/use-property-form";
+import { useAlert } from "~/hooks/use-alert";
+import { PropertyFormLayout } from "~/components/dashboard/properties/property-form-layout";
 
 export function meta() {
   return [
@@ -31,150 +32,54 @@ export default function EditProperty() {
   const navigate = useNavigate();
   const { propertyId } = useParams<{ propertyId: string }>();
   const property = getPropertyById(propertyId);
+  const { showAlert, AlertDisplay } = useAlert();
 
-  const [formData, setFormData] = useState<{
-    code: string;
-    name: string;
-    city: string;
-    state: string;
-    areaValue: string;
-    areaType: AreaType;
-    status: "active" | "inactive";
-    zipCode: string;
-    street: string;
-    number: string;
-    complement: string;
-    neighborhood: string;
-  }>({
-    code: "",
-    name: "",
-    city: "",
-    state: "",
-    areaValue: "",
-    areaType: AreaType.HECTARES,
-    status: "active",
-    zipCode: "",
-    street: "",
-    number: "",
-    complement: "",
-    neighborhood: "",
-  });
-
-  useEffect(() => {
-    if (property) {
-      setFormData({
-        code: property.code,
-        name: property.name,
-        city: property.city,
-        state: property.state,
-        areaValue: property.area.value.toString(),
-        areaType: property.area.type,
-        status: property.status,
-        zipCode: property.zipCode,
-        street: property.street,
-        number: property.number,
-        complement: property.complement,
-        neighborhood: property.neighborhood,
-      });
-    }
-  }, [property]);
-
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [alertMessage, setAlertMessage] = useState<{
-    title: string;
-    variant: "success" | "error" | "warning" | "info";
-  } | null>(null);
-
-  const handleZipCodeSuccess = useCallback((data: CEPData) => {
-    setFormData((prev) => {
-      const mappedData = mapCEPDataToAddressForm(data, prev);
-      return { ...prev, ...mappedData, zipCode: prev.zipCode };
-    });
-  }, []);
-
-  const { loading: zipCodeLoading, error: zipCodeError } = useCEPLookup(
-    unmaskCEP(formData.zipCode || ""),
-    {
-      debounceMs: 800,
-      onSuccess: handleZipCodeSuccess,
-    }
-  );
-
-  const showAlert = (
-    title: string,
-    variant: "success" | "error" | "warning" | "info" = "success"
-  ) => {
-    setAlertMessage({ title, variant });
-    setTimeout(() => {
-      setAlertMessage(null);
-    }, 3000);
-  };
-
-  const handleChange = (field: keyof typeof formData, value: string | AreaType) => {
-    if (field === "zipCode") {
-      setFormData((prev) => ({ ...prev, [field]: maskCEP(value as string) }));
-    } else {
-      setFormData((prev) => ({ ...prev, [field]: value }));
-    }
-    if (errors[field]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
-    }
-  };
-
-  const validate = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.code?.trim()) {
-      newErrors.code = t.profile.errors.required(t.properties.table.code);
-    }
-    if (!formData.name?.trim()) {
-      newErrors.name = t.profile.errors.required(t.properties.edit.nameLabel);
-    }
-    if (!formData.city?.trim()) {
-      newErrors.city = t.profile.errors.required(t.profile.company.fields.city);
-    }
-    if (!formData.state?.trim()) {
-      newErrors.state = t.profile.errors.required(t.profile.company.fields.state);
-    }
-    if (!formData.areaValue?.trim()) {
-      newErrors.areaValue = t.profile.errors.required(t.properties.edit.areaLabel);
-    } else {
-      const areaNum = parseFloat(formData.areaValue);
-      if (isNaN(areaNum) || areaNum <= 0) {
-        newErrors.areaValue = t.properties.edit.areaValidationError;
-      }
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validate() || !propertyId) return;
-
-    setIsSubmitting(true);
-    try {
+  const {
+    formData,
+    errors,
+    isSubmitting,
+    zipCodeLoading,
+    zipCodeError,
+    handleChange,
+    handleSubmit,
+  } = usePropertyForm({
+    initialValues: property
+      ? {
+          code: property.code,
+          name: property.name,
+          city: property.city,
+          state: property.state,
+          areaValue: property.area.value.toString(),
+          areaType: property.area.type,
+          status: property.status,
+          zipCode: property.zipCode,
+          street: property.street,
+          number: property.number,
+          complement: property.complement,
+          neighborhood: property.neighborhood,
+        }
+      : undefined,
+    translationKeys: {
+      required: (field: string) => t.profile.errors.required(field),
+      areaValidationError: t.properties.edit.areaValidationError,
+    },
+    onSubmit: async (data: PropertyFormValues) => {
+      if (!propertyId) return;
       const propertyData: Partial<PropertyFormData> = {
-        code: formData.code,
-        name: formData.name,
+        code: data.code,
+        name: data.name,
         area: {
-          value: parseFloat(formData.areaValue),
-          type: formData.areaType,
+          value: Number.parseFloat(data.areaValue),
+          type: data.areaType,
         },
-        status: formData.status,
-        street: formData.street,
-        number: formData.number,
-        complement: formData.complement,
-        neighborhood: formData.neighborhood,
-        city: formData.city,
-        state: formData.state,
-        zipCode: formData.zipCode,
+        status: data.status,
+        street: data.street,
+        number: data.number,
+        complement: data.complement,
+        neighborhood: data.neighborhood,
+        city: data.city,
+        state: data.state,
+        zipCode: data.zipCode,
       };
       const success = updateProperty(propertyId, propertyData);
       if (success) {
@@ -185,13 +90,8 @@ export default function EditProperty() {
       } else {
         showAlert(t.properties.errors.updateFailed, "error");
       }
-    } catch (error) {
-      console.error("Error updating property:", error);
-      showAlert(t.properties.errors.updateFailed, "error");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    },
+  });
 
   if (!property) {
     return (
@@ -199,208 +99,65 @@ export default function EditProperty() {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
           <p className="text-gray-600 dark:text-gray-400">{t.properties.emptyState.title}</p>
           <Button variant="outline" onClick={() => navigate(ROUTES.PROPERTIES)} className="mt-4">
-            {t.team.new.back}
+            {t.common.back}
           </Button>
         </div>
       </div>
     );
   }
 
+  const handleBack = () => {
+    if (propertyId) navigate(getPropertyViewRoute(propertyId));
+  };
+
   return (
-    <div className="space-y-6">
-      {alertMessage && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-          <Alert title={alertMessage.title} variant={alertMessage.variant} />
-        </div>
-      )}
-
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {t.properties.edit.title}
-          </h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {t.properties.edit.description}
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          onClick={() => propertyId && navigate(getPropertyViewRoute(propertyId))}
-          disabled={isSubmitting}
-        >
-          {t.team.new.back}
-        </Button>
-      </div>
-
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Input
-                label={t.properties.table.code}
-                value={formData.code}
-                onChange={(e) => handleChange("code", e.target.value)}
-                error={errors.code}
-                disabled={isSubmitting}
-                required
-              />
-              <Input
-                label={t.properties.edit.nameLabel}
-                value={formData.name}
-                onChange={(e) => handleChange("name", e.target.value)}
-                error={errors.name}
-                disabled={isSubmitting}
-                className="md:col-span-2"
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Input
-                  label={t.profile.company.fields.zipCode}
-                  value={formData.zipCode}
-                  onChange={(e) => handleChange("zipCode", e.target.value)}
-                  error={errors.zipCode || zipCodeError || undefined}
-                  disabled={isSubmitting || zipCodeLoading}
-                  placeholder="00000-000"
-                  maxLength={10}
-                />
-                {zipCodeLoading && (
-                  <p className="mt-1 text-xs text-blue-500 dark:text-blue-400">
-                    {t.team.new.searchingAddress}
-                  </p>
-                )}
-              </div>
-              <Input
-                label={t.profile.company.fields.street}
-                value={formData.street}
-                onChange={(e) => handleChange("street", e.target.value)}
-                error={errors.street}
-                disabled={isSubmitting || zipCodeLoading}
-                className="md:col-span-2"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Input
-                label={t.profile.company.fields.number}
-                value={formData.number}
-                onChange={(e) => handleChange("number", e.target.value)}
-                error={errors.number}
-                disabled={isSubmitting}
-              />
-              <Input
-                label={t.profile.company.fields.complement}
-                value={formData.complement}
-                onChange={(e) => handleChange("complement", e.target.value)}
-                error={errors.complement}
-                disabled={isSubmitting}
-                className="md:col-span-2"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Input
-                label={t.profile.company.fields.neighborhood}
-                value={formData.neighborhood}
-                onChange={(e) => handleChange("neighborhood", e.target.value)}
-                error={errors.neighborhood}
-                disabled={isSubmitting || zipCodeLoading}
-              />
-              <Input
-                label={t.profile.company.fields.city}
-                value={formData.city}
-                onChange={(e) => handleChange("city", e.target.value)}
-                error={errors.city}
-                disabled={isSubmitting || zipCodeLoading}
-                required
-              />
-              <Select
-                label={t.profile.company.fields.state}
-                value={formData.state}
-                onChange={(e) => handleChange("state", e.target.value)}
-                error={errors.state}
-                disabled={isSubmitting || zipCodeLoading}
-                options={BRAZILIAN_STATES.map((state) => ({
-                  value: state.code,
-                  label: state.code,
-                }))}
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Input
-                label={t.properties.edit.areaLabel}
-                type="number"
-                step="0.1"
-                min="0"
-                value={formData.areaValue}
-                onChange={(e) => handleChange("areaValue", e.target.value)}
-                error={errors.areaValue}
-                disabled={isSubmitting}
-                required
-              />
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {t.locations.areaType} <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={formData.areaType}
-                  onChange={(e) => handleChange("areaType", e.target.value as AreaType)}
-                  disabled={isSubmitting}
-                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200 ${
-                    errors.areaType ? "border-red-500" : "border-gray-300 dark:border-gray-600"
-                  }`}
-                >
-                  <option value={AreaType.HECTARES}>{t.locations.areaTypes.hectares}</option>
-                  <option value={AreaType.SQUARE_METERS}>
-                    {t.locations.areaTypes.square_meters}
-                  </option>
-                  <option value={AreaType.SQUARE_FEET}>{t.locations.areaTypes.square_feet}</option>
-                  <option value={AreaType.ACRES}>{t.locations.areaTypes.acres}</option>
-                  <option value={AreaType.SQUARE_KILOMETERS}>
-                    {t.locations.areaTypes.square_kilometers}
-                  </option>
-                  <option value={AreaType.SQUARE_MILES}>
-                    {t.locations.areaTypes.square_miles}
-                  </option>
-                </select>
-                {errors.areaType && <p className="mt-1 text-sm text-red-500">{errors.areaType}</p>}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {t.properties.edit.statusLabel}
-                </label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => handleChange("status", e.target.value as "active" | "inactive")}
-                  disabled={isSubmitting}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200"
-                >
-                  <option value="active">{t.properties.table.active}</option>
-                  <option value="inactive">{t.properties.table.inactive}</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => propertyId && navigate(getPropertyViewRoute(propertyId))}
-              disabled={isSubmitting}
-            >
-              {t.profile.company.cancel}
-            </Button>
-            <Button type="submit" variant="primary" disabled={isSubmitting}>
-              {isSubmitting ? t.common.loading : t.properties.edit.save}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <PropertyFormLayout
+      title={t.properties.edit.title}
+      description={t.properties.edit.description}
+      backButtonLabel={t.team.new.back}
+      onBack={handleBack}
+      cancelButtonLabel={t.profile.company.cancel}
+      onCancel={handleBack}
+      submitButtonLabel={t.properties.edit.save}
+      loadingLabel={t.common.loading}
+      isSubmitting={isSubmitting}
+      onSubmit={handleSubmit}
+      alertDisplay={AlertDisplay}
+      formContent={
+        <PropertyForm
+          formData={formData as unknown as PropertyFormValues}
+          errors={errors}
+          isSubmitting={isSubmitting}
+          zipCodeLoading={zipCodeLoading}
+          zipCodeError={zipCodeError}
+          onChange={handleChange}
+          translationKeys={{
+            code: t.properties.table.code,
+            nameLabel: t.properties.edit.nameLabel,
+            zipCode: t.profile.company.fields.zipCode,
+            street: t.profile.company.fields.street,
+            number: t.profile.company.fields.number,
+            complement: t.profile.company.fields.complement,
+            neighborhood: t.profile.company.fields.neighborhood,
+            city: t.profile.company.fields.city,
+            state: t.profile.company.fields.state,
+            areaLabel: t.properties.edit.areaLabel,
+            areaType: t.locations.areaType,
+            statusLabel: t.properties.edit.statusLabel,
+            active: t.properties.table.active,
+            inactive: t.properties.table.inactive,
+            searchingAddress: t.team.new.searchingAddress,
+            areaTypes: {
+              hectares: t.locations.areaTypes.hectares,
+              square_meters: t.locations.areaTypes.square_meters,
+              square_feet: t.locations.areaTypes.square_feet,
+              acres: t.locations.areaTypes.acres,
+              square_kilometers: t.locations.areaTypes.square_kilometers,
+              square_miles: t.locations.areaTypes.square_miles,
+            },
+          }}
+        />
+      }
+    />
   );
 }

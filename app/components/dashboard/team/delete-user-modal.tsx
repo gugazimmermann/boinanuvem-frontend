@@ -2,10 +2,10 @@ import { ConfirmationModal } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 
 interface DeleteUserModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: () => Promise<void>;
-  userName: string;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly onConfirm: () => Promise<void>;
+  readonly userName: string;
 }
 
 export function DeleteUserModal({ isOpen, onClose, onConfirm, userName }: DeleteUserModalProps) {

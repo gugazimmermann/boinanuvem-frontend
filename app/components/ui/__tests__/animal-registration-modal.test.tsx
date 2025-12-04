@@ -1,12 +1,25 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AnimalRegistrationModal } from "../animal-registration-modal";
-import { LanguageProvider } from "~/contexts/language-context";
 
-const wrapper = ({ children }: { children: React.ReactNode }) => (
-  <LanguageProvider>{children}</LanguageProvider>
-);
+vi.mock("~/i18n", () => ({
+  useTranslation: () => ({
+    animals: {
+      registrationModal: {
+        title: "Register Animal",
+        description: "Choose registration type",
+      },
+    },
+    sidebar: {
+      births: "Births",
+      acquisitions: "Acquisitions",
+    },
+    common: {
+      cancel: "Cancel",
+    },
+  }),
+}));
 
 describe("AnimalRegistrationModal", () => {
   const defaultProps = {
@@ -16,75 +29,75 @@ describe("AnimalRegistrationModal", () => {
     onSelectAcquisition: vi.fn(),
   };
 
-  it("should not render when isOpen is false", () => {
-    render(<AnimalRegistrationModal {...defaultProps} isOpen={false} />, { wrapper });
-    expect(screen.queryByText(/registration/i)).not.toBeInTheDocument();
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
   it("should render when isOpen is true", () => {
-    render(<AnimalRegistrationModal {...defaultProps} />, { wrapper });
-    expect(screen.getByText(/Nascimento|Birth/i)).toBeInTheDocument();
+    render(<AnimalRegistrationModal {...defaultProps} />);
+    expect(screen.getByText("Register Animal")).toBeInTheDocument();
+    expect(screen.getByText("Choose registration type")).toBeInTheDocument();
   });
 
-  it("should call onClose when backdrop is clicked", async () => {
-    const onClose = vi.fn();
-    const user = userEvent.setup();
-    render(<AnimalRegistrationModal {...defaultProps} onClose={onClose} />, { wrapper });
-
-    const backdrop = document.querySelector(".fixed.inset-0.cursor-pointer");
-    if (backdrop) {
-      await user.click(backdrop);
-      expect(onClose).toHaveBeenCalledTimes(1);
-    }
+  it("should return null when isOpen is false", () => {
+    const { container } = render(<AnimalRegistrationModal {...defaultProps} isOpen={false} />);
+    expect(container.firstChild).toBeNull();
   });
 
   it("should call onSelectBirth and onClose when birth button is clicked", async () => {
-    const onSelectBirth = vi.fn();
-    const onClose = vi.fn();
     const user = userEvent.setup();
-    render(
-      <AnimalRegistrationModal {...defaultProps} onSelectBirth={onSelectBirth} onClose={onClose} />,
-      { wrapper }
-    );
-
-    const birthButton = screen.getByText(/Nascimento|Birth/i).closest("button");
-    if (birthButton) {
-      await user.click(birthButton);
-      expect(onSelectBirth).toHaveBeenCalledTimes(1);
-      expect(onClose).toHaveBeenCalledTimes(1);
-    }
+    render(<AnimalRegistrationModal {...defaultProps} />);
+    const birthButton = screen.getByRole("button", { name: "Births" });
+    await user.click(birthButton);
+    expect(defaultProps.onSelectBirth).toHaveBeenCalledTimes(1);
+    expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
   });
 
   it("should call onSelectAcquisition and onClose when acquisition button is clicked", async () => {
-    const onSelectAcquisition = vi.fn();
-    const onClose = vi.fn();
     const user = userEvent.setup();
-    render(
-      <AnimalRegistrationModal
-        {...defaultProps}
-        onSelectAcquisition={onSelectAcquisition}
-        onClose={onClose}
-      />,
-      { wrapper }
-    );
-
-    const acquisitionButton = screen.getByText(/Aquisição|Acquisition/i).closest("button");
-    if (acquisitionButton) {
-      await user.click(acquisitionButton);
-      expect(onSelectAcquisition).toHaveBeenCalledTimes(1);
-      expect(onClose).toHaveBeenCalledTimes(1);
-    }
+    render(<AnimalRegistrationModal {...defaultProps} />);
+    const acquisitionButton = screen.getByRole("button", { name: "Acquisitions" });
+    await user.click(acquisitionButton);
+    expect(defaultProps.onSelectAcquisition).toHaveBeenCalledTimes(1);
+    expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
   });
 
   it("should call onClose when cancel button is clicked", async () => {
-    const onClose = vi.fn();
     const user = userEvent.setup();
-    render(<AnimalRegistrationModal {...defaultProps} onClose={onClose} />, { wrapper });
+    render(<AnimalRegistrationModal {...defaultProps} />);
+    const cancelButton = screen.getByRole("button", { name: "Cancel" });
+    await user.click(cancelButton);
+    expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
+  });
 
-    const cancelButton = screen.getByText(/Cancelar|Cancel/i).closest("button");
-    if (cancelButton) {
-      await user.click(cancelButton);
-      expect(onClose).toHaveBeenCalledTimes(1);
+  it("should call onClose when backdrop is clicked", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<AnimalRegistrationModal {...defaultProps} />);
+    const backdrop = container.querySelector('[aria-hidden="true"]');
+    if (backdrop) {
+      await user.click(backdrop as HTMLElement);
+      expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
     }
+  });
+
+  it("should render birth button with icon", () => {
+    render(<AnimalRegistrationModal {...defaultProps} />);
+    const birthButton = screen.getByRole("button", { name: "Births" });
+    const svg = birthButton.querySelector("svg");
+    expect(svg).toBeInTheDocument();
+  });
+
+  it("should render acquisition button with icon", () => {
+    render(<AnimalRegistrationModal {...defaultProps} />);
+    const acquisitionButton = screen.getByRole("button", { name: "Acquisitions" });
+    const svg = acquisitionButton.querySelector("svg");
+    expect(svg).toBeInTheDocument();
+  });
+
+  it("should render all three buttons", () => {
+    render(<AnimalRegistrationModal {...defaultProps} />);
+    expect(screen.getByRole("button", { name: "Births" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Acquisitions" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
   });
 });

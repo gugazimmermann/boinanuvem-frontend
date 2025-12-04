@@ -20,9 +20,9 @@ import {
 } from "recharts";
 
 interface PasturePlanningGraphProps {
-  data: PasturePlanningMonth[];
-  propertyId: string;
-  isModifiedByUser?: boolean;
+  readonly data: PasturePlanningMonth[];
+  readonly propertyId: string;
+  readonly isModifiedByUser?: boolean;
 }
 
 const CLASSIFICATION_COLORS = {
@@ -53,6 +53,14 @@ const monthMap: Record<string, string> = {
   November: "Nov",
   December: "Dez",
 };
+
+function getLegendFormatter(textColor: string) {
+  const LegendFormatter = (value: string) => (
+    <span style={{ color: textColor, fontSize: "12px" }}>{value}</span>
+  );
+  LegendFormatter.displayName = "LegendFormatter";
+  return LegendFormatter;
+}
 
 export function PasturePlanningGraph({
   data,
@@ -186,9 +194,7 @@ export function PasturePlanningGraph({
             <Legend
               wrapperStyle={{ paddingTop: "20px" }}
               iconType="line"
-              formatter={(value) => (
-                <span style={{ color: textColor, fontSize: "12px" }}>{value}</span>
-              )}
+              formatter={getLegendFormatter(textColor)}
             />
             <Area
               yAxisId="precip"
@@ -226,15 +232,11 @@ export function PasturePlanningGraph({
               isAnimationActive={false}
               name={t.properties.details.pasturePlanning.forage}
             >
-              {chartData.map((entry, index) => {
+              {chartData.map((entry) => {
                 const color = isDark
-                  ? CLASSIFICATION_COLORS_DARK[
-                      entry.classification as keyof typeof CLASSIFICATION_COLORS_DARK
-                    ]
-                  : CLASSIFICATION_COLORS[
-                      entry.classification as keyof typeof CLASSIFICATION_COLORS
-                    ];
-                return <Cell key={`cell-${index}`} fill={color} />;
+                  ? CLASSIFICATION_COLORS_DARK[entry.classification]
+                  : CLASSIFICATION_COLORS[entry.classification];
+                return <Cell key={`cell-${entry.month}`} fill={color} />;
               })}
               <LabelList
                 dataKey="classification"

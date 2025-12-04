@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router";
 import { AuthLayout } from "../components/site/auth-layout";
-import { AuthCard, AuthFooter, AuthFormError, AuthInput, AuthButton } from "../components/site/ui";
+import { AuthCard, AuthFooter, AuthFormError, AuthButton } from "../components/site/ui";
+import { Input } from "../components/ui";
 import { useAuthForm } from "../components/site/hooks";
 import { ROUTES } from "../routes.config";
 import { authenticateUser } from "../services/users.service";
@@ -38,7 +39,7 @@ export default function Login() {
       const user = await authenticateUser(email, password);
 
       if (!user) {
-        throw new Error(t.common.invalidCredentials);
+        throw new Error("invalidCredentials");
       }
 
       login(user.id);
@@ -73,7 +74,7 @@ export default function Login() {
           <AuthFormError error={error ? getErrorMessage(error) : undefined} />
 
           <div className="w-full">
-            <AuthInput
+            <Input
               type="email"
               placeholder="Email"
               aria-label={t.common.ariaLabels.email}
@@ -85,7 +86,7 @@ export default function Login() {
           </div>
 
           <div className="w-full mt-4">
-            <AuthInput
+            <Input
               type="password"
               placeholder="Senha"
               aria-label={t.common.ariaLabels.password}

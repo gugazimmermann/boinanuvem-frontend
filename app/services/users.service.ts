@@ -17,9 +17,10 @@ export function getUsersByCompanyId(companyId: string): TeamUser[] {
 export function updateUser(userId: string, data: UserFormData): void {
   const userIndex = mockUsers.findIndex((user) => user.id === userId);
   if (userIndex !== -1) {
+    const { id: _id, ...dataWithoutId } = data as UserFormData & { id?: string };
     mockUsers[userIndex] = {
       ...mockUsers[userIndex],
-      ...data,
+      ...dataWithoutId,
       password: undefined,
       confirmPassword: undefined,
     };
@@ -35,8 +36,9 @@ export function updateUserPermissions(userId: string, permissions: UserPermissio
 
 export function addUser(data: UserFormData & { password: string }): TeamUser {
   const company = mockCompanies[0];
+  const { id: _id, ...dataWithoutId } = data as UserFormData & { password: string; id?: string };
   const newUser: TeamUser = {
-    ...data,
+    ...dataWithoutId,
     id: `550e8400-e29b-41d4-a716-${String(mockUsers.length).padStart(12, "0")}`,
     status: "pending",
     mainUser: false,

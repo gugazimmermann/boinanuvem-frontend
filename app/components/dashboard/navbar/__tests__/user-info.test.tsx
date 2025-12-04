@@ -9,12 +9,12 @@ describe("UserInfo", () => {
     expect(screen.getByText("john@example.com")).toBeInTheDocument();
   });
 
-  it("should render with default initial", () => {
+  it("should render default initial when not provided", () => {
     render(<UserInfo name="John Doe" email="john@example.com" />);
     expect(screen.getByText("U")).toBeInTheDocument();
   });
 
-  it("should render with custom initial", () => {
+  it("should render custom initial", () => {
     render(<UserInfo name="John Doe" email="john@example.com" initial="JD" />);
     expect(screen.getByText("JD")).toBeInTheDocument();
   });

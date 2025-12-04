@@ -8,8 +8,8 @@ import { getRoutePermission } from "~/utils/route-permissions";
 import type { UserPermissions } from "~/types/permissions";
 
 interface SidebarProps {
-  isOpen?: boolean;
-  onClose?: () => void;
+  readonly isOpen?: boolean;
+  readonly onClose?: () => void;
 }
 
 export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
@@ -19,7 +19,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
   const getInitialExpandedItem = () => {
     for (const item of SIDEBAR_ITEMS) {
-      if (item.subItems?.some((subItem) => location.pathname === subItem.path)) {
+      if (item.subItems?.some((subItem: { path: string }) => location.pathname === subItem.path)) {
         return item.translationKey;
       }
     }
@@ -39,16 +39,18 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       }
 
       if (item.subItems && item.subItems.length > 0) {
-        const visibleSubItems = item.subItems.filter((subItem) => {
-          const permissionPath = getRoutePermission(subItem.path);
-          if (!permissionPath) {
-            return true;
-          }
+        const visibleSubItems = item.subItems.filter(
+          (subItem: { path: string; translationKey: string }) => {
+            const permissionPath = getRoutePermission(subItem.path);
+            if (!permissionPath) {
+              return true;
+            }
 
-          const [section, ...resourceParts] = permissionPath.split(".");
-          const resource = resourceParts.join(".");
-          return canView(section as keyof UserPermissions, resource);
-        });
+            const [section, ...resourceParts] = permissionPath.split(".");
+            const resource = resourceParts.join(".");
+            return canView(section as keyof UserPermissions, resource);
+          }
+        );
 
         return visibleSubItems.length > 0;
       }
@@ -63,16 +65,18 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       return canView(section as keyof UserPermissions, resource);
     }).map((item) => {
       if (item.subItems && item.subItems.length > 0) {
-        const visibleSubItems = item.subItems.filter((subItem) => {
-          const permissionPath = getRoutePermission(subItem.path);
-          if (!permissionPath) {
-            return true;
-          }
+        const visibleSubItems = item.subItems.filter(
+          (subItem: { path: string; translationKey: string }) => {
+            const permissionPath = getRoutePermission(subItem.path);
+            if (!permissionPath) {
+              return true;
+            }
 
-          const [section, ...resourceParts] = permissionPath.split(".");
-          const resource = resourceParts.join(".");
-          return canView(section as keyof UserPermissions, resource);
-        });
+            const [section, ...resourceParts] = permissionPath.split(".");
+            const resource = resourceParts.join(".");
+            return canView(section as keyof UserPermissions, resource);
+          }
+        );
 
         return {
           ...item,
@@ -87,10 +91,12 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const translatedItems = filteredItems.map((item) => ({
     ...item,
     label: t.sidebar[item.translationKey],
-    subItems: item.subItems?.map((subItem) => ({
-      ...subItem,
-      label: t.sidebar[subItem.translationKey],
-    })),
+    subItems: item.subItems?.map(
+      (subItem: { translationKey: string; path: string; icon?: string }) => ({
+        ...subItem,
+        label: t.sidebar[subItem.translationKey as keyof typeof t.sidebar],
+      })
+    ),
   }));
 
   return (
@@ -112,11 +118,16 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           {translatedItems.map((item) => (
             <SidebarItem
               key={item.translationKey}
-              translationKey={item.translationKey}
               label={item.label}
               path={item.path}
               icon={item.icon}
-              subItems={item.subItems}
+              subItems={item.subItems?.map(
+                (subItem: { label: string; path: string; icon?: string }) => ({
+                  label: subItem.label,
+                  path: subItem.path,
+                  icon: subItem.icon,
+                })
+              )}
               isExpanded={item.subItems ? expandedItemKey === item.translationKey : undefined}
               onToggle={item.subItems ? () => handleToggle(item.translationKey) : undefined}
               onItemClick={onClose}

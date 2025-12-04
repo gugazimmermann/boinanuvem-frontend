@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
 import { useTranslation } from "~/i18n";
-import { useLanguage } from "~/contexts/language-context";
 import { translations } from "~/i18n/translations";
 import { mockCompanies } from "~/mocks/companies";
 import { getPropertiesByCompanyId } from "~/services/properties.service";
@@ -22,9 +21,7 @@ import {
   type BullToCowRatioResult,
 } from "~/services/reproductive-indexes.service";
 import { format, subYears } from "date-fns";
-import { ptBR } from "date-fns/locale/pt-BR";
-import { enUS } from "date-fns/locale/en-US";
-import { es } from "date-fns/locale/es";
+import { useDateLocale } from "~/hooks/use-date-locale";
 import {
   LineChart,
   Line,
@@ -68,14 +65,14 @@ function aggregateIndexes(
   const allIntrauterineMortality: IntrauterineMortalityResult[] = [];
   const allBullToCowRatios: BullToCowRatioResult[] = [];
 
-  properties.forEach((property) => {
+  for (const property of properties) {
     allFertilityRates.push(getFertilityRate(property.id, period));
     allBirthRates.push(getBirthRate(property.id, period));
     allCalvingIntervals.push(getCalvingInterval(property.id));
     allCullingRates.push(getCullingRate(property.id, period));
     allIntrauterineMortality.push(getIntrauterineMortalityIndex(property.id, period));
     allBullToCowRatios.push(getBullToCowRatio(property.id));
-  });
+  }
 
   const totalPregnantCows = allFertilityRates.reduce((sum, r) => sum + r.pregnantCows, 0);
   const totalExposedCows = allFertilityRates.reduce((sum, r) => sum + r.exposedCows, 0);
@@ -95,9 +92,9 @@ function aggregateIndexes(
   };
 
   const allIntervals: number[] = [];
-  allCalvingIntervals.forEach((ci) => {
+  for (const ci of allCalvingIntervals) {
     allIntervals.push(...ci.intervals);
-  });
+  }
   const aggregatedCalvingInterval: CalvingIntervalResult = {
     average:
       allIntervals.length > 0
@@ -163,17 +160,17 @@ function aggregateMonthlyBirthRates(birthRates: BirthRateResult[]): Array<{
 }> {
   const monthlyMap = new Map<string, { calvesBorn: number; pregnantFemales: number }>();
 
-  birthRates.forEach((br) => {
+  for (const br of birthRates) {
     if (br.monthly) {
-      br.monthly.forEach((month) => {
+      for (const month of br.monthly) {
         const existing = monthlyMap.get(month.month) || { calvesBorn: 0, pregnantFemales: 0 };
         monthlyMap.set(month.month, {
           calvesBorn: existing.calvesBorn + month.calvesBorn,
           pregnantFemales: existing.pregnantFemales + month.pregnantFemales,
         });
-      });
+      }
     }
-  });
+  }
 
   return Array.from(monthlyMap.entries())
     .map(([month, data]) => ({
@@ -182,7 +179,7 @@ function aggregateMonthlyBirthRates(birthRates: BirthRateResult[]): Array<{
       calvesBorn: data.calvesBorn,
       pregnantFemales: data.pregnantFemales,
     }))
-    .sort((a, b) => a.month.localeCompare(b.month));
+    .toSorted((a, b) => a.month.localeCompare(b.month));
 }
 
 function aggregateAnnualCullingRates(cullingRates: CullingRateResult[]): Array<{
@@ -193,17 +190,17 @@ function aggregateAnnualCullingRates(cullingRates: CullingRateResult[]): Array<{
 }> {
   const annualMap = new Map<string, { replacedFemales: number; totalFemales: number }>();
 
-  cullingRates.forEach((cr) => {
+  for (const cr of cullingRates) {
     if (cr.annual) {
-      cr.annual.forEach((year) => {
+      for (const year of cr.annual) {
         const existing = annualMap.get(year.year) || { replacedFemales: 0, totalFemales: 0 };
         annualMap.set(year.year, {
           replacedFemales: existing.replacedFemales + year.replacedFemales,
           totalFemales: existing.totalFemales + year.totalFemales,
         });
-      });
+      }
     }
-  });
+  }
 
   return Array.from(annualMap.entries())
     .map(([year, data]) => ({
@@ -212,12 +209,11 @@ function aggregateAnnualCullingRates(cullingRates: CullingRateResult[]): Array<{
       replacedFemales: data.replacedFemales,
       totalFemales: data.totalFemales,
     }))
-    .sort((a, b) => a.year.localeCompare(b.year));
+    .toSorted((a, b) => a.year.localeCompare(b.year));
 }
 
 export default function ReproductiveIndexesPage() {
   const t = useTranslation();
-  const { language } = useLanguage();
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const chartColors = getChartColors(isDark);
@@ -245,16 +241,7 @@ export default function ReproductiveIndexesPage() {
     endDate?: string;
   }>(getDefaultPeriod());
 
-  const dateLocale = useMemo(() => {
-    switch (language) {
-      case "en":
-        return enUS;
-      case "es":
-        return es;
-      default:
-        return ptBR;
-    }
-  }, [language]);
+  const dateLocale = useDateLocale();
 
   const aggregatedIndexes = useMemo(() => {
     if (selectedPropertyId !== ALL_PROPERTIES_ID || properties.length === 0) {
@@ -267,7 +254,7 @@ export default function ReproductiveIndexesPage() {
     if (!aggregatedIndexes?.birthRate.monthly) return [];
     return aggregatedIndexes.birthRate.monthly.map((item) => {
       const [year, month] = item.month.split("-");
-      const monthDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+      const monthDate = new Date(Number.parseInt(year), Number.parseInt(month) - 1, 1);
       const monthName = format(monthDate, "MMM yyyy", { locale: dateLocale });
       return {
         month: monthName,
@@ -299,7 +286,7 @@ export default function ReproductiveIndexesPage() {
     if (!expectedBirthsForecast.monthly || expectedBirthsForecast.monthly.length === 0) return [];
     return expectedBirthsForecast.monthly.map((item) => {
       const [year, month] = item.month.split("-");
-      const monthDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+      const monthDate = new Date(Number.parseInt(year), Number.parseInt(month) - 1, 1);
       const monthName = format(monthDate, "MMM yyyy", { locale: dateLocale });
       return {
         month: monthName,

@@ -2,21 +2,21 @@ import type { ReactNode } from "react";
 import { Link } from "react-router";
 
 interface StatCardProps {
-  title: string;
-  value: string | number;
-  subtitle?: string;
-  icon?: ReactNode;
-  trend?: {
-    value: number;
-    label?: string;
-    isPositive?: boolean;
+  readonly title: string;
+  readonly value: string | number;
+  readonly subtitle?: string;
+  readonly icon?: ReactNode;
+  readonly trend?: {
+    readonly value: number;
+    readonly label?: string;
+    readonly isPositive?: boolean;
   };
-  link?: {
-    to: string;
-    text: string;
+  readonly link?: {
+    readonly to: string;
+    readonly text: string;
   };
-  className?: string;
-  valueColor?: "default" | "green" | "red" | "blue" | "orange" | "purple";
+  readonly className?: string;
+  readonly valueColor?: "default" | "green" | "red" | "blue" | "orange" | "purple";
 }
 
 export function StatCard({
@@ -63,7 +63,13 @@ export function StatCard({
           {subtitle && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{subtitle}</p>}
           {trend && (
             <div className={`flex items-center gap-1 mt-1 text-xs font-medium ${getTrendColor()}`}>
-              <span>{trend.isPositive ? "↑" : trend.isPositive === false ? "↓" : "→"}</span>
+              <span>
+                {(() => {
+                  if (trend.isPositive === true) return "↑";
+                  if (trend.isPositive === false) return "↓";
+                  return "→";
+                })()}
+              </span>
               <span>
                 {Math.abs(trend.value).toFixed(1)}%{trend.label && ` ${trend.label}`}
               </span>

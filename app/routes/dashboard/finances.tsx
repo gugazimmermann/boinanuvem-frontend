@@ -1,6 +1,7 @@
 import { useMemo } from "react";
-import { format, startOfMonth, endOfMonth, subMonths, parseISO } from "date-fns";
+import { parseISO } from "date-fns";
 import { formatCurrency, formatDate } from "~/utils/formatting";
+import { calculateMonthlyFinanceData } from "~/utils/finance-monthly-data";
 import {
   LineChart,
   Line,
@@ -51,21 +52,6 @@ export function meta() {
   ];
 }
 
-const monthNames = [
-  "Jan",
-  "Fev",
-  "Mar",
-  "Abr",
-  "Mai",
-  "Jun",
-  "Jul",
-  "Ago",
-  "Set",
-  "Out",
-  "Nov",
-  "Dez",
-];
-
 export default function FinancesDashboard() {
   const t = useTranslation();
   const { language } = useLanguage();
@@ -99,44 +85,15 @@ export default function FinancesDashboard() {
     upcomingReceivables,
   } = useFinanceCalculations(cashFlowData, accountsPayableData, accountsReceivableData);
 
-  const monthlyData = useMemo(() => {
-    const months: Record<string, { month: string; income: number; expenses: number; net: number }> =
-      {};
-
-    for (let i = 11; i >= 0; i--) {
-      const monthDate = subMonths(currentDate, i);
-      const monthKey = format(monthDate, "yyyy-MM");
-      const monthStart = startOfMonth(monthDate);
-      const monthEnd = endOfMonth(monthDate);
-
-      months[monthKey] = {
-        month: monthNames[monthDate.getMonth()],
-        income: 0,
-        expenses: 0,
-        net: 0,
-      };
-
-      cashFlowData.forEach((transaction) => {
-        const transactionDate = parseISO(transaction.date);
-        if (transactionDate >= monthStart && transactionDate <= monthEnd) {
-          if (transaction.type === "income") {
-            months[monthKey].income += transaction.amount;
-          } else {
-            months[monthKey].expenses += transaction.amount;
-          }
-        }
-      });
-
-      months[monthKey].net = months[monthKey].income - months[monthKey].expenses;
-    }
-
-    return Object.values(months);
-  }, [cashFlowData, currentDate]);
+  const monthlyData = useMemo(
+    () => calculateMonthlyFinanceData(cashFlowData, currentDate),
+    [cashFlowData, currentDate]
+  );
 
   const categoryData = useMemo(() => {
     const categories: Record<string, { name: string; income: number; expenses: number }> = {};
 
-    cashFlowData.forEach((transaction) => {
+    for (const transaction of cashFlowData) {
       const categoryKey = transaction.category;
       if (!categories[categoryKey]) {
         categories[categoryKey] = {
@@ -151,7 +108,7 @@ export default function FinancesDashboard() {
       } else {
         categories[categoryKey].expenses += transaction.amount;
       }
-    });
+    }
 
     return Object.values(categories)
       .map((cat) => ({
@@ -168,7 +125,7 @@ export default function FinancesDashboard() {
   const expenseCategoriesData = useMemo(() => {
     const categories: Record<string, number> = {};
 
-    cashFlowData.forEach((transaction) => {
+    for (const transaction of cashFlowData) {
       if (transaction.type === "expense") {
         const categoryKey = transaction.category;
         const categoryName = t.cashFlow.categories[categoryKey] || categoryKey;
@@ -179,7 +136,7 @@ export default function FinancesDashboard() {
 
         categories[categoryName] += transaction.amount;
       }
-    });
+    }
 
     return Object.entries(categories)
       .map(([name, value]) => ({ name, value }))
@@ -195,7 +152,7 @@ export default function FinancesDashboard() {
       partial: 0,
     };
 
-    accountsPayableData.forEach((ap) => {
+    for (const ap of accountsPayableData) {
       if (ap.status === AccountsPayableStatus.PAID) {
         statusCounts.paid += 1;
       } else if (ap.status === AccountsPayableStatus.OVERDUE) {
@@ -205,9 +162,9 @@ export default function FinancesDashboard() {
       } else {
         statusCounts.unpaid += 1;
       }
-    });
+    }
 
-    accountsReceivableData.forEach((ar) => {
+    for (const ar of accountsReceivableData) {
       if (ar.status === AccountsReceivableStatus.PAID) {
         statusCounts.paid += 1;
       } else if (ar.status === AccountsReceivableStatus.OVERDUE) {
@@ -217,7 +174,7 @@ export default function FinancesDashboard() {
       } else {
         statusCounts.unpaid += 1;
       }
-    });
+    }
 
     return [
       { name: t.financesDashboard.status.paid, value: statusCounts.paid },
@@ -239,13 +196,13 @@ export default function FinancesDashboard() {
       item: AccountsPayable | AccountsReceivable;
     }> = [];
 
-    overduePayable.forEach((ap) => {
+    for (const ap of overduePayable) {
       allOverdue.push({ type: "payable", item: ap });
-    });
+    }
 
-    overdueReceivable.forEach((ar) => {
+    for (const ar of overdueReceivable) {
       allOverdue.push({ type: "receivable", item: ar });
-    });
+    }
 
     return allOverdue.sort((a, b) => {
       const dateA = parseISO(a.item.dueDate);
@@ -637,7 +594,10 @@ export default function FinancesDashboard() {
               dataKey="value"
             >
               {statusData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} />
+                <Cell
+                  key={`cell-${entry.name || index}`}
+                  fill={pieColors[index % pieColors.length]}
+                />
               ))}
             </Pie>
             <Tooltip {...tooltipStyle} />
@@ -879,11 +839,11 @@ export default function FinancesDashboard() {
                     const isPayable = item.type === "payable";
                     const supplier =
                       isPayable && (item.item as AccountsPayable).supplierId
-                        ? getSupplierById((item.item as AccountsPayable).supplierId!)
+                        ? getSupplierById((item.item as AccountsPayable).supplierId)
                         : null;
                     const buyer =
                       !isPayable && (item.item as AccountsReceivable).buyerId
-                        ? getBuyerById((item.item as AccountsReceivable).buyerId!)
+                        ? getBuyerById((item.item as AccountsReceivable).buyerId)
                         : null;
                     const remainingAmount = calculateRemainingAmount(
                       item.item.amount,

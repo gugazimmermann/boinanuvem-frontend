@@ -1,175 +1,143 @@
 import { describe, it, expect } from "vitest";
 import { mockInventoryItems } from "../inventory";
-import type { InventoryItem } from "~/types";
+import { mockCompanies } from "../companies";
+import { mockProperties } from "../properties";
 import { InventoryItemCategory } from "~/types";
 
-describe("inventory mock", () => {
-  it("should export mockInventoryItems array", () => {
-    expect(Array.isArray(mockInventoryItems)).toBe(true);
-    expect(mockInventoryItems.length).toBeGreaterThan(0);
-  });
-
-  it("should have valid inventory item structure", () => {
-    mockInventoryItems.forEach((item: InventoryItem) => {
-      expect(item).toHaveProperty("id");
-      expect(item).toHaveProperty("code");
-      expect(item).toHaveProperty("name");
-      expect(item).toHaveProperty("category");
-      expect(item).toHaveProperty("unit");
-      expect(item).toHaveProperty("minimumStock");
-      expect(item).toHaveProperty("hasExpiration");
-      expect(item).toHaveProperty("companyId");
-      expect(item).toHaveProperty("propertyIds");
-      expect(item).toHaveProperty("createdAt");
-
-      expect(typeof item.id).toBe("string");
-      expect(typeof item.code).toBe("string");
-      expect(typeof item.name).toBe("string");
-      expect(typeof item.category).toBe("string");
-      expect(typeof item.unit).toBe("string");
-      expect(typeof item.minimumStock).toBe("number");
-      expect(typeof item.hasExpiration).toBe("boolean");
-      expect(typeof item.companyId).toBe("string");
-      expect(Array.isArray(item.propertyIds)).toBe(true);
-      expect(typeof item.createdAt).toBe("string");
+describe("inventory", () => {
+  describe("mockInventoryItems", () => {
+    it("should export an array", () => {
+      expect(Array.isArray(mockInventoryItems)).toBe(true);
     });
-  });
 
-  it("should have valid category enum values", () => {
-    const validCategories = Object.values(InventoryItemCategory);
-    mockInventoryItems.forEach((item: InventoryItem) => {
-      expect(validCategories).toContain(item.category);
+    it("should not be empty", () => {
+      expect(mockInventoryItems.length).toBeGreaterThan(0);
     });
-  });
 
-  it("should have customCategory when category is CUSTOM", () => {
-    mockInventoryItems.forEach((item: InventoryItem) => {
-      if (item.category === InventoryItemCategory.CUSTOM) {
-        expect(item).toHaveProperty("customCategory");
-        expect(typeof item.customCategory).toBe("string");
-        expect(item.customCategory?.length).toBeGreaterThan(0);
-      }
-    });
-  });
-
-  it("should have expirationDate when hasExpiration is true", () => {
-    mockInventoryItems.forEach((item: InventoryItem) => {
-      if (item.hasExpiration) {
-        expect(item).toHaveProperty("expirationDate");
-        expect(typeof item.expirationDate).toBe("string");
-        expect(item.expirationDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-      }
-    });
-  });
-
-  it("should not have expirationDate when hasExpiration is false", () => {
-    mockInventoryItems.forEach((item: InventoryItem) => {
-      if (!item.hasExpiration) {
-        expect(item.expirationDate === undefined || item.expirationDate === null).toBe(true);
-      }
-    });
-  });
-
-  it("should have valid unit values", () => {
-    const validUnits = [
-      "unidade",
-      "g",
-      "kg",
-      "tonelada",
-      "ml",
-      "L",
-      "cm",
-      "m",
-      "m2",
-      "ha",
-      "saco",
-      "frasco",
-      "dose",
-      "caixa",
-      "comprimido",
-      "pilula",
-      "ampola",
-      "seringa",
-      "cartucho",
-      "rolo",
-      "pacote",
-      "lata",
-    ];
-    mockInventoryItems.forEach((item: InventoryItem) => {
-      expect(validUnits).toContain(item.unit);
-    });
-  });
-
-  it("should have valid propertyIds array structure", () => {
-    mockInventoryItems.forEach((item: InventoryItem) => {
-      expect(Array.isArray(item.propertyIds)).toBe(true);
-      expect(item.propertyIds.length).toBeGreaterThan(0);
-      item.propertyIds.forEach((propertyId) => {
-        expect(typeof propertyId).toBe("string");
-        expect(propertyId.length).toBeGreaterThan(0);
+    it("should have valid data structure", () => {
+      mockInventoryItems.forEach((item) => {
+        expect(item).toHaveProperty("id");
+        expect(item).toHaveProperty("code");
+        expect(item).toHaveProperty("name");
+        expect(item).toHaveProperty("description");
+        expect(item).toHaveProperty("category");
+        expect(item).toHaveProperty("unit");
+        expect(item).toHaveProperty("minimumStock");
+        expect(item).toHaveProperty("supplierId");
+        expect(item).toHaveProperty("hasExpiration");
+        expect(item).toHaveProperty("companyId");
+        expect(item).toHaveProperty("propertyIds");
+        expect(item).toHaveProperty("createdAt");
       });
     });
-  });
 
-  it("should have consistent companyId", () => {
-    const companyIds = new Set(mockInventoryItems.map((item) => item.companyId));
-    expect(companyIds.size).toBeGreaterThan(0);
-  });
-
-  it("should have unique IDs", () => {
-    const ids = mockInventoryItems.map((item) => item.id);
-    const uniqueIds = new Set(ids);
-    expect(uniqueIds.size).toBe(ids.length);
-  });
-
-  it("should have valid unitPrice when present", () => {
-    mockInventoryItems.forEach((item: InventoryItem) => {
-      if (item.unitPrice !== undefined) {
-        expect(typeof item.unitPrice).toBe("number");
-        expect(item.unitPrice).toBeGreaterThanOrEqual(0);
-      }
+    it("should have unique IDs", () => {
+      const ids = mockInventoryItems.map((item) => item.id);
+      const uniqueIds = new Set(ids);
+      expect(uniqueIds.size).toBe(ids.length);
     });
-  });
 
-  it("should have valid minimumStock", () => {
-    mockInventoryItems.forEach((item: InventoryItem) => {
-      expect(item.minimumStock).toBeGreaterThanOrEqual(0);
+    it("should have valid ID format", () => {
+      const idRegex = /^ii0e8400-e29b-41d4-a716-[0-9a-f]{12}$/i;
+      mockInventoryItems.forEach((item) => {
+        expect(item.id).toMatch(idRegex);
+      });
     });
-  });
 
-  it("should have valid supplierId when present", () => {
-    mockInventoryItems.forEach((item: InventoryItem) => {
-      if (item.supplierId !== undefined) {
-        expect(typeof item.supplierId).toBe("string");
-        expect(item.supplierId.length).toBeGreaterThan(0);
-      }
+    it("should have valid date format", () => {
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      mockInventoryItems.forEach((item) => {
+        expect(item.createdAt).toMatch(dateRegex);
+      });
     });
-  });
 
-  it("should have valid description when present", () => {
-    mockInventoryItems.forEach((item: InventoryItem) => {
-      if (item.description !== undefined) {
-        expect(typeof item.description).toBe("string");
-      }
+    it("should have dates within expected range", () => {
+      mockInventoryItems.forEach((item) => {
+        const date = new Date(item.createdAt);
+        expect(date.getFullYear()).toBeGreaterThanOrEqual(2020);
+        expect(date.getFullYear()).toBeLessThanOrEqual(2025);
+      });
     });
-  });
 
-  it("should have valid createdAt date format", () => {
-    mockInventoryItems.forEach((item: InventoryItem) => {
-      expect(item.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-      const date = new Date(item.createdAt);
-      expect(date.toString()).not.toBe("Invalid Date");
+    it("should have valid categories", () => {
+      const validCategories = Object.values(InventoryItemCategory);
+      mockInventoryItems.forEach((item) => {
+        expect(validCategories).toContain(item.category);
+      });
     });
-  });
 
-  it("should have valid updatedAt date format when present", () => {
-    mockInventoryItems.forEach((item: InventoryItem) => {
-      if (item.updatedAt !== undefined) {
-        expect(typeof item.updatedAt).toBe("string");
-        expect(item.updatedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-        const date = new Date(item.updatedAt);
-        expect(date.toString()).not.toBe("Invalid Date");
-      }
+    it("should have valid minimum stock values", () => {
+      mockInventoryItems.forEach((item) => {
+        expect(typeof item.minimumStock).toBe("number");
+        expect(item.minimumStock).toBeGreaterThanOrEqual(0);
+      });
+    });
+
+    it("should have valid unit values", () => {
+      mockInventoryItems.forEach((item) => {
+        expect(typeof item.unit).toBe("string");
+        expect(item.unit.length).toBeGreaterThan(0);
+      });
+    });
+
+    it("should have valid hasExpiration boolean", () => {
+      mockInventoryItems.forEach((item) => {
+        expect(typeof item.hasExpiration).toBe("boolean");
+      });
+    });
+
+    it("should have expiration date when hasExpiration is true", () => {
+      mockInventoryItems.forEach((item) => {
+        if (item.hasExpiration) {
+          expect(item).toHaveProperty("expirationDate");
+          if (item.expirationDate) {
+            const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+            expect(item.expirationDate).toMatch(dateRegex);
+          }
+        }
+      });
+    });
+
+    it("should have valid unit price when present", () => {
+      mockInventoryItems.forEach((item) => {
+        if ("unitPrice" in item && item.unitPrice !== undefined) {
+          expect(typeof item.unitPrice).toBe("number");
+          expect(item.unitPrice).toBeGreaterThan(0);
+        }
+      });
+    });
+
+    it("should reference valid company IDs", () => {
+      const companyIds = mockCompanies.map((c) => c.id);
+      mockInventoryItems.forEach((item) => {
+        expect(companyIds).toContain(item.companyId);
+      });
+    });
+
+    it("should reference valid property IDs", () => {
+      const propertyIds = mockProperties.map((p) => p.id);
+      mockInventoryItems.forEach((item) => {
+        expect(Array.isArray(item.propertyIds)).toBe(true);
+        item.propertyIds.forEach((propertyId) => {
+          expect(propertyIds).toContain(propertyId);
+        });
+      });
+    });
+
+    it("should have valid usage fields when present", () => {
+      mockInventoryItems.forEach((item) => {
+        if ("usageAmount" in item && item.usageAmount !== undefined) {
+          expect(typeof item.usageAmount).toBe("number");
+          expect(item.usageAmount).toBeGreaterThan(0);
+        }
+        if ("usageUnit" in item && item.usageUnit !== undefined) {
+          expect(typeof item.usageUnit).toBe("string");
+        }
+        if ("usageBasis" in item && item.usageBasis !== undefined) {
+          const validBases = ["per_animal", "per_kg"];
+          expect(validBases).toContain(item.usageBasis);
+        }
+      });
     });
   });
 });

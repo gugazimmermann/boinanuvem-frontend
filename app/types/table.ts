@@ -35,13 +35,13 @@ export interface TablePagination {
 }
 
 export interface TableHeaderProps {
-  title: string;
-  badge?: {
-    label: string;
-    variant?: "primary" | "secondary" | "success" | "warning" | "danger";
+  readonly title: string;
+  readonly badge?: {
+    readonly label: string;
+    readonly variant?: "primary" | "secondary" | "success" | "warning" | "danger";
   };
-  description?: string;
-  actions?: TableAction[];
+  readonly description?: string;
+  readonly actions?: TableAction[];
 }
 
 export interface TableEmptyState {
@@ -55,38 +55,38 @@ export interface TableEmptyState {
 }
 
 export interface TableProps<T = unknown> {
-  columns: TableColumn<T>[];
-  data: T[];
-  header?: TableHeaderProps;
-  filters?: TableFilter[];
-  search?: {
-    placeholder?: string;
-    value: string;
-    onChange: (value: string) => void;
+  readonly columns: TableColumn<T>[];
+  readonly data: T[];
+  readonly header?: TableHeaderProps;
+  readonly filters?: TableFilter[];
+  readonly search?: {
+    readonly placeholder?: string;
+    readonly value: string;
+    readonly onChange: (value: string) => void;
   };
-  pagination?: TablePagination;
-  sortState?: {
-    column: string | null;
-    direction: SortDirection;
+  readonly pagination?: TablePagination;
+  readonly sortState?: {
+    readonly column: string | null;
+    readonly direction: SortDirection;
   };
-  onSort?: (column: string, direction: SortDirection) => void;
-  emptyState?: TableEmptyState;
-  emptyMessage?: string;
-  className?: string;
-  rowClassName?: string | ((row: T, index: number) => string);
-  loading?: boolean;
-  slim?: boolean;
-  onRowClick?: (row: T, index: number) => void;
-  selectable?: {
-    selectedRows: Set<string | number>;
-    onSelectionChange: (selectedRows: Set<string | number>) => void;
-    getRowId: (row: T) => string | number;
-    allData?: T[];
+  readonly onSort?: (column: string, direction: SortDirection) => void;
+  readonly emptyState?: TableEmptyState;
+  readonly emptyMessage?: string;
+  readonly className?: string;
+  readonly rowClassName?: string | ((row: T, index: number) => string);
+  readonly loading?: boolean;
+  readonly slim?: boolean;
+  readonly onRowClick?: (row: T, index: number) => void;
+  readonly selectable?: {
+    readonly selectedRows: Set<string | number>;
+    readonly onSelectionChange: (selectedRows: Set<string | number>) => void;
+    readonly getRowId: (row: T) => string | number;
+    readonly allData?: T[];
   };
-  selectedCountLabel?: ReactNode;
-  selectedActionButton?: ReactNode;
-  additionalContent?: ReactNode;
-  middleContent?: ReactNode;
-  rightContent?: ReactNode;
-  belowContent?: ReactNode;
+  readonly selectedCountLabel?: ReactNode;
+  readonly selectedActionButton?: ReactNode;
+  readonly additionalContent?: ReactNode;
+  readonly middleContent?: ReactNode;
+  readonly rightContent?: ReactNode;
+  readonly belowContent?: ReactNode;
 }

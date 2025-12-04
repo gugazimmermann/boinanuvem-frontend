@@ -1,83 +1,112 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { TableEmptyState } from "../table-empty-state";
-import { LanguageProvider } from "~/contexts/language-context";
 
-const renderWithProvider = (component: React.ReactElement) => {
-  return render(<LanguageProvider>{component}</LanguageProvider>);
-};
+vi.mock("~/i18n/use-translation", () => ({
+  useTranslation: () => ({
+    common: {
+      clearSearch: "Clear search",
+    },
+  }),
+}));
 
 describe("TableEmptyState", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("should render with default title", () => {
-    renderWithProvider(<TableEmptyState />);
+    render(<TableEmptyState />);
     expect(screen.getByText("No vendors found")).toBeInTheDocument();
   });
 
   it("should render with custom title", () => {
-    renderWithProvider(<TableEmptyState title="No items found" />);
-    expect(screen.getByText("No items found")).toBeInTheDocument();
+    render(<TableEmptyState title="No items" />);
+    expect(screen.getByText("No items")).toBeInTheDocument();
   });
 
-  it("should render default description when no search query", () => {
-    renderWithProvider(<TableEmptyState />);
-    expect(screen.getByText(/No data available/i)).toBeInTheDocument();
-  });
-
-  it("should render search-specific description when search query exists", () => {
-    renderWithProvider(<TableEmptyState searchQuery="test" />);
-    expect(screen.getByText(/Your search "test"/i)).toBeInTheDocument();
-  });
-
-  it("should render custom description", () => {
-    renderWithProvider(<TableEmptyState description="Custom description" />);
+  it("should render with description", () => {
+    render(<TableEmptyState description="Custom description" />);
     expect(screen.getByText("Custom description")).toBeInTheDocument();
   });
 
-  it("should call onClearSearch when clear search button is clicked", async () => {
-    const onClearSearch = vi.fn();
-    const user = userEvent.setup();
-    renderWithProvider(<TableEmptyState searchQuery="test" onClearSearch={onClearSearch} />);
-
-    const clearButton = screen.getByText(/Clear Search/i);
-    await user.click(clearButton);
-
-    expect(onClearSearch).toHaveBeenCalledTimes(1);
+  it("should render default description when no search query", () => {
+    render(<TableEmptyState />);
+    expect(
+      screen.getByText(/No data available. Please try again or create add a new vendor./i)
+    ).toBeInTheDocument();
   });
 
-  it("should call onAddNew when add new button is clicked", async () => {
-    const onAddNew = vi.fn();
-    const user = userEvent.setup();
-    renderWithProvider(<TableEmptyState onAddNew={onAddNew} />);
-
-    const addButton = screen.getByText(/Add vendor|Add new/i);
-    await user.click(addButton);
-
-    expect(onAddNew).toHaveBeenCalledTimes(1);
+  it("should render search-specific description when searchQuery provided", () => {
+    render(<TableEmptyState searchQuery="test search" />);
+    expect(
+      screen.getByText(/Your search "test search" did not match any vendors/i)
+    ).toBeInTheDocument();
   });
 
-  it("should render custom labels", () => {
-    renderWithProvider(
-      <TableEmptyState
-        clearSearchLabel="Limpar busca"
-        addNewLabel="Adicionar novo"
-        onClearSearch={vi.fn()}
-        onAddNew={vi.fn()}
-      />
-    );
-    expect(screen.getByText("Limpar busca")).toBeInTheDocument();
-    expect(screen.getByText("Adicionar novo")).toBeInTheDocument();
+  it("should render clear search button when onClearSearch provided", () => {
+    const handleClearSearch = vi.fn();
+    render(<TableEmptyState onClearSearch={handleClearSearch} />);
+    expect(screen.getByRole("button", { name: /clear search/i })).toBeInTheDocument();
+  });
+
+  it("should call onClearSearch when clear search button clicked", async () => {
+    const handleClearSearch = vi.fn();
+    const user = userEvent.setup();
+    render(<TableEmptyState onClearSearch={handleClearSearch} />);
+    await user.click(screen.getByRole("button", { name: /clear search/i }));
+    expect(handleClearSearch).toHaveBeenCalledTimes(1);
+  });
+
+  it("should render with custom clearSearchLabel", () => {
+    const handleClearSearch = vi.fn();
+    render(<TableEmptyState onClearSearch={handleClearSearch} clearSearchLabel="Reset" />);
+    expect(screen.getByRole("button", { name: "Reset" })).toBeInTheDocument();
+  });
+
+  it("should render add new button when onAddNew provided", () => {
+    const handleAddNew = vi.fn();
+    render(<TableEmptyState onAddNew={handleAddNew} />);
+    expect(screen.getByRole("button", { name: /add vendor/i })).toBeInTheDocument();
+  });
+
+  it("should call onAddNew when add new button clicked", async () => {
+    const handleAddNew = vi.fn();
+    const user = userEvent.setup();
+    render(<TableEmptyState onAddNew={handleAddNew} />);
+    await user.click(screen.getByRole("button", { name: /add vendor/i }));
+    expect(handleAddNew).toHaveBeenCalledTimes(1);
+  });
+
+  it("should render with custom addNewLabel", () => {
+    const handleAddNew = vi.fn();
+    render(<TableEmptyState onAddNew={handleAddNew} addNewLabel="Create Item" />);
+    expect(screen.getByRole("button", { name: "Create Item" })).toBeInTheDocument();
   });
 
   it("should render custom icon", () => {
-    const customIcon = <span data-testid="custom-icon">📦</span>;
-    renderWithProvider(<TableEmptyState icon={customIcon} />);
+    const customIcon = <span data-testid="custom-icon">Custom</span>;
+    render(<TableEmptyState icon={customIcon} />);
     expect(screen.getByTestId("custom-icon")).toBeInTheDocument();
   });
 
-  it("should not render buttons when callbacks are not provided", () => {
-    renderWithProvider(<TableEmptyState />);
-    expect(screen.queryByText(/Clear Search/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Add vendor/i)).not.toBeInTheDocument();
+  it("should render default icon when not provided", () => {
+    const { container } = render(<TableEmptyState />);
+    const svg = container.querySelector("svg");
+    expect(svg).toBeInTheDocument();
+  });
+
+  it("should render both clear search and add new buttons", () => {
+    const handleClearSearch = vi.fn();
+    const handleAddNew = vi.fn();
+    render(<TableEmptyState onClearSearch={handleClearSearch} onAddNew={handleAddNew} />);
+    expect(screen.getByRole("button", { name: /clear search/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /add vendor/i })).toBeInTheDocument();
+  });
+
+  it("should not render buttons when handlers not provided", () => {
+    render(<TableEmptyState />);
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 });

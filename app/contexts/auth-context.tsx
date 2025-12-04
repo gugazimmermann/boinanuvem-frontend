@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useCallback,
+  useState,
+  type ReactNode,
+} from "react";
 import type { TeamUser } from "~/types";
 import { getUserById } from "~/services/users.service";
 
@@ -13,9 +21,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const CURRENT_USER_ID_KEY = "currentUserId";
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: { readonly children: ReactNode }) {
   const [currentUserId, setCurrentUserId] = useState<string | null>(() => {
-    if (typeof window !== "undefined") {
+    if (globalThis.window !== undefined) {
       return localStorage.getItem(CURRENT_USER_ID_KEY);
     }
     return null;
@@ -36,21 +44,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [currentUserId]);
 
-  const login = (userId: string) => {
+  const login = useCallback((userId: string) => {
     setCurrentUserId(userId);
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setCurrentUserId(null);
-  };
+  }, []);
 
   const isAuthenticated = currentUser !== null;
 
-  return (
-    <AuthContext.Provider value={{ currentUser, login, logout, isAuthenticated }}>
-      {children}
-    </AuthContext.Provider>
+  const contextValue = useMemo(
+    () => ({ currentUser, login, logout, isAuthenticated }),
+    [currentUser, login, logout, isAuthenticated]
   );
+
+  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

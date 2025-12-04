@@ -1,11 +1,11 @@
 import { type ReactNode } from "react";
 
 interface AuthCardProps {
-  children: ReactNode;
-  title?: string;
-  subtitle?: string;
-  maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl";
-  footer?: ReactNode;
+  readonly children: ReactNode;
+  readonly title?: string;
+  readonly subtitle?: string;
+  readonly maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl";
+  readonly footer?: ReactNode;
 }
 
 const maxWidthClasses = {
@@ -41,7 +41,7 @@ export function AuthCard({ children, title, subtitle, maxWidth = "sm", footer }:
         {children}
       </div>
 
-      {footer && footer}
+      {footer}
     </div>
   );
 }

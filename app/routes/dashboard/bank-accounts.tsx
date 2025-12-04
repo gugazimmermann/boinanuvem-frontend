@@ -3,21 +3,24 @@ import { useNavigate } from "react-router";
 import {
   Table,
   StatusBadge,
-  TableActionButtons,
-  ConfirmationModal,
-  Alert,
   type TableColumn,
   type TableAction,
   type TableFilter,
   type SortDirection,
 } from "~/components/ui";
+import { DeleteModalSection } from "~/components/dashboard/common/delete-modal-section";
+import { createActionColumn } from "~/utils/table-action-column";
+import { createAddButtonAction } from "~/utils/header-action-helpers";
+import { createEmptyStateConfig } from "~/utils/empty-state-config";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
+import { sortItems } from "~/utils/table-helpers";
 import { mockCompanies } from "~/mocks/companies";
 import { deleteBankAccount, getBankAccountsByCompanyId } from "~/services/bank-account.service";
 import type { BankAccount } from "~/types";
 import { ROUTES, getBankAccountEditRoute, getBankAccountViewRoute } from "~/routes.config";
 import { usePermissions } from "~/utils/permissions";
+import { useAlert } from "~/hooks/use-alert";
 
 export function meta() {
   return [
@@ -57,23 +60,15 @@ export default function BankAccounts() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedBankAccount, setSelectedBankAccount] = useState<BankAccount | null>(null);
-  const [alertMessage, setAlertMessage] = useState<{
-    title: string;
-    variant: "success" | "error" | "warning" | "info";
-  } | null>(null);
+  const { alertMessage, showAlert } = useAlert();
   const itemsPerPage = 10;
 
-  const localeForDateTime = language === "en" ? "en-US" : language === "es" ? "es-ES" : "pt-BR";
-
-  const showAlert = (
-    title: string,
-    variant: "success" | "error" | "warning" | "info" = "success"
-  ) => {
-    setAlertMessage({ title, variant });
-    setTimeout(() => {
-      setAlertMessage(null);
-    }, 3000);
+  const getLocaleForDateTime = () => {
+    if (language === "en") return "en-US";
+    if (language === "es") return "es-ES";
+    return "pt-BR";
   };
+  const localeForDateTime = getLocaleForDateTime();
 
   const handleDeleteClick = (bankAccount: BankAccount) => {
     setSelectedBankAccount(bankAccount);
@@ -107,30 +102,10 @@ export default function BankAccounts() {
     return matchesSearch && matchesFilter;
   });
 
-  const sortedData = [...filteredData].sort((a, b) => {
-    if (!sortState.column || !sortState.direction) {
-      return 0;
-    }
-
-    const aValue = a[sortState.column];
-    const bValue = b[sortState.column];
-
-    if (aValue == null && bValue == null) return 0;
-    if (aValue == null) return 1;
-    if (bValue == null) return -1;
-
-    let comparison = 0;
-    if (typeof aValue === "string" && typeof bValue === "string") {
-      comparison = aValue.localeCompare(bValue, localeForDateTime, {
-        sensitivity: "base",
-      });
-    } else if (typeof aValue === "number" && typeof bValue === "number") {
-      comparison = aValue - bValue;
-    } else {
-      comparison = String(aValue).localeCompare(String(bValue), localeForDateTime);
-    }
-
-    return sortState.direction === "asc" ? comparison : -comparison;
+  const sortedData = sortItems({
+    items: filteredData,
+    sortState,
+    locale: localeForDateTime,
   });
 
   const paginatedData = sortedData.slice(
@@ -201,44 +176,26 @@ export default function BankAccounts() {
         />
       ),
     },
-    {
-      key: "actions",
-      label: "",
-      headerClassName: "relative",
-      render: (_, row) => (
-        <TableActionButtons
-          onEdit={() => navigate(getBankAccountEditRoute(row.id))}
-          onDelete={() => handleDeleteClick(row)}
-          canEdit={canEdit("finances", "bankAccounts")}
-          canDelete={canRemove("finances", "bankAccounts")}
-        />
-      ),
-    },
+    createActionColumn<BankAccount>({
+      onEdit: (row) => {
+        navigate(getBankAccountEditRoute(row.id));
+      },
+      onDelete: (row) => {
+        handleDeleteClick(row);
+      },
+      canEdit: canEdit("finances", "bankAccounts"),
+      canDelete: canRemove("finances", "bankAccounts"),
+    }),
   ];
 
   const headerActions: TableAction[] = canAdd("finances", "bankAccounts")
     ? [
-        {
+        createAddButtonAction({
           label: t.bankAccounts.addBankAccount,
-          variant: "primary",
-          leftIcon: (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className="w-5 h-5"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          ),
-          onClick: () => navigate(ROUTES.BANK_ACCOUNTS_NEW),
-        },
+          onClick: () => {
+            navigate(ROUTES.BANK_ACCOUNTS_NEW);
+          },
+        }),
       ]
     : [];
 
@@ -297,29 +254,27 @@ export default function BankAccounts() {
         sortState={sortState}
         onSort={handleSort}
         onRowClick={(row) => navigate(getBankAccountViewRoute(row.id))}
-        emptyState={{
+        emptyState={createEmptyStateConfig({
           title: t.bankAccounts.emptyState.title,
-          description: searchValue
-            ? t.bankAccounts.emptyState.descriptionWithSearch(searchValue)
-            : t.bankAccounts.emptyState.descriptionWithoutSearch,
+          descriptionWithSearch: (search) =>
+            t.bankAccounts.emptyState.descriptionWithSearch(search),
+          descriptionWithoutSearch: t.bankAccounts.emptyState.descriptionWithoutSearch,
+          searchValue,
           onClearSearch: () => {
             setSearchValue("");
             setActiveFilter("all");
           },
           clearSearchLabel: t.common.clearSearch,
-          onAddNew: () => navigate(ROUTES.BANK_ACCOUNTS_NEW),
+          onAddNew: () => {
+            navigate(ROUTES.BANK_ACCOUNTS_NEW);
+          },
           addNewLabel: t.bankAccounts.addBankAccount,
-        }}
+        })}
       />
 
-      {alertMessage && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-          <Alert title={alertMessage.title} variant={alertMessage.variant} />
-        </div>
-      )}
-
-      <ConfirmationModal
-        isOpen={isDeleteModalOpen}
+      <DeleteModalSection
+        alertMessage={alertMessage}
+        isDeleteModalOpen={isDeleteModalOpen}
         onClose={() => {
           setIsDeleteModalOpen(false);
           setSelectedBankAccount(null);
@@ -329,7 +284,6 @@ export default function BankAccounts() {
         message={t.bankAccounts.deleteModal.message(selectedBankAccount?.bankName || "")}
         confirmLabel={t.bankAccounts.deleteModal.confirm}
         cancelLabel={t.bankAccounts.deleteModal.cancel}
-        variant="danger"
       />
     </div>
   );

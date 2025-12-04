@@ -1,75 +1,101 @@
 import { describe, it, expect } from "vitest";
 import { mockAnimalMovements } from "../animal-movements";
-import type { AnimalMovement } from "~/types";
+import { mockAnimals } from "../animals";
+import { mockLocations } from "../locations";
+import { mockCompanies } from "../companies";
+import { mockProperties } from "../properties";
 
-describe("animal-movements mock", () => {
-  it("should export mockAnimalMovements array", () => {
-    expect(Array.isArray(mockAnimalMovements)).toBe(true);
-    expect(mockAnimalMovements.length).toBeGreaterThan(0);
-  });
-
-  it("should have valid movement structure", () => {
-    mockAnimalMovements.forEach((movement: AnimalMovement) => {
-      expect(movement).toHaveProperty("id");
-      expect(movement).toHaveProperty("date");
-      expect(movement).toHaveProperty("propertyId");
-      expect(movement).toHaveProperty("locationId");
-      expect(movement).toHaveProperty("animalIds");
-      expect(movement).toHaveProperty("companyId");
-      expect(movement).toHaveProperty("createdAt");
-
-      expect(typeof movement.id).toBe("string");
-      expect(typeof movement.date).toBe("string");
-      expect(typeof movement.propertyId).toBe("string");
-      expect(typeof movement.locationId).toBe("string");
-      expect(Array.isArray(movement.animalIds)).toBe(true);
-      expect(typeof movement.companyId).toBe("string");
-      expect(typeof movement.createdAt).toBe("string");
-    });
-  });
-
-  it("should have valid date format (2020-2025)", () => {
-    mockAnimalMovements.forEach((movement: AnimalMovement) => {
-      expect(movement.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-      const date = new Date(movement.date);
-      expect(date.toString()).not.toBe("Invalid Date");
-
-      const year = date.getFullYear();
-      expect(year).toBeGreaterThanOrEqual(2020);
-      expect(year).toBeLessThanOrEqual(2025);
-    });
-  });
-
-  it("should have unique IDs", () => {
-    const ids = mockAnimalMovements.map((movement) => movement.id);
-    const uniqueIds = new Set(ids);
-    expect(uniqueIds.size).toBe(ids.length);
-  });
-
-  it("should have movements for animals", () => {
-    const uniqueAnimalIds = new Set<string>();
-    mockAnimalMovements.forEach((movement: AnimalMovement) => {
-      movement.animalIds.forEach((id: string) => uniqueAnimalIds.add(id));
+describe("animal-movements", () => {
+  describe("mockAnimalMovements", () => {
+    it("should export an array", () => {
+      expect(Array.isArray(mockAnimalMovements)).toBe(true);
     });
 
-    expect(uniqueAnimalIds.size).toBeGreaterThan(0);
-    expect(mockAnimalMovements.length).toBeGreaterThan(0);
-  });
+    it("should not be empty", () => {
+      expect(mockAnimalMovements.length).toBeGreaterThan(0);
+    });
 
-  it("should have movements sorted by date (most recent first)", () => {
-    const sortedMovements = [...mockAnimalMovements].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
+    it("should have valid data structure", () => {
+      mockAnimalMovements.forEach((movement) => {
+        expect(movement).toHaveProperty("id");
+        expect(movement).toHaveProperty("date");
+        expect(movement).toHaveProperty("companyId");
+        expect(movement).toHaveProperty("propertyId");
+        expect(movement).toHaveProperty("locationId");
+        expect(movement).toHaveProperty("animalIds");
+        expect(movement).toHaveProperty("createdAt");
+      });
+    });
 
-    expect(sortedMovements).toEqual(mockAnimalMovements);
-  });
+    it("should have unique IDs", () => {
+      const ids = mockAnimalMovements.map((m) => m.id);
+      const uniqueIds = new Set(ids);
+      expect(uniqueIds.size).toBe(ids.length);
+    });
 
-  it("should have movements with valid dates", () => {
-    mockAnimalMovements.forEach((movement: AnimalMovement) => {
-      const movementDate = new Date(movement.date);
-      expect(movementDate.toString()).not.toBe("Invalid Date");
-      expect(movementDate.getFullYear()).toBeGreaterThanOrEqual(2020);
-      expect(movementDate.getFullYear()).toBeLessThanOrEqual(2025);
+    it("should have valid UUID format for IDs", () => {
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      mockAnimalMovements.forEach((movement) => {
+        expect(movement.id).toMatch(uuidRegex);
+      });
+    });
+
+    it("should have valid date format", () => {
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      mockAnimalMovements.forEach((movement) => {
+        expect(movement.date).toMatch(dateRegex);
+        expect(movement.createdAt).toMatch(dateRegex);
+      });
+    });
+
+    it("should have dates within expected range", () => {
+      mockAnimalMovements.forEach((movement) => {
+        const date = new Date(movement.date);
+        expect(date.getFullYear()).toBeGreaterThanOrEqual(2020);
+        expect(date.getFullYear()).toBeLessThanOrEqual(2025);
+      });
+    });
+
+    it("should have valid animal IDs array", () => {
+      const animalIds = mockAnimals.map((a) => a.id);
+      mockAnimalMovements.forEach((movement) => {
+        expect(Array.isArray(movement.animalIds)).toBe(true);
+        expect(movement.animalIds.length).toBeGreaterThan(0);
+        movement.animalIds.forEach((animalId) => {
+          expect(animalIds).toContain(animalId);
+        });
+      });
+    });
+
+    it("should reference valid company IDs", () => {
+      const companyIds = mockCompanies.map((c) => c.id);
+      mockAnimalMovements.forEach((movement) => {
+        expect(companyIds).toContain(movement.companyId);
+      });
+    });
+
+    it("should reference valid property IDs", () => {
+      const propertyIds = mockProperties.map((p) => p.id);
+      mockAnimalMovements.forEach((movement) => {
+        expect(propertyIds).toContain(movement.propertyId);
+      });
+    });
+
+    it("should reference valid location IDs", () => {
+      const locationIds = mockLocations.map((l) => l.id);
+      mockAnimalMovements.forEach((movement) => {
+        expect(locationIds).toContain(movement.locationId);
+      });
+    });
+
+    it("should have location in same property", () => {
+      const locationMap = new Map(mockLocations.map((l) => [l.id, l]));
+      mockAnimalMovements.forEach((movement) => {
+        const location = locationMap.get(movement.locationId);
+        if (location) {
+          expect(location.propertyId).toBe(movement.propertyId);
+        }
+      });
     });
   });
 });

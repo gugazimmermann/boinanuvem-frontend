@@ -121,69 +121,65 @@ export function getPropertyBreedingSeasonEditRoute(propertyId: string): string {
   return `/dashboard/propriedades/${propertyId}/estacao-monta/editar`;
 }
 
+// Factory function for creating edit/view route helpers
+function createEntityRouteHelpers(basePath: string) {
+  return {
+    edit: (id: string) => `/dashboard/${basePath}/${id}/editar`,
+    view: (id: string) => `/dashboard/${basePath}/${id}`,
+  };
+}
+
+// Generic route helper factory
+function _createRouteHelpers<T extends Record<string, string>>(
+  routes: T
+): {
+  edit: (entityType: keyof T, id: string) => string;
+  view: (entityType: keyof T, id: string) => string;
+} {
+  return {
+    edit: (entityType, id) => `/dashboard/${routes[entityType]}/${id}/editar`,
+    view: (entityType, id) => `/dashboard/${routes[entityType]}/${id}`,
+  };
+}
+
+const locationRoutes = createEntityRouteHelpers("localizacoes");
+const employeeRoutes = createEntityRouteHelpers("funcionarios");
+const serviceProviderRoutes = createEntityRouteHelpers("prestadores-servico");
+const supplierRoutes = createEntityRouteHelpers("fornecedores");
+const buyerRoutes = createEntityRouteHelpers("compradores");
+const inventoryRoutes = createEntityRouteHelpers("estoque");
+const animalRoutes = createEntityRouteHelpers("animais");
+
 export function getLocationEditRoute(locationId: string): string {
-  return `/dashboard/localizacoes/${locationId}/editar`;
+  return locationRoutes.edit(locationId);
 }
 
 export function getLocationViewRoute(locationId: string): string {
-  return `/dashboard/localizacoes/${locationId}`;
+  return locationRoutes.view(locationId);
 }
 
 export function getLocationInventoryMovementNewRoute(locationId: string): string {
   return `/dashboard/localizacoes/${locationId}/movimentacao-estoque/novo`;
 }
 
-export function getEmployeeEditRoute(employeeId: string): string {
-  return `/dashboard/funcionarios/${employeeId}/editar`;
-}
-
-export function getEmployeeViewRoute(employeeId: string): string {
-  return `/dashboard/funcionarios/${employeeId}`;
-}
-
-export function getServiceProviderEditRoute(serviceProviderId: string): string {
-  return `/dashboard/prestadores-servico/${serviceProviderId}/editar`;
-}
-
-export function getServiceProviderViewRoute(serviceProviderId: string): string {
-  return `/dashboard/prestadores-servico/${serviceProviderId}`;
-}
-
-export function getSupplierEditRoute(supplierId: string): string {
-  return `/dashboard/fornecedores/${supplierId}/editar`;
-}
-
-export function getSupplierViewRoute(supplierId: string): string {
-  return `/dashboard/fornecedores/${supplierId}`;
-}
-
-export function getBuyerEditRoute(buyerId: string): string {
-  return `/dashboard/compradores/${buyerId}/editar`;
-}
-
-export function getBuyerViewRoute(buyerId: string): string {
-  return `/dashboard/compradores/${buyerId}`;
-}
-
-export function getInventoryEditRoute(itemId: string): string {
-  return `/dashboard/estoque/${itemId}/editar`;
-}
-
-export function getInventoryViewRoute(itemId: string): string {
-  return `/dashboard/estoque/${itemId}`;
-}
+// Consolidated route helpers using factory pattern
+export const getEmployeeEditRoute = (id: string) => employeeRoutes.edit(id);
+export const getEmployeeViewRoute = (id: string) => employeeRoutes.view(id);
+export const getServiceProviderEditRoute = (id: string) => serviceProviderRoutes.edit(id);
+export const getServiceProviderViewRoute = (id: string) => serviceProviderRoutes.view(id);
+export const getSupplierEditRoute = (id: string) => supplierRoutes.edit(id);
+export const getSupplierViewRoute = (id: string) => supplierRoutes.view(id);
+export const getBuyerEditRoute = (id: string) => buyerRoutes.edit(id);
+export const getBuyerViewRoute = (id: string) => buyerRoutes.view(id);
+export const getInventoryEditRoute = (id: string) => inventoryRoutes.edit(id);
+export const getInventoryViewRoute = (id: string) => inventoryRoutes.view(id);
 
 export function getInventoryMovementNewRoute(itemId: string): string {
   return `/dashboard/estoque/${itemId}/movimentacao/novo`;
 }
 
-export function getAnimalEditRoute(animalId: string): string {
-  return `/dashboard/animais/${animalId}/editar`;
-}
-
-export function getAnimalViewRoute(animalId: string): string {
-  return `/dashboard/animais/${animalId}`;
-}
+export const getAnimalEditRoute = (id: string) => animalRoutes.edit(id);
+export const getAnimalViewRoute = (id: string) => animalRoutes.view(id);
 
 export function getMovementViewRoute(movementId: string): string {
   return `/dashboard/movimentacoes/${movementId}`;
@@ -227,153 +223,62 @@ export function getObservationViewRoute(observationId: string): string {
   return `/dashboard/observacoes/${observationId}`;
 }
 
-export function getCashFlowEditRoute(transactionId: string): string {
-  return `/dashboard/fluxo-caixa/${transactionId}/editar`;
+const cashFlowRoutes = createEntityRouteHelpers("fluxo-caixa");
+const accountsPayableRoutes = createEntityRouteHelpers("contas-pagar");
+const accountsReceivableRoutes = createEntityRouteHelpers("contas-receber");
+const bankAccountRoutes = createEntityRouteHelpers("contas-bancarias");
+const saleRoutes = createEntityRouteHelpers("registros/vendas");
+const acquisitionRoutes = createEntityRouteHelpers("registros/aquisicoes");
+
+// Consolidated finance route helpers
+export const getCashFlowEditRoute = (id: string) => cashFlowRoutes.edit(id);
+export const getCashFlowViewRoute = (id: string) => cashFlowRoutes.view(id);
+export const getAccountsPayableEditRoute = (id: string) => accountsPayableRoutes.edit(id);
+export const getAccountsPayableViewRoute = (id: string) => accountsPayableRoutes.view(id);
+export const getAccountsReceivableEditRoute = (id: string) => accountsReceivableRoutes.edit(id);
+export const getAccountsReceivableViewRoute = (id: string) => accountsReceivableRoutes.view(id);
+export const getBankAccountEditRoute = (id: string) => bankAccountRoutes.edit(id);
+export const getBankAccountViewRoute = (id: string) => bankAccountRoutes.view(id);
+export const getSaleEditRoute = (id: string) => saleRoutes.edit(id);
+export const getSaleViewRoute = (id: string) => saleRoutes.view(id);
+export const getAcquisitionEditRoute = (id: string) => acquisitionRoutes.edit(id);
+export const getAcquisitionViewRoute = (id: string) => acquisitionRoutes.view(id);
+
+/**
+ * Converts a route path to a route name by removing the leading "/dashboard/" or "/" prefix.
+ * Special case: "/" becomes "".
+ */
+function routePathToName(route: string): string {
+  if (route === "/") {
+    return "";
+  }
+  if (route.startsWith("/dashboard/")) {
+    return route.slice("/dashboard/".length);
+  }
+  if (route.startsWith("/")) {
+    return route.slice(1);
+  }
+  return route;
 }
 
-export function getCashFlowViewRoute(transactionId: string): string {
-  return `/dashboard/fluxo-caixa/${transactionId}`;
-}
-
-export function getAccountsPayableEditRoute(transactionId: string): string {
-  return `/dashboard/contas-pagar/${transactionId}/editar`;
-}
-
-export function getAccountsPayableViewRoute(transactionId: string): string {
-  return `/dashboard/contas-pagar/${transactionId}`;
-}
-
-export function getAccountsReceivableEditRoute(transactionId: string): string {
-  return `/dashboard/contas-receber/${transactionId}/editar`;
-}
-
-export function getAccountsReceivableViewRoute(transactionId: string): string {
-  return `/dashboard/contas-receber/${transactionId}`;
-}
-
-export function getBankAccountEditRoute(bankAccountId: string): string {
-  return `/dashboard/contas-bancarias/${bankAccountId}/editar`;
-}
-
-export function getBankAccountViewRoute(bankAccountId: string): string {
-  return `/dashboard/contas-bancarias/${bankAccountId}`;
-}
-
-export function getSaleEditRoute(saleId: string): string {
-  return `/dashboard/registros/vendas/${saleId}/editar`;
-}
-
-export function getSaleViewRoute(saleId: string): string {
-  return `/dashboard/registros/vendas/${saleId}`;
-}
-
-export function getAcquisitionEditRoute(acquisitionId: string): string {
-  return `/dashboard/registros/aquisicoes/${acquisitionId}/editar`;
-}
-
-export function getAcquisitionViewRoute(acquisitionId: string): string {
-  return `/dashboard/registros/aquisicoes/${acquisitionId}`;
-}
-
+/**
+ * Generates ROUTE_NAMES from ROUTES by converting each route path to its name equivalent.
+ * Includes special cases that don't have corresponding ROUTES entries.
+ */
 export const ROUTE_NAMES = {
-  HOME: "",
-  LOGIN: "entrar",
-  REGISTER: "cadastrar",
-  FORGOT_PASSWORD: "esqueceu-senha",
-  NEW_PASSWORD: "nova-senha",
-  TERMS: "termos",
-  PRIVACY: "privacidade",
-  HELP: "ajuda",
-  DASHBOARD: "dashboard",
-  PROPERTIES: "propriedades",
-  PROPERTIES_NEW: "propriedades/novo",
-  PROPERTIES_EDIT: "propriedades/:propertyId/editar",
-  PROPERTIES_VIEW: "propriedades/:propertyId",
-  PROPERTIES_PASTURE_PLANNING_EDIT: "propriedades/:propertyId/planejamento-pastagem/editar",
-  PROPERTIES_BREEDING_SEASON_EDIT: "propriedades/:propertyId/estacao-monta/editar",
-  LOCATIONS: "localizacoes",
-  LOCATIONS_NEW: "localizacoes/novo",
-  LOCATIONS_EDIT: "localizacoes/:locationId/editar",
-  LOCATIONS_VIEW: "localizacoes/:locationId",
-  LOCATIONS_INVENTORY_MOVEMENT_NEW: "localizacoes/:locationId/movimentacao-estoque/novo",
-  EMPLOYEES: "funcionarios",
-  EMPLOYEES_NEW: "funcionarios/novo",
-  EMPLOYEES_EDIT: "funcionarios/:employeeId/editar",
-  EMPLOYEES_VIEW: "funcionarios/:employeeId",
-  SERVICE_PROVIDERS: "prestadores-servico",
-  SERVICE_PROVIDERS_NEW: "prestadores-servico/novo",
-  SERVICE_PROVIDERS_EDIT: "prestadores-servico/:serviceProviderId/editar",
-  SERVICE_PROVIDERS_VIEW: "prestadores-servico/:serviceProviderId",
-  SUPPLIERS: "fornecedores",
-  SUPPLIERS_NEW: "fornecedores/novo",
-  SUPPLIERS_EDIT: "fornecedores/:supplierId/editar",
-  SUPPLIERS_VIEW: "fornecedores/:supplierId",
-  INVENTORY: "estoque",
-  INVENTORY_NEW: "estoque/novo",
-  INVENTORY_EDIT: "estoque/:itemId/editar",
-  INVENTORY_VIEW: "estoque/:itemId",
-  INVENTORY_MOVEMENT_NEW: "estoque/:itemId/movimentacao/novo",
-  BUYERS: "compradores",
-  BUYERS_NEW: "compradores/novo",
-  BUYERS_EDIT: "compradores/:buyerId/editar",
-  BUYERS_VIEW: "compradores/:buyerId",
-  ANIMALS: "animais",
-  ANIMALS_NEW: "animais/novo",
-  ANIMALS_EDIT: "animais/:animalId/editar",
-  ANIMALS_VIEW: "animais/:animalId",
-  BIRTHS: "registros/nascimentos",
-  BIRTHS_NEW: "registros/nascimentos/novo",
-  BIRTHS_EDIT: "registros/nascimentos/:birthId/editar",
-  BIRTHS_VIEW: "registros/nascimentos/:birthId",
-  ACQUISITIONS: "registros/aquisicoes",
-  ACQUISITIONS_NEW: "registros/aquisicoes/novo",
-  ACQUISITIONS_EDIT: "registros/aquisicoes/:acquisitionId/editar",
-  ACQUISITIONS_VIEW: "registros/aquisicoes/:acquisitionId",
-  SALES: "registros/vendas",
-  SALES_NEW: "registros/vendas/novo",
-  SALES_EDIT: "registros/vendas/:saleId/editar",
-  SALES_VIEW: "registros/vendas/:saleId",
-  DEATHS_NEW: "registros/obitos/novo",
-  WEIGHINGS_NEW: "registros/pesagens/novo",
-  MEDICINE_ADMINISTRATIONS_NEW: "registros/controle-sanitario/novo",
-  BREEDINGS_NEW: "registros/montas/novo",
-  BREEDINGS_PREGNANT: "registros/montas/prenhas",
-  BREEDINGS_UNCONFIRMED: "registros/montas/nao-confirmadas",
-  REPRODUCTIVE_INDEXES: "indices-reprodutivos",
-  BIRTH_FORECAST: "previsao-nascimentos",
-  MOVEMENTS_NEW: "propriedades/:propertyId/movimentacoes/novo",
-  MOVEMENTS_VIEW: "movimentacoes/:movementId",
-  ANIMALS_MOVEMENT_NEW: "animais/movimentacao/novo",
-  OBSERVATIONS_VIEW: "observacoes/:observationId",
-  PROFILE: "perfil",
+  ...Object.fromEntries(
+    Object.entries(ROUTES).map(([key, value]) => [key, routePathToName(value)])
+  ),
+  // Special case: USER_PROFILE doesn't have a corresponding ROUTES entry
   USER_PROFILE: "perfil/usuario/:userId",
-  TEAM: "equipe",
-  TEAM_NEW: "equipe/novo",
-  TEAM_EDIT: "equipe/:userId/editar",
-  TEAM_PERMISSIONS: "equipe/:userId/permissoes",
-  CASH_FLOW: "fluxo-caixa",
-  CASH_FLOW_NEW: "fluxo-caixa/novo",
-  CASH_FLOW_EDIT: "fluxo-caixa/:transactionId/editar",
-  CASH_FLOW_VIEW: "fluxo-caixa/:transactionId",
-  ACCOUNTS_PAYABLE: "contas-pagar",
-  ACCOUNTS_PAYABLE_NEW: "contas-pagar/novo",
-  ACCOUNTS_PAYABLE_EDIT: "contas-pagar/:transactionId/editar",
-  ACCOUNTS_PAYABLE_VIEW: "contas-pagar/:transactionId",
-  ACCOUNTS_RECEIVABLE: "contas-receber",
-  ACCOUNTS_RECEIVABLE_NEW: "contas-receber/novo",
-  ACCOUNTS_RECEIVABLE_EDIT: "contas-receber/:transactionId/editar",
-  ACCOUNTS_RECEIVABLE_VIEW: "contas-receber/:transactionId",
-  BANK_ACCOUNTS: "contas-bancarias",
-  BANK_ACCOUNTS_NEW: "contas-bancarias/novo",
-  BANK_ACCOUNTS_EDIT: "contas-bancarias/:bankAccountId/editar",
-  BANK_ACCOUNTS_VIEW: "contas-bancarias/:bankAccountId",
-  FINANCES_DASHBOARD: "financas",
-  PAYMENTS: "pagamentos",
-} as const;
+} as {
+  readonly [K in keyof typeof ROUTES]: string;
+} & {
+  readonly USER_PROFILE: "perfil/usuario/:userId";
+};
 
-import type { RoutePath, RouteName } from "~/types";
-
-export type { RoutePath, RouteName };
+export type RoutePath = (typeof ROUTES)[keyof typeof ROUTES];
+export type RouteName = (typeof ROUTE_NAMES)[keyof typeof ROUTE_NAMES];
 
 export function getRoute(route: keyof typeof ROUTES): RoutePath {
   return ROUTES[route];

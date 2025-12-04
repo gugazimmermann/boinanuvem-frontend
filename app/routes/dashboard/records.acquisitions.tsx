@@ -3,13 +3,13 @@ import { useNavigate } from "react-router";
 import {
   Table,
   StatusBadge,
-  TableActionButtons,
-  ConfirmationModal,
-  Alert,
   type TableColumn,
   type TableAction,
   type TableFilter,
 } from "~/components/ui";
+import { DeleteModalSection } from "~/components/dashboard/common/delete-modal-section";
+import { createActionColumn } from "~/utils/table-action-column";
+import { createAddButtonAction } from "~/utils/header-action-helpers";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
 import { formatCurrency } from "~/utils/currency";
@@ -62,9 +62,9 @@ export default function Acquisitions() {
 
   const suppliers = useMemo(() => {
     const allSuppliers = new Set<string>();
-    acquisitions.forEach((acq) => {
+    for (const acq of acquisitions) {
       if (acq.supplierId) allSuppliers.add(acq.supplierId);
-    });
+    }
     return Array.from(allSuppliers)
       .map((id) => getSupplierById(id))
       .filter((s) => s !== undefined);
@@ -115,7 +115,8 @@ export default function Acquisitions() {
     initialSortDirection: "desc",
     language,
     customFilter: (acquisition, searchValue, propertyFilter, dateRange) => {
-      if (searchValue) {
+      const matchesSearch = (() => {
+        if (!searchValue) return true;
         const searchLower = searchValue.toLowerCase();
         const property = getPropertyById(acquisition.propertyId);
         const propertyName = property?.name?.toLowerCase() || "";
@@ -130,12 +131,11 @@ export default function Acquisitions() {
           .toLowerCase();
         const totalPrice = formatCurrency(acquisition.totalPrice, language).toLowerCase();
         const observation = acquisition.observation?.toLowerCase() || "";
-
         const searchText = `${propertyName} ${supplierName} ${animalCodes} ${totalPrice} ${observation}`;
-        if (!searchText.includes(searchLower)) {
-          return false;
-        }
-      }
+        return searchText.includes(searchLower);
+      })();
+
+      if (!matchesSearch) return false;
 
       if (propertyFilter !== "all" && acquisition.propertyId !== propertyFilter) {
         return false;
@@ -145,25 +145,23 @@ export default function Acquisitions() {
         return false;
       }
 
-      if (dateRange.startDate || dateRange.endDate) {
+      const matchesDateRange = (() => {
+        if (!dateRange.startDate && !dateRange.endDate) return true;
         const acquisitionDate = new Date(acquisition.acquisitionDate);
         if (dateRange.startDate) {
           const start = new Date(dateRange.startDate);
           start.setHours(0, 0, 0, 0);
-          if (acquisitionDate < start) {
-            return false;
-          }
+          if (acquisitionDate < start) return false;
         }
         if (dateRange.endDate) {
           const end = new Date(dateRange.endDate);
           end.setHours(23, 59, 59, 999);
-          if (acquisitionDate > end) {
-            return false;
-          }
+          if (acquisitionDate > end) return false;
         }
-      }
+        return true;
+      })();
 
-      return true;
+      return matchesDateRange;
     },
     dateField: "acquisitionDate",
     propertyField: "propertyId",
@@ -283,23 +281,16 @@ export default function Acquisitions() {
           }
         },
       },
-      {
-        key: "actions",
-        label: "",
-        headerClassName: "relative",
-        render: (_, row) => (
-          <TableActionButtons
-            onEdit={() => {
-              navigate(getAcquisitionEditRoute(row.id));
-            }}
-            onDelete={() => {
-              handleDeleteClick(row);
-            }}
-            canEdit={canEdit("records", "acquisitions")}
-            canDelete={canRemove("records", "acquisitions")}
-          />
-        ),
-      },
+      createActionColumn<Acquisition>({
+        onEdit: (row) => {
+          navigate(getAcquisitionEditRoute(row.id));
+        },
+        onDelete: (row) => {
+          handleDeleteClick(row);
+        },
+        canEdit: canEdit("records", "acquisitions"),
+        canDelete: canRemove("records", "acquisitions"),
+      }),
     ],
     [t, language, navigate, handleDeleteClick, canEdit, canRemove]
   );
@@ -308,29 +299,14 @@ export default function Acquisitions() {
     () =>
       canAdd("records", "acquisitions")
         ? [
-            {
+            createAddButtonAction({
               label:
                 ((t.acquisitions?.new as Record<string, unknown>)?.addButton as string) ||
                 "Adicionar Aquisição",
-              variant: "primary",
-              leftIcon: (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                  className="w-5 h-5"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              ),
-              onClick: () => navigate(ROUTES.ACQUISITIONS_NEW),
-            },
+              onClick: () => {
+                navigate(ROUTES.ACQUISITIONS_NEW);
+              },
+            }),
           ]
         : [],
     [canAdd, t, navigate]
@@ -434,21 +410,18 @@ export default function Acquisitions() {
                 ?.description as string) || "Comece adicionando uma nova aquisição",
           onClearSearch: clearAllFilters,
           clearSearchLabel: t.common?.clearSearch || "Limpar busca",
-          onAddNew: () => navigate(ROUTES.ACQUISITIONS_NEW),
+          onAddNew: () => {
+            navigate(ROUTES.ACQUISITIONS_NEW);
+          },
           addNewLabel:
             ((t.acquisitions?.new as Record<string, unknown>)?.addButton as string) ||
             "Adicionar Aquisição",
         }}
       />
 
-      {alertMessage && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-          <Alert title={alertMessage.title} variant={alertMessage.variant} />
-        </div>
-      )}
-
-      <ConfirmationModal
-        isOpen={isDeleteModalOpen}
+      <DeleteModalSection
+        alertMessage={alertMessage}
+        isDeleteModalOpen={isDeleteModalOpen}
         onClose={handleCloseModal}
         onConfirm={handleDelete}
         title={
@@ -467,7 +440,6 @@ export default function Acquisitions() {
           (((t.acquisitions as Record<string, unknown>)?.deleteModal as Record<string, unknown>)
             ?.cancel as string) || "Cancelar"
         }
-        variant="danger"
       />
     </div>
   );

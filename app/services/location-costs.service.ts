@@ -4,7 +4,7 @@ import type {
   AnimalTotalCost,
   AnimalLocationCost,
 } from "~/types/location-costs";
-import type { Animal } from "~/types";
+import type { Animal, InventoryMovement } from "~/types";
 import { getConsumptionMovementsByLocationId } from "./inventory-movements.service";
 import { getInventoryItemById } from "./inventory.service";
 import { getAnimalMovementsByAnimalId } from "./animal-movements.service";
@@ -13,31 +13,39 @@ import { getLocationById } from "./locations.service";
 import { mockAnimalMovements } from "~/mocks/animal-movements";
 import { mockInventoryMovements } from "~/mocks/inventory-movements";
 
+function getAnimalIdsInLocation(locationId: string): Set<string> {
+  const animalIdsInLocation = new Set<string>();
+  for (const movement of mockAnimalMovements) {
+    if (movement.locationId === locationId) {
+      for (const id of movement.animalIds) {
+        animalIdsInLocation.add(id);
+      }
+    }
+  }
+  return animalIdsInLocation;
+}
+
+function isAnimalInLocationOnDate(animalId: string, locationId: string, targetDate: Date): boolean {
+  const animalMovements = getAnimalMovementsByAnimalId(animalId);
+  const movementsBeforeDate = animalMovements
+    .filter((m) => new Date(m.date) <= targetDate)
+    .toSorted((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  if (movementsBeforeDate.length === 0) return false;
+  const mostRecentMovement = movementsBeforeDate[0];
+  return mostRecentMovement.locationId === locationId;
+}
+
 export function getAnimalsInLocationOnDate(locationId: string, date: string): Animal[] {
   const animals: Animal[] = [];
   const targetDate = new Date(date);
-
-  const animalIdsInLocation = new Set<string>();
-  mockAnimalMovements.forEach((movement) => {
-    if (movement.locationId === locationId) {
-      movement.animalIds.forEach((id) => animalIdsInLocation.add(id));
-    }
-  });
+  const animalIdsInLocation = getAnimalIdsInLocation(locationId);
 
   for (const animalId of animalIdsInLocation) {
-    const animalMovements = getAnimalMovementsByAnimalId(animalId);
-
-    const movementsBeforeDate = animalMovements
-      .filter((m) => new Date(m.date) <= targetDate)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-    if (movementsBeforeDate.length > 0) {
-      const mostRecentMovement = movementsBeforeDate[0];
-      if (mostRecentMovement.locationId === locationId) {
-        const animal = getAnimalById(animalId);
-        if (animal) {
-          animals.push(animal);
-        }
+    if (isAnimalInLocationOnDate(animalId, locationId, targetDate)) {
+      const animal = getAnimalById(animalId);
+      if (animal) {
+        animals.push(animal);
       }
     }
   }
@@ -152,6 +160,30 @@ export function getAnimalCostByLocation(
   return totalCost;
 }
 
+function isMovementInDateRange(
+  movement: InventoryMovement,
+  startDate?: string,
+  endDate?: string
+): boolean {
+  if (!startDate && !endDate) return true;
+  const movementDate = new Date(movement.date);
+  if (startDate && movementDate < new Date(startDate)) return false;
+  if (endDate && movementDate > new Date(endDate)) return false;
+  return true;
+}
+
+function getRelevantCostsForAnimal(
+  locationId: string,
+  animalId: string,
+  startDate?: string,
+  endDate?: string
+): LocationConsumptionCost[] {
+  const locationConsumptionCosts = getLocationConsumptionCosts(locationId, startDate, endDate);
+  return locationConsumptionCosts.filter((cost) =>
+    cost.animalsPresent.some((animal) => animal.id === animalId)
+  );
+}
+
 export function getAnimalCostBreakdownByLocation(
   animalId: string,
   startDate?: string,
@@ -164,18 +196,10 @@ export function getAnimalCostBreakdownByLocation(
   const locationCosts = new Map<string, LocationConsumptionCost[]>();
 
   for (const movement of consumptionMovements) {
-    if (startDate || endDate) {
-      const movementDate = new Date(movement.date);
-      if (startDate && movementDate < new Date(startDate)) continue;
-      if (endDate && movementDate > new Date(endDate)) continue;
-    }
+    if (!isMovementInDateRange(movement, startDate, endDate)) continue;
 
     const locationId = movement.locationId!;
-    const locationConsumptionCosts = getLocationConsumptionCosts(locationId, startDate, endDate);
-
-    const relevantCosts = locationConsumptionCosts.filter((cost) =>
-      cost.animalsPresent.some((animal) => animal.id === animalId)
-    );
+    const relevantCosts = getRelevantCostsForAnimal(locationId, animalId, startDate, endDate);
 
     if (relevantCosts.length > 0) {
       const existing = locationCosts.get(locationId);

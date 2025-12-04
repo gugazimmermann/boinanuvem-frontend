@@ -2,10 +2,10 @@ import { Button } from "./button";
 import { useTranslation } from "~/i18n";
 
 interface AnimalRegistrationModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSelectBirth: () => void;
-  onSelectAcquisition: () => void;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly onSelectBirth: () => void;
+  readonly onSelectAcquisition: () => void;
 }
 
 export function AnimalRegistrationModal({
@@ -16,7 +16,7 @@ export function AnimalRegistrationModal({
 }: AnimalRegistrationModalProps) {
   const t = useTranslation();
 
-  if (!isOpen) return null;
+  if (isOpen === false) return null;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">

@@ -1,7 +1,11 @@
-import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { Input, Select, Button, Alert, FileUpload } from "~/components/ui";
+import { Input, Select, Button, FixedAlert, FileUpload } from "~/components/ui";
 import { useTranslation } from "~/i18n";
+import {
+  ResponsibleSelectionSection,
+  ObservationField,
+  FormActions,
+} from "~/components/dashboard/shared";
 import { getLocationViewRoute } from "~/routes.config";
 import { getLocationById } from "~/services/locations.service";
 import { getPropertyById } from "~/services/properties.service";
@@ -13,6 +17,7 @@ import type { InventoryMovementFormData, InventoryItem } from "~/types";
 import { InventoryMovementType } from "~/types";
 import { mockCompanies } from "~/mocks/companies";
 import { getUnitLabel } from "~/utils/inventory-utils";
+import { useInventoryMovementForm } from "~/hooks/use-inventory-movement-form";
 
 export function meta() {
   return [
@@ -43,7 +48,17 @@ export default function NewLocationInventoryMovement() {
   const employees = property ? getEmployeesByPropertyId(property.id) : [];
   const serviceProviders = property ? getServiceProvidersByPropertyId(property.id) : [];
 
-  const [formData, setFormData] = useState<{
+  const {
+    formData,
+    files,
+    setFiles,
+    errors,
+    isSubmitting,
+    alertMessage,
+    handleChange,
+    toggleSelection,
+    handleSubmit: baseHandleSubmit,
+  } = useInventoryMovementForm<{
     itemId: string;
     quantity: string;
     date: string;
@@ -52,118 +67,63 @@ export default function NewLocationInventoryMovement() {
     employeeIds: string[];
     serviceProviderIds: string[];
   }>({
-    itemId: "",
-    quantity: "",
-    date: new Date().toISOString().split("T")[0],
-    description: "",
-    observation: "",
-    employeeIds: [],
-    serviceProviderIds: [],
+    translationKeys: {
+      quantityRequired: t.inventory.movements.new.quantityRequired,
+      dateRequired: t.inventory.movements.new.dateRequired,
+      itemRequired:
+        t.profile.errors.required?.(t.inventory.table.name || "Item") || "Item é obrigatório",
+    },
+    validate: (data) => {
+      const newErrors: Record<string, string> = {};
+      if (!data.itemId) {
+        newErrors.itemId =
+          t.profile.errors.required?.(t.inventory.table.name || "Item") || "Item é obrigatório";
+      }
+      return Object.keys(newErrors).length === 0 ? true : newErrors;
+    },
+    onSubmit: async (data, fileIds) => {
+      if (!location || !property) return;
+
+      const selectedItem = inventoryItems.find((item) => item.id === data.itemId);
+      if (!selectedItem) return;
+
+      const movementData: InventoryMovementFormData = {
+        itemId: selectedItem.id,
+        type: InventoryMovementType.CONSUMPTION,
+        quantity: Number.parseFloat(data.quantity),
+        date: data.date,
+        description: data.description || undefined,
+        propertyId: property.id,
+        companyId,
+        locationId: location.id,
+        employeeIds: data.employeeIds.length > 0 ? data.employeeIds : undefined,
+        serviceProviderIds:
+          data.serviceProviderIds.length > 0 ? data.serviceProviderIds : undefined,
+        observation: data.observation.trim() || undefined,
+        fileIds: fileIds.length > 0 ? fileIds : undefined,
+      };
+
+      addInventoryMovement(movementData);
+    },
+    onSuccess: () => {
+      if (location) {
+        setTimeout(() => {
+          navigate(`${getLocationViewRoute(location.id)}?tab=movements`);
+        }, 1500);
+      }
+    },
+    successMessage: t.inventory.movements.new.success,
+    errorMessage: t.inventory.movements.new.error,
   });
-
-  const [files, setFiles] = useState<File[]>([]);
-
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [alertMessage, setAlertMessage] = useState<{
-    title: string;
-    variant: "success" | "error" | "warning" | "info";
-  } | null>(null);
 
   const selectedItem = formData.itemId
     ? inventoryItems.find((item) => item.id === formData.itemId)
     : undefined;
 
-  const showAlert = (
-    title: string,
-    variant: "success" | "error" | "warning" | "info" = "success"
-  ) => {
-    setAlertMessage({ title, variant });
-    setTimeout(() => {
-      setAlertMessage(null);
-    }, 3000);
-  };
-
-  const handleChange = (field: keyof typeof formData, value: string | string[]) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
-    }
-  };
-
-  const toggleSelection = (field: "employeeIds" | "serviceProviderIds", id: string) => {
-    setFormData((prev) => {
-      const currentIds = prev[field];
-      const newIds = currentIds.includes(id)
-        ? currentIds.filter((itemId) => itemId !== id)
-        : [...currentIds, id];
-      return { ...prev, [field]: newIds };
-    });
-    if (errors[field]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
-    }
-  };
-
-  const validate = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.itemId) {
-      newErrors.itemId =
-        t.profile.errors.required?.(t.inventory.table.name || "Item") || "Item é obrigatório";
-    }
-    if (!formData.quantity || parseFloat(formData.quantity) <= 0) {
-      newErrors.quantity = t.inventory.movements.new.quantityRequired;
-    }
-    if (!formData.date) {
-      newErrors.date = t.inventory.movements.new.dateRequired;
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!location || !property || !selectedItem || !validate()) return;
-
-    setIsSubmitting(true);
-    try {
-      const fileIds = files.map((_, index) => `file-${Date.now()}-${index}`);
-      const movementData: InventoryMovementFormData = {
-        itemId: selectedItem.id,
-        type: InventoryMovementType.CONSUMPTION,
-        quantity: parseFloat(formData.quantity),
-        date: formData.date,
-        description: formData.description || undefined,
-        propertyId: property.id,
-        companyId,
-        locationId: location.id,
-        employeeIds: formData.employeeIds.length > 0 ? formData.employeeIds : undefined,
-        serviceProviderIds:
-          formData.serviceProviderIds.length > 0 ? formData.serviceProviderIds : undefined,
-        observation: formData.observation.trim() || undefined,
-        fileIds: fileIds.length > 0 ? fileIds : undefined,
-      };
-
-      addInventoryMovement(movementData);
-      showAlert(t.inventory.movements.new.success, "success");
-      setTimeout(() => {
-        navigate(`${getLocationViewRoute(location.id)}?tab=movements`);
-      }, 1500);
-    } catch (error) {
-      console.error("Error adding inventory movement:", error);
-      showAlert(t.inventory.movements.new.error, "error");
-    } finally {
-      setIsSubmitting(false);
-    }
+    if (!location || !property || !selectedItem) return;
+    await baseHandleSubmit(e);
   };
 
   if (!location || !property) {
@@ -184,11 +144,7 @@ export default function NewLocationInventoryMovement() {
 
   return (
     <div className="space-y-8">
-      {alertMessage && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-          <Alert title={alertMessage.title} variant={alertMessage.variant} />
-        </div>
-      )}
+      <FixedAlert alertMessage={alertMessage} />
 
       <div className="flex items-center justify-between">
         <div>
@@ -292,73 +248,21 @@ export default function NewLocationInventoryMovement() {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                 {t.properties.details.movements.table.responsible}
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {t.employees.title}
-                  </label>
-                  <div className="border border-gray-300 dark:border-gray-600 rounded-md p-4 max-h-48 overflow-y-auto">
-                    {employees.length === 0 ? (
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {t.properties.details.movements.noEmployees}
-                      </p>
-                    ) : (
-                      <div className="space-y-2">
-                        {employees.map((employee) => (
-                          <label
-                            key={employee.id}
-                            className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={formData.employeeIds.includes(employee.id)}
-                              onChange={() => toggleSelection("employeeIds", employee.id)}
-                              disabled={isSubmitting}
-                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-                            />
-                            <span className="text-sm text-gray-900 dark:text-gray-100">
-                              {employee.name}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {t.serviceProviders.title}
-                  </label>
-                  <div className="border border-gray-300 dark:border-gray-600 rounded-md p-4 max-h-48 overflow-y-auto">
-                    {serviceProviders.length === 0 ? (
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {t.properties.details.movements.noServiceProviders}
-                      </p>
-                    ) : (
-                      <div className="space-y-2">
-                        {serviceProviders.map((provider) => (
-                          <label
-                            key={provider.id}
-                            className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={formData.serviceProviderIds.includes(provider.id)}
-                              onChange={() => toggleSelection("serviceProviderIds", provider.id)}
-                              disabled={isSubmitting}
-                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-                            />
-                            <span className="text-sm text-gray-900 dark:text-gray-100">
-                              {provider.name}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+              <ResponsibleSelectionSection
+                employees={employees}
+                serviceProviders={serviceProviders}
+                selectedEmployeeIds={formData.employeeIds}
+                selectedServiceProviderIds={formData.serviceProviderIds}
+                onToggleEmployee={(id) => toggleSelection("employeeIds", id)}
+                onToggleServiceProvider={(id) => toggleSelection("serviceProviderIds", id)}
+                disabled={isSubmitting}
+                translationKeys={{
+                  employeesLabel: t.employees.title,
+                  serviceProvidersLabel: t.serviceProviders.title,
+                  noEmployees: t.properties.details.movements.noEmployees,
+                  noServiceProviders: t.properties.details.movements.noServiceProviders,
+                }}
+              />
             </div>
 
             <div>
@@ -379,27 +283,17 @@ export default function NewLocationInventoryMovement() {
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t.properties.details.movements.observation}
-              </label>
-              <textarea
-                value={formData.observation}
-                onChange={(e) => handleChange("observation", e.target.value)}
-                disabled={isSubmitting}
-                rows={4}
-                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200 resize-none ${
-                  errors.observation ? "border-red-500" : "border-gray-300 dark:border-gray-600"
-                }`}
-                placeholder={
-                  t.properties.details.movements.observationPlaceholder ||
-                  "Adicione observações sobre esta movimentação..."
-                }
-              />
-              {errors.observation && (
-                <p className="mt-1 text-sm text-red-500">{errors.observation}</p>
-              )}
-            </div>
+            <ObservationField
+              label={t.properties.details.movements.observation}
+              value={formData.observation}
+              onChange={(value) => handleChange("observation", value)}
+              error={errors.observation}
+              disabled={isSubmitting}
+              placeholder={
+                t.properties.details.movements.observationPlaceholder ||
+                "Adicione observações sobre esta movimentação..."
+              }
+            />
 
             <FileUpload
               label={t.properties.details.movements.files}
@@ -414,19 +308,14 @@ export default function NewLocationInventoryMovement() {
             />
           </div>
 
-          <div className="flex justify-end gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate(`${getLocationViewRoute(location.id)}?tab=movements`)}
-              disabled={isSubmitting}
-            >
-              {t.common.cancel}
-            </Button>
-            <Button type="submit" variant="primary" disabled={isSubmitting}>
-              {isSubmitting ? t.common.loading : t.common.save}
-            </Button>
-          </div>
+          <FormActions
+            onCancel={() => navigate(`${getLocationViewRoute(location.id)}?tab=movements`)}
+            isSubmitting={isSubmitting}
+            cancelLabel={t.common.cancel}
+            submitLabel={t.common.save}
+            loadingLabel={t.common.loading}
+            className="border-t-0 pt-0"
+          />
         </form>
       </div>
     </div>

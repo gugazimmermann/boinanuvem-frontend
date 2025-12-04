@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useLanguage, LANGUAGES, type Language } from "~/contexts/language-context";
 import { useTranslation } from "~/i18n";
 import { DASHBOARD_COLORS } from "../utils/colors";
+import { useClickOutside } from "~/hooks/use-click-outside";
 
 export function LanguageSelectorMenuItem() {
   const { language, setLanguage, languageInfo } = useLanguage();
@@ -9,21 +10,7 @@ export function LanguageSelectorMenuItem() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isOpen]);
+  useClickOutside(dropdownRef as React.RefObject<HTMLElement>, isOpen, () => setIsOpen(false));
 
   const handleLanguageSelect = (lang: Language) => {
     setLanguage(lang);
@@ -75,12 +62,12 @@ export function LanguageSelectorMenuItem() {
               <img
                 src={lang.flag}
                 alt={lang.name}
-                className="w-5 h-5 rounded-sm object-cover flex-shrink-0"
+                className="w-5 h-5 rounded-sm object-cover shrink-0"
               />
               <span className="flex-1">{lang.name}</span>
               {language === lang.code && (
                 <svg
-                  className="w-4 h-4 flex-shrink-0 dark:text-blue-400"
+                  className="w-4 h-4 shrink-0 dark:text-blue-400"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"

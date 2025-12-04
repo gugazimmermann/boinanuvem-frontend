@@ -17,163 +17,280 @@ import {
 
 describe("masks", () => {
   describe("maskCNPJ", () => {
-    it("should mask CNPJ correctly for different lengths", () => {
-      expect(maskCNPJ("12")).toBe("12");
-      expect(maskCNPJ("12345")).toBe("12.345");
-      expect(maskCNPJ("12345678")).toBe("12.345.678");
-      expect(maskCNPJ("123456789012")).toBe("12.345.678/9012");
-      expect(maskCNPJ("12345678901234")).toBe("12.345.678/9012-34");
+    it("should mask CNPJ correctly", () => {
+      expect(maskCNPJ("12345678000190")).toBe("12.345.678/0001-90");
     });
 
-    it("should handle CNPJ with special characters", () => {
-      expect(maskCNPJ("12.345.678/9012-34")).toBe("12.345.678/9012-34");
-      expect(maskCNPJ("12345678901234abc")).toBe("12.345.678/9012-34");
+    it("should handle partial CNPJ", () => {
+      expect(maskCNPJ("12")).toBe("12");
+      expect(maskCNPJ("123")).toBe("12.3");
+      expect(maskCNPJ("12345")).toBe("12.345");
+      expect(maskCNPJ("12345678")).toBe("12.345.678");
+      expect(maskCNPJ("123456780001")).toBe("12.345.678/0001");
+    });
+
+    it("should remove non-digits before masking", () => {
+      expect(maskCNPJ("12.345.678/0001-90")).toBe("12.345.678/0001-90");
+      expect(maskCNPJ("abc12345678000190def")).toBe("12.345.678/0001-90");
     });
 
     it("should handle empty string", () => {
       expect(maskCNPJ("")).toBe("");
     });
+
+    it("should handle string with only non-digits", () => {
+      expect(maskCNPJ("abc")).toBe("");
+    });
   });
 
   describe("unmaskCNPJ", () => {
-    it("should remove all non-digit characters", () => {
-      expect(unmaskCNPJ("12.345.678/9012-34")).toBe("12345678901234");
-      expect(unmaskCNPJ("12345678901234")).toBe("12345678901234");
-      expect(unmaskCNPJ("abc123")).toBe("123");
+    it("should remove all non-digits", () => {
+      expect(unmaskCNPJ("12.345.678/0001-90")).toBe("12345678000190");
+    });
+
+    it("should handle already unmasked CNPJ", () => {
+      expect(unmaskCNPJ("12345678000190")).toBe("12345678000190");
+    });
+
+    it("should handle empty string", () => {
+      expect(unmaskCNPJ("")).toBe("");
     });
   });
 
   describe("maskPhone", () => {
-    it("should mask phone correctly for different lengths", () => {
-      expect(maskPhone("")).toBe("");
-      expect(maskPhone("12")).toBe("(12");
-      expect(maskPhone("123456")).toBe("(12) 3456");
-      expect(maskPhone("1234567890")).toBe("(12) 3456-7890");
-      expect(maskPhone("12345678901")).toBe("(12) 34567-8901");
+    it("should mask phone correctly for 10 digits", () => {
+      expect(maskPhone("1199999999")).toBe("(11) 9999-9999");
     });
 
-    it("should handle phone with special characters", () => {
-      expect(maskPhone("(12) 3456-7890")).toBe("(12) 3456-7890");
-      expect(maskPhone("1234567890abc")).toBe("(12) 3456-7890");
+    it("should mask phone correctly for 11 digits", () => {
+      expect(maskPhone("11999999999")).toBe("(11) 99999-9999");
+    });
+
+    it("should handle partial phone", () => {
+      expect(maskPhone("1")).toBe("(1");
+      expect(maskPhone("11")).toBe("(11");
+      expect(maskPhone("119")).toBe("(11) 9");
+      expect(maskPhone("11999")).toBe("(11) 999");
+      expect(maskPhone("1199999")).toBe("(11) 9999-9");
+    });
+
+    it("should remove non-digits before masking", () => {
+      expect(maskPhone("(11) 99999-9999")).toBe("(11) 99999-9999");
+      expect(maskPhone("abc11999999999def")).toBe("(11) 99999-9999");
+    });
+
+    it("should handle empty string", () => {
+      expect(maskPhone("")).toBe("");
     });
   });
 
   describe("unmaskPhone", () => {
-    it("should remove all non-digit characters", () => {
-      expect(unmaskPhone("(12) 3456-7890")).toBe("1234567890");
-      expect(unmaskPhone("1234567890")).toBe("1234567890");
-      expect(unmaskPhone("abc123")).toBe("123");
+    it("should remove all non-digits", () => {
+      expect(unmaskPhone("(11) 99999-9999")).toBe("11999999999");
+    });
+
+    it("should handle already unmasked phone", () => {
+      expect(unmaskPhone("11999999999")).toBe("11999999999");
+    });
+
+    it("should handle empty string", () => {
+      expect(unmaskPhone("")).toBe("");
     });
   });
 
   describe("maskCEP", () => {
-    it("should mask CEP correctly for different lengths", () => {
-      expect(maskCEP("")).toBe("");
-      expect(maskCEP("12")).toBe("12");
-      expect(maskCEP("12345")).toBe("12.345");
+    it("should mask CEP correctly", () => {
       expect(maskCEP("12345678")).toBe("12.345-678");
     });
 
-    it("should handle CEP with special characters", () => {
+    it("should handle partial CEP", () => {
+      expect(maskCEP("12")).toBe("12");
+      expect(maskCEP("123")).toBe("12.3");
+      expect(maskCEP("12345")).toBe("12.345");
+      expect(maskCEP("123456")).toBe("12.345-6");
+    });
+
+    it("should remove non-digits before masking", () => {
       expect(maskCEP("12.345-678")).toBe("12.345-678");
-      expect(maskCEP("12345678abc")).toBe("12.345-678");
+      expect(maskCEP("abc12345678def")).toBe("12.345-678");
+    });
+
+    it("should handle empty string", () => {
+      expect(maskCEP("")).toBe("");
     });
   });
 
   describe("unmaskCEP", () => {
-    it("should remove all non-digit characters", () => {
+    it("should remove all non-digits", () => {
       expect(unmaskCEP("12.345-678")).toBe("12345678");
+    });
+
+    it("should handle already unmasked CEP", () => {
       expect(unmaskCEP("12345678")).toBe("12345678");
-      expect(unmaskCEP("abc123")).toBe("123");
+    });
+
+    it("should handle empty string", () => {
+      expect(unmaskCEP("")).toBe("");
     });
   });
 
   describe("maskCPF", () => {
-    it("should mask CPF correctly for different lengths", () => {
-      expect(maskCPF("")).toBe("");
-      expect(maskCPF("123")).toBe("123");
-      expect(maskCPF("123456")).toBe("123.456");
-      expect(maskCPF("123456789")).toBe("123.456.789");
+    it("should mask CPF correctly", () => {
       expect(maskCPF("12345678901")).toBe("123.456.789-01");
     });
 
-    it("should handle CPF with special characters", () => {
+    it("should handle partial CPF", () => {
+      expect(maskCPF("123")).toBe("123");
+      expect(maskCPF("123456")).toBe("123.456");
+      expect(maskCPF("123456789")).toBe("123.456.789");
+    });
+
+    it("should remove non-digits before masking", () => {
       expect(maskCPF("123.456.789-01")).toBe("123.456.789-01");
-      expect(maskCPF("12345678901abc")).toBe("123.456.789-01");
+      expect(maskCPF("abc12345678901def")).toBe("123.456.789-01");
+    });
+
+    it("should handle empty string", () => {
+      expect(maskCPF("")).toBe("");
     });
   });
 
   describe("unmaskCPF", () => {
-    it("should remove all non-digit characters", () => {
+    it("should remove all non-digits", () => {
       expect(unmaskCPF("123.456.789-01")).toBe("12345678901");
+    });
+
+    it("should handle already unmasked CPF", () => {
       expect(unmaskCPF("12345678901")).toBe("12345678901");
-      expect(unmaskCPF("abc123")).toBe("123");
+    });
+
+    it("should handle empty string", () => {
+      expect(unmaskCPF("")).toBe("");
     });
   });
 
   describe("createMaskHandler", () => {
-    it("should create a handler that applies mask and calls onChange", () => {
+    it("should create handler that applies mask and calls onChange", () => {
       const onChange = vi.fn();
-      const handler = createMaskHandler(maskCNPJ, onChange);
+      const maskFunction = (value: string) => value.toUpperCase();
+      const handler = createMaskHandler(maskFunction, onChange);
+
       const event = {
-        target: { value: "12345678901234" },
+        target: { value: "test" },
       } as React.ChangeEvent<HTMLInputElement>;
 
       handler(event);
 
-      expect(onChange).toHaveBeenCalledWith("12.345.678/9012-34");
+      expect(onChange).toHaveBeenCalledWith("TEST");
+    });
+
+    it("should handle empty value", () => {
+      const onChange = vi.fn();
+      const maskFunction = (value: string) => value;
+      const handler = createMaskHandler(maskFunction, onChange);
+
+      const event = {
+        target: { value: "" },
+      } as React.ChangeEvent<HTMLInputElement>;
+
+      handler(event);
+
+      expect(onChange).toHaveBeenCalledWith("");
     });
   });
 
   describe("maskDate", () => {
-    it("should mask date correctly for different lengths", () => {
-      expect(maskDate("")).toBe("");
-      expect(maskDate("12")).toBe("12");
-      expect(maskDate("1234")).toBe("12/34");
-      expect(maskDate("12345678")).toBe("12/34/5678");
+    it("should mask date correctly", () => {
+      expect(maskDate("01012024")).toBe("01/01/2024");
     });
 
-    it("should handle date with special characters", () => {
-      expect(maskDate("12/34/5678")).toBe("12/34/5678");
-      expect(maskDate("12345678abc")).toBe("12/34/5678");
+    it("should handle partial date", () => {
+      expect(maskDate("01")).toBe("01");
+      expect(maskDate("0101")).toBe("01/01");
+      expect(maskDate("01012")).toBe("01/01/2");
+    });
+
+    it("should remove non-digits before masking", () => {
+      expect(maskDate("01/01/2024")).toBe("01/01/2024");
+      expect(maskDate("abc01012024def")).toBe("01/01/2024");
+    });
+
+    it("should handle empty string", () => {
+      expect(maskDate("")).toBe("");
     });
   });
 
   describe("unmaskDate", () => {
-    it("should remove all non-digit characters", () => {
-      expect(unmaskDate("12/34/5678")).toBe("12345678");
-      expect(unmaskDate("12345678")).toBe("12345678");
-      expect(unmaskDate("abc123")).toBe("123");
+    it("should remove all non-digits", () => {
+      expect(unmaskDate("01/01/2024")).toBe("01012024");
+    });
+
+    it("should handle already unmasked date", () => {
+      expect(unmaskDate("01012024")).toBe("01012024");
+    });
+
+    it("should handle empty string", () => {
+      expect(unmaskDate("")).toBe("");
     });
   });
 
   describe("dateToISO", () => {
-    it("should convert date string to ISO format", () => {
+    it("should convert date to ISO format", () => {
       expect(dateToISO("01/01/2024")).toBe("2024-01-01");
-      expect(dateToISO("31/12/2023")).toBe("2023-12-31");
-      expect(dateToISO("15/06/2024")).toBe("2024-06-15");
     });
 
-    it("should return empty string for invalid dates", () => {
+    it("should return empty string for invalid length", () => {
+      expect(dateToISO("0101202")).toBe("");
+      expect(dateToISO("010120245")).toBe("");
+    });
+
+    it("should return empty string for invalid day", () => {
       expect(dateToISO("32/01/2024")).toBe("");
+    });
+
+    it("should return empty string for invalid month", () => {
       expect(dateToISO("01/13/2024")).toBe("");
-      expect(dateToISO("123")).toBe("");
-      expect(dateToISO("12345")).toBe("");
+    });
+
+    it("should handle empty string", () => {
+      expect(dateToISO("")).toBe("");
+    });
+
+    it("should remove non-digits before conversion", () => {
+      expect(dateToISO("01/01/2024")).toBe("2024-01-01");
     });
   });
 
   describe("isoToDate", () => {
-    it("should convert ISO string to date format", () => {
+    it("should convert ISO date to date format", () => {
       expect(isoToDate("2024-01-01")).toBe("01/01/2024");
-      expect(isoToDate("2023-12-31")).toBe("31/12/2023");
     });
 
-    it("should return empty string for invalid ISO strings", () => {
+    it("should return empty string for invalid format", () => {
       expect(isoToDate("")).toBe("");
+      expect(isoToDate("2024")).toBe("");
       expect(isoToDate("2024-01")).toBe("");
-      expect(isoToDate("20240101")).toBe("");
-      expect(isoToDate("invalid")).toBe("");
       expect(isoToDate("2024-01-01-01")).toBe("");
+    });
+
+    it("should return empty string for non-string input", () => {
+      expect(isoToDate(null as unknown as string)).toBe("");
+      expect(isoToDate(undefined as unknown as string)).toBe("");
+    });
+
+    it("should return empty string when string length is not 10", () => {
+      // isoToDate returns empty string if length is not 10
+      expect(isoToDate("20240101")).toBe("");
+    });
+
+    it("should handle missing parts", () => {
+      expect(isoToDate("2024--01")).toBe("");
+      expect(isoToDate("-01-01")).toBe("");
+    });
+
+    it("should handle valid ISO date", () => {
+      expect(isoToDate("2024-12-31")).toBe("31/12/2024");
+      expect(isoToDate("2024-01-15")).toBe("15/01/2024");
     });
   });
 });

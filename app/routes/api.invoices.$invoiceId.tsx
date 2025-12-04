@@ -44,15 +44,14 @@ export async function loader({
   const statusLabel = t.payments.status[payment.status] || payment.status;
 
   // Date format based on language
-  const dateFormat =
-    language === "en"
-      ? "MMMM dd, yyyy"
-      : language === "es"
-        ? "dd 'de' MMMM 'de' yyyy"
-        : "dd 'de' MMMM 'de' yyyy";
-  const monthFormat =
-    language === "en" ? "MMMM yyyy" : language === "es" ? "MMMM 'de' yyyy" : "MMMM 'de' yyyy";
-  const htmlLang = language === "en" ? "en" : language === "es" ? "es" : "pt-BR";
+  const dateFormat = language === "en" ? "MMMM dd, yyyy" : "dd 'de' MMMM 'de' yyyy";
+  const monthFormat = language === "en" ? "MMMM yyyy" : "MMMM 'de' yyyy";
+  const getHtmlLang = () => {
+    if (language === "en") return "en";
+    if (language === "es") return "es";
+    return "pt-BR";
+  };
+  const htmlLang = getHtmlLang();
 
   // Generate HTML invoice
   const invoiceHtml = `
@@ -206,14 +205,28 @@ export async function loader({
         <p><strong>Boi na Nuvem</strong></p>
         <p>CNPJ: 00.000.000/0001-00</p>
         <p>Email: contato@boinanuvem.com.br</p>
-        <p>${language === "en" ? "Phone" : language === "es" ? "Teléfono" : "Telefone"}: (11) 9999-9999</p>
+        <p>${(() => {
+          if (language === "en") return "Phone";
+          if (language === "es") return "Teléfono";
+          return "Telefone";
+        })()}: (11) 9999-9999</p>
       </div>
       <div class="info-section">
         <h3>${t.payments.invoice.recipient.toUpperCase()}</h3>
-        <p><strong>${company?.companyName || (language === "en" ? "Client" : language === "es" ? "Cliente" : "Cliente")}</strong></p>
+        <p><strong>${
+          company?.companyName ||
+          (() => {
+            if (language === "en") return "Client";
+            return "Cliente";
+          })()
+        }</strong></p>
         <p>CNPJ: ${company?.cnpj || "N/A"}</p>
         <p>Email: ${company?.email || "N/A"}</p>
-        <p>${language === "en" ? "Phone" : language === "es" ? "Teléfono" : "Telefone"}: ${company?.phone || "N/A"}</p>
+        <p>${(() => {
+          if (language === "en") return "Phone";
+          if (language === "es") return "Teléfono";
+          return "Telefone";
+        })()}: ${company?.phone || "N/A"}</p>
       </div>
     </div>
 
@@ -238,7 +251,7 @@ export async function loader({
       </table>
       
       <div class="total-section">
-        <span class="total-label">${language === "en" ? "Total" : language === "es" ? "Total" : "Total"}:</span>
+        <span class="total-label">Total:</span>
         <span class="total-amount">${formatCurrency(payment.amount, language)}</span>
       </div>
     </div>

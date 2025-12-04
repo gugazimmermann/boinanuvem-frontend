@@ -87,13 +87,13 @@ export function useBreedingForm({ initialAnimalIds = [], initialDate, t }: UseBr
 
   const handleMethodChange = (method: BreedingMethod) => {
     setFormData((prev) => {
-      let attemptNumbers = prev.attemptNumbers;
+      let attemptNumbers: Record<string, number>;
 
       if (method === "artificial_insemination") {
         attemptNumbers = {};
-        prev.animalIds.forEach((animalId) => {
+        for (const animalId of prev.animalIds) {
           attemptNumbers[animalId] = getNextAttemptNumber(animalId);
-        });
+        }
       } else {
         attemptNumbers = {};
       }
@@ -116,8 +116,8 @@ export function useBreedingForm({ initialAnimalIds = [], initialDate, t }: UseBr
   };
 
   const handleAttemptNumberChange = (animalId: string, value: string) => {
-    const numValue = parseInt(value, 10);
-    if (!isNaN(numValue) && numValue > 0) {
+    const numValue = Number.parseInt(value, 10);
+    if (!Number.isNaN(numValue) && numValue > 0) {
       setFormData((prev) => ({
         ...prev,
         attemptNumbers: { ...prev.attemptNumbers, [animalId]: numValue },
@@ -149,12 +149,12 @@ export function useBreedingForm({ initialAnimalIds = [], initialDate, t }: UseBr
         newErrors.semenCode = t.breedings.new.errors.semenCodeRequired;
       }
 
-      formData.animalIds.forEach((animalId) => {
+      for (const animalId of formData.animalIds) {
         const attemptNum = formData.attemptNumbers[animalId];
         if (!attemptNum || attemptNum < 1) {
           newErrors[`attemptNumber_${animalId}`] = t.breedings.new.errors.attemptNumberRequired;
         }
-      });
+      }
     }
 
     if (formData.employeeIds.length === 0 && formData.serviceProviderIds.length === 0) {

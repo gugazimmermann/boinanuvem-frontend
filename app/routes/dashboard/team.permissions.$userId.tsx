@@ -1,14 +1,15 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router";
-import { Button, Alert } from "~/components/ui";
+import { Button, FixedAlert, Alert } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { ROUTES } from "~/routes.config";
 import { getUserById, updateUserPermissions } from "~/services/users.service";
 import { useAuth } from "~/contexts/auth-context";
-import type { TeamUser } from "~/routes/dashboard/team";
+import type { TeamUser } from "~/types";
 import type { UserPermissions, PermissionAction, ResourcePermissions } from "~/types/permissions";
 import { defaultPermissions } from "~/types/permissions";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
+import { useAlert } from "~/hooks/use-alert";
 
 type PermissionSection = "registration" | "records" | "breedings" | "finances";
 
@@ -40,11 +41,10 @@ type PermissionResource =
   | "bankAccounts";
 
 interface ResourcePermissionSectionProps {
-  resource: PermissionResource;
-  resourceLabel: string;
-  permissions: ResourcePermissions;
-  onPermissionChange: (action: PermissionAction, value: boolean) => void;
-  onSelectAll: (value: boolean) => void;
+  readonly resourceLabel: string;
+  readonly permissions: ResourcePermissions;
+  readonly onPermissionChange: (action: PermissionAction, value: boolean) => void;
+  readonly onSelectAll: (value: boolean) => void;
 }
 
 function ResourcePermissionSection({
@@ -56,7 +56,7 @@ function ResourcePermissionSection({
   const t = useTranslation();
   const checkboxRef = useRef<HTMLInputElement>(null);
   const allSelected = Object.values(permissions).every((v) => v === true);
-  const someSelected = Object.values(permissions).some((v) => v === true);
+  const someSelected = Object.values(permissions).includes(true);
 
   useEffect(() => {
     if (checkboxRef.current) {
@@ -135,20 +135,7 @@ export default function TeamPermissions() {
   const [user, setUser] = useState<TeamUser | null>(null);
   const [permissions, setPermissions] = useState<UserPermissions>(defaultPermissions);
   const [isSaving, setIsSaving] = useState(false);
-  const [alertMessage, setAlertMessage] = useState<{
-    title: string;
-    variant: "success" | "error" | "warning" | "info";
-  } | null>(null);
-
-  const showAlert = useCallback(
-    (title: string, variant: "success" | "error" | "warning" | "info" = "success") => {
-      setAlertMessage({ title, variant });
-      setTimeout(() => {
-        setAlertMessage(null);
-      }, 3000);
-    },
-    []
-  );
+  const { alertMessage, showAlert } = useAlert();
 
   useEffect(() => {
     if (userId) {
@@ -247,11 +234,7 @@ export default function TeamPermissions() {
   if (!user) {
     return (
       <div className="space-y-6">
-        {alertMessage && (
-          <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
-            <Alert title={alertMessage.title} variant={alertMessage.variant} />
-          </div>
-        )}
+        <FixedAlert alertMessage={alertMessage} />
         <div className="flex items-center justify-center min-h-[400px]">
           <p className="text-gray-500 dark:text-gray-400">{t.common.loading}</p>
         </div>
@@ -343,7 +326,6 @@ export default function TeamPermissions() {
                 {resources.map((resource) => (
                   <ResourcePermissionSection
                     key={resource}
-                    resource={resource}
                     resourceLabel={t.team.permissions.resources[resource] || resource}
                     permissions={
                       (permissions[section] as Record<string, ResourcePermissions>)[resource]

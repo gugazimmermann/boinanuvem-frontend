@@ -15,7 +15,7 @@ export function formatAreaType(type: AreaType): string {
   return typeMap[type] || type;
 }
 
-export function getLocaleForDateTime(language: Language): string {
+function getLocaleForLanguage(language: Language): string {
   const localeMap: Record<Language, string> = {
     pt: "pt-BR",
     en: "en-US",
@@ -24,13 +24,16 @@ export function getLocaleForDateTime(language: Language): string {
   return localeMap[language] || "pt-BR";
 }
 
+export function getLocaleForDateTime(language: Language): string {
+  return getLocaleForLanguage(language);
+}
+
 export function getLocaleForNumber(language: Language): string {
-  const localeMap: Record<Language, string> = {
-    pt: "pt-BR",
-    en: "en-US",
-    es: "es-ES",
-  };
-  return localeMap[language] || "pt-BR";
+  return getLocaleForLanguage(language);
+}
+
+export function getLocaleForCurrency(language: Language): string {
+  return getLocaleForLanguage(language);
 }
 
 export function formatDate(

@@ -13,12 +13,12 @@ export function useFormValidation<T extends Record<string, string>>(
   const errors = useMemo(() => {
     const validationErrors: Partial<Record<keyof T, string>> = {};
 
-    rules.forEach((rule) => {
+    for (const rule of rules) {
       const value = data[rule.field] || "";
 
       if (rule.required && !value.trim()) {
         validationErrors[rule.field] = "required";
-        return;
+        continue;
       }
 
       if (value.trim()) {
@@ -27,7 +27,7 @@ export function useFormValidation<T extends Record<string, string>>(
           validationErrors[rule.field] = error;
         }
       }
-    });
+    }
 
     return validationErrors;
   }, [data, rules]);
@@ -37,9 +37,11 @@ export function useFormValidation<T extends Record<string, string>>(
   return { errors, isValid };
 }
 
+import { isValidEmail } from "~/utils/email-validation";
+
 export const validators = {
   email: (value: string): string | null => {
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+    if (!isValidEmail(value)) {
       return "invalidEmail";
     }
     return null;
@@ -75,14 +77,14 @@ export const validators = {
       return null;
     },
   cnpj: (value: string): string | null => {
-    const unmasked = value.replace(/\D/g, "");
+    const unmasked = value.replaceAll(/\D/g, "");
     if (unmasked && unmasked.length !== 14) {
       return "cnpjMustHave14Digits";
     }
     return null;
   },
   cep: (value: string): string | null => {
-    const unmasked = value.replace(/\D/g, "");
+    const unmasked = value.replaceAll(/\D/g, "");
     if (unmasked && unmasked.length !== 8) {
       return "cepMustHave8Digits";
     }

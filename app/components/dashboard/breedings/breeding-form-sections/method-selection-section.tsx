@@ -2,10 +2,10 @@ import { useTranslation } from "~/i18n";
 import type { BreedingMethod } from "~/types";
 
 export interface MethodSelectionSectionProps {
-  selectedMethod: BreedingMethod | "";
-  onMethodChange: (method: BreedingMethod) => void;
-  error?: string;
-  disabled?: boolean;
+  readonly selectedMethod: BreedingMethod | "";
+  readonly onMethodChange: (method: BreedingMethod) => void;
+  readonly error?: string;
+  readonly disabled?: boolean;
 }
 
 export function MethodSelectionSection({

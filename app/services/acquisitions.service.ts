@@ -1,5 +1,10 @@
-import type { Acquisition, AcquisitionFormData } from "~/types";
-import { AcquisitionPaymentMethod } from "~/types";
+import type { Acquisition, AcquisitionFormData, AcquisitionItem } from "~/types";
+import {
+  AcquisitionPaymentMethod,
+  CashFlowCategory,
+  PaymentMethod,
+  AccountsPayableStatus,
+} from "~/types";
 import { mockAcquisitions } from "~/mocks/acquisitions";
 import { findById, findByField, createEntity, updateEntity, deleteEntity } from "./base-service";
 import { getAnimalById } from "./animals.service";
@@ -9,8 +14,6 @@ import {
   deleteAccountsPayable,
   updateAccountsPayable,
 } from "./accounts-payable.service";
-import { CashFlowCategory, PaymentMethod } from "~/types";
-import { AccountsPayableStatus } from "~/types";
 import { getTotalFees } from "~/utils/fees";
 
 const ID_PREFIX = "ac0e8400-e29b-41d4-a716";
@@ -123,6 +126,69 @@ export function addAcquisition(data: AcquisitionFormData): Acquisition {
   return acquisition;
 }
 
+function updateAcquisitionItems(items: AcquisitionItem[], totalCost: number): AcquisitionItem[] {
+  const animalCount = items.length;
+  const costPerAnimal = animalCount > 0 ? totalCost / animalCount : 0;
+  return items.map((item) => {
+    const costPerArroba = calculateAcquisitionCostPerArroba(item.weight, costPerAnimal);
+    return {
+      ...item,
+      price: costPerAnimal,
+      costPerArroba,
+    };
+  });
+}
+
+function handlePaymentMethodChange(
+  existingAcquisition: Acquisition,
+  updatedItems: AcquisitionItem[],
+  totalCost: number,
+  data: Partial<AcquisitionFormData>
+): { linkedCashFlowId?: string; linkedAccountsPayableId?: string } {
+  const animalCodes = updatedItems
+    .map((item) => {
+      const animal = getAnimalById(item.animalId);
+      return animal?.code || item.animalId;
+    })
+    .join(", ");
+
+  if (existingAcquisition.linkedCashFlowId) {
+    deleteCashFlow(existingAcquisition.linkedCashFlowId);
+  }
+  if (existingAcquisition.linkedAccountsPayableId) {
+    deleteAccountsPayable(existingAcquisition.linkedAccountsPayableId);
+  }
+
+  if (data.paymentMethod === AcquisitionPaymentMethod.CASH_FLOW) {
+    const cashFlow = addCashFlow({
+      companyId: existingAcquisition.companyId,
+      type: "expense",
+      amount: totalCost,
+      date: data.acquisitionDate || existingAcquisition.acquisitionDate,
+      description: `Aquisição de animais: ${animalCodes}`,
+      category: CashFlowCategory.ANIMAL_ACQUISITION,
+      paymentMethod: PaymentMethod.CASH,
+      status: "completed",
+      supplierId: data.supplierId || existingAcquisition.supplierId,
+      propertyId: data.propertyId || existingAcquisition.propertyId,
+    });
+    return { linkedCashFlowId: cashFlow.id, linkedAccountsPayableId: undefined };
+  }
+
+  const accountsPayable = addAccountsPayable({
+    companyId: existingAcquisition.companyId,
+    supplierId: data.supplierId || existingAcquisition.supplierId,
+    amount: totalCost,
+    dueDate: data.acquisitionDate || existingAcquisition.acquisitionDate,
+    description: `Aquisição de animais: ${animalCodes}`,
+    category: CashFlowCategory.ANIMAL_ACQUISITION,
+    paymentMethod: PaymentMethod.CASH,
+    status: AccountsPayableStatus.UNPAID,
+    propertyId: data.propertyId || existingAcquisition.propertyId,
+  });
+  return { linkedCashFlowId: undefined, linkedAccountsPayableId: accountsPayable.id };
+}
+
 export function updateAcquisition(
   acquisitionId: string,
   data: Partial<AcquisitionFormData>
@@ -130,82 +196,24 @@ export function updateAcquisition(
   const existingAcquisition = getAcquisitionById(acquisitionId);
   if (!existingAcquisition) return false;
 
-  let updatedItems = data.acquisitionItems || existingAcquisition.acquisitionItems;
+  const items = data.acquisitionItems || existingAcquisition.acquisitionItems;
   const totalFees = getTotalFees(
-    data.fees || existingAcquisition.fees,
-    data.transportationFee || existingAcquisition.transportationFee,
+    data.fees ?? existingAcquisition.fees,
+    data.transportationFee ?? existingAcquisition.transportationFee,
     undefined,
-    data.handlingFee || existingAcquisition.handlingFee
+    data.handlingFee ?? existingAcquisition.handlingFee
   );
-  const totalCost = (data.totalPrice || existingAcquisition.totalPrice) + totalFees;
+  const totalCost = (data.totalPrice ?? existingAcquisition.totalPrice) + totalFees;
 
-  if (
-    data.acquisitionItems ||
-    data.totalPrice !== undefined ||
-    data.transportationFee !== undefined ||
-    data.handlingFee !== undefined
-  ) {
-    const animalCount = updatedItems.length;
-    const costPerAnimal = animalCount > 0 ? totalCost / animalCount : 0;
-
-    updatedItems = updatedItems.map((item) => {
-      const costPerArroba = calculateAcquisitionCostPerArroba(item.weight, costPerAnimal);
-      return {
-        ...item,
-        price: costPerAnimal,
-        costPerArroba,
-      };
-    });
-  }
+  const updatedItems = updateAcquisitionItems(items, totalCost);
 
   if (data.paymentMethod && data.paymentMethod !== existingAcquisition.paymentMethod) {
-    const animalCodes = updatedItems
-      .map((item) => {
-        const animal = getAnimalById(item.animalId);
-        return animal?.code || item.animalId;
-      })
-      .join(", ");
-
-    if (existingAcquisition.linkedCashFlowId) {
-      deleteCashFlow(existingAcquisition.linkedCashFlowId);
-    }
-    if (existingAcquisition.linkedAccountsPayableId) {
-      deleteAccountsPayable(existingAcquisition.linkedAccountsPayableId);
-    }
-
-    let linkedCashFlowId: string | undefined;
-    let linkedAccountsPayableId: string | undefined;
-
-    if (data.paymentMethod === AcquisitionPaymentMethod.CASH_FLOW) {
-      const cashFlow = addCashFlow({
-        companyId: existingAcquisition.companyId,
-        type: "expense",
-        amount: totalCost,
-        date: data.acquisitionDate || existingAcquisition.acquisitionDate,
-        description: `Aquisição de animais: ${animalCodes}`,
-        category: CashFlowCategory.ANIMAL_ACQUISITION,
-        paymentMethod: PaymentMethod.CASH,
-        status: "completed",
-        supplierId: data.supplierId || existingAcquisition.supplierId,
-        propertyId: data.propertyId || existingAcquisition.propertyId,
-      });
-      linkedCashFlowId = cashFlow.id;
-      linkedAccountsPayableId = undefined;
-    } else {
-      const accountsPayable = addAccountsPayable({
-        companyId: existingAcquisition.companyId,
-        supplierId: data.supplierId || existingAcquisition.supplierId,
-        amount: totalCost,
-        dueDate: data.acquisitionDate || existingAcquisition.acquisitionDate,
-        description: `Aquisição de animais: ${animalCodes}`,
-        category: CashFlowCategory.ANIMAL_ACQUISITION,
-        paymentMethod: PaymentMethod.CASH,
-        status: AccountsPayableStatus.UNPAID,
-        propertyId: data.propertyId || existingAcquisition.propertyId,
-      });
-      linkedAccountsPayableId = accountsPayable.id;
-      linkedCashFlowId = undefined;
-    }
+    const { linkedCashFlowId, linkedAccountsPayableId } = handlePaymentMethodChange(
+      existingAcquisition,
+      updatedItems,
+      totalCost,
+      data
+    );
 
     const updateData: Partial<AcquisitionFormData> & {
       linkedCashFlowId?: string;
@@ -226,12 +234,12 @@ export function updateAcquisition(
       data.handlingFee !== undefined
     ) {
       const totalFeesAmount = getTotalFees(
-        data.fees || existingAcquisition.fees,
-        data.transportationFee || existingAcquisition.transportationFee,
+        data.fees ?? existingAcquisition.fees,
+        data.transportationFee ?? existingAcquisition.transportationFee,
         undefined,
-        data.handlingFee || existingAcquisition.handlingFee
+        data.handlingFee ?? existingAcquisition.handlingFee
       );
-      const totalAmount = (data.totalPrice || existingAcquisition.totalPrice) + totalFeesAmount;
+      const totalAmount = (data.totalPrice ?? existingAcquisition.totalPrice) + totalFeesAmount;
 
       if (existingAcquisition.linkedCashFlowId) {
         updateCashFlow(existingAcquisition.linkedCashFlowId, { amount: totalAmount });

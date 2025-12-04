@@ -1,12 +1,12 @@
 import { formatRelativeTime, type FormatRelativeTimeOptions } from "~/utils/date";
 
 interface ActivityItemProps {
-  icon: string;
-  title: string;
-  date: string;
-  color: "blue" | "purple" | "teal" | "pink" | "green" | "red";
-  formatRelativeTimeOptions: FormatRelativeTimeOptions;
-  isLast?: boolean;
+  readonly icon: string;
+  readonly title: string;
+  readonly date: string;
+  readonly color: "blue" | "purple" | "teal" | "pink" | "green" | "red";
+  readonly formatRelativeTimeOptions: FormatRelativeTimeOptions;
+  readonly isLast?: boolean;
 }
 
 export function ActivityItem({
@@ -29,7 +29,7 @@ export function ActivityItem({
   return (
     <div
       className={`flex items-center space-x-3 ${
-        !isLast ? "pb-3 border-b border-gray-200 dark:border-gray-700" : ""
+        isLast ? "" : "pb-3 border-b border-gray-200 dark:border-gray-700"
       }`}
     >
       <div

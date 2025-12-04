@@ -1,20 +1,21 @@
 import { useCallback } from "react";
 import type { AddressFormData, CEPData } from "~/types";
-import { AuthInput, AuthSelect } from "./ui";
+import { AuthSelect } from "./ui";
+import { Input } from "~/components/ui";
 import { useCEPLookup } from "./hooks";
 import { mapCEPDataToAddressForm, maskCEP, unmaskCEP } from "./utils";
 import { BRAZILIAN_STATES } from "~/utils/brazilian-states";
 import { useTranslation } from "~/i18n/use-translation";
 
 interface AddressFormProps {
-  data: AddressFormData;
-  onChange: (field: keyof AddressFormData, value: string) => void;
-  errors?: Partial<Record<keyof AddressFormData, string>>;
-  zipCodeError?: string;
-  zipCodeLoading?: boolean;
-  showNumber?: boolean;
-  showComplement?: boolean;
-  onZipCodeSuccess?: (data: CEPData) => void;
+  readonly data: AddressFormData;
+  readonly onChange: (field: keyof AddressFormData, value: string) => void;
+  readonly errors?: Partial<Record<keyof AddressFormData, string>>;
+  readonly zipCodeError?: string;
+  readonly zipCodeLoading?: boolean;
+  readonly showNumber?: boolean;
+  readonly showComplement?: boolean;
+  readonly onZipCodeSuccess?: (data: CEPData) => void;
 }
 
 export function AddressForm({
@@ -35,11 +36,16 @@ export function AddressForm({
         onZipCodeSuccess(cepData);
       } else {
         const mappedData = mapCEPDataToAddressForm(cepData, data);
-        Object.entries(mappedData).forEach(([key, value]) => {
-          if (key !== "zipCode" && value !== undefined && value !== "") {
-            onChange(key as keyof AddressFormData, String(value));
+        for (const [key, value] of Object.entries(mappedData)) {
+          if (
+            key !== "zipCode" &&
+            value !== undefined &&
+            value !== "" &&
+            typeof value === "string"
+          ) {
+            onChange(key as keyof AddressFormData, value);
           }
-        });
+        }
       }
     },
     [data, onChange, onZipCodeSuccess]
@@ -62,7 +68,7 @@ export function AddressForm({
     <>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <AuthInput
+          <Input
             type="text"
             placeholder="CEP"
             aria-label={t.common.ariaLabels.zipCode}
@@ -75,7 +81,7 @@ export function AddressForm({
           {isLoading && <p className="mt-1 text-xs text-blue-500">{t.common.searchingAddress}</p>}
         </div>
         <div className="md:col-span-2">
-          <AuthInput
+          <Input
             type="text"
             placeholder="Rua"
             aria-label={t.common.ariaLabels.street}
@@ -91,7 +97,7 @@ export function AddressForm({
       {showNumber && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <AuthInput
+            <Input
               type="text"
               placeholder="Número"
               aria-label={t.common.ariaLabels.number}
@@ -102,7 +108,7 @@ export function AddressForm({
           </div>
           {showComplement && (
             <div className="md:col-span-2">
-              <AuthInput
+              <Input
                 type="text"
                 placeholder="Complemento"
                 aria-label={t.common.ariaLabels.complement}
@@ -117,7 +123,7 @@ export function AddressForm({
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <AuthInput
+          <Input
             type="text"
             placeholder="Bairro"
             aria-label={t.common.ariaLabels.neighborhood}
@@ -129,7 +135,7 @@ export function AddressForm({
           />
         </div>
         <div>
-          <AuthInput
+          <Input
             type="text"
             placeholder="Cidade"
             aria-label={t.common.ariaLabels.city}

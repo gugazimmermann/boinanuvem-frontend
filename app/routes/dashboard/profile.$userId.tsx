@@ -3,6 +3,8 @@ import { UserProfile } from "~/components/dashboard/profile";
 import { useTranslation } from "~/i18n";
 import { ROUTES } from "~/routes.config";
 import { Button } from "~/components/ui";
+import { updateUser } from "~/services/users.service";
+import type { AddressFormData } from "~/components/site/utils/cep-utils";
 
 export function meta() {
   return [
@@ -18,6 +20,17 @@ export default function UserProfileView() {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
   const t = useTranslation();
+
+  const handleSave = async (
+    data: AddressFormData & { name: string; email: string; phone: string }
+  ) => {
+    if (!userId) return;
+    updateUser(userId, {
+      name: data.name,
+      email: data.email,
+      phone: data.phone,
+    });
+  };
 
   return (
     <div>
@@ -43,7 +56,7 @@ export default function UserProfileView() {
         </Button>
       </div>
 
-      <UserProfile userId={userId} readOnly={true} />
+      <UserProfile userId={userId} readOnly={true} onEdit={() => {}} onSave={handleSave} />
     </div>
   );
 }

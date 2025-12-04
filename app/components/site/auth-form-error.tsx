@@ -1,6 +1,6 @@
 interface AuthFormErrorProps {
-  error?: string;
-  className?: string;
+  readonly error?: string;
+  readonly className?: string;
 }
 
 export function AuthFormError({ error, className = "" }: AuthFormErrorProps) {

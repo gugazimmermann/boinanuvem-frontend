@@ -1,8 +1,8 @@
 import { useState, useCallback } from "react";
 import { AuthLayout } from "../components/site/auth-layout";
-import { AuthCard, AuthFooter, AuthInput, AuthButton, AddressForm } from "../components/site/ui";
+import { AuthCard, AuthFooter, AuthButton, AddressForm } from "../components/site/ui";
+import { Input, Alert } from "../components/ui";
 import { StepIndicator } from "../components/site/step-indicator";
-import { Alert } from "../components/ui";
 import { ROUTES } from "../routes.config";
 import { useCNPJLookup, type CNPJData, useCEPLookup, type CEPData } from "../components/site/hooks";
 import {
@@ -19,6 +19,7 @@ import {
 import { useTranslation } from "../i18n/use-translation";
 import { requireGuest, useRequireGuest } from "../utils/route-guard";
 import { createSEOMeta } from "../utils/seo-meta";
+import { isValidEmail } from "../utils/email-validation";
 import type { AddressFormData } from "~/types";
 
 export function meta() {
@@ -44,6 +45,7 @@ interface CompanyData extends AddressFormData {
   companyName: string;
   email: string;
   phone: string;
+  [key: string]: string | undefined;
 }
 
 interface UserData extends AddressFormData {
@@ -185,13 +187,14 @@ export default function Register() {
       "zipCode",
     ];
 
-    requiredFields.forEach((field) => {
+    for (const field of requiredFields) {
       let value = companyData[field];
+      value ??= "";
 
       if (field === "cnpj") {
         value = unmaskCNPJ(value);
       } else if (field === "phone") {
-        value = value.replace(/\D/g, "");
+        value = value.replaceAll(/\D/g, "");
       } else if (field === "zipCode") {
         value = unmaskCEP(value);
       }
@@ -210,7 +213,7 @@ export default function Register() {
         };
         errors[field] = t.profile.errors.required(fieldLabels[field]);
       }
-    });
+    }
 
     const unmaskedCNPJ = unmaskCNPJ(companyData.cnpj);
     if (unmaskedCNPJ && unmaskedCNPJ.length !== 14) {
@@ -222,7 +225,7 @@ export default function Register() {
       errors.zipCode = t.profile.errors.cepMustHave8Digits;
     }
 
-    if (companyData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(companyData.email)) {
+    if (companyData.email && !isValidEmail(companyData.email)) {
       errors.email = t.common.invalidEmail;
     }
 
@@ -371,7 +374,7 @@ export default function Register() {
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <AuthInput
+                  <Input
                     type="text"
                     placeholder="CNPJ"
                     aria-label={t.common.ariaLabels.cnpj}
@@ -383,7 +386,7 @@ export default function Register() {
                   />
                 </div>
                 <div>
-                  <AuthInput
+                  <Input
                     type="text"
                     placeholder="Razão Social"
                     aria-label={t.common.ariaLabels.companyName}
@@ -398,7 +401,7 @@ export default function Register() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <AuthInput
+                  <Input
                     type="email"
                     placeholder="Email"
                     aria-label={t.common.ariaLabels.email}
@@ -410,7 +413,7 @@ export default function Register() {
                   />
                 </div>
                 <div>
-                  <AuthInput
+                  <Input
                     type="tel"
                     placeholder="Telefone"
                     aria-label={t.common.ariaLabels.phone}
@@ -436,7 +439,7 @@ export default function Register() {
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <AuthInput
+                  <Input
                     type="text"
                     placeholder="Nome"
                     aria-label={t.common.ariaLabels.name}
@@ -446,7 +449,7 @@ export default function Register() {
                   />
                 </div>
                 <div>
-                  <AuthInput
+                  <Input
                     type="text"
                     placeholder="CPF"
                     aria-label={t.common.ariaLabels.cpf}
@@ -461,7 +464,7 @@ export default function Register() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <AuthInput
+                  <Input
                     type="email"
                     placeholder="Email"
                     aria-label={t.common.ariaLabels.email}
@@ -471,7 +474,7 @@ export default function Register() {
                   />
                 </div>
                 <div>
-                  <AuthInput
+                  <Input
                     type="tel"
                     placeholder="Telefone"
                     aria-label={t.common.ariaLabels.phone}
@@ -494,7 +497,7 @@ export default function Register() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <AuthInput
+                  <Input
                     type="password"
                     placeholder="Senha"
                     aria-label="Senha"
@@ -505,7 +508,7 @@ export default function Register() {
                   />
                 </div>
                 <div>
-                  <AuthInput
+                  <Input
                     type="password"
                     placeholder="Repita a Senha"
                     aria-label="Repita a Senha"
