@@ -2,14 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { redirect } from "react-router";
 import { createRouteGuard, requireMainUser, requireGuest } from "../route-guard";
 import { ROUTES } from "~/routes.config";
-import { getUserById } from "~/services/users.service";
 import { useAuth } from "~/contexts/auth-context";
 import { useNavigate } from "react-router";
-import type { TeamUser } from "~/types";
-
-vi.mock("~/services/users.service", () => ({
-  getUserById: vi.fn(),
-}));
 
 vi.mock("~/contexts/auth-context", () => ({
   useAuth: vi.fn(),
@@ -30,21 +24,22 @@ vi.mock("react-router", async () => {
 });
 
 describe("route-guard", () => {
-  const mockUser: TeamUser = {
+  const mockUser = {
     id: "user-1",
-    mainUser: true,
-    permissions: {},
-    status: "active",
-    createdAt: "2024-01-01",
-    companyId: "company-1",
-    name: "User One",
     email: "user1@example.com",
-    phone: "47999999999",
+    name: "User One",
+    mainUser: true,
+    companyId: "company-1",
+    permissions: {},
+    company: {},
   };
 
-  const mockNonMainUser: TeamUser = {
+  const mockNonMainUser = {
     id: "user-2",
+    email: "user2@example.com",
+    name: "User Two",
     mainUser: false,
+    companyId: "company-1",
     permissions: {
       registration: {
         animals: {
@@ -55,12 +50,7 @@ describe("route-guard", () => {
         },
       },
     },
-    status: "active",
-    createdAt: "2024-01-01",
-    companyId: "company-1",
-    name: "User Two",
-    email: "user2@example.com",
-    phone: "47999999999",
+    company: {},
   };
 
   const mockLocalStorage = {
@@ -103,7 +93,6 @@ describe("route-guard", () => {
 
     it("should redirect to login if no user", () => {
       mockLocalStorage.getItem.mockReturnValue(null);
-      vi.mocked(getUserById).mockReturnValue(null);
 
       const guard = createRouteGuard();
       expect(() => guard()).toThrow();
@@ -111,16 +100,20 @@ describe("route-guard", () => {
     });
 
     it("should allow access for main user", () => {
-      mockLocalStorage.getItem.mockReturnValue("user-1");
-      vi.mocked(getUserById).mockReturnValue(mockUser);
+      mockLocalStorage.getItem.mockImplementation((key: string) => {
+        if (key === "user_data") return JSON.stringify(mockUser);
+        return null;
+      });
 
       const guard = createRouteGuard(ROUTES.ANIMALS);
       expect(guard()).toBe(null);
     });
 
     it("should redirect non-main user from team routes", () => {
-      mockLocalStorage.getItem.mockReturnValue("user-2");
-      vi.mocked(getUserById).mockReturnValue(mockNonMainUser);
+      mockLocalStorage.getItem.mockImplementation((key: string) => {
+        if (key === "user_data") return JSON.stringify(mockNonMainUser);
+        return null;
+      });
 
       const guard = createRouteGuard(ROUTES.TEAM);
       expect(() => guard()).toThrow();
@@ -128,16 +121,20 @@ describe("route-guard", () => {
     });
 
     it("should check permissions for non-main user", () => {
-      mockLocalStorage.getItem.mockReturnValue("user-2");
-      vi.mocked(getUserById).mockReturnValue(mockNonMainUser);
+      mockLocalStorage.getItem.mockImplementation((key: string) => {
+        if (key === "user_data") return JSON.stringify(mockNonMainUser);
+        return null;
+      });
 
       const guard = createRouteGuard(ROUTES.ANIMALS, "view");
       expect(guard()).toBe(null); // Has view permission
     });
 
     it("should redirect if user lacks required permission", () => {
-      mockLocalStorage.getItem.mockReturnValue("user-2");
-      vi.mocked(getUserById).mockReturnValue(mockNonMainUser);
+      mockLocalStorage.getItem.mockImplementation((key: string) => {
+        if (key === "user_data") return JSON.stringify(mockNonMainUser);
+        return null;
+      });
 
       const guard = createRouteGuard(ROUTES.ANIMALS, "add");
       expect(() => guard()).toThrow();
@@ -145,8 +142,10 @@ describe("route-guard", () => {
     });
 
     it("should use custom redirectTo", () => {
-      mockLocalStorage.getItem.mockReturnValue("user-2");
-      vi.mocked(getUserById).mockReturnValue(mockNonMainUser);
+      mockLocalStorage.getItem.mockImplementation((key: string) => {
+        if (key === "user_data") return JSON.stringify(mockNonMainUser);
+        return null;
+      });
 
       const guard = createRouteGuard(ROUTES.ANIMALS, "add", "/custom");
       expect(() => guard()).toThrow();
@@ -154,8 +153,10 @@ describe("route-guard", () => {
     });
 
     it("should extract route from request URL if not provided", () => {
-      mockLocalStorage.getItem.mockReturnValue("user-1");
-      vi.mocked(getUserById).mockReturnValue(mockUser);
+      mockLocalStorage.getItem.mockImplementation((key: string) => {
+        if (key === "user_data") return JSON.stringify(mockUser);
+        return null;
+      });
 
       const guard = createRouteGuard();
       const request = new Request("http://localhost/dashboard/animais");
@@ -163,8 +164,10 @@ describe("route-guard", () => {
     });
 
     it("should use window.location if request URL fails", () => {
-      mockLocalStorage.getItem.mockReturnValue("user-1");
-      vi.mocked(getUserById).mockReturnValue(mockUser);
+      mockLocalStorage.getItem.mockImplementation((key: string) => {
+        if (key === "user_data") return JSON.stringify(mockUser);
+        return null;
+      });
 
       const guard = createRouteGuard();
       // Create a request with an invalid URL that will cause URL parsing to fail
@@ -175,8 +178,10 @@ describe("route-guard", () => {
     });
 
     it("should return null if route has no permission mapping", () => {
-      mockLocalStorage.getItem.mockReturnValue("user-1");
-      vi.mocked(getUserById).mockReturnValue(mockUser);
+      mockLocalStorage.getItem.mockImplementation((key: string) => {
+        if (key === "user_data") return JSON.stringify(mockUser);
+        return null;
+      });
 
       const guard = createRouteGuard("/unknown/route");
       expect(guard()).toBe(null);
@@ -197,7 +202,6 @@ describe("route-guard", () => {
 
     it("should redirect to login if no user", () => {
       mockLocalStorage.getItem.mockReturnValue(null);
-      vi.mocked(getUserById).mockReturnValue(null);
 
       const guard = requireMainUser();
       expect(() => guard()).toThrow();
@@ -205,16 +209,20 @@ describe("route-guard", () => {
     });
 
     it("should allow access for main user", () => {
-      mockLocalStorage.getItem.mockReturnValue("user-1");
-      vi.mocked(getUserById).mockReturnValue(mockUser);
+      mockLocalStorage.getItem.mockImplementation((key: string) => {
+        if (key === "user_data") return JSON.stringify(mockUser);
+        return null;
+      });
 
       const guard = requireMainUser();
       expect(guard()).toBe(null);
     });
 
     it("should redirect non-main user", () => {
-      mockLocalStorage.getItem.mockReturnValue("user-2");
-      vi.mocked(getUserById).mockReturnValue(mockNonMainUser);
+      mockLocalStorage.getItem.mockImplementation((key: string) => {
+        if (key === "user_data") return JSON.stringify(mockNonMainUser);
+        return null;
+      });
 
       const guard = requireMainUser();
       expect(() => guard()).toThrow();
@@ -222,8 +230,10 @@ describe("route-guard", () => {
     });
 
     it("should use custom redirectTo", () => {
-      mockLocalStorage.getItem.mockReturnValue("user-2");
-      vi.mocked(getUserById).mockReturnValue(mockNonMainUser);
+      mockLocalStorage.getItem.mockImplementation((key: string) => {
+        if (key === "user_data") return JSON.stringify(mockNonMainUser);
+        return null;
+      });
 
       const guard = requireMainUser("/custom");
       expect(() => guard()).toThrow();
@@ -232,14 +242,17 @@ describe("route-guard", () => {
   });
 
   describe("requireGuest", () => {
-    it("should return null if no user in localStorage", async () => {
+    it("should return null if no access token in localStorage", async () => {
       mockLocalStorage.getItem.mockReturnValue(null);
       const result = await requireGuest();
       expect(result).toBe(null);
     });
 
-    it("should redirect to dashboard if user exists", async () => {
-      mockLocalStorage.getItem.mockReturnValue("user-1");
+    it("should redirect to dashboard if access token exists", async () => {
+      mockLocalStorage.getItem.mockImplementation((key: string) => {
+        if (key === "access_token") return "access-token-123";
+        return null;
+      });
       await expect(requireGuest()).rejects.toThrow();
       expect(redirect).toHaveBeenCalledWith(ROUTES.DASHBOARD);
     });

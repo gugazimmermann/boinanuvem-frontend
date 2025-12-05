@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { loader, meta, default as Payments } from "../../dashboard/payments";
@@ -18,10 +18,12 @@ vi.mock("~/utils/route-guard", () => ({
   requireMainUser: vi.fn(() => () => Promise.resolve(null)),
 }));
 
+const mockGetPaymentsByCompanyId = vi.fn(async (companyId: string) => {
+  return mockPayments.filter((p) => p.companyId === companyId);
+});
+
 vi.mock("~/services/payments.service", () => ({
-  getPaymentsByCompanyId: vi.fn((companyId: string) => {
-    return mockPayments.filter((p) => p.companyId === companyId);
-  }),
+  getPaymentsByCompanyId: (companyId: string) => mockGetPaymentsByCompanyId(companyId),
 }));
 
 vi.mock("~/mocks/companies", () => ({
@@ -244,6 +246,23 @@ vi.mock("~/contexts/language-context", () => ({
   useLanguage: vi.fn(() => ({ language: "pt" })),
 }));
 
+vi.mock("~/contexts/auth-context", () => ({
+  useAuth: vi.fn(() => ({
+    currentUser: {
+      id: "user-1",
+      companyId: "550e8400-e29b-41d4-a716-446655440000",
+    },
+    isAuthenticated: true,
+  })),
+}));
+
+vi.mock("~/hooks/use-company-trial", () => ({
+  useCompanyTrial: vi.fn(() => ({
+    isOnTrial: false,
+    trialDaysRemaining: 0,
+  })),
+}));
+
 vi.mock("~/utils/formatting", () => ({
   formatCurrency: vi.fn((value: number, language: string) => {
     return new Intl.NumberFormat(language === "pt" ? "pt-BR" : "en-US", {
@@ -306,6 +325,7 @@ const TestWrapper = ({ children }: { children: React.ReactNode }) => (
 describe("payments", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetPaymentsByCompanyId.mockResolvedValue(mockPayments);
   });
 
   afterEach(() => {
@@ -334,77 +354,86 @@ describe("payments", () => {
   });
 
   describe("Payments component", () => {
-    it("should render payments table with correct title", () => {
+    it("should render payments table with correct title", async () => {
       render(
         <TestWrapper>
           <Payments />
         </TestWrapper>
       );
 
-      expect(screen.getByText("Pagamentos")).toBeInTheDocument();
+      await waitFor(
+        () => {
+          expect(screen.getByText("Pagamentos")).toBeInTheDocument();
+        },
+        { timeout: 3000 }
+      );
     });
 
-    it("should display payments badge with count", () => {
+    it("should display payments badge with count", async () => {
       render(
         <TestWrapper>
           <Payments />
         </TestWrapper>
       );
 
-      const badge = screen.getByTestId("badge");
-      expect(badge).toBeInTheDocument();
+      await waitFor(
+        () => {
+          expect(screen.getByTestId("badge")).toBeInTheDocument();
+        },
+        { timeout: 3000 }
+      );
     });
 
-    it("should render search input", () => {
+    it("should render search input", async () => {
       render(
         <TestWrapper>
           <Payments />
         </TestWrapper>
       );
 
-      const searchInput = screen.getByTestId("search-input");
-      expect(searchInput).toBeInTheDocument();
-      expect(searchInput).toHaveAttribute("placeholder", "Buscar pagamentos...");
+      await waitFor(
+        () => {
+          const searchInput = screen.getByTestId("search-input");
+          expect(searchInput).toBeInTheDocument();
+          expect(searchInput).toHaveAttribute("placeholder", "Buscar pagamentos...");
+        },
+        { timeout: 3000 }
+      );
     });
 
-    it("should render filter buttons", () => {
+    it("should render filter buttons", async () => {
       render(
         <TestWrapper>
           <Payments />
         </TestWrapper>
       );
 
-      const filters = screen.getByTestId("filters");
-      expect(filters).toBeInTheDocument();
-      expect(screen.getByTestId("filter-all")).toBeInTheDocument();
-      expect(screen.getByTestId("filter-paid")).toBeInTheDocument();
-      expect(screen.getByTestId("filter-pending")).toBeInTheDocument();
-      expect(screen.getByTestId("filter-failed")).toBeInTheDocument();
+      await waitFor(
+        () => {
+          const filters = screen.getByTestId("filters");
+          expect(filters).toBeInTheDocument();
+          expect(screen.getByTestId("filter-all")).toBeInTheDocument();
+          expect(screen.getByTestId("filter-paid")).toBeInTheDocument();
+          expect(screen.getByTestId("filter-pending")).toBeInTheDocument();
+          expect(screen.getByTestId("filter-failed")).toBeInTheDocument();
+        },
+        { timeout: 3000 }
+      );
     });
 
     it("should handle search input change", async () => {
       const user = userEvent.setup();
-      const { useListPage } = await import("~/hooks/use-list-page");
-      const mockSetSearchValue = vi.fn();
-
-      vi.mocked(useListPage).mockReturnValue({
-        searchValue: "",
-        setSearchValue: mockSetSearchValue,
-        activeFilter: "all",
-        setActiveFilter: vi.fn(),
-        sortState: { column: "month", direction: "desc" },
-        handleSort: vi.fn(),
-        currentPage: 1,
-        setCurrentPage: vi.fn(),
-        filteredData: mockPayments,
-        paginatedData: mockPayments.slice(0, 10),
-        totalPages: Math.ceil(mockPayments.length / 10),
-      });
-
       render(
         <TestWrapper>
           <Payments />
         </TestWrapper>
+      );
+
+      await waitFor(
+        () => {
+          expect(screen.getByTestId("search-input")).toBeInTheDocument();
+        },
+        { timeout: 3000 }
       );
 
       const searchInput = screen.getByTestId("search-input");
@@ -416,27 +445,17 @@ describe("payments", () => {
 
     it("should handle filter button click", async () => {
       const user = userEvent.setup();
-      const { useListPage } = await import("~/hooks/use-list-page");
-      const mockSetActiveFilter = vi.fn();
-
-      vi.mocked(useListPage).mockReturnValue({
-        searchValue: "",
-        setSearchValue: vi.fn(),
-        activeFilter: "all",
-        setActiveFilter: mockSetActiveFilter,
-        sortState: { column: "month", direction: "desc" },
-        handleSort: vi.fn(),
-        currentPage: 1,
-        setCurrentPage: vi.fn(),
-        filteredData: mockPayments,
-        paginatedData: mockPayments.slice(0, 10),
-        totalPages: Math.ceil(mockPayments.length / 10),
-      });
-
       render(
         <TestWrapper>
           <Payments />
         </TestWrapper>
+      );
+
+      await waitFor(
+        () => {
+          expect(screen.getByTestId("filter-paid")).toBeInTheDocument();
+        },
+        { timeout: 3000 }
       );
 
       const paidFilter = screen.getByTestId("filter-paid");
@@ -445,67 +464,70 @@ describe("payments", () => {
       expect(paidFilter).toBeInTheDocument();
     });
 
-    it("should render payment rows with correct data", () => {
+    it("should render payment rows with correct data", async () => {
       render(
         <TestWrapper>
           <Payments />
         </TestWrapper>
       );
 
-      const tableData = screen.getByTestId("table-data");
-      expect(tableData).toBeInTheDocument();
+      await waitFor(
+        () => {
+          expect(screen.getByTestId("table-data")).toBeInTheDocument();
+        },
+        { timeout: 3000 }
+      );
     });
 
-    it("should format month correctly", () => {
+    it("should format month correctly", async () => {
       render(
         <TestWrapper>
           <Payments />
         </TestWrapper>
       );
 
-      // The formatMonth function is tested indirectly through the table rendering
-      expect(screen.getByTestId("table")).toBeInTheDocument();
+      await waitFor(
+        () => {
+          expect(screen.getByTestId("table")).toBeInTheDocument();
+        },
+        { timeout: 3000 }
+      );
     });
 
-    it("should display status badges with correct variants", () => {
+    it("should display status badges with correct variants", async () => {
       render(
         <TestWrapper>
           <Payments />
         </TestWrapper>
       );
 
-      const statusBadges = screen.getAllByTestId("status-badge");
-      expect(statusBadges.length).toBeGreaterThan(0);
+      await waitFor(
+        () => {
+          const statusBadges = screen.getAllByTestId("status-badge");
+          expect(statusBadges.length).toBeGreaterThan(0);
+        },
+        { timeout: 3000 }
+      );
     });
 
-    it("should render download invoice link", () => {
+    it("should render download invoice link", async () => {
       render(
         <TestWrapper>
           <Payments />
         </TestWrapper>
       );
 
-      // The download link should be rendered in the actions column
-      const table = screen.getByTestId("table");
-      expect(table).toBeInTheDocument();
+      await waitFor(
+        () => {
+          const table = screen.getByTestId("table");
+          expect(table).toBeInTheDocument();
+        },
+        { timeout: 3000 }
+      );
     });
 
     it("should handle empty state when no payments", async () => {
-      const { useListPage } = await import("~/hooks/use-list-page");
-
-      vi.mocked(useListPage).mockReturnValue({
-        searchValue: "",
-        setSearchValue: vi.fn(),
-        activeFilter: "all",
-        setActiveFilter: vi.fn(),
-        sortState: { column: "month", direction: "desc" },
-        handleSort: vi.fn(),
-        currentPage: 1,
-        setCurrentPage: vi.fn(),
-        filteredData: [],
-        paginatedData: [],
-        totalPages: 1,
-      });
+      mockGetPaymentsByCompanyId.mockResolvedValueOnce([]);
 
       render(
         <TestWrapper>
@@ -513,27 +535,18 @@ describe("payments", () => {
         </TestWrapper>
       );
 
-      const emptyState = screen.getByTestId("empty-state");
-      expect(emptyState).toBeInTheDocument();
-      expect(screen.getByText("Nenhum pagamento encontrado")).toBeInTheDocument();
+      await waitFor(
+        () => {
+          const emptyState = screen.getByTestId("empty-state");
+          expect(emptyState).toBeInTheDocument();
+          expect(screen.getByText("Nenhum pagamento encontrado")).toBeInTheDocument();
+        },
+        { timeout: 3000 }
+      );
     });
 
     it("should handle empty state with search value", async () => {
-      const { useListPage } = await import("~/hooks/use-list-page");
-
-      vi.mocked(useListPage).mockReturnValue({
-        searchValue: "test search",
-        setSearchValue: vi.fn(),
-        activeFilter: "all",
-        setActiveFilter: vi.fn(),
-        sortState: { column: "month", direction: "desc" },
-        handleSort: vi.fn(),
-        currentPage: 1,
-        setCurrentPage: vi.fn(),
-        filteredData: [],
-        paginatedData: [],
-        totalPages: 1,
-      });
+      mockGetPaymentsByCompanyId.mockResolvedValueOnce([]);
 
       render(
         <TestWrapper>
@@ -541,35 +554,30 @@ describe("payments", () => {
         </TestWrapper>
       );
 
-      const emptyState = screen.getByTestId("empty-state");
-      expect(emptyState).toBeInTheDocument();
+      await waitFor(
+        () => {
+          const emptyState = screen.getByTestId("empty-state");
+          expect(emptyState).toBeInTheDocument();
+        },
+        { timeout: 3000 }
+      );
     });
 
     it("should handle clear search action", async () => {
       const user = userEvent.setup();
-      const { useListPage } = await import("~/hooks/use-list-page");
-      const mockSetSearchValue = vi.fn();
-      const mockSetActiveFilter = vi.fn();
-      const mockSetCurrentPage = vi.fn();
-
-      vi.mocked(useListPage).mockReturnValue({
-        searchValue: "test",
-        setSearchValue: mockSetSearchValue,
-        activeFilter: "all",
-        setActiveFilter: mockSetActiveFilter,
-        sortState: { column: "month", direction: "desc" },
-        handleSort: vi.fn(),
-        currentPage: 1,
-        setCurrentPage: mockSetCurrentPage,
-        filteredData: [],
-        paginatedData: [],
-        totalPages: 1,
-      });
+      mockGetPaymentsByCompanyId.mockResolvedValueOnce([]);
 
       render(
         <TestWrapper>
           <Payments />
         </TestWrapper>
+      );
+
+      await waitFor(
+        () => {
+          expect(screen.getByText("Limpar busca")).toBeInTheDocument();
+        },
+        { timeout: 3000 }
       );
 
       const clearButton = screen.getByText("Limpar busca");
@@ -579,11 +587,23 @@ describe("payments", () => {
       expect(clearButton).toBeInTheDocument();
     });
 
-    it("should get payment status variant correctly", () => {
+    it("should get payment status variant correctly", async () => {
       render(
         <TestWrapper>
           <Payments />
         </TestWrapper>
+      );
+
+      // Wait for component to finish loading and state updates to complete
+      await waitFor(
+        () => {
+          const tableData = screen.queryByTestId("table-data");
+          const loadingText = screen.queryByText(/loading/i);
+          const errorText = screen.queryByText(/error/i);
+          // Component should finish loading (either show data, loading, or error)
+          expect(tableData || loadingText || errorText).toBeTruthy();
+        },
+        { timeout: 3000 }
       );
 
       // Status variants are tested through StatusBadge rendering
@@ -611,53 +631,49 @@ describe("payments", () => {
       }
     });
 
-    it("should format currency correctly", () => {
+    it("should format currency correctly", async () => {
       render(
         <TestWrapper>
           <Payments />
         </TestWrapper>
       );
 
-      // Currency formatting is tested through table rendering
-      expect(screen.getByTestId("table")).toBeInTheDocument();
+      await waitFor(
+        () => {
+          expect(screen.getByTestId("table")).toBeInTheDocument();
+        },
+        { timeout: 3000 }
+      );
     });
 
-    it("should handle pagination", () => {
+    it("should handle pagination", async () => {
       render(
         <TestWrapper>
           <Payments />
         </TestWrapper>
       );
 
-      const pagination = screen.getByTestId("pagination");
-      expect(pagination).toBeInTheDocument();
+      await waitFor(
+        () => {
+          expect(screen.getByTestId("pagination")).toBeInTheDocument();
+        },
+        { timeout: 3000 }
+      );
     });
 
     it("should handle sorting", async () => {
-      const { useListPage } = await import("~/hooks/use-list-page");
-      const mockHandleSort = vi.fn();
-
-      vi.mocked(useListPage).mockReturnValue({
-        searchValue: "",
-        setSearchValue: vi.fn(),
-        activeFilter: "all",
-        setActiveFilter: vi.fn(),
-        sortState: { column: "month", direction: "desc" },
-        handleSort: mockHandleSort,
-        currentPage: 1,
-        setCurrentPage: vi.fn(),
-        filteredData: mockPayments,
-        paginatedData: mockPayments.slice(0, 10),
-        totalPages: Math.ceil(mockPayments.length / 10),
-      });
-
       render(
         <TestWrapper>
           <Payments />
         </TestWrapper>
       );
 
-      expect(screen.getByTestId("table")).toBeInTheDocument();
+      await waitFor(
+        () => {
+          expect(screen.getByTestId("table")).toBeInTheDocument();
+        },
+        { timeout: 3000 }
+      );
     });
   });
 });

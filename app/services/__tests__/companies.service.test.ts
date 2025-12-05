@@ -1,10 +1,34 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { getCompanyById, getCompanyByCNPJ, updateCompany } from "../companies.service";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import {
+  getCompanyById,
+  getCompanyByCNPJ,
+  updateCompany,
+  getCompany,
+  type EnhancedCompany,
+} from "../companies.service";
+import { apiClient, ApiError } from "../api-client";
 import { mockCompanies } from "~/mocks/companies";
-import type { Company } from "~/types";
+
+// Mock the API client
+vi.mock("../api-client", () => ({
+  apiClient: {
+    get: vi.fn(),
+    put: vi.fn(),
+  },
+  ApiError: class extends Error {
+    constructor(
+      message: string,
+      public status: number
+    ) {
+      super(message);
+      this.name = "ApiError";
+    }
+  },
+}));
 
 describe("companies.service", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     mockCompanies.length = 0;
     mockCompanies.push(
       {
@@ -83,57 +107,136 @@ describe("companies.service", () => {
     });
   });
 
+  describe("getCompany", () => {
+    it("should return company when ID exists", async () => {
+      const mockCompany: EnhancedCompany = {
+        id: "company-1",
+        cnpj: "12.345.678/0001-90",
+        companyName: "Company 1",
+        email: "company1@test.com",
+        phone: "1234567890",
+        street: "Street 1",
+        number: "123",
+        complement: "",
+        neighborhood: "Neighborhood 1",
+        city: "City 1",
+        state: "State 1",
+        zipCode: "12345-678",
+        status: "active",
+        createdAt: "2025-01-01",
+        updatedAt: "2025-01-01",
+        trial: {
+          isOnTrial: false,
+          isTrialExpired: false,
+          trialDaysRemaining: 0,
+          trialStartDate: null,
+          trialEndDate: null,
+          trialStatus: null,
+        },
+        currentPlan: null,
+        currentSubscription: null,
+      };
+
+      vi.mocked(apiClient.get).mockResolvedValue(mockCompany);
+
+      const result = await getCompany("company-1");
+
+      expect(result).toEqual(mockCompany);
+      expect(apiClient.get).toHaveBeenCalledWith("/companies/company-1");
+    });
+
+    it("should throw error on 404", async () => {
+      vi.mocked(apiClient.get).mockRejectedValue(new ApiError("Not found", 404));
+
+      await expect(getCompany("nonexistent")).rejects.toThrow("Company not found");
+    });
+
+    it("should throw error on 403", async () => {
+      vi.mocked(apiClient.get).mockRejectedValue(new ApiError("Forbidden", 403));
+
+      await expect(getCompany("company-1")).rejects.toThrow("Access denied to this company");
+    });
+
+    it("should throw original error for other status codes", async () => {
+      const error = new ApiError("Server error", 500);
+      vi.mocked(apiClient.get).mockRejectedValue(error);
+
+      await expect(getCompany("company-1")).rejects.toThrow(error);
+    });
+  });
+
   describe("updateCompany", () => {
-    it("should update company when CNPJ exists (masked)", () => {
-      const updateData: Partial<Company> = {
+    it("should update company successfully", async () => {
+      const mockUpdatedCompany: EnhancedCompany = {
+        id: "company-1",
+        cnpj: "12.345.678/0001-90",
+        companyName: "Updated Company 1",
+        email: "updated@test.com",
+        phone: "1234567890",
+        street: "Street 1",
+        number: "123",
+        complement: "",
+        neighborhood: "Neighborhood 1",
+        city: "City 1",
+        state: "State 1",
+        zipCode: "12345-678",
+        status: "active",
+        createdAt: "2025-01-01",
+        updatedAt: "2025-01-02",
+        trial: {
+          isOnTrial: false,
+          isTrialExpired: false,
+          trialDaysRemaining: 0,
+          trialStartDate: null,
+          trialEndDate: null,
+          trialStatus: null,
+        },
+        currentPlan: null,
+        currentSubscription: null,
+      };
+
+      const updateData = {
         companyName: "Updated Company 1",
         email: "updated@test.com",
       };
 
-      updateCompany("12.345.678/0001-90", updateData);
+      vi.mocked(apiClient.put).mockResolvedValue(mockUpdatedCompany);
 
-      const updated = mockCompanies.find((c) => c.id === "company-1");
-      expect(updated?.companyName).toBe("Updated Company 1");
-      expect(updated?.email).toBe("updated@test.com");
+      const result = await updateCompany("company-1", updateData);
+
+      expect(result).toEqual(mockUpdatedCompany);
+      expect(apiClient.put).toHaveBeenCalledWith("/companies/company-1", updateData);
     });
 
-    it("should update company when CNPJ exists (unmasked)", () => {
-      const updateData: Partial<Company> = {
-        companyName: "Updated Company 1",
-      };
+    it("should throw error on 404", async () => {
+      vi.mocked(apiClient.put).mockRejectedValue(new ApiError("Not found", 404));
 
-      updateCompany("12345678000190", updateData);
-
-      const updated = mockCompanies.find((c) => c.id === "company-1");
-      expect(updated?.companyName).toBe("Updated Company 1");
+      await expect(updateCompany("nonexistent", { companyName: "Test" })).rejects.toThrow(
+        "Company not found"
+      );
     });
 
-    it("should not update when CNPJ does not exist", () => {
-      const original = mockCompanies.find((c) => c.id === "company-1");
-      const originalName = original?.companyName;
+    it("should throw error on 403", async () => {
+      vi.mocked(apiClient.put).mockRejectedValue(new ApiError("Forbidden", 403));
 
-      const updateData: Partial<Company> = {
-        companyName: "Updated Company",
-      };
-
-      updateCompany("11.111.111/0001-11", updateData);
-
-      const unchanged = mockCompanies.find((c) => c.id === "company-1");
-      expect(unchanged?.companyName).toBe(originalName);
+      await expect(updateCompany("company-1", { companyName: "Test" })).rejects.toThrow(
+        "Access denied. Only main users can update company information"
+      );
     });
 
-    it("should preserve existing fields when updating", () => {
-      const original = mockCompanies.find((c) => c.id === "company-1");
-      const originalCnpj = original?.cnpj;
+    it("should throw error on 409", async () => {
+      vi.mocked(apiClient.put).mockRejectedValue(new ApiError("Conflict", 409));
 
-      const updateData: Partial<Company> = {
-        companyName: "Updated Company 1",
-      };
+      await expect(updateCompany("company-1", { email: "existing@test.com" })).rejects.toThrow(
+        "Company with this email already exists"
+      );
+    });
 
-      updateCompany("12.345.678/0001-90", updateData);
+    it("should throw original error for other status codes", async () => {
+      const error = new ApiError("Server error", 500);
+      vi.mocked(apiClient.put).mockRejectedValue(error);
 
-      const updated = mockCompanies.find((c) => c.id === "company-1");
-      expect(updated?.cnpj).toBe(originalCnpj);
+      await expect(updateCompany("company-1", { companyName: "Test" })).rejects.toThrow(error);
     });
   });
 });

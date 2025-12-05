@@ -31,7 +31,7 @@ export async function loader({
     throw new Response("Company not found", { status: 404 });
   }
 
-  const payments = getPaymentsByCompanyId(company.id);
+  const payments = await getPaymentsByCompanyId(company.id);
   const payment = payments.find((p: Payment) => p.invoiceId === invoiceId);
 
   if (!payment) {
@@ -41,7 +41,8 @@ export async function loader({
   const monthDate = new Date(payment.month + "-01");
 
   // Get status label
-  const statusLabel = t.payments.status[payment.status] || payment.status;
+  const statusLabel =
+    (t.payments.status as Record<string, string>)[payment.status] || payment.status;
 
   // Date format based on language
   const dateFormat = language === "en" ? "MMMM dd, yyyy" : "dd 'de' MMMM 'de' yyyy";

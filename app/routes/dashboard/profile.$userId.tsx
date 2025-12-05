@@ -3,8 +3,9 @@ import { UserProfile } from "~/components/dashboard/profile";
 import { useTranslation } from "~/i18n";
 import { ROUTES } from "~/routes.config";
 import { Button } from "~/components/ui";
-import { updateUser } from "~/services/users.service";
+import { updateTeamMember } from "~/services/users.service";
 import type { AddressFormData } from "~/components/site/utils/cep-utils";
+import { unmaskCPF, unmaskPhone, unmaskCEP } from "~/components/site/utils/masks";
 
 export function meta() {
   return [
@@ -22,14 +23,27 @@ export default function UserProfileView() {
   const t = useTranslation();
 
   const handleSave = async (
-    data: AddressFormData & { name: string; email: string; phone: string }
+    data: AddressFormData & { name: string; email: string; phone: string; cpf?: string }
   ) => {
     if (!userId) return;
-    updateUser(userId, {
-      name: data.name,
-      email: data.email,
-      phone: data.phone,
-    });
+    try {
+      await updateTeamMember(userId, {
+        name: data.name,
+        email: data.email,
+        phone: data.phone ? unmaskPhone(data.phone) : "",
+        cpf: data.cpf ? unmaskCPF(data.cpf) : undefined,
+        street: data.street,
+        number: data.number,
+        complement: data.complement,
+        neighborhood: data.neighborhood,
+        city: data.city,
+        state: data.state,
+        zipCode: data.zipCode ? unmaskCEP(data.zipCode) : undefined,
+      });
+    } catch (error) {
+      console.error("Failed to update user:", error);
+      throw error;
+    }
   };
 
   return (

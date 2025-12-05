@@ -33,6 +33,34 @@ vi.mock("~/hooks/use-alert", () => ({
   })),
 }));
 
+vi.mock("~/services/users.service", () => ({
+  getTeamMembers: vi.fn(async () => [
+    {
+      id: "user-2",
+      name: "Test User",
+      email: "test@example.com",
+      cpf: "12345678900",
+      phone: "11987654321",
+      street: "Test Street",
+      number: "123",
+      complement: "",
+      neighborhood: "Test Neighborhood",
+      city: "Test City",
+      state: "SP",
+      zipCode: "01234567",
+      status: "active",
+      mainUser: false,
+      companyId: "company-1",
+      permissions: {} as never,
+      createdAt: "2024-01-01T00:00:00Z",
+      updatedAt: "2024-01-01T00:00:00Z",
+      emailVerifiedAt: null,
+      company: null,
+    },
+  ]),
+  deleteTeamMember: vi.fn(async () => {}),
+}));
+
 vi.mock("~/components/ui", () => ({
   Table: vi.fn(
     ({
@@ -190,6 +218,12 @@ vi.mock("~/i18n", () => ({
         added: "Usuário adicionado com sucesso",
         deleted: "Usuário excluído com sucesso",
       },
+      errors: {
+        deleteFailed: "Erro ao excluir usuário",
+      },
+    },
+    common: {
+      loading: "Carregando...",
     },
   })),
 }));
@@ -237,24 +271,28 @@ describe("team", () => {
   });
 
   describe("Team component", () => {
-    it("should render team page with correct title", () => {
+    it("should render team page with correct title", async () => {
       render(
         <TestWrapper>
           <Team />
         </TestWrapper>
       );
 
-      expect(screen.getByText("Equipe")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText("Equipe")).toBeInTheDocument();
+      });
     });
 
-    it("should render team page with correct description", () => {
+    it("should render team page with correct description", async () => {
       render(
         <TestWrapper>
           <Team />
         </TestWrapper>
       );
 
-      expect(screen.getByText("Gerenciamento de usuários da empresa")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText("Gerenciamento de usuários da empresa")).toBeInTheDocument();
+      });
     });
 
     it("should navigate to profile when currentUser is not mainUser", async () => {
@@ -280,15 +318,17 @@ describe("team", () => {
       });
     });
 
-    it("should render add user button", () => {
+    it("should render add user button", async () => {
       render(
         <TestWrapper>
           <Team />
         </TestWrapper>
       );
 
-      const addButton = screen.getByTestId("header-action-0");
-      expect(addButton).toBeInTheDocument();
+      await waitFor(() => {
+        const addButton = screen.getByTestId("header-action-0");
+        expect(addButton).toBeInTheDocument();
+      });
     });
 
     it("should navigate to new team route when add button is clicked", async () => {
@@ -301,6 +341,10 @@ describe("team", () => {
           <Team />
         </TestWrapper>
       );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("header-action-0")).toBeInTheDocument();
+      });
 
       const addButton = screen.getByTestId("header-action-0");
       await userEvent.click(addButton);
@@ -315,6 +359,10 @@ describe("team", () => {
         </TestWrapper>
       );
 
+      await waitFor(() => {
+        expect(screen.getByTestId("team-search")).toBeInTheDocument();
+      });
+
       const searchInput = screen.getByTestId("team-search");
       await userEvent.type(searchInput, "test");
 
@@ -328,6 +376,10 @@ describe("team", () => {
         </TestWrapper>
       );
 
+      await waitFor(() => {
+        expect(screen.getByTestId("team-pagination")).toBeInTheDocument();
+      });
+
       const pagination = screen.getByTestId("team-pagination");
       expect(pagination).toBeInTheDocument();
 
@@ -338,16 +390,20 @@ describe("team", () => {
     });
 
     it("should render empty state when no users", async () => {
+      const { getTeamMembers } = await import("~/services/users.service");
+      vi.mocked(getTeamMembers).mockResolvedValueOnce([]);
+
       render(
         <TestWrapper>
           <Team />
         </TestWrapper>
       );
 
-      // The component filters out main users, so if all users are main users, it will show empty state
-      const emptyState = screen.queryByTestId("team-empty-state");
-      // This might or might not be visible depending on mockUsers
-      expect(emptyState || screen.getByTestId("team-table")).toBeInTheDocument();
+      await waitFor(() => {
+        const emptyState = screen.queryByTestId("team-empty-state");
+        const table = screen.queryByTestId("team-table");
+        expect(emptyState || table).toBeInTheDocument();
+      });
     });
 
     it("should handle user deletion", async () => {
@@ -391,26 +447,28 @@ describe("team", () => {
       expect(screen.getByTestId("team-table")).toBeInTheDocument();
     });
 
-    it("should format dates correctly", () => {
+    it("should format dates correctly", async () => {
       render(
         <TestWrapper>
           <Team />
         </TestWrapper>
       );
 
-      // The formatDate function is tested indirectly through the table rendering
-      expect(screen.getByTestId("team-table")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByTestId("team-table")).toBeInTheDocument();
+      });
     });
 
-    it("should filter out main users", () => {
+    it("should filter out main users", async () => {
       render(
         <TestWrapper>
           <Team />
         </TestWrapper>
       );
 
-      // The component filters out main users in the filteredUsers logic
-      expect(screen.getByTestId("team-table")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByTestId("team-table")).toBeInTheDocument();
+      });
     });
 
     it("should handle getLocale for different languages", async () => {
@@ -423,7 +481,9 @@ describe("team", () => {
           <Team />
         </TestWrapper>
       );
-      expect(screen.getByTestId("team-table")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByTestId("team-table")).toBeInTheDocument();
+      });
       unmount1();
 
       // Test Spanish
@@ -433,7 +493,9 @@ describe("team", () => {
           <Team />
         </TestWrapper>
       );
-      expect(screen.getByTestId("team-table")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByTestId("team-table")).toBeInTheDocument();
+      });
       unmount2();
 
       // Test Portuguese (default)
@@ -443,18 +505,21 @@ describe("team", () => {
           <Team />
         </TestWrapper>
       );
-      expect(screen.getByTestId("team-table")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByTestId("team-table")).toBeInTheDocument();
+      });
     });
 
-    it("should format date correctly with undefined date", () => {
+    it("should format date correctly with undefined date", async () => {
       render(
         <TestWrapper>
           <Team />
         </TestWrapper>
       );
 
-      // formatDate should return "-" for undefined dates
-      expect(screen.getByTestId("team-table")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByTestId("team-table")).toBeInTheDocument();
+      });
     });
 
     it("should handle search filtering by name", async () => {
@@ -464,6 +529,10 @@ describe("team", () => {
           <Team />
         </TestWrapper>
       );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("team-search")).toBeInTheDocument();
+      });
 
       const searchInput = screen.getByTestId("team-search");
       await user.type(searchInput, "test");
@@ -480,6 +549,10 @@ describe("team", () => {
         </TestWrapper>
       );
 
+      await waitFor(() => {
+        expect(screen.getByTestId("team-search")).toBeInTheDocument();
+      });
+
       const searchInput = screen.getByTestId("team-search");
       await user.type(searchInput, "@example.com");
 
@@ -494,6 +567,10 @@ describe("team", () => {
           <Team />
         </TestWrapper>
       );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("team-pagination")).toBeInTheDocument();
+      });
 
       // Go to page 2
       const pagination = screen.getByTestId("team-pagination");
@@ -521,9 +598,9 @@ describe("team", () => {
         </TestWrapper>
       );
 
-      // onRowClick should navigate to user profile
-      // This is tested indirectly through the Table component's onRowClick
-      expect(screen.getByTestId("team-table")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByTestId("team-table")).toBeInTheDocument();
+      });
     });
 
     it("should handle handleEditClick navigation", async () => {
@@ -536,6 +613,10 @@ describe("team", () => {
           <Team />
         </TestWrapper>
       );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("team-table")).toBeInTheDocument();
+      });
 
       // Edit button should navigate to edit route
       const editButtons = screen.queryAllByTestId("edit-button");
@@ -551,6 +632,10 @@ describe("team", () => {
           <Team />
         </TestWrapper>
       );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("team-table")).toBeInTheDocument();
+      });
 
       // Delete button should open delete modal
       const deleteButtons = screen.queryAllByTestId("delete-button");
@@ -576,6 +661,10 @@ describe("team", () => {
         </TestWrapper>
       );
 
+      await waitFor(() => {
+        expect(screen.getByTestId("header-action-0")).toBeInTheDocument();
+      });
+
       // Open add modal and submit
       const addButton = screen.getByTestId("header-action-0");
       // The add button navigates to new route, but we can test the modal if it opens
@@ -596,6 +685,10 @@ describe("team", () => {
         </TestWrapper>
       );
 
+      await waitFor(() => {
+        expect(screen.getByTestId("team-table")).toBeInTheDocument();
+      });
+
       // Open delete modal and confirm
       const deleteButtons = screen.queryAllByTestId("delete-button");
       if (deleteButtons.length > 0) {
@@ -615,14 +708,22 @@ describe("team", () => {
 
     it("should handle empty state onAddNew callback", async () => {
       const { useNavigate } = await import("react-router");
+      const { getTeamMembers } = await import("~/services/users.service");
       const mockNavigate = vi.fn();
       vi.mocked(useNavigate).mockReturnValue(mockNavigate);
+      vi.mocked(getTeamMembers).mockResolvedValueOnce([]);
 
       render(
         <TestWrapper>
           <Team />
         </TestWrapper>
       );
+
+      await waitFor(() => {
+        const emptyState = screen.queryByTestId("team-empty-state");
+        const table = screen.queryByTestId("team-table");
+        expect(emptyState || table).toBeInTheDocument();
+      });
 
       // If empty state is shown, clicking add new should navigate
       const emptyState = screen.queryByTestId("team-empty-state");
@@ -642,6 +743,10 @@ describe("team", () => {
         </TestWrapper>
       );
 
+      await waitFor(() => {
+        expect(screen.getByTestId("team-table")).toBeInTheDocument();
+      });
+
       // Modal should not be open initially
       expect(screen.queryByTestId("user-form-modal")).not.toBeInTheDocument();
     });
@@ -652,6 +757,10 @@ describe("team", () => {
           <Team />
         </TestWrapper>
       );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("team-table")).toBeInTheDocument();
+      });
 
       // Open delete modal
       const deleteButtons = screen.queryAllByTestId("delete-button");
@@ -671,15 +780,16 @@ describe("team", () => {
       }
     });
 
-    it("should render status badges for different statuses", () => {
+    it("should render status badges for different statuses", async () => {
       render(
         <TestWrapper>
           <Team />
         </TestWrapper>
       );
 
-      // Status rendering is tested indirectly through table rendering
-      expect(screen.getByTestId("team-table")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByTestId("team-table")).toBeInTheDocument();
+      });
     });
 
     it("should handle pagination with multiple pages", async () => {
@@ -689,6 +799,10 @@ describe("team", () => {
           <Team />
         </TestWrapper>
       );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("team-pagination")).toBeInTheDocument();
+      });
 
       const pagination = screen.getByTestId("team-pagination");
       const nextButton = pagination.querySelector("button:last-child");
@@ -713,6 +827,10 @@ describe("team", () => {
         </TestWrapper>
       );
 
+      await waitFor(() => {
+        expect(screen.getByTestId("team-search")).toBeInTheDocument();
+      });
+
       const searchInput = screen.getByTestId("team-search");
       await user.type(searchInput, "test");
       await user.clear(searchInput);
@@ -735,9 +853,9 @@ describe("team", () => {
         </TestWrapper>
       );
 
-      // handleDeleteUser should return early if selectedUser is null
-      // This is tested indirectly - the function won't be called without a selected user
-      expect(screen.getByTestId("team-table")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByTestId("team-table")).toBeInTheDocument();
+      });
     });
   });
 });

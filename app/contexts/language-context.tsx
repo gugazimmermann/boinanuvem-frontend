@@ -30,18 +30,27 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export function LanguageProvider({ children }: { readonly children: ReactNode }) {
-  const [language, setLanguage] = useState<Language>(() => {
+  // Always start with "pt" to match server-side rendering
+  // This prevents hydration mismatches - the useEffect will update it after hydration
+  const [language, setLanguage] = useState<Language>("pt");
+
+  // Initialize language from localStorage after mount to avoid hydration mismatch
+  useEffect(() => {
     if (globalThis.window !== undefined) {
       const stored = localStorage.getItem("language") as Language | null;
-      if (stored && LANGUAGES[stored]) return stored;
+      if (stored && LANGUAGES[stored]) {
+        // This is intentional - we need to set state after mount to prevent hydration mismatch
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setLanguage(stored);
+        return;
+      }
 
       const browserLang = navigator.language.split("-")[0] as Language;
       if (browserLang && LANGUAGES[browserLang]) {
-        return browserLang;
+        setLanguage(browserLang);
       }
     }
-    return "pt";
-  });
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("language", language);

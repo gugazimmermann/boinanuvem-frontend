@@ -209,7 +209,9 @@ export function TeamForm({
               </div>
             )}
 
-            {(!isEdit || changePassword) && (
+            {/* Password fields only shown when editing and user wants to change password */}
+            {/* For new team members, password will be set via email invitation */}
+            {isEdit && changePassword && (
               <FormFieldGroup columns={2}>
                 <Input
                   label={t.team.addModal.fields.password}

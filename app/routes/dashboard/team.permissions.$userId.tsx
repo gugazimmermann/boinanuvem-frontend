@@ -3,9 +3,12 @@ import { useNavigate, useParams } from "react-router";
 import { Button, FixedAlert, Alert } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { ROUTES } from "~/routes.config";
-import { getUserById, updateUserPermissions } from "~/services/users.service";
+import {
+  getTeamMembers,
+  updateTeamMemberPermissions,
+  type FullUserProfile,
+} from "~/services/users.service";
 import { useAuth } from "~/contexts/auth-context";
-import type { TeamUser } from "~/types";
 import type { UserPermissions, PermissionAction, ResourcePermissions } from "~/types/permissions";
 import { defaultPermissions } from "~/types/permissions";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
@@ -132,49 +135,65 @@ export default function TeamPermissions() {
       navigate(ROUTES.PROFILE);
     }
   }, [currentUser, navigate]);
-  const [user, setUser] = useState<TeamUser | null>(null);
+  const [user, setUser] = useState<FullUserProfile | null>(null);
   const [permissions, setPermissions] = useState<UserPermissions>(defaultPermissions);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { alertMessage, showAlert } = useAlert();
 
   useEffect(() => {
-    if (userId) {
-      const foundUser = getUserById(userId);
-      if (foundUser) {
-        setUser(foundUser);
-        const userPermissions = foundUser.permissions as UserPermissions | undefined;
-        setPermissions(
-          userPermissions
-            ? {
-                ...defaultPermissions,
-                ...userPermissions,
-                registration: {
-                  ...defaultPermissions.registration,
-                  ...userPermissions.registration,
-                },
-                records: {
-                  ...defaultPermissions.records,
-                  ...userPermissions.records,
-                },
-                breedings: {
-                  ...defaultPermissions.breedings,
-                  ...userPermissions.breedings,
-                },
-                finances: {
-                  ...defaultPermissions.finances,
-                  ...userPermissions.finances,
-                },
-              }
-            : defaultPermissions
-        );
-      } else {
+    const loadUser = async () => {
+      if (!userId) return;
+      setIsLoading(true);
+      try {
+        const members = await getTeamMembers();
+        const foundUser = members.find((m) => m.id === userId);
+        if (foundUser) {
+          setUser(foundUser);
+          const userPermissions = foundUser.permissions as UserPermissions | undefined;
+          setPermissions(
+            userPermissions
+              ? {
+                  ...defaultPermissions,
+                  ...userPermissions,
+                  registration: {
+                    ...defaultPermissions.registration,
+                    ...userPermissions.registration,
+                  },
+                  records: {
+                    ...defaultPermissions.records,
+                    ...userPermissions.records,
+                  },
+                  breedings: {
+                    ...defaultPermissions.breedings,
+                    ...userPermissions.breedings,
+                  },
+                  finances: {
+                    ...defaultPermissions.finances,
+                    ...userPermissions.finances,
+                  },
+                }
+              : defaultPermissions
+          );
+        } else {
+          showAlert(t.team.permissions.userNotFound, "error");
+          setTimeout(() => {
+            navigate(ROUTES.TEAM);
+          }, 2000);
+        }
+      } catch (error) {
+        console.error("Failed to load team member:", error);
         showAlert(t.team.permissions.userNotFound, "error");
         setTimeout(() => {
           navigate(ROUTES.TEAM);
         }, 2000);
+      } finally {
+        setIsLoading(false);
       }
-    }
-  }, [userId, navigate, showAlert, t.team.permissions.userNotFound]);
+    };
+
+    loadUser();
+  }, [userId, navigate, showAlert, t]);
 
   const handlePermissionChange = (
     section: PermissionSection,
@@ -218,20 +237,21 @@ export default function TeamPermissions() {
 
     setIsSaving(true);
     try {
-      updateUserPermissions(userId, permissions);
+      await updateTeamMemberPermissions(userId, permissions);
       showAlert(t.team.permissions.success, "success");
       setTimeout(() => {
         navigate(ROUTES.TEAM);
       }, 1500);
     } catch (error) {
       console.error("Error updating permissions:", error);
-      showAlert(t.team.permissions.error, "error");
+      const errorMessage = error instanceof Error ? error.message : t.team.permissions.error;
+      showAlert(errorMessage, "error");
     } finally {
       setIsSaving(false);
     }
   };
 
-  if (!user) {
+  if (isLoading || !user) {
     return (
       <div className="space-y-6">
         <FixedAlert alertMessage={alertMessage} />

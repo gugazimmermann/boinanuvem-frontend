@@ -11,23 +11,23 @@ import { createSEOMeta } from "../utils/seo-meta";
 
 export function meta() {
   return createSEOMeta({
-    title: "Nova Senha",
+    title: "Configurar Senha",
     description:
-      "Defina uma nova senha para sua conta Boi na Nuvem. Digite o código recebido e sua nova senha.",
-    url: "/nova-senha",
+      "Configure sua senha para acessar sua conta no Boi na Nuvem. Esta ação também verificará seu email.",
+    url: "/configurar-senha",
     noindex: true,
   });
 }
 
 export function links() {
-  return [{ rel: "canonical", href: "https://boinanuvem.com.br/nova-senha" }];
+  return [{ rel: "canonical", href: "https://boinanuvem.com.br/configurar-senha" }];
 }
 
 export async function loader() {
   return requireGuest();
 }
 
-export default function NewPassword() {
+export default function SetupPassword() {
   useRequireGuest();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -76,13 +76,13 @@ export default function NewPassword() {
     setIsLoading(true);
 
     try {
-      await authService.resetPassword(token.trim(), newPassword);
+      await authService.setupPassword(token.trim(), newPassword);
       setSuccess(true);
       setTimeout(() => {
         navigate(ROUTES.LOGIN);
       }, 2000);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "resetPasswordError";
+      const errorMessage = err instanceof Error ? err.message : "setupPasswordError";
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -91,26 +91,26 @@ export default function NewPassword() {
 
   const getErrorMessage = (errorKey: string) => {
     const errorMap: Record<string, string> = {
-      tokenRequired: "Token de redefinição é obrigatório",
+      tokenRequired: "Token é obrigatório",
       passwordRequired: t.common.passwordRequired,
       passwordMinLength: t.common.passwordMinLength,
       passwordMismatch: t.common.passwordMismatch,
-      resetPasswordError: t.common.resetPasswordError,
-      "Invalid or expired reset token": "Token inválido ou expirado",
+      setupPasswordError: "Erro ao configurar senha. Tente novamente.",
+      "Invalid or expired verification token": "Token inválido ou expirado",
     };
-    return errorMap[errorKey] || t.common.resetPasswordError;
+    return errorMap[errorKey] || "Erro ao configurar senha. Tente novamente.";
   };
 
   return (
     <AuthLayout>
       <AuthCard
-        title="Nova Senha"
-        subtitle="Digite o código recebido e sua nova senha"
+        title="Configurar Senha"
+        subtitle="Configure sua senha para acessar sua conta. Esta ação também verificará seu email automaticamente."
         footer={
           <AuthFooter
-            question="Não recebeu o código?"
-            linkText="Reenviar"
-            linkRoute={ROUTES.FORGOT_PASSWORD}
+            question="Já tem uma conta?"
+            linkText="Fazer login"
+            linkRoute={ROUTES.LOGIN}
           />
         }
       >
@@ -118,7 +118,7 @@ export default function NewPassword() {
           {success ? (
             <div className="mb-4 p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
               <p className="text-sm text-green-800 dark:text-green-200">
-                Senha redefinida com sucesso! Redirecionando para o login...
+                Senha configurada e email verificado com sucesso! Redirecionando para o login...
               </p>
             </div>
           ) : (
@@ -171,7 +171,7 @@ export default function NewPassword() {
                   fullWidth
                   disabled={isLoading || !token}
                 >
-                  {isLoading ? "Redefinindo..." : "Redefinir Senha"}
+                  {isLoading ? "Configurando..." : "Configurar Senha"}
                 </AuthButton>
               </div>
             </>

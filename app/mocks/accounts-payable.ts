@@ -22,6 +22,7 @@ const PROPERTY_2 = mockProperties[1]?.id || "";
 
 function getRealisticDate(index: number, total: number): string {
   const years = [2020, 2021, 2022, 2023, 2024, 2025];
+  const MIN_DATE = new Date("2020-01-01");
   const progress = index / total;
 
   let yearIndex: number;
@@ -48,6 +49,11 @@ function getRealisticDate(index: number, total: number): string {
   if (date > TODAY) {
     const daysAgo = Math.floor(Math.random() * 30);
     date.setTime(TODAY.getTime() - daysAgo * 24 * 60 * 60 * 1000);
+  }
+
+  // Ensure date is not before 2020
+  if (date < MIN_DATE) {
+    date.setTime(MIN_DATE.getTime());
   }
 
   return date.toISOString().split("T")[0];
@@ -545,10 +551,17 @@ const accountsPayableTransactions: AccountsPayable[] = [
   },
 ];
 
+const MIN_DATE = new Date("2020-01-01");
+
 const transactionsWithDates = accountsPayableTransactions.map((transaction, index) => {
   const newDate = getRealisticDate(index, accountsPayableTransactions.length);
   const dueDate = new Date(newDate);
   dueDate.setDate(dueDate.getDate() + (15 + Math.floor(Math.random() * 15)));
+
+  // Ensure dueDate is not before 2020
+  if (dueDate < MIN_DATE) {
+    dueDate.setTime(MIN_DATE.getTime());
+  }
 
   let paidDate: string | undefined;
   if (transaction.status === AccountsPayableStatus.PAID && transaction.paidDate) {
@@ -559,6 +572,10 @@ const transactionsWithDates = accountsPayableTransactions.map((transaction, inde
       paymentDateObj.setTime(
         TODAY.getTime() - Math.floor(Math.random() * 10) * 24 * 60 * 60 * 1000
       );
+    }
+    // Ensure paidDate is not before 2020
+    if (paymentDateObj < MIN_DATE) {
+      paymentDateObj.setTime(MIN_DATE.getTime());
     }
     paidDate = paymentDateObj.toISOString().split("T")[0];
   }

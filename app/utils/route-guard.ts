@@ -1,24 +1,26 @@
 import { useEffect } from "react";
 import { redirect, useNavigate } from "react-router";
 import { ROUTES } from "~/routes.config";
-import { getUserById } from "~/services/users.service";
 import { getRouteAction, getRoutePermission } from "./route-permissions";
 import type { PermissionAction, UserPermissions } from "~/types/permissions";
 import { useAuth } from "~/contexts/auth-context";
-
-const CURRENT_USER_ID_KEY = "currentUserId";
 
 function getCurrentUser() {
   if (globalThis.window === undefined) {
     return null;
   }
 
-  const userId = localStorage.getItem(CURRENT_USER_ID_KEY);
-  if (!userId) {
+  // Get user data from localStorage (set by auth context)
+  const userData = localStorage.getItem("user_data");
+  if (!userData) {
     return null;
   }
 
-  return getUserById(userId);
+  try {
+    return JSON.parse(userData);
+  } catch {
+    return null;
+  }
 }
 
 function hasPermission(
@@ -132,8 +134,8 @@ export function requireMainUser(redirectTo: string = ROUTES.DASHBOARD) {
 
 export async function requireGuest() {
   if (globalThis.window !== undefined) {
-    const userId = localStorage.getItem(CURRENT_USER_ID_KEY);
-    if (userId) {
+    const accessToken = localStorage.getItem("access_token");
+    if (accessToken) {
       throw redirect(ROUTES.DASHBOARD);
     }
   }

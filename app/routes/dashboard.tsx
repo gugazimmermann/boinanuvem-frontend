@@ -2,12 +2,10 @@ import { redirect } from "react-router";
 import { DashboardLayout } from "../components/dashboard";
 import { ROUTES } from "../routes.config";
 
-const CURRENT_USER_ID_KEY = "currentUserId";
-
 export async function loader() {
   if (globalThis.window !== undefined) {
-    const userId = localStorage.getItem(CURRENT_USER_ID_KEY);
-    if (!userId) {
+    const accessToken = localStorage.getItem("access_token");
+    if (!accessToken) {
       throw redirect(ROUTES.LOGIN);
     }
   }

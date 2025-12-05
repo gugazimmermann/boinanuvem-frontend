@@ -1,5 +1,6 @@
 export * from "./base-service";
 
+export * from "./auth.service";
 export * from "./animals.service";
 export * from "./users.service";
 export * from "./companies.service";

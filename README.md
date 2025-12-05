@@ -123,13 +123,13 @@ Boi na Nuvem is designed to digitize and streamline cattle farm management opera
 
 ### Frontend Framework
 
-**React Router v7** with Server-Side Rendering (SSR)
+**React Router v7.9** with Server-Side Rendering (SSR)
 - Full-stack framework with file-based routing
 - Built-in data loading with loaders
 - Error boundaries and fallbacks
 - Type-safe route definitions
 
-**React 19**
+**React 19.1**
 - Latest React features with concurrent rendering
 - Context API for state management
 - Custom hooks for reusable logic
@@ -144,7 +144,7 @@ The application uses React Context API for global state:
 
 ### Styling
 
-**Tailwind CSS v4**
+**Tailwind CSS v4.1**
 - Utility-first CSS framework
 - Dark mode support with system preference detection
 - Responsive design utilities
@@ -165,7 +165,7 @@ The application uses React Context API for global state:
 
 ### Type Safety
 
-**TypeScript 5.9**
+**TypeScript 5.9.2**
 - Strict mode enabled
 - Complete type coverage
 - Type-safe route definitions
@@ -173,7 +173,7 @@ The application uses React Context API for global state:
 
 ### Build Tool
 
-**Vite 7**
+**Vite 7.1**
 - Fast development server with HMR
 - Optimized production builds
 - React Router plugin integration
@@ -181,7 +181,7 @@ The application uses React Context API for global state:
 
 ### Testing
 
-**Vitest 4**
+**Vitest 4.0**
 - Fast unit and integration testing
 - Testing Library for component testing
 - Coverage reporting with v8
@@ -233,7 +233,7 @@ boinanuvem-frontend/
 │   │   ├── login.tsx            # Login route
 │   │   └── [other public routes]
 │   ├── services/                # API service layer
-│   │   ├── [87 service files]   # Entity-specific services
+│   │   ├── [42 service files]   # Entity-specific services
 │   │   ├── api-client.ts        # Base API client
 │   │   └── base-service.ts     # Base service utilities
 │   ├── types/                    # TypeScript type definitions
@@ -580,6 +580,10 @@ The application uses a centralized API client (`app/services/api-client.ts`) tha
 - **Error handling**: Custom `ApiError` class with status codes
 - **Request/Response types**: Generic type parameters for type safety
 - **Base URL configuration**: Configurable API endpoint
+- **Automatic token management**: JWT access tokens automatically included in request headers
+- **Automatic token refresh**: Automatically refreshes access tokens on 401 responses
+- **Token storage**: Manages access and refresh tokens in localStorage
+- **Auth failure handling**: Automatic logout and redirect on authentication failure
 
 **Example Usage:**
 ```typescript
@@ -600,7 +604,7 @@ await apiClient.delete(`/animals/${id}`);
 
 ### Service Layer Structure
 
-The service layer consists of 40+ entity-specific services, each following a consistent pattern:
+The service layer consists of 42 entity-specific services, each following a consistent pattern:
 
 **Service Pattern:**
 ```typescript
@@ -637,6 +641,15 @@ export class ApiError extends Error {
 - HTTP errors are caught and transformed into `ApiError` instances
 - Status codes are preserved for proper error handling
 - Error responses can be accessed for detailed error information
+- 401 (Unauthorized) responses trigger automatic token refresh
+- Failed token refresh triggers logout and redirect to login
+
+**Token Management:**
+- Access tokens are automatically included in `Authorization: Bearer <token>` header
+- Refresh tokens are used to obtain new access tokens when expired
+- Token refresh prevents infinite loops with `retryOn401` parameter
+- Callback system allows AuthContext to respond to token refresh events
+- All tokens are cleared on authentication failure
 
 ### Request/Response Types
 
@@ -729,23 +742,66 @@ Routes support dynamic parameters:
 
 ### Authentication System
 
+**JWT Token-Based Authentication**
+
+The application uses a JWT (JSON Web Token) based authentication system with access tokens and refresh tokens for secure, stateless authentication.
+
 **AuthContext** (`app/contexts/auth-context.tsx`):
-- Manages current user session
-- Provides `login`, `logout`, and `isAuthenticated` functions
-- Stores user ID in localStorage
+- Manages current user session and authentication state
+- Provides `login`, `logout`, `refreshTokens`, `getAccessToken`, `getRefreshToken`, and `isAuthenticated` functions
+- Stores access token, refresh token, and user data in localStorage
+- Integrates with API client for automatic token refresh
 - Provides current user information throughout the app
 
+**Token Storage:**
+- `access_token`: JWT access token for API authentication (Bearer token)
+- `refresh_token`: Refresh token for obtaining new access tokens
+- `user_data`: Serialized user object with id, email, name, mainUser, companyId, permissions, and company
+
 **Authentication Flow:**
-1. User submits login credentials
-2. `authenticateUser` service validates credentials
-3. On success, user ID is stored in localStorage
-4. AuthContext updates with user information
-5. User is redirected to dashboard
+1. User submits login credentials (email and password) with optional "Remember Me"
+2. `authService.login()` sends credentials to `/auth/login` endpoint
+3. Backend validates credentials and returns:
+   - `access_token`: Short-lived JWT token for API requests
+   - `refresh_token`: Long-lived token for refreshing access tokens
+   - `user`: User object with profile and permission data
+4. Tokens and user data are stored in localStorage
+5. Tokens are set in API client for automatic inclusion in requests
+6. AuthContext updates with user information
+7. User is redirected to dashboard
+
+**Token Refresh Mechanism:**
+- API client automatically detects 401 (Unauthorized) responses
+- On 401, the client attempts to refresh the access token using the refresh token
+- If refresh succeeds, the original request is retried with the new access token
+- If refresh fails, all tokens are cleared and user is redirected to login
+- Prevents infinite refresh loops with `retryOn401` flag on refresh endpoint
 
 **Session Management:**
-- User ID stored in localStorage as `currentUserId`
+- Access and refresh tokens stored in localStorage
+- User data stored in localStorage for quick access
 - Session persists across page refreshes
-- Logout clears localStorage and redirects to login
+- Tokens are automatically included in API requests via `Authorization: Bearer <token>` header
+- Logout calls backend to invalidate refresh token, then clears all local storage
+
+**API Client Integration:**
+- `ApiClient` (`app/services/api-client.ts`) handles all token management
+- Automatic token injection in request headers
+- Automatic token refresh on 401 responses
+- Callback system for token refresh events
+- Auth failure callback triggers logout and redirect
+
+**Password Management:**
+- **Forgot Password**: Request password reset email via `/auth/forgot-password`
+- **Reset Password**: Reset password with token via `/auth/reset-password`
+- **Setup Password**: Initial password setup for team members via `/auth/setup-password`
+- **Change Password**: Change password for authenticated users via `/auth/change-password`
+
+**Email Verification:**
+- Email verification required for account activation
+- Verify email via `/auth/verify-email` with token
+- Resend verification email via `/auth/resend-verification` (requires authentication)
+- Login blocked for unverified accounts with helpful error messages
 
 ### Authorization System
 
@@ -788,6 +844,10 @@ createRouteGuard(
 
 // Component-level permission check
 const canEdit = hasPermission('registration', 'property', 'edit', user);
+
+// Using auth context
+const { currentUser, isAuthenticated, getAccessToken } = useAuth();
+const token = getAccessToken(); // Get current access token
 ```
 
 ### Route Guards
@@ -807,6 +867,27 @@ const canEdit = hasPermission('registration', 'property', 'edit', user);
 - Ensures user is not authenticated
 - Used for login/register pages
 - Redirects authenticated users to dashboard
+
+### Authentication API Endpoints
+
+**AuthService** (`app/services/auth.service.ts`) provides methods for all authentication operations:
+
+- `login(email, password, rememberMe)`: Authenticate user and receive tokens
+- `registerCompany(data)`: Register new company with main user
+- `logout(refreshToken)`: Logout and invalidate refresh token on backend
+- `refreshToken(refreshToken)`: Refresh access token using refresh token
+- `forgotPassword(email)`: Request password reset email
+- `resetPassword(token, password)`: Reset password with token
+- `setupPassword(token, password)`: Setup initial password for team members
+- `changePassword(currentPassword, newPassword)`: Change password for authenticated user
+- `verifyEmail(token)`: Verify email address with token
+- `resendVerification()`: Resend email verification (requires authentication)
+
+**Error Handling:**
+- 401 responses trigger automatic token refresh
+- Invalid refresh tokens trigger logout and redirect
+- Specific error messages for account verification, invalid credentials, etc.
+- User-friendly error messages displayed in UI
 
 ## Internationalization
 

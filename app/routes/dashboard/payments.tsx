@@ -1,12 +1,12 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { formatCurrency } from "~/utils/formatting";
 import { Table, StatusBadge, type TableColumn, type TableFilter } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
+import { useAuth } from "~/contexts/auth-context";
 import { getPaymentsByCompanyId } from "~/services/payments.service";
 import type { Payment } from "~/types/payment";
 import { PaymentStatus } from "~/types/payment";
-import { mockCompanies } from "~/mocks/companies";
 import { useListPage } from "~/hooks/use-list-page";
 import { format } from "date-fns";
 import { getDateLocale } from "~/utils/date";
@@ -32,14 +32,69 @@ export async function loader({ request }: { request: Request }) {
 export default function Payments() {
   const t = useTranslation();
   const { language } = useLanguage();
-  const company = mockCompanies[0];
-  const initialPayments = useMemo(() => {
-    if (company) {
-      return getPaymentsByCompanyId(company.id);
+  const { currentUser } = useAuth();
+  const companyId = currentUser?.companyId;
+
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  // Use refs to track loading state and prevent infinite loops
+  const loadedCompanyIdRef = useRef<string | undefined>(undefined);
+  const isLoadingRef = useRef(false);
+
+  // Fetch payments from backend
+  useEffect(() => {
+    // Prevent loading if we're already loading or if we've already loaded this companyId
+    if (isLoadingRef.current) {
+      return;
     }
-    return [];
-  }, [company]);
-  const [payments] = useState<Payment[]>(initialPayments);
+
+    if (!companyId) {
+      setIsLoading(false);
+      setLoadError("Company ID not found");
+      return;
+    }
+
+    // If we've already loaded this companyId, don't reload
+    if (loadedCompanyIdRef.current === companyId) {
+      return;
+    }
+
+    let cancelled = false;
+    isLoadingRef.current = true;
+
+    const fetchPayments = async () => {
+      try {
+        setIsLoading(true);
+        setLoadError(null);
+        const paymentsData = await getPaymentsByCompanyId(companyId);
+
+        if (!cancelled) {
+          setPayments(paymentsData);
+          loadedCompanyIdRef.current = companyId;
+        }
+      } catch (error) {
+        if (!cancelled) {
+          const errorMessage = error instanceof Error ? error.message : "Failed to load payments";
+          setLoadError(errorMessage);
+          console.error("Failed to load payments:", errorMessage);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+          isLoadingRef.current = false;
+        }
+      }
+    };
+
+    fetchPayments();
+
+    return () => {
+      cancelled = true;
+      isLoadingRef.current = false;
+    };
+  }, [companyId]);
 
   const {
     searchValue,
@@ -201,6 +256,55 @@ export default function Payments() {
       onClick: () => setActiveFilter(PaymentStatus.FAILED),
     },
   ];
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">{t.common.loading}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (loadError) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <p className="text-red-600 dark:text-red-400 mb-4">{loadError}</p>
+          <button
+            onClick={() => {
+              loadedCompanyIdRef.current = undefined;
+              isLoadingRef.current = false;
+              if (companyId) {
+                getPaymentsByCompanyId(companyId)
+                  .then((data) => {
+                    setPayments(data);
+                    setLoadError(null);
+                    loadedCompanyIdRef.current = companyId;
+                  })
+                  .catch((error) => {
+                    setLoadError(
+                      error instanceof Error ? error.message : "Failed to load payments"
+                    );
+                  });
+              }
+            }}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+          >
+            {(() => {
+              if (language === "pt") return "Tentar novamente";
+              if (language === "es") return "Intentar de nuevo";
+              return "Try again";
+            })()}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>

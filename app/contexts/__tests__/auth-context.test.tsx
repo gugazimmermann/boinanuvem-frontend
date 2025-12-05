@@ -1,83 +1,69 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, renderHook, waitFor, act } from "@testing-library/react";
+import { BrowserRouter } from "react-router";
 import { AuthProvider, useAuth } from "../auth-context";
-import { getUserById } from "~/services/users.service";
-import type { TeamUser } from "~/types";
+import { authService } from "~/services/auth.service";
+import { apiClient } from "~/services/api-client";
+import type { LoginResponse } from "~/services/auth.service";
 
-// Mock the users service
-vi.mock("~/services/users.service", () => ({
-  getUserById: vi.fn(),
+// Mock the auth service
+vi.mock("~/services/auth.service", () => ({
+  authService: {
+    refreshToken: vi.fn(),
+    logout: vi.fn(),
+  },
 }));
 
+// Mock the API client
+vi.mock("~/services/api-client", () => ({
+  apiClient: {
+    setTokenRefreshCallback: vi.fn(),
+    setOnTokenRefreshCallback: vi.fn(),
+    setOnAuthFailureCallback: vi.fn(),
+    setAccessToken: vi.fn(),
+    setRefreshToken: vi.fn(),
+    getAccessToken: vi.fn(),
+    getRefreshToken: vi.fn(),
+    clearTokens: vi.fn(),
+  },
+}));
+
+const TestWrapper = ({ children }: { children: React.ReactNode }) => (
+  <BrowserRouter>
+    <AuthProvider>{children}</AuthProvider>
+  </BrowserRouter>
+);
+
 describe("AuthContext", () => {
-  const mockUser: TeamUser = {
+  const mockUser = {
     id: "550e8400-e29b-41d4-a716-446655440000",
-    name: "Guga Zimmermann",
     email: "gugazimmermann@gmail.com",
-    phone: "+5511999999999",
-    status: "active",
+    name: "Guga Zimmermann",
     mainUser: true,
     companyId: "550e8400-e29b-41d4-a716-446655440000",
-    createdAt: "2025-01-01",
-    permissions: {
-      registration: {
-        property: { view: false, add: false, edit: false, remove: false },
-        location: { view: false, add: false, edit: false, remove: false },
-        employee: { view: false, add: false, edit: false, remove: false },
-        serviceProvider: { view: false, add: false, edit: false, remove: false },
-        supplier: { view: false, add: false, edit: false, remove: false },
-        buyer: { view: false, add: false, edit: false, remove: false },
-        inventory: { view: false, add: false, edit: false, remove: false },
-        animals: { view: false, add: false, edit: false, remove: false },
-      },
-      records: {
-        births: { view: false, add: false, edit: false, remove: false },
-        acquisitions: { view: false, add: false, edit: false, remove: false },
-        weighings: { view: false, add: false, edit: false, remove: false },
-        sales: { view: false, add: false, edit: false, remove: false },
-        deaths: { view: false, add: false, edit: false, remove: false },
-        sanitaryControls: { view: false, add: false, edit: false, remove: false },
-        locationMovements: { view: false, add: false, edit: false, remove: false },
-        animalMovements: { view: false, add: false, edit: false, remove: false },
-        inventoryMovements: { view: false, add: false, edit: false, remove: false },
-      },
-      breedings: {
-        breedings: { view: false, add: false, edit: false, remove: false },
-        unconfirmedBreedings: { view: false, add: false, edit: false, remove: false },
-        pregnantCows: { view: false, add: false, edit: false, remove: false },
-        reproductiveIndexes: { view: false, add: false, edit: false, remove: false },
-        birthForecast: { view: false, add: false, edit: false, remove: false },
-      },
-      finances: {
-        cashFlow: { view: false, add: false, edit: false, remove: false },
-        accountsPayable: { view: false, add: false, edit: false, remove: false },
-        accountsReceivable: { view: false, add: false, edit: false, remove: false },
-        bankAccounts: { view: false, add: false, edit: false, remove: false },
-      },
-      reports: {
-        analytics: { view: false, add: false, edit: false, remove: false },
-        financialReports: { view: false, add: false, edit: false, remove: false },
-        animalReports: { view: false, add: false, edit: false, remove: false },
-        productionReports: { view: false, add: false, edit: false, remove: false },
-        inventoryReports: { view: false, add: false, edit: false, remove: false },
-      },
-    },
+    permissions: {},
+    company: {},
+  };
+
+  const mockLoginResponse: LoginResponse = {
+    access_token: "access-token-123",
+    refresh_token: "refresh-token-456",
+    user: mockUser,
   };
 
   beforeEach(() => {
-    // Clear localStorage
     localStorage.clear();
     vi.clearAllMocks();
-    // Reset getUserById mock
-    vi.mocked(getUserById).mockReturnValue(undefined);
+    vi.mocked(apiClient.getAccessToken).mockReturnValue(null);
+    vi.mocked(apiClient.getRefreshToken).mockReturnValue(null);
   });
 
   describe("AuthProvider", () => {
     it("should render children correctly", () => {
       const { container } = render(
-        <AuthProvider>
+        <TestWrapper>
           <div>Test Content</div>
-        </AuthProvider>
+        </TestWrapper>
       );
 
       expect(container.textContent).toBe("Test Content");
@@ -85,7 +71,7 @@ describe("AuthContext", () => {
 
     it("should initialize with null user when no localStorage value", () => {
       const { result } = renderHook(() => useAuth(), {
-        wrapper: AuthProvider,
+        wrapper: TestWrapper,
       });
 
       expect(result.current.currentUser).toBeNull();
@@ -93,47 +79,60 @@ describe("AuthContext", () => {
     });
 
     it("should initialize from localStorage if present", () => {
-      localStorage.setItem("currentUserId", mockUser.id);
-      vi.mocked(getUserById).mockReturnValue(mockUser);
+      localStorage.setItem("user_data", JSON.stringify(mockUser));
+      localStorage.setItem("access_token", "access-token-123");
+      localStorage.setItem("refresh_token", "refresh-token-456");
 
       const { result } = renderHook(() => useAuth(), {
-        wrapper: AuthProvider,
+        wrapper: TestWrapper,
       });
 
       expect(result.current.currentUser).toEqual(mockUser);
       expect(result.current.isAuthenticated).toBe(true);
-      expect(getUserById).toHaveBeenCalledWith(mockUser.id);
     });
 
-    it("should handle SSR (window undefined)", () => {
-      // Note: In SSR, window is undefined but React still needs it to render
-      // This test verifies the context handles the initial state correctly
-      const { result } = renderHook(() => useAuth(), {
-        wrapper: AuthProvider,
+    it("should set up API client callbacks on mount", () => {
+      renderHook(() => useAuth(), {
+        wrapper: TestWrapper,
       });
 
-      expect(result.current.currentUser).toBeNull();
-      expect(result.current.isAuthenticated).toBe(false);
+      expect(apiClient.setTokenRefreshCallback).toHaveBeenCalled();
+      expect(apiClient.setOnTokenRefreshCallback).toHaveBeenCalled();
+      expect(apiClient.setOnAuthFailureCallback).toHaveBeenCalled();
+    });
+
+    it("should load tokens into API client on mount", () => {
+      localStorage.setItem("access_token", "access-token-123");
+      localStorage.setItem("refresh_token", "refresh-token-456");
+
+      renderHook(() => useAuth(), {
+        wrapper: TestWrapper,
+      });
+
+      expect(apiClient.setAccessToken).toHaveBeenCalledWith("access-token-123");
+      expect(apiClient.setRefreshToken).toHaveBeenCalledWith("refresh-token-456");
     });
   });
 
   describe("useAuth", () => {
     it("should return correct context values", () => {
       const { result } = renderHook(() => useAuth(), {
-        wrapper: AuthProvider,
+        wrapper: TestWrapper,
       });
 
       expect(result.current).toHaveProperty("currentUser");
       expect(result.current).toHaveProperty("login");
       expect(result.current).toHaveProperty("logout");
       expect(result.current).toHaveProperty("isAuthenticated");
+      expect(result.current).toHaveProperty("refreshTokens");
+      expect(result.current).toHaveProperty("getAccessToken");
+      expect(result.current).toHaveProperty("getRefreshToken");
       expect(typeof result.current.login).toBe("function");
       expect(typeof result.current.logout).toBe("function");
       expect(typeof result.current.isAuthenticated).toBe("boolean");
     });
 
     it("should throw error when used outside provider", () => {
-      // Suppress console.error for this test
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
       let error: Error | undefined;
@@ -151,18 +150,17 @@ describe("AuthContext", () => {
 
     it("should have isAuthenticated as false when no user", () => {
       const { result } = renderHook(() => useAuth(), {
-        wrapper: AuthProvider,
+        wrapper: TestWrapper,
       });
 
       expect(result.current.isAuthenticated).toBe(false);
     });
 
     it("should have isAuthenticated as true when user exists", () => {
-      localStorage.setItem("currentUserId", mockUser.id);
-      vi.mocked(getUserById).mockReturnValue(mockUser);
+      localStorage.setItem("user_data", JSON.stringify(mockUser));
 
       const { result } = renderHook(() => useAuth(), {
-        wrapper: AuthProvider,
+        wrapper: TestWrapper,
       });
 
       expect(result.current.isAuthenticated).toBe(true);
@@ -170,18 +168,15 @@ describe("AuthContext", () => {
   });
 
   describe("login", () => {
-    it("should update currentUserId and persist to localStorage", async () => {
-      vi.mocked(getUserById).mockReturnValue(mockUser);
-
+    it("should store tokens and user data on login", async () => {
       const { result } = renderHook(() => useAuth(), {
-        wrapper: AuthProvider,
+        wrapper: TestWrapper,
       });
 
       expect(result.current.currentUser).toBeNull();
-      expect(localStorage.getItem("currentUserId")).toBeNull();
 
       act(() => {
-        result.current.login(mockUser.id);
+        result.current.login(mockLoginResponse);
       });
 
       await waitFor(() => {
@@ -189,55 +184,41 @@ describe("AuthContext", () => {
       });
 
       expect(result.current.isAuthenticated).toBe(true);
-      expect(localStorage.getItem("currentUserId")).toBe(mockUser.id);
-      expect(getUserById).toHaveBeenCalledWith(mockUser.id);
+      expect(localStorage.getItem("access_token")).toBe("access-token-123");
+      expect(localStorage.getItem("refresh_token")).toBe("refresh-token-456");
+      expect(localStorage.getItem("user_data")).toBe(JSON.stringify(mockUser));
+      expect(apiClient.setAccessToken).toHaveBeenCalledWith("access-token-123");
+      expect(apiClient.setRefreshToken).toHaveBeenCalledWith("refresh-token-456");
     });
 
-    it("should handle login with non-existent user ID", async () => {
-      vi.mocked(getUserById).mockReturnValue(undefined);
-
+    it("should update currentUser when logging in", async () => {
       const { result } = renderHook(() => useAuth(), {
-        wrapper: AuthProvider,
-      });
-
-      act(() => {
-        result.current.login("non-existent-id");
-      });
-
-      await waitFor(() => {
-        expect(localStorage.getItem("currentUserId")).toBe("non-existent-id");
+        wrapper: TestWrapper,
       });
 
       expect(result.current.currentUser).toBeNull();
-      expect(result.current.isAuthenticated).toBe(false);
-    });
-
-    it("should update localStorage when logging in", async () => {
-      vi.mocked(getUserById).mockReturnValue(mockUser);
-
-      const { result } = renderHook(() => useAuth(), {
-        wrapper: AuthProvider,
-      });
-
-      const setItemSpy = vi.spyOn(Storage.prototype, "setItem");
 
       act(() => {
-        result.current.login(mockUser.id);
+        result.current.login(mockLoginResponse);
       });
 
       await waitFor(() => {
-        expect(setItemSpy).toHaveBeenCalledWith("currentUserId", mockUser.id);
+        expect(result.current.currentUser).toEqual(mockUser);
       });
     });
   });
 
   describe("logout", () => {
-    it("should clear currentUserId and remove from localStorage", async () => {
-      localStorage.setItem("currentUserId", mockUser.id);
-      vi.mocked(getUserById).mockReturnValue(mockUser);
+    it("should clear tokens and user data on logout", async () => {
+      localStorage.setItem("access_token", "access-token-123");
+      localStorage.setItem("refresh_token", "refresh-token-456");
+      localStorage.setItem("user_data", JSON.stringify(mockUser));
+
+      vi.mocked(apiClient.getRefreshToken).mockReturnValue("refresh-token-456");
+      vi.mocked(authService.logout).mockResolvedValue({ message: "Logout successful" });
 
       const { result } = renderHook(() => useAuth(), {
-        wrapper: AuthProvider,
+        wrapper: TestWrapper,
       });
 
       await waitFor(() => {
@@ -246,8 +227,8 @@ describe("AuthContext", () => {
 
       expect(result.current.isAuthenticated).toBe(true);
 
-      act(() => {
-        result.current.logout();
+      await act(async () => {
+        await result.current.logout();
       });
 
       await waitFor(() => {
@@ -255,146 +236,134 @@ describe("AuthContext", () => {
       });
 
       expect(result.current.isAuthenticated).toBe(false);
-      expect(localStorage.getItem("currentUserId")).toBeNull();
+      expect(localStorage.getItem("access_token")).toBeNull();
+      expect(localStorage.getItem("refresh_token")).toBeNull();
+      expect(localStorage.getItem("user_data")).toBeNull();
+      expect(apiClient.clearTokens).toHaveBeenCalled();
+      expect(authService.logout).toHaveBeenCalledWith("refresh-token-456");
     });
 
-    it("should remove item from localStorage when logging out", async () => {
-      localStorage.setItem("currentUserId", mockUser.id);
-      vi.mocked(getUserById).mockReturnValue(mockUser);
-
+    it("should handle logout when already logged out", async () => {
       const { result } = renderHook(() => useAuth(), {
-        wrapper: AuthProvider,
-      });
-
-      const removeItemSpy = vi.spyOn(Storage.prototype, "removeItem");
-
-      act(() => {
-        result.current.logout();
-      });
-
-      await waitFor(() => {
-        expect(removeItemSpy).toHaveBeenCalledWith("currentUserId");
-      });
-    });
-
-    it("should handle logout when already logged out", () => {
-      const { result } = renderHook(() => useAuth(), {
-        wrapper: AuthProvider,
+        wrapper: TestWrapper,
       });
 
       expect(result.current.currentUser).toBeNull();
 
-      act(() => {
-        result.current.logout();
+      await act(async () => {
+        await result.current.logout();
       });
 
       expect(result.current.currentUser).toBeNull();
       expect(result.current.isAuthenticated).toBe(false);
     });
+
+    it("should clear local data even if backend logout fails", async () => {
+      localStorage.setItem("access_token", "access-token-123");
+      localStorage.setItem("refresh_token", "refresh-token-456");
+      localStorage.setItem("user_data", JSON.stringify(mockUser));
+
+      vi.mocked(apiClient.getRefreshToken).mockReturnValue("refresh-token-456");
+      vi.mocked(authService.logout).mockRejectedValue(new Error("Network error"));
+
+      // Suppress console.error for this test since we're testing error handling
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      const { result } = renderHook(() => useAuth(), {
+        wrapper: TestWrapper,
+      });
+
+      await waitFor(() => {
+        expect(result.current.currentUser).toEqual(mockUser);
+      });
+
+      await act(async () => {
+        await result.current.logout();
+      });
+
+      await waitFor(() => {
+        expect(result.current.currentUser).toBeNull();
+      });
+
+      expect(localStorage.getItem("access_token")).toBeNull();
+      expect(localStorage.getItem("refresh_token")).toBeNull();
+      expect(localStorage.getItem("user_data")).toBeNull();
+
+      consoleSpy.mockRestore();
+    });
   });
 
-  describe("currentUser resolution", () => {
-    it("should correctly resolve user from getUserById", async () => {
-      vi.mocked(getUserById).mockReturnValue(mockUser);
+  describe("refreshTokens", () => {
+    it("should refresh tokens successfully", async () => {
+      localStorage.setItem("refresh_token", "refresh-token-456");
+      vi.mocked(apiClient.getRefreshToken).mockReturnValue("refresh-token-456");
+      vi.mocked(authService.refreshToken).mockResolvedValue({
+        access_token: "new-access-token",
+        refresh_token: "new-refresh-token",
+      });
 
       const { result } = renderHook(() => useAuth(), {
-        wrapper: AuthProvider,
+        wrapper: TestWrapper,
       });
 
-      act(() => {
-        result.current.login(mockUser.id);
+      await act(async () => {
+        await result.current.refreshTokens();
       });
 
-      await waitFor(() => {
-        expect(result.current.currentUser).toEqual(mockUser);
-      });
-
-      expect(getUserById).toHaveBeenCalledWith(mockUser.id);
+      expect(authService.refreshToken).toHaveBeenCalledWith("refresh-token-456");
+      expect(localStorage.getItem("access_token")).toBe("new-access-token");
+      expect(localStorage.getItem("refresh_token")).toBe("new-refresh-token");
+      expect(apiClient.setAccessToken).toHaveBeenCalledWith("new-access-token");
+      expect(apiClient.setRefreshToken).toHaveBeenCalledWith("new-refresh-token");
     });
 
-    it("should return null when getUserById returns undefined", () => {
-      vi.mocked(getUserById).mockReturnValue(undefined);
+    it("should throw error on refresh failure", async () => {
+      localStorage.setItem("refresh_token", "refresh-token-456");
+      vi.mocked(apiClient.getRefreshToken).mockReturnValue("refresh-token-456");
+      vi.mocked(authService.refreshToken).mockRejectedValue(new Error("Invalid token"));
 
       const { result } = renderHook(() => useAuth(), {
-        wrapper: AuthProvider,
+        wrapper: TestWrapper,
       });
 
-      act(() => {
-        result.current.login("invalid-id");
+      await expect(
+        act(async () => {
+          await result.current.refreshTokens();
+        })
+      ).rejects.toThrow("Invalid token");
+    });
+  });
+
+  describe("token getters", () => {
+    it("should get access token", () => {
+      vi.mocked(apiClient.getAccessToken).mockReturnValue("access-token-123");
+
+      const { result } = renderHook(() => useAuth(), {
+        wrapper: TestWrapper,
       });
 
-      expect(result.current.currentUser).toBeNull();
+      expect(result.current.getAccessToken()).toBe("access-token-123");
     });
 
-    it("should update currentUser when userId changes", async () => {
-      const mockUser2: TeamUser = {
-        ...mockUser,
-        id: "550e8400-e29b-41d4-a716-446655440001",
-        name: "Maria Santos",
-      };
-
-      vi.mocked(getUserById).mockReturnValueOnce(mockUser).mockReturnValueOnce(mockUser2);
+    it("should get refresh token", () => {
+      vi.mocked(apiClient.getRefreshToken).mockReturnValue("refresh-token-456");
 
       const { result } = renderHook(() => useAuth(), {
-        wrapper: AuthProvider,
+        wrapper: TestWrapper,
       });
 
-      act(() => {
-        result.current.login(mockUser.id);
-      });
-      await waitFor(() => {
-        expect(result.current.currentUser).toEqual(mockUser);
-      });
-
-      act(() => {
-        result.current.login(mockUser2.id);
-      });
-      await waitFor(() => {
-        expect(result.current.currentUser).toEqual(mockUser2);
-      });
+      expect(result.current.getRefreshToken()).toBe("refresh-token-456");
     });
   });
 
   describe("localStorage persistence", () => {
-    it("should persist user ID to localStorage on login", async () => {
-      vi.mocked(getUserById).mockReturnValue(mockUser);
-
-      const { result } = renderHook(() => useAuth(), {
-        wrapper: AuthProvider,
-      });
-
-      act(() => {
-        result.current.login(mockUser.id);
-      });
-
-      await waitFor(() => {
-        expect(localStorage.getItem("currentUserId")).toBe(mockUser.id);
-      });
-    });
-
-    it("should remove user ID from localStorage on logout", async () => {
-      localStorage.setItem("currentUserId", mockUser.id);
-      vi.mocked(getUserById).mockReturnValue(mockUser);
-
-      const { result } = renderHook(() => useAuth(), {
-        wrapper: AuthProvider,
-      });
-
-      act(() => {
-        result.current.logout();
-      });
-
-      await waitFor(() => {
-        expect(localStorage.getItem("currentUserId")).toBeNull();
-      });
-    });
-
-    it("should persist across re-renders", async () => {
-      localStorage.setItem("currentUserId", mockUser.id);
-      vi.mocked(getUserById).mockReturnValue(mockUser);
+    it("should persist user data across re-renders", async () => {
+      localStorage.setItem("user_data", JSON.stringify(mockUser));
+      localStorage.setItem("access_token", "access-token-123");
+      localStorage.setItem("refresh_token", "refresh-token-456");
 
       const { result, rerender } = renderHook(() => useAuth(), {
-        wrapper: AuthProvider,
+        wrapper: TestWrapper,
       });
 
       await waitFor(() => {
@@ -404,99 +373,7 @@ describe("AuthContext", () => {
       rerender();
 
       expect(result.current.currentUser).toEqual(mockUser);
-      expect(localStorage.getItem("currentUserId")).toBe(mockUser.id);
-    });
-
-    it("should update localStorage when userId changes", async () => {
-      const mockUser2: TeamUser = {
-        ...mockUser,
-        id: "550e8400-e29b-41d4-a716-446655440001",
-      };
-
-      vi.mocked(getUserById).mockReturnValueOnce(mockUser).mockReturnValueOnce(mockUser2);
-
-      const { result } = renderHook(() => useAuth(), {
-        wrapper: AuthProvider,
-      });
-
-      act(() => {
-        result.current.login(mockUser.id);
-      });
-      await waitFor(() => {
-        expect(localStorage.getItem("currentUserId")).toBe(mockUser.id);
-      });
-
-      act(() => {
-        result.current.login(mockUser2.id);
-      });
-      await waitFor(() => {
-        expect(localStorage.getItem("currentUserId")).toBe(mockUser2.id);
-      });
-    });
-  });
-
-  describe("isAuthenticated flag", () => {
-    it("should be false when currentUser is null", () => {
-      const { result } = renderHook(() => useAuth(), {
-        wrapper: AuthProvider,
-      });
-
-      expect(result.current.isAuthenticated).toBe(false);
-    });
-
-    it("should be true when currentUser exists", async () => {
-      vi.mocked(getUserById).mockReturnValue(mockUser);
-
-      const { result } = renderHook(() => useAuth(), {
-        wrapper: AuthProvider,
-      });
-
-      act(() => {
-        result.current.login(mockUser.id);
-      });
-
-      await waitFor(() => {
-        expect(result.current.isAuthenticated).toBe(true);
-      });
-    });
-
-    it("should update when user logs in", async () => {
-      vi.mocked(getUserById).mockReturnValue(mockUser);
-
-      const { result } = renderHook(() => useAuth(), {
-        wrapper: AuthProvider,
-      });
-
-      expect(result.current.isAuthenticated).toBe(false);
-
-      act(() => {
-        result.current.login(mockUser.id);
-      });
-
-      await waitFor(() => {
-        expect(result.current.isAuthenticated).toBe(true);
-      });
-    });
-
-    it("should update when user logs out", async () => {
-      localStorage.setItem("currentUserId", mockUser.id);
-      vi.mocked(getUserById).mockReturnValue(mockUser);
-
-      const { result } = renderHook(() => useAuth(), {
-        wrapper: AuthProvider,
-      });
-
-      await waitFor(() => {
-        expect(result.current.isAuthenticated).toBe(true);
-      });
-
-      act(() => {
-        result.current.logout();
-      });
-
-      await waitFor(() => {
-        expect(result.current.isAuthenticated).toBe(false);
-      });
+      expect(localStorage.getItem("user_data")).toBe(JSON.stringify(mockUser));
     });
   });
 });

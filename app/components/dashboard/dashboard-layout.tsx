@@ -4,18 +4,29 @@ import { Navbar } from "./navbar";
 import { Sidebar } from "./sidebar";
 import { useAuth } from "~/contexts/auth-context";
 import { ROUTES } from "~/routes.config";
+import { TrialBanner } from "~/components/ui";
+import { useCompanyTrial } from "~/hooks/use-company-trial";
 
 export function DashboardLayout() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
+  const { isOnTrial, trialDaysRemaining } = useCompanyTrial();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
+  // Prevent hydration mismatch by only rendering after mount
   useEffect(() => {
-    if (!isAuthenticated) {
+    // This is intentional - we need to set state after mount to prevent hydration mismatch
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (isMounted && !isAuthenticated) {
       navigate(ROUTES.LOGIN, { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isMounted, isAuthenticated, navigate]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -42,7 +53,8 @@ export function DashboardLayout() {
     };
   }, [isSidebarOpen]);
 
-  if (!isAuthenticated) {
+  // Don't render until mounted to prevent hydration mismatch
+  if (!isMounted || !isAuthenticated) {
     return null;
   }
 
@@ -53,6 +65,7 @@ export function DashboardLayout() {
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-950">
       <Navbar onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+      {isOnTrial && <TrialBanner daysRemaining={trialDaysRemaining} />}
       <div className="flex h-[calc(100vh-3rem)]">
         {isSidebarOpen && (
           <div

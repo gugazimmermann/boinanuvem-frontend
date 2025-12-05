@@ -9,6 +9,8 @@ export default [
   route(ROUTE_NAMES.REGISTER, "routes/register.tsx"),
   route(ROUTE_NAMES.FORGOT_PASSWORD, "routes/forgot-password.tsx"),
   route(ROUTE_NAMES.NEW_PASSWORD, "routes/new-password.tsx"),
+  route(ROUTE_NAMES.VERIFY_EMAIL, "routes/verify-email.tsx"),
+  route(ROUTE_NAMES.SETUP_PASSWORD, "routes/configurar-senha.tsx"),
   route(ROUTE_NAMES.TERMS, "routes/terms.tsx"),
   route(ROUTE_NAMES.PRIVACY, "routes/privacy.tsx"),
   route(ROUTE_NAMES.DASHBOARD, "routes/dashboard.tsx", [

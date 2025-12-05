@@ -1,18 +1,19 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Input, FixedAlert, FormFieldGroup, Button } from "~/components/ui";
 import { AddressForm } from "./address-form";
 import { ActivityLog } from "./activity-log";
-import {
-  maskPhone,
-  unmaskPhone,
-  maskCEP,
-  unmaskCEP,
-  maskCPF,
-  unmaskCPF,
-} from "~/components/site/utils/masks";
+import { maskPhone, maskCEP, maskCPF } from "~/components/site/utils/masks";
 import { useTranslation } from "~/i18n";
 import type { AddressFormData } from "~/components/site/utils/cep-utils";
-import { getUserById, updateUser, updateUserPermissions } from "~/services/users.service";
+import {
+  getCurrentUser,
+  getTeamMembers,
+  updateCurrentUser,
+  updateTeamMember,
+  updateTeamMemberPermissions,
+  type FullUserProfile,
+} from "~/services/users.service";
+import { authService } from "~/services/auth.service";
 import { useAuth } from "~/contexts/auth-context";
 import { usePermissions } from "~/utils/permissions";
 import type { UserPermissions, PermissionAction, ResourcePermissions } from "~/types/permissions";
@@ -34,38 +35,6 @@ interface UserFormData extends AddressFormData {
   email: string;
   phone: string;
 }
-
-const getMainUserData = (mainUser: ReturnType<typeof useAuth>["currentUser"]): UserFormData => {
-  if (!mainUser) {
-    return {
-      name: "User",
-      cpf: "",
-      email: "user@example.com",
-      phone: "(00) 00000-0000",
-      street: "",
-      number: "",
-      complement: "",
-      neighborhood: "",
-      city: "",
-      state: "",
-      zipCode: "",
-    };
-  }
-
-  return {
-    name: mainUser.name || "",
-    cpf: maskCPF(mainUser.cpf || ""),
-    email: mainUser.email || "",
-    phone: maskPhone(mainUser.phone || ""),
-    street: mainUser.street || "",
-    number: mainUser.number || "",
-    complement: mainUser.complement || "",
-    neighborhood: mainUser.neighborhood || "",
-    city: mainUser.city || "",
-    state: mainUser.state || "",
-    zipCode: maskCEP(mainUser.zipCode || ""),
-  };
-};
 
 const mockUserLogs = generateActivityLogs({
   count: 52,
@@ -219,16 +188,49 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
   const { currentUser } = useAuth();
   const { isMainUser } = usePermissions();
   const mainUser = currentUser;
-  const mainUserData = useMemo(() => getMainUserData(mainUser), [mainUser]);
+
+  // Initialize with empty data - will be loaded from API
+  const emptyFormData: UserFormData = {
+    name: "",
+    cpf: "",
+    email: "",
+    phone: "",
+    street: "",
+    number: "",
+    complement: "",
+    neighborhood: "",
+    city: "",
+    state: "",
+    zipCode: "",
+  };
+
   const [isEditing, setIsEditing] = useState(false);
-  const [data, setData] = useState<UserFormData>(mainUserData);
-  const [originalData, setOriginalData] = useState<UserFormData>(mainUserData);
+  const [data, setData] = useState<UserFormData>(emptyFormData);
+  const [originalData, setOriginalData] = useState<UserFormData>(emptyFormData);
   const { alertMessage, showAlert } = useAlert();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState<ProfileTab>("data");
   const [permissions, setPermissions] = useState<UserPermissions>(defaultPermissions);
   const [isSavingPermissions, setIsSavingPermissions] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [changePasswordData, setChangePasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [changePasswordErrors, setChangePasswordErrors] = useState<Record<string, string>>({});
+  const [isChangingPasswordLoading, setIsChangingPasswordLoading] = useState(false);
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [teamMembers, setTeamMembers] = useState<FullUserProfile[]>([]);
+  const [emailVerifiedAt, setEmailVerifiedAt] = useState<string | null>(null);
+
+  // Use refs to track what we've loaded to prevent infinite loops
+  const loadedUserIdRef = useRef<string | undefined>(undefined);
+  const isLoadingRef = useRef(false);
+  const teamMembersLoadedRef = useRef(false);
 
   useEffect(() => {
     if (!userId && activeSubTab === "permissions") {
@@ -236,87 +238,218 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
     }
   }, [userId, activeSubTab]);
 
-  useEffect(() => {
-    if (activeSubTab === "logs" && !isMainUser()) {
-      setActiveSubTab("data");
-    }
-  }, [activeSubTab, isMainUser]);
+  // Track isMainUser value to detect changes
+  const isMainUserValue = isMainUser();
+  const prevIsMainUserRef = useRef(isMainUserValue);
 
   useEffect(() => {
-    if (userId) {
-      const user = getUserById(userId);
-      if (user) {
-        const userData: UserFormData = {
-          name: user.name || "",
-          cpf: maskCPF(user.cpf || ""),
-          email: user.email || "",
-          phone: maskPhone(user.phone || ""),
-          street: user.street || "",
-          number: user.number || "",
-          complement: user.complement || "",
-          neighborhood: user.neighborhood || "",
-          city: user.city || "",
-          state: user.state || "",
-          zipCode: maskCEP(user.zipCode || ""),
-        };
-        setData(userData);
-        setOriginalData(userData);
-        const userPermissions = user.permissions as UserPermissions | undefined;
-        setPermissions(
-          userPermissions
-            ? {
-                ...defaultPermissions,
-                ...userPermissions,
-                registration: {
-                  ...defaultPermissions.registration,
-                  ...userPermissions.registration,
-                },
-                records: {
-                  ...defaultPermissions.records,
-                  ...userPermissions.records,
-                },
-                breedings: {
-                  ...defaultPermissions.breedings,
-                  ...userPermissions.breedings,
-                },
-                finances: {
-                  ...defaultPermissions.finances,
-                  ...userPermissions.finances,
-                },
-              }
-            : defaultPermissions
-        );
-      }
-    } else {
-      setData(mainUserData);
-      setOriginalData(mainUserData);
-      const mainUserPermissions = mainUser?.permissions as UserPermissions | undefined;
-      setPermissions(
-        mainUserPermissions
-          ? {
-              ...defaultPermissions,
-              ...mainUserPermissions,
-              registration: {
-                ...defaultPermissions.registration,
-                ...mainUserPermissions.registration,
-              },
-              records: {
-                ...defaultPermissions.records,
-                ...mainUserPermissions.records,
-              },
-              breedings: {
-                ...defaultPermissions.breedings,
-                ...mainUserPermissions.breedings,
-              },
-              finances: {
-                ...defaultPermissions.finances,
-                ...mainUserPermissions.finances,
-              },
-            }
-          : defaultPermissions
-      );
+    const currentIsMainUser = isMainUser();
+    // If isMainUser changed from true to false and we're on logs tab, reset to data
+    if (activeSubTab === "logs" && prevIsMainUserRef.current && !currentIsMainUser) {
+      setActiveSubTab("data");
     }
-  }, [userId, mainUserData, mainUser]);
+    prevIsMainUserRef.current = currentIsMainUser;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSubTab, isMainUserValue]);
+
+  // Load team members if main user (for logs tab) - only load once
+  useEffect(() => {
+    const loadTeamMembers = async () => {
+      if (isMainUser() && !userId && !teamMembersLoadedRef.current) {
+        try {
+          const members = await getTeamMembers();
+          setTeamMembers(members);
+          teamMembersLoadedRef.current = true;
+        } catch (error) {
+          console.error("Failed to load team members:", error);
+        }
+      }
+    };
+    loadTeamMembers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
+
+  // Helper function to map profile/member to UserFormData
+  const mapToUserFormData = (
+    profile:
+      | FullUserProfile
+      | {
+          name?: string;
+          cpf?: string;
+          email?: string;
+          phone?: string;
+          street?: string;
+          number?: string;
+          complement?: string;
+          neighborhood?: string;
+          city?: string;
+          state?: string;
+          zipCode?: string;
+        }
+  ): UserFormData => {
+    return {
+      name: profile.name || "",
+      cpf: maskCPF(profile.cpf || ""),
+      email: profile.email || "",
+      phone: maskPhone(profile.phone || ""),
+      street: profile.street || "",
+      number: profile.number || "",
+      complement: profile.complement || "",
+      neighborhood: profile.neighborhood || "",
+      city: profile.city || "",
+      state: profile.state || "",
+      zipCode: maskCEP(profile.zipCode || ""),
+    };
+  };
+
+  // Helper function to merge permissions
+  const mergePermissions = (userPermissions: UserPermissions | undefined): UserPermissions => {
+    if (!userPermissions) {
+      return defaultPermissions;
+    }
+    return {
+      ...defaultPermissions,
+      ...userPermissions,
+      registration: {
+        ...defaultPermissions.registration,
+        ...userPermissions.registration,
+      },
+      records: {
+        ...defaultPermissions.records,
+        ...userPermissions.records,
+      },
+      breedings: {
+        ...defaultPermissions.breedings,
+        ...userPermissions.breedings,
+      },
+      finances: {
+        ...defaultPermissions.finances,
+        ...userPermissions.finances,
+      },
+    };
+  };
+
+  // Helper function to load team member data
+  const loadTeamMemberData = async (
+    targetUserId: string,
+    cancelled: { value: boolean }
+  ): Promise<FullUserProfile | null> => {
+    let members = teamMembers;
+    const isMain = currentUser?.mainUser === true;
+
+    if ((members.length === 0 || !members.some((m) => m.id === targetUserId)) && isMain) {
+      try {
+        members = await getTeamMembers();
+        if (!cancelled.value) {
+          setTeamMembers(members);
+          teamMembersLoadedRef.current = true;
+        }
+      } catch (error) {
+        console.error("Failed to load team members:", error);
+        if (!cancelled.value) {
+          setLoadError("Failed to load team member");
+          setIsLoadingProfile(false);
+          isLoadingRef.current = false;
+          return null;
+        }
+      }
+    }
+
+    const member = members.find((m) => m.id === targetUserId);
+    if (!member) {
+      if (!cancelled.value) {
+        setLoadError("Team member not found");
+        setIsLoadingProfile(false);
+        isLoadingRef.current = false;
+      }
+      return null;
+    }
+
+    return member;
+  };
+
+  // Helper function to load current user data
+  const loadCurrentUserData = async (): Promise<FullUserProfile> => {
+    return await getCurrentUser();
+  };
+
+  // Load user profile data from backend
+  useEffect(() => {
+    // Create a stable key for what we're loading
+    const loadKey = userId || "current";
+
+    // Reset loaded ref when userId changes (but not on first render)
+    if (loadedUserIdRef.current !== undefined && loadedUserIdRef.current !== loadKey) {
+      loadedUserIdRef.current = undefined;
+    }
+
+    // Prevent loading if we're already loading or if we've already loaded this userId
+    if (isLoadingRef.current || loadedUserIdRef.current === loadKey) {
+      return;
+    }
+
+    const cancelled = { value: false };
+    isLoadingRef.current = true;
+
+    const loadUserProfile = async () => {
+      setIsLoadingProfile(true);
+      setLoadError(null);
+      try {
+        if (userId) {
+          const member = await loadTeamMemberData(userId, cancelled);
+          if (!member || cancelled.value) {
+            return;
+          }
+
+          const userData = mapToUserFormData(member);
+
+          if (!cancelled.value) {
+            setData(userData);
+            setOriginalData(userData);
+            loadedUserIdRef.current = loadKey;
+            const userPermissions = member.permissions as UserPermissions | undefined;
+            setPermissions(mergePermissions(userPermissions));
+          }
+        } else {
+          const fullProfile = await loadCurrentUserData();
+
+          if (cancelled.value) {
+            isLoadingRef.current = false;
+            return;
+          }
+
+          const userData = mapToUserFormData(fullProfile);
+          setData(userData);
+          setOriginalData(userData);
+          setEmailVerifiedAt(fullProfile.emailVerifiedAt || null);
+          loadedUserIdRef.current = loadKey;
+          const userPermissions = fullProfile.permissions as UserPermissions | undefined;
+          setPermissions(mergePermissions(userPermissions));
+        }
+      } catch (error) {
+        if (!cancelled.value) {
+          const errorMessage =
+            error instanceof Error ? error.message : "Failed to load user profile";
+          setLoadError(errorMessage);
+          // Don't call showAlert here to avoid potential re-render loops
+          console.error("Failed to load user profile:", errorMessage);
+        }
+      } finally {
+        if (!cancelled.value) {
+          setIsLoadingProfile(false);
+          isLoadingRef.current = false;
+        }
+      }
+    };
+
+    loadUserProfile();
+
+    return () => {
+      cancelled.value = true;
+      isLoadingRef.current = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]); // Only depend on userId - reset loadedUserIdRef when it changes
 
   const handleChange = (field: keyof UserFormData, value: string) => {
     setData((prev) => ({ ...prev, [field]: value }));
@@ -387,50 +520,97 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
       if (onSave) {
         await onSave(data);
         if (userId) {
-          const user = getUserById(userId);
-          if (user) {
+          // Reload team member data after save
+          const members = await getTeamMembers();
+          setTeamMembers(members);
+          const member = members.find((m) => m.id === userId);
+          if (member) {
             const userData: UserFormData = {
-              name: user.name || "",
-              cpf: maskCPF(user.cpf || ""),
-              email: user.email || "",
-              phone: maskPhone(user.phone || ""),
-              street: user.street || "",
-              number: user.number || "",
-              complement: user.complement || "",
-              neighborhood: user.neighborhood || "",
-              city: user.city || "",
-              state: user.state || "",
-              zipCode: maskCEP(user.zipCode || ""),
+              name: member.name || "",
+              cpf: maskCPF(member.cpf || ""),
+              email: member.email || "",
+              phone: maskPhone(member.phone || ""),
+              street: member.street || "",
+              number: member.number || "",
+              complement: member.complement || "",
+              neighborhood: member.neighborhood || "",
+              city: member.city || "",
+              state: member.state || "",
+              zipCode: maskCEP(member.zipCode || ""),
             };
             setData(userData);
             setOriginalData(userData);
           }
         } else {
-          setOriginalData(data);
+          // Reload current user data after save
+          const fullProfile = await getCurrentUser();
+          const userData: UserFormData = {
+            name: fullProfile.name || "",
+            cpf: maskCPF(fullProfile.cpf || ""),
+            email: fullProfile.email || "",
+            phone: maskPhone(fullProfile.phone || ""),
+            street: fullProfile.street || "",
+            number: fullProfile.number || "",
+            complement: fullProfile.complement || "",
+            neighborhood: fullProfile.neighborhood || "",
+            city: fullProfile.city || "",
+            state: fullProfile.state || "",
+            zipCode: maskCEP(fullProfile.zipCode || ""),
+          };
+          setData(userData);
+          setOriginalData(userData);
+          setEmailVerifiedAt(fullProfile.emailVerifiedAt || null);
         }
       } else {
-        if (mainUser) {
-          updateUser(mainUser.id, {
-            name: data.name,
-            cpf: unmaskCPF(data.cpf),
-            email: data.email,
-            phone: unmaskPhone(data.phone),
-            street: data.street,
-            number: data.number,
-            complement: data.complement,
-            neighborhood: data.neighborhood,
-            city: data.city,
-            state: data.state,
-            zipCode: unmaskCEP(data.zipCode),
-          });
+        // Use API to save - transform data (unmask CPF, phone, CEP)
+        const updateData: UserFormData = {
+          name: data.name,
+          cpf: data.cpf || "",
+          email: data.email,
+          phone: data.phone || "",
+          street: data.street || "",
+          number: data.number || "",
+          complement: data.complement || "",
+          neighborhood: data.neighborhood || "",
+          city: data.city || "",
+          state: data.state || "",
+          zipCode: data.zipCode || "",
+        };
+
+        if (userId) {
+          // Update team member
+          await updateTeamMember(userId, updateData);
+          // Reload team members
+          const members = await getTeamMembers();
+          setTeamMembers(members);
+        } else {
+          // Update current user
+          await updateCurrentUser(updateData);
+          // Reload current user profile
+          const fullProfile = await getCurrentUser();
+          const userData: UserFormData = {
+            name: fullProfile.name || "",
+            cpf: maskCPF(fullProfile.cpf || ""),
+            email: fullProfile.email || "",
+            phone: maskPhone(fullProfile.phone || ""),
+            street: fullProfile.street || "",
+            number: fullProfile.number || "",
+            complement: fullProfile.complement || "",
+            neighborhood: fullProfile.neighborhood || "",
+            city: fullProfile.city || "",
+            state: fullProfile.state || "",
+            zipCode: maskCEP(fullProfile.zipCode || ""),
+          };
+          setData(userData);
+          setOriginalData(userData);
+          setEmailVerifiedAt(fullProfile.emailVerifiedAt || null);
         }
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        setOriginalData(data);
       }
       setIsEditing(false);
       showAlert(t.profile.success.saved, "success");
-    } catch {
-      showAlert(t.profile.errors.saveFailed, "error");
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : t.profile.errors.saveFailed;
+      showAlert(errorMessage, "error");
     } finally {
       setIsSaving(false);
     }
@@ -480,18 +660,49 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
   };
 
   const handleSavePermissions = async () => {
-    if (!userId && !mainUser) return;
+    if (!userId) {
+      showAlert("Não é possível atualizar permissões do usuário principal", "error");
+      return;
+    }
 
     setIsSavingPermissions(true);
     try {
-      const targetUserId = userId || mainUser?.id;
-      if (targetUserId) {
-        updateUserPermissions(targetUserId, permissions);
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        showAlert(t.team.permissions.success, "success");
+      await updateTeamMemberPermissions(userId, permissions);
+      // Reload team members to get updated permissions
+      const members = await getTeamMembers();
+      setTeamMembers(members);
+      const member = members.find((m) => m.id === userId);
+      if (member) {
+        const userPermissions = member.permissions as UserPermissions | undefined;
+        setPermissions(
+          userPermissions
+            ? {
+                ...defaultPermissions,
+                ...userPermissions,
+                registration: {
+                  ...defaultPermissions.registration,
+                  ...userPermissions.registration,
+                },
+                records: {
+                  ...defaultPermissions.records,
+                  ...userPermissions.records,
+                },
+                breedings: {
+                  ...defaultPermissions.breedings,
+                  ...userPermissions.breedings,
+                },
+                finances: {
+                  ...defaultPermissions.finances,
+                  ...userPermissions.finances,
+                },
+              }
+            : defaultPermissions
+        );
       }
-    } catch {
-      showAlert(t.team.permissions.error, "error");
+      showAlert(t.team.permissions.success, "success");
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : t.team.permissions.error;
+      showAlert(errorMessage, "error");
     } finally {
       setIsSavingPermissions(false);
     }
@@ -512,86 +723,301 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
 
       {activeSubTab === "data" && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-              {t.profile.user.title}
-            </h2>
-            {!isEditing && !readOnly && (
-              <Button onClick={() => setIsEditing(true)} variant="primary" size="sm">
-                {t.profile.user.edit}
-              </Button>
-            )}
-            {!isEditing && readOnly && onEdit && (
-              <Button
-                onClick={() => {
-                  onEdit();
-                  setIsEditing(true);
+          {isLoadingProfile && (
+            <div className="flex items-center justify-center py-8">
+              <p className="text-gray-600 dark:text-gray-400">{t.common.loading}</p>
+            </div>
+          )}
+          {loadError && !isLoadingProfile && (
+            <div className="py-4">
+              <FixedAlert
+                alertMessage={{
+                  title: loadError,
+                  variant: "error",
                 }}
-                variant="primary"
-                size="sm"
-              >
-                {t.profile.user.edit}
-              </Button>
-            )}
-          </div>
-
-          <div className="space-y-4">
-            <FormFieldGroup columns={2}>
-              <Input
-                label={t.profile.user.fields.name}
-                value={data.name}
-                onChange={(e) => handleChange("name", e.target.value)}
-                error={errors.name}
-                disabled={!isEditing}
               />
-              <Input
-                label="CPF"
-                value={data.cpf}
-                onChange={(e) => handleChange("cpf", maskCPF(e.target.value))}
-                error={errors.cpf}
-                disabled={!isEditing}
-                placeholder="000.000.000-00"
-                maxLength={14}
-              />
-            </FormFieldGroup>
-
-            <FormFieldGroup columns={2}>
-              <Input
-                label={t.profile.user.fields.email}
-                type="email"
-                value={data.email}
-                onChange={(e) => handleChange("email", e.target.value)}
-                error={errors.email}
-                disabled={!isEditing}
-              />
-              <Input
-                label={t.profile.user.fields.phone}
-                value={data.phone}
-                onChange={(e) => handleChange("phone", maskPhone(e.target.value))}
-                error={errors.phone}
-                disabled={!isEditing}
-                placeholder="(00) 00000-0000"
-              />
-            </FormFieldGroup>
-
-            <AddressForm
-              data={data}
-              errors={errors}
-              onChange={handleChange}
-              disabled={!isEditing}
-            />
-
-            {isEditing && (
-              <div className="flex justify-end gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                <Button onClick={handleCancel} variant="outline" disabled={isSaving}>
-                  {t.profile.user.cancel}
-                </Button>
-                <Button onClick={handleSave} variant="primary" disabled={isSaving}>
-                  {isSaving ? t.common.loading : t.profile.user.save}
-                </Button>
+            </div>
+          )}
+          {!isLoadingProfile && !loadError && (
+            <>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                  {t.profile.user.title}
+                </h2>
+                {!isEditing && !readOnly && (
+                  <Button onClick={() => setIsEditing(true)} variant="primary" size="sm">
+                    {t.profile.user.edit}
+                  </Button>
+                )}
+                {!isEditing && readOnly && onEdit && (
+                  <Button
+                    onClick={() => {
+                      onEdit();
+                      setIsEditing(true);
+                    }}
+                    variant="primary"
+                    size="sm"
+                  >
+                    {t.profile.user.edit}
+                  </Button>
+                )}
               </div>
-            )}
-          </div>
+
+              <div className="space-y-4">
+                <FormFieldGroup columns={2}>
+                  <Input
+                    label={t.profile.user.fields.name}
+                    value={data.name}
+                    onChange={(e) => handleChange("name", e.target.value)}
+                    error={errors.name}
+                    disabled={!isEditing}
+                  />
+                  <Input
+                    label="CPF"
+                    value={data.cpf}
+                    onChange={(e) => handleChange("cpf", maskCPF(e.target.value))}
+                    error={errors.cpf}
+                    disabled={!isEditing}
+                    placeholder="000.000.000-00"
+                    maxLength={14}
+                    required
+                  />
+                </FormFieldGroup>
+
+                <FormFieldGroup columns={2}>
+                  <Input
+                    label={t.profile.user.fields.email}
+                    type="email"
+                    value={data.email}
+                    onChange={(e) => handleChange("email", e.target.value)}
+                    error={errors.email}
+                    disabled={!isEditing}
+                  />
+                  <Input
+                    label={t.profile.user.fields.phone}
+                    value={data.phone}
+                    onChange={(e) => handleChange("phone", maskPhone(e.target.value))}
+                    error={errors.phone}
+                    disabled={!isEditing}
+                    placeholder="(00) 00000-0000"
+                  />
+                </FormFieldGroup>
+
+                <AddressForm
+                  data={data}
+                  errors={errors}
+                  onChange={handleChange}
+                  disabled={!isEditing}
+                />
+
+                {isEditing && (
+                  <div className="flex justify-end gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <Button onClick={handleCancel} variant="outline" disabled={isSaving}>
+                      {t.profile.user.cancel}
+                    </Button>
+                    <Button onClick={handleSave} variant="primary" disabled={isSaving}>
+                      {isSaving ? t.common.loading : t.profile.user.save}
+                    </Button>
+                  </div>
+                )}
+
+                {/* Resend Verification Section - Only for current user and if email is not verified */}
+                {!userId && !emailVerifiedAt && (
+                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-1">
+                          Verificação de Email
+                        </h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Não recebeu o email de verificação? Clique no botão abaixo para reenviar.
+                        </p>
+                      </div>
+                      <Button
+                        onClick={async () => {
+                          setIsResendingVerification(true);
+                          try {
+                            await authService.resendVerification();
+                            showAlert("Email de verificação enviado com sucesso!", "success");
+                          } catch (err) {
+                            const errorMessage =
+                              err instanceof Error ? err.message : "Erro ao reenviar email";
+                            showAlert(errorMessage, "error");
+                          } finally {
+                            setIsResendingVerification(false);
+                          }
+                        }}
+                        variant="outline"
+                        size="sm"
+                        disabled={isResendingVerification}
+                      >
+                        {isResendingVerification ? "Enviando..." : "Reenviar Email"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Change Password Section - Only for current user */}
+                {!userId && (
+                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100">
+                        Alterar Senha
+                      </h3>
+                      {!isChangingPassword && (
+                        <Button
+                          onClick={() => setIsChangingPassword(true)}
+                          variant="outline"
+                          size="sm"
+                        >
+                          Alterar Senha
+                        </Button>
+                      )}
+                    </div>
+
+                    {isChangingPassword && (
+                      <div className="space-y-4">
+                        <Input
+                          type="password"
+                          label="Senha Atual"
+                          value={changePasswordData.currentPassword}
+                          onChange={(e) => {
+                            setChangePasswordData((prev) => ({
+                              ...prev,
+                              currentPassword: e.target.value,
+                            }));
+                            if (changePasswordErrors.currentPassword) {
+                              setChangePasswordErrors((prev) => {
+                                const newErrors = { ...prev };
+                                delete newErrors.currentPassword;
+                                return newErrors;
+                              });
+                            }
+                          }}
+                          error={changePasswordErrors.currentPassword}
+                          showPasswordToggle
+                        />
+                        <Input
+                          type="password"
+                          label="Nova Senha"
+                          value={changePasswordData.newPassword}
+                          onChange={(e) => {
+                            setChangePasswordData((prev) => ({
+                              ...prev,
+                              newPassword: e.target.value,
+                            }));
+                            if (changePasswordErrors.newPassword) {
+                              setChangePasswordErrors((prev) => {
+                                const newErrors = { ...prev };
+                                delete newErrors.newPassword;
+                                return newErrors;
+                              });
+                            }
+                          }}
+                          error={changePasswordErrors.newPassword}
+                          showPasswordToggle
+                        />
+                        <Input
+                          type="password"
+                          label="Confirmar Nova Senha"
+                          value={changePasswordData.confirmPassword}
+                          onChange={(e) => {
+                            setChangePasswordData((prev) => ({
+                              ...prev,
+                              confirmPassword: e.target.value,
+                            }));
+                            if (changePasswordErrors.confirmPassword) {
+                              setChangePasswordErrors((prev) => {
+                                const newErrors = { ...prev };
+                                delete newErrors.confirmPassword;
+                                return newErrors;
+                              });
+                            }
+                          }}
+                          error={changePasswordErrors.confirmPassword}
+                          showPasswordToggle
+                        />
+                        <div className="flex justify-end gap-3">
+                          <Button
+                            onClick={() => {
+                              setIsChangingPassword(false);
+                              setChangePasswordData({
+                                currentPassword: "",
+                                newPassword: "",
+                                confirmPassword: "",
+                              });
+                              setChangePasswordErrors({});
+                            }}
+                            variant="outline"
+                            disabled={isChangingPasswordLoading}
+                          >
+                            Cancelar
+                          </Button>
+                          <Button
+                            onClick={async () => {
+                              const newErrors: Record<string, string> = {};
+
+                              if (!changePasswordData.currentPassword.trim()) {
+                                newErrors.currentPassword = "Senha atual é obrigatória";
+                              }
+                              if (!changePasswordData.newPassword.trim()) {
+                                newErrors.newPassword = "Nova senha é obrigatória";
+                              } else if (changePasswordData.newPassword.length < 6) {
+                                newErrors.newPassword = "A senha deve ter pelo menos 6 caracteres";
+                              }
+                              if (
+                                changePasswordData.newPassword !==
+                                changePasswordData.confirmPassword
+                              ) {
+                                newErrors.confirmPassword = "As senhas não coincidem";
+                              }
+
+                              if (Object.keys(newErrors).length > 0) {
+                                setChangePasswordErrors(newErrors);
+                                return;
+                              }
+
+                              setIsChangingPasswordLoading(true);
+                              try {
+                                await authService.changePassword(
+                                  changePasswordData.currentPassword,
+                                  changePasswordData.newPassword
+                                );
+                                showAlert("Senha alterada com sucesso!", "success");
+                                setIsChangingPassword(false);
+                                setChangePasswordData({
+                                  currentPassword: "",
+                                  newPassword: "",
+                                  confirmPassword: "",
+                                });
+                                setChangePasswordErrors({});
+                              } catch (err) {
+                                const errorMessage =
+                                  err instanceof Error ? err.message : "Erro ao alterar senha";
+                                if (errorMessage.includes("incorrect")) {
+                                  setChangePasswordErrors({
+                                    currentPassword: "Senha atual incorreta",
+                                  });
+                                } else {
+                                  showAlert(errorMessage, "error");
+                                }
+                              } finally {
+                                setIsChangingPasswordLoading(false);
+                              }
+                            }}
+                            variant="primary"
+                            disabled={isChangingPasswordLoading}
+                          >
+                            {isChangingPasswordLoading ? "Alterando..." : "Alterar Senha"}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
       )}
 

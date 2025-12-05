@@ -11,14 +11,13 @@ const TestWrapper = ({ children }: { children: React.ReactNode }) => (
   </BrowserRouter>
 );
 
-const mockNavigate = vi.fn();
 const mockLogout = vi.fn();
 
 vi.mock("react-router", async () => {
   const actual = await vi.importActual("react-router");
   return {
     ...actual,
-    useNavigate: () => mockNavigate,
+    useNavigate: vi.fn(() => vi.fn()),
   };
 });
 
@@ -176,8 +175,9 @@ describe("UserDropdown", () => {
     expect(screen.getByTestId("menu-item-Team")).toBeInTheDocument();
   });
 
-  it("should call logout and navigate when logout is clicked", async () => {
+  it("should call logout when logout is clicked", async () => {
     const user = userEvent.setup();
+    vi.mocked(mockLogout).mockResolvedValue(undefined);
     render(
       <TestWrapper>
         <UserDropdown />
@@ -188,7 +188,7 @@ describe("UserDropdown", () => {
     const logoutItem = screen.getByTestId("menu-item-Logout");
     await user.click(logoutItem);
     expect(mockLogout).toHaveBeenCalledTimes(1);
-    expect(mockNavigate).toHaveBeenCalled();
+    // Navigation is now handled by auth context, not user-dropdown
   });
 
   it("should use custom name and email when provided", async () => {

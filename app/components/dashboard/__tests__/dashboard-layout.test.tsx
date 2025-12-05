@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor, cleanup } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { DashboardLayout } from "../dashboard-layout";
@@ -22,10 +22,12 @@ vi.mock("../sidebar", () => ({
   )),
 }));
 
+const mockUseAuth = vi.fn(() => ({
+  isAuthenticated: true,
+}));
+
 vi.mock("~/contexts/auth-context", () => ({
-  useAuth: vi.fn(() => ({
-    isAuthenticated: true,
-  })),
+  useAuth: () => mockUseAuth(),
 }));
 
 vi.mock("react-router", async () => {
@@ -43,14 +45,29 @@ vi.mock("~/routes.config", () => ({
   },
 }));
 
+vi.mock("~/hooks/use-company-trial", () => ({
+  useCompanyTrial: vi.fn(() => ({
+    isOnTrial: false,
+    trialDaysRemaining: 0,
+  })),
+}));
+
 describe("DashboardLayout", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset body overflow and ensure clean state
     document.body.style.overflow = "";
+    // Ensure auth mock returns authenticated
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+    });
   });
 
   afterEach(() => {
+    // Clean up body overflow
     document.body.style.overflow = "";
+    // Clean up rendered components and event listeners
+    cleanup();
   });
 
   it("should render when authenticated", () => {
@@ -64,8 +81,7 @@ describe("DashboardLayout", () => {
   });
 
   it("should return null when not authenticated", async () => {
-    const { useAuth } = await import("~/contexts/auth-context");
-    vi.mocked(useAuth).mockReturnValueOnce({
+    mockUseAuth.mockReturnValue({
       isAuthenticated: false,
     });
 
@@ -75,15 +91,24 @@ describe("DashboardLayout", () => {
       </MemoryRouter>
     );
 
-    expect(container.firstChild).toBeNull();
+    // Component returns null when not authenticated or not mounted
+    // The component checks isMounted first, then checks isAuthenticated
+    // After mount, if not authenticated, it should return null
+    await waitFor(
+      () => {
+        // The component returns null when !isMounted || !isAuthenticated
+        // After mount, if not authenticated, container should be empty or have no content
+        expect(container.firstChild).toBeNull();
+      },
+      { timeout: 2000 }
+    );
   });
 
   it("should navigate to login when not authenticated", async () => {
-    const { useAuth } = await import("~/contexts/auth-context");
     const { useNavigate } = await import("react-router");
     const mockNavigate = vi.fn();
 
-    vi.mocked(useAuth).mockReturnValueOnce({
+    mockUseAuth.mockReturnValue({
       isAuthenticated: false,
     });
     vi.mocked(useNavigate).mockReturnValue(mockNavigate);
@@ -94,7 +119,14 @@ describe("DashboardLayout", () => {
       </MemoryRouter>
     );
 
-    expect(mockNavigate).toHaveBeenCalledWith("/login", { replace: true });
+    // The component checks isMounted first, then navigates in a useEffect
+    // We need to wait for the mount effect to run, then the navigation effect
+    await waitFor(
+      () => {
+        expect(mockNavigate).toHaveBeenCalledWith("/login", { replace: true });
+      },
+      { timeout: 3000 }
+    );
   });
 
   it("should toggle sidebar when hamburger button is clicked", async () => {
@@ -105,11 +137,18 @@ describe("DashboardLayout", () => {
       </MemoryRouter>
     );
 
+    // Wait for component to mount
+    await waitFor(() => {
+      expect(screen.getByTestId("outlet")).toBeInTheDocument();
+    });
+
     const toggleButton = screen.getByText("Toggle");
     await user.click(toggleButton);
 
-    const sidebar = document.querySelector('[data-sidebar-open="true"]');
-    expect(sidebar).toBeInTheDocument();
+    await waitFor(() => {
+      const sidebar = document.querySelector('[data-sidebar-open="true"]');
+      expect(sidebar).toBeInTheDocument();
+    });
   });
 
   it("should close sidebar when backdrop is clicked", async () => {
@@ -120,9 +159,19 @@ describe("DashboardLayout", () => {
       </MemoryRouter>
     );
 
+    // Wait for component to mount
+    await waitFor(() => {
+      expect(screen.getByTestId("outlet")).toBeInTheDocument();
+    });
+
     // Open sidebar first
     const toggleButton = screen.getByText("Toggle");
     await user.click(toggleButton);
+
+    await waitFor(() => {
+      const sidebar = document.querySelector('[data-sidebar-open="true"]');
+      expect(sidebar).toBeInTheDocument();
+    });
 
     // Click backdrop
     const backdrop = document.querySelector('[aria-hidden="true"]');
@@ -131,8 +180,10 @@ describe("DashboardLayout", () => {
     }
 
     // Sidebar should be closed
-    const closedSidebar = document.querySelector('[data-sidebar-open="false"]');
-    expect(closedSidebar).toBeDefined();
+    await waitFor(() => {
+      const closedSidebar = document.querySelector('[data-sidebar-open="false"]');
+      expect(closedSidebar).toBeDefined();
+    });
   });
 
   it("should close sidebar when close button is clicked", async () => {
@@ -143,17 +194,29 @@ describe("DashboardLayout", () => {
       </MemoryRouter>
     );
 
+    // Wait for component to mount
+    await waitFor(() => {
+      expect(screen.getByTestId("outlet")).toBeInTheDocument();
+    });
+
     // Open sidebar first
     const toggleButton = screen.getByText("Toggle");
     await user.click(toggleButton);
+
+    await waitFor(() => {
+      const sidebar = document.querySelector('[data-sidebar-open="true"]');
+      expect(sidebar).toBeInTheDocument();
+    });
 
     // Click close button
     const closeButton = screen.getByText("Close");
     await user.click(closeButton);
 
     // Sidebar should be closed
-    const closedSidebar = document.querySelector('[data-sidebar-open="false"]');
-    expect(closedSidebar).toBeDefined();
+    await waitFor(() => {
+      const closedSidebar = document.querySelector('[data-sidebar-open="false"]');
+      expect(closedSidebar).toBeDefined();
+    });
   });
 
   it("should set body overflow hidden when sidebar is open", async () => {
@@ -164,10 +227,17 @@ describe("DashboardLayout", () => {
       </MemoryRouter>
     );
 
+    // Wait for component to mount
+    await waitFor(() => {
+      expect(screen.getByTestId("outlet")).toBeInTheDocument();
+    });
+
     const toggleButton = screen.getByText("Toggle");
     await user.click(toggleButton);
 
-    expect(document.body.style.overflow).toBe("hidden");
+    await waitFor(() => {
+      expect(document.body.style.overflow).toBe("hidden");
+    });
   });
 
   it("should restore body overflow when sidebar is closed", async () => {
@@ -178,16 +248,25 @@ describe("DashboardLayout", () => {
       </MemoryRouter>
     );
 
+    // Wait for component to mount
+    await waitFor(() => {
+      expect(screen.getByTestId("outlet")).toBeInTheDocument();
+    });
+
     // Open sidebar
     const toggleButton = screen.getByText("Toggle");
     await user.click(toggleButton);
-    expect(document.body.style.overflow).toBe("hidden");
+    await waitFor(() => {
+      expect(document.body.style.overflow).toBe("hidden");
+    });
 
     // Close sidebar
     const closeButton = screen.getByText("Close");
     await user.click(closeButton);
 
-    expect(document.body.style.overflow).toBe("");
+    await waitFor(() => {
+      expect(document.body.style.overflow).toBe("");
+    });
   });
 
   it("should not close sidebar when clicking inside sidebar", async () => {
@@ -198,9 +277,19 @@ describe("DashboardLayout", () => {
       </MemoryRouter>
     );
 
+    // Wait for component to mount
+    await waitFor(() => {
+      expect(screen.getByTestId("outlet")).toBeInTheDocument();
+    });
+
     // Open sidebar
     const toggleButton = screen.getByText("Toggle");
     await user.click(toggleButton);
+
+    await waitFor(() => {
+      const sidebar = document.querySelector('[data-sidebar-open="true"]');
+      expect(sidebar).toBeInTheDocument();
+    });
 
     // Click inside sidebar (close button)
     const closeButton = screen.getByText("Close");
@@ -223,9 +312,19 @@ describe("DashboardLayout", () => {
       </MemoryRouter>
     );
 
+    // Wait for component to mount
+    await waitFor(() => {
+      expect(screen.getByTestId("outlet")).toBeInTheDocument();
+    });
+
     // Open sidebar
     const toggleButton = screen.getByText("Toggle");
     await user.click(toggleButton);
+
+    await waitFor(() => {
+      const sidebar = document.querySelector('[data-sidebar-open="true"]');
+      expect(sidebar).toBeInTheDocument();
+    });
 
     // Click hamburger button again (should toggle, not close via outside click)
     await user.click(toggleButton);

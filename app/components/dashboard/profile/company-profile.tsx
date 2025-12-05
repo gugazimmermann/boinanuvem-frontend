@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { Input, FixedAlert, FormFieldGroup, Button } from "~/components/ui";
 import { AddressForm } from "./address-form";
 import { ActivityLog } from "./activity-log";
@@ -14,9 +14,7 @@ import {
 } from "~/components/site/utils/masks";
 import { useTranslation } from "~/i18n";
 import type { CompanyFormData } from "~/components/site/utils/cnpj-utils";
-import { mockCompanies } from "~/mocks/companies";
-import { updateCompany } from "~/services/companies.service";
-import { mockUsers } from "~/mocks/users";
+import { getCompany, updateCompany, type EnhancedCompany } from "~/services/companies.service";
 import { ProfileTabs, type ProfileTab } from "./shared/profile-tabs";
 import { useProfileForm } from "~/hooks/use-profile-form";
 import { generateActivityLogs } from "~/utils/activity-log-generator";
@@ -26,25 +24,12 @@ import {
   validatePhone,
   validateAddressFields,
 } from "~/utils/form-validation";
+import { useAuth } from "~/contexts/auth-context";
 
-const getMockCompanyData = (): CompanyFormData => {
-  const company = mockCompanies[0];
-  if (!company) {
-    return {
-      cnpj: "30.584.233/0001-40",
-      companyName: "Fazenda São João Ltda",
-      email: "contato@fazendasa joao.com.br",
-      phone: "(11) 98765-4321",
-      street: "Rua das Flores",
-      number: "123",
-      complement: "Sala 45",
-      neighborhood: "Centro",
-      city: "São Paulo",
-      state: "SP",
-      zipCode: "01310-100",
-    };
-  }
-
+/**
+ * Convert backend company data to form data format
+ */
+const mapCompanyToFormData = (company: EnhancedCompany): CompanyFormData => {
   return {
     cnpj: maskCNPJ(company.cnpj),
     companyName: company.companyName,
@@ -52,7 +37,7 @@ const getMockCompanyData = (): CompanyFormData => {
     phone: maskPhone(company.phone),
     street: company.street,
     number: company.number,
-    complement: company.complement,
+    complement: company.complement || "",
     neighborhood: company.neighborhood,
     city: company.city,
     state: company.state,
@@ -62,15 +47,77 @@ const getMockCompanyData = (): CompanyFormData => {
 
 export function CompanyProfile() {
   const t = useTranslation();
-  const mockCompanyData = useMemo(() => getMockCompanyData(), []);
-  const company = useMemo(() => mockCompanies[0], []);
-  const companyId = company?.id || "";
+  const { currentUser } = useAuth();
+  const companyId = currentUser?.companyId;
 
-  const companyUsers = useMemo(
-    () => mockUsers.filter((user) => user.companyId === companyId),
-    [companyId]
-  );
-  const users = useMemo(() => companyUsers.map((user) => user.name), [companyUsers]);
+  const [company, setCompany] = useState<EnhancedCompany | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  // Use refs to track loading state and prevent infinite loops
+  const loadedCompanyIdRef = useRef<string | undefined>(undefined);
+  const isLoadingRef = useRef(false);
+
+  // Fetch company data from backend
+  useEffect(() => {
+    // Prevent loading if we're already loading or if we've already loaded this companyId
+    if (isLoadingRef.current) {
+      return;
+    }
+
+    if (!companyId) {
+      setIsLoading(false);
+      setLoadError("Company ID not found");
+      return;
+    }
+
+    // If we've already loaded this companyId, don't reload
+    if (loadedCompanyIdRef.current === companyId) {
+      return;
+    }
+
+    let cancelled = false;
+    isLoadingRef.current = true;
+
+    const fetchCompany = async () => {
+      try {
+        setIsLoading(true);
+        setLoadError(null);
+        const companyData = await getCompany(companyId);
+
+        if (!cancelled) {
+          setCompany(companyData);
+          loadedCompanyIdRef.current = companyId;
+        }
+      } catch (error) {
+        if (!cancelled) {
+          const errorMessage =
+            error instanceof Error ? error.message : "Failed to load company data";
+          setLoadError(errorMessage);
+          // Don't call showAlert here to avoid potential re-render loops
+          console.error("Failed to load company data:", errorMessage);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+          isLoadingRef.current = false;
+        }
+      }
+    };
+
+    fetchCompany();
+
+    return () => {
+      cancelled = true;
+      isLoadingRef.current = false;
+    };
+  }, [companyId]);
+
+  // Generate activity logs from company users
+  const companyUsers = useMemo(() => {
+    if (!company || !Array.isArray(company.users)) return [];
+    return company.users.map((user: { name: string }) => user.name);
+  }, [company]);
 
   const mockCompanyLogs = useMemo(
     () =>
@@ -78,7 +125,7 @@ export function CompanyProfile() {
         ? generateActivityLogs({
             count: 136,
             maxDaysAgo: 90,
-            users,
+            users: companyUsers,
             actions: [
               "CREATE",
               "UPDATE",
@@ -129,12 +176,33 @@ export function CompanyProfile() {
                 "Production Report",
                 "Financial Report",
               ],
-              users,
+              users: companyUsers,
             },
           })
         : [],
-    [companyUsers, users]
+    [companyUsers]
   );
+
+  // Initialize form data from company
+  const initialFormData = useMemo((): CompanyFormData => {
+    if (company) {
+      return mapCompanyToFormData(company);
+    }
+    // Default empty form data
+    return {
+      cnpj: "",
+      companyName: "",
+      email: "",
+      phone: "",
+      street: "",
+      number: "",
+      complement: "",
+      neighborhood: "",
+      city: "",
+      state: "",
+      zipCode: "",
+    };
+  }, [company]);
 
   const {
     data,
@@ -148,7 +216,7 @@ export function CompanyProfile() {
     handleSave,
     handleCancel,
   } = useProfileForm<CompanyFormData>({
-    initialData: mockCompanyData,
+    initialData: initialFormData,
     validate: (data) => {
       const newErrors: Record<string, string> = {};
       const fieldLabels = t.profile.company.fields;
@@ -198,25 +266,44 @@ export function CompanyProfile() {
       return newErrors;
     },
     onSave: async (data) => {
-      const unmaskedCNPJ = unmaskCNPJ(data.cnpj);
-      updateCompany(unmaskedCNPJ, {
-        cnpj: unmaskedCNPJ,
+      if (!companyId) {
+        throw new Error("Company ID not found");
+      }
+
+      const updatedCompany = await updateCompany(companyId, {
         companyName: data.companyName,
         email: data.email,
         phone: unmaskPhone(data.phone),
         street: data.street,
         number: data.number,
-        complement: data.complement,
+        complement: data.complement || undefined,
         neighborhood: data.neighborhood,
         city: data.city,
         state: data.state,
         zipCode: unmaskCEP(data.zipCode),
       });
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Update local company state with the response
+      setCompany(updatedCompany);
     },
     successMessage: t.profile.success.saved,
     errorMessage: t.profile.errors.saveFailed,
   });
+
+  // Update form data when company data is loaded (only when not editing)
+  const previousCompanyIdRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    // Only update form data if:
+    // 1. Company is loaded
+    // 2. We're not currently editing
+    // 3. Company ID has changed (new data loaded)
+    if (company && !isEditing && previousCompanyIdRef.current !== company.id) {
+      const formData = mapCompanyToFormData(company);
+      setData(formData);
+      previousCompanyIdRef.current = company.id;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [company?.id, isEditing]); // Only depend on company.id, not the whole company object
 
   const [activeSubTab, setActiveSubTab] = useState<ProfileTab>("data");
 
@@ -237,6 +324,33 @@ export function CompanyProfile() {
     onSuccess: handleCNPJSuccess,
     enabled: isEditing,
   });
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-center py-8">
+            <p className="text-gray-600 dark:text-gray-400">{t.common.loading}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (loadError || !company) {
+    return (
+      <div className="space-y-4">
+        <FixedAlert
+          alertMessage={{
+            title: loadError || "Company data not available",
+            variant: "error",
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

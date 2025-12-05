@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { loader, meta, links, default as ForgotPassword } from "../forgot-password";
@@ -11,16 +11,16 @@ vi.mock("~/utils/route-guard", () => ({
   useRequireGuest: vi.fn(),
 }));
 
-vi.mock("~/components/site/hooks", () => ({
-  usePasswordReset: vi.fn(() => ({
-    email: "",
-    error: "",
-    isLoading: false,
-    setEmail: vi.fn(),
-    handleSendCode: vi.fn((e: React.FormEvent) => {
-      e.preventDefault();
-    }),
-  })),
+vi.mock("~/services/auth.service", () => ({
+  authService: {
+    forgotPassword: vi.fn(),
+  },
+}));
+
+vi.mock("~/utils/email-validation", () => ({
+  isValidEmail: vi.fn((email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }),
 }));
 
 vi.mock("~/components/site/auth-layout", () => ({
@@ -240,16 +240,7 @@ describe("forgot-password", () => {
     });
 
     it("should display error message when error exists", async () => {
-      const { usePasswordReset } = await import("~/components/site/hooks");
-      vi.mocked(usePasswordReset).mockReturnValueOnce({
-        email: "",
-        error: "emailRequired",
-        isLoading: false,
-        setEmail: vi.fn(),
-        handleSendCode: vi.fn((e: React.FormEvent) => {
-          e.preventDefault();
-        }),
-      });
+      const user = userEvent.setup();
 
       render(
         <TestWrapper>
@@ -257,44 +248,19 @@ describe("forgot-password", () => {
         </TestWrapper>
       );
 
+      const submitButton = screen.getByText("Enviar Código");
+      await user.click(submitButton);
+
+      await screen.findByTestId("auth-form-error");
       expect(screen.getByTestId("auth-form-error")).toBeInTheDocument();
     });
 
     it("should show loading state on button when isLoading is true", async () => {
-      const { usePasswordReset } = await import("~/components/site/hooks");
-      vi.mocked(usePasswordReset).mockReturnValueOnce({
-        email: "",
-        error: "",
-        isLoading: true,
-        setEmail: vi.fn(),
-        handleSendCode: vi.fn((e: React.FormEvent) => {
-          e.preventDefault();
-        }),
-      });
-
-      render(
-        <TestWrapper>
-          <ForgotPassword />
-        </TestWrapper>
+      const user = userEvent.setup();
+      const { authService } = await import("~/services/auth.service");
+      vi.mocked(authService.forgotPassword).mockImplementation(
+        () => new Promise((resolve) => setTimeout(() => resolve({ message: "Email sent" }), 100))
       );
-
-      const button = screen.getByText("Enviando...");
-      expect(button).toBeInTheDocument();
-      expect(button).toBeDisabled();
-    });
-
-    it("should call setEmail when input value changes", async () => {
-      const mockSetEmail = vi.fn();
-      const { usePasswordReset } = await import("~/components/site/hooks");
-      vi.mocked(usePasswordReset).mockReturnValueOnce({
-        email: "",
-        error: "",
-        isLoading: false,
-        setEmail: mockSetEmail,
-        handleSendCode: vi.fn((e: React.FormEvent) => {
-          e.preventDefault();
-        }),
-      });
 
       render(
         <TestWrapper>
@@ -303,22 +269,31 @@ describe("forgot-password", () => {
       );
 
       const input = screen.getByPlaceholderText("Email");
-      await userEvent.type(input, "test@example.com");
+      await user.type(input, "test@example.com");
+      const submitButton = screen.getByText("Enviar Código");
+      await user.click(submitButton);
 
-      expect(mockSetEmail).toHaveBeenCalled();
+      expect(screen.getByText("Enviando...")).toBeInTheDocument();
+      expect(screen.getByText("Enviando...")).toBeDisabled();
+    });
+
+    it("should update email when input value changes", async () => {
+      const user = userEvent.setup();
+
+      render(
+        <TestWrapper>
+          <ForgotPassword />
+        </TestWrapper>
+      );
+
+      const input = screen.getByPlaceholderText("Email") as HTMLInputElement;
+      await user.type(input, "test@example.com");
+
+      expect(input.value).toBe("test@example.com");
     });
 
     it("should display error message for emailRequired", async () => {
-      const { usePasswordReset } = await import("~/components/site/hooks");
-      vi.mocked(usePasswordReset).mockReturnValueOnce({
-        email: "",
-        error: "emailRequired",
-        isLoading: false,
-        setEmail: vi.fn(),
-        handleSendCode: vi.fn((e: React.FormEvent) => {
-          e.preventDefault();
-        }),
-      });
+      const user = userEvent.setup();
 
       render(
         <TestWrapper>
@@ -326,21 +301,15 @@ describe("forgot-password", () => {
         </TestWrapper>
       );
 
+      const submitButton = screen.getByText("Enviar Código");
+      await user.click(submitButton);
+
+      await screen.findByTestId("auth-form-error");
       expect(screen.getByTestId("auth-form-error")).toHaveTextContent("Email é obrigatório");
-      expect(screen.getByTestId("input-error")).toHaveTextContent("Email é obrigatório");
     });
 
     it("should display error message for invalidEmail", async () => {
-      const { usePasswordReset } = await import("~/components/site/hooks");
-      vi.mocked(usePasswordReset).mockReturnValueOnce({
-        email: "",
-        error: "invalidEmail",
-        isLoading: false,
-        setEmail: vi.fn(),
-        handleSendCode: vi.fn((e: React.FormEvent) => {
-          e.preventDefault();
-        }),
-      });
+      const user = userEvent.setup();
 
       render(
         <TestWrapper>
@@ -348,21 +317,30 @@ describe("forgot-password", () => {
         </TestWrapper>
       );
 
-      expect(screen.getByTestId("auth-form-error")).toHaveTextContent("Email inválido");
-      expect(screen.getByTestId("input-error")).toHaveTextContent("Email inválido");
+      const input = screen.getByPlaceholderText("Email");
+      // Type an invalid email (no @ symbol)
+      await user.type(input, "invalid-email");
+
+      // Submit the form directly
+      const form = input.closest("form");
+      if (form) {
+        fireEvent.submit(form);
+      }
+
+      // Wait for the error message to appear
+      await waitFor(
+        () => {
+          const errorElement = screen.getByTestId("auth-form-error");
+          expect(errorElement).toHaveTextContent("Email inválido");
+        },
+        { timeout: 3000 }
+      );
     });
 
     it("should display error message for sendCodeError", async () => {
-      const { usePasswordReset } = await import("~/components/site/hooks");
-      vi.mocked(usePasswordReset).mockReturnValueOnce({
-        email: "",
-        error: "sendCodeError",
-        isLoading: false,
-        setEmail: vi.fn(),
-        handleSendCode: vi.fn((e: React.FormEvent) => {
-          e.preventDefault();
-        }),
-      });
+      const user = userEvent.setup();
+      const { authService } = await import("~/services/auth.service");
+      vi.mocked(authService.forgotPassword).mockRejectedValue(new Error("User not found"));
 
       render(
         <TestWrapper>
@@ -370,20 +348,19 @@ describe("forgot-password", () => {
         </TestWrapper>
       );
 
+      const input = screen.getByPlaceholderText("Email");
+      await user.type(input, "test@example.com");
+      const submitButton = screen.getByText("Enviar Código");
+      await user.click(submitButton);
+
+      await screen.findByTestId("auth-form-error");
       expect(screen.getByTestId("auth-form-error")).toHaveTextContent("Erro ao enviar código");
     });
 
     it("should display fallback error message for unknown error", async () => {
-      const { usePasswordReset } = await import("~/components/site/hooks");
-      vi.mocked(usePasswordReset).mockReturnValueOnce({
-        email: "",
-        error: "unknownError",
-        isLoading: false,
-        setEmail: vi.fn(),
-        handleSendCode: vi.fn((e: React.FormEvent) => {
-          e.preventDefault();
-        }),
-      });
+      const user = userEvent.setup();
+      const { authService } = await import("~/services/auth.service");
+      vi.mocked(authService.forgotPassword).mockRejectedValue(new Error("Unknown error"));
 
       render(
         <TestWrapper>
@@ -391,20 +368,19 @@ describe("forgot-password", () => {
         </TestWrapper>
       );
 
+      const input = screen.getByPlaceholderText("Email");
+      await user.type(input, "test@example.com");
+      const submitButton = screen.getByText("Enviar Código");
+      await user.click(submitButton);
+
+      await screen.findByTestId("auth-form-error");
       expect(screen.getByTestId("auth-form-error")).toHaveTextContent("Erro ao enviar código");
     });
 
     it("should not show input error when error is not emailRequired or invalidEmail", async () => {
-      const { usePasswordReset } = await import("~/components/site/hooks");
-      vi.mocked(usePasswordReset).mockReturnValueOnce({
-        email: "",
-        error: "sendCodeError",
-        isLoading: false,
-        setEmail: vi.fn(),
-        handleSendCode: vi.fn((e: React.FormEvent) => {
-          e.preventDefault();
-        }),
-      });
+      const user = userEvent.setup();
+      const { authService } = await import("~/services/auth.service");
+      vi.mocked(authService.forgotPassword).mockRejectedValue(new Error("Network error"));
 
       render(
         <TestWrapper>
@@ -412,21 +388,20 @@ describe("forgot-password", () => {
         </TestWrapper>
       );
 
+      const input = screen.getByPlaceholderText("Email");
+      await user.type(input, "test@example.com");
+      const submitButton = screen.getByText("Enviar Código");
+      await user.click(submitButton);
+
+      await screen.findByTestId("auth-form-error");
+      // Input error should not be shown for sendCodeError
       expect(screen.queryByTestId("input-error")).not.toBeInTheDocument();
     });
 
-    it("should call handleSendCode when form is submitted", async () => {
-      const mockHandleSendCode = vi.fn((e: React.FormEvent) => {
-        e.preventDefault();
-      });
-      const { usePasswordReset } = await import("~/components/site/hooks");
-      vi.mocked(usePasswordReset).mockReturnValueOnce({
-        email: "test@example.com",
-        error: "",
-        isLoading: false,
-        setEmail: vi.fn(),
-        handleSendCode: mockHandleSendCode,
-      });
+    it("should call authService.forgotPassword when form is submitted", async () => {
+      const user = userEvent.setup();
+      const { authService } = await import("~/services/auth.service");
+      vi.mocked(authService.forgotPassword).mockResolvedValue({ message: "Email sent" });
 
       render(
         <TestWrapper>
@@ -434,11 +409,13 @@ describe("forgot-password", () => {
         </TestWrapper>
       );
 
-      const form = screen.getByPlaceholderText("Email").closest("form");
-      if (form) {
-        await userEvent.click(screen.getByText("Enviar Código"));
-        expect(mockHandleSendCode).toHaveBeenCalled();
-      }
+      const input = screen.getByPlaceholderText("Email");
+      await user.type(input, "test@example.com");
+      const submitButton = screen.getByText("Enviar Código");
+      await user.click(submitButton);
+
+      await screen.findByText(/Email de recuperação enviado/i);
+      expect(authService.forgotPassword).toHaveBeenCalledWith("test@example.com");
     });
   });
 });

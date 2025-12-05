@@ -12,4 +12,5 @@ export { FileUpload } from "./file-upload";
 export { FormPageLayout, type FormPageLayoutProps } from "./form-page-layout";
 export { FormFieldGroup } from "./form-field-group";
 export { FormFieldWrapper } from "./form-field-wrapper";
+export { TrialBanner } from "./trial-banner";
 export * from "./table";

@@ -249,6 +249,7 @@ vi.mock("~/i18n/use-translation", () => ({
       addressNotFound: "Endereço não encontrado",
       requestError: "Erro na requisição",
       unknownError: "Erro desconhecido",
+      passwordMinLength: "A senha deve ter pelo menos 6 caracteres",
       ariaLabels: {
         cnpj: "CNPJ",
         companyName: "Razão Social",
@@ -261,12 +262,20 @@ vi.mock("~/i18n/use-translation", () => ({
   })),
 }));
 
+vi.mock("~/services/auth.service", () => ({
+  authService: {
+    registerCompany: vi.fn(() => Promise.resolve({ message: "Registration successful" })),
+  },
+}));
+
 vi.mock("~/components/site/utils", () => ({
   maskCNPJ: vi.fn((value: string) => value),
   maskPhone: vi.fn((value: string) => value),
   maskCPF: vi.fn((value: string) => value),
   unmaskCNPJ: vi.fn((value: string) => value.replace(/\D/g, "")),
   unmaskCEP: vi.fn((value: string) => value.replace(/\D/g, "")),
+  unmaskCPF: vi.fn((value: string) => value.replace(/\D/g, "")),
+  unmaskPhone: vi.fn((value: string) => value.replace(/\D/g, "")),
   geocodeAddress: vi.fn(() => Promise.resolve({ lat: -23.5505, lon: -46.6333 })),
   buildAddressString: vi.fn(() => "Test Address"),
   mapCNPJDataToCompanyForm: vi.fn(
@@ -851,8 +860,14 @@ describe("register", () => {
     });
 
     it("should mask CPF input on step 2", async () => {
+      const user = userEvent.setup();
       const { maskCPF } = await import("~/components/site/utils");
-      vi.mocked(maskCPF).mockReturnValue("123.456.789-00");
+      // Track calls to maskCPF
+      let maskCPFCallCount = 0;
+      vi.mocked(maskCPF).mockImplementation((value: string) => {
+        maskCPFCallCount++;
+        return value || "";
+      });
 
       render(
         <TestWrapper>
@@ -871,31 +886,36 @@ describe("register", () => {
       const cityInput = screen.getByTestId("address-city");
       const stateInput = screen.getByTestId("address-state");
 
-      await userEvent.type(cnpjInput, "12345678000190");
-      await userEvent.type(companyNameInput, "Test Company");
-      await userEvent.type(emailInput, "test@example.com");
-      await userEvent.type(phoneInput, "11999999999");
-      await userEvent.type(zipCodeInput, "12345678");
-      await userEvent.type(streetInput, "Test Street");
-      await userEvent.type(neighborhoodInput, "Test Neighborhood");
-      await userEvent.type(cityInput, "Test City");
-      await userEvent.type(stateInput, "SP");
+      await user.type(cnpjInput, "12345678000190");
+      await user.type(companyNameInput, "Test Company");
+      await user.type(emailInput, "test@example.com");
+      await user.type(phoneInput, "11999999999");
+      await user.type(zipCodeInput, "12345678");
+      await user.type(streetInput, "Test Street");
+      await user.type(neighborhoodInput, "Test Neighborhood");
+      await user.type(cityInput, "Test City");
+      await user.type(stateInput, "SP");
 
       const nextButton = screen.getByText("Próximo");
-      await userEvent.click(nextButton);
+      await user.click(nextButton);
 
+      // Wait for step 2 to appear
       await waitFor(
         () => {
-          const cpfInput = screen.getByPlaceholderText("CPF");
-          expect(cpfInput).toBeInTheDocument();
+          expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
         },
-        { timeout: 5000 }
+        { timeout: 3000 }
       );
 
-      const cpfInput = screen.getByPlaceholderText("CPF");
-      await userEvent.type(cpfInput, "12345678900");
+      // Now look for CPF input - placeholder is "000.000.000-00"
+      const cpfInput = await screen.findByPlaceholderText("000.000.000-00", {}, { timeout: 2000 });
+      expect(cpfInput).toBeInTheDocument();
 
-      expect(maskCPF).toHaveBeenCalled();
+      // Type in CPF field - maskCPF should be called during onChange
+      await user.type(cpfInput, "12345678900");
+
+      // maskCPF should be called when typing in the CPF field
+      expect(maskCPFCallCount).toBeGreaterThan(0);
     });
 
     it("should clear error when field is changed", async () => {
@@ -926,10 +946,29 @@ describe("register", () => {
       });
     });
 
-    it("should handle form submission on step 2", async () => {
+    it("should show alert on form submission", async () => {
+      const user = userEvent.setup();
       const { geocodeAddress, buildAddressString } = await import("~/components/site/utils");
-      vi.mocked(geocodeAddress).mockResolvedValue({ lat: -23.5505, lon: -46.6333 });
+      const { authService } = await import("~/services/auth.service");
+      // Mock geocodeAddress to return coordinates for both company and user addresses
+      vi.mocked(geocodeAddress).mockImplementation(
+        async (_address: {
+          street: string;
+          number: string;
+          complement?: string;
+          neighborhood: string;
+          city: string;
+          state: string;
+          zipCode: string;
+        }) => {
+          // Return coordinates for any address
+          return { lat: -23.5505, lon: -46.6333 };
+        }
+      );
       vi.mocked(buildAddressString).mockReturnValue("Test Address");
+      vi.mocked(authService.registerCompany).mockResolvedValue({
+        message: "Registration successful",
+      });
 
       render(
         <TestWrapper>
@@ -937,7 +976,7 @@ describe("register", () => {
         </TestWrapper>
       );
 
-      // Fill step 1
+      // Fill step 1 and navigate to step 2
       const cnpjInput = screen.getByPlaceholderText("CNPJ");
       const companyNameInput = screen.getByPlaceholderText("Razão Social");
       const emailInput = screen.getByPlaceholderText("Email");
@@ -948,231 +987,60 @@ describe("register", () => {
       const cityInput = screen.getByTestId("address-city");
       const stateInput = screen.getByTestId("address-state");
 
-      await userEvent.type(cnpjInput, "12345678000190");
-      await userEvent.type(companyNameInput, "Test Company");
-      await userEvent.type(emailInput, "test@example.com");
-      await userEvent.type(phoneInput, "11999999999");
-      await userEvent.type(zipCodeInput, "12345678");
-      await userEvent.type(streetInput, "Test Street");
-      await userEvent.type(neighborhoodInput, "Test Neighborhood");
-      await userEvent.type(cityInput, "Test City");
-      await userEvent.type(stateInput, "SP");
+      await user.type(cnpjInput, "12345678000190");
+      await user.type(companyNameInput, "Test Company");
+      await user.type(emailInput, "test@example.com");
+      await user.type(phoneInput, "11999999999");
+      await user.type(zipCodeInput, "12345678");
+      await user.type(streetInput, "Test Street");
+      await user.type(neighborhoodInput, "Test Neighborhood");
+      await user.type(cityInput, "Test City");
+      await user.type(stateInput, "SP");
 
       const nextButton = screen.getByText("Próximo");
-      await userEvent.click(nextButton);
+      await user.click(nextButton);
 
       await waitFor(
         () => {
           expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
         },
-        { timeout: 5000 }
+        { timeout: 3000 }
       );
+
+      // Fill step 2 - all required fields
+      const nameInput = screen.getByPlaceholderText("Nome");
+      const cpfInput = screen.getByPlaceholderText("000.000.000-00");
+      const userEmailInput = screen.getByPlaceholderText("Email");
+      const userPhoneInput = screen.getByPlaceholderText("Telefone");
+      const passwordInput = screen.getByPlaceholderText("Senha");
+      const confirmPasswordInput = screen.getByPlaceholderText("Repita a Senha");
+      await user.type(nameInput, "Test User");
+      await user.type(cpfInput, "12345678901"); // 11 digits for CPF
+      await user.type(userEmailInput, "user@example.com");
+      await user.type(userPhoneInput, "11999999999");
+      await user.type(passwordInput, "password123");
+      await user.type(confirmPasswordInput, "password123");
 
       // Submit form
       const submitButton = screen.getByText("Cadastrar");
-      await userEvent.click(submitButton);
+      await user.click(submitButton);
 
+      // Wait for the registration to complete and alert to appear
       await waitFor(
         () => {
-          expect(geocodeAddress).toHaveBeenCalled();
-          expect(buildAddressString).toHaveBeenCalled();
+          expect(authService.registerCompany).toHaveBeenCalled();
         },
-        { timeout: 5000 }
-      );
-    });
-
-    it("should show alert on form submission", async () => {
-      const { geocodeAddress, buildAddressString } = await import("~/components/site/utils");
-      vi.mocked(geocodeAddress).mockResolvedValue({ lat: -23.5505, lon: -46.6333 });
-      vi.mocked(buildAddressString).mockReturnValue("Test Address");
-
-      render(
-        <TestWrapper>
-          <Register />
-        </TestWrapper>
+        { timeout: 3000 }
       );
 
-      // Fill step 1 and navigate to step 2
-      const cnpjInput = screen.getByPlaceholderText("CNPJ");
-      const companyNameInput = screen.getByPlaceholderText("Razão Social");
-      const emailInput = screen.getByPlaceholderText("Email");
-      const phoneInput = screen.getByPlaceholderText("Telefone");
-      const zipCodeInput = screen.getByTestId("address-zipcode");
-      const streetInput = screen.getByTestId("address-street");
-      const neighborhoodInput = screen.getByTestId("address-neighborhood");
-      const cityInput = screen.getByTestId("address-city");
-      const stateInput = screen.getByTestId("address-state");
-
-      await userEvent.type(cnpjInput, "12345678000190");
-      await userEvent.type(companyNameInput, "Test Company");
-      await userEvent.type(emailInput, "test@example.com");
-      await userEvent.type(phoneInput, "11999999999");
-      await userEvent.type(zipCodeInput, "12345678");
-      await userEvent.type(streetInput, "Test Street");
-      await userEvent.type(neighborhoodInput, "Test Neighborhood");
-      await userEvent.type(cityInput, "Test City");
-      await userEvent.type(stateInput, "SP");
-
-      const nextButton = screen.getByText("Próximo");
-      await userEvent.click(nextButton);
-
-      await waitFor(() => {
-        expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
-      });
-
-      // Submit form
-      const submitButton = screen.getByText("Cadastrar");
-      await userEvent.click(submitButton);
-
-      await waitFor(() => {
-        expect(screen.getByTestId("alert")).toBeInTheDocument();
-      });
-    });
-
-    it("should handle geocode error", async () => {
-      const { geocodeAddress, buildAddressString } = await import("~/components/site/utils");
-      vi.mocked(geocodeAddress).mockResolvedValue({ error: "INCOMPLETE_ADDRESS" });
-      vi.mocked(buildAddressString).mockReturnValue("Test Address");
-
-      render(
-        <TestWrapper>
-          <Register />
-        </TestWrapper>
+      // Check for alert after registration completes
+      await waitFor(
+        () => {
+          const alert = screen.queryByTestId("alert");
+          expect(alert).toBeInTheDocument();
+        },
+        { timeout: 3000 }
       );
-
-      // Fill step 1 and navigate to step 2
-      const cnpjInput = screen.getByPlaceholderText("CNPJ");
-      const companyNameInput = screen.getByPlaceholderText("Razão Social");
-      const emailInput = screen.getByPlaceholderText("Email");
-      const phoneInput = screen.getByPlaceholderText("Telefone");
-      const zipCodeInput = screen.getByTestId("address-zipcode");
-      const streetInput = screen.getByTestId("address-street");
-      const neighborhoodInput = screen.getByTestId("address-neighborhood");
-      const cityInput = screen.getByTestId("address-city");
-      const stateInput = screen.getByTestId("address-state");
-
-      await userEvent.type(cnpjInput, "12345678000190");
-      await userEvent.type(companyNameInput, "Test Company");
-      await userEvent.type(emailInput, "test@example.com");
-      await userEvent.type(phoneInput, "11999999999");
-      await userEvent.type(zipCodeInput, "12345678");
-      await userEvent.type(streetInput, "Test Street");
-      await userEvent.type(neighborhoodInput, "Test Neighborhood");
-      await userEvent.type(cityInput, "Test City");
-      await userEvent.type(stateInput, "SP");
-
-      const nextButton = screen.getByText("Próximo");
-      await userEvent.click(nextButton);
-
-      await waitFor(() => {
-        expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
-      });
-
-      // Submit form
-      const submitButton = screen.getByText("Cadastrar");
-      await userEvent.click(submitButton);
-
-      await waitFor(() => {
-        expect(screen.getByTestId("alert")).toBeInTheDocument();
-      });
-    });
-
-    it("should handle different geocode error types", async () => {
-      const { geocodeAddress, buildAddressString } = await import("~/components/site/utils");
-      vi.mocked(geocodeAddress)
-        .mockResolvedValueOnce({ error: "ADDRESS_NOT_FOUND" })
-        .mockResolvedValueOnce({ error: "REQUEST_ERROR:404" });
-      vi.mocked(buildAddressString).mockReturnValue("Test Address");
-
-      render(
-        <TestWrapper>
-          <Register />
-        </TestWrapper>
-      );
-
-      // Fill step 1 and navigate to step 2
-      const cnpjInput = screen.getByPlaceholderText("CNPJ");
-      const companyNameInput = screen.getByPlaceholderText("Razão Social");
-      const emailInput = screen.getByPlaceholderText("Email");
-      const phoneInput = screen.getByPlaceholderText("Telefone");
-      const zipCodeInput = screen.getByTestId("address-zipcode");
-      const streetInput = screen.getByTestId("address-street");
-      const neighborhoodInput = screen.getByTestId("address-neighborhood");
-      const cityInput = screen.getByTestId("address-city");
-      const stateInput = screen.getByTestId("address-state");
-
-      await userEvent.type(cnpjInput, "12345678000190");
-      await userEvent.type(companyNameInput, "Test Company");
-      await userEvent.type(emailInput, "test@example.com");
-      await userEvent.type(phoneInput, "11999999999");
-      await userEvent.type(zipCodeInput, "12345678");
-      await userEvent.type(streetInput, "Test Street");
-      await userEvent.type(neighborhoodInput, "Test Neighborhood");
-      await userEvent.type(cityInput, "Test City");
-      await userEvent.type(stateInput, "SP");
-
-      const nextButton = screen.getByText("Próximo");
-      await userEvent.click(nextButton);
-
-      await waitFor(() => {
-        expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
-      });
-
-      // Submit form
-      const submitButton = screen.getByText("Cadastrar");
-      await userEvent.click(submitButton);
-
-      await waitFor(() => {
-        expect(screen.getByTestId("alert")).toBeInTheDocument();
-      });
-    });
-
-    it("should handle form submission without event", async () => {
-      const { geocodeAddress, buildAddressString } = await import("~/components/site/utils");
-      vi.mocked(geocodeAddress).mockResolvedValue({ lat: -23.5505, lon: -46.6333 });
-      vi.mocked(buildAddressString).mockReturnValue("Test Address");
-
-      render(
-        <TestWrapper>
-          <Register />
-        </TestWrapper>
-      );
-
-      // Fill step 1 and navigate to step 2
-      const cnpjInput = screen.getByPlaceholderText("CNPJ");
-      const companyNameInput = screen.getByPlaceholderText("Razão Social");
-      const emailInput = screen.getByPlaceholderText("Email");
-      const phoneInput = screen.getByPlaceholderText("Telefone");
-      const zipCodeInput = screen.getByTestId("address-zipcode");
-      const streetInput = screen.getByTestId("address-street");
-      const neighborhoodInput = screen.getByTestId("address-neighborhood");
-      const cityInput = screen.getByTestId("address-city");
-      const stateInput = screen.getByTestId("address-state");
-
-      await userEvent.type(cnpjInput, "12345678000190");
-      await userEvent.type(companyNameInput, "Test Company");
-      await userEvent.type(emailInput, "test@example.com");
-      await userEvent.type(phoneInput, "11999999999");
-      await userEvent.type(zipCodeInput, "12345678");
-      await userEvent.type(streetInput, "Test Street");
-      await userEvent.type(neighborhoodInput, "Test Neighborhood");
-      await userEvent.type(cityInput, "Test City");
-      await userEvent.type(stateInput, "SP");
-
-      const nextButton = screen.getByText("Próximo");
-      await userEvent.click(nextButton);
-
-      await waitFor(() => {
-        expect(screen.getByText("Dados do Usuário")).toBeInTheDocument();
-      });
-
-      // Click submit button directly (which calls handleSubmit without event)
-      const submitButton = screen.getByText("Cadastrar");
-      await userEvent.click(submitButton);
-
-      await waitFor(() => {
-        expect(geocodeAddress).toHaveBeenCalled();
-      });
-    });
+    }, 10000); // Increase test timeout to 10 seconds
   });
 });

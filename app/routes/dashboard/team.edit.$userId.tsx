@@ -1,13 +1,21 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { Button } from "~/components/ui";
 import { useTranslation } from "~/i18n";
-import { maskPhone, maskCPF, unmaskCPF, maskCEP } from "~/components/site/utils/masks";
+import {
+  maskPhone,
+  maskCPF,
+  unmaskCPF,
+  maskCEP,
+  unmaskPhone,
+  unmaskCEP,
+} from "~/components/site/utils/masks";
 import { ROUTES } from "~/routes.config";
-import { getUserById, updateUser } from "~/services/users.service";
+import { getTeamMembers, updateTeamMember, type FullUserProfile } from "~/services/users.service";
 import { useAuth } from "~/contexts/auth-context";
 import { TeamForm, type TeamFormData } from "~/components/dashboard/forms/team-form";
 import type { UserFormData } from "~/types";
+import { useAlert } from "~/hooks/use-alert";
 
 export function meta() {
   return [
@@ -29,7 +37,9 @@ export default function EditTeamMember() {
   const navigate = useNavigate();
   const { userId } = useParams<{ userId: string }>();
   const { currentUser } = useAuth();
-  const user = getUserById(userId);
+  const { alertMessage, showAlert } = useAlert();
+  const [user, setUser] = useState<FullUserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (currentUser && !currentUser.mainUser) {
@@ -37,7 +47,39 @@ export default function EditTeamMember() {
     }
   }, [currentUser, navigate]);
 
-  if (!user) {
+  useEffect(() => {
+    const loadUser = async () => {
+      if (!userId) return;
+      setIsLoading(true);
+      try {
+        const members = await getTeamMembers();
+        const foundUser = members.find((m) => m.id === userId);
+        if (foundUser) {
+          setUser(foundUser);
+        } else {
+          showAlert(
+            (t.team.errors as { userNotFound?: string }).userNotFound || t.team.errors.updateFailed,
+            "error"
+          );
+          setTimeout(() => {
+            navigate(ROUTES.TEAM);
+          }, 2000);
+        }
+      } catch (error) {
+        console.error("Failed to load team member:", error);
+        showAlert(t.team.errors.updateFailed, "error");
+        setTimeout(() => {
+          navigate(ROUTES.TEAM);
+        }, 2000);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadUser();
+  }, [userId, navigate, showAlert, t]);
+
+  if (isLoading || !user) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-center min-h-[400px]">
@@ -66,19 +108,42 @@ export default function EditTeamMember() {
   const handleSubmit = async (data: UserFormData) => {
     if (!userId) return;
 
-    const updateData: UserFormData = {
-      ...data,
-      cpf: unmaskCPF(data.cpf || ""),
-    };
+    try {
+      const updateData: UserFormData = {
+        ...data,
+        cpf: data.cpf ? unmaskCPF(data.cpf) : undefined,
+        phone: data.phone ? unmaskPhone(data.phone) : "",
+        zipCode: data.zipCode ? unmaskCEP(data.zipCode) : undefined,
+      };
 
-    updateUser(userId, updateData);
-    setTimeout(() => {
-      navigate(ROUTES.TEAM);
-    }, 1500);
+      await updateTeamMember(userId, updateData);
+      showAlert(t.team.success.updated, "success");
+      setTimeout(() => {
+        navigate(ROUTES.TEAM);
+      }, 1500);
+    } catch (error) {
+      console.error("Failed to update team member:", error);
+      showAlert(t.team.errors.updateFailed, "error");
+    }
   };
 
   return (
     <div className="space-y-6">
+      {alertMessage && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-top-5">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4">
+            <p
+              className={`text-sm ${
+                alertMessage.variant === "error"
+                  ? "text-red-600 dark:text-red-400"
+                  : "text-green-600 dark:text-green-400"
+              }`}
+            >
+              {alertMessage.title}
+            </p>
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">

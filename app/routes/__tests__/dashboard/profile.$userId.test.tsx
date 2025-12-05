@@ -45,9 +45,31 @@ vi.mock("~/components/dashboard/profile", () => ({
 }));
 
 vi.mock("~/services/users.service", () => ({
-  updateUser: vi.fn((_userId: string, _data: { name: string; email: string; phone: string }) => {
-    return Promise.resolve();
-  }),
+  updateTeamMember: vi.fn(
+    (_userId: string, _data: { name: string; email: string; phone: string }) => {
+      return Promise.resolve({
+        id: _userId,
+        name: _data.name,
+        email: _data.email,
+        phone: _data.phone || null,
+        cpf: null,
+        street: null,
+        number: null,
+        complement: null,
+        neighborhood: null,
+        city: null,
+        state: null,
+        zipCode: null,
+        mainUser: false,
+        status: "active",
+        companyId: "company-1",
+        permissions: {},
+        createdAt: "",
+        updatedAt: "",
+        company: {},
+      });
+    }
+  ),
 }));
 
 vi.mock("~/i18n", () => ({
@@ -194,8 +216,8 @@ describe("profile.$userId", () => {
 
     it("should handle save action", async () => {
       const user = userEvent.setup();
-      const { updateUser } = await import("~/services/users.service");
-      const mockUpdateUser = vi.mocked(updateUser);
+      const { updateTeamMember } = await import("~/services/users.service");
+      const mockUpdateTeamMember = vi.mocked(updateTeamMember);
 
       render(
         <TestWrapper>
@@ -207,18 +229,18 @@ describe("profile.$userId", () => {
       await user.click(saveButton);
 
       await waitFor(() => {
-        expect(mockUpdateUser).toHaveBeenCalled();
+        expect(mockUpdateTeamMember).toHaveBeenCalled();
       });
     });
 
     it("should handle save with correct data", async () => {
       const user = userEvent.setup();
       const { useParams } = await import("react-router");
-      const { updateUser } = await import("~/services/users.service");
+      const { updateTeamMember } = await import("~/services/users.service");
       const userId = mockUsers[0]?.id || "user-1";
 
       vi.mocked(useParams).mockReturnValue({ userId });
-      const mockUpdateUser = vi.mocked(updateUser);
+      const mockUpdateTeamMember = vi.mocked(updateTeamMember);
 
       render(
         <TestWrapper>
@@ -230,11 +252,14 @@ describe("profile.$userId", () => {
       await user.click(saveButton);
 
       await waitFor(() => {
-        expect(mockUpdateUser).toHaveBeenCalledWith(userId, {
-          name: "Test",
-          email: "test@test.com",
-          phone: "123",
-        });
+        expect(mockUpdateTeamMember).toHaveBeenCalledWith(
+          userId,
+          expect.objectContaining({
+            name: "Test",
+            email: "test@test.com",
+            phone: "123",
+          })
+        );
       });
     });
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { EntityMovementsTab } from "../entity-movements-tab";
 import { LanguageProvider } from "~/contexts/language-context";
@@ -291,7 +291,7 @@ describe("EntityMovementsTab", () => {
   it("should handle onSort callback", async () => {
     const user = userEvent.setup();
     const mockSetSortState = vi.fn();
-    mockUseMovements.mockReturnValueOnce({
+    mockUseMovements.mockReturnValue({
       movements: [],
       filteredMovements: [],
       paginatedMovements: [],
@@ -308,6 +308,9 @@ describe("EntityMovementsTab", () => {
         <EntityMovementsTab {...defaultProps} />
       </TestWrapper>
     );
+    await waitFor(() => {
+      expect(screen.getByTestId("sort-button")).toBeInTheDocument();
+    });
     const sortButton = screen.getByTestId("sort-button");
     await user.click(sortButton);
     expect(mockSetSortState).toHaveBeenCalledWith({ column: "date", direction: "asc" });

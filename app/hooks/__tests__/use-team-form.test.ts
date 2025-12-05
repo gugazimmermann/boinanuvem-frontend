@@ -284,7 +284,7 @@ describe("useTeamForm", () => {
     expect(typeof result).toBe("object");
   });
 
-  it("should validate password when not in edit mode", () => {
+  it("should not validate password when not in edit mode (password not required for new members)", () => {
     renderHook(() => useTeamForm(defaultOptions));
 
     const callArgs = vi.mocked(useBaseFormHook.useBaseForm).mock.calls[0][0];
@@ -304,17 +304,49 @@ describe("useTeamForm", () => {
       confirmPassword: "",
     });
 
-    expect(result).not.toBe(true);
-    expect(typeof result).toBe("object");
+    // Password validation is skipped for new members (not in edit mode)
+    // So validation should pass (return true) if all other fields are valid
+    expect(result).toBe(true);
   });
 
-  it("should validate password minimum length", () => {
-    renderHook(() => useTeamForm(defaultOptions));
+  it("should validate password minimum length when in edit mode with changePassword", () => {
+    // Mock useBaseForm to capture the validation function
+    let _capturedValidate: ((data: unknown) => boolean | Record<string, string>) | undefined;
 
-    const callArgs = vi.mocked(useBaseFormHook.useBaseForm).mock.calls[0][0];
-    const validate = callArgs.validate!;
+    vi.mocked(useBaseFormHook.useBaseForm).mockImplementation(
+      (options: { validate?: (data: unknown) => boolean | Record<string, string> }) => {
+        _capturedValidate = options.validate;
+        return mockBaseForm;
+      }
+    );
 
-    const result = validate({
+    const { result: hookResult, rerender } = renderHook(
+      (props) =>
+        useTeamForm({
+          ...defaultOptions,
+          isEdit: true,
+          ...props,
+        }),
+      {
+        initialProps: {},
+      }
+    );
+
+    // Enable changePassword and re-render to update the validation function
+    act(() => {
+      hookResult.current.setChangePassword(true);
+    });
+
+    // Re-render to get the updated validation function
+    rerender({});
+
+    // Get the latest validation function from the most recent call
+    const latestCall = vi.mocked(useBaseFormHook.useBaseForm).mock.calls[
+      vi.mocked(useBaseFormHook.useBaseForm).mock.calls.length - 1
+    ];
+    const validate = latestCall[0].validate!;
+
+    const validationResult = validate({
       name: "John Doe",
       cpf: "12345678901",
       email: "john@example.com",
@@ -328,17 +360,49 @@ describe("useTeamForm", () => {
       confirmPassword: "12345",
     });
 
-    expect(result).not.toBe(true);
-    expect(typeof result).toBe("object");
+    expect(validationResult).not.toBe(true);
+    expect(typeof validationResult).toBe("object");
+    expect((validationResult as Record<string, string>).password).toBeDefined();
   });
 
-  it("should validate password match", () => {
-    renderHook(() => useTeamForm(defaultOptions));
+  it("should validate password match when in edit mode with changePassword", () => {
+    // Mock useBaseForm to capture the validation function
+    let _capturedValidate: ((data: unknown) => boolean | Record<string, string>) | undefined;
 
-    const callArgs = vi.mocked(useBaseFormHook.useBaseForm).mock.calls[0][0];
-    const validate = callArgs.validate!;
+    vi.mocked(useBaseFormHook.useBaseForm).mockImplementation(
+      (options: { validate?: (data: unknown) => boolean | Record<string, string> }) => {
+        _capturedValidate = options.validate;
+        return mockBaseForm;
+      }
+    );
 
-    const result = validate({
+    const { result: hookResult, rerender } = renderHook(
+      (props) =>
+        useTeamForm({
+          ...defaultOptions,
+          isEdit: true,
+          ...props,
+        }),
+      {
+        initialProps: {},
+      }
+    );
+
+    // Enable changePassword and re-render to update the validation function
+    act(() => {
+      hookResult.current.setChangePassword(true);
+    });
+
+    // Re-render to get the updated validation function
+    rerender({});
+
+    // Get the latest validation function from the most recent call
+    const latestCall = vi.mocked(useBaseFormHook.useBaseForm).mock.calls[
+      vi.mocked(useBaseFormHook.useBaseForm).mock.calls.length - 1
+    ];
+    const validate = latestCall[0].validate!;
+
+    const validationResult = validate({
       name: "John Doe",
       cpf: "12345678901",
       email: "john@example.com",
@@ -352,8 +416,9 @@ describe("useTeamForm", () => {
       confirmPassword: "password456",
     });
 
-    expect(result).not.toBe(true);
-    expect(typeof result).toBe("object");
+    expect(validationResult).not.toBe(true);
+    expect(typeof validationResult).toBe("object");
+    expect((validationResult as Record<string, string>).confirmPassword).toBeDefined();
   });
 
   it("should not validate password in edit mode when changePassword is false", () => {

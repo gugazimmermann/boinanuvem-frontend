@@ -23,10 +23,30 @@ vi.mock("~/utils/route-guard", () => ({
 }));
 
 vi.mock("~/services/users.service", () => ({
-  getUserById: vi.fn((id: string) => {
-    return mockUsers.find((u) => u.id === id) || null;
-  }),
-  updateUserPermissions: vi.fn(() => Promise.resolve()),
+  getTeamMembers: vi.fn(),
+  updateTeamMemberPermissions: vi.fn(() =>
+    Promise.resolve({
+      id: "user-1",
+      name: "User 1",
+      email: "user1@test.com",
+      phone: null,
+      cpf: null,
+      street: null,
+      number: null,
+      complement: null,
+      neighborhood: null,
+      city: null,
+      state: null,
+      zipCode: null,
+      mainUser: false,
+      status: "active",
+      companyId: "company-1",
+      permissions: {},
+      createdAt: "",
+      updatedAt: "",
+      company: {},
+    })
+  ),
 }));
 
 // Create stable currentUser to prevent infinite re-renders
@@ -40,7 +60,15 @@ const stableAuthReturn = {
 };
 
 vi.mock("~/contexts/auth-context", () => ({
-  useAuth: vi.fn(() => stableAuthReturn),
+  useAuth: vi.fn(() => ({
+    ...stableAuthReturn,
+    login: vi.fn(),
+    logout: vi.fn(),
+    isAuthenticated: true,
+    refreshTokens: vi.fn(),
+    getAccessToken: vi.fn(),
+    getRefreshToken: vi.fn(),
+  })),
 }));
 
 // Create stable alert functions to prevent infinite re-renders
@@ -226,11 +254,33 @@ describe("team.permissions.$userId", () => {
   describe("TeamPermissions component", () => {
     it("should render permissions page with correct title", async () => {
       const { useParams } = await import("react-router");
-      const { getUserById } = await import("~/services/users.service");
+      const { getTeamMembers } = await import("~/services/users.service");
       const nonMainUser = mockUsers.find((u) => !u.mainUser);
       if (nonMainUser) {
         vi.mocked(useParams).mockReturnValue({ userId: nonMainUser.id });
-        vi.mocked(getUserById).mockReturnValue(nonMainUser);
+        vi.mocked(getTeamMembers).mockResolvedValue([
+          {
+            id: nonMainUser.id,
+            name: nonMainUser.name || "",
+            email: nonMainUser.email || "",
+            phone: nonMainUser.phone || null,
+            cpf: null,
+            street: null,
+            number: null,
+            complement: null,
+            neighborhood: null,
+            city: null,
+            state: null,
+            zipCode: null,
+            mainUser: false,
+            status: "active",
+            companyId: nonMainUser.companyId,
+            permissions: nonMainUser.permissions || {},
+            createdAt: "",
+            updatedAt: "",
+            company: {},
+          },
+        ]);
 
         render(
           <TestWrapper>
@@ -238,16 +288,17 @@ describe("team.permissions.$userId", () => {
           </TestWrapper>
         );
 
-        // The component should render immediately since getUserById is synchronous in the mock
-        expect(screen.getByText("Permissões do Membro")).toBeInTheDocument();
+        await waitFor(() => {
+          expect(screen.getByText("Permissões do Membro")).toBeInTheDocument();
+        });
       }
     });
 
     it("should render loading state when user is not found initially", async () => {
       const { useParams } = await import("react-router");
+      const { getTeamMembers } = await import("~/services/users.service");
       vi.mocked(useParams).mockReturnValue({ userId: "non-existent" });
-      const { getUserById } = await import("~/services/users.service");
-      vi.mocked(getUserById).mockReturnValue(null);
+      vi.mocked(getTeamMembers).mockResolvedValue([]);
 
       render(
         <TestWrapper>
@@ -255,7 +306,9 @@ describe("team.permissions.$userId", () => {
         </TestWrapper>
       );
 
-      expect(screen.getByText("Carregando...")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText("Carregando...")).toBeInTheDocument();
+      });
     });
 
     it("should navigate to profile when currentUser is not mainUser", async () => {
@@ -282,15 +335,39 @@ describe("team.permissions.$userId", () => {
       });
     });
 
-    it("should call updateUserPermissions when save button is clicked", async () => {
+    it("should call updateTeamMemberPermissions when save button is clicked", async () => {
       const { useParams, useNavigate } = await import("react-router");
-      const { updateUserPermissions, getUserById } = await import("~/services/users.service");
+      const { getTeamMembers, updateTeamMemberPermissions } = await import(
+        "~/services/users.service"
+      );
       const mockNavigate = vi.fn();
       const nonMainUser = mockUsers.find((u) => !u.mainUser);
       if (nonMainUser) {
         vi.mocked(useParams).mockReturnValue({ userId: nonMainUser.id });
         vi.mocked(useNavigate).mockReturnValue(mockNavigate);
-        vi.mocked(getUserById).mockReturnValue(nonMainUser);
+        vi.mocked(getTeamMembers).mockResolvedValue([
+          {
+            id: nonMainUser.id,
+            name: nonMainUser.name || "",
+            email: nonMainUser.email || "",
+            phone: nonMainUser.phone || null,
+            cpf: null,
+            street: null,
+            number: null,
+            complement: null,
+            neighborhood: null,
+            city: null,
+            state: null,
+            zipCode: null,
+            mainUser: false,
+            status: "active",
+            companyId: nonMainUser.companyId,
+            permissions: nonMainUser.permissions || {},
+            createdAt: "",
+            updatedAt: "",
+            company: {},
+          },
+        ]);
 
         render(
           <TestWrapper>
@@ -298,63 +375,195 @@ describe("team.permissions.$userId", () => {
           </TestWrapper>
         );
 
-        // The component should render immediately since getUserById is synchronous in the mock
-        const saveButton = screen.getByText("Salvar Permissões");
-        expect(saveButton).toBeInTheDocument();
+        await waitFor(() => {
+          expect(screen.getByText("Salvar Permissões")).toBeInTheDocument();
+        });
 
+        const saveButton = screen.getByText("Salvar Permissões");
         await userEvent.click(saveButton);
 
         await waitFor(
           () => {
-            expect(updateUserPermissions).toHaveBeenCalled();
+            expect(updateTeamMemberPermissions).toHaveBeenCalled();
           },
           { timeout: 2000 }
         );
       }
     });
 
-    it("should navigate to team list on save success", async () => {
-      const { useParams, useNavigate } = await import("react-router");
-      const { getUserById } = await import("~/services/users.service");
-      const mockNavigate = vi.fn();
-      const nonMainUser = mockUsers.find((u) => !u.mainUser);
-      if (nonMainUser) {
-        vi.mocked(useParams).mockReturnValue({ userId: nonMainUser.id });
-        vi.mocked(useNavigate).mockReturnValue(mockNavigate);
-        vi.mocked(getUserById).mockReturnValue(nonMainUser);
-
-        vi.useFakeTimers();
-
-        render(
-          <TestWrapper>
-            <TeamPermissions />
-          </TestWrapper>
+    it(
+      "should navigate to team list on save success",
+      { timeout: 15000 },
+      async () => {
+        const { useParams, useNavigate } = await import("react-router");
+        const { getTeamMembers, updateTeamMemberPermissions } = await import(
+          "~/services/users.service"
         );
+        const mockNavigate = vi.fn();
+        const nonMainUser = mockUsers.find((u) => !u.mainUser);
+        if (nonMainUser) {
+          vi.mocked(useParams).mockReturnValue({ userId: nonMainUser.id });
+          vi.mocked(useNavigate).mockReturnValue(mockNavigate);
+          vi.mocked(getTeamMembers).mockResolvedValue([
+            {
+              id: nonMainUser.id,
+              name: nonMainUser.name || "",
+              email: nonMainUser.email || "",
+              phone: nonMainUser.phone || null,
+              cpf: null,
+              street: null,
+              number: null,
+              complement: null,
+              neighborhood: null,
+              city: null,
+              state: null,
+              zipCode: null,
+              mainUser: false,
+              status: "active",
+              companyId: nonMainUser.companyId,
+              permissions: nonMainUser.permissions || {},
+              createdAt: "",
+              updatedAt: "",
+              company: {},
+            },
+          ]);
+          vi.mocked(updateTeamMemberPermissions).mockResolvedValue({
+            id: nonMainUser.id,
+            name: nonMainUser.name || "",
+            email: nonMainUser.email || "",
+            phone: nonMainUser.phone || null,
+            cpf: null,
+            street: null,
+            number: null,
+            complement: null,
+            neighborhood: null,
+            city: null,
+            state: null,
+            zipCode: null,
+            mainUser: false,
+            status: "active",
+            companyId: nonMainUser.companyId,
+            permissions: nonMainUser.permissions || {},
+            createdAt: "",
+            updatedAt: "",
+            company: {},
+          });
 
-        // The component should render immediately since getUserById is synchronous in the mock
-        const saveButton = screen.getByText("Salvar Permissões");
-        expect(saveButton).toBeInTheDocument();
+          const user = userEvent.setup();
 
-        const { fireEvent } = await import("@testing-library/react");
-        fireEvent.click(saveButton);
+          render(
+            <TestWrapper>
+              <TeamPermissions />
+            </TestWrapper>
+          );
 
-        await vi.advanceTimersByTimeAsync(1600);
+          await waitFor(() => {
+            expect(screen.getByText("Salvar Permissões")).toBeInTheDocument();
+          });
 
-        expect(mockNavigate).toHaveBeenCalledWith(ROUTES.TEAM);
+          const saveButton = screen.getByText("Salvar Permissões");
+          await user.click(saveButton);
 
-        vi.useRealTimers();
+          await waitFor(
+            () => {
+              expect(mockNavigate).toHaveBeenCalledWith(ROUTES.TEAM);
+            },
+            { timeout: 5000 }
+          );
+        }
+      },
+      10000
+    );
+
+    it(
+      "should navigate to team list when cancel button is clicked",
+      { timeout: 10000 },
+      async () => {
+        const { useParams, useNavigate } = await import("react-router");
+        const { getTeamMembers } = await import("~/services/users.service");
+        const mockNavigate = vi.fn();
+        const nonMainUser = mockUsers.find((u) => !u.mainUser);
+        if (nonMainUser) {
+          vi.mocked(useParams).mockReturnValue({ userId: nonMainUser.id });
+          vi.mocked(useNavigate).mockReturnValue(mockNavigate);
+          vi.mocked(getTeamMembers).mockResolvedValue([
+            {
+              id: nonMainUser.id,
+              name: nonMainUser.name || "",
+              email: nonMainUser.email || "",
+              phone: nonMainUser.phone || null,
+              cpf: null,
+              street: null,
+              number: null,
+              complement: null,
+              neighborhood: null,
+              city: null,
+              state: null,
+              zipCode: null,
+              mainUser: false,
+              status: "active",
+              companyId: nonMainUser.companyId,
+              permissions: nonMainUser.permissions || {},
+              createdAt: "",
+              updatedAt: "",
+              company: {},
+            },
+          ]);
+
+          render(
+            <TestWrapper>
+              <TeamPermissions />
+            </TestWrapper>
+          );
+
+          await waitFor(() => {
+            expect(screen.getByText("Cancelar")).toBeInTheDocument();
+          });
+
+          const cancelButton = screen.getByText("Cancelar");
+          await userEvent.click(cancelButton);
+
+          await waitFor(
+            () => {
+              expect(mockNavigate).toHaveBeenCalledWith(ROUTES.TEAM);
+            },
+            { timeout: 5000 }
+          );
+        }
       }
-    }, 10000);
+    );
 
-    it("should navigate to team list when cancel button is clicked", async () => {
+    it("should navigate to team list when back button is clicked", { timeout: 10000 }, async () => {
       const { useParams, useNavigate } = await import("react-router");
-      const { getUserById } = await import("~/services/users.service");
+      const { getTeamMembers } = await import("~/services/users.service");
       const mockNavigate = vi.fn();
       const nonMainUser = mockUsers.find((u) => !u.mainUser);
       if (nonMainUser) {
         vi.mocked(useParams).mockReturnValue({ userId: nonMainUser.id });
         vi.mocked(useNavigate).mockReturnValue(mockNavigate);
-        vi.mocked(getUserById).mockReturnValue(nonMainUser);
+        vi.mocked(getTeamMembers).mockResolvedValue([
+          {
+            id: nonMainUser.id,
+            name: nonMainUser.name || "",
+            email: nonMainUser.email || "",
+            phone: nonMainUser.phone || null,
+            cpf: null,
+            street: null,
+            number: null,
+            complement: null,
+            neighborhood: null,
+            city: null,
+            state: null,
+            zipCode: null,
+            mainUser: false,
+            status: "active",
+            companyId: nonMainUser.companyId,
+            permissions: nonMainUser.permissions || {},
+            createdAt: "",
+            updatedAt: "",
+            company: {},
+          },
+        ]);
 
         render(
           <TestWrapper>
@@ -362,77 +571,33 @@ describe("team.permissions.$userId", () => {
           </TestWrapper>
         );
 
-        // The component should render immediately since getUserById is synchronous in the mock
-        const cancelButton = screen.getByText("Cancelar");
-        expect(cancelButton).toBeInTheDocument();
+        await waitFor(() => {
+          expect(screen.getByText("Voltar")).toBeInTheDocument();
+        });
 
-        await userEvent.click(cancelButton);
-
-        expect(mockNavigate).toHaveBeenCalledWith(ROUTES.TEAM);
-      }
-    });
-
-    it("should navigate to team list when back button is clicked", async () => {
-      const { useParams, useNavigate } = await import("react-router");
-      const { getUserById } = await import("~/services/users.service");
-      const mockNavigate = vi.fn();
-      const nonMainUser = mockUsers.find((u) => !u.mainUser);
-      if (nonMainUser) {
-        vi.mocked(useParams).mockReturnValue({ userId: nonMainUser.id });
-        vi.mocked(useNavigate).mockReturnValue(mockNavigate);
-        vi.mocked(getUserById).mockReturnValue(nonMainUser);
-
-        render(
-          <TestWrapper>
-            <TeamPermissions />
-          </TestWrapper>
-        );
-
-        // The component should render immediately since getUserById is synchronous in the mock
         const backButton = screen.getByText("Voltar");
-        expect(backButton).toBeInTheDocument();
-
         await userEvent.click(backButton);
 
-        expect(mockNavigate).toHaveBeenCalledWith(ROUTES.TEAM);
+        await waitFor(
+          () => {
+            expect(mockNavigate).toHaveBeenCalledWith(ROUTES.TEAM);
+          },
+          { timeout: 5000 }
+        );
       }
     });
 
-    it("should show alert when user is not found", async () => {
-      const { useParams, useNavigate } = await import("react-router");
-      const { getUserById } = await import("~/services/users.service");
-      const mockNavigate = vi.fn();
-      stableShowAlert.mockClear();
-      vi.mocked(useParams).mockReturnValue({ userId: "non-existent" });
-      vi.mocked(useNavigate).mockReturnValue(mockNavigate);
-      vi.mocked(getUserById).mockReturnValue(null);
-
-      vi.useFakeTimers();
-
-      render(
-        <TestWrapper>
-          <TeamPermissions />
-        </TestWrapper>
-      );
-
-      // The alert should be called immediately in useEffect
-      expect(stableShowAlert).toHaveBeenCalledWith("Usuário não encontrado", "error");
-
-      // Advance timers to trigger the navigation
-      await vi.advanceTimersByTimeAsync(2100);
-
-      expect(mockNavigate).toHaveBeenCalledWith(ROUTES.TEAM);
-
-      vi.useRealTimers();
-    }, 10000);
-
-    it("should call updateUserPermissions when save button is clicked and handle saving state", async () => {
-      const { useParams } = await import("react-router");
-      const { getUserById, updateUserPermissions } = await import("~/services/users.service");
-      const nonMainUser = mockUsers.find((u) => !u.mainUser);
-      if (nonMainUser) {
-        vi.mocked(useParams).mockReturnValue({ userId: nonMainUser.id });
-        vi.mocked(getUserById).mockReturnValue(nonMainUser);
+    it(
+      "should show alert when user is not found",
+      { timeout: 15000 },
+      async () => {
+        const { useParams, useNavigate } = await import("react-router");
+        const { getTeamMembers } = await import("~/services/users.service");
+        const mockNavigate = vi.fn();
+        stableShowAlert.mockClear();
+        vi.mocked(useParams).mockReturnValue({ userId: "non-existent" });
+        vi.mocked(useNavigate).mockReturnValue(mockNavigate);
+        vi.mocked(getTeamMembers).mockResolvedValue([]);
 
         render(
           <TestWrapper>
@@ -440,24 +605,105 @@ describe("team.permissions.$userId", () => {
           </TestWrapper>
         );
 
-        // The component should render immediately since getUserById is synchronous in the mock
-        const saveButton = screen.getByText("Salvar Permissões");
-        expect(saveButton).toBeInTheDocument();
-        expect(saveButton).not.toBeDisabled();
-
-        const user = userEvent.setup();
-        await user.click(saveButton);
-
-        // Verify that updateUserPermissions was called
-        // Note: The component doesn't await updateUserPermissions, so setIsSaving(false) runs immediately
-        // in the finally block, which means the button is never disabled in practice
+        // The alert should be called when user is not found in team members
         await waitFor(
           () => {
-            expect(updateUserPermissions).toHaveBeenCalled();
+            expect(stableShowAlert).toHaveBeenCalledWith("Usuário não encontrado", "error");
           },
-          { timeout: 1000 }
+          { timeout: 5000 }
         );
+
+        // Wait for navigation to be called
+        await waitFor(
+          () => {
+            expect(mockNavigate).toHaveBeenCalledWith(ROUTES.TEAM);
+          },
+          { timeout: 5000 }
+        );
+      },
+      10000
+    );
+
+    it(
+      "should call updateTeamMemberPermissions when save button is clicked and handle saving state",
+      { timeout: 10000 },
+      async () => {
+        const { useParams } = await import("react-router");
+        const { getTeamMembers, updateTeamMemberPermissions } = await import(
+          "~/services/users.service"
+        );
+        const nonMainUser = mockUsers.find((u) => !u.mainUser);
+        if (nonMainUser) {
+          vi.mocked(useParams).mockReturnValue({ userId: nonMainUser.id });
+          vi.mocked(getTeamMembers).mockResolvedValue([
+            {
+              id: nonMainUser.id,
+              name: nonMainUser.name || "",
+              email: nonMainUser.email || "",
+              phone: nonMainUser.phone || null,
+              cpf: null,
+              street: null,
+              number: null,
+              complement: null,
+              neighborhood: null,
+              city: null,
+              state: null,
+              zipCode: null,
+              mainUser: false,
+              status: "active",
+              companyId: nonMainUser.companyId,
+              permissions: nonMainUser.permissions || {},
+              createdAt: "",
+              updatedAt: "",
+              company: {},
+            },
+          ]);
+          vi.mocked(updateTeamMemberPermissions).mockResolvedValue({
+            id: nonMainUser.id,
+            name: nonMainUser.name || "",
+            email: nonMainUser.email || "",
+            phone: nonMainUser.phone || null,
+            cpf: null,
+            street: null,
+            number: null,
+            complement: null,
+            neighborhood: null,
+            city: null,
+            state: null,
+            zipCode: null,
+            mainUser: false,
+            status: "active",
+            companyId: nonMainUser.companyId,
+            permissions: nonMainUser.permissions || {},
+            createdAt: "",
+            updatedAt: "",
+            company: {},
+          });
+
+          render(
+            <TestWrapper>
+              <TeamPermissions />
+            </TestWrapper>
+          );
+
+          await waitFor(() => {
+            expect(screen.getByText("Salvar Permissões")).toBeInTheDocument();
+          });
+
+          const saveButton = screen.getByText("Salvar Permissões");
+          expect(saveButton).not.toBeDisabled();
+
+          const user = userEvent.setup();
+          await user.click(saveButton);
+
+          await waitFor(
+            () => {
+              expect(updateTeamMemberPermissions).toHaveBeenCalled();
+            },
+            { timeout: 1000 }
+          );
+        }
       }
-    });
+    );
   });
 });

@@ -1,164 +1,327 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
-  getUserById,
-  getUsersByCompanyId,
-  updateUser,
-  updateUserPermissions,
-  addUser,
-  authenticateUser,
+  getCurrentUser,
+  getTeamMembers,
+  updateCurrentUser,
+  updateTeamMember,
+  createTeamMember,
+  updateTeamMemberPermissions,
+  type FullUserProfile,
 } from "../users.service";
-import { mockUsers } from "~/mocks/users";
-import { mockCompanies } from "~/mocks/companies";
+import { apiClient, ApiError } from "../api-client";
 import type { UserFormData } from "~/types";
 import type { UserPermissions } from "~/types/permissions";
-import bcrypt from "bcryptjs";
 
-// Mock bcrypt
-vi.mock("bcryptjs", () => ({
-  default: {
-    compare: vi.fn(),
+// Mock the API client
+vi.mock("../api-client", () => ({
+  apiClient: {
+    get: vi.fn(),
+    put: vi.fn(),
+    post: vi.fn(),
+  },
+  ApiError: class extends Error {
+    constructor(
+      message: string,
+      public status: number
+    ) {
+      super(message);
+      this.name = "ApiError";
+    }
   },
 }));
 
 describe("users.service", () => {
+  const mockUserProfile: FullUserProfile = {
+    id: "user-1",
+    name: "User 1",
+    cpf: "123.456.789-00",
+    email: "user1@test.com",
+    phone: "(11) 99999-9999",
+    street: "Street 1",
+    number: "123",
+    complement: null,
+    neighborhood: "Neighborhood 1",
+    city: "City 1",
+    state: "State 1",
+    zipCode: "12345-678",
+    mainUser: false,
+    status: "active",
+    companyId: "company-1",
+    permissions: {
+      registration: {
+        property: { view: false, add: false, edit: false, remove: false },
+        location: { view: false, add: false, edit: false, remove: false },
+        employee: { view: false, add: false, edit: false, remove: false },
+        serviceProvider: { view: false, add: false, edit: false, remove: false },
+        supplier: { view: false, add: false, edit: false, remove: false },
+        buyer: { view: false, add: false, edit: false, remove: false },
+        inventory: { view: false, add: false, edit: false, remove: false },
+        animals: { view: false, add: false, edit: false, remove: false },
+      },
+      records: {
+        births: { view: false, add: false, edit: false, remove: false },
+        acquisitions: { view: false, add: false, edit: false, remove: false },
+        weighings: { view: false, add: false, edit: false, remove: false },
+        sales: { view: false, add: false, edit: false, remove: false },
+        deaths: { view: false, add: false, edit: false, remove: false },
+        sanitaryControls: { view: false, add: false, edit: false, remove: false },
+        locationMovements: { view: false, add: false, edit: false, remove: false },
+        animalMovements: { view: false, add: false, edit: false, remove: false },
+        inventoryMovements: { view: false, add: false, edit: false, remove: false },
+      },
+      breedings: {
+        breedings: { view: false, add: false, edit: false, remove: false },
+        unconfirmedBreedings: { view: false, add: false, edit: false, remove: false },
+        pregnantCows: { view: false, add: false, edit: false, remove: false },
+        reproductiveIndexes: { view: false, add: false, edit: false, remove: false },
+        birthForecast: { view: false, add: false, edit: false, remove: false },
+      },
+      finances: {
+        cashFlow: { view: false, add: false, edit: false, remove: false },
+        accountsPayable: { view: false, add: false, edit: false, remove: false },
+        accountsReceivable: { view: false, add: false, edit: false, remove: false },
+        bankAccounts: { view: false, add: false, edit: false, remove: false },
+      },
+      reports: {
+        analytics: { view: false, add: false, edit: false, remove: false },
+        financialReports: { view: false, add: false, edit: false, remove: false },
+        animalReports: { view: false, add: false, edit: false, remove: false },
+        productionReports: { view: false, add: false, edit: false, remove: false },
+        inventoryReports: { view: false, add: false, edit: false, remove: false },
+      },
+    },
+    createdAt: "2025-01-01T00:00:00.000Z",
+    updatedAt: "2025-01-01T00:00:00.000Z",
+    emailVerifiedAt: null,
+    company: {},
+  };
+
   beforeEach(() => {
-    mockUsers.length = 0;
-    mockUsers.push(
-      {
-        id: "user-1",
-        companyId: "company-1",
-        name: "User 1",
-        email: "user1@test.com",
-        phone: "1234567890",
-        status: "active",
-        mainUser: false,
-        createdAt: "2025-01-01",
-        password: "$2a$10$hashedpassword1",
-      },
-      {
-        id: "user-2",
-        companyId: "company-1",
-        name: "User 2",
-        email: "user2@test.com",
-        phone: "0987654321",
-        status: "active",
-        mainUser: false,
-        createdAt: "2025-01-02",
-        password: "$2a$10$hashedpassword2",
-      },
-      {
-        id: "user-3",
-        companyId: "company-2",
-        name: "User 3",
-        email: "user3@test.com",
-        phone: "5555555555",
-        status: "pending",
-        mainUser: false,
-        createdAt: "2025-01-03",
-        password: "$2a$10$hashedpassword3",
-      }
-    );
-
-    mockCompanies.length = 0;
-    mockCompanies.push({
-      id: "company-1",
-      companyName: "Company 1",
-      cnpj: "12.345.678/0001-90",
-      email: "company1@test.com",
-      phone: "1234567890",
-      street: "Street 1",
-      number: "123",
-      complement: "",
-      neighborhood: "Neighborhood 1",
-      city: "City 1",
-      state: "State 1",
-      zipCode: "12345-678",
-      createdAt: "2025-01-01",
-    });
-
     vi.clearAllMocks();
   });
 
-  describe("getUserById", () => {
-    it("should return user when ID exists", () => {
-      const result = getUserById("user-1");
-      expect(result).toBeDefined();
-      expect(result?.id).toBe("user-1");
-      expect(result?.name).toBe("User 1");
+  describe("getCurrentUser", () => {
+    it("should return current user profile", async () => {
+      vi.mocked(apiClient.get).mockResolvedValue(mockUserProfile);
+
+      const result = await getCurrentUser();
+
+      expect(result).toEqual(mockUserProfile);
+      expect(apiClient.get).toHaveBeenCalledWith("/users/me");
     });
 
-    it("should return undefined when ID is undefined", () => {
-      const result = getUserById(undefined);
-      expect(result).toBeUndefined();
+    it("should throw error on 401", async () => {
+      vi.mocked(apiClient.get).mockRejectedValue(new ApiError("Unauthorized", 401));
+
+      await expect(getCurrentUser()).rejects.toThrow("Authentication required");
+    });
+
+    it("should throw error on 404", async () => {
+      vi.mocked(apiClient.get).mockRejectedValue(new ApiError("Not found", 404));
+
+      await expect(getCurrentUser()).rejects.toThrow("User not found");
+    });
+
+    it("should throw original error for other status codes", async () => {
+      const error = new ApiError("Server error", 500);
+      vi.mocked(apiClient.get).mockRejectedValue(error);
+
+      await expect(getCurrentUser()).rejects.toThrow("Server error");
     });
   });
 
-  describe("getUsersByCompanyId", () => {
-    it("should return all users for a company", () => {
-      const result = getUsersByCompanyId("company-1");
-      expect(result).toHaveLength(2);
-      expect(result[0].id).toBe("user-1");
-      expect(result[1].id).toBe("user-2");
+  describe("getTeamMembers", () => {
+    it("should return team members list", async () => {
+      const mockMembers = [mockUserProfile];
+      vi.mocked(apiClient.get).mockResolvedValue(mockMembers);
+
+      const result = await getTeamMembers();
+
+      expect(result).toEqual(mockMembers);
+      expect(apiClient.get).toHaveBeenCalledWith("/users");
     });
 
-    it("should return empty array when no users exist for company", () => {
-      const result = getUsersByCompanyId("company-999");
-      expect(result).toHaveLength(0);
+    it("should throw error on 403", async () => {
+      vi.mocked(apiClient.get).mockRejectedValue(new ApiError("Forbidden", 403));
+
+      await expect(getTeamMembers()).rejects.toThrow("Only main users can view team members");
+    });
+
+    it("should throw error on 401", async () => {
+      vi.mocked(apiClient.get).mockRejectedValue(new ApiError("Unauthorized", 401));
+
+      await expect(getTeamMembers()).rejects.toThrow("Authentication required");
     });
   });
 
-  describe("updateUser", () => {
-    it("should update an existing user", () => {
+  describe("updateCurrentUser", () => {
+    it("should update current user profile", async () => {
       const updateData: UserFormData = {
         name: "Updated User",
         email: "updated@test.com",
-        phone: "9999999999",
-        password: "newpassword",
-        confirmPassword: "newpassword",
+        phone: "(11) 88888-8888",
       };
 
-      updateUser("user-1", updateData);
+      const updatedProfile = { ...mockUserProfile, ...updateData };
+      vi.mocked(apiClient.put).mockResolvedValue(updatedProfile);
 
-      const updated = mockUsers.find((u) => u.id === "user-1");
-      expect(updated?.name).toBe("Updated User");
-      expect(updated?.email).toBe("updated@test.com");
-      expect(updated?.phone).toBe("9999999999");
-      expect(updated?.password).toBeUndefined();
-      expect(updated?.confirmPassword).toBeUndefined();
+      const result = await updateCurrentUser(updateData);
+
+      expect(result).toEqual(updatedProfile);
+      expect(apiClient.put).toHaveBeenCalledWith("/users/me", {
+        name: "Updated User",
+        email: "updated@test.com",
+        phone: "(11) 88888-8888",
+        cpf: undefined,
+        street: undefined,
+        number: undefined,
+        complement: undefined,
+        neighborhood: undefined,
+        city: undefined,
+        state: undefined,
+        zipCode: undefined,
+      });
     });
 
-    it("should not update when user does not exist", () => {
-      const originalLength = mockUsers.length;
+    it("should throw error on 401", async () => {
       const updateData: UserFormData = {
         name: "Updated User",
         email: "updated@test.com",
-        phone: "9999999999",
+        phone: "",
       };
+      vi.mocked(apiClient.put).mockRejectedValue(new ApiError("Unauthorized", 401));
 
-      updateUser("non-existent-id", updateData);
-
-      expect(mockUsers.length).toBe(originalLength);
+      await expect(updateCurrentUser(updateData)).rejects.toThrow("Authentication required");
     });
 
-    it("should remove password and confirmPassword fields", () => {
+    it("should throw error on 409", async () => {
       const updateData: UserFormData = {
-        name: "User 1",
-        email: "user1@test.com",
-        phone: "1234567890",
-        password: "password",
-        confirmPassword: "password",
+        name: "Updated User",
+        email: "updated@test.com",
+        phone: "",
       };
+      vi.mocked(apiClient.put).mockRejectedValue(new ApiError("Conflict", 409));
 
-      updateUser("user-1", updateData);
-
-      const updated = mockUsers.find((u) => u.id === "user-1");
-      expect(updated?.password).toBeUndefined();
-      expect(updated?.confirmPassword).toBeUndefined();
+      await expect(updateCurrentUser(updateData)).rejects.toThrow("Email already exists");
     });
   });
 
-  describe("updateUserPermissions", () => {
-    it("should update permissions for an existing user", () => {
+  describe("updateTeamMember", () => {
+    it("should update team member profile", async () => {
+      const updateData: UserFormData = {
+        name: "Updated User",
+        email: "updated@test.com",
+        phone: "(11) 88888-8888",
+      };
+
+      const updatedProfile = { ...mockUserProfile, ...updateData };
+      vi.mocked(apiClient.put).mockResolvedValue(updatedProfile);
+
+      const result = await updateTeamMember("user-1", updateData);
+
+      expect(result).toEqual(updatedProfile);
+      expect(apiClient.put).toHaveBeenCalledWith("/users/user-1", {
+        name: "Updated User",
+        email: "updated@test.com",
+        phone: "(11) 88888-8888",
+        cpf: undefined,
+        street: undefined,
+        number: undefined,
+        complement: undefined,
+        neighborhood: undefined,
+        city: undefined,
+        state: undefined,
+        zipCode: undefined,
+      });
+    });
+
+    it("should throw error on 403", async () => {
+      const updateData: UserFormData = {
+        name: "Updated User",
+        email: "updated@test.com",
+        phone: "",
+      };
+      vi.mocked(apiClient.put).mockRejectedValue(new ApiError("Forbidden", 403));
+
+      await expect(updateTeamMember("user-1", updateData)).rejects.toThrow(
+        "Only main users can update team members"
+      );
+    });
+
+    it("should throw error on 404", async () => {
+      const updateData: UserFormData = {
+        name: "Updated User",
+        email: "updated@test.com",
+        phone: "",
+      };
+      vi.mocked(apiClient.put).mockRejectedValue(new ApiError("Not found", 404));
+
+      await expect(updateTeamMember("user-1", updateData)).rejects.toThrow("User not found");
+    });
+  });
+
+  describe("createTeamMember", () => {
+    it("should create team member", async () => {
+      const createData: UserFormData & { password: string } = {
+        name: "New User",
+        email: "newuser@test.com",
+        phone: "(11) 77777-7777",
+        password: "password123",
+      };
+
+      const newProfile = { ...mockUserProfile, ...createData, id: "user-new" };
+      vi.mocked(apiClient.post).mockResolvedValue(newProfile);
+
+      const result = await createTeamMember(createData);
+
+      expect(result).toEqual(newProfile);
+      expect(apiClient.post).toHaveBeenCalledWith("/users", {
+        name: "New User",
+        email: "newuser@test.com",
+        phone: "(11) 77777-7777",
+        password: "password123",
+        cpf: undefined,
+        street: undefined,
+        number: undefined,
+        complement: undefined,
+        neighborhood: undefined,
+        city: undefined,
+        state: undefined,
+        zipCode: undefined,
+      });
+    });
+
+    it("should throw error on 403", async () => {
+      const createData: UserFormData & { password: string } = {
+        name: "New User",
+        email: "newuser@test.com",
+        phone: "",
+        password: "password123",
+      };
+      vi.mocked(apiClient.post).mockRejectedValue(new ApiError("Forbidden", 403));
+
+      await expect(createTeamMember(createData)).rejects.toThrow(
+        "Only main users can create team members"
+      );
+    });
+
+    it("should throw error on 409", async () => {
+      const createData: UserFormData & { password: string } = {
+        name: "New User",
+        email: "newuser@test.com",
+        phone: "",
+        password: "password123",
+      };
+      vi.mocked(apiClient.post).mockRejectedValue(new ApiError("Conflict", 409));
+
+      await expect(createTeamMember(createData)).rejects.toThrow(
+        "Um usuário com este email já existe. Por favor, use outro email."
+      );
+    });
+  });
+
+  describe("updateTeamMemberPermissions", () => {
+    it("should update team member permissions", async () => {
       const permissions: UserPermissions = {
         registration: {
           animals: { view: true, add: true, edit: false, remove: false },
@@ -203,16 +366,54 @@ describe("users.service", () => {
         },
       };
 
-      updateUserPermissions("user-1", permissions);
+      const updatedProfile = { ...mockUserProfile, permissions };
+      vi.mocked(apiClient.put).mockResolvedValue(updatedProfile);
 
-      const updated = mockUsers.find((u) => u.id === "user-1");
-      expect(updated?.permissions).toEqual(permissions);
+      const result = await updateTeamMemberPermissions("user-1", permissions);
+
+      expect(result).toEqual(updatedProfile);
+      expect(apiClient.put).toHaveBeenCalledWith("/users/user-1/permissions", {
+        registration: {
+          property: permissions.registration.property,
+          location: permissions.registration.location,
+          employee: permissions.registration.employee,
+          serviceProvider: permissions.registration.serviceProvider,
+          supplier: permissions.registration.supplier,
+          buyer: permissions.registration.buyer,
+          inventory: permissions.registration.inventory,
+          animals: permissions.registration.animals,
+        },
+        records: {
+          births: permissions.records.births,
+          acquisitions: permissions.records.acquisitions,
+          weighings: permissions.records.weighings,
+          sales: permissions.records.sales,
+          deaths: permissions.records.deaths,
+          sanitaryControls: permissions.records.sanitaryControls,
+          locationMovements: permissions.records.locationMovements,
+          animalMovements: permissions.records.animalMovements,
+          inventoryMovements: permissions.records.inventoryMovements,
+        },
+        breedings: {
+          breedings: permissions.breedings.breedings,
+          unconfirmedBreedings: permissions.breedings.unconfirmedBreedings,
+          pregnantCows: permissions.breedings.pregnantCows,
+          reproductiveIndexes: permissions.breedings.reproductiveIndexes,
+          birthForecast: permissions.breedings.birthForecast,
+        },
+        finances: {
+          cashFlow: permissions.finances.cashFlow,
+          accountsPayable: permissions.finances.accountsPayable,
+          accountsReceivable: permissions.finances.accountsReceivable,
+          bankAccounts: permissions.finances.bankAccounts,
+        },
+      });
     });
 
-    it("should not update when user does not exist", () => {
+    it("should throw error on 403", async () => {
       const permissions: UserPermissions = {
         registration: {
-          animals: { view: true, add: true, edit: false, remove: false },
+          animals: { view: true, add: false, edit: false, remove: false },
           property: { view: false, add: false, edit: false, remove: false },
           location: { view: false, add: false, edit: false, remove: false },
           employee: { view: false, add: false, edit: false, remove: false },
@@ -253,115 +454,62 @@ describe("users.service", () => {
           inventoryReports: { view: false, add: false, edit: false, remove: false },
         },
       };
+      vi.mocked(apiClient.put).mockRejectedValue(new ApiError("Forbidden", 403));
 
-      updateUserPermissions("non-existent-id", permissions);
-
-      // Should not throw error, just do nothing
-      expect(mockUsers.find((u) => u.id === "non-existent-id")).toBeUndefined();
+      await expect(updateTeamMemberPermissions("user-1", permissions)).rejects.toThrow(
+        "Only main users can update permissions"
+      );
     });
-  });
 
-  describe("addUser", () => {
-    it("should add a new user with generated ID", () => {
-      const newUser: UserFormData & { password: string } = {
-        name: "New User",
-        email: "newuser@test.com",
-        phone: "1111111111",
-        password: "password123",
+    it("should throw error on 404", async () => {
+      const permissions: UserPermissions = {
+        registration: {
+          animals: { view: true, add: false, edit: false, remove: false },
+          property: { view: false, add: false, edit: false, remove: false },
+          location: { view: false, add: false, edit: false, remove: false },
+          employee: { view: false, add: false, edit: false, remove: false },
+          serviceProvider: { view: false, add: false, edit: false, remove: false },
+          supplier: { view: false, add: false, edit: false, remove: false },
+          buyer: { view: false, add: false, edit: false, remove: false },
+          inventory: { view: false, add: false, edit: false, remove: false },
+        },
+        records: {
+          births: { view: false, add: false, edit: false, remove: false },
+          acquisitions: { view: false, add: false, edit: false, remove: false },
+          weighings: { view: false, add: false, edit: false, remove: false },
+          sales: { view: false, add: false, edit: false, remove: false },
+          deaths: { view: false, add: false, edit: false, remove: false },
+          sanitaryControls: { view: false, add: false, edit: false, remove: false },
+          locationMovements: { view: false, add: false, edit: false, remove: false },
+          animalMovements: { view: false, add: false, edit: false, remove: false },
+          inventoryMovements: { view: false, add: false, edit: false, remove: false },
+        },
+        breedings: {
+          breedings: { view: false, add: false, edit: false, remove: false },
+          unconfirmedBreedings: { view: false, add: false, edit: false, remove: false },
+          pregnantCows: { view: false, add: false, edit: false, remove: false },
+          reproductiveIndexes: { view: false, add: false, edit: false, remove: false },
+          birthForecast: { view: false, add: false, edit: false, remove: false },
+        },
+        finances: {
+          cashFlow: { view: false, add: false, edit: false, remove: false },
+          accountsPayable: { view: false, add: false, edit: false, remove: false },
+          accountsReceivable: { view: false, add: false, edit: false, remove: false },
+          bankAccounts: { view: false, add: false, edit: false, remove: false },
+        },
+        reports: {
+          analytics: { view: false, add: false, edit: false, remove: false },
+          financialReports: { view: false, add: false, edit: false, remove: false },
+          animalReports: { view: false, add: false, edit: false, remove: false },
+          productionReports: { view: false, add: false, edit: false, remove: false },
+          inventoryReports: { view: false, add: false, edit: false, remove: false },
+        },
       };
+      vi.mocked(apiClient.put).mockRejectedValue(new ApiError("Not found", 404));
 
-      const result = addUser(newUser);
-
-      expect(result.id).toMatch(/^550e8400-e29b-41d4-a716-/);
-      expect(result.name).toBe("New User");
-      expect(result.email).toBe("newuser@test.com");
-      expect(result.phone).toBe("1111111111");
-      expect(result.status).toBe("pending");
-      expect(result.mainUser).toBe(false);
-      expect(result.companyId).toBe("company-1");
-      expect(result.password).toBe("$2a$10$MyHqC7lONCHhrYYtZgUoEu3xR61lWfbQwSKfWOJVrNGZF.JbrUVQW");
-      expect(result.createdAt).toBeDefined();
-      expect(mockUsers).toHaveLength(4);
-    });
-
-    it("should use default company ID when no companies exist", () => {
-      mockCompanies.length = 0;
-      const newUser: UserFormData & { password: string } = {
-        name: "New User",
-        email: "newuser@test.com",
-        phone: "1111111111",
-        password: "password123",
-      };
-
-      const result = addUser(newUser);
-
-      expect(result.companyId).toBe("");
-    });
-
-    it("should generate sequential IDs based on users length", () => {
-      mockUsers.length = 0;
-      const newUser1: UserFormData & { password: string } = {
-        name: "User 1",
-        email: "user1@test.com",
-        phone: "1111111111",
-        password: "password123",
-      };
-      const newUser2: UserFormData & { password: string } = {
-        name: "User 2",
-        email: "user2@test.com",
-        phone: "2222222222",
-        password: "password123",
-      };
-
-      const result1 = addUser(newUser1);
-      const result2 = addUser(newUser2);
-
-      expect(result1.id).toMatch(/^550e8400-e29b-41d4-a716-000000000000$/);
-      expect(result2.id).toMatch(/^550e8400-e29b-41d4-a716-000000000001$/);
-    });
-  });
-
-  describe("authenticateUser", () => {
-    it("should return user when credentials are valid", async () => {
-      vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
-
-      const result = await authenticateUser("user1@test.com", "password123");
-
-      expect(result).toBeDefined();
-      expect(result?.id).toBe("user-1");
-      expect(result?.email).toBe("user1@test.com");
-      expect(bcrypt.compare).toHaveBeenCalledWith("password123", "$2a$10$hashedpassword1");
-    });
-
-    it("should return null when user does not exist", async () => {
-      const result = await authenticateUser("nonexistent@test.com", "password123");
-
-      expect(result).toBeNull();
-      expect(bcrypt.compare).not.toHaveBeenCalled();
-    });
-
-    it("should return null when user status is not active", async () => {
-      const result = await authenticateUser("user3@test.com", "password123");
-
-      expect(result).toBeNull();
-      expect(bcrypt.compare).not.toHaveBeenCalled();
-    });
-
-    it("should return null when user has no password", async () => {
-      mockUsers[0].password = undefined;
-      const result = await authenticateUser("user1@test.com", "password123");
-
-      expect(result).toBeNull();
-      expect(bcrypt.compare).not.toHaveBeenCalled();
-    });
-
-    it("should return null when password is invalid", async () => {
-      vi.mocked(bcrypt.compare).mockResolvedValue(false as never);
-
-      const result = await authenticateUser("user1@test.com", "wrongpassword");
-
-      expect(result).toBeNull();
-      expect(bcrypt.compare).toHaveBeenCalledWith("wrongpassword", "$2a$10$hashedpassword1");
+      await expect(updateTeamMemberPermissions("user-1", permissions)).rejects.toThrow(
+        "User not found"
+      );
     });
   });
 });

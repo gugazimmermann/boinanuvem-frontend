@@ -3179,6 +3179,7 @@ export const es = {
       saveFailed: "Error al guardar datos. Intenta de nuevo.",
       cnpjMustHave14Digits: "CNPJ debe tener 14 dígitos",
       cepMustHave8Digits: "Código Postal debe tener 8 dígitos",
+      cpfMustHave11Digits: "CPF debe tener 11 dígitos",
     },
   },
 

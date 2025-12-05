@@ -63,7 +63,9 @@ function validatePasswordFields(
   t: ReturnType<typeof useTranslation>
 ): void {
   const fields = t.team.addModal.fields;
-  const shouldValidatePassword = !isEdit || changePassword;
+  // For new team members, password is not required (will be set via email invitation)
+  // Only validate password when editing and user wants to change it
+  const shouldValidatePassword = isEdit && changePassword;
 
   if (!shouldValidatePassword) {
     return;
@@ -130,7 +132,10 @@ export function useTeamForm({
         cpf: unmaskCPF((teamData.cpf as string) || ""),
       };
 
-      if (isEdit && !changePassword) {
+      // Remove password fields if not needed
+      // For new members: password is not sent (will be set via email)
+      // For editing: only send password if user wants to change it
+      if (!isEdit || (isEdit && !changePassword)) {
         delete updateData.password;
         delete updateData.confirmPassword;
       }

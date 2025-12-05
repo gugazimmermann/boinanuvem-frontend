@@ -46,9 +46,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 if (shouldBeDark) {
                   document.documentElement.classList.add('dark');
                 }
-                
-                const language = localStorage.getItem('language') || 'pt';
-                document.documentElement.lang = language;
               })();
             `,
           }}

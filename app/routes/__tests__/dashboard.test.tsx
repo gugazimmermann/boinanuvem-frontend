@@ -22,7 +22,7 @@ vi.mock("react-router", async () => {
   };
 });
 
-const CURRENT_USER_ID_KEY = "currentUserId";
+const ACCESS_TOKEN_KEY = "access_token";
 
 describe("dashboard", () => {
   beforeEach(() => {
@@ -41,16 +41,16 @@ describe("dashboard", () => {
   });
 
   describe("loader", () => {
-    it("should return null when userId exists in localStorage", async () => {
-      localStorage.setItem(CURRENT_USER_ID_KEY, "user-123");
+    it("should return null when access_token exists in localStorage", async () => {
+      localStorage.setItem(ACCESS_TOKEN_KEY, "access-token-123");
 
       const result = await loader();
 
       expect(result).toBeNull();
     });
 
-    it("should redirect to login when userId does not exist in localStorage", async () => {
-      localStorage.removeItem(CURRENT_USER_ID_KEY);
+    it("should redirect to login when access_token does not exist in localStorage", async () => {
+      localStorage.removeItem(ACCESS_TOKEN_KEY);
 
       await expect(loader()).rejects.toThrow(`Redirect to ${ROUTES.LOGIN}`);
     });

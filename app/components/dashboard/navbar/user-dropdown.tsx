@@ -1,6 +1,5 @@
 import { useState, useRef } from "react";
 import { useClickOutside } from "~/hooks/use-click-outside";
-import { useNavigate } from "react-router";
 import { AvatarButton } from "./avatar-button";
 import { DropdownMenu } from "./dropdown-menu";
 import { UserInfo } from "./user-info";
@@ -11,7 +10,6 @@ import { ROUTES } from "../../../routes.config";
 import { useTranslation } from "~/i18n";
 import type { TranslationKey } from "~/i18n";
 import { useAuth } from "~/contexts/auth-context";
-import type { TeamUser } from "~/types";
 
 type MenuItem =
   | {
@@ -31,10 +29,14 @@ interface UserDropdownProps {
   readonly menuItems?: MenuItem[];
 }
 
+interface UserWithMainUser {
+  mainUser?: boolean;
+}
+
 const createMenuItems = (
   t: TranslationKey,
   onLogout: () => void,
-  currentUser: TeamUser | null
+  currentUser: UserWithMainUser | null
 ): MenuItem[] => {
   const isMainUser = currentUser?.mainUser === true;
   const items: MenuItem[] = [];
@@ -72,7 +74,6 @@ const getInitials = (name: string): string => {
 
 export function UserDropdown({ name, email, initial, menuItems }: UserDropdownProps) {
   const t = useTranslation();
-  const navigate = useNavigate();
   const { currentUser, logout } = useAuth();
 
   const displayName = name || currentUser?.name || t.common.defaultUser;
@@ -82,10 +83,9 @@ export function UserDropdown({ name, email, initial, menuItems }: UserDropdownPr
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const handleLogout = () => {
-    logout();
-    navigate(ROUTES.LOGIN);
+  const handleLogout = async () => {
     setIsOpen(false);
+    await logout();
   };
 
   const items = menuItems || createMenuItems(t as TranslationKey, handleLogout, currentUser);

@@ -5,17 +5,19 @@ import { MemoryRouter, useNavigate } from "react-router";
 import { loader, meta, links, default as Login } from "../login";
 import { ROUTES } from "~/routes.config";
 import { requireGuest } from "~/utils/route-guard";
-import { authenticateUser } from "~/services/users.service";
+import { authService } from "~/services/auth.service";
 import { useAuth } from "~/contexts/auth-context";
-import type { TeamUser } from "~/types";
+import type { LoginResponse } from "~/services/auth.service";
 
 vi.mock("~/utils/route-guard", () => ({
   requireGuest: vi.fn(() => Promise.resolve(null)),
   useRequireGuest: vi.fn(),
 }));
 
-vi.mock("~/services/users.service", () => ({
-  authenticateUser: vi.fn(),
+vi.mock("~/services/auth.service", () => ({
+  authService: {
+    login: vi.fn(),
+  },
 }));
 
 vi.mock("~/contexts/auth-context", () => ({
@@ -481,7 +483,7 @@ describe("login", () => {
       vi.mocked(useAuthForm).mockReturnValueOnce({
         email: "",
         password: "",
-        error: "someOtherError",
+        error: "unknownError",
         isLoading: false,
         setEmail: vi.fn(),
         setPassword: vi.fn(),
@@ -583,7 +585,19 @@ describe("login", () => {
     it("should pass correct onSubmit callback to useAuthForm", async () => {
       const mockNavigate = vi.fn();
       const mockLogin = vi.fn();
-      const mockUser = { id: "123" };
+      const mockLoginResponse: LoginResponse = {
+        access_token: "access-token-123",
+        refresh_token: "refresh-token-456",
+        user: {
+          id: "123",
+          email: "test@example.com",
+          name: "Test User",
+          mainUser: true,
+          companyId: "company-1",
+          permissions: {},
+          company: {},
+        },
+      };
 
       vi.mocked(useNavigate).mockReturnValue(mockNavigate);
       vi.mocked(useAuth).mockReturnValue({
@@ -591,14 +605,21 @@ describe("login", () => {
         login: mockLogin,
         logout: vi.fn(),
         isAuthenticated: false,
+        refreshTokens: vi.fn(),
+        getAccessToken: vi.fn(),
+        getRefreshToken: vi.fn(),
       });
-      vi.mocked(authenticateUser).mockResolvedValue(mockUser as TeamUser);
+      vi.mocked(authService.login).mockResolvedValue(mockLoginResponse);
 
       const { useAuthForm } = await import("~/components/site/hooks");
-      let capturedOnSubmit: ((email: string, password: string) => Promise<void>) | undefined;
+      let capturedOnSubmit:
+        | ((email: string, password: string, rememberMe?: boolean) => Promise<void>)
+        | undefined;
 
       vi.mocked(useAuthForm).mockImplementation(
-        (options: { onSubmit: (email: string, password: string) => Promise<void> }) => {
+        (options: {
+          onSubmit: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
+        }) => {
           capturedOnSubmit = options.onSubmit;
           return {
             email: "test@example.com",
@@ -623,23 +644,27 @@ describe("login", () => {
       // Test that onSubmit callback is properly set up and works correctly
       expect(capturedOnSubmit).toBeDefined();
       if (capturedOnSubmit) {
-        const promise = capturedOnSubmit("test@example.com", "password123");
+        const promise = capturedOnSubmit("test@example.com", "password123", false);
         await promise;
 
-        expect(authenticateUser).toHaveBeenCalledWith("test@example.com", "password123");
-        expect(mockLogin).toHaveBeenCalledWith("123");
+        expect(authService.login).toHaveBeenCalledWith("test@example.com", "password123", false);
+        expect(mockLogin).toHaveBeenCalledWith(mockLoginResponse);
         expect(mockNavigate).toHaveBeenCalledWith(ROUTES.DASHBOARD);
       }
     });
 
-    it("should throw error when authenticateUser returns null in onSubmit", async () => {
-      vi.mocked(authenticateUser).mockResolvedValue(null);
+    it("should throw error when authService.login fails in onSubmit", async () => {
+      vi.mocked(authService.login).mockRejectedValue(new Error("Invalid credentials"));
 
       const { useAuthForm } = await import("~/components/site/hooks");
-      let capturedOnSubmit: ((email: string, password: string) => Promise<void>) | undefined;
+      let capturedOnSubmit:
+        | ((email: string, password: string, rememberMe?: boolean) => Promise<void>)
+        | undefined;
 
       vi.mocked(useAuthForm).mockImplementation(
-        (options: { onSubmit: (email: string, password: string) => Promise<void> }) => {
+        (options: {
+          onSubmit: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
+        }) => {
           capturedOnSubmit = options.onSubmit;
           return {
             email: "test@example.com",
@@ -662,8 +687,8 @@ describe("login", () => {
       );
 
       if (capturedOnSubmit) {
-        await expect(capturedOnSubmit("test@example.com", "password123")).rejects.toThrow(
-          "invalidCredentials"
+        await expect(capturedOnSubmit("test@example.com", "password123", false)).rejects.toThrow(
+          "Invalid credentials"
         );
       }
     });

@@ -8,6 +8,7 @@ export function AuthFormError({ error, className = "" }: AuthFormErrorProps) {
 
   return (
     <div
+      data-testid="auth-form-error"
       className={`mb-4 p-3 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg ${className}`}
     >
       {error}

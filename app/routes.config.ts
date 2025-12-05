@@ -4,6 +4,8 @@ export const ROUTES = {
   REGISTER: "/cadastrar",
   FORGOT_PASSWORD: "/esqueceu-senha",
   NEW_PASSWORD: "/nova-senha",
+  VERIFY_EMAIL: "/verificar-email",
+  SETUP_PASSWORD: "/configurar-senha",
   TERMS: "/termos",
   PRIVACY: "/privacidade",
   HELP: "/dashboard/ajuda",

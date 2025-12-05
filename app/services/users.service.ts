@@ -1,75 +1,315 @@
-import type { TeamUser, UserFormData } from "~/types";
+import type { UserFormData } from "~/types";
 import type { UserPermissions } from "~/types/permissions";
-import { mockUsers } from "~/mocks/users";
-import { mockCompanies } from "~/mocks/companies";
-import { findById, findByField } from "./base-service";
-import bcrypt from "bcryptjs";
-const DEFAULT_PASSWORD_HASH = "$2a$10$MyHqC7lONCHhrYYtZgUoEu3xR61lWfbQwSKfWOJVrNGZF.JbrUVQW";
+import { apiClient, ApiError } from "./api-client";
 
-export function getUserById(userId: string | undefined): TeamUser | undefined {
-  return findById(mockUsers, userId);
+export interface FullUserProfile {
+  id: string;
+  name: string;
+  cpf: string | null;
+  email: string;
+  phone: string | null;
+  street: string | null;
+  number: string | null;
+  complement: string | null;
+  neighborhood: string | null;
+  city: string | null;
+  state: string | null;
+  zipCode: string | null;
+  mainUser: boolean;
+  status: string;
+  companyId: string;
+  permissions: UserPermissions;
+  createdAt: string;
+  updatedAt: string;
+  emailVerifiedAt: string | null;
+  company: unknown;
 }
 
-export function getUsersByCompanyId(companyId: string): TeamUser[] {
-  return findByField(mockUsers, "companyId", companyId);
+export interface UpdateUserDto {
+  name?: string;
+  cpf?: string;
+  email?: string;
+  phone?: string;
+  street?: string;
+  number?: string;
+  complement?: string;
+  neighborhood?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
 }
 
-export function updateUser(userId: string, data: UserFormData): void {
-  const userIndex = mockUsers.findIndex((user) => user.id === userId);
-  if (userIndex !== -1) {
-    const { id: _id, ...dataWithoutId } = data as UserFormData & { id?: string };
-    mockUsers[userIndex] = {
-      ...mockUsers[userIndex],
-      ...dataWithoutId,
-      password: undefined,
-      confirmPassword: undefined,
-    };
-  }
-}
-
-export function updateUserPermissions(userId: string, permissions: UserPermissions): void {
-  const userIndex = mockUsers.findIndex((user) => user.id === userId);
-  if (userIndex !== -1) {
-    mockUsers[userIndex].permissions = permissions;
-  }
-}
-
-export function addUser(data: UserFormData & { password: string }): TeamUser {
-  const company = mockCompanies[0];
-  const { id: _id, ...dataWithoutId } = data as UserFormData & { password: string; id?: string };
-  const newUser: TeamUser = {
-    ...dataWithoutId,
-    id: `550e8400-e29b-41d4-a716-${String(mockUsers.length).padStart(12, "0")}`,
-    status: "pending",
-    mainUser: false,
-    companyId: company?.id || "",
-    createdAt: new Date().toISOString().split("T")[0],
-    password: DEFAULT_PASSWORD_HASH,
+export interface UpdatePermissionsDto {
+  registration: {
+    property: { view: boolean; add: boolean; edit: boolean; remove: boolean };
+    location: { view: boolean; add: boolean; edit: boolean; remove: boolean };
+    employee: { view: boolean; add: boolean; edit: boolean; remove: boolean };
+    serviceProvider: { view: boolean; add: boolean; edit: boolean; remove: boolean };
+    supplier: { view: boolean; add: boolean; edit: boolean; remove: boolean };
+    buyer: { view: boolean; add: boolean; edit: boolean; remove: boolean };
+    inventory: { view: boolean; add: boolean; edit: boolean; remove: boolean };
+    animals: { view: boolean; add: boolean; edit: boolean; remove: boolean };
   };
-  mockUsers.push(newUser);
-  return newUser;
+  records: {
+    births: { view: boolean; add: boolean; edit: boolean; remove: boolean };
+    acquisitions: { view: boolean; add: boolean; edit: boolean; remove: boolean };
+    weighings: { view: boolean; add: boolean; edit: boolean; remove: boolean };
+    sales: { view: boolean; add: boolean; edit: boolean; remove: boolean };
+    deaths: { view: boolean; add: boolean; edit: boolean; remove: boolean };
+    sanitaryControls: { view: boolean; add: boolean; edit: boolean; remove: boolean };
+    locationMovements: { view: boolean; add: boolean; edit: boolean; remove: boolean };
+    animalMovements: { view: boolean; add: boolean; edit: boolean; remove: boolean };
+    inventoryMovements: { view: boolean; add: boolean; edit: boolean; remove: boolean };
+  };
+  breedings: {
+    breedings: { view: boolean; add: boolean; edit: boolean; remove: boolean };
+    unconfirmedBreedings: { view: boolean; add: boolean; edit: boolean; remove: boolean };
+    pregnantCows: { view: boolean; add: boolean; edit: boolean; remove: boolean };
+    reproductiveIndexes: { view: boolean; add: boolean; edit: boolean; remove: boolean };
+    birthForecast: { view: boolean; add: boolean; edit: boolean; remove: boolean };
+  };
+  finances: {
+    cashFlow: { view: boolean; add: boolean; edit: boolean; remove: boolean };
+    accountsPayable: { view: boolean; add: boolean; edit: boolean; remove: boolean };
+    accountsReceivable: { view: boolean; add: boolean; edit: boolean; remove: boolean };
+    bankAccounts: { view: boolean; add: boolean; edit: boolean; remove: boolean };
+  };
 }
 
-export async function authenticateUser(email: string, password: string): Promise<TeamUser | null> {
-  const user = mockUsers.find((u) => u.email === email);
-
-  if (!user) {
-    return null;
+/**
+ * Get current user's full profile from backend
+ */
+export async function getCurrentUser(): Promise<FullUserProfile> {
+  try {
+    return await apiClient.get<FullUserProfile>("/users/me");
+  } catch (error) {
+    if (error instanceof ApiError) {
+      if (error.status === 401) {
+        throw new Error("Authentication required");
+      }
+      if (error.status === 404) {
+        throw new Error("User not found");
+      }
+    }
+    throw error;
   }
+}
 
-  if (user.status !== "active") {
-    return null;
+/**
+ * Get team members list (main user only)
+ */
+export async function getTeamMembers(): Promise<FullUserProfile[]> {
+  try {
+    return await apiClient.get<FullUserProfile[]>("/users");
+  } catch (error) {
+    if (error instanceof ApiError) {
+      if (error.status === 403) {
+        throw new Error("Only main users can view team members");
+      }
+      if (error.status === 401) {
+        throw new Error("Authentication required");
+      }
+    }
+    throw error;
   }
+}
 
-  if (!user.password) {
-    return null;
+/**
+ * Update current user's profile
+ * Note: data should already be unmasked (CPF, phone, CEP) before calling this function
+ */
+export async function updateCurrentUser(data: UserFormData): Promise<FullUserProfile> {
+  try {
+    const updateDto: UpdateUserDto = {
+      name: data.name,
+      cpf: data.cpf || undefined,
+      email: data.email,
+      phone: data.phone || undefined,
+      street: data.street || undefined,
+      number: data.number || undefined,
+      complement: data.complement || undefined,
+      neighborhood: data.neighborhood || undefined,
+      city: data.city || undefined,
+      state: data.state || undefined,
+      zipCode: data.zipCode || undefined,
+    };
+
+    return await apiClient.put<FullUserProfile>("/users/me", updateDto);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      if (error.status === 401) {
+        throw new Error("Authentication required");
+      }
+      if (error.status === 409) {
+        throw new Error("Email already exists");
+      }
+      if (error.status === 400) {
+        throw new Error("Invalid user data");
+      }
+    }
+    throw error;
   }
+}
 
-  const isPasswordValid = await bcrypt.compare(password, user.password);
+/**
+ * Update team member profile (main user only)
+ */
+export async function updateTeamMember(
+  userId: string,
+  data: UserFormData
+): Promise<FullUserProfile> {
+  try {
+    const updateDto: UpdateUserDto = {
+      name: data.name,
+      cpf: data.cpf || undefined,
+      email: data.email,
+      phone: data.phone || undefined,
+      street: data.street || undefined,
+      number: data.number || undefined,
+      complement: data.complement || undefined,
+      neighborhood: data.neighborhood || undefined,
+      city: data.city || undefined,
+      state: data.state || undefined,
+      zipCode: data.zipCode || undefined,
+    };
 
-  if (!isPasswordValid) {
-    return null;
+    return await apiClient.put<FullUserProfile>(`/users/${userId}`, updateDto);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      if (error.status === 403) {
+        throw new Error("Only main users can update team members");
+      }
+      if (error.status === 404) {
+        throw new Error("User not found");
+      }
+      if (error.status === 409) {
+        throw new Error("Email already exists");
+      }
+      if (error.status === 400) {
+        throw new Error("Invalid user data");
+      }
+    }
+    throw error;
   }
+}
 
-  return user;
+/**
+ * Create team member (main user only)
+ * Password is optional - if not provided, user will set it via email invitation
+ */
+export async function createTeamMember(
+  data: UserFormData & { password?: string }
+): Promise<FullUserProfile> {
+  try {
+    const createDto: UpdateUserDto & { password?: string } = {
+      name: data.name,
+      cpf: data.cpf || undefined,
+      email: data.email,
+      phone: data.phone || undefined,
+      password: data.password || undefined,
+      street: data.street || undefined,
+      number: data.number || undefined,
+      complement: data.complement || undefined,
+      neighborhood: data.neighborhood || undefined,
+      city: data.city || undefined,
+      state: data.state || undefined,
+      zipCode: data.zipCode || undefined,
+    };
+
+    return await apiClient.post<FullUserProfile>("/users", createDto);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      if (error.status === 403) {
+        throw new Error("Only main users can create team members");
+      }
+      if (error.status === 409) {
+        throw new Error("Um usuário com este email já existe. Por favor, use outro email.");
+      }
+      if (error.status === 400) {
+        throw new Error("Invalid user data");
+      }
+    }
+    throw error;
+  }
+}
+
+/**
+ * Update team member permissions (main user only)
+ */
+export async function updateTeamMemberPermissions(
+  userId: string,
+  permissions: UserPermissions
+): Promise<FullUserProfile> {
+  try {
+    const updateDto: UpdatePermissionsDto = {
+      registration: {
+        property: permissions.registration.property,
+        location: permissions.registration.location,
+        employee: permissions.registration.employee,
+        serviceProvider: permissions.registration.serviceProvider,
+        supplier: permissions.registration.supplier,
+        buyer: permissions.registration.buyer,
+        inventory: permissions.registration.inventory,
+        animals: permissions.registration.animals,
+      },
+      records: {
+        births: permissions.records.births,
+        acquisitions: permissions.records.acquisitions,
+        weighings: permissions.records.weighings,
+        sales: permissions.records.sales,
+        deaths: permissions.records.deaths,
+        sanitaryControls: permissions.records.sanitaryControls,
+        locationMovements: permissions.records.locationMovements,
+        animalMovements: permissions.records.animalMovements,
+        inventoryMovements: permissions.records.inventoryMovements,
+      },
+      breedings: {
+        breedings: permissions.breedings.breedings,
+        unconfirmedBreedings: permissions.breedings.unconfirmedBreedings,
+        pregnantCows: permissions.breedings.pregnantCows,
+        reproductiveIndexes: permissions.breedings.reproductiveIndexes,
+        birthForecast: permissions.breedings.birthForecast,
+      },
+      finances: {
+        cashFlow: permissions.finances.cashFlow,
+        accountsPayable: permissions.finances.accountsPayable,
+        accountsReceivable: permissions.finances.accountsReceivable,
+        bankAccounts: permissions.finances.bankAccounts,
+      },
+    };
+
+    return await apiClient.put<FullUserProfile>(`/users/${userId}/permissions`, updateDto);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      if (error.status === 403) {
+        throw new Error("Only main users can update permissions");
+      }
+      if (error.status === 404) {
+        throw new Error("User not found");
+      }
+      if (error.status === 400) {
+        throw new Error("Invalid permissions data");
+      }
+    }
+    throw error;
+  }
+}
+
+/**
+ * Delete/deactivate team member (main user only)
+ */
+export async function deleteTeamMember(userId: string): Promise<void> {
+  try {
+    await apiClient.delete(`/users/${userId}`);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      if (error.status === 403) {
+        throw new Error("Only main users can delete team members");
+      }
+      if (error.status === 404) {
+        throw new Error("User not found");
+      }
+    }
+    throw error;
+  }
 }

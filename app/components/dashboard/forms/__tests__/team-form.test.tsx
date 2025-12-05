@@ -552,8 +552,9 @@ describe("TeamForm", () => {
         <TeamForm {...defaultProps} isEdit={false} />
       </TestWrapper>
     );
-    expect(screen.getByText("Password")).toBeInTheDocument();
-    expect(screen.getByText("Confirm Password")).toBeInTheDocument();
+    // Password fields should NOT be shown in new mode (password set via email invitation)
+    expect(screen.queryByText("Password")).not.toBeInTheDocument();
+    expect(screen.queryByText("Confirm Password")).not.toBeInTheDocument();
   });
 
   it("should not show password fields when changePassword is false in edit mode", () => {

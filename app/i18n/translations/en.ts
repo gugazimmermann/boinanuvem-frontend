@@ -3157,6 +3157,7 @@ export const en = {
       saveFailed: "Error saving data. Please try again.",
       cnpjMustHave14Digits: "CNPJ must have 14 digits",
       cepMustHave8Digits: "ZIP Code must have 8 digits",
+      cpfMustHave11Digits: "CPF must have 11 digits",
     },
   },
 

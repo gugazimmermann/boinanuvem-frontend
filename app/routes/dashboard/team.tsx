@@ -11,10 +11,10 @@ import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
 import { UserFormModal, DeleteUserModal, type UserFormData } from "~/components/dashboard/team";
 import { getUserProfileRoute, ROUTES, getTeamEditRoute } from "~/routes.config";
-import { mockUsers } from "~/mocks/users";
 import { useAuth } from "~/contexts/auth-context";
 import { useAlert } from "~/hooks/use-alert";
 import type { TeamUser } from "~/types";
+import { getTeamMembers, deleteTeamMember, type FullUserProfile } from "~/services/users.service";
 
 export function meta() {
   return [
@@ -42,7 +42,8 @@ export default function Team() {
       navigate(ROUTES.PROFILE);
     }
   }, [currentUser, navigate]);
-  const [users, setUsers] = useState<TeamUser[]>(mockUsers.filter((user) => !user.mainUser));
+  const [users, setUsers] = useState<TeamUser[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchValue, setSearchValue] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -50,6 +51,68 @@ export default function Team() {
   const [selectedUser, setSelectedUser] = useState<TeamUser | null>(null);
   const { alertMessage, showAlert } = useAlert();
   const itemsPerPage = 10;
+
+  // Convert FullUserProfile to TeamUser
+  const convertToTeamUser = (profile: FullUserProfile): TeamUser => {
+    // Map status: backend returns "active" or "inactive", we need to handle "pending" as well
+    let status: "active" | "inactive" | "pending";
+    if (profile.status === "active") {
+      status = "active";
+    } else if (profile.status === "inactive") {
+      status = "inactive";
+    } else {
+      status = "pending";
+    }
+
+    return {
+      id: profile.id,
+      name: profile.name,
+      email: profile.email,
+      cpf: profile.cpf || undefined,
+      phone: profile.phone || "",
+      street: profile.street || undefined,
+      number: profile.number || undefined,
+      complement: profile.complement || undefined,
+      neighborhood: profile.neighborhood || undefined,
+      city: profile.city || undefined,
+      state: profile.state || undefined,
+      zipCode: profile.zipCode || undefined,
+      status,
+      createdAt: profile.createdAt,
+      mainUser: profile.mainUser,
+      companyId: profile.companyId,
+      lastAccess: profile.updatedAt, // Using updatedAt as lastAccess for now
+    };
+  };
+
+  // Load team members from API
+  useEffect(() => {
+    const loadTeamMembers = async () => {
+      if (!currentUser?.mainUser) {
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const teamMembers = await getTeamMembers();
+        // Filter out main user and convert to TeamUser
+        const teamUsers = teamMembers.filter((member) => !member.mainUser).map(convertToTeamUser);
+        setUsers(teamUsers);
+      } catch (error) {
+        console.error("Failed to load team members:", error);
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Erro ao carregar membros da equipe. Tente novamente.";
+        showAlert(errorMessage, "error");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadTeamMembers();
+  }, [currentUser, showAlert, t]);
 
   const getLocale = (lang: string): string => {
     if (lang === "en") return "en-US";
@@ -98,24 +161,26 @@ export default function Team() {
     }).format(date);
   };
 
-  const handleAddUser = async (data: UserFormData) => {
-    const newUser: TeamUser = {
-      ...data,
-      id: String(users.length + 1),
-      status: "pending",
-      mainUser: false,
-      companyId: currentUser?.companyId || "",
-      createdAt: new Date().toISOString().split("T")[0],
-    };
-    setUsers([...users, newUser]);
-    showAlert(t.team.success.added, "success");
+  const handleAddUser = async (_data: UserFormData) => {
+    // This is handled by the team.new route, but keeping for modal compatibility
+    // The modal should navigate to the new route instead
+    navigate(ROUTES.TEAM_NEW);
   };
 
   const handleDeleteUser = async () => {
     if (!selectedUser) return;
-    setUsers(users.filter((user) => user.id !== selectedUser.id));
-    showAlert(t.team.success.deleted, "success");
-    setSelectedUser(null);
+
+    try {
+      await deleteTeamMember(selectedUser.id);
+      // Remove from local state
+      setUsers(users.filter((user) => user.id !== selectedUser.id));
+      showAlert(t.team.success.deleted, "success");
+      setSelectedUser(null);
+    } catch (error) {
+      console.error("Failed to delete team member:", error);
+      const errorMessage = error instanceof Error ? error.message : t.team.errors.deleteFailed;
+      showAlert(errorMessage, "error");
+    }
   };
 
   const handleViewUser = (user: TeamUser) => {
@@ -201,6 +266,14 @@ export default function Team() {
       },
     },
   ];
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <p className="text-gray-500 dark:text-gray-400">{t.common.loading}</p>
+      </div>
+    );
+  }
 
   return (
     <div>
