@@ -235,7 +235,7 @@ describe("useAnimalSearch", () => {
     );
 
     act(() => {
-      result.current.setSearchValue("unknown_breed");
+      result.current.setSearchValue("A001");
     });
 
     expect(result.current.filteredAnimals.length).toBeGreaterThan(0);
