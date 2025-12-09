@@ -1,317 +1,336 @@
 import { describe, it, expect, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { useFormValidation, validators } from "../use-form-validation";
-import { isValidEmail } from "~/utils/email-validation";
 
 vi.mock("~/utils/email-validation", () => ({
-  isValidEmail: vi.fn(),
+  isValidEmail: vi.fn((email: string) => email.includes("@")),
 }));
 
 describe("useFormValidation", () => {
-  describe("validation rules", () => {
-    it("should return no errors for valid data", () => {
-      const data = {
-        email: "test@example.com",
-        name: "John Doe",
-      };
+  it("should return no errors for valid data", () => {
+    const { result } = renderHook(() =>
+      useFormValidation({ email: "test@example.com", password: "password123" }, [
+        { field: "email", validator: validators.email },
+        { field: "password", validator: validators.minLength(6) },
+      ])
+    );
 
-      const rules = [
-        {
-          field: "email" as const,
-          validator: validators.email,
-          required: true,
-        },
-        {
-          field: "name" as const,
-          validator: () => null,
-          required: true,
-        },
-      ];
-
-      vi.mocked(isValidEmail).mockReturnValue(true);
-
-      const { result } = renderHook(() => useFormValidation(data, rules));
-
-      expect(result.current.errors).toEqual({});
-      expect(result.current.isValid).toBe(true);
-    });
-
-    it("should return error for required field that is empty", () => {
-      const data = {
-        email: "",
-        name: "John Doe",
-      };
-
-      const rules = [
-        {
-          field: "email" as const,
-          validator: validators.email,
-          required: true,
-        },
-      ];
-
-      const { result } = renderHook(() => useFormValidation(data, rules));
-
-      expect(result.current.errors.email).toBe("required");
-      expect(result.current.isValid).toBe(false);
-    });
-
-    it("should return error for required field that is only whitespace", () => {
-      const data = {
-        email: "   ",
-        name: "John Doe",
-      };
-
-      const rules = [
-        {
-          field: "email" as const,
-          validator: validators.email,
-          required: true,
-        },
-      ];
-
-      const { result } = renderHook(() => useFormValidation(data, rules));
-
-      expect(result.current.errors.email).toBe("required");
-      expect(result.current.isValid).toBe(false);
-    });
-
-    it("should not validate non-required empty fields", () => {
-      const data = {
-        email: "",
-        name: "John Doe",
-      };
-
-      const rules = [
-        {
-          field: "email" as const,
-          validator: validators.email,
-          required: false,
-        },
-      ];
-
-      const { result } = renderHook(() => useFormValidation(data, rules));
-
-      expect(result.current.errors).toEqual({});
-      expect(result.current.isValid).toBe(true);
-    });
-
-    it("should validate non-empty non-required fields", () => {
-      const data = {
-        email: "invalid-email",
-        name: "John Doe",
-      };
-
-      const rules = [
-        {
-          field: "email" as const,
-          validator: validators.email,
-          required: false,
-        },
-      ];
-
-      vi.mocked(isValidEmail).mockReturnValue(false);
-
-      const { result } = renderHook(() => useFormValidation(data, rules));
-
-      expect(result.current.errors.email).toBe("invalidEmail");
-      expect(result.current.isValid).toBe(false);
-    });
-
-    it("should handle multiple validation errors", () => {
-      const data = {
-        email: "invalid-email",
-        password: "123",
-        name: "",
-      };
-
-      const rules = [
-        {
-          field: "email" as const,
-          validator: validators.email,
-          required: true,
-        },
-        {
-          field: "password" as const,
-          validator: validators.minLength(6),
-          required: true,
-        },
-        {
-          field: "name" as const,
-          validator: () => null,
-          required: true,
-        },
-      ];
-
-      vi.mocked(isValidEmail).mockReturnValue(false);
-
-      const { result } = renderHook(() => useFormValidation(data, rules));
-
-      expect(result.current.errors.email).toBe("invalidEmail");
-      expect(result.current.errors.password).toBe("minLength_6");
-      expect(result.current.errors.name).toBe("required");
-      expect(result.current.isValid).toBe(false);
-    });
-
-    it("should update when data changes", () => {
-      const { result, rerender } = renderHook(
-        ({ data }) =>
-          useFormValidation(data, [
-            {
-              field: "email" as const,
-              validator: validators.email,
-              required: true,
-            },
-          ]),
-        {
-          initialProps: {
-            data: { email: "" },
-          },
-        }
-      );
-
-      expect(result.current.errors.email).toBe("required");
-
-      vi.mocked(isValidEmail).mockReturnValue(true);
-
-      rerender({
-        data: { email: "test@example.com" },
-      });
-
-      expect(result.current.errors).toEqual({});
-      expect(result.current.isValid).toBe(true);
-    });
-
-    it("should update when rules change", () => {
-      const data = {
-        email: "test@example.com",
-      };
-
-      const { result, rerender } = renderHook(({ rules }) => useFormValidation(data, rules), {
-        initialProps: {
-          rules: [
-            {
-              field: "email" as const,
-              validator: validators.email,
-              required: false,
-            },
-          ],
-        },
-      });
-
-      expect(result.current.errors).toEqual({});
-
-      rerender({
-        rules: [
-          {
-            field: "email" as const,
-            validator: validators.email,
-            required: true,
-          },
-        ],
-      });
-
-      // Data is still valid, so no error
-      vi.mocked(isValidEmail).mockReturnValue(true);
-      expect(result.current.errors).toEqual({});
-    });
+    expect(result.current.errors).toEqual({});
+    expect(result.current.isValid).toBe(true);
   });
 
-  describe("validators", () => {
-    describe("email", () => {
-      it("should return null for valid email", () => {
-        vi.mocked(isValidEmail).mockReturnValue(true);
-        expect(validators.email("test@example.com")).toBe(null);
-      });
+  it("should return errors for invalid data", () => {
+    const { result } = renderHook(() =>
+      useFormValidation({ email: "invalid-email", password: "123" }, [
+        { field: "email", validator: validators.email },
+        { field: "password", validator: validators.minLength(6) },
+      ])
+    );
 
-      it("should return error for invalid email", () => {
-        vi.mocked(isValidEmail).mockReturnValue(false);
-        expect(validators.email("invalid-email")).toBe("invalidEmail");
-      });
+    expect(result.current.errors.email).toBe("invalidEmail");
+    expect(result.current.errors.password).toBe("minLength_6");
+    expect(result.current.isValid).toBe(false);
+  });
+
+  it("should validate required fields", () => {
+    const { result } = renderHook(() =>
+      useFormValidation({ email: "", password: "" }, [
+        { field: "email", validator: validators.email, required: true },
+        { field: "password", validator: validators.minLength(6), required: true },
+      ])
+    );
+
+    expect(result.current.errors.email).toBe("required");
+    expect(result.current.errors.password).toBe("required");
+    expect(result.current.isValid).toBe(false);
+  });
+
+  it("should not validate empty non-required fields", () => {
+    const { result } = renderHook(() =>
+      useFormValidation({ email: "", password: "" }, [
+        { field: "email", validator: validators.email },
+        { field: "password", validator: validators.minLength(6) },
+      ])
+    );
+
+    expect(result.current.errors).toEqual({});
+    expect(result.current.isValid).toBe(true);
+  });
+
+  it("should validate email format", () => {
+    const { result: invalidResult } = renderHook(() =>
+      useFormValidation({ email: "invalid" }, [{ field: "email", validator: validators.email }])
+    );
+
+    expect(invalidResult.current.errors.email).toBe("invalidEmail");
+
+    const { result: validResult } = renderHook(() =>
+      useFormValidation({ email: "test@example.com" }, [
+        { field: "email", validator: validators.email },
+      ])
+    );
+
+    expect(validResult.current.errors).toEqual({});
+  });
+
+  it("should validate minLength", () => {
+    const { result } = renderHook(() =>
+      useFormValidation({ password: "123" }, [
+        { field: "password", validator: validators.minLength(6) },
+      ])
+    );
+
+    expect(result.current.errors.password).toBe("minLength_6");
+  });
+
+  it("should validate maxLength", () => {
+    const { result } = renderHook(() =>
+      useFormValidation({ name: "very long name that exceeds limit" }, [
+        { field: "name", validator: validators.maxLength(10) },
+      ])
+    );
+
+    expect(result.current.errors.name).toBe("maxLength_10");
+  });
+
+  it("should validate match", () => {
+    const { result } = renderHook(() =>
+      useFormValidation({ password: "password123", confirmPassword: "password456" }, [
+        {
+          field: "confirmPassword",
+          validator: validators.match("password123", "password"),
+        },
+      ])
+    );
+
+    expect(result.current.errors.confirmPassword).toBe("mismatch_password");
+  });
+
+  it("should validate CNPJ format", () => {
+    const { result: invalidResult } = renderHook(() =>
+      useFormValidation({ cnpj: "123" }, [{ field: "cnpj", validator: validators.cnpj }])
+    );
+
+    expect(invalidResult.current.errors.cnpj).toBe("cnpjMustHave14Digits");
+
+    const { result: validResult } = renderHook(() =>
+      useFormValidation({ cnpj: "12.345.678/0001-90" }, [
+        { field: "cnpj", validator: validators.cnpj },
+      ])
+    );
+
+    expect(validResult.current.errors).toEqual({});
+  });
+
+  it("should validate CEP format", () => {
+    const { result: invalidResult } = renderHook(() =>
+      useFormValidation({ cep: "123" }, [{ field: "cep", validator: validators.cep }])
+    );
+
+    expect(invalidResult.current.errors.cep).toBe("cepMustHave8Digits");
+
+    const { result: validResult } = renderHook(() =>
+      useFormValidation({ cep: "12.345-678" }, [{ field: "cep", validator: validators.cep }])
+    );
+
+    expect(validResult.current.errors).toEqual({});
+  });
+
+  it("should update errors when data changes", () => {
+    const { result, rerender } = renderHook(
+      ({ data }) => useFormValidation(data, [{ field: "email", validator: validators.email }]),
+      { initialProps: { data: { email: "invalid" } } }
+    );
+
+    expect(result.current.errors.email).toBe("invalidEmail");
+
+    rerender({ data: { email: "test@example.com" } });
+
+    expect(result.current.errors).toEqual({});
+    expect(result.current.isValid).toBe(true);
+  });
+
+  it("should handle multiple validation rules", () => {
+    const { result } = renderHook(() =>
+      useFormValidation({ email: "test@example.com", password: "123" }, [
+        { field: "email", validator: validators.email },
+        { field: "password", validator: validators.minLength(6), required: true },
+      ])
+    );
+
+    expect(result.current.errors.email).toBeUndefined();
+    expect(result.current.errors.password).toBe("minLength_6");
+  });
+
+  it("should trim values before validation", () => {
+    const { result } = renderHook(() =>
+      useFormValidation({ email: "  test@example.com  " }, [
+        { field: "email", validator: validators.email },
+      ])
+    );
+
+    expect(result.current.errors).toEqual({});
+  });
+
+  it("should handle required validator", () => {
+    const { result } = renderHook(() =>
+      useFormValidation({ field: "" }, [
+        { field: "field", validator: validators.required, required: true },
+      ])
+    );
+
+    expect(result.current.errors.field).toBe("required");
+  });
+
+  it("should return required error for field with whitespace-only value", () => {
+    const { result } = renderHook(() =>
+      useFormValidation({ field: "   " }, [
+        { field: "field", validator: validators.email, required: true },
+      ])
+    );
+
+    expect(result.current.errors.field).toBe("required");
+    expect(result.current.isValid).toBe(false);
+  });
+
+  it("should pass validation for field with whitespace-only value when required is false", () => {
+    const { result } = renderHook(() =>
+      useFormValidation({ field: "   " }, [
+        { field: "field", validator: validators.email, required: false },
+      ])
+    );
+
+    expect(result.current.errors).toEqual({});
+    expect(result.current.isValid).toBe(true);
+  });
+
+  it("should call validator with original value (not trimmed)", () => {
+    const mockValidator = vi.fn((_value: string) => {
+      // Validator receives the original value, trimming is only used for required check
+      return null;
     });
 
-    describe("required", () => {
-      it("should return null for non-empty value", () => {
-        expect(validators.required("test")).toBe(null);
-      });
+    renderHook(() =>
+      useFormValidation({ email: "  test@example.com  " }, [
+        { field: "email", validator: mockValidator },
+      ])
+    );
 
-      it("should return error for empty value", () => {
-        expect(validators.required("")).toBe("required");
-      });
+    // Validator is called with the original value, not trimmed
+    // The trimming check (value.trim()) is only used to determine if validator should be called
+    expect(mockValidator).toHaveBeenCalledWith("  test@example.com  ");
+  });
 
-      it("should return error for whitespace-only value", () => {
-        expect(validators.required("   ")).toBe("required");
-      });
+  it("should set validator error correctly when validator returns error", () => {
+    const customValidator = vi.fn((value: string) => {
+      if (value.length < 5) {
+        return "tooShort";
+      }
+      return null;
     });
 
-    describe("minLength", () => {
-      it("should return null for value meeting minimum length", () => {
-        const validator = validators.minLength(5);
-        expect(validator("12345")).toBe(null);
-        expect(validator("123456")).toBe(null);
-      });
+    const { result } = renderHook(() =>
+      useFormValidation({ field: "abc" }, [{ field: "field", validator: customValidator }])
+    );
 
-      it("should return error for value below minimum length", () => {
-        const validator = validators.minLength(5);
-        expect(validator("1234")).toBe("minLength_5");
-      });
+    expect(result.current.errors.field).toBe("tooShort");
+    expect(customValidator).toHaveBeenCalledWith("abc");
+  });
+
+  it("should not set error when validator returns null", () => {
+    const customValidator = vi.fn((_value: string) => {
+      return null; // Valid value
     });
 
-    describe("maxLength", () => {
-      it("should return null for value within maximum length", () => {
-        const validator = validators.maxLength(5);
-        expect(validator("12345")).toBe(null);
-        expect(validator("1234")).toBe(null);
-      });
+    const { result } = renderHook(() =>
+      useFormValidation({ field: "validValue" }, [{ field: "field", validator: customValidator }])
+    );
 
-      it("should return error for value exceeding maximum length", () => {
-        const validator = validators.maxLength(5);
-        expect(validator("123456")).toBe("maxLength_5");
-      });
+    expect(result.current.errors).toEqual({});
+    expect(result.current.isValid).toBe(true);
+    expect(customValidator).toHaveBeenCalledWith("validValue");
+  });
+
+  it("should handle required field with whitespace and custom validator", () => {
+    const customValidator = vi.fn((value: string) => {
+      return value.length < 3 ? "minLength" : null;
     });
 
-    describe("match", () => {
-      it("should return null for matching values", () => {
-        const validator = validators.match("password123", "password");
-        expect(validator("password123")).toBe(null);
-      });
+    const { result } = renderHook(() =>
+      useFormValidation({ field: "  " }, [
+        { field: "field", validator: customValidator, required: true },
+      ])
+    );
 
-      it("should return error for non-matching values", () => {
-        const validator = validators.match("password123", "password");
-        expect(validator("password456")).toBe("mismatch_password");
-      });
+    // Should return "required" because whitespace-only is treated as empty
+    expect(result.current.errors.field).toBe("required");
+    // Validator should not be called for whitespace-only required fields
+    expect(customValidator).not.toHaveBeenCalled();
+  });
+
+  it("should handle field with value that trims to empty but is not required", () => {
+    const customValidator = vi.fn((value: string) => {
+      return value.length < 3 ? "minLength" : null;
     });
 
-    describe("cnpj", () => {
-      it("should return null for valid CNPJ length", () => {
-        expect(validators.cnpj("12.345.678/0001-90")).toBe(null);
-        expect(validators.cnpj("12345678000190")).toBe(null);
-      });
+    const { result } = renderHook(() =>
+      useFormValidation({ field: "  " }, [
+        { field: "field", validator: customValidator, required: false },
+      ])
+    );
 
-      it("should return error for invalid CNPJ length", () => {
-        expect(validators.cnpj("1234567890123")).toBe("cnpjMustHave14Digits");
-        expect(validators.cnpj("123")).toBe("cnpjMustHave14Digits");
-      });
+    // Should pass validation because field is not required and whitespace-only is skipped
+    expect(result.current.errors).toEqual({});
+    expect(result.current.isValid).toBe(true);
+    // Validator should not be called for whitespace-only non-required fields
+    expect(customValidator).not.toHaveBeenCalled();
+  });
 
-      it("should return null for empty CNPJ", () => {
-        expect(validators.cnpj("")).toBe(null);
-      });
-    });
+  it("should handle multiple rules for same field correctly", () => {
+    const { result } = renderHook(() =>
+      useFormValidation({ password: "abc" }, [
+        { field: "password", validator: validators.minLength(6), required: true },
+        { field: "password", validator: validators.maxLength(10), required: true },
+      ])
+    );
 
-    describe("cep", () => {
-      it("should return null for valid CEP length", () => {
-        expect(validators.cep("12.345-678")).toBe(null);
-        expect(validators.cep("12345678")).toBe(null);
-      });
+    // First validator should fail (minLength)
+    expect(result.current.errors.password).toBe("minLength_6");
+    expect(result.current.isValid).toBe(false);
+  });
 
-      it("should return error for invalid CEP length", () => {
-        expect(validators.cep("1234567")).toBe("cepMustHave8Digits");
-        expect(validators.cep("123")).toBe("cepMustHave8Digits");
-      });
+  it("should handle required field with empty string", () => {
+    const { result } = renderHook(() =>
+      useFormValidation({ field: "" }, [
+        { field: "field", validator: validators.email, required: true },
+      ])
+    );
 
-      it("should return null for empty CEP", () => {
-        expect(validators.cep("")).toBe(null);
-      });
-    });
+    expect(result.current.errors.field).toBe("required");
+    expect(result.current.isValid).toBe(false);
+  });
+
+  it("should handle field with undefined value", () => {
+    const { result } = renderHook(() =>
+      useFormValidation({ field: undefined as unknown as string }, [
+        { field: "field", validator: validators.email, required: false },
+      ])
+    );
+
+    // Undefined should be treated as empty string
+    expect(result.current.errors).toEqual({});
+    expect(result.current.isValid).toBe(true);
+  });
+
+  it("should handle validator that checks trimmed value length", () => {
+    const { result } = renderHook(() =>
+      useFormValidation({ name: "  test  " }, [
+        { field: "name", validator: validators.minLength(4) },
+      ])
+    );
+
+    // Validator receives trimmed value "test" which has length 4, so it should pass
+    expect(result.current.errors).toEqual({});
+    expect(result.current.isValid).toBe(true);
   });
 });

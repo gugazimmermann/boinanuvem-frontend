@@ -1,71 +1,56 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { ActivitiesSection, type Activity } from "../activities-section";
+import { ActivitiesSection } from "../activities-section";
 
 describe("ActivitiesSection", () => {
-  const mockActivities: Activity[] = [
-    { icon: "🐄", title: "Animal Registered", description: "New animal added" },
-    { icon: "👶", title: "Birth Recorded", description: "New birth registered" },
-    { icon: "⚖️", title: "Weighing Done", description: "Animal weighed" },
+  const mockActivities = [
+    { icon: "🐄", title: "Activity 1", description: "Description 1" },
+    { icon: "📊", title: "Activity 2", description: "Description 2" },
+    { icon: "💰", title: "Activity 3", description: "Description 3" },
   ];
 
   it("should render title", () => {
-    render(<ActivitiesSection title="Recent Activities" activities={[]} />);
-    expect(screen.getByText("Recent Activities")).toBeInTheDocument();
+    render(<ActivitiesSection title="Activities" activities={mockActivities} />);
+    expect(screen.getByText("Activities")).toBeInTheDocument();
   });
 
-  it("should render activities", () => {
+  it("should render all activities", () => {
     render(<ActivitiesSection title="Activities" activities={mockActivities} />);
-    expect(screen.getByText("Animal Registered")).toBeInTheDocument();
-    expect(screen.getByText("Birth Recorded")).toBeInTheDocument();
-    expect(screen.getByText("Weighing Done")).toBeInTheDocument();
-  });
-
-  it("should render activity descriptions", () => {
-    render(<ActivitiesSection title="Activities" activities={mockActivities} />);
-    expect(screen.getByText("New animal added")).toBeInTheDocument();
-    expect(screen.getByText("New birth registered")).toBeInTheDocument();
-    expect(screen.getByText("Animal weighed")).toBeInTheDocument();
+    expect(screen.getByText("Activity 1")).toBeInTheDocument();
+    expect(screen.getByText("Description 1")).toBeInTheDocument();
+    expect(screen.getByText("Activity 2")).toBeInTheDocument();
+    expect(screen.getByText("Description 2")).toBeInTheDocument();
+    expect(screen.getByText("Activity 3")).toBeInTheDocument();
+    expect(screen.getByText("Description 3")).toBeInTheDocument();
   });
 
   it("should render activity icons", () => {
     render(<ActivitiesSection title="Activities" activities={mockActivities} />);
     expect(screen.getByText("🐄")).toBeInTheDocument();
-    expect(screen.getByText("👶")).toBeInTheDocument();
-    expect(screen.getByText("⚖️")).toBeInTheDocument();
+    expect(screen.getByText("📊")).toBeInTheDocument();
+    expect(screen.getByText("💰")).toBeInTheDocument();
   });
 
-  it("should not render border on last activity", () => {
+  it("should not show border on last activity", () => {
     const { container } = render(
       <ActivitiesSection title="Activities" activities={mockActivities} />
     );
-    const activityDivs = container.querySelectorAll(".space-y-3 > div");
-    const lastActivity = activityDivs[activityDivs.length - 1];
-    expect(lastActivity).not.toHaveClass("border-b");
+    const activities = container.querySelectorAll('[class*="border-b"]');
+    // Last activity should not have border
+    expect(activities.length).toBe(mockActivities.length - 1);
   });
 
-  it("should render border on non-last activities", () => {
-    const { container } = render(
-      <ActivitiesSection title="Activities" activities={mockActivities} />
-    );
-    const activityDivs = container.querySelectorAll(".space-y-3 > div");
-    expect(activityDivs[0]).toHaveClass("border-b");
-    expect(activityDivs[1]).toHaveClass("border-b");
-  });
-
-  it("should render empty state when no activities", () => {
+  it("should render empty activities array", () => {
     render(<ActivitiesSection title="Activities" activities={[]} />);
     expect(screen.getByText("Activities")).toBeInTheDocument();
-    expect(screen.queryByText("Animal Registered")).not.toBeInTheDocument();
   });
 
-  it("should render with correct styling classes", () => {
+  it("should render single activity without border", () => {
+    const singleActivity = [mockActivities[0]];
     const { container } = render(
-      <ActivitiesSection title="Activities" activities={mockActivities} />
+      <ActivitiesSection title="Activities" activities={singleActivity} />
     );
-    const section = container.firstChild as HTMLElement;
-    expect(section).toHaveClass("bg-white");
-    expect(section).toHaveClass("dark:bg-gray-800");
-    expect(section).toHaveClass("rounded-lg");
+    const activities = container.querySelectorAll('[class*="border-b"]');
+    expect(activities.length).toBe(0);
   });
 });

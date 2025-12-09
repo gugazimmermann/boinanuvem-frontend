@@ -3,7 +3,7 @@ import { useTranslation } from "~/i18n";
 import { ROUTES } from "~/routes.config";
 import { addProperty } from "~/services/properties.service";
 import type { PropertyFormData } from "~/types";
-import { mockCompanies } from "~/mocks/companies";
+import { useAuth } from "~/contexts/auth-context";
 import {
   PropertyForm,
   type PropertyFormValues,
@@ -25,8 +25,7 @@ export function meta() {
 export default function NewProperty() {
   const t = useTranslation();
   const navigate = useNavigate();
-  const company = mockCompanies[0];
-  const companyId = company?.id || "";
+  const { currentUser } = useAuth();
   const { showAlert, AlertDisplay } = useAlert();
 
   const {
@@ -43,6 +42,10 @@ export default function NewProperty() {
       areaValidationError: t.properties.new.areaValidationError,
     },
     onSubmit: async (data: PropertyFormValues) => {
+      if (!currentUser?.companyId) {
+        throw new Error("Company ID not found");
+      }
+
       const propertyData: PropertyFormData = {
         code: data.code,
         name: data.name,
@@ -51,7 +54,7 @@ export default function NewProperty() {
           type: data.areaType,
         },
         status: data.status,
-        companyId,
+        companyId: currentUser.companyId,
         street: data.street,
         number: data.number,
         complement: data.complement,
@@ -60,11 +63,18 @@ export default function NewProperty() {
         state: data.state,
         zipCode: data.zipCode,
       };
-      addProperty(propertyData);
-      showAlert(t.properties.new.success, "success");
-      setTimeout(() => {
-        navigate(ROUTES.PROPERTIES);
-      }, 1500);
+
+      try {
+        await addProperty(propertyData);
+        showAlert(t.properties.new.success, "success");
+        setTimeout(() => {
+          navigate(ROUTES.PROPERTIES);
+        }, 1500);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : t.properties.new.error;
+        showAlert(errorMessage, "error");
+        throw error;
+      }
     },
   });
 

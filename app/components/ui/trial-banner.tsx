@@ -41,8 +41,12 @@ export function TrialBanner({ daysRemaining, onDismiss, className = "" }: TrialB
     onDismiss?.();
   };
 
+  const rootClassName = ["w-full", "text-white", getColorClass(), className]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <div className={`w-full text-white ${getColorClass()} ${className}`.trim()}>
+    <div className={rootClassName}>
       <div className="container flex items-center justify-between px-6 py-4 mx-auto">
         <div className="flex">
           <svg viewBox="0 0 40 40" className="w-6 h-6 fill-current">

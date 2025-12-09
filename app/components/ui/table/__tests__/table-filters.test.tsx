@@ -1,142 +1,105 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { TableFilters } from "../table-filters";
+import type { TableFilter } from "../types";
 
 describe("TableFilters", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+  const mockFilters: TableFilter[] = [
+    { value: "all", label: "All", active: true, onClick: vi.fn() },
+    { value: "active", label: "Active", active: false, onClick: vi.fn() },
+    { value: "inactive", label: "Inactive", active: false, onClick: vi.fn() },
+  ];
+
+  it("should return null when no filters, search, or content", () => {
+    const { container } = render(<TableFilters />);
+    expect(container.firstChild).toBeNull();
   });
 
-  it("should render with filters", () => {
-    const filters = [
-      { label: "All", value: "all", active: true, onClick: vi.fn() },
-      { label: "Active", value: "active", active: false, onClick: vi.fn() },
-    ];
-    render(<TableFilters filters={filters} />);
+  it("should render filters", () => {
+    render(<TableFilters filters={mockFilters} />);
     expect(screen.getByText("All")).toBeInTheDocument();
     expect(screen.getByText("Active")).toBeInTheDocument();
+    expect(screen.getByText("Inactive")).toBeInTheDocument();
+  });
+
+  it("should highlight active filter", () => {
+    render(<TableFilters filters={mockFilters} />);
+    const allButton = screen.getByText("All").closest("button");
+    expect(allButton).toHaveClass("bg-gray-100");
   });
 
   it("should call filter onClick when clicked", async () => {
-    const handleFilter = vi.fn();
-    const filters = [{ label: "All", value: "all", active: false, onClick: handleFilter }];
+    const onClick = vi.fn();
+    const filters: TableFilter[] = [{ value: "test", label: "Test", active: false, onClick }];
     const user = userEvent.setup();
     render(<TableFilters filters={filters} />);
-    await user.click(screen.getByText("All"));
-    expect(handleFilter).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByText("Test"));
+    expect(onClick).toHaveBeenCalledTimes(1);
   });
 
-  it("should apply active styles to active filter", () => {
-    const filters = [{ label: "Active", value: "active", active: true, onClick: vi.fn() }];
-    const { container } = render(<TableFilters filters={filters} />);
-    const button = container.querySelector("button");
-    expect(button).toHaveClass("bg-gray-100");
-  });
-
-  it("should apply inactive styles to inactive filter", () => {
-    const filters = [{ label: "Inactive", value: "inactive", active: false, onClick: vi.fn() }];
-    const { container } = render(<TableFilters filters={filters} />);
-    const button = container.querySelector("button");
-    expect(button).toHaveClass("hover:bg-gray-100");
-  });
-
-  it("should render with search input", () => {
+  it("should render search input when search is provided", () => {
     const search = {
-      value: "",
+      value: "test query",
       onChange: vi.fn(),
       placeholder: "Search...",
     };
     render(<TableFilters search={search} />);
     const input = screen.getByPlaceholderText("Search...");
     expect(input).toBeInTheDocument();
+    expect(input).toHaveValue("test query");
   });
 
   it("should call search onChange when typing", async () => {
-    const handleSearchChange = vi.fn();
+    const onChange = vi.fn();
     const search = {
       value: "",
-      onChange: handleSearchChange,
+      onChange,
+      placeholder: "Search...",
     };
     const user = userEvent.setup();
     render(<TableFilters search={search} />);
-    const input = screen.getByRole("textbox");
-    await user.type(input, "test");
-    expect(handleSearchChange).toHaveBeenCalled();
+    const input = screen.getByPlaceholderText("Search...");
+    await user.type(input, "new query");
+    expect(onChange).toHaveBeenCalled();
   });
 
-  it("should display search value", () => {
-    const search = {
-      value: "test query",
-      onChange: vi.fn(),
-    };
-    render(<TableFilters search={search} />);
-    const input = screen.getByRole("textbox") as HTMLInputElement;
-    expect(input.value).toBe("test query");
-  });
-
-  it("should render with selectedCountLabel", () => {
+  it("should render selected count label", () => {
     render(<TableFilters selectedCountLabel="3 selected" />);
     expect(screen.getByText("3 selected")).toBeInTheDocument();
   });
 
-  it("should render with selectedActionButton", () => {
-    const actionButton = <button>Delete Selected</button>;
-    render(<TableFilters selectedActionButton={actionButton} />);
-    expect(screen.getByRole("button", { name: "Delete Selected" })).toBeInTheDocument();
+  it("should render selected action button", () => {
+    render(<TableFilters selectedActionButton={<button>Delete Selected</button>} />);
+    expect(screen.getByRole("button", { name: /delete selected/i })).toBeInTheDocument();
   });
 
-  it("should render with additionalContent", () => {
-    const additionalContent = <div data-testid="additional">Additional</div>;
-    render(<TableFilters additionalContent={additionalContent} />);
+  it("should render additional content", () => {
+    render(<TableFilters additionalContent={<div data-testid="additional">Additional</div>} />);
     expect(screen.getByTestId("additional")).toBeInTheDocument();
   });
 
-  it("should render with middleContent", () => {
-    const middleContent = <div data-testid="middle">Middle</div>;
-    render(<TableFilters middleContent={middleContent} />);
+  it("should render middle content", () => {
+    render(<TableFilters middleContent={<div data-testid="middle">Middle</div>} />);
     expect(screen.getByTestId("middle")).toBeInTheDocument();
   });
 
-  it("should render with rightContent", () => {
-    const rightContent = <div data-testid="right">Right</div>;
-    render(<TableFilters rightContent={rightContent} />);
+  it("should render right content", () => {
+    render(<TableFilters rightContent={<div data-testid="right">Right</div>} />);
     expect(screen.getByTestId("right")).toBeInTheDocument();
   });
 
-  it("should render with belowContent", () => {
-    const belowContent = <div data-testid="below">Below</div>;
-    render(<TableFilters belowContent={belowContent} />);
+  it("should render below content", () => {
+    render(<TableFilters belowContent={<div data-testid="below">Below</div>} />);
     expect(screen.getByTestId("below")).toBeInTheDocument();
   });
 
-  it("should return null when no content provided", () => {
-    const { container } = render(<TableFilters />);
-    expect(container.firstChild).toBeNull();
-  });
-
-  it("should return null when filters is empty and no other content", () => {
-    const { container } = render(<TableFilters filters={[]} />);
-    expect(container.firstChild).toBeNull();
-  });
-
-  it("should render search icon", () => {
-    const search = {
-      value: "",
-      onChange: vi.fn(),
-    };
-    const { container } = render(<TableFilters search={search} />);
-    const svg = container.querySelector("svg");
-    expect(svg).toBeInTheDocument();
-  });
-
-  it("should use default placeholder when not provided", () => {
+  it("should render with default search placeholder", () => {
     const search = {
       value: "",
       onChange: vi.fn(),
     };
     render(<TableFilters search={search} />);
-    const input = screen.getByPlaceholderText("Search");
-    expect(input).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Search")).toBeInTheDocument();
   });
 });

@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useRef, useEffect } from "react";
 import type { AddressFormData, CEPData } from "~/types";
 import { AuthSelect } from "./ui";
 import { Input } from "~/components/ui";
@@ -29,11 +29,16 @@ export function AddressForm({
   onZipCodeSuccess,
 }: AddressFormProps) {
   const t = useTranslation();
+  const onZipCodeSuccessRef = useRef(onZipCodeSuccess);
+
+  useEffect(() => {
+    onZipCodeSuccessRef.current = onZipCodeSuccess;
+  }, [onZipCodeSuccess]);
 
   const handleZipCodeSuccess = useCallback(
     (cepData: CEPData) => {
-      if (onZipCodeSuccess) {
-        onZipCodeSuccess(cepData);
+      if (onZipCodeSuccessRef.current) {
+        onZipCodeSuccessRef.current(cepData);
       } else {
         const mappedData = mapCEPDataToAddressForm(cepData, data);
         for (const [key, value] of Object.entries(mappedData)) {
@@ -48,7 +53,7 @@ export function AddressForm({
         }
       }
     },
-    [data, onChange, onZipCodeSuccess]
+    [data, onChange]
   );
 
   const { loading: cepLoading } = useCEPLookup(unmaskCEP(data.zipCode), {

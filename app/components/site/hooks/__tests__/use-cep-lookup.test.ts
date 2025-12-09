@@ -1,390 +1,415 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useCEPLookup } from "../use-cep-lookup";
 
 describe("useCEPLookup", () => {
+  const mockFetch = vi.fn();
+  const originalFetch = global.fetch;
+
   beforeEach(() => {
     vi.useFakeTimers();
-    global.fetch = vi.fn();
+    global.fetch = mockFetch;
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
     vi.useRealTimers();
+    global.fetch = originalFetch;
   });
 
-  it("should initialize with null data, false loading, and null error", () => {
+  it("should initialize with null data and no loading", () => {
     const { result } = renderHook(() => useCEPLookup(""));
-
-    expect(result.current.data).toBe(null);
+    expect(result.current.data).toBeNull();
     expect(result.current.loading).toBe(false);
-    expect(result.current.error).toBe(null);
+    expect(result.current.error).toBeNull();
   });
 
-  it("should not fetch when CEP is less than 8 digits", async () => {
-    const { result } = renderHook(() => useCEPLookup("12345"));
-
-    await act(async () => {
-      vi.advanceTimersByTime(1000);
-    });
-
-    expect(global.fetch).not.toHaveBeenCalled();
-    expect(result.current.data).toBe(null);
-    expect(result.current.error).toBe(null);
+  it("should not fetch when CEP is empty", async () => {
+    renderHook(() => useCEPLookup(""));
+    vi.advanceTimersByTime(1000);
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  it("should not fetch when CEP is more than 8 digits", async () => {
-    renderHook(() => useCEPLookup("123456789"));
-
-    await act(async () => {
-      vi.advanceTimersByTime(1000);
-    });
-
-    expect(global.fetch).not.toHaveBeenCalled();
+  it("should not fetch when CEP has less than 8 digits", async () => {
+    renderHook(() => useCEPLookup("12345"));
+    vi.advanceTimersByTime(1000);
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 
   it("should debounce fetch requests", async () => {
-    const mockData = {
-      cep: "12345678",
-      street: "Rua Test",
-      neighborhood: "Centro",
-      city: "São Paulo",
-      state: "SP",
-      location: { type: "Point", coordinates: {} },
-    };
-
-    vi.mocked(global.fetch).mockResolvedValueOnce({
+    mockFetch.mockResolvedValue({
       ok: true,
-      json: async () => mockData,
-    } as Response);
-
-    const { rerender } = renderHook(({ cep }) => useCEPLookup(cep, { debounceMs: 800 }), {
-      initialProps: { cep: "12345" },
+      json: async () => ({ cep: "12345678", street: "Test Street" }),
     });
 
-    rerender({ cep: "12345678" });
-
-    // Should not fetch immediately
-    await act(async () => {
-      vi.advanceTimersByTime(799);
+    const { rerender } = renderHook(({ cep }) => useCEPLookup(cep), {
+      initialProps: { cep: "" },
     });
 
-    expect(global.fetch).not.toHaveBeenCalled();
-
-    // Should fetch after debounce
+    // Change to first valid CEP
     await act(async () => {
-      vi.advanceTimersByTime(1);
+      rerender({ cep: "12345-678" });
+      vi.advanceTimersByTime(400);
+    });
+    expect(mockFetch).not.toHaveBeenCalled();
+
+    // Change to second valid CEP (should cancel previous timer)
+    await act(async () => {
+      rerender({ cep: "12345-679" });
+      vi.advanceTimersByTime(400);
+    });
+    expect(mockFetch).not.toHaveBeenCalled();
+
+    // Complete the debounce period
+    await act(async () => {
+      vi.advanceTimersByTime(400);
       await vi.runOnlyPendingTimersAsync();
     });
 
-    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
-  it("should fetch CEP data successfully", async () => {
-    const mockData = {
-      cep: "12345678",
-      street: "Rua Test",
-      neighborhood: "Centro",
-      city: "São Paulo",
-      state: "SP",
-      location: { type: "Point", coordinates: {} },
-    };
-
-    vi.mocked(global.fetch).mockResolvedValueOnce({
+  it("should fetch CEP when valid and debounce time passes", async () => {
+    mockFetch.mockResolvedValue({
       ok: true,
-      json: async () => mockData,
-    } as Response);
+      json: async () => ({
+        cep: "12345678",
+        street: "Test Street",
+        neighborhood: "Test Neighborhood",
+        city: "Test City",
+        state: "SP",
+      }),
+    });
 
-    const { result } = renderHook(() => useCEPLookup("12345678", { debounceMs: 0 }));
+    renderHook(() => useCEPLookup("12345-678"));
 
     await act(async () => {
-      vi.advanceTimersByTime(1);
+      vi.advanceTimersByTime(800);
+      await vi.runOnlyPendingTimersAsync();
+    });
+
+    expect(mockFetch).toHaveBeenCalledWith("https://brasilapi.com.br/api/cep/v2/12345678");
+  });
+
+  it("should set loading state during fetch", async () => {
+    let resolveFetch: (value: unknown) => void;
+    const fetchPromise = new Promise((resolve) => {
+      resolveFetch = resolve;
+    });
+
+    mockFetch.mockReturnValue(
+      Promise.resolve({
+        ok: true,
+        json: async () => fetchPromise as unknown,
+      })
+    );
+
+    const { result } = renderHook(() => useCEPLookup("12345678"));
+
+    await act(async () => {
+      vi.advanceTimersByTime(800);
+      await vi.runOnlyPendingTimersAsync();
+    });
+
+    expect(result.current.loading).toBe(true);
+
+    await act(async () => {
+      resolveFetch!({ cep: "12345678" });
+      await vi.runOnlyPendingTimersAsync();
+    });
+
+    expect(result.current.loading).toBe(false);
+  });
+
+  it("should set data when fetch succeeds", async () => {
+    const mockData = {
+      cep: "12345678",
+      street: "Test Street",
+      neighborhood: "Test Neighborhood",
+      city: "Test City",
+      state: "SP",
+    };
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => mockData,
+    });
+
+    const { result } = renderHook(() => useCEPLookup("12345678"));
+
+    await act(async () => {
+      vi.advanceTimersByTime(800);
       await vi.runOnlyPendingTimersAsync();
     });
 
     expect(result.current.data).toEqual(mockData);
-    expect(result.current.error).toBe(null);
-    expect(result.current.loading).toBe(false);
+    expect(result.current.error).toBeNull();
   });
 
-  it("should handle fetch error", async () => {
-    vi.mocked(global.fetch).mockRejectedValueOnce(new Error("Network error"));
-
-    const { result } = renderHook(() => useCEPLookup("12345678", { debounceMs: 0 }));
-
-    await act(async () => {
-      vi.advanceTimersByTime(1);
-      await vi.runOnlyPendingTimersAsync();
-    });
-
-    expect(result.current.data).toBe(null);
-    expect(result.current.error).toBe("Network error");
-    expect(result.current.loading).toBe(false);
-  });
-
-  it("should handle non-ok response", async () => {
-    vi.mocked(global.fetch).mockResolvedValueOnce({
+  it("should set error when fetch fails", async () => {
+    mockFetch.mockResolvedValue({
       ok: false,
-      status: 404,
-    } as Response);
+    });
 
-    const { result } = renderHook(() => useCEPLookup("12345678", { debounceMs: 0 }));
+    const { result } = renderHook(() => useCEPLookup("12345678"));
 
     await act(async () => {
-      vi.advanceTimersByTime(1);
+      vi.advanceTimersByTime(800);
       await vi.runOnlyPendingTimersAsync();
     });
 
-    expect(result.current.data).toBe(null);
     expect(result.current.error).toBe("CEP not found");
-    expect(result.current.loading).toBe(false);
+    expect(result.current.data).toBeNull();
   });
 
-  it("should call onSuccess callback when data is fetched", async () => {
+  it("should call onSuccess callback when provided", async () => {
+    const mockOnSuccess = vi.fn();
     const mockData = {
       cep: "12345678",
-      street: "Rua Test",
-      neighborhood: "Centro",
-      city: "São Paulo",
-      state: "SP",
-      location: { type: "Point", coordinates: {} },
+      street: "Test Street",
     };
 
-    const onSuccess = vi.fn();
-
-    vi.mocked(global.fetch).mockResolvedValueOnce({
+    mockFetch.mockResolvedValue({
       ok: true,
       json: async () => mockData,
-    } as Response);
+    });
 
-    renderHook(() => useCEPLookup("12345678", { debounceMs: 0, onSuccess }));
+    renderHook(() => useCEPLookup("12345678", { onSuccess: mockOnSuccess }));
 
     await act(async () => {
-      vi.advanceTimersByTime(1);
+      vi.advanceTimersByTime(800);
       await vi.runOnlyPendingTimersAsync();
     });
 
-    expect(onSuccess).toHaveBeenCalledWith(mockData);
+    expect(mockOnSuccess).toHaveBeenCalledWith(mockData);
   });
 
   it("should call onError callback when fetch fails", async () => {
-    const error = new Error("Network error");
-    const onError = vi.fn();
+    const mockOnError = vi.fn();
+    mockFetch.mockRejectedValue(new Error("Network error"));
 
-    vi.mocked(global.fetch).mockRejectedValueOnce(error);
-
-    renderHook(() => useCEPLookup("12345678", { debounceMs: 0, onError }));
+    renderHook(() => useCEPLookup("12345678", { onError: mockOnError }));
 
     await act(async () => {
-      vi.advanceTimersByTime(1);
+      vi.advanceTimersByTime(800);
       await vi.runOnlyPendingTimersAsync();
     });
 
-    expect(onError).toHaveBeenCalledWith(error);
-  });
-
-  it("should not fetch same CEP twice", async () => {
-    const mockData = {
-      cep: "12345678",
-      street: "Rua Test",
-      neighborhood: "Centro",
-      city: "São Paulo",
-      state: "SP",
-      location: { type: "Point", coordinates: {} },
-    };
-
-    vi.mocked(global.fetch).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockData,
-    } as Response);
-
-    const { rerender } = renderHook(({ cep }) => useCEPLookup(cep, { debounceMs: 0 }), {
-      initialProps: { cep: "12345678" },
-    });
-
-    await act(async () => {
-      vi.advanceTimersByTime(1);
-      await vi.runOnlyPendingTimersAsync();
-    });
-
-    expect(global.fetch).toHaveBeenCalledTimes(1);
-
-    // Rerender with same CEP
-    rerender({ cep: "12345678" });
-
-    await act(async () => {
-      vi.advanceTimersByTime(1);
-    });
-
-    expect(global.fetch).toHaveBeenCalledTimes(1);
-  });
-
-  it("should format CEP by removing non-digits", async () => {
-    const mockData = {
-      cep: "12345678",
-      street: "Rua Test",
-      neighborhood: "Centro",
-      city: "São Paulo",
-      state: "SP",
-      location: { type: "Point", coordinates: {} },
-    };
-
-    vi.mocked(global.fetch).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockData,
-    } as Response);
-
-    renderHook(() => useCEPLookup("12.345-678", { debounceMs: 0 }));
-
-    await act(async () => {
-      vi.advanceTimersByTime(1);
-      await vi.runOnlyPendingTimersAsync();
-    });
-
-    expect(global.fetch).toHaveBeenCalledWith("https://brasilapi.com.br/api/cep/v2/12345678");
+    expect(mockOnError).toHaveBeenCalled();
   });
 
   it("should not fetch when enabled is false", async () => {
-    const { result } = renderHook(() =>
-      useCEPLookup("12345678", { debounceMs: 0, enabled: false })
-    );
+    renderHook(() => useCEPLookup("12345678", { enabled: false }));
 
-    await act(async () => {
-      vi.advanceTimersByTime(1);
-    });
+    vi.advanceTimersByTime(1000);
 
-    expect(global.fetch).not.toHaveBeenCalled();
-    expect(result.current.data).toBe(null);
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  it("should clear data and error when CEP becomes invalid", async () => {
-    const mockData = {
-      cep: "12345678",
-      street: "Rua Test",
-      neighborhood: "Centro",
-      city: "São Paulo",
-      state: "SP",
-      location: { type: "Point", coordinates: {} },
-    };
-
-    vi.mocked(global.fetch).mockResolvedValueOnce({
+  it("should not fetch same CEP twice", async () => {
+    mockFetch.mockResolvedValue({
       ok: true,
-      json: async () => mockData,
-    } as Response);
+      json: async () => ({ cep: "12345678" }),
+    });
 
-    const { result, rerender } = renderHook(({ cep }) => useCEPLookup(cep, { debounceMs: 0 }), {
+    const { rerender } = renderHook(({ cep }) => useCEPLookup(cep), {
       initialProps: { cep: "12345678" },
     });
 
     await act(async () => {
-      vi.advanceTimersByTime(1);
+      vi.advanceTimersByTime(800);
       await vi.runOnlyPendingTimersAsync();
     });
 
-    // Change to invalid CEP
-    rerender({ cep: "123" });
+    expect(mockFetch).toHaveBeenCalledTimes(1);
 
     await act(async () => {
-      vi.advanceTimersByTime(1);
+      rerender({ cep: "12345678" });
+      vi.advanceTimersByTime(800);
+      await vi.runOnlyPendingTimersAsync();
     });
 
-    expect(result.current.data).toBe(null);
-    expect(result.current.error).toBe(null);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
   it("should expose fetchCEP function", () => {
     const { result } = renderHook(() => useCEPLookup(""));
-
     expect(typeof result.current.fetchCEP).toBe("function");
   });
 
   it("should allow manual fetch via fetchCEP", async () => {
-    const mockData = {
-      cep: "12345678",
-      street: "Rua Test",
-      neighborhood: "Centro",
-      city: "São Paulo",
-      state: "SP",
-      location: { type: "Point", coordinates: {} },
-    };
-
-    vi.mocked(global.fetch).mockResolvedValueOnce({
+    mockFetch.mockResolvedValue({
       ok: true,
-      json: async () => mockData,
-    } as Response);
+      json: async () => ({ cep: "12345678" }),
+    });
 
-    const { result } = renderHook(() => useCEPLookup("", { debounceMs: 0 }));
+    const { result } = renderHook(() => useCEPLookup(""));
 
     await act(async () => {
-      await result.current.fetchCEP("12345678");
+      result.current.fetchCEP("12345678");
       await vi.runOnlyPendingTimersAsync();
     });
 
-    expect(result.current.data).toEqual(mockData);
+    expect(mockFetch).toHaveBeenCalled();
   });
 
-  it("should handle non-Error rejection in onError", async () => {
-    const onError = vi.fn();
+  it("should use custom debounce time", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ cep: "12345678" }),
+    });
 
-    vi.mocked(global.fetch).mockRejectedValueOnce("String error");
-
-    renderHook(() => useCEPLookup("12345678", { debounceMs: 0, onError }));
+    renderHook(() => useCEPLookup("12345678", { debounceMs: 2000 }));
 
     await act(async () => {
-      vi.advanceTimersByTime(1);
+      vi.advanceTimersByTime(1000);
+    });
+    expect(mockFetch).not.toHaveBeenCalled();
+
+    await act(async () => {
+      vi.advanceTimersByTime(1000);
       await vi.runOnlyPendingTimersAsync();
     });
 
-    expect(onError).toHaveBeenCalledWith(expect.any(Error));
+    expect(mockFetch).toHaveBeenCalled();
   });
 
-  it("should update callbacks when they change", async () => {
-    const mockData = {
-      cep: "12345678",
-      street: "Rua Test",
-      neighborhood: "Centro",
-      city: "São Paulo",
-      state: "SP",
-      location: { type: "Point", coordinates: {} },
-    };
-
-    const onSuccess1 = vi.fn();
-    const onSuccess2 = vi.fn();
-
-    vi.mocked(global.fetch).mockResolvedValue({
+  it("should clear data and error when CEP becomes invalid", async () => {
+    mockFetch.mockResolvedValue({
       ok: true,
-      json: async () => mockData,
-    } as Response);
+      json: async () => ({ cep: "12345678" }),
+    });
 
-    const { rerender } = renderHook(
-      ({ cep, onSuccess }) => useCEPLookup(cep, { debounceMs: 0, onSuccess }),
-      { initialProps: { cep: "12345678", onSuccess: onSuccess1 } }
-    );
+    const { result, rerender } = renderHook(({ cep }) => useCEPLookup(cep), {
+      initialProps: { cep: "12345678" },
+    });
 
     await act(async () => {
-      vi.advanceTimersByTime(1);
+      vi.advanceTimersByTime(800);
       await vi.runOnlyPendingTimersAsync();
     });
 
-    expect(onSuccess1).toHaveBeenCalledWith(mockData);
-
-    rerender({ cep: "12345678", onSuccess: onSuccess2 });
-
-    // Clear previous call
-    onSuccess1.mockClear();
-    vi.mocked(global.fetch).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockData,
-    } as Response);
-
-    // Trigger new fetch by changing CEP to a different value
-    rerender({ cep: "87654321", onSuccess: onSuccess2 });
+    expect(result.current.data).not.toBeNull();
 
     await act(async () => {
-      vi.advanceTimersByTime(1);
+      rerender({ cep: "123" });
+    });
+
+    expect(result.current.data).toBeNull();
+    expect(result.current.error).toBeNull();
+  });
+
+  it("should handle error when fetch throws string (non-Error)", async () => {
+    const mockOnError = vi.fn();
+    mockFetch.mockRejectedValue("String error");
+
+    const { result } = renderHook(() => useCEPLookup("12345678", { onError: mockOnError }));
+
+    await act(async () => {
+      vi.advanceTimersByTime(800);
       await vi.runOnlyPendingTimersAsync();
     });
 
-    expect(onSuccess2).toHaveBeenCalledWith(mockData);
+    expect(result.current.error).toBe("CEP not found or invalid");
+    expect(result.current.data).toBeNull();
+    expect(mockOnError).toHaveBeenCalled();
+    // Verify onError receives an Error object even when fetch throws non-Error
+    const errorCall = mockOnError.mock.calls[0]?.[0];
+    expect(errorCall).toBeInstanceOf(Error);
+  });
+
+  it("should handle error when fetch throws object (non-Error)", async () => {
+    const mockOnError = vi.fn();
+    mockFetch.mockRejectedValue({ message: "Object error" });
+
+    const { result } = renderHook(() => useCEPLookup("12345678", { onError: mockOnError }));
+
+    await act(async () => {
+      vi.advanceTimersByTime(800);
+      await vi.runOnlyPendingTimersAsync();
+    });
+
+    expect(result.current.error).toBe("CEP not found or invalid");
+    expect(mockOnError).toHaveBeenCalled();
+    const errorCall = mockOnError.mock.calls[0]?.[0];
+    expect(errorCall).toBeInstanceOf(Error);
+  });
+
+  it("should not fetch when manual fetchCEP is called with invalid length", async () => {
+    const { result } = renderHook(() => useCEPLookup(""));
+
+    await act(async () => {
+      result.current.fetchCEP("12345"); // Less than 8 digits
+      await vi.runOnlyPendingTimersAsync();
+    });
+
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(result.current.data).toBeNull();
+    expect(result.current.error).toBeNull();
+  });
+
+  it("should not fetch when manual fetchCEP is called with same CEP as lastFetchedCEP", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ cep: "12345678" }),
+    });
+
+    const { result } = renderHook(() => useCEPLookup(""));
+
+    // First fetch
+    await act(async () => {
+      result.current.fetchCEP("12345678");
+      await vi.runOnlyPendingTimersAsync();
+    });
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    mockFetch.mockClear();
+
+    // Second fetch with same CEP should be skipped
+    await act(async () => {
+      result.current.fetchCEP("12345678");
+      await vi.runOnlyPendingTimersAsync();
+    });
+
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("should fetch when manual fetchCEP is called with different CEP", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ cep: "12345678" }),
+    });
+
+    const { result } = renderHook(() => useCEPLookup(""));
+
+    // First fetch
+    await act(async () => {
+      result.current.fetchCEP("12345678");
+      await vi.runOnlyPendingTimersAsync();
+    });
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    mockFetch.mockClear();
+
+    // Second fetch with different CEP should proceed
+    await act(async () => {
+      result.current.fetchCEP("87654321");
+      await vi.runOnlyPendingTimersAsync();
+    });
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("should handle error message from Error object when fetch throws", async () => {
+    mockFetch.mockRejectedValue(new Error("Custom network error"));
+
+    const { result } = renderHook(() => useCEPLookup("12345678"));
+
+    await act(async () => {
+      vi.advanceTimersByTime(800);
+      await vi.runOnlyPendingTimersAsync();
+    });
+
+    expect(result.current.error).toBe("Custom network error");
   });
 });

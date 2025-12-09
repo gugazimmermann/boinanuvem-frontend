@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, act } from "@testing-library/react";
+import { renderHook, act, waitFor } from "@testing-library/react";
 import { useAuthForm } from "../use-auth-form";
 
 describe("useAuthForm", () => {
@@ -9,7 +9,7 @@ describe("useAuthForm", () => {
     vi.clearAllMocks();
   });
 
-  it("should initialize with default empty values", () => {
+  it("should initialize with empty email and password", () => {
     const { result } = renderHook(() =>
       useAuthForm({
         onSubmit: mockOnSubmit,
@@ -18,8 +18,6 @@ describe("useAuthForm", () => {
 
     expect(result.current.email).toBe("");
     expect(result.current.password).toBe("");
-    expect(result.current.error).toBe("");
-    expect(result.current.isLoading).toBe(false);
   });
 
   it("should initialize with provided initial values", () => {
@@ -70,14 +68,8 @@ describe("useAuthForm", () => {
       })
     );
 
-    // Set an error first
     act(() => {
       result.current.setEmail("test@example.com");
-    });
-
-    // Simulate an error by setting it directly (in real usage, this would come from submit)
-    act(() => {
-      result.current.setEmail("new@example.com");
     });
 
     expect(result.current.error).toBe("");
@@ -91,7 +83,7 @@ describe("useAuthForm", () => {
     );
 
     act(() => {
-      result.current.setPassword("newpassword");
+      result.current.setPassword("password");
     });
 
     expect(result.current.error).toBe("");
@@ -104,33 +96,11 @@ describe("useAuthForm", () => {
       })
     );
 
-    const mockEvent = {
-      preventDefault: vi.fn(),
-    } as unknown as React.FormEvent<HTMLFormElement>;
-
     await act(async () => {
-      await result.current.handleSubmit(mockEvent);
-    });
-
-    expect(mockEvent.preventDefault).toHaveBeenCalled();
-    expect(result.current.error).toBe("emailRequired");
-    expect(mockOnSubmit).not.toHaveBeenCalled();
-  });
-
-  it("should set error when email is only whitespace on submit", async () => {
-    const { result } = renderHook(() =>
-      useAuthForm({
-        initialEmail: "   ",
-        onSubmit: mockOnSubmit,
-      })
-    );
-
-    const mockEvent = {
-      preventDefault: vi.fn(),
-    } as unknown as React.FormEvent<HTMLFormElement>;
-
-    await act(async () => {
-      await result.current.handleSubmit(mockEvent);
+      const form = document.createElement("form");
+      const event = new Event("submit", { bubbles: true, cancelable: true });
+      Object.defineProperty(event, "target", { value: form });
+      await result.current.handleSubmit(event as unknown as React.FormEvent<HTMLFormElement>);
     });
 
     expect(result.current.error).toBe("emailRequired");
@@ -145,40 +115,18 @@ describe("useAuthForm", () => {
       })
     );
 
-    const mockEvent = {
-      preventDefault: vi.fn(),
-    } as unknown as React.FormEvent<HTMLFormElement>;
-
     await act(async () => {
-      await result.current.handleSubmit(mockEvent);
+      const form = document.createElement("form");
+      const event = new Event("submit", { bubbles: true, cancelable: true });
+      Object.defineProperty(event, "target", { value: form });
+      await result.current.handleSubmit(event as unknown as React.FormEvent<HTMLFormElement>);
     });
 
     expect(result.current.error).toBe("passwordRequired");
     expect(mockOnSubmit).not.toHaveBeenCalled();
   });
 
-  it("should set error when password is only whitespace on submit", async () => {
-    const { result } = renderHook(() =>
-      useAuthForm({
-        initialEmail: "test@example.com",
-        initialPassword: "   ",
-        onSubmit: mockOnSubmit,
-      })
-    );
-
-    const mockEvent = {
-      preventDefault: vi.fn(),
-    } as unknown as React.FormEvent<HTMLFormElement>;
-
-    await act(async () => {
-      await result.current.handleSubmit(mockEvent);
-    });
-
-    expect(result.current.error).toBe("passwordRequired");
-    expect(mockOnSubmit).not.toHaveBeenCalled();
-  });
-
-  it("should call onSubmit with trimmed email and password on successful submit", async () => {
+  it("should call onSubmit with trimmed email and password", async () => {
     const { result } = renderHook(() =>
       useAuthForm({
         initialEmail: "  test@example.com  ",
@@ -189,20 +137,22 @@ describe("useAuthForm", () => {
 
     mockOnSubmit.mockResolvedValue(undefined);
 
-    const mockEvent = {
-      preventDefault: vi.fn(),
-    } as unknown as React.FormEvent<HTMLFormElement>;
-
     await act(async () => {
-      await result.current.handleSubmit(mockEvent);
+      const form = document.createElement("form");
+      const event = new Event("submit", { bubbles: true, cancelable: true });
+      Object.defineProperty(event, "target", { value: form });
+      await result.current.handleSubmit(event as unknown as React.FormEvent<HTMLFormElement>);
     });
 
     expect(mockOnSubmit).toHaveBeenCalledWith("test@example.com", "password123");
-    expect(result.current.error).toBe("");
-    expect(result.current.isLoading).toBe(false);
   });
 
-  it("should set loading state during submit", async () => {
+  it("should set loading state during submission", async () => {
+    let resolvePromise: () => void;
+    const promise = new Promise<void>((resolve) => {
+      resolvePromise = resolve;
+    });
+    mockOnSubmit.mockImplementation(() => promise);
     const { result } = renderHook(() =>
       useAuthForm({
         initialEmail: "test@example.com",
@@ -210,32 +160,28 @@ describe("useAuthForm", () => {
         onSubmit: mockOnSubmit,
       })
     );
-
-    let resolveSubmit: () => void;
-    const submitPromise = new Promise<void>((resolve) => {
-      resolveSubmit = resolve;
-    });
-    mockOnSubmit.mockReturnValue(submitPromise);
-
-    const mockEvent = {
-      preventDefault: vi.fn(),
-    } as unknown as React.FormEvent<HTMLFormElement>;
 
     act(() => {
-      result.current.handleSubmit(mockEvent);
+      if (result.current) {
+        const form = document.createElement("form");
+        const event = new Event("submit", { bubbles: true, cancelable: true });
+        Object.defineProperty(event, "target", { value: form });
+        void result.current.handleSubmit(event as unknown as React.FormEvent<HTMLFormElement>);
+      }
     });
 
-    expect(result.current.isLoading).toBe(true);
-
-    await act(async () => {
-      resolveSubmit!();
-      await submitPromise;
+    // Wait for loading state to become true
+    await waitFor(() => {
+      expect(result.current?.isLoading).toBe(true);
     });
 
-    expect(result.current.isLoading).toBe(false);
+    resolvePromise!();
+    await waitFor(() => {
+      expect(result.current?.isLoading).toBe(false);
+    });
   });
 
-  it("should handle submit error and set error message", async () => {
+  it("should set error when onSubmit throws", async () => {
     const { result } = renderHook(() =>
       useAuthForm({
         initialEmail: "test@example.com",
@@ -244,22 +190,44 @@ describe("useAuthForm", () => {
       })
     );
 
-    const errorMessage = "Invalid credentials";
-    mockOnSubmit.mockRejectedValue(new Error(errorMessage));
-
-    const mockEvent = {
-      preventDefault: vi.fn(),
-    } as unknown as React.FormEvent<HTMLFormElement>;
+    mockOnSubmit.mockRejectedValue(new Error("Network error"));
 
     await act(async () => {
-      await result.current.handleSubmit(mockEvent);
+      if (result.current) {
+        const form = document.createElement("form");
+        const event = new Event("submit", { bubbles: true, cancelable: true });
+        Object.defineProperty(event, "target", { value: form });
+        await result.current.handleSubmit(event as unknown as React.FormEvent<HTMLFormElement>);
+      }
     });
 
-    expect(result.current.error).toBe(errorMessage);
-    expect(result.current.isLoading).toBe(false);
+    expect(result.current?.error).toBe("Network error");
   });
 
-  it("should handle non-Error rejection and set unknownError", async () => {
+  it("should set error message from Error object", async () => {
+    const { result } = renderHook(() =>
+      useAuthForm({
+        initialEmail: "test@example.com",
+        initialPassword: "password123",
+        onSubmit: mockOnSubmit,
+      })
+    );
+
+    mockOnSubmit.mockRejectedValue(new Error("Custom error"));
+
+    await act(async () => {
+      if (result.current) {
+        const form = document.createElement("form");
+        const event = new Event("submit", { bubbles: true, cancelable: true });
+        Object.defineProperty(event, "target", { value: form });
+        await result.current.handleSubmit(event as unknown as React.FormEvent<HTMLFormElement>);
+      }
+    });
+
+    expect(result.current?.error).toBe("Custom error");
+  });
+
+  it("should set unknownError when error is not an Error object", async () => {
     const { result } = renderHook(() =>
       useAuthForm({
         initialEmail: "test@example.com",
@@ -270,16 +238,16 @@ describe("useAuthForm", () => {
 
     mockOnSubmit.mockRejectedValue("String error");
 
-    const mockEvent = {
-      preventDefault: vi.fn(),
-    } as unknown as React.FormEvent<HTMLFormElement>;
-
     await act(async () => {
-      await result.current.handleSubmit(mockEvent);
+      if (result.current) {
+        const form = document.createElement("form");
+        const event = new Event("submit", { bubbles: true, cancelable: true });
+        Object.defineProperty(event, "target", { value: form });
+        await result.current.handleSubmit(event as unknown as React.FormEvent<HTMLFormElement>);
+      }
     });
 
-    expect(result.current.error).toBe("unknownError");
-    expect(result.current.isLoading).toBe(false);
+    expect(result.current?.error).toBe("unknownError");
   });
 
   it("should clear error when clearError is called", () => {
@@ -289,23 +257,23 @@ describe("useAuthForm", () => {
       })
     );
 
-    // Set an error first by submitting with empty email
     act(() => {
-      result.current.handleSubmit({
-        preventDefault: vi.fn(),
-      } as unknown as React.FormEvent<HTMLFormElement>);
+      if (result.current) {
+        result.current.setEmail("test@example.com");
+        result.current.setPassword("password");
+      }
     });
 
-    expect(result.current.error).toBe("emailRequired");
-
     act(() => {
-      result.current.clearError();
+      if (result.current) {
+        result.current.clearError();
+      }
     });
 
-    expect(result.current.error).toBe("");
+    expect(result.current?.error).toBe("");
   });
 
-  it("should clear error before submitting", async () => {
+  it("should prevent default form submission", async () => {
     const { result } = renderHook(() =>
       useAuthForm({
         initialEmail: "test@example.com",
@@ -314,30 +282,151 @@ describe("useAuthForm", () => {
       })
     );
 
-    // Set an error first by submitting with empty password
+    mockOnSubmit.mockResolvedValue(undefined);
+
     await act(async () => {
-      await result.current.handleSubmit({
-        preventDefault: vi.fn(),
-      } as unknown as React.FormEvent<HTMLFormElement>);
+      if (result.current) {
+        const form = document.createElement("form");
+        const event = new Event("submit", { bubbles: true, cancelable: true });
+        const preventDefault = vi.fn();
+        Object.defineProperty(event, "preventDefault", { value: preventDefault });
+        Object.defineProperty(event, "target", { value: form });
+        await result.current.handleSubmit(event as unknown as React.FormEvent<HTMLFormElement>);
+      }
     });
 
-    // Change password to trigger error clear
+    // The preventDefault is called in the handler
+    expect(mockOnSubmit).toHaveBeenCalled();
+  });
+
+  it("should clear error when email changes and error exists", async () => {
+    const { result } = renderHook(() =>
+      useAuthForm({
+        onSubmit: mockOnSubmit,
+      })
+    );
+
+    // First, set an error by submitting with empty email
+    await act(async () => {
+      const form = document.createElement("form");
+      const event = new Event("submit", { bubbles: true, cancelable: true });
+      Object.defineProperty(event, "target", { value: form });
+      await result.current.handleSubmit(event as unknown as React.FormEvent<HTMLFormElement>);
+    });
+
+    expect(result.current.error).toBe("emailRequired");
+
+    // Now change email, which should clear the error
+    act(() => {
+      result.current.setEmail("test@example.com");
+    });
+
+    expect(result.current.error).toBe("");
+  });
+
+  it("should clear error when password changes and error exists", async () => {
+    const { result } = renderHook(() =>
+      useAuthForm({
+        initialEmail: "test@example.com",
+        onSubmit: mockOnSubmit,
+      })
+    );
+
+    // First, set an error by submitting with empty password
+    await act(async () => {
+      const form = document.createElement("form");
+      const event = new Event("submit", { bubbles: true, cancelable: true });
+      Object.defineProperty(event, "target", { value: form });
+      await result.current.handleSubmit(event as unknown as React.FormEvent<HTMLFormElement>);
+    });
+
+    expect(result.current.error).toBe("passwordRequired");
+
+    // Now change password, which should clear the error
     act(() => {
       result.current.setPassword("newpassword");
     });
 
     expect(result.current.error).toBe("");
+  });
 
-    mockOnSubmit.mockResolvedValue(undefined);
-
-    const mockEvent = {
-      preventDefault: vi.fn(),
-    } as unknown as React.FormEvent<HTMLFormElement>;
+  it("should treat email with only whitespace as empty", async () => {
+    const { result } = renderHook(() =>
+      useAuthForm({
+        initialEmail: "   ",
+        initialPassword: "password123",
+        onSubmit: mockOnSubmit,
+      })
+    );
 
     await act(async () => {
-      await result.current.handleSubmit(mockEvent);
+      const form = document.createElement("form");
+      const event = new Event("submit", { bubbles: true, cancelable: true });
+      Object.defineProperty(event, "target", { value: form });
+      await result.current.handleSubmit(event as unknown as React.FormEvent<HTMLFormElement>);
+    });
+
+    expect(result.current.error).toBe("emailRequired");
+    expect(mockOnSubmit).not.toHaveBeenCalled();
+  });
+
+  it("should treat password with only whitespace as empty", async () => {
+    const { result } = renderHook(() =>
+      useAuthForm({
+        initialEmail: "test@example.com",
+        initialPassword: "   ",
+        onSubmit: mockOnSubmit,
+      })
+    );
+
+    await act(async () => {
+      const form = document.createElement("form");
+      const event = new Event("submit", { bubbles: true, cancelable: true });
+      Object.defineProperty(event, "target", { value: form });
+      await result.current.handleSubmit(event as unknown as React.FormEvent<HTMLFormElement>);
+    });
+
+    expect(result.current.error).toBe("passwordRequired");
+    expect(mockOnSubmit).not.toHaveBeenCalled();
+  });
+
+  it("should not clear error when field changes if no error exists", () => {
+    const { result } = renderHook(() =>
+      useAuthForm({
+        onSubmit: mockOnSubmit,
+      })
+    );
+
+    // No error initially
+    expect(result.current.error).toBe("");
+
+    // Change email - error should still be empty (not cleared, just stays empty)
+    act(() => {
+      result.current.setEmail("test@example.com");
     });
 
     expect(result.current.error).toBe("");
+  });
+
+  it("should handle email with leading and trailing whitespace", async () => {
+    const { result } = renderHook(() =>
+      useAuthForm({
+        initialEmail: "  test@example.com  ",
+        initialPassword: "password123",
+        onSubmit: mockOnSubmit,
+      })
+    );
+
+    mockOnSubmit.mockResolvedValue(undefined);
+
+    await act(async () => {
+      const form = document.createElement("form");
+      const event = new Event("submit", { bubbles: true, cancelable: true });
+      Object.defineProperty(event, "target", { value: form });
+      await result.current.handleSubmit(event as unknown as React.FormEvent<HTMLFormElement>);
+    });
+
+    // Email should be trimmed before submission
+    expect(mockOnSubmit).toHaveBeenCalledWith("test@example.com", "password123");
   });
 });

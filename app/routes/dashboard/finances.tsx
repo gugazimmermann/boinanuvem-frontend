@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { parseISO } from "date-fns";
 import { formatCurrency, formatDate } from "~/utils/formatting";
 import { calculateMonthlyFinanceData } from "~/utils/finance-monthly-data";
@@ -33,12 +33,12 @@ import { mockCompanies } from "~/mocks/companies";
 import { getCashFlowByCompanyId } from "~/services/cash-flow.service";
 import { getAccountsPayableByCompanyId } from "~/services/accounts-payable.service";
 import { getAccountsReceivableByCompanyId } from "~/services/accounts-receivable.service";
-import { getSupplierById } from "~/services/suppliers.service";
-import { getBuyerById } from "~/services/buyers.service";
+import { getSuppliers } from "~/services/suppliers.service";
+import { getBuyers } from "~/services/buyers.service";
+import type { Supplier, Buyer, AccountsPayable, AccountsReceivable } from "~/types";
+import { AccountsPayableStatus, AccountsReceivableStatus } from "~/types";
 import { getSalesByCompanyId } from "~/services/sales.service";
 import { getSalesMetrics } from "~/services/sales-analytics.service";
-import type { AccountsPayable, AccountsReceivable } from "~/types";
-import { AccountsPayableStatus, AccountsReceivableStatus } from "~/types";
 import { useFinanceCalculations } from "~/hooks/use-finance-calculations";
 import { calculateRemainingAmount } from "~/utils/finance";
 
@@ -60,6 +60,24 @@ export default function FinancesDashboard() {
 
   const company = useMemo(() => mockCompanies[0], []);
   const companyId = useMemo(() => company?.id || "", [company]);
+  const [suppliers, setSuppliers] = useState<Map<string, Supplier>>(new Map());
+  const [buyers, setBuyers] = useState<Map<string, Buyer>>(new Map());
+
+  useEffect(() => {
+    const loadEntities = async () => {
+      try {
+        const [suppliersData, buyersData] = await Promise.all([getSuppliers(), getBuyers()]);
+        setSuppliers(new Map(suppliersData.map((s) => [s.id, s])));
+        setBuyers(new Map(buyersData.map((b) => [b.id, b])));
+      } catch (error) {
+        console.error("Failed to load entities:", error);
+      }
+    };
+    loadEntities();
+  }, []);
+
+  const getSupplierName = (id: string) => suppliers.get(id)?.name;
+  const getBuyerName = (id: string) => buyers.get(id)?.name;
 
   const cashFlowData = useMemo(() => getCashFlowByCompanyId(companyId), [companyId]);
   const accountsPayableData = useMemo(() => getAccountsPayableByCompanyId(companyId), [companyId]);
@@ -68,7 +86,22 @@ export default function FinancesDashboard() {
     [companyId]
   );
   const salesData = useMemo(() => getSalesByCompanyId(companyId), [companyId]);
-  const salesMetrics = useMemo(() => getSalesMetrics(companyId), [companyId]);
+  const [salesMetrics, setSalesMetrics] = useState<Awaited<
+    ReturnType<typeof getSalesMetrics>
+  > | null>(null);
+
+  useEffect(() => {
+    const loadSalesMetrics = async () => {
+      try {
+        const metrics = await getSalesMetrics(companyId);
+        setSalesMetrics(metrics);
+      } catch (error) {
+        console.error("Failed to load sales metrics:", error);
+        setSalesMetrics(null);
+      }
+    };
+    loadSalesMetrics();
+  }, [companyId]);
 
   const currentDate = useMemo(() => new Date(), []);
 
@@ -298,10 +331,11 @@ export default function FinancesDashboard() {
                   {t.financesDashboard.salesAnalytics.totalSales}
                 </p>
                 <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                  {salesMetrics.totalSales}
+                  {salesMetrics?.totalSales ?? 0}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {salesMetrics.totalAnimalsSold} {t.financesDashboard.salesAnalytics.animalsSold}
+                  {salesMetrics?.totalAnimalsSold ?? 0}{" "}
+                  {t.financesDashboard.salesAnalytics.animalsSold}
                 </p>
               </div>
               <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center">
@@ -317,11 +351,11 @@ export default function FinancesDashboard() {
                   {t.financesDashboard.salesAnalytics.totalRevenue}
                 </p>
                 <p className="text-xl font-bold text-green-600 dark:text-green-400 mt-1">
-                  {formatCurrency(salesMetrics.totalRevenue, language)}
+                  {formatCurrency(salesMetrics?.totalRevenue ?? 0, language)}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {t.financesDashboard.salesAnalytics.averagePricePerHead}:{" "}
-                  {formatCurrency(salesMetrics.averagePricePerHead, language)}
+                  {formatCurrency(salesMetrics?.averagePricePerHead ?? 0, language)}
                 </p>
               </div>
               <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
@@ -337,9 +371,9 @@ export default function FinancesDashboard() {
                   {t.financesDashboard.salesAnalytics.averagePricePerKg}
                 </p>
                 <p className="text-xl font-bold text-blue-600 dark:text-blue-400 mt-1">
-                  {formatCurrency(salesMetrics.averagePricePerKg, language)}
+                  {formatCurrency(salesMetrics?.averagePricePerKg ?? 0, language)}
                 </p>
-                {salesMetrics.averageCarcassValue && (
+                {salesMetrics?.averageCarcassValue && (
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     {t.financesDashboard.salesAnalytics.averageCarcassValue}:{" "}
                     {salesMetrics.averageCarcassValue.toFixed(1)} kg
@@ -360,15 +394,15 @@ export default function FinancesDashboard() {
                 </p>
                 <p
                   className={`text-xl font-bold mt-1 ${
-                    salesMetrics.profitability.totalProfit >= 0
+                    (salesMetrics?.profitability.totalProfit ?? 0) >= 0
                       ? "text-green-600 dark:text-green-400"
                       : "text-red-600 dark:text-red-400"
                   }`}
                 >
-                  {formatCurrency(salesMetrics.profitability.totalProfit, language)}
+                  {formatCurrency(salesMetrics?.profitability.totalProfit ?? 0, language)}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {salesMetrics.profitability.averageProfitMargin.toFixed(2)}%{" "}
+                  {(salesMetrics?.profitability.averageProfitMargin ?? 0).toFixed(2)}%{" "}
                   {t.financesDashboard.salesAnalytics.profitMargin}
                 </p>
               </div>
@@ -443,7 +477,7 @@ export default function FinancesDashboard() {
                   {t.financesDashboard.salesAnalytics.totalCost}
                 </p>
                 <p className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-1">
-                  {formatCurrency(salesMetrics.profitability.totalCost, language)}
+                  {formatCurrency(salesMetrics?.profitability.totalCost ?? 0, language)}
                 </p>
               </div>
               <div>
@@ -451,7 +485,7 @@ export default function FinancesDashboard() {
                   {t.financesDashboard.salesAnalytics.totalSalePrice}
                 </p>
                 <p className="text-lg font-bold text-green-600 dark:text-green-400 mt-1">
-                  {formatCurrency(salesMetrics.profitability.totalSalePrice, language)}
+                  {formatCurrency(salesMetrics?.profitability.totalSalePrice ?? 0, language)}
                 </p>
               </div>
               <div>
@@ -460,12 +494,12 @@ export default function FinancesDashboard() {
                 </p>
                 <p
                   className={`text-lg font-bold mt-1 ${
-                    salesMetrics.profitability.averageRoi >= 0
+                    (salesMetrics?.profitability.averageRoi ?? 0) >= 0
                       ? "text-green-600 dark:text-green-400"
                       : "text-red-600 dark:text-red-400"
                   }`}
                 >
-                  {salesMetrics.profitability.averageRoi.toFixed(2)}%
+                  {(salesMetrics?.profitability.averageRoi ?? 0).toFixed(2)}%
                 </p>
               </div>
               <div>
@@ -473,7 +507,7 @@ export default function FinancesDashboard() {
                   {t.financesDashboard.salesAnalytics.averageCostPerKg}
                 </p>
                 <p className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-1">
-                  {formatCurrency(salesMetrics.profitability.averageCostPerKg, language)}
+                  {formatCurrency(salesMetrics?.profitability.averageCostPerKg ?? 0, language)}
                 </p>
               </div>
             </div>
@@ -713,9 +747,9 @@ export default function FinancesDashboard() {
               <tbody>
                 {sortedUpcomingPayments.length > 0 ? (
                   sortedUpcomingPayments.map((payment) => {
-                    const supplier = payment.supplierId
-                      ? getSupplierById(payment.supplierId)
-                      : null;
+                    const supplierName = payment.supplierId
+                      ? getSupplierName(payment.supplierId)
+                      : undefined;
                     return (
                       <tr
                         key={payment.id}
@@ -726,9 +760,9 @@ export default function FinancesDashboard() {
                         </td>
                         <td className="py-2 px-3 text-sm text-gray-700 dark:text-gray-300">
                           {payment.description}
-                          {supplier && (
+                          {supplierName && (
                             <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
-                              ({supplier.name})
+                              ({supplierName})
                             </span>
                           )}
                         </td>
@@ -774,7 +808,9 @@ export default function FinancesDashboard() {
               <tbody>
                 {sortedUpcomingReceivables.length > 0 ? (
                   sortedUpcomingReceivables.map((receivable) => {
-                    const buyer = receivable.buyerId ? getBuyerById(receivable.buyerId) : null;
+                    const buyerName = receivable.buyerId
+                      ? getBuyerName(receivable.buyerId)
+                      : undefined;
                     return (
                       <tr
                         key={receivable.id}
@@ -785,9 +821,9 @@ export default function FinancesDashboard() {
                         </td>
                         <td className="py-2 px-3 text-sm text-gray-700 dark:text-gray-300">
                           {receivable.description}
-                          {buyer && (
+                          {buyerName && (
                             <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
-                              ({buyer.name})
+                              ({buyerName})
                             </span>
                           )}
                         </td>
@@ -837,14 +873,14 @@ export default function FinancesDashboard() {
                 {overdueItems.length > 0 ? (
                   overdueItems.map((item) => {
                     const isPayable = item.type === "payable";
-                    const supplier =
-                      isPayable && (item.item as AccountsPayable).supplierId
-                        ? getSupplierById((item.item as AccountsPayable).supplierId)
-                        : null;
-                    const buyer =
-                      !isPayable && (item.item as AccountsReceivable).buyerId
-                        ? getBuyerById((item.item as AccountsReceivable).buyerId)
-                        : null;
+                    const supplierId = isPayable
+                      ? (item.item as AccountsPayable).supplierId
+                      : undefined;
+                    const buyerId = isPayable
+                      ? undefined
+                      : (item.item as AccountsReceivable).buyerId;
+                    const supplierName = supplierId ? getSupplierName(supplierId) : undefined;
+                    const buyerName = buyerId ? getBuyerName(buyerId) : undefined;
                     const remainingAmount = calculateRemainingAmount(
                       item.item.amount,
                       item.item.paidAmount
@@ -873,14 +909,14 @@ export default function FinancesDashboard() {
                         </td>
                         <td className="py-2 px-3 text-sm text-gray-700 dark:text-gray-300">
                           {item.item.description}
-                          {supplier && (
+                          {supplierName && (
                             <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
-                              ({supplier.name})
+                              ({supplierName})
                             </span>
                           )}
-                          {buyer && (
+                          {buyerName && (
                             <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
-                              ({buyer.name})
+                              ({buyerName})
                             </span>
                           )}
                         </td>

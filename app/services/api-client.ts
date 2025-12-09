@@ -223,7 +223,16 @@ export class ApiClient {
       );
     }
 
-    return response.json();
+    try {
+      return await response.json();
+    } catch {
+      // If json parsing fails, throw ApiError instead of TypeError
+      throw new ApiError(
+        `HTTP ${response.status}: ${response.statusText}`,
+        response.status,
+        response
+      );
+    }
   }
 
   /**

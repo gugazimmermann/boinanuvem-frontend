@@ -6,7 +6,7 @@ import { useAlert } from "~/hooks/use-alert";
 import { ROUTES, getAnimalViewRoute } from "~/routes.config";
 import { getAnimalById, updateAnimal } from "~/services/animals.service";
 import type { AnimalFormData, Property } from "~/types";
-import { mockProperties } from "~/mocks/properties";
+import { getProperties } from "~/services/properties.service";
 import { createFormMeta } from "~/utils/route-helpers";
 
 export function meta() {
@@ -23,6 +23,7 @@ export default function EditAnimal() {
   const navigate = useNavigate();
   const { animalId } = useParams<{ animalId: string }>();
   const animal = getAnimalById(animalId);
+  const [properties, setProperties] = useState<Property[]>([]);
 
   const [formData, setFormData] = useState<{
     code: string;
@@ -37,6 +38,18 @@ export default function EditAnimal() {
     status: "active",
     propertyId: "",
   });
+
+  useEffect(() => {
+    const fetchProperties = async () => {
+      try {
+        const propertiesData = await getProperties();
+        setProperties(propertiesData);
+      } catch (error) {
+        console.error("Failed to load properties:", error);
+      }
+    };
+    fetchProperties();
+  }, []);
 
   useEffect(() => {
     if (animal) {
@@ -193,7 +206,7 @@ export default function EditAnimal() {
               options={[
                 { value: "", label: "-" },
 
-                ...mockProperties.map((property: Property) => ({
+                ...properties.map((property: Property) => ({
                   value: property.id,
                   label: property.name,
                 })),

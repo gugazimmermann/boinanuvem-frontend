@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { Button, Input, FixedAlert, Select, FileUpload } from "~/components/ui";
 import { useTranslation } from "~/i18n";
@@ -8,17 +8,17 @@ import {
   FormActions,
 } from "~/components/dashboard/shared";
 import { ROUTES } from "~/routes.config";
-import { mockProperties } from "~/mocks/properties";
-import { getLocationsByPropertyId } from "~/services/locations.service";
+import { getProperties } from "~/services/properties.service";
+import { getLocations } from "~/services/locations.service";
+import type { Location, Employee, ServiceProvider, Animal, Property } from "~/types";
 import { getAnimalById } from "~/services/animals.service";
 import {
   addAnimalMovement,
   getAnimalMovementsByAnimalId,
 } from "~/services/animal-movements.service";
-import { mockEmployees } from "~/mocks/employees";
-import { mockServiceProviders } from "~/mocks/service-providers";
+import { getEmployees } from "~/services/employees.service";
+import { getServiceProviders } from "~/services/service-providers.service";
 import { mockCompanies } from "~/mocks/companies";
-import type { Animal, Property } from "~/types";
 import { useMovementForm, type MovementFormBaseData } from "~/hooks/use-movement-form";
 import { useAlert } from "~/hooks/use-alert";
 
@@ -66,6 +66,36 @@ export default function NewAnimalMovement() {
 
   const company = mockCompanies[0];
   const companyId = company?.id || "";
+  const [allLocations, setAllLocations] = useState<Location[]>([]);
+  const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
+  const [allServiceProviders, setAllServiceProviders] = useState<ServiceProvider[]>([]);
+  const [allProperties, setAllProperties] = useState<Property[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [locationsData, employeesData, serviceProvidersData, propertiesData] =
+          await Promise.all([
+            getLocations(),
+            getEmployees(),
+            getServiceProviders(),
+            getProperties(),
+          ]);
+        setAllLocations(locationsData);
+        // Filter by companyId and active status
+        setAllEmployees(
+          employeesData.filter((emp) => emp.companyId === companyId && emp.status === "active")
+        );
+        setAllServiceProviders(
+          serviceProvidersData.filter((sp) => sp.companyId === companyId && sp.status === "active")
+        );
+        setAllProperties(propertiesData.filter((prop) => prop.companyId === companyId));
+      } catch (error) {
+        console.error("Failed to load data:", error);
+      }
+    };
+    fetchData();
+  }, [companyId]);
 
   type AnimalMovementFormData = MovementFormBaseData & {
     propertyId: string;
@@ -126,8 +156,8 @@ export default function NewAnimalMovement() {
     if (!formData.propertyId) {
       return [];
     }
-    return getLocationsByPropertyId(formData.propertyId);
-  }, [formData.propertyId]);
+    return allLocations.filter((loc) => loc.propertyId === formData.propertyId);
+  }, [formData.propertyId, allLocations]);
 
   const handleFormChange = (field: string, value: string) => {
     handleChange(field as keyof AnimalMovementFormData, value);
@@ -136,15 +166,9 @@ export default function NewAnimalMovement() {
     }
   };
 
-  const employees = useMemo(() => {
-    return mockEmployees.filter((emp) => emp.companyId === companyId && emp.status === "active");
-  }, [companyId]);
-
-  const serviceProviders = useMemo(() => {
-    return mockServiceProviders.filter(
-      (sp) => sp.companyId === companyId && sp.status === "active"
-    );
-  }, [companyId]);
+  // employees and serviceProviders are now loaded via useEffect above
+  const employees = allEmployees;
+  const serviceProviders = allServiceProviders;
 
   const sortedEmployees = useMemo(() => {
     return [...employees].toSorted((a, b) => a.name.localeCompare(b.name));
@@ -287,7 +311,7 @@ export default function NewAnimalMovement() {
                 options={[
                   { value: "", label: "-" },
 
-                  ...mockProperties.map((property: Property) => ({
+                  ...allProperties.map((property: Property) => ({
                     value: property.id,
                     label: property.name,
                   })),

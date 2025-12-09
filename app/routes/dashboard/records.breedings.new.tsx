@@ -7,11 +7,10 @@ import { ROUTES } from "~/routes.config";
 import { addBreeding } from "~/services/breedings.service";
 import type { BreedingFormData, BreedingMethod } from "~/types";
 import { mockCompanies } from "~/mocks/companies";
-import { mockEmployees } from "~/mocks/employees";
-import { mockServiceProviders } from "~/mocks/service-providers";
 import { useBreedingForm } from "~/hooks/use-breeding-form";
 import { useAnimalSearch } from "~/hooks/use-animal-search";
 import { useAlert } from "~/hooks/use-alert";
+import { useResponsibleEntities } from "~/hooks/use-responsible-entities";
 import { AnimalSelectionSection } from "~/components/dashboard/breedings/breeding-form-sections/animal-selection-section";
 import { MethodSelectionSection } from "~/components/dashboard/breedings/breeding-form-sections/method-selection-section";
 import { NaturalBreedingSection } from "~/components/dashboard/breedings/breeding-form-sections/natural-breeding-section";
@@ -76,14 +75,7 @@ export default function NewBreeding() {
     t,
   });
 
-  const employees = useMemo(
-    () => mockEmployees.filter((e) => e.companyId === companyId),
-    [companyId]
-  );
-  const serviceProviders = useMemo(
-    () => mockServiceProviders.filter((sp) => sp.companyId === companyId),
-    [companyId]
-  );
+  const { employees, serviceProviders } = useResponsibleEntities({ companyId });
 
   const { showAlert, alertMessage } = useAlert();
 

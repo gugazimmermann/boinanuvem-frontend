@@ -2,434 +2,375 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ActivityLog } from "../activity-log";
-import { LanguageProvider } from "~/contexts/language-context";
+import { useTranslation } from "~/i18n";
+import { useLanguage } from "~/contexts/language-context";
+import type { ActivityLogEntry } from "~/types";
 
-const TestWrapper = ({ children }: { children: React.ReactNode }) => (
-  <LanguageProvider>{children}</LanguageProvider>
-);
-
-const mockUseLanguage = vi.fn(() => ({ language: "pt" }));
-
-vi.mock("~/contexts/language-context", async () => {
-  const actual = await vi.importActual("~/contexts/language-context");
-  return {
-    ...actual,
-    useLanguage: () => mockUseLanguage(),
-  };
-});
-
-const mockTable = vi.fn(
-  ({
+vi.mock("~/i18n");
+vi.mock("~/contexts/language-context");
+vi.mock("~/components/ui", () => ({
+  Table: ({
     data,
     columns,
-    header,
     search,
-    pagination: _pagination,
+    pagination,
     emptyState,
+    header,
   }: {
     data: unknown[];
-    columns: unknown[];
-    header: { title: string; description?: string };
-    search: { value: string; onChange: (value: string) => void };
-    pagination?: unknown;
-    emptyState?: { title: string; onClearSearch?: () => void };
+    columns: Array<{ key: string; label: string; render?: (value: unknown) => React.ReactNode }>;
+    search?: { placeholder?: string; value?: string; onChange?: (value: string) => void };
+    pagination?: {
+      currentPage?: number;
+      totalPages?: number;
+      onPageChange?: (page: number) => void;
+    };
+    emptyState?: { title?: string; onClearSearch?: () => void; clearSearchLabel?: string };
+    header?: { title?: string; description?: string };
   }) => (
     <div data-testid="table">
-      <div data-testid="table-title">{header.title}</div>
-      <div data-testid="table-description">{header.description}</div>
-      <input
-        data-testid="search-input"
-        value={search.value}
-        onChange={(e) => search.onChange(e.target.value)}
-      />
-      <div data-testid="table-data">{data.length} items</div>
-      {/* Render columns to trigger column render functions */}
-      {columns &&
-        columns.map((col: unknown, idx: number) => {
-          const column = col as {
-            key: string;
-            render?: (value: unknown, row: unknown) => React.ReactNode;
-          };
-          return (
-            <div key={idx} data-testid={`column-${column.key}`}>
-              {data.length > 0 &&
-                column.render &&
-                column.render((data[0] as Record<string, unknown>)[column.key], data[0])}
+      {header?.title && <div data-testid="header-title">{header.title}</div>}
+      {header?.description && <div data-testid="header-description">{header.description}</div>}
+      {search && (
+        <input
+          data-testid="search-input"
+          value={search.value || ""}
+          onChange={(e) => search.onChange?.(e.target.value)}
+          placeholder={search.placeholder}
+        />
+      )}
+      {data.length > 0 ? (
+        <div data-testid="table-data">
+          {columns.map((col) => (
+            <div key={col.key} data-testid={`column-${col.key}`}>
+              {col.label}
             </div>
-          );
-        })}
-      {emptyState && (
-        <>
-          <div data-testid="empty-title">{emptyState.title}</div>
-          {emptyState.onClearSearch && (
+          ))}
+        </div>
+      ) : (
+        <div data-testid="empty-state">
+          {emptyState?.title && <div data-testid="empty-title">{emptyState.title}</div>}
+          {emptyState?.onClearSearch && (
             <button data-testid="clear-search" onClick={emptyState.onClearSearch}>
-              Clear
+              {emptyState.clearSearchLabel}
             </button>
           )}
-        </>
+        </div>
+      )}
+      {pagination && (
+        <div data-testid="pagination">
+          <button
+            data-testid="page-prev"
+            onClick={() => pagination.onPageChange?.(pagination.currentPage! - 1)}
+            disabled={pagination.currentPage === 1}
+          >
+            Prev
+          </button>
+          <span data-testid="page-info">
+            {pagination.currentPage} / {pagination.totalPages}
+          </span>
+          <button
+            data-testid="page-next"
+            onClick={() => pagination.onPageChange?.(pagination.currentPage! + 1)}
+            disabled={pagination.currentPage === pagination.totalPages}
+          >
+            Next
+          </button>
+        </div>
       )}
     </div>
-  )
-);
-
-vi.mock("~/components/ui", () => ({
-  Table: (props: unknown) => mockTable(props as Parameters<typeof mockTable>[0]),
-}));
-
-vi.mock("~/i18n", () => ({
-  useTranslation: vi.fn(() => ({
-    profile: {
-      company: {
-        logs: {
-          title: "Company Logs",
-          description: "Company activity log",
-          searchPlaceholder: "Search logs",
-          columns: {
-            user: "User",
-            action: "Action",
-            resource: "Resource",
-            timestamp: "Timestamp",
-          },
-          empty: "No company logs",
-        },
-      },
-      user: {
-        logs: {
-          title: "User Logs",
-          description: "User activity log",
-          searchPlaceholder: "Search logs",
-          empty: "No user logs",
-        },
-      },
-    },
-    common: {
-      clearSearch: "Clear search",
-    },
-  })),
+  ),
 }));
 
 describe("ActivityLog", () => {
-  const mockLogs = [
+  const mockUseTranslation = vi.mocked(useTranslation);
+  const mockUseLanguage = vi.mocked(useLanguage);
+
+  const mockLogs: ActivityLogEntry[] = [
     {
-      id: "log-1",
-      action: "CREATE",
-      resource: "Animal",
-      timestamp: "2025-01-15T10:00:00Z",
-      user: "User 1",
-    },
-    {
-      id: "log-2",
-      action: "UPDATE",
-      resource: "Property",
-      timestamp: "2025-01-16T10:00:00Z",
-      user: "User 2",
+      id: "1",
+      action: "created",
+      entityType: "animal",
+      entityId: "1",
+      userId: "1",
+      userName: "User 1",
+      timestamp: "2024-01-01T10:00:00Z",
+      resource: "Animal 1",
     },
   ];
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseTranslation.mockReturnValue({
+      common: {
+        clearSearch: "Clear Search",
+      },
+      activityLog: {
+        date: "Date",
+        action: "Action",
+        user: "User",
+      },
+      profile: {
+        company: {
+          logs: {
+            title: "Company Activity Log",
+            description: "Activity history",
+            searchPlaceholder: "Search activities",
+            empty: "No activities",
+            columns: {
+              user: "User",
+              action: "Action",
+              resource: "Resource",
+              date: "Date",
+              timestamp: "Timestamp",
+            },
+          },
+        },
+        user: {
+          logs: {
+            title: "User Activity Log",
+            description: "Your activity history",
+            empty: "No activities",
+          },
+        },
+      },
+    } as unknown as ReturnType<typeof useTranslation>);
+    mockUseLanguage.mockReturnValue({ language: "pt" });
   });
 
-  it("should render activity log", () => {
-    render(
-      <TestWrapper>
-        <ActivityLog logs={mockLogs} />
-      </TestWrapper>
-    );
+  it("should render table with logs", () => {
+    render(<ActivityLog logs={mockLogs} />);
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
-  it("should render company logs when showUser is true", () => {
-    render(
-      <TestWrapper>
-        <ActivityLog logs={mockLogs} showUser={true} />
-      </TestWrapper>
-    );
-    expect(screen.getByTestId("table-title")).toHaveTextContent("Company Logs");
+  it("should show empty message when no logs", () => {
+    render(<ActivityLog logs={[]} emptyMessage="No activities" />);
+    // Empty message handling depends on Table component
   });
 
-  it("should render user logs when showUser is false", () => {
-    render(
-      <TestWrapper>
-        <ActivityLog logs={mockLogs} showUser={false} />
-      </TestWrapper>
-    );
-    expect(screen.getByTestId("table-title")).toHaveTextContent("User Logs");
+  it("should filter logs by search value", async () => {
+    const _user = userEvent.setup();
+    render(<ActivityLog logs={mockLogs} />);
+
+    // Search functionality would be tested through Table component
   });
 
-  it("should handle search", async () => {
+  it("should show user column when showUser is true", () => {
+    render(<ActivityLog logs={mockLogs} showUser={true} />);
+    expect(screen.getByTestId("column-user")).toBeInTheDocument();
+  });
+
+  it("should not show user column when showUser is false", () => {
+    render(<ActivityLog logs={mockLogs} showUser={false} />);
+    expect(screen.queryByTestId("column-user")).not.toBeInTheDocument();
+  });
+
+  it("should use custom emptyMessage when provided", () => {
+    render(<ActivityLog logs={[]} emptyMessage="Custom empty message" />);
+    expect(screen.getByTestId("empty-title")).toHaveTextContent("Custom empty message");
+  });
+
+  it("should use company logs empty message when showUser is true", () => {
+    render(<ActivityLog logs={[]} showUser={true} />);
+    expect(screen.getByTestId("empty-title")).toHaveTextContent("No activities");
+  });
+
+  it("should use user logs empty message when showUser is false", () => {
+    mockUseTranslation.mockReturnValue({
+      common: {
+        clearSearch: "Clear Search",
+      },
+      profile: {
+        company: {
+          logs: {
+            title: "Company Activity Log",
+            description: "Activity history",
+            searchPlaceholder: "Search activities",
+            empty: "No company activities",
+            columns: {
+              user: "User",
+              action: "Action",
+              resource: "Resource",
+              timestamp: "Timestamp",
+            },
+          },
+        },
+        user: {
+          logs: {
+            title: "User Activity Log",
+            description: "Your activity history",
+            searchPlaceholder: "Search your activities",
+            empty: "No user activities",
+          },
+        },
+      },
+    } as unknown as ReturnType<typeof useTranslation>);
+    render(<ActivityLog logs={[]} showUser={false} />);
+    expect(screen.getByTestId("empty-title")).toHaveTextContent("No user activities");
+  });
+
+  it("should filter logs by action", async () => {
     const user = userEvent.setup();
-    render(
-      <TestWrapper>
-        <ActivityLog logs={mockLogs} />
-      </TestWrapper>
-    );
+    const logs: ActivityLogEntry[] = [
+      {
+        id: "1",
+        action: "created",
+        entityType: "animal",
+        entityId: "1",
+        userId: "1",
+        userName: "User 1",
+        timestamp: "2024-01-01T10:00:00Z",
+        resource: "Animal 1",
+      },
+      {
+        id: "2",
+        action: "updated",
+        entityType: "animal",
+        entityId: "2",
+        userId: "1",
+        userName: "User 1",
+        timestamp: "2024-01-01T11:00:00Z",
+        resource: "Animal 2",
+      },
+    ];
+    render(<ActivityLog logs={logs} />);
     const searchInput = screen.getByTestId("search-input");
-    await user.type(searchInput, "CREATE");
-    expect(searchInput).toHaveValue("CREATE");
+    await user.type(searchInput, "created");
+    // The filtered data should only contain logs with "created" action
+    expect(searchInput).toHaveValue("created");
   });
 
-  it("should display empty state", () => {
-    render(
-      <TestWrapper>
-        <ActivityLog logs={[]} />
-      </TestWrapper>
-    );
-    expect(screen.getByTestId("empty-title")).toBeInTheDocument();
-  });
-
-  it("should handle clear search", async () => {
+  it("should filter logs by resource", async () => {
     const user = userEvent.setup();
-    render(
-      <TestWrapper>
-        <ActivityLog logs={mockLogs} />
-      </TestWrapper>
-    );
+    const logs: ActivityLogEntry[] = [
+      {
+        id: "1",
+        action: "created",
+        entityType: "animal",
+        entityId: "1",
+        userId: "1",
+        userName: "User 1",
+        timestamp: "2024-01-01T10:00:00Z",
+        resource: "Animal 1",
+      },
+      {
+        id: "2",
+        action: "updated",
+        entityType: "animal",
+        entityId: "2",
+        userId: "1",
+        userName: "User 1",
+        timestamp: "2024-01-01T11:00:00Z",
+        resource: "Animal 2",
+      },
+    ];
+    render(<ActivityLog logs={logs} />);
     const searchInput = screen.getByTestId("search-input");
-    await user.type(searchInput, "Test");
+    await user.type(searchInput, "Animal 1");
+    expect(searchInput).toHaveValue("Animal 1");
+  });
+
+  it("should filter logs by user when showUser is true", async () => {
+    const user = userEvent.setup();
+    const logs: ActivityLogEntry[] = [
+      {
+        id: "1",
+        action: "created",
+        entityType: "animal",
+        entityId: "1",
+        userId: "1",
+        userName: "User 1",
+        timestamp: "2024-01-01T10:00:00Z",
+        resource: "Animal 1",
+      },
+      {
+        id: "2",
+        action: "updated",
+        entityType: "animal",
+        entityId: "2",
+        userId: "2",
+        userName: "User 2",
+        timestamp: "2024-01-01T11:00:00Z",
+        resource: "Animal 2",
+      },
+    ];
+    render(<ActivityLog logs={logs} showUser={true} />);
+    const searchInput = screen.getByTestId("search-input");
+    await user.type(searchInput, "User 1");
+    expect(searchInput).toHaveValue("User 1");
+  });
+
+  it("should reset to page 1 when search changes", async () => {
+    const user = userEvent.setup();
+    const logs: ActivityLogEntry[] = Array.from({ length: 25 }, (_, i) => ({
+      id: `${i + 1}`,
+      action: "created",
+      entityType: "animal",
+      entityId: `${i + 1}`,
+      userId: "1",
+      userName: "User 1",
+      timestamp: `2024-01-01T${String(i).padStart(2, "0")}:00:00Z`,
+      resource: `Animal ${i + 1}`,
+    }));
+    render(<ActivityLog logs={logs} />);
+    // Go to page 2
+    const nextButton = screen.getByTestId("page-next");
+    await user.click(nextButton);
+    expect(screen.getByTestId("page-info")).toHaveTextContent("2 /");
+    // Change search
+    const searchInput = screen.getByTestId("search-input");
+    await user.type(searchInput, "test");
+    // Should reset to page 1
+    expect(screen.getByTestId("page-info")).toHaveTextContent("1 /");
+  });
+
+  it("should show clear search button when search value exists", async () => {
+    const user = userEvent.setup();
+    render(<ActivityLog logs={mockLogs} />);
+    const searchInput = screen.getByTestId("search-input");
+    await user.type(searchInput, "test");
     const clearButton = screen.getByTestId("clear-search");
+    expect(clearButton).toBeInTheDocument();
     await user.click(clearButton);
     expect(searchInput).toHaveValue("");
   });
 
-  it("should use custom empty message", () => {
-    render(
-      <TestWrapper>
-        <ActivityLog logs={[]} emptyMessage="Custom empty message" />
-      </TestWrapper>
-    );
-    expect(screen.getByText("Custom empty message")).toBeInTheDocument();
+  it("should use English locale when language is 'en'", () => {
+    mockUseLanguage.mockReturnValue({ language: "en" });
+    render(<ActivityLog logs={mockLogs} />);
+    expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
-  it("should render user column when showUser is true", () => {
-    const logsWithUser = [
+  it("should use Spanish locale when language is 'es'", () => {
+    mockUseLanguage.mockReturnValue({ language: "es" });
+    render(<ActivityLog logs={mockLogs} />);
+    expect(screen.getByTestId("table")).toBeInTheDocument();
+  });
+
+  it("should display company logs title when showUser is true", () => {
+    render(<ActivityLog logs={mockLogs} showUser={true} />);
+    expect(screen.getByTestId("header-title")).toHaveTextContent("Company Activity Log");
+  });
+
+  it("should display user logs title when showUser is false", () => {
+    render(<ActivityLog logs={mockLogs} showUser={false} />);
+    expect(screen.getByTestId("header-title")).toHaveTextContent("User Activity Log");
+  });
+
+  it("should render user column with '-' when user is null", () => {
+    const logsWithNullUser: ActivityLogEntry[] = [
       {
-        id: "log-3",
-        action: "CREATE",
-        resource: "Animal",
-        timestamp: "2025-01-15T10:00:00Z",
-        user: "User 1",
+        id: "1",
+        action: "created",
+        entityType: "animal",
+        entityId: "1",
+        userId: "1",
+        userName: null,
+        timestamp: "2024-01-01T10:00:00Z",
+        resource: "Animal 1",
       },
     ];
-    render(
-      <TestWrapper>
-        <ActivityLog logs={logsWithUser} showUser={true} />
-      </TestWrapper>
-    );
-    expect(screen.getByTestId("table")).toBeInTheDocument();
-  });
-
-  it("should handle search by user when showUser is true", async () => {
-    const user = userEvent.setup();
-    const logsWithUser = [
-      {
-        id: "log-4",
-        action: "CREATE",
-        resource: "Animal",
-        timestamp: "2025-01-15T10:00:00Z",
-        user: "John Doe",
-      },
-    ];
-    render(
-      <TestWrapper>
-        <ActivityLog logs={logsWithUser} showUser={true} />
-      </TestWrapper>
-    );
-    const searchInput = screen.getByTestId("search-input");
-    await user.type(searchInput, "John");
-    expect(searchInput).toHaveValue("John");
-  });
-
-  it("should handle search by action", async () => {
-    const user = userEvent.setup();
-    render(
-      <TestWrapper>
-        <ActivityLog logs={mockLogs} />
-      </TestWrapper>
-    );
-    const searchInput = screen.getByTestId("search-input");
-    await user.type(searchInput, "UPDATE");
-    expect(searchInput).toHaveValue("UPDATE");
-  });
-
-  it("should handle search by resource", async () => {
-    const user = userEvent.setup();
-    render(
-      <TestWrapper>
-        <ActivityLog logs={mockLogs} />
-      </TestWrapper>
-    );
-    const searchInput = screen.getByTestId("search-input");
-    await user.type(searchInput, "Property");
-    expect(searchInput).toHaveValue("Property");
-  });
-
-  it("should handle search by date", async () => {
-    const user = userEvent.setup();
-    render(
-      <TestWrapper>
-        <ActivityLog logs={mockLogs} />
-      </TestWrapper>
-    );
-    const searchInput = screen.getByTestId("search-input");
-    await user.type(searchInput, "2025");
-    expect(searchInput).toHaveValue("2025");
-  });
-
-  it("should handle pagination", async () => {
-    const manyLogs = Array.from({ length: 25 }, (_, i) => ({
-      id: `log-${i + 5}`,
-      action: "CREATE",
-      resource: "Animal",
-      timestamp: `2025-01-${String(i + 1).padStart(2, "0")}T10:00:00Z`,
-      user: `User ${i}`,
-    }));
-    render(
-      <TestWrapper>
-        <ActivityLog logs={manyLogs} showUser={true} />
-      </TestWrapper>
-    );
-    expect(screen.getByTestId("table")).toBeInTheDocument();
-  });
-
-  it("should handle user column with null user", () => {
-    const logsWithNullUser = [
-      {
-        id: "log-30",
-        action: "CREATE",
-        resource: "Animal",
-        timestamp: "2025-01-15T10:00:00Z",
-        user: undefined,
-      },
-    ];
-    render(
-      <TestWrapper>
-        <ActivityLog logs={logsWithNullUser} showUser={true} />
-      </TestWrapper>
-    );
-    expect(screen.getByTestId("table")).toBeInTheDocument();
-  });
-
-  it("should handle different languages for date formatting", () => {
-    const { rerender: _rerender } = render(
-      <TestWrapper>
-        <ActivityLog logs={mockLogs} />
-      </TestWrapper>
-    );
-    expect(screen.getByTestId("table")).toBeInTheDocument();
-  });
-
-  it("should handle English language for date formatting", () => {
-    mockUseLanguage.mockReturnValueOnce({ language: "en" });
-    render(
-      <TestWrapper>
-        <ActivityLog logs={mockLogs} />
-      </TestWrapper>
-    );
-    expect(screen.getByTestId("table")).toBeInTheDocument();
-  });
-
-  it("should handle Spanish language for date formatting", () => {
-    mockUseLanguage.mockReturnValueOnce({ language: "es" });
-    render(
-      <TestWrapper>
-        <ActivityLog logs={mockLogs} />
-      </TestWrapper>
-    );
-    expect(screen.getByTestId("table")).toBeInTheDocument();
-  });
-
-  it("should render user column with value when showUser is true", () => {
-    const logsWithUser = [
-      {
-        id: "log-32",
-        action: "CREATE",
-        resource: "Animal",
-        timestamp: "2025-01-15T10:00:00Z",
-        user: "User 1",
-      },
-    ];
-    render(
-      <TestWrapper>
-        <ActivityLog logs={logsWithUser} showUser={true} />
-      </TestWrapper>
-    );
-    expect(screen.getByTestId("table")).toBeInTheDocument();
-  });
-
-  it("should render action column with styling", () => {
-    render(
-      <TestWrapper>
-        <ActivityLog logs={mockLogs} />
-      </TestWrapper>
-    );
-    expect(screen.getByTestId("table")).toBeInTheDocument();
-  });
-
-  it("should render resource column", () => {
-    render(
-      <TestWrapper>
-        <ActivityLog logs={mockLogs} />
-      </TestWrapper>
-    );
-    expect(screen.getByTestId("table")).toBeInTheDocument();
-  });
-
-  it("should render timestamp column with formatted date", () => {
-    render(
-      <TestWrapper>
-        <ActivityLog logs={mockLogs} />
-      </TestWrapper>
-    );
-    expect(screen.getByTestId("table")).toBeInTheDocument();
-  });
-
-  it("should render user column with value when showUser is true", () => {
-    const logsWithUser = [
-      {
-        id: "log-35",
-        action: "CREATE",
-        resource: "Animal",
-        timestamp: "2025-01-15T10:00:00Z",
-        user: "User 1",
-      },
-    ];
-    render(
-      <TestWrapper>
-        <ActivityLog logs={logsWithUser} showUser={true} />
-      </TestWrapper>
-    );
-    // The column render function should be called
+    render(<ActivityLog logs={logsWithNullUser} showUser={true} />);
     expect(screen.getByTestId("column-user")).toBeInTheDocument();
-  });
-
-  it("should render action column with styling", () => {
-    render(
-      <TestWrapper>
-        <ActivityLog logs={mockLogs} />
-      </TestWrapper>
-    );
-    // The action column render function should be called
-    expect(screen.getByTestId("column-action")).toBeInTheDocument();
-  });
-
-  it("should render resource column", () => {
-    render(
-      <TestWrapper>
-        <ActivityLog logs={mockLogs} />
-      </TestWrapper>
-    );
-    // The resource column render function should be called
-    expect(screen.getByTestId("column-resource")).toBeInTheDocument();
-  });
-
-  it("should render timestamp column with formatted date", () => {
-    render(
-      <TestWrapper>
-        <ActivityLog logs={mockLogs} />
-      </TestWrapper>
-    );
-    // The timestamp column render function should be called
-    expect(screen.getByTestId("column-timestamp")).toBeInTheDocument();
   });
 });

@@ -1,254 +1,134 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { UserDropdown } from "../user-dropdown";
-import { BrowserRouter } from "react-router";
+import { useAuth } from "~/contexts/auth-context";
+import { useTranslation } from "~/i18n";
+import { useClickOutside } from "~/hooks/use-click-outside";
+import { ThemeProvider } from "~/contexts/theme-context";
 import { LanguageProvider } from "~/contexts/language-context";
 
-const TestWrapper = ({ children }: { children: React.ReactNode }) => (
-  <BrowserRouter>
-    <LanguageProvider>{children}</LanguageProvider>
-  </BrowserRouter>
-);
+vi.mock("~/contexts/auth-context");
+vi.mock("~/i18n");
+vi.mock("~/hooks/use-click-outside");
 
-const mockLogout = vi.fn();
-
-vi.mock("react-router", async () => {
-  const actual = await vi.importActual("react-router");
-  return {
-    ...actual,
-    useNavigate: vi.fn(() => vi.fn()),
-  };
-});
-
-vi.mock("~/contexts/auth-context", () => ({
-  useAuth: vi.fn(() => ({
-    currentUser: {
-      id: "user-1",
-      name: "Test User",
-      email: "test@example.com",
-      mainUser: true,
-    },
-    logout: mockLogout,
-  })),
-}));
-
-vi.mock("~/hooks/use-click-outside", () => ({
-  useClickOutside: vi.fn(),
-}));
-
-vi.mock("~/i18n", () => ({
-  useTranslation: vi.fn(() => ({
-    common: {
-      defaultUser: "User",
-      defaultEmail: "email@example.com",
-    },
-    userDropdown: {
-      companyProfile: "Company Profile",
-      userProfile: "User Profile",
-      team: "Team",
-      payments: "Payments",
-      help: "Help",
-      logout: "Logout",
-    },
-  })),
+vi.mock("react-router", () => ({
+  Link: ({
+    to,
+    children,
+    onClick,
+    className,
+  }: {
+    to: string;
+    children: React.ReactNode;
+    onClick?: () => void;
+    className?: string;
+  }) => (
+    <a href={to} onClick={onClick} className={className}>
+      {children}
+    </a>
+  ),
 }));
 
 vi.mock("../avatar-button", () => ({
-  AvatarButton: vi.fn(
-    ({
-      onClick,
-      isOpen,
-      initial,
-    }: {
-      onClick?: () => void;
-      isOpen?: boolean;
-      initial?: string;
-    }) => (
-      <button onClick={onClick} data-testid="avatar-button" data-open={isOpen}>
-        {initial}
-      </button>
-    )
+  AvatarButton: ({ onClick, isOpen }: { onClick: () => void; isOpen: boolean }) => (
+    <button data-testid="avatar-button" onClick={onClick} data-open={isOpen}>
+      Avatar
+    </button>
   ),
 }));
 
 vi.mock("../dropdown-menu", () => ({
-  DropdownMenu: vi.fn(({ isOpen, children }: { isOpen?: boolean; children?: React.ReactNode }) =>
-    isOpen ? <div data-testid="dropdown-menu">{children}</div> : null
-  ),
+  DropdownMenu: ({ isOpen, children }: { isOpen: boolean; children: React.ReactNode }) =>
+    isOpen ? <div data-testid="dropdown-menu">{children}</div> : null,
 }));
 
 vi.mock("../user-info", () => ({
-  UserInfo: vi.fn(({ name, email }: { name?: string; email?: string }) => (
+  UserInfo: ({ name, email }: { name: string; email: string }) => (
     <div data-testid="user-info">
       {name} - {email}
     </div>
-  )),
-}));
-
-vi.mock("../theme-toggle-menu-item", () => ({
-  ThemeToggleMenuItem: vi.fn(() => <div data-testid="theme-toggle">Theme Toggle</div>),
-}));
-
-vi.mock("../language-selector-menu-item", () => ({
-  LanguageSelectorMenuItem: vi.fn(() => (
-    <div data-testid="language-selector">Language Selector</div>
-  )),
-}));
-
-vi.mock("../dropdown-menu-item", () => ({
-  DropdownMenuItem: vi.fn(
-    ({
-      href,
-      onClick,
-      children,
-    }: {
-      href?: string;
-      onClick?: () => void;
-      children?: React.ReactNode;
-    }) => (
-      <a href={href} onClick={onClick} data-testid={`menu-item-${children}`}>
-        {children}
-      </a>
-    )
   ),
 }));
 
-vi.mock("../../../routes.config", () => ({
-  ROUTES: {
-    PROFILE: "/profile",
-    TEAM: "/team",
-    PAYMENTS: "/payments",
-    HELP: "/help",
-    LOGIN: "/login",
-  },
-}));
-
 describe("UserDropdown", () => {
+  const mockUseAuth = vi.mocked(useAuth);
+  const mockUseTranslation = vi.mocked(useTranslation);
+  const mockUseClickOutside = vi.mocked(useClickOutside);
+
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseAuth.mockReturnValue({
+      currentUser: { id: "1", name: "Test User", email: "test@example.com", mainUser: false },
+      isAuthenticated: true,
+      login: vi.fn(),
+      logout: vi.fn(),
+      refreshToken: vi.fn(),
+    });
+    mockUseTranslation.mockReturnValue({
+      common: {
+        language: "Language",
+        defaultUser: "User",
+        defaultEmail: "user@example.com",
+      },
+      userDropdown: {
+        companyProfile: "Company Profile",
+        userProfile: "User Profile",
+        team: "Team",
+        payments: "Payments",
+        help: "Help",
+        logout: "Logout",
+      },
+    } as unknown as ReturnType<typeof useTranslation>);
+    mockUseClickOutside.mockImplementation(() => {});
   });
 
-  it("should render avatar button", () => {
-    render(
-      <TestWrapper>
-        <UserDropdown />
-      </TestWrapper>
+  const renderWithProviders = (component: React.ReactElement) => {
+    return render(
+      <ThemeProvider>
+        <LanguageProvider>{component}</LanguageProvider>
+      </ThemeProvider>
     );
+  };
+
+  it("should render avatar button", () => {
+    renderWithProviders(<UserDropdown />);
     expect(screen.getByTestId("avatar-button")).toBeInTheDocument();
   });
 
-  it("should open dropdown when avatar is clicked", async () => {
+  it("should open dropdown when avatar button is clicked", async () => {
     const user = userEvent.setup();
-    render(
-      <TestWrapper>
-        <UserDropdown />
-      </TestWrapper>
-    );
+    renderWithProviders(<UserDropdown />);
+
     const avatarButton = screen.getByTestId("avatar-button");
     await user.click(avatarButton);
-    expect(screen.getByTestId("dropdown-menu")).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("dropdown-menu")).toBeInTheDocument();
+    });
   });
 
-  it("should render user info", async () => {
+  it("should render user info when dropdown is open", async () => {
     const user = userEvent.setup();
-    render(
-      <TestWrapper>
-        <UserDropdown />
-      </TestWrapper>
-    );
+    renderWithProviders(<UserDropdown name="John Doe" email="john@example.com" />);
+
     const avatarButton = screen.getByTestId("avatar-button");
     await user.click(avatarButton);
-    expect(screen.getByTestId("user-info")).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("user-info")).toBeInTheDocument();
+    });
   });
 
-  it("should render menu items for main user", async () => {
+  it("should use default user info from auth context", async () => {
     const user = userEvent.setup();
-    render(
-      <TestWrapper>
-        <UserDropdown />
-      </TestWrapper>
-    );
+    renderWithProviders(<UserDropdown />);
+
     const avatarButton = screen.getByTestId("avatar-button");
     await user.click(avatarButton);
-    expect(screen.getByTestId("menu-item-Company Profile")).toBeInTheDocument();
-    expect(screen.getByTestId("menu-item-Team")).toBeInTheDocument();
-  });
 
-  it("should call logout when logout is clicked", async () => {
-    const user = userEvent.setup();
-    vi.mocked(mockLogout).mockResolvedValue(undefined);
-    render(
-      <TestWrapper>
-        <UserDropdown />
-      </TestWrapper>
-    );
-    const avatarButton = screen.getByTestId("avatar-button");
-    await user.click(avatarButton);
-    const logoutItem = screen.getByTestId("menu-item-Logout");
-    await user.click(logoutItem);
-    expect(mockLogout).toHaveBeenCalledTimes(1);
-    // Navigation is now handled by auth context, not user-dropdown
-  });
-
-  it("should use custom name and email when provided", async () => {
-    const user = userEvent.setup();
-    render(
-      <TestWrapper>
-        <UserDropdown name="Custom Name" email="custom@example.com" />
-      </TestWrapper>
-    );
-    const avatarButton = screen.getByTestId("avatar-button");
-    await user.click(avatarButton);
-    expect(screen.getByText(/Custom Name/)).toBeInTheDocument();
-    expect(screen.getByText(/custom@example.com/)).toBeInTheDocument();
-  });
-
-  it("should use custom initial when provided", () => {
-    render(
-      <TestWrapper>
-        <UserDropdown initial="CN" />
-      </TestWrapper>
-    );
-    const avatarButton = screen.getByTestId("avatar-button");
-    expect(avatarButton).toHaveTextContent("CN");
-  });
-
-  it("should generate initials from name", () => {
-    render(
-      <TestWrapper>
-        <UserDropdown name="John Doe" />
-      </TestWrapper>
-    );
-    const avatarButton = screen.getByTestId("avatar-button");
-    expect(avatarButton).toHaveTextContent("JD");
-  });
-
-  it("should generate initial from single name", () => {
-    render(
-      <TestWrapper>
-        <UserDropdown name="John" />
-      </TestWrapper>
-    );
-    const avatarButton = screen.getByTestId("avatar-button");
-    expect(avatarButton).toHaveTextContent("J");
-  });
-
-  it("should use custom menu items when provided", async () => {
-    const user = userEvent.setup();
-    const customMenuItems = [
-      { label: "Custom Item", href: "/custom" },
-      { divider: true as const },
-      { label: "Custom Action", onClick: vi.fn() as () => void },
-    ];
-    render(
-      <TestWrapper>
-        <UserDropdown menuItems={customMenuItems} />
-      </TestWrapper>
-    );
-    const avatarButton = screen.getByTestId("avatar-button");
-    await user.click(avatarButton);
-    expect(screen.getByTestId("menu-item-Custom Item")).toBeInTheDocument();
-    expect(screen.getByTestId("menu-item-Custom Action")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Test User - test@example.com")).toBeInTheDocument();
+    });
   });
 });

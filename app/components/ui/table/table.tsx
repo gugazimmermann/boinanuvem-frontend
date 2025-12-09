@@ -135,9 +135,9 @@ export function Table<T extends Record<string, unknown>>({
 
     return (
       <div className="flex items-center gap-x-3">
-        {header.actions.map((action) => (
+        {header.actions.map((action, index) => (
           <Button
-            key={action.label || action.onClick.toString()}
+            key={action.label || (action.onClick ? action.onClick.toString() : `action-${index}`)}
             variant={action.variant || "outline"}
             size="sm"
             onClick={action.onClick}

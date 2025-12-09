@@ -1,4 +1,5 @@
 import { useParams, useNavigate, useSearchParams } from "react-router";
+import { useState, useEffect } from "react";
 import { Button } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import {
@@ -41,34 +42,34 @@ function getNavigationRouteFromParams(
   fromBuyerId: string | null,
   fromAnimalId: string | null
 ): string | null {
-  if (fromLocationId && getLocationById(fromLocationId)) {
+  if (fromLocationId) {
     return `${getLocationViewRoute(fromLocationId)}?tab=observations`;
   }
-  if (fromEmployeeId && getEmployeeById(fromEmployeeId)) {
+  if (fromEmployeeId) {
     return `${getEmployeeViewRoute(fromEmployeeId)}?tab=observations`;
   }
-  if (fromServiceProviderId && getServiceProviderById(fromServiceProviderId)) {
+  if (fromServiceProviderId) {
     return `${getServiceProviderViewRoute(fromServiceProviderId)}?tab=observations`;
   }
-  if (fromSupplierId && getSupplierById(fromSupplierId)) {
+  if (fromSupplierId) {
     return `${getSupplierViewRoute(fromSupplierId)}?tab=observations`;
   }
-  if (fromBuyerId && getBuyerById(fromBuyerId)) {
+  if (fromBuyerId) {
     return `${getBuyerViewRoute(fromBuyerId)}?tab=observations`;
   }
-  if (fromAnimalId && getAnimalById(fromAnimalId)) {
+  if (fromAnimalId) {
     return `${getAnimalViewRoute(fromAnimalId)}?tab=observations`;
   }
   return null;
 }
 
 function getNavigationRouteFromEntities(
-  location: ReturnType<typeof getLocationById> | undefined,
-  employee: ReturnType<typeof getEmployeeById> | undefined,
-  serviceProvider: ReturnType<typeof getServiceProviderById> | undefined,
-  supplier: ReturnType<typeof getSupplierById> | undefined,
-  buyer: ReturnType<typeof getBuyerById> | undefined,
-  animal: ReturnType<typeof getAnimalById> | undefined
+  location: Awaited<ReturnType<typeof getLocationById>> | null | undefined,
+  employee: Awaited<ReturnType<typeof getEmployeeById>> | null | undefined,
+  serviceProvider: Awaited<ReturnType<typeof getServiceProviderById>> | null | undefined,
+  supplier: Awaited<ReturnType<typeof getSupplierById>> | null | undefined,
+  buyer: Awaited<ReturnType<typeof getBuyerById>> | null | undefined,
+  animal: Awaited<ReturnType<typeof getAnimalById>> | null | undefined
 ): string {
   if (location) {
     return `${getLocationViewRoute(location.id)}?tab=observations`;
@@ -118,6 +119,89 @@ export default function ObservationDetails() {
   const fromBuyerId = searchParams.get("fromBuyer");
   const fromAnimalId = searchParams.get("fromAnimal");
 
+  const [location, setLocation] = useState<Awaited<ReturnType<typeof getLocationById>> | null>(
+    null
+  );
+  const [employee, setEmployee] = useState<Awaited<ReturnType<typeof getEmployeeById>> | null>(
+    null
+  );
+  const [serviceProvider, setServiceProvider] = useState<Awaited<
+    ReturnType<typeof getServiceProviderById>
+  > | null>(null);
+  const [supplier, setSupplier] = useState<Awaited<ReturnType<typeof getSupplierById>> | null>(
+    null
+  );
+  const [buyer, setBuyer] = useState<Awaited<ReturnType<typeof getBuyerById>> | null>(null);
+  const [animal, setAnimal] = useState<Awaited<ReturnType<typeof getAnimalById>> | null>(null);
+
+  useEffect(() => {
+    const loadEntities = async () => {
+      try {
+        const promises: Promise<unknown>[] = [];
+
+        if (locationObservation) {
+          promises.push(
+            getLocationById(locationObservation.locationId)
+              .then(setLocation)
+              .catch(() => setLocation(null))
+          );
+        }
+        if (employeeObservation) {
+          promises.push(
+            getEmployeeById(employeeObservation.employeeId)
+              .then(setEmployee)
+              .catch(() => setEmployee(null))
+          );
+        }
+        if (serviceProviderObservation) {
+          promises.push(
+            getServiceProviderById(serviceProviderObservation.serviceProviderId)
+              .then(setServiceProvider)
+              .catch(() => setServiceProvider(null))
+          );
+        }
+        if (supplierObservation) {
+          promises.push(
+            getSupplierById(supplierObservation.supplierId)
+              .then(setSupplier)
+              .catch(() => setSupplier(null))
+          );
+        }
+        if (buyerObservation) {
+          promises.push(
+            getBuyerById(buyerObservation.buyerId)
+              .then(setBuyer)
+              .catch(() => setBuyer(null))
+          );
+        }
+        if (animalObservation) {
+          const animalId = animalObservation.animalId;
+          if (animalId) {
+            const animal = getAnimalById(animalId);
+            if (animal) {
+              setAnimal(animal);
+            } else {
+              setAnimal(null);
+            }
+          }
+        }
+
+        await Promise.all(promises);
+      } catch (error) {
+        console.error("Failed to load entities:", error);
+      }
+    };
+
+    loadEntities();
+  }, [
+    locationObservation,
+    employeeObservation,
+    serviceProviderObservation,
+    supplierObservation,
+    buyerObservation,
+    animalObservation,
+  ]);
+
   if (!observation) {
     return (
       <div className="space-y-8">
@@ -132,21 +216,6 @@ export default function ObservationDetails() {
       </div>
     );
   }
-
-  const location = locationObservation
-    ? getLocationById(locationObservation.locationId)
-    : undefined;
-  const employee = employeeObservation
-    ? getEmployeeById(employeeObservation.employeeId)
-    : undefined;
-  const serviceProvider = serviceProviderObservation
-    ? getServiceProviderById(serviceProviderObservation.serviceProviderId)
-    : undefined;
-  const supplier = supplierObservation
-    ? getSupplierById(supplierObservation.supplierId)
-    : undefined;
-  const buyer = buyerObservation ? getBuyerById(buyerObservation.buyerId) : undefined;
-  const animal = animalObservation ? getAnimalById(animalObservation.animalId) : undefined;
 
   const getNavigationRoute = (): string => {
     const routeFromParams = getNavigationRouteFromParams(

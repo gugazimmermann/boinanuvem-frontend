@@ -184,11 +184,11 @@ function getRelevantCostsForAnimal(
   );
 }
 
-export function getAnimalCostBreakdownByLocation(
+export async function getAnimalCostBreakdownByLocation(
   animalId: string,
   startDate?: string,
   endDate?: string
-): AnimalLocationCost[] {
+): Promise<AnimalLocationCost[]> {
   const consumptionMovements = mockInventoryMovements.filter(
     (m) => m.type === "consumption" && m.locationId && m.locationId.trim() !== ""
   );
@@ -211,34 +211,38 @@ export function getAnimalCostBreakdownByLocation(
     }
   }
 
-  return Array.from(locationCosts.entries()).map(([locationId, consumptionDetails]) => {
-    const location = getLocationById(locationId);
-    const totalCost = consumptionDetails.reduce((sum, cost) => {
-      const wasPresent = cost.animalsPresent.some((animal) => animal.id === animalId);
-      if (wasPresent) {
-        const costPerAnimal =
-          cost.animalsPresent.length > 0 ? cost.totalCost / cost.animalsPresent.length : 0;
-        return sum + costPerAnimal;
-      }
-      return sum;
-    }, 0);
+  const locationPromises = Array.from(locationCosts.entries()).map(
+    async ([locationId, consumptionDetails]) => {
+      const location = await getLocationById(locationId);
+      const totalCost = consumptionDetails.reduce((sum, cost) => {
+        const wasPresent = cost.animalsPresent.some((animal) => animal.id === animalId);
+        if (wasPresent) {
+          const costPerAnimal =
+            cost.animalsPresent.length > 0 ? cost.totalCost / cost.animalsPresent.length : 0;
+          return sum + costPerAnimal;
+        }
+        return sum;
+      }, 0);
 
-    return {
-      locationId,
-      locationName: location?.name || "Unknown Location",
-      totalCost,
-      consumptionPeriods: consumptionDetails.length,
-      consumptionDetails,
-    };
-  });
+      return {
+        locationId,
+        locationName: location?.name || "Unknown Location",
+        totalCost,
+        consumptionPeriods: consumptionDetails.length,
+        consumptionDetails,
+      };
+    }
+  );
+
+  return Promise.all(locationPromises);
 }
 
-export function getAnimalTotalCost(
+export async function getAnimalTotalCost(
   animalId: string,
   startDate?: string,
   endDate?: string
-): AnimalTotalCost {
-  const locationBreakdown = getAnimalCostBreakdownByLocation(animalId, startDate, endDate);
+): Promise<AnimalTotalCost> {
+  const locationBreakdown = await getAnimalCostBreakdownByLocation(animalId, startDate, endDate);
   const totalCost = locationBreakdown.reduce((sum, location) => sum + location.totalCost, 0);
   const consumptionPeriods = locationBreakdown.reduce(
     (sum, location) => sum + location.consumptionPeriods,

@@ -67,16 +67,17 @@ function filterSales(sales: Sale[], filters?: SalesFilters): Sale[] {
   return filtered;
 }
 
-function calculateSaleItemMetrics(sales: Sale[]): {
+async function calculateSaleItemMetrics(sales: Sale[]): Promise<{
   totalWeight: number;
   totalCarcassWeight: number;
   carcassCount: number;
-  profitabilities: ReturnType<typeof calculateAnimalProfitability>[];
-} {
+  profitabilities: Awaited<ReturnType<typeof calculateAnimalProfitability>>[];
+}> {
   let totalWeight = 0;
   let totalCarcassWeight = 0;
   let carcassCount = 0;
-  const profitabilities: ReturnType<typeof calculateAnimalProfitability>[] = [];
+  const profitabilityPromises: Promise<Awaited<ReturnType<typeof calculateAnimalProfitability>>>[] =
+    [];
 
   for (const sale of sales) {
     for (const item of sale.saleItems) {
@@ -85,15 +86,13 @@ function calculateSaleItemMetrics(sales: Sale[]): {
         totalCarcassWeight += item.carcassWeight;
         carcassCount++;
       }
-      const profitability = calculateAnimalProfitability(
-        item.animalId,
-        item.price,
-        sale.saleDate,
-        item.weight
+      profitabilityPromises.push(
+        calculateAnimalProfitability(item.animalId, item.price, sale.saleDate, item.weight)
       );
-      profitabilities.push(profitability);
     }
   }
+
+  const profitabilities = await Promise.all(profitabilityPromises);
 
   return { totalWeight, totalCarcassWeight, carcassCount, profitabilities };
 }
@@ -134,13 +133,16 @@ function calculateAverageAge(sales: Sale[]): number {
   return ageCount > 0 ? totalAgeInMonths / ageCount : 0;
 }
 
-export function getSalesMetrics(companyId: string, filters?: SalesFilters): SalesMetrics {
+export async function getSalesMetrics(
+  companyId: string,
+  filters?: SalesFilters
+): Promise<SalesMetrics> {
   let sales = getSalesByCompanyId(companyId);
   sales = filterSales(sales, filters);
 
   const totalSales = sales.length;
   const { totalWeight, totalCarcassWeight, carcassCount, profitabilities } =
-    calculateSaleItemMetrics(sales);
+    await calculateSaleItemMetrics(sales);
   const totalAnimalsSold = sales.reduce((sum, sale) => sum + sale.saleItems.length, 0);
   const totalRevenue = sales.reduce((sum, sale) => {
     const totalFees = getTotalFees(sale.fees, sale.transportationFee, sale.additionalFees);
@@ -169,28 +171,34 @@ export function getSalesMetrics(companyId: string, filters?: SalesFilters): Sale
   };
 }
 
-export function getPricePerKg(companyId: string, filters?: SalesFilters): number {
-  const metrics = getSalesMetrics(companyId, filters);
+export async function getPricePerKg(companyId: string, filters?: SalesFilters): Promise<number> {
+  const metrics = await getSalesMetrics(companyId, filters);
   return metrics.averagePricePerKg;
 }
 
-export function getPricePerHead(companyId: string, filters?: SalesFilters): number {
-  const metrics = getSalesMetrics(companyId, filters);
+export async function getPricePerHead(companyId: string, filters?: SalesFilters): Promise<number> {
+  const metrics = await getSalesMetrics(companyId, filters);
   return metrics.averagePricePerHead;
 }
 
-export function getCarcassValue(companyId: string, filters?: SalesFilters): number | undefined {
-  const metrics = getSalesMetrics(companyId, filters);
+export async function getCarcassValue(
+  companyId: string,
+  filters?: SalesFilters
+): Promise<number | undefined> {
+  const metrics = await getSalesMetrics(companyId, filters);
   return metrics.averageCarcassValue;
 }
 
-export function getAverageAgeAtSale(companyId: string, filters?: SalesFilters): number {
-  const metrics = getSalesMetrics(companyId, filters);
+export async function getAverageAgeAtSale(
+  companyId: string,
+  filters?: SalesFilters
+): Promise<number> {
+  const metrics = await getSalesMetrics(companyId, filters);
   return metrics.averageAgeAtSale;
 }
 
-export function getProfitabilityMetrics(companyId: string, filters?: SalesFilters) {
-  const metrics = getSalesMetrics(companyId, filters);
+export async function getProfitabilityMetrics(companyId: string, filters?: SalesFilters) {
+  const metrics = await getSalesMetrics(companyId, filters);
   return metrics.profitability;
 }
 

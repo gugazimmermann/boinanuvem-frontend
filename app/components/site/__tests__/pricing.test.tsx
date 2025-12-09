@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Pricing } from "../pricing";
@@ -10,46 +10,46 @@ vi.mock("~/routes.config", () => ({
   },
 }));
 
-describe("Pricing", () => {
-  const mockPlans: Plan[] = [
-    {
-      id: "1",
-      name: "Basic",
-      description: "Basic plan",
-      monthlyPrice: "29.90",
-      annualPrice: "299.00",
-      popular: false,
-      features: ["Feature 1", "Feature 2"],
-      limits: {
-        properties: "1",
-        locations: "5",
-        animals: "100",
-        members: "1",
-      },
-      status: "active",
-      createdAt: new Date(),
-      updatedAt: new Date(),
+const mockPlans: Plan[] = [
+  {
+    id: "1",
+    name: "Básico",
+    description: "Plano básico",
+    monthlyPrice: "R$ 99",
+    annualPrice: "R$ 990",
+    popular: false,
+    limits: {
+      properties: "1",
+      locations: "10",
+      animals: "100",
+      members: "3",
     },
-    {
-      id: "2",
-      name: "Advanced",
-      description: "Advanced plan",
-      monthlyPrice: "59.90",
-      annualPrice: "599.00",
-      popular: true,
-      features: ["Feature 1", "Feature 2", "Feature 3"],
-      limits: {
-        properties: "5",
-        locations: "20",
-        animals: "1000",
-        members: "5",
-      },
-      status: "active",
-      createdAt: new Date(),
-      updatedAt: new Date(),
+    features: ["Feature 1", "Feature 2"],
+    status: "active",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: "2",
+    name: "Avançado",
+    description: "Plano avançado",
+    monthlyPrice: "R$ 199",
+    annualPrice: "R$ 1990",
+    popular: true,
+    limits: {
+      properties: "3",
+      locations: "30",
+      animals: "500",
+      members: "10",
     },
-  ];
+    features: ["Feature 1", "Feature 2", "Feature 3"],
+    status: "active",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+];
 
+describe("Pricing", () => {
   it("should render loading state when no plans provided", () => {
     render(<Pricing plans={[]} />);
     expect(screen.getByText("Carregando planos...")).toBeInTheDocument();
@@ -57,67 +57,106 @@ describe("Pricing", () => {
 
   it("should render all plans", () => {
     render(<Pricing plans={mockPlans} />);
-    expect(screen.getByText("Basic")).toBeInTheDocument();
-    expect(screen.getByText("Advanced")).toBeInTheDocument();
+    expect(screen.getByText("Básico")).toBeInTheDocument();
+    expect(screen.getByText("Avançado")).toBeInTheDocument();
+  });
+
+  it("should render plan descriptions", () => {
+    render(<Pricing plans={mockPlans} />);
+    expect(screen.getByText("Plano básico")).toBeInTheDocument();
+    expect(screen.getByText("Plano avançado")).toBeInTheDocument();
   });
 
   it("should render monthly prices by default", () => {
     render(<Pricing plans={mockPlans} />);
-    const price29 = screen.getAllByText("29.90");
-    const price59 = screen.getAllByText("59.90");
-    expect(price29.length).toBeGreaterThan(0);
-    expect(price59.length).toBeGreaterThan(0);
+    // Prices are rendered in text-4xl font-bold, so they should be findable
+    expect(screen.getAllByText("R$ 99").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("R$ 199").length).toBeGreaterThan(0);
+    // "por mês" appears twice (once per plan)
+    expect(screen.getAllByText("por mês").length).toBe(2);
   });
 
-  it("should switch to annual prices when annual button is clicked", async () => {
+  it("should switch to annual prices when annual is selected", async () => {
     const user = userEvent.setup();
     render(<Pricing plans={mockPlans} />);
+    const annualButton = screen.getByText("Anual");
 
-    const annualButton = screen.getByRole("button", { name: "Anual" });
     await user.click(annualButton);
 
-    const price299 = screen.getAllByText("299.00");
-    const price599 = screen.getAllByText("599.00");
-    expect(price299.length).toBeGreaterThan(0);
-    expect(price599.length).toBeGreaterThan(0);
+    expect(screen.getAllByText("R$ 990").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("R$ 1990").length).toBeGreaterThan(0);
+    // "por ano" appears twice (once per plan)
+    expect(screen.getAllByText("por ano").length).toBe(2);
   });
 
-  it("should highlight popular plan", () => {
+  it("should render popular badge for popular plan", () => {
     render(<Pricing plans={mockPlans} />);
     expect(screen.getByText("Mais Popular")).toBeInTheDocument();
   });
 
-  it("should render heading", () => {
+  it("should not render popular badge for non-popular plan", () => {
     render(<Pricing plans={mockPlans} />);
-    expect(screen.getByText(/Planos que/)).toBeInTheDocument();
+    const badges = screen.getAllByText("Mais Popular");
+    expect(badges.length).toBe(1);
   });
 
-  it("should render free trial banner", () => {
+  it("should render plan limits", () => {
     render(<Pricing plans={mockPlans} />);
-    expect(screen.getByText(/Teste Grátis por 14 dias/)).toBeInTheDocument();
-  });
-
-  it("should render included features", () => {
-    render(<Pricing plans={mockPlans} />);
-    const allPlansText = screen.getAllByText(/Todos os planos incluem/);
-    expect(allPlansText.length).toBeGreaterThan(0);
-    expect(screen.getByText(/Multi-idioma/)).toBeInTheDocument();
-    expect(screen.getByText(/Modo Escuro/)).toBeInTheDocument();
+    // Limits are rendered with emojis, so numbers appear multiple times
+    // Check that the limit values are present (they appear in the limits section)
+    const allOnes = screen.getAllByText("1");
+    const allThrees = screen.getAllByText("3");
+    // Should have at least one "1" (for properties in Básico plan) and one "3" (for properties in Avançado plan)
+    expect(allOnes.length).toBeGreaterThan(0);
+    expect(allThrees.length).toBeGreaterThan(0);
   });
 
   it("should render plan features", () => {
     render(<Pricing plans={mockPlans} />);
-    const feature1 = screen.getAllByText("Feature 1");
-    const feature2 = screen.getAllByText("Feature 2");
-    expect(feature1.length).toBeGreaterThan(0);
-    expect(feature2.length).toBeGreaterThan(0);
-    // Feature 3 only in second plan
+    // Feature 1 and Feature 2 appear in both plans, so use getAllByText
+    expect(screen.getAllByText("Feature 1").length).toBe(2);
+    expect(screen.getAllByText("Feature 2").length).toBe(2);
+    // Feature 3 only appears in Avançado plan
     expect(screen.getByText("Feature 3")).toBeInTheDocument();
   });
 
-  it("should apply correct classes to popular plan", () => {
-    const { container } = render(<Pricing plans={mockPlans} />);
-    const popularPlan = container.querySelector(".border-2.border-primary");
-    expect(popularPlan).toBeInTheDocument();
+  it("should render register buttons", () => {
+    render(<Pricing plans={mockPlans} />);
+    const buttons = screen.getAllByText("Começar Agora →");
+    expect(buttons.length).toBe(2);
+    buttons.forEach((button) => {
+      expect(button.closest("a")).toHaveAttribute("href", "/register");
+    });
+  });
+
+  it("should render common features section", () => {
+    render(<Pricing plans={mockPlans} />);
+    // "Todos os planos incluem" appears multiple times, use getAllByText
+    expect(screen.getAllByText(/Todos os planos incluem/).length).toBeGreaterThan(0);
+    // The common features are in a grid with emojis, check they're present
+    expect(screen.getByText("Multi-idioma (PT/EN/ES)")).toBeInTheDocument();
+    expect(screen.getByText("Modo Escuro/Claro")).toBeInTheDocument();
+    expect(screen.getByText("Design Responsivo")).toBeInTheDocument();
+    expect(screen.getByText("Armazenamento na Nuvem")).toBeInTheDocument();
+  });
+
+  it("should render free trial banner", () => {
+    render(<Pricing plans={mockPlans} />);
+    expect(screen.getByText("Teste Grátis por 14 dias")).toBeInTheDocument();
+  });
+
+  it("should toggle between monthly and annual", async () => {
+    const user = userEvent.setup();
+    render(<Pricing plans={mockPlans} />);
+
+    expect(screen.getAllByText("por mês").length).toBe(2);
+    const annualButton = screen.getByText("Anual");
+
+    await user.click(annualButton);
+    expect(screen.getAllByText("por ano").length).toBe(2);
+
+    const monthlyButton = screen.getByText("Mensal");
+    await user.click(monthlyButton);
+    expect(screen.getAllByText("por mês").length).toBe(2);
   });
 });

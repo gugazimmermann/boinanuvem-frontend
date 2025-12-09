@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router";
 import {
   Table,
@@ -24,7 +24,8 @@ import { PropertyFilterDropdown } from "~/components/dashboard/breedings/propert
 import { AnimalCodeDisplay } from "~/components/dashboard/breedings/animal-code-display";
 import { BreedingMethodBadge } from "~/components/dashboard/breedings/breeding-method-badge";
 import { formatBreedingDate } from "~/utils/breeding";
-import { getPropertiesByCompanyId } from "~/services/properties.service";
+import { getProperties } from "~/services/properties.service";
+import type { Property } from "~/types";
 import { getAnimalViewRoute } from "~/routes.config";
 import { getStringValue } from "~/utils/string-helpers";
 
@@ -53,17 +54,35 @@ export default function UnconfirmedBreedings() {
 
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [properties, setProperties] = useState<Property[]>([]);
   const { showAlert, alertMessage } = useAlert();
 
-  const properties = useMemo(
-    () => (company ? getPropertiesByCompanyId(company.id) : []),
-    [company]
-  );
+  useEffect(() => {
+    const fetchProperties = async () => {
+      if (company) {
+        try {
+          const propertiesData = await getProperties();
+          setProperties(propertiesData.filter((prop) => prop.companyId === company.id));
+        } catch (error) {
+          console.error("Failed to load properties:", error);
+        }
+      }
+    };
+    fetchProperties();
+  }, [company]);
 
   const unconfirmedBreedings = getUnconfirmedBreedings(companyId);
+  const propertiesMap = useMemo(() => new Map(properties.map((p) => [p.id, p])), [properties]);
   const enrichedBreedings = useMemo(() => {
-    return unconfirmedBreedings.map((breeding) => enrichBreedingWithAnimalData(breeding));
-  }, [unconfirmedBreedings]);
+    return unconfirmedBreedings.map((breeding) => {
+      const enriched = enrichBreedingWithAnimalData(breeding);
+      // Add property from map if available
+      if (enriched.animal?.propertyId) {
+        enriched.property = propertiesMap.get(enriched.animal.propertyId);
+      }
+      return enriched;
+    });
+  }, [unconfirmedBreedings, propertiesMap]);
 
   type EnrichedBreeding = (typeof enrichedBreedings)[0];
   const [selectedBreeding, setSelectedBreeding] = useState<EnrichedBreeding | null>(null);

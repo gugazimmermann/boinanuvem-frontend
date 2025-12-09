@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router";
 import {
   Table,
@@ -15,11 +15,11 @@ import { useLanguage } from "~/contexts/language-context";
 import { formatCurrency } from "~/utils/currency";
 import { formatDate } from "~/utils/formatting";
 import { deleteAcquisition, getAcquisitionsByCompanyId } from "~/services/acquisitions.service";
-import { getSupplierById } from "~/services/suppliers.service";
-import { getPropertyById, getPropertiesByCompanyId } from "~/services/properties.service";
-import { getAnimalById } from "~/services/animals.service";
-import type { Acquisition } from "~/types";
+import { getSuppliers } from "~/services/suppliers.service";
+import { getProperties } from "~/services/properties.service";
+import type { Property, Supplier, Acquisition } from "~/types";
 import { AcquisitionPaymentMethod } from "~/types";
+import { getAnimalById } from "~/services/animals.service";
 import { getTotalFees } from "~/utils/fees";
 import { mockCompanies } from "~/mocks/companies";
 import { ROUTES, getAcquisitionEditRoute, getAcquisitionViewRoute } from "~/routes.config";
@@ -55,20 +55,29 @@ export default function Acquisitions() {
   const [acquisitions, setAcquisitions] = useState<Acquisition[]>(() =>
     getAcquisitionsByCompanyId(companyId)
   );
-  const properties = useMemo(
-    () => (company ? getPropertiesByCompanyId(company.id) : []),
-    [company]
-  );
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
 
-  const suppliers = useMemo(() => {
-    const allSuppliers = new Set<string>();
-    for (const acq of acquisitions) {
-      if (acq.supplierId) allSuppliers.add(acq.supplierId);
-    }
-    return Array.from(allSuppliers)
-      .map((id) => getSupplierById(id))
-      .filter((s) => s !== undefined);
-  }, [acquisitions]);
+  useEffect(() => {
+    const fetchData = async () => {
+      if (company) {
+        try {
+          const [propertiesData, suppliersData] = await Promise.all([
+            getProperties(),
+            getSuppliers(),
+          ]);
+          setProperties(propertiesData.filter((prop) => prop.companyId === company.id));
+          setSuppliers(suppliersData.filter((sup) => sup.companyId === company.id));
+        } catch (error) {
+          console.error("Failed to load data:", error);
+        }
+      }
+    };
+    fetchData();
+  }, [company]);
+
+  const propertiesMap = useMemo(() => new Map(properties.map((p) => [p.id, p])), [properties]);
+  const suppliersMap = useMemo(() => new Map(suppliers.map((s) => [s.id, s])), [suppliers]);
 
   const [supplierFilter, setSupplierFilter] = useState<string>("all");
 
@@ -118,9 +127,9 @@ export default function Acquisitions() {
       const matchesSearch = (() => {
         if (!searchValue) return true;
         const searchLower = searchValue.toLowerCase();
-        const property = getPropertyById(acquisition.propertyId);
+        const property = propertiesMap.get(acquisition.propertyId);
         const propertyName = property?.name?.toLowerCase() || "";
-        const supplier = getSupplierById(acquisition.supplierId);
+        const supplier = suppliersMap.get(acquisition.supplierId);
         const supplierName = supplier?.name?.toLowerCase() || "";
         const animalCodes = acquisition.acquisitionItems
           .map((item) => {
@@ -189,7 +198,7 @@ export default function Acquisitions() {
             ?.supplier as string) || "Fornecedor",
         sortable: false,
         render: (_, row) => {
-          const supplier = getSupplierById(row.supplierId);
+          const supplier = suppliersMap.get(row.supplierId);
           return <span className="text-gray-700 dark:text-gray-300">{supplier?.name || "-"}</span>;
         },
       },
@@ -292,7 +301,7 @@ export default function Acquisitions() {
         canDelete: canRemove("records", "acquisitions"),
       }),
     ],
-    [t, language, navigate, handleDeleteClick, canEdit, canRemove]
+    [t, language, navigate, handleDeleteClick, canEdit, canRemove, suppliersMap]
   );
 
   const headerActions: TableAction[] = useMemo(

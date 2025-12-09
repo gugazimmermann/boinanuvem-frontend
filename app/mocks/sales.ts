@@ -62,7 +62,7 @@ function initializeSales(): void {
     const saleItems = animalsInSale.map((animal) => {
       const weighings = getWeighingsByAnimalId(animal.id);
       let weight = 400;
-      if (weighings.length > 0) {
+      if (weighings && weighings.length > 0) {
         const sortedWeighings = weighings.sort(
           (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
         );

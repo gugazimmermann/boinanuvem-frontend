@@ -139,7 +139,7 @@ export function FinanceDashboard({
     for (const transaction of cashFlowData) {
       if (transaction.type === "expense") {
         const categoryKey = transaction.category;
-        const categoryName = t.cashFlow.categories[categoryKey] || categoryKey;
+        const categoryName = t.cashFlow?.categories?.[categoryKey] || categoryKey;
 
         if (!categories[categoryName]) {
           categories[categoryName] = 0;

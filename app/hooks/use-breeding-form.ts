@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { getNextAttemptNumber } from "~/services/breedings.service";
 import type { BreedingMethod } from "~/types";
 import type { TranslationKey } from "~/i18n/translations";
@@ -39,13 +39,31 @@ export function useBreedingForm({ initialAnimalIds = [], initialDate, t }: UseBr
     confirmed: false,
   });
 
+  const formDataRef = useRef(formData);
+  useEffect(() => {
+    formDataRef.current = formData;
+  }, [formData]);
+
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Update ref synchronously when setFormData is called
+  const setFormDataWithRef = useCallback((updater: React.SetStateAction<BreedingFormState>) => {
+    setFormData((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      formDataRef.current = next;
+      return next;
+    });
+  }, []);
 
   const handleChange = (
     field: keyof BreedingFormState,
     value: string | string[] | Record<string, number> | boolean
   ) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => {
+      const next = { ...prev, [field]: value };
+      formDataRef.current = next;
+      return next;
+    });
     if (errors[field]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
@@ -71,7 +89,9 @@ export function useBreedingForm({ initialAnimalIds = [], initialDate, t }: UseBr
         }
       }
 
-      return { ...prev, animalIds: newIds, attemptNumbers };
+      const next = { ...prev, animalIds: newIds, attemptNumbers };
+      formDataRef.current = next;
+      return next;
     });
   };
 
@@ -81,7 +101,9 @@ export function useBreedingForm({ initialAnimalIds = [], initialDate, t }: UseBr
       const newIds = currentIds.includes(id)
         ? currentIds.filter((itemId) => itemId !== id)
         : [...currentIds, id];
-      return { ...prev, [field]: newIds };
+      const next = { ...prev, [field]: newIds };
+      formDataRef.current = next;
+      return next;
     });
   };
 
@@ -98,13 +120,15 @@ export function useBreedingForm({ initialAnimalIds = [], initialDate, t }: UseBr
         attemptNumbers = {};
       }
 
-      return {
+      const next = {
         ...prev,
         method,
         bullId: method === "natural" ? prev.bullId : "",
         semenCode: method === "artificial_insemination" ? prev.semenCode : "",
         attemptNumbers,
       };
+      formDataRef.current = next;
+      return next;
     });
 
     setErrors((prev) => {
@@ -118,52 +142,65 @@ export function useBreedingForm({ initialAnimalIds = [], initialDate, t }: UseBr
   const handleAttemptNumberChange = (animalId: string, value: string) => {
     const numValue = Number.parseInt(value, 10);
     if (!Number.isNaN(numValue) && numValue > 0) {
-      setFormData((prev) => ({
-        ...prev,
-        attemptNumbers: { ...prev.attemptNumbers, [animalId]: numValue },
-      }));
+      setFormData((prev) => {
+        const next = {
+          ...prev,
+          attemptNumbers: { ...prev.attemptNumbers, [animalId]: numValue },
+        };
+        formDataRef.current = next;
+        return next;
+      });
     }
   };
 
-  const validate = (): boolean => {
-    const newErrors: Record<string, string> = {};
+  const validate = useCallback(
+    (dataToValidate?: BreedingFormState): boolean => {
+      // Use provided data, or current formData state, or ref as fallback
+      // This ensures we can validate the latest data even when called immediately after setFormData
+      const currentFormData = dataToValidate ?? formDataRef.current;
+      const newErrors: Record<string, string> = {};
 
-    if (formData.animalIds.length === 0) {
-      newErrors.animalIds = t.breedings.new.errors.animalRequired;
-    }
-
-    if (!formData.date) {
-      newErrors.date = t.breedings.new.errors.dateRequired;
-    }
-
-    if (!formData.method) {
-      newErrors.method = t.breedings.new.errors.methodRequired;
-    }
-
-    if (formData.method === "natural" && !formData.bullId) {
-      newErrors.bullId = t.breedings.new.errors.bullRequired;
-    }
-
-    if (formData.method === "artificial_insemination") {
-      if (!formData.semenCode?.trim()) {
-        newErrors.semenCode = t.breedings.new.errors.semenCodeRequired;
+      if (currentFormData.animalIds.length === 0) {
+        newErrors.animalIds = t.breedings.new.errors.animalRequired;
       }
 
-      for (const animalId of formData.animalIds) {
-        const attemptNum = formData.attemptNumbers[animalId];
-        if (!attemptNum || attemptNum < 1) {
-          newErrors[`attemptNumber_${animalId}`] = t.breedings.new.errors.attemptNumberRequired;
+      if (!currentFormData.date) {
+        newErrors.date = t.breedings.new.errors.dateRequired;
+      }
+
+      if (!currentFormData.method) {
+        newErrors.method = t.breedings.new.errors.methodRequired;
+      }
+
+      if (currentFormData.method === "natural" && !currentFormData.bullId) {
+        newErrors.bullId = t.breedings.new.errors.bullRequired;
+      }
+
+      if (currentFormData.method === "artificial_insemination") {
+        if (!currentFormData.semenCode?.trim()) {
+          newErrors.semenCode = t.breedings.new.errors.semenCodeRequired;
+        }
+
+        for (const animalId of currentFormData.animalIds) {
+          const attemptNum = currentFormData.attemptNumbers[animalId];
+          if (!attemptNum || attemptNum < 1) {
+            newErrors[`attemptNumber_${animalId}`] = t.breedings.new.errors.attemptNumberRequired;
+          }
         }
       }
-    }
 
-    if (formData.employeeIds.length === 0 && formData.serviceProviderIds.length === 0) {
-      newErrors.responsible = t.breedings.new.errors.responsibleRequired;
-    }
+      if (
+        currentFormData.employeeIds.length === 0 &&
+        currentFormData.serviceProviderIds.length === 0
+      ) {
+        newErrors.responsible = t.breedings.new.errors.responsibleRequired;
+      }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+      setErrors(newErrors);
+      return Object.keys(newErrors).length === 0;
+    },
+    [t]
+  );
 
   return {
     formData,
@@ -174,6 +211,6 @@ export function useBreedingForm({ initialAnimalIds = [], initialDate, t }: UseBr
     handleMethodChange,
     handleAttemptNumberChange,
     validate,
-    setFormData,
+    setFormData: setFormDataWithRef,
   };
 }

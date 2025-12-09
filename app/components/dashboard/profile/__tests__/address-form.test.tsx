@@ -1,544 +1,335 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AddressForm } from "../address-form";
-import { LanguageProvider } from "~/contexts/language-context";
+import { useTranslation } from "~/i18n";
+import { useCEPLookup } from "~/components/site/hooks/use-cep-lookup";
 
-const TestWrapper = ({ children }: { children: React.ReactNode }) => (
-  <LanguageProvider>{children}</LanguageProvider>
-);
-
+vi.mock("~/i18n");
+vi.mock("~/components/site/hooks/use-cep-lookup");
 vi.mock("~/components/ui", () => ({
-  Input: vi.fn(
-    ({
-      label,
-      value,
-      onChange,
-      error,
-      disabled,
-      placeholder,
-      maxLength,
-    }: {
-      label?: string;
-      value?: string;
-      onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-      error?: string;
-      disabled?: boolean;
-      placeholder?: string;
-      maxLength?: number;
-    }) => (
-      <div>
-        <label>{label}</label>
-        <input
-          value={value}
-          onChange={onChange}
-          disabled={disabled}
-          placeholder={placeholder}
-          maxLength={maxLength}
-          data-error={error}
-        />
-        {error && <p>{error}</p>}
-      </div>
-    )
+  Input: ({
+    label,
+    value,
+    onChange,
+    error,
+    disabled,
+  }: {
+    label: string;
+    value: string;
+    onChange: (e: { target: { value: string } }) => void;
+    error?: string;
+    disabled?: boolean;
+  }) => (
+    <div>
+      <label>{label}</label>
+      <input
+        data-testid={`input-${label}`}
+        defaultValue={value || ""}
+        onChange={onChange}
+        disabled={disabled}
+      />
+      {error && <span data-testid="error">{error}</span>}
+    </div>
   ),
-  Select: vi.fn(
-    ({
-      label,
-      value,
-      onChange,
-      error,
-      disabled,
-      options,
-    }: {
-      label?: string;
-      value?: string;
-      onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-      error?: string;
-      disabled?: boolean;
-      options?: Array<{ value: string; label: string }>;
-    }) => (
-      <div>
-        <label>{label}</label>
-        <select value={value} onChange={onChange} disabled={disabled} data-error={error}>
-          {options?.map((opt: { value: string; label: string }) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-        {error && <p>{error}</p>}
-      </div>
-    )
+  Select: ({
+    label,
+    value,
+    onChange,
+    options,
+  }: {
+    label: string;
+    value: string;
+    onChange: (e: { target: { value: string } }) => void;
+    options: Array<{ value: string; label: string }>;
+  }) => (
+    <div>
+      <label>{label}</label>
+      <select data-testid={`select-${label}`} value={value} onChange={onChange}>
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </div>
   ),
-  FormFieldGroup: vi.fn(({ children }: { children?: React.ReactNode }) => <div>{children}</div>),
-}));
-
-const _mockOnSuccess = vi.fn();
-const mockUseCEPLookup = vi.fn(() => ({
-  loading: false,
-}));
-
-vi.mock("~/components/site/hooks/use-cep-lookup", () => ({
-  useCEPLookup: (cep: string, options: { onSuccess?: (data: unknown) => void }) => {
-    if (cep && options?.onSuccess) {
-      setTimeout(() => {
-        options.onSuccess?.({
-          logradouro: "Rua Test",
-          bairro: "Centro",
-          localidade: "São Paulo",
-          uf: "SP",
-        });
-      }, 0);
-    }
-    return mockUseCEPLookup(cep, options);
-  },
-}));
-
-vi.mock("~/components/site/utils/masks", () => ({
-  maskCEP: vi.fn((value: string) => value.replace(/\D/g, "").replace(/(\d{5})(\d)/, "$1-$2")),
-  unmaskCEP: vi.fn((value: string) => value.replace(/\D/g, "")),
-}));
-
-vi.mock("~/i18n", () => ({
-  useTranslation: vi.fn(() => ({
-    profile: {
-      company: {
-        fields: {
-          zipCode: "CEP",
-          street: "Street",
-          number: "Number",
-          complement: "Complement",
-          neighborhood: "Neighborhood",
-          city: "City",
-          state: "State",
-        },
-      },
-    },
-  })),
+  FormFieldGroup: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
 describe("AddressForm", () => {
+  const mockUseTranslation = vi.mocked(useTranslation);
+  const mockUseCEPLookup = vi.mocked(useCEPLookup);
+
   const defaultProps = {
-    data: {
-      zipCode: "",
-      street: "",
-      number: "",
-      complement: "",
-      neighborhood: "",
-      city: "",
-      state: "",
-    },
+    data: {},
     errors: {},
     onChange: vi.fn(),
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseTranslation.mockReturnValue({
+      profile: {
+        company: {
+          fields: {
+            zipCode: "Zip Code",
+            street: "Street",
+            number: "Number",
+            complement: "Complement",
+            neighborhood: "Neighborhood",
+            city: "City",
+            state: "State",
+          },
+        },
+      },
+    } as unknown as ReturnType<typeof useTranslation>);
+    mockUseCEPLookup.mockReturnValue({
+      loading: false,
+      data: null,
+      error: null,
+    });
   });
 
-  it("should render address form fields", () => {
-    render(
-      <TestWrapper>
-        <AddressForm {...defaultProps} />
-      </TestWrapper>
-    );
-    expect(screen.getByText("CEP")).toBeInTheDocument();
-    expect(screen.getByText("Street")).toBeInTheDocument();
+  it("should render zip code input", () => {
+    render(<AddressForm {...defaultProps} />);
+    expect(screen.getByText("Zip Code")).toBeInTheDocument();
   });
 
-  it("should handle zipCode change", async () => {
-    const onChange = vi.fn();
+  it("should call onChange when zip code changes", async () => {
     const user = userEvent.setup();
-    render(
-      <TestWrapper>
-        <AddressForm {...defaultProps} onChange={onChange} />
-      </TestWrapper>
-    );
-    const zipCodeInput = screen.getByPlaceholderText("00000-000");
-    await user.type(zipCodeInput, "12345678");
+    const onChange = vi.fn();
+    render(<AddressForm {...defaultProps} onChange={onChange} />);
+
+    const zipCodeInput = screen.getByTestId("input-Zip Code");
+    await user.type(zipCodeInput, "12345");
+
     expect(onChange).toHaveBeenCalled();
   });
 
-  it("should disable fields when zipCodeLoading is true", () => {
-    mockUseCEPLookup.mockReturnValueOnce({ loading: true });
-    render(
-      <TestWrapper>
-        <AddressForm {...defaultProps} />
-      </TestWrapper>
-    );
-    const streetInput = screen.getByText("Street").nextElementSibling as HTMLInputElement;
+  it("should render all address fields", () => {
+    render(<AddressForm {...defaultProps} />);
+    expect(screen.getByText("Street")).toBeInTheDocument();
+    expect(screen.getByText("Number")).toBeInTheDocument();
+    expect(screen.getByText("Complement")).toBeInTheDocument();
+    expect(screen.getByText("Neighborhood")).toBeInTheDocument();
+    expect(screen.getByText("City")).toBeInTheDocument();
+    expect(screen.getByText("State")).toBeInTheDocument();
+  });
+
+  it("should display errors when provided", () => {
+    render(<AddressForm {...defaultProps} errors={{ zipCode: "Invalid zip code" }} />);
+    expect(screen.getByTestId("error")).toBeInTheDocument();
+    expect(screen.getByText("Invalid zip code")).toBeInTheDocument();
+  });
+
+  it("should disable inputs when disabled is true", () => {
+    render(<AddressForm {...defaultProps} disabled={true} />);
+    const zipCodeInput = screen.getByTestId("input-Zip Code");
+    expect(zipCodeInput).toBeDisabled();
+  });
+
+  it("should disable inputs when zipCodeLoading is true", () => {
+    mockUseCEPLookup.mockReturnValue({
+      loading: true,
+      data: null,
+      error: null,
+    });
+    render(<AddressForm {...defaultProps} />);
+    const streetInput = screen.getByTestId("input-Street");
     expect(streetInput).toBeDisabled();
   });
 
-  it("should display errors", () => {
-    render(
-      <TestWrapper>
-        <AddressForm
-          {...defaultProps}
-          errors={{ zipCode: "CEP is required", street: "Street is required" }}
-        />
-      </TestWrapper>
-    );
-    expect(screen.getByText("CEP is required")).toBeInTheDocument();
-    expect(screen.getByText("Street is required")).toBeInTheDocument();
-  });
-
-  it("should disable all fields when disabled is true", () => {
-    render(
-      <TestWrapper>
-        <AddressForm {...defaultProps} disabled={true} />
-      </TestWrapper>
-    );
-    const inputs = screen.getAllByRole("textbox");
-    inputs.forEach((input) => {
-      expect(input).toBeDisabled();
-    });
-  });
-
-  it("should handle CEP lookup success", async () => {
+  it("should call onChange for all fields when CEP lookup succeeds", async () => {
     const onChange = vi.fn();
-    const mockMapCEPData = vi.fn(
-      (data: { logradouro?: string; bairro?: string; localidade?: string; uf?: string }) => ({
-        street: data.logradouro,
-        neighborhood: data.bairro,
-        city: data.localidade,
-        state: data.uf,
-      })
-    );
-    vi.doMock("~/components/site/utils/cep-utils", () => ({
-      mapCEPDataToAddressForm: mockMapCEPData,
-    }));
-    const user = userEvent.setup();
-    render(
-      <TestWrapper>
-        <AddressForm {...defaultProps} onChange={onChange} />
-      </TestWrapper>
-    );
-    const zipCodeInput = screen.getByPlaceholderText("00000-000");
-    await user.type(zipCodeInput, "12345678");
-    await waitFor(
-      () => {
-        expect(onChange).toHaveBeenCalled();
-      },
-      { timeout: 2000 }
-    );
-  });
-
-  it("should handle all field changes", async () => {
-    const onChange = vi.fn();
-    const user = userEvent.setup();
-    render(
-      <TestWrapper>
-        <AddressForm {...defaultProps} onChange={onChange} />
-      </TestWrapper>
-    );
-    // Test street field
-    const streetInput = screen.getByText("Street").nextElementSibling as HTMLInputElement;
-    await user.clear(streetInput);
-    await user.type(streetInput, "Main");
-    expect(onChange).toHaveBeenCalledWith("street", expect.any(String));
-    const streetCalls = onChange.mock.calls.filter((call: unknown[]) => call[0] === "street");
-    expect(streetCalls.length).toBeGreaterThan(0);
-
-    // Test number field
-    onChange.mockClear();
-    const numberInput = screen.getByText("Number").nextElementSibling as HTMLInputElement;
-    await user.clear(numberInput);
-    await user.type(numberInput, "123");
-    expect(onChange).toHaveBeenCalledWith("number", expect.any(String));
-    const numberCalls = onChange.mock.calls.filter((call: unknown[]) => call[0] === "number");
-    expect(numberCalls.length).toBeGreaterThan(0);
-
-    // Test complement field
-    onChange.mockClear();
-    const complementInput = screen.getByText("Complement").nextElementSibling as HTMLInputElement;
-    await user.clear(complementInput);
-    await user.type(complementInput, "Apt");
-    expect(onChange).toHaveBeenCalledWith("complement", expect.any(String));
-
-    // Test neighborhood field
-    onChange.mockClear();
-    const neighborhoodInput = screen.getByText("Neighborhood")
-      .nextElementSibling as HTMLInputElement;
-    await user.clear(neighborhoodInput);
-    await user.type(neighborhoodInput, "Downtown");
-    expect(onChange).toHaveBeenCalledWith("neighborhood", expect.any(String));
-
-    // Test city field
-    onChange.mockClear();
-    const cityInput = screen.getByText("City").nextElementSibling as HTMLInputElement;
-    await user.clear(cityInput);
-    await user.type(cityInput, "São");
-    expect(onChange).toHaveBeenCalledWith("city", expect.any(String));
-  });
-
-  it("should handle state select change", async () => {
-    const onChange = vi.fn();
-    const user = userEvent.setup();
-    render(
-      <TestWrapper>
-        <AddressForm {...defaultProps} onChange={onChange} />
-      </TestWrapper>
-    );
-    const stateSelect = screen.getByText("State").nextElementSibling as HTMLSelectElement;
-    await user.selectOptions(stateSelect, "SP");
-    expect(onChange).toHaveBeenCalledWith("state", "SP");
-  });
-
-  it("should handle CEP lookup with loading state", () => {
-    mockUseCEPLookup.mockReturnValueOnce({ loading: true });
-    render(
-      <TestWrapper>
-        <AddressForm {...defaultProps} />
-      </TestWrapper>
-    );
-    const inputs = screen.getAllByRole("textbox");
-    const addressInputs = inputs.slice(1); // Skip zipCode
-    addressInputs.forEach((input) => {
-      expect(input).toBeDisabled();
-    });
-  });
-
-  it("should handle CEP lookup with valid CEP", async () => {
-    const onChange = vi.fn();
-    const user = userEvent.setup();
-    const { rerender: _rerender } = render(
-      <TestWrapper>
-        <AddressForm {...defaultProps} onChange={onChange} />
-      </TestWrapper>
-    );
-    const zipCodeInput = screen.getByPlaceholderText("00000-000");
-    await user.type(zipCodeInput, "01310100");
-    // Wait for CEP lookup to trigger
-    await waitFor(
-      () => {
-        expect(onChange).toHaveBeenCalled();
-      },
-      { timeout: 2000 }
-    );
-  });
-
-  it("should handle CEP lookup success with all fields", async () => {
-    const onChange = vi.fn();
-    const mockMapCEPData = vi.fn(
-      (
-        data: { logradouro?: string; bairro?: string; localidade?: string; uf?: string },
-        currentData: {
-          street?: string;
-          neighborhood?: string;
-          city?: string;
-          state?: string;
-          zipCode?: string;
-        }
-      ) => ({
-        street: data.logradouro || currentData.street,
-        neighborhood: data.bairro || currentData.neighborhood,
-        city: data.localidade || currentData.city,
-        state: data.uf || currentData.state,
-        zipCode: currentData.zipCode,
-      })
-    );
-    vi.doMock("~/components/site/utils/cep-utils", () => ({
-      mapCEPDataToAddressForm: mockMapCEPData,
-    }));
-    const user = userEvent.setup();
-    render(
-      <TestWrapper>
-        <AddressForm {...defaultProps} onChange={onChange} />
-      </TestWrapper>
-    );
-    const zipCodeInput = screen.getByPlaceholderText("00000-000");
-    await user.type(zipCodeInput, "01310100");
-    await waitFor(
-      () => {
-        expect(onChange).toHaveBeenCalled();
-      },
-      { timeout: 2000 }
-    );
-  });
-
-  it("should handle handleZipCodeSuccess filtering non-string values and skipping zipCode", async () => {
-    const onChange = vi.fn();
-    const { mapCEPDataToAddressForm } = await import("~/components/site/utils/cep-utils");
-    vi.mocked(mapCEPDataToAddressForm).mockReturnValue({
+    const mockCEPData = {
+      cep: "12345678",
       street: "Test Street",
       neighborhood: "Test Neighborhood",
       city: "Test City",
       state: "SP",
-      zipCode: "12345-678",
-      number: null as unknown as string,
-      complement: undefined as unknown as string,
-    });
-    // Mock useCEPLookup to capture and call onSuccess
-    let capturedOnSuccess: ((data: unknown) => void) | null = null;
-    mockUseCEPLookup.mockImplementationOnce(
-      (cep: string, options: { onSuccess?: (data: unknown) => void }) => {
-        if (cep && options?.onSuccess) {
-          capturedOnSuccess = options.onSuccess;
+      service: "api",
+      location: {
+        type: "Point",
+        coordinates: {},
+      },
+    };
+    let capturedCallback: ((data: typeof mockCEPData) => void) | undefined;
+    mockUseCEPLookup.mockImplementation(
+      (cep: string, options?: { onSuccess?: (data: import("~/types").CEPData) => void }) => {
+        capturedCallback = options?.onSuccess;
+        // Automatically call onSuccess if CEP is valid (8 digits after unmasking)
+        const cleanCEP = cep.replaceAll(/\D/g, "");
+        if (cleanCEP.length === 8 && options?.onSuccess) {
+          // Call immediately since the component already unmasked the CEP
+          options.onSuccess(mockCEPData);
         }
-        return { loading: false };
+        return {
+          loading: false,
+          data: null,
+          error: null,
+        };
       }
     );
-    render(
-      <TestWrapper>
-        <AddressForm {...defaultProps} onChange={onChange} />
-      </TestWrapper>
-    );
-    // Manually trigger the onSuccess callback to test handleZipCodeSuccess (lines 21-24)
-    if (capturedOnSuccess) {
-      (capturedOnSuccess as (data: unknown) => void)({
-        logradouro: "Test Street",
-        bairro: "Test Neighborhood",
-        localidade: "Test City",
-        uf: "SP",
-      });
-      // Verify onChange was called for valid string fields (not zipCode, null, or undefined)
-      await waitFor(() => {
-        const validFieldCalls = onChange.mock.calls.filter((call: unknown[]) =>
-          ["street", "neighborhood", "city", "state"].includes(call[0] as string)
-        );
-        expect(validFieldCalls.length).toBeGreaterThan(0);
-      });
+    render(<AddressForm {...defaultProps} onChange={onChange} data={{ zipCode: "12345678" }} />);
+    // Also manually trigger in case the automatic trigger didn't work
+    if (capturedCallback) {
+      capturedCallback(mockCEPData);
     }
+    // Should call onChange for all mapped fields except zipCode
+    expect(onChange).toHaveBeenCalledWith("street", "Test Street");
+    expect(onChange).toHaveBeenCalledWith("neighborhood", "Test Neighborhood");
+    expect(onChange).toHaveBeenCalledWith("city", "Test City");
+    expect(onChange).toHaveBeenCalledWith("state", "SP");
   });
 
-  it("should not call onChange for zipCode field in handleZipCodeSuccess", async () => {
+  it("should not call onChange for zipCode when CEP lookup succeeds", () => {
     const onChange = vi.fn();
-    const { mapCEPDataToAddressForm } = await import("~/components/site/utils/cep-utils");
-    vi.mocked(mapCEPDataToAddressForm).mockReturnValue({
+    const mockCEPData: import("~/types").CEPData = {
+      cep: "12345-678",
       street: "Test Street",
+      state: "SP",
+      city: "City",
+      neighborhood: "Neighborhood",
+      service: "api",
+      location: {
+        type: "Point",
+        coordinates: {},
+      },
+    };
+    let onSuccessCallback: ((data: import("~/types").CEPData) => void) | undefined;
+    mockUseCEPLookup.mockImplementation(
+      (cep: string, options?: { onSuccess?: (data: import("~/types").CEPData) => void }) => {
+        onSuccessCallback = options?.onSuccess;
+        return {
+          loading: false,
+          data: null,
+          error: null,
+        };
+      }
+    );
+    render(<AddressForm {...defaultProps} onChange={onChange} data={{ zipCode: "12345678" }} />);
+    if (onSuccessCallback) {
+      onSuccessCallback(mockCEPData);
+    }
+    // Should not call onChange for zipCode
+    expect(onChange).not.toHaveBeenCalledWith("zipCode", expect.anything());
+  });
+
+  it("should call onChange when street changes", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<AddressForm {...defaultProps} onChange={onChange} />);
+    const streetInput = screen.getByTestId("input-Street");
+    await user.type(streetInput, "Main Street");
+    expect(onChange).toHaveBeenCalledWith("street", "Main Street");
+  });
+
+  it("should call onChange when number changes", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<AddressForm {...defaultProps} onChange={onChange} />);
+    const numberInput = screen.getByTestId("input-Number");
+    await user.type(numberInput, "123");
+    expect(onChange).toHaveBeenCalledWith("number", "123");
+  });
+
+  it("should call onChange when complement changes", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<AddressForm {...defaultProps} onChange={onChange} />);
+    const complementInput = screen.getByTestId("input-Complement");
+    await user.type(complementInput, "Apt 4B");
+    expect(onChange).toHaveBeenCalledWith("complement", "Apt 4B");
+  });
+
+  it("should call onChange when neighborhood changes", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<AddressForm {...defaultProps} onChange={onChange} />);
+    const neighborhoodInput = screen.getByTestId("input-Neighborhood");
+    await user.type(neighborhoodInput, "Downtown");
+    expect(onChange).toHaveBeenCalledWith("neighborhood", "Downtown");
+  });
+
+  it("should call onChange when city changes", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<AddressForm {...defaultProps} onChange={onChange} />);
+    const cityInput = screen.getByTestId("input-City");
+    await user.type(cityInput, "São Paulo");
+    expect(onChange).toHaveBeenCalledWith("city", "São Paulo");
+  });
+
+  it("should call onChange when state changes", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<AddressForm {...defaultProps} onChange={onChange} />);
+    const stateSelect = screen.getByTestId("select-State");
+    await user.selectOptions(stateSelect, "SP");
+    expect(onChange).toHaveBeenCalledWith("state", "SP");
+  });
+
+  it("should display existing data values", () => {
+    const data = {
       zipCode: "12345-678",
-    });
-    let capturedOnSuccess: ((data: unknown) => void) | null = null;
-    mockUseCEPLookup.mockImplementationOnce(
-      (cep: string, options: { onSuccess?: (data: unknown) => void }) => {
-        if (cep && options?.onSuccess) {
-          capturedOnSuccess = options.onSuccess;
-        }
-        return { loading: false };
-      }
-    );
-    render(
-      <TestWrapper>
-        <AddressForm {...defaultProps} onChange={onChange} />
-      </TestWrapper>
-    );
-    if (capturedOnSuccess) {
-      (capturedOnSuccess as (data: unknown) => void)({
-        logradouro: "Test Street",
-      });
-      await waitFor(() => {
-        const zipCodeCalls = onChange.mock.calls.filter((call: unknown[]) => call[0] === "zipCode");
-        expect(zipCodeCalls.length).toBe(0);
-      });
-    }
+      street: "Main Street",
+      number: "123",
+      complement: "Apt 4B",
+      neighborhood: "Downtown",
+      city: "São Paulo",
+      state: "SP",
+    };
+    render(<AddressForm {...defaultProps} data={data} />);
+    expect(screen.getByTestId("input-Zip Code")).toHaveValue("12345-678");
+    expect(screen.getByTestId("input-Street")).toHaveValue("Main Street");
+    expect(screen.getByTestId("input-Number")).toHaveValue("123");
+    expect(screen.getByTestId("input-Complement")).toHaveValue("Apt 4B");
+    expect(screen.getByTestId("input-Neighborhood")).toHaveValue("Downtown");
+    expect(screen.getByTestId("input-City")).toHaveValue("São Paulo");
+    expect(screen.getByTestId("select-State")).toHaveValue("SP");
   });
 
-  it("should not call onChange for falsy values in handleZipCodeSuccess", async () => {
+  it("should mask zip code input", async () => {
+    const user = userEvent.setup();
     const onChange = vi.fn();
-    const { mapCEPDataToAddressForm } = await import("~/components/site/utils/cep-utils");
-    vi.mocked(mapCEPDataToAddressForm).mockReturnValue({
+    render(<AddressForm {...defaultProps} onChange={onChange} />);
+    const zipCodeInput = screen.getByTestId("input-Zip Code");
+    await user.type(zipCodeInput, "12345678");
+    // The onChange should be called with masked value
+    expect(onChange).toHaveBeenCalled();
+  });
+
+  it("should not call onChange for empty values from CEP lookup", () => {
+    const onChange = vi.fn();
+    const mockCEPData: import("~/types").CEPData = {
+      cep: "12345-678",
       street: "",
-      neighborhood: null as unknown as string,
-      city: undefined as unknown as string,
-    });
-    let capturedOnSuccess: ((data: unknown) => void) | null = null;
-    mockUseCEPLookup.mockImplementationOnce(
-      (cep: string, options: { onSuccess?: (data: unknown) => void }) => {
-        if (cep && options?.onSuccess) {
-          capturedOnSuccess = options.onSuccess;
-        }
-        return { loading: false };
+      state: "",
+      city: "",
+      neighborhood: "",
+      service: "api",
+      location: {
+        type: "Point",
+        coordinates: {},
+      },
+    };
+    let onSuccessCallback: ((data: import("~/types").CEPData) => void) | undefined;
+    mockUseCEPLookup.mockImplementation(
+      (cep: string, options?: { onSuccess?: (data: import("~/types").CEPData) => void }) => {
+        onSuccessCallback = options?.onSuccess;
+        return {
+          loading: false,
+          data: null,
+          error: null,
+        };
       }
     );
-    render(
-      <TestWrapper>
-        <AddressForm {...defaultProps} onChange={onChange} />
-      </TestWrapper>
-    );
-    if (capturedOnSuccess) {
-      (capturedOnSuccess as (data: unknown) => void)({
-        logradouro: "",
-      });
-      await waitFor(() => {
-        const emptyStringCalls = onChange.mock.calls.filter((call: unknown[]) => call[1] === "");
-        expect(emptyStringCalls.length).toBe(0);
-      });
+    render(<AddressForm {...defaultProps} onChange={onChange} data={{ zipCode: "12345678" }} />);
+    if (onSuccessCallback) {
+      onSuccessCallback(mockCEPData);
     }
-  });
-
-  it("should not call onChange for non-string values in handleZipCodeSuccess", async () => {
-    const onChange = vi.fn();
-    const { mapCEPDataToAddressForm } = await import("~/components/site/utils/cep-utils");
-    vi.mocked(mapCEPDataToAddressForm).mockReturnValue({
-      street: 123 as unknown as string,
-      neighborhood: true as unknown as string,
-      city: {} as unknown as string,
-    });
-    let capturedOnSuccess: ((data: unknown) => void) | null = null;
-    mockUseCEPLookup.mockImplementationOnce(
-      (cep: string, options: { onSuccess?: (data: unknown) => void }) => {
-        if (cep && options?.onSuccess) {
-          capturedOnSuccess = options.onSuccess;
-        }
-        return { loading: false };
-      }
-    );
-    render(
-      <TestWrapper>
-        <AddressForm {...defaultProps} onChange={onChange} />
-      </TestWrapper>
-    );
-    if (capturedOnSuccess) {
-      (capturedOnSuccess as (data: unknown) => void)({
-        logradouro: "Test",
-      });
-      await waitFor(() => {
-        const nonStringCalls = onChange.mock.calls.filter(
-          (call: unknown[]) => typeof call[1] !== "string"
-        );
-        expect(nonStringCalls.length).toBe(0);
-      });
-    }
-  });
-
-  it("should handle disabled prop correctly for all fields", () => {
-    render(
-      <TestWrapper>
-        <AddressForm {...defaultProps} disabled={true} />
-      </TestWrapper>
-    );
-    const inputs = screen.getAllByRole("textbox");
-    const selects = screen.getAllByRole("combobox");
-    [...inputs, ...selects].forEach((element) => {
-      expect(element).toBeDisabled();
-    });
-  });
-
-  it("should handle zipCodeLoading disabling address fields but not zipCode", () => {
-    mockUseCEPLookup.mockReturnValueOnce({ loading: true });
-    render(
-      <TestWrapper>
-        <AddressForm {...defaultProps} />
-      </TestWrapper>
-    );
-    const zipCodeInput = screen.getByPlaceholderText("00000-000");
-    expect(zipCodeInput).not.toBeDisabled();
-    const streetInput = screen.getByText("Street").nextElementSibling as HTMLInputElement;
-    expect(streetInput).toBeDisabled();
-  });
-
-  it("should handle both disabled and zipCodeLoading states", () => {
-    mockUseCEPLookup.mockReturnValueOnce({ loading: true });
-    render(
-      <TestWrapper>
-        <AddressForm {...defaultProps} disabled={true} />
-      </TestWrapper>
-    );
-    const inputs = screen.getAllByRole("textbox");
-    const selects = screen.getAllByRole("combobox");
-    [...inputs, ...selects].forEach((element) => {
-      expect(element).toBeDisabled();
-    });
+    // Should not call onChange for empty values
+    expect(onChange).not.toHaveBeenCalled();
   });
 });

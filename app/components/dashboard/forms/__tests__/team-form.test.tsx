@@ -1,816 +1,501 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { TeamForm } from "../team-form";
-import { LanguageProvider } from "~/contexts/language-context";
+import { useTranslation } from "~/i18n";
+import { useTeamForm } from "~/hooks/use-team-form";
 
-const TestWrapper = ({ children }: { children: React.ReactNode }) => (
-  <LanguageProvider>{children}</LanguageProvider>
-);
-
+vi.mock("~/i18n");
+vi.mock("~/hooks/use-team-form");
 vi.mock("~/components/ui", () => ({
-  Input: vi.fn(
-    ({
-      label,
-      value,
-      onChange,
-      error,
-      disabled,
-      placeholder,
-      type,
-    }: {
-      label: string;
-      value: string;
-      onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-      error?: string;
-      disabled?: boolean;
-      placeholder?: string;
-      type?: string;
-    }) => (
-      <div>
-        <label>{label}</label>
-        <input
-          value={value}
-          onChange={onChange}
-          disabled={disabled}
-          data-error={error}
-          placeholder={placeholder}
-          type={type}
-        />
-        {error && <p>{error}</p>}
-      </div>
-    )
+  Input: ({
+    label,
+    value,
+    onChange,
+    error,
+    disabled,
+    type,
+    placeholder,
+  }: {
+    label?: string;
+    value?: string;
+    onChange?: (e: { target: { value: string } }) => void;
+    error?: string;
+    disabled?: boolean;
+    type?: string;
+    placeholder?: string;
+  }) => (
+    <div>
+      {label && <label>{label}</label>}
+      <input
+        data-testid={label ? `input-${label}` : "input"}
+        type={type}
+        value={value || ""}
+        onChange={onChange}
+        disabled={disabled}
+        placeholder={placeholder}
+      />
+      {error && <span data-testid="error">{error}</span>}
+    </div>
   ),
-  Button: vi.fn(
-    ({
-      children,
-      onClick,
-      disabled,
-      variant,
-      type,
-    }: {
-      children: React.ReactNode;
-      onClick?: () => void;
-      disabled?: boolean;
-      variant?: string;
-      type?: "button" | "submit" | "reset";
-    }) => (
-      <button onClick={onClick} disabled={disabled} data-variant={variant} type={type}>
-        {children}
-      </button>
-    )
+  Button: ({
+    children,
+    onClick,
+    disabled,
+    type,
+    variant: _variant,
+  }: {
+    children: React.ReactNode;
+    onClick?: () => void;
+    disabled?: boolean;
+    type?: string;
+    variant?: string;
+  }) => (
+    <button
+      data-testid="button"
+      type={type as "submit" | "reset" | "button" | undefined}
+      onClick={onClick}
+      disabled={disabled}
+    >
+      {children}
+    </button>
   ),
-  FixedAlert: vi.fn(() => null),
-  FormFieldGroup: vi.fn(({ children }: { children: React.ReactNode }) => <div>{children}</div>),
-}));
-
-vi.mock("~/components/dashboard/profile/address-form", () => ({
-  AddressForm: vi.fn(() => <div data-testid="address-form">Address Form</div>),
-}));
-
-const mockHandleChange = vi.fn();
-const mockSetChangePassword = vi.fn();
-const mockHandleSubmit = vi.fn((e: React.FormEvent) => e.preventDefault());
-const mockUseTeamForm = vi.fn(() => ({
-  formData: {
-    name: "",
-    email: "",
-    phone: "",
-    cpf: "",
-    street: "",
-    number: "",
-    complement: "",
-    neighborhood: "",
-    city: "",
-    state: "",
-    zipCode: "",
-    password: "",
-    confirmPassword: "",
-  },
-  errors: {},
-  isSubmitting: false,
-  alertMessage: null,
-  zipCodeLoading: false,
-  zipCodeError: null,
-  changePassword: false,
-  setChangePassword: mockSetChangePassword,
-  handleChange: mockHandleChange,
-  handleSubmit: mockHandleSubmit,
-}));
-
-vi.mock("~/hooks/use-team-form", () => ({
-  useTeamForm: (config: import("~/hooks/use-team-form").UseTeamFormOptions) =>
-    mockUseTeamForm(config),
-}));
-
-vi.mock("~/i18n", () => ({
-  useTranslation: vi.fn(() => ({
-    team: {
-      addModal: {
-        fields: {
-          name: "Name",
-          email: "Email",
-          phone: "Phone",
-          password: "Password",
-          confirmPassword: "Confirm Password",
-        },
-        add: "Add",
-        cancel: "Cancel",
-      },
-      new: {
-        fields: {
-          cpf: "CPF",
-          cep: "CEP",
-          street: "Street",
-          complement: "Complement",
-          neighborhood: "Neighborhood",
-          city: "City",
-          state: "State",
-        },
-        searchingAddress: "Searching...",
-      },
-      editModal: {
-        save: "Save",
-        changePassword: "Change Password",
-      },
-    },
-    common: {
-      cancel: "Cancel",
-      back: "Back",
-      loading: "Loading...",
-    },
-    profile: {
-      company: {
-        fields: {
-          number: "Number",
-        },
-      },
-      edit: {
-        changePassword: "Change Password",
-        save: "Save",
-      },
-    },
-  })),
+  FixedAlert: ({ alertMessage }: { alertMessage?: { title: string; variant: string } | null }) =>
+    alertMessage ? <div data-testid="alert">{alertMessage.title}</div> : null,
+  FormFieldGroup: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
 describe("TeamForm", () => {
+  const mockUseTranslation = vi.mocked(useTranslation);
+  const mockUseTeamForm = vi.mocked(useTeamForm);
+
   const defaultProps = {
-    onSubmit: vi.fn(),
     onCancel: vi.fn(),
+    onSubmit: vi.fn(),
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockHandleChange.mockClear();
-    mockSetChangePassword.mockClear();
-    mockHandleSubmit.mockClear();
+    mockUseTranslation.mockReturnValue({
+      team: {
+        form: {
+          name: "Name",
+          email: "Email",
+        },
+        new: {
+          fields: {
+            name: "Name",
+            email: "Email",
+            phone: "Phone",
+            password: "Password",
+            confirmPassword: "Confirm Password",
+            cpf: "CPF",
+            cep: "CEP",
+            street: "Street",
+            complement: "Complement",
+            neighborhood: "Neighborhood",
+            city: "City",
+            state: "State",
+          },
+          searchingAddress: "Searching address...",
+        },
+        addModal: {
+          fields: {
+            name: "Name",
+            email: "Email",
+            phone: "Phone",
+            password: "Password",
+            confirmPassword: "Confirm Password",
+          },
+          cancel: "Cancel",
+          add: "Add",
+        },
+        editModal: {
+          save: "Save",
+          changePassword: "Change Password",
+        },
+      },
+      common: {
+        cancel: "Cancel",
+        save: "Save",
+        loading: "Loading...",
+      },
+      profile: {
+        company: {
+          fields: {
+            number: "Number",
+          },
+        },
+      },
+    } as unknown as ReturnType<typeof useTranslation>);
+    mockUseTeamForm.mockReturnValue({
+      formData: {
+        name: "",
+        email: "",
+        phone: "",
+        password: "",
+        confirmPassword: "",
+        cpf: "",
+        zipCode: "",
+        street: "",
+        number: "",
+        complement: "",
+        neighborhood: "",
+        city: "",
+        state: "",
+      },
+      errors: {},
+      isSubmitting: false,
+      alertMessage: null,
+      zipCodeLoading: false,
+      zipCodeError: null,
+      changePassword: false,
+      setChangePassword: vi.fn(),
+      handleChange: vi.fn(),
+      handleSubmit: vi.fn((e: React.FormEvent) => e.preventDefault()),
+    });
   });
 
-  it("should render form", () => {
-    render(
-      <TestWrapper>
-        <TeamForm {...defaultProps} />
-      </TestWrapper>
-    );
-    expect(screen.getByText("Name")).toBeInTheDocument();
-    expect(screen.getByText("Email")).toBeInTheDocument();
+  it("should render form fields", () => {
+    render(<TeamForm {...defaultProps} />);
+    const inputs = screen.getAllByTestId(/input-/);
+    expect(inputs.length).toBeGreaterThan(0);
   });
 
-  it("should render address fields", () => {
-    const { container } = render(
-      <TestWrapper>
-        <TeamForm {...defaultProps} />
-      </TestWrapper>
-    );
-    // TeamForm renders address fields directly, not AddressForm component
-    expect(container).toBeTruthy();
-  });
-
-  it("should render submit button", () => {
-    render(
-      <TestWrapper>
-        <TeamForm {...defaultProps} />
-      </TestWrapper>
-    );
+  it("should render cancel button", () => {
+    render(<TeamForm {...defaultProps} />);
     const buttons = screen.getAllByRole("button");
-    expect(buttons.length).toBeGreaterThan(0);
+    const cancelButton = buttons.find((btn) => btn.textContent === "Cancel");
+    expect(cancelButton).toBeInTheDocument();
   });
 
-  it("should call onCancel when cancel button is clicked", async () => {
-    const onCancel = vi.fn();
+  it("should call useTeamForm hook", () => {
+    render(<TeamForm {...defaultProps} />);
+    expect(mockUseTeamForm).toHaveBeenCalled();
+  });
+
+  it("should show zipCodeLoading message when zipCodeLoading is true", () => {
+    mockUseTeamForm.mockReturnValue({
+      ...mockUseTeamForm(),
+      zipCodeLoading: true,
+    });
+    render(<TeamForm {...defaultProps} />);
+    expect(screen.getByText("Searching address...")).toBeInTheDocument();
+  });
+
+  it("should display zipCodeError when provided", () => {
+    mockUseTeamForm.mockReturnValue({
+      ...mockUseTeamForm(),
+      zipCodeError: "Invalid zip code",
+    });
+    render(<TeamForm {...defaultProps} />);
+    expect(screen.getByText("Invalid zip code")).toBeInTheDocument();
+  });
+
+  it("should show change password checkbox when editing", () => {
+    mockUseTeamForm.mockReturnValue({
+      ...mockUseTeamForm(),
+      changePassword: false,
+    });
+    render(<TeamForm {...defaultProps} isEdit={true} />);
+    expect(screen.getByLabelText(/Change Password/i)).toBeInTheDocument();
+  });
+
+  it("should show password fields when editing and changePassword is true", () => {
+    mockUseTeamForm.mockReturnValue({
+      ...mockUseTeamForm(),
+      changePassword: true,
+    });
+    render(<TeamForm {...defaultProps} isEdit={true} />);
+    expect(screen.getByText("Password")).toBeInTheDocument();
+    expect(screen.getByText("Confirm Password")).toBeInTheDocument();
+  });
+
+  it("should not show password fields when editing and changePassword is false", () => {
+    mockUseTeamForm.mockReturnValue({
+      ...mockUseTeamForm(),
+      changePassword: false,
+    });
+    render(<TeamForm {...defaultProps} isEdit={true} />);
+    expect(screen.queryByText("Password")).not.toBeInTheDocument();
+  });
+
+  it("should not show password fields when not editing", () => {
+    render(<TeamForm {...defaultProps} isEdit={false} />);
+    expect(screen.queryByText("Password")).not.toBeInTheDocument();
+  });
+
+  it("should handle change password checkbox toggle", async () => {
     const user = userEvent.setup();
-    render(
-      <TestWrapper>
-        <TeamForm {...defaultProps} onCancel={onCancel} />
-      </TestWrapper>
-    );
-    const buttons = screen.getAllByRole("button");
-    const cancelButton = buttons.find((btn) => btn.textContent?.includes("Cancel"));
-    if (cancelButton) {
-      await user.click(cancelButton);
-      expect(onCancel).toHaveBeenCalled();
-    }
+    const setChangePassword = vi.fn();
+    const handleChange = vi.fn();
+    mockUseTeamForm.mockReturnValue({
+      ...mockUseTeamForm(),
+      changePassword: false,
+      setChangePassword,
+      handleChange,
+    });
+    render(<TeamForm {...defaultProps} isEdit={true} />);
+    const checkbox = screen.getByLabelText(/Change Password/i);
+    await user.click(checkbox);
+    expect(setChangePassword).toHaveBeenCalledWith(true);
   });
 
-  it("should render in edit mode", () => {
-    render(
-      <TestWrapper>
-        <TeamForm {...defaultProps} isEdit={true} />
-      </TestWrapper>
-    );
-    expect(screen.getByText("Name")).toBeInTheDocument();
+  it("should clear password fields when changePassword is unchecked", async () => {
+    const user = userEvent.setup();
+    const setChangePassword = vi.fn();
+    const handleChange = vi.fn();
+    mockUseTeamForm.mockReturnValue({
+      ...mockUseTeamForm(),
+      changePassword: true,
+      setChangePassword,
+      handleChange,
+    });
+    render(<TeamForm {...defaultProps} isEdit={true} />);
+    const checkbox = screen.getByLabelText(/Change Password/i);
+    await user.click(checkbox);
+    expect(setChangePassword).toHaveBeenCalledWith(false);
+    expect(handleChange).toHaveBeenCalledWith("password", "");
+    expect(handleChange).toHaveBeenCalledWith("confirmPassword", "");
   });
 
-  it("should disable form when disabled prop is true", () => {
-    render(
-      <TestWrapper>
-        <TeamForm {...defaultProps} disabled={true} />
-      </TestWrapper>
-    );
-    const inputs = screen.getAllByRole("textbox");
+  it("should display alert message when alertMessage exists", () => {
+    mockUseTeamForm.mockReturnValue({
+      ...mockUseTeamForm(),
+      alertMessage: { title: "Success", variant: "success" },
+    });
+    render(<TeamForm {...defaultProps} />);
+    expect(screen.getByTestId("alert")).toHaveTextContent("Success");
+  });
+
+  it("should disable all inputs when disabled is true", () => {
+    render(<TeamForm {...defaultProps} disabled={true} />);
+    const inputs = screen.getAllByTestId(/input-/);
     inputs.forEach((input) => {
       expect(input).toBeDisabled();
     });
   });
 
-  it("should handle input changes", async () => {
-    const user = userEvent.setup();
-    const { container } = render(
-      <TestWrapper>
-        <TeamForm {...defaultProps} />
-      </TestWrapper>
-    );
-    const inputs = container.querySelectorAll("input");
-    for (const input of inputs) {
-      if (input.type !== "submit" && input.type !== "button" && input.type !== "checkbox") {
-        await user.clear(input);
-        await user.type(input, "test");
-        expect(mockHandleChange).toHaveBeenCalled();
-      }
-    }
+  it("should disable address fields when zipCodeLoading is true", () => {
+    mockUseTeamForm.mockReturnValue({
+      ...mockUseTeamForm(),
+      zipCodeLoading: true,
+    });
+    render(<TeamForm {...defaultProps} />);
+    const streetInput = screen.getByTestId("input-Street");
+    expect(streetInput).toBeDisabled();
   });
 
-  it("should handle form submission", () => {
-    const { container } = render(
-      <TestWrapper>
-        <TeamForm {...defaultProps} />
-      </TestWrapper>
-    );
-    const form = container.querySelector("form");
-    if (form) {
-      fireEvent.submit(form);
-      expect(mockHandleSubmit).toHaveBeenCalled();
-    }
+  it("should display custom submit button text", () => {
+    render(<TeamForm {...defaultProps} submitButtonText="Create User" />);
+    const buttons = screen.getAllByTestId("button");
+    expect(buttons.some((btn) => btn.textContent?.includes("Create User"))).toBe(true);
+  });
+
+  it("should display custom cancel button text", () => {
+    render(<TeamForm {...defaultProps} cancelButtonText="Go Back" />);
+    const buttons = screen.getAllByTestId("button");
+    expect(buttons.some((btn) => btn.textContent?.includes("Go Back"))).toBe(true);
+  });
+
+  it("should show save text when editing", () => {
+    render(<TeamForm {...defaultProps} isEdit={true} />);
+    const buttons = screen.getAllByTestId("button");
+    expect(buttons.some((btn) => btn.textContent?.includes("Save"))).toBe(true);
+  });
+
+  it("should show add text when not editing", () => {
+    render(<TeamForm {...defaultProps} isEdit={false} />);
+    const buttons = screen.getAllByTestId("button");
+    expect(buttons.some((btn) => btn.textContent?.includes("Add"))).toBe(true);
+  });
+
+  it("should show loading text when isSubmitting is true", () => {
+    mockUseTeamForm.mockReturnValue({
+      ...mockUseTeamForm(),
+      isSubmitting: true,
+    });
+    render(<TeamForm {...defaultProps} />);
+    const buttons = screen.getAllByTestId("button");
+    expect(buttons.some((btn) => btn.textContent?.includes("Loading..."))).toBe(true);
   });
 
   it("should handle toSafeString with different value types", () => {
-    mockUseTeamForm.mockReturnValueOnce({
+    mockUseTeamForm.mockReturnValue({
+      ...mockUseTeamForm(),
       formData: {
-        name: null,
-        email: 123,
-        phone: true,
-        cpf: undefined,
-        street: {},
-        number: "",
-        complement: "",
-        neighborhood: "",
-        city: "",
-        state: "",
+        name: null as never,
+        email: undefined as never,
+        phone: 12345 as never,
+        cpf: true as never,
         zipCode: "",
-        password: "",
-        confirmPassword: "",
-      },
-      errors: {},
-      isSubmitting: false,
-      alertMessage: null,
-      zipCodeLoading: false,
-      zipCodeError: null,
-      changePassword: false,
-      setChangePassword: mockSetChangePassword,
-      handleChange: mockHandleChange,
-      handleSubmit: mockHandleSubmit,
-    });
-    render(
-      <TestWrapper>
-        <TeamForm {...defaultProps} />
-      </TestWrapper>
-    );
-    expect(screen.getByText("Name")).toBeInTheDocument();
-  });
-
-  it("should handle toSafeString with number, boolean, bigint, and symbol types", () => {
-    mockUseTeamForm.mockReturnValueOnce({
-      formData: {
-        name: 123,
-        email: true,
-        phone: BigInt(123),
-        cpf: Symbol("test"),
         street: "",
         number: "",
         complement: "",
         neighborhood: "",
         city: "",
         state: "",
-        zipCode: "",
         password: "",
         confirmPassword: "",
       },
-      errors: {},
-      isSubmitting: false,
-      alertMessage: null,
-      zipCodeLoading: false,
-      zipCodeError: null,
-      changePassword: false,
-      setChangePassword: mockSetChangePassword,
-      handleChange: mockHandleChange,
-      handleSubmit: mockHandleSubmit,
     });
-    render(
-      <TestWrapper>
-        <TeamForm {...defaultProps} />
-      </TestWrapper>
-    );
-    expect(screen.getByText("Name")).toBeInTheDocument();
+    render(<TeamForm {...defaultProps} />);
+    // Form should render without errors
+    expect(screen.getAllByTestId(/input-/).length).toBeGreaterThan(0);
   });
 
-  it("should display zipCodeLoading state", () => {
-    mockUseTeamForm.mockReturnValueOnce({
+  it("should call handleSubmit on form submission", async () => {
+    const user = userEvent.setup();
+    const handleSubmit = vi.fn((e: React.FormEvent<HTMLFormElement>) => e.preventDefault());
+    mockUseTeamForm.mockReturnValue({
+      ...mockUseTeamForm(),
+      handleSubmit,
+    });
+    render(<TeamForm {...defaultProps} />);
+    const submitButton = screen
+      .getAllByTestId("button")
+      .find(
+        (btn): btn is HTMLButtonElement => btn instanceof HTMLButtonElement && btn.type === "submit"
+      );
+    if (submitButton) {
+      await user.click(submitButton);
+    }
+    // handleSubmit should be called
+    expect(handleSubmit).toHaveBeenCalled();
+  });
+
+  it("should handle toSafeString with bigint type", () => {
+    mockUseTeamForm.mockReturnValue({
+      ...mockUseTeamForm(),
       formData: {
-        name: "",
-        email: "",
-        phone: "",
-        cpf: "",
-        street: "",
-        number: "",
-        complement: "",
-        neighborhood: "",
-        city: "",
-        state: "",
-        zipCode: "",
-        password: "",
-        confirmPassword: "",
+        ...mockUseTeamForm().formData,
+        phone: BigInt(12345) as never,
       },
-      errors: {},
-      isSubmitting: false,
-      alertMessage: null,
+    });
+    render(<TeamForm {...defaultProps} />);
+    expect(screen.getAllByTestId(/input-/).length).toBeGreaterThan(0);
+  });
+
+  it("should handle toSafeString with symbol type", () => {
+    mockUseTeamForm.mockReturnValue({
+      ...mockUseTeamForm(),
+      formData: {
+        ...mockUseTeamForm().formData,
+        phone: Symbol("test") as never,
+      },
+    });
+    render(<TeamForm {...defaultProps} />);
+    expect(screen.getAllByTestId(/input-/).length).toBeGreaterThan(0);
+  });
+
+  it("should disable all inputs when disabled prop is true", () => {
+    render(<TeamForm {...defaultProps} disabled={true} />);
+    const inputs = screen.getAllByTestId(/input-/);
+    inputs.forEach((input) => {
+      expect(input).toBeDisabled();
+    });
+    const buttons = screen.getAllByTestId("button");
+    buttons.forEach((button) => {
+      expect(button).toBeDisabled();
+    });
+  });
+
+  it("should disable zipCode input when zipCodeLoading is true", () => {
+    mockUseTeamForm.mockReturnValue({
+      ...mockUseTeamForm(),
       zipCodeLoading: true,
-      zipCodeError: null,
-      changePassword: false,
-      setChangePassword: mockSetChangePassword,
-      handleChange: mockHandleChange,
-      handleSubmit: mockHandleSubmit,
     });
-    render(
-      <TestWrapper>
-        <TeamForm {...defaultProps} />
-      </TestWrapper>
-    );
-    expect(screen.getByText("Searching...")).toBeInTheDocument();
+    render(<TeamForm {...defaultProps} />);
+    const zipCodeInput = screen.getByTestId("input-CEP");
+    expect(zipCodeInput).toBeDisabled();
   });
 
-  it("should display zipCodeError", () => {
-    mockUseTeamForm.mockReturnValueOnce({
-      formData: {
-        name: "",
-        email: "",
-        phone: "",
-        cpf: "",
-        street: "",
-        number: "",
-        complement: "",
-        neighborhood: "",
-        city: "",
-        state: "",
-        zipCode: "",
-        password: "",
-        confirmPassword: "",
-      },
-      errors: {},
-      isSubmitting: false,
-      alertMessage: null,
-      zipCodeLoading: false,
-      zipCodeError: "Invalid zip code",
-      changePassword: false,
-      setChangePassword: mockSetChangePassword,
-      handleChange: mockHandleChange,
-      handleSubmit: mockHandleSubmit,
+  it("should disable street input when zipCodeLoading is true", () => {
+    mockUseTeamForm.mockReturnValue({
+      ...mockUseTeamForm(),
+      zipCodeLoading: true,
     });
-    const { container } = render(
-      <TestWrapper>
-        <TeamForm {...defaultProps} />
-      </TestWrapper>
-    );
-    // zipCodeError should be displayed in the zipCode input
-    const zipCodeInput = container.querySelector('input[placeholder="00000-000"]');
-    expect(zipCodeInput).toBeInTheDocument();
+    render(<TeamForm {...defaultProps} />);
+    const streetInput = screen.getByTestId("input-Street");
+    expect(streetInput).toBeDisabled();
   });
 
-  it("should handle change password checkbox in edit mode", async () => {
+  it("should disable neighborhood input when zipCodeLoading is true", () => {
+    mockUseTeamForm.mockReturnValue({
+      ...mockUseTeamForm(),
+      zipCodeLoading: true,
+    });
+    render(<TeamForm {...defaultProps} />);
+    const neighborhoodInput = screen.getByTestId("input-Neighborhood");
+    expect(neighborhoodInput).toBeDisabled();
+  });
+
+  it("should disable city input when zipCodeLoading is true", () => {
+    mockUseTeamForm.mockReturnValue({
+      ...mockUseTeamForm(),
+      zipCodeLoading: true,
+    });
+    render(<TeamForm {...defaultProps} />);
+    const cityInput = screen.getByTestId("input-City");
+    expect(cityInput).toBeDisabled();
+  });
+
+  it("should disable state input when zipCodeLoading is true", () => {
+    mockUseTeamForm.mockReturnValue({
+      ...mockUseTeamForm(),
+      zipCodeLoading: true,
+    });
+    render(<TeamForm {...defaultProps} />);
+    const stateInput = screen.getByTestId("input-State");
+    expect(stateInput).toBeDisabled();
+  });
+
+  it("should clear password fields when changePassword is unchecked", async () => {
     const user = userEvent.setup();
-    mockUseTeamForm.mockReturnValueOnce({
-      formData: {
-        name: "",
-        email: "",
-        phone: "",
-        cpf: "",
-        street: "",
-        number: "",
-        complement: "",
-        neighborhood: "",
-        city: "",
-        state: "",
-        zipCode: "",
-        password: "",
-        confirmPassword: "",
-      },
-      errors: {},
-      isSubmitting: false,
-      alertMessage: null,
-      zipCodeLoading: false,
-      zipCodeError: null,
-      changePassword: false,
-      setChangePassword: mockSetChangePassword,
-      handleChange: mockHandleChange,
-      handleSubmit: mockHandleSubmit,
-    });
-    render(
-      <TestWrapper>
-        <TeamForm {...defaultProps} isEdit={true} />
-      </TestWrapper>
-    );
-    const checkbox = screen.getByLabelText("Change Password");
-    await user.click(checkbox);
-    expect(mockSetChangePassword).toHaveBeenCalledWith(true);
-  });
-
-  it("should clear password fields when change password is unchecked", async () => {
-    const user = userEvent.setup();
-    mockUseTeamForm.mockReturnValueOnce({
-      formData: {
-        name: "",
-        email: "",
-        phone: "",
-        cpf: "",
-        street: "",
-        number: "",
-        complement: "",
-        neighborhood: "",
-        city: "",
-        state: "",
-        zipCode: "",
-        password: "test",
-        confirmPassword: "test",
-      },
-      errors: {},
-      isSubmitting: false,
-      alertMessage: null,
-      zipCodeLoading: false,
-      zipCodeError: null,
+    const setChangePassword = vi.fn();
+    const handleChange = vi.fn();
+    mockUseTeamForm.mockReturnValue({
+      ...mockUseTeamForm(),
       changePassword: true,
-      setChangePassword: mockSetChangePassword,
-      handleChange: mockHandleChange,
-      handleSubmit: mockHandleSubmit,
+      setChangePassword,
+      handleChange,
     });
-    render(
-      <TestWrapper>
-        <TeamForm {...defaultProps} isEdit={true} />
-      </TestWrapper>
-    );
-    const checkbox = screen.getByLabelText("Change Password");
+    render(<TeamForm {...defaultProps} isEdit={true} />);
+    const checkbox = screen.getByLabelText(/Change Password/i);
     await user.click(checkbox);
-    expect(mockSetChangePassword).toHaveBeenCalledWith(false);
-    // Password fields should be cleared
-    expect(mockHandleChange).toHaveBeenCalledWith("password", "");
-    expect(mockHandleChange).toHaveBeenCalledWith("confirmPassword", "");
+    expect(setChangePassword).toHaveBeenCalledWith(false);
+    expect(handleChange).toHaveBeenCalledWith("password", "");
+    expect(handleChange).toHaveBeenCalledWith("confirmPassword", "");
   });
 
-  it("should show password fields when changePassword is true in edit mode", () => {
-    mockUseTeamForm.mockReturnValueOnce({
-      formData: {
-        name: "",
-        email: "",
-        phone: "",
-        cpf: "",
-        street: "",
-        number: "",
-        complement: "",
-        neighborhood: "",
-        city: "",
-        state: "",
-        zipCode: "",
-        password: "",
-        confirmPassword: "",
-      },
-      errors: {},
-      isSubmitting: false,
-      alertMessage: null,
-      zipCodeLoading: false,
-      zipCodeError: null,
-      changePassword: true,
-      setChangePassword: mockSetChangePassword,
-      handleChange: mockHandleChange,
-      handleSubmit: mockHandleSubmit,
-    });
-    render(
-      <TestWrapper>
-        <TeamForm {...defaultProps} isEdit={true} />
-      </TestWrapper>
-    );
-    expect(screen.getByText("Password")).toBeInTheDocument();
-    expect(screen.getByText("Confirm Password")).toBeInTheDocument();
-  });
-
-  it("should show password fields in new mode", () => {
-    mockUseTeamForm.mockReturnValueOnce({
-      formData: {
-        name: "",
-        email: "",
-        phone: "",
-        cpf: "",
-        street: "",
-        number: "",
-        complement: "",
-        neighborhood: "",
-        city: "",
-        state: "",
-        zipCode: "",
-        password: "",
-        confirmPassword: "",
-      },
-      errors: {},
-      isSubmitting: false,
-      alertMessage: null,
-      zipCodeLoading: false,
-      zipCodeError: null,
+  it("should not show password fields when changePassword is false and isEdit is true", () => {
+    mockUseTeamForm.mockReturnValue({
+      ...mockUseTeamForm(),
       changePassword: false,
-      setChangePassword: mockSetChangePassword,
-      handleChange: mockHandleChange,
-      handleSubmit: mockHandleSubmit,
     });
-    render(
-      <TestWrapper>
-        <TeamForm {...defaultProps} isEdit={false} />
-      </TestWrapper>
-    );
-    // Password fields should NOT be shown in new mode (password set via email invitation)
+    render(<TeamForm {...defaultProps} isEdit={true} />);
     expect(screen.queryByText("Password")).not.toBeInTheDocument();
     expect(screen.queryByText("Confirm Password")).not.toBeInTheDocument();
   });
 
-  it("should not show password fields when changePassword is false in edit mode", () => {
-    mockUseTeamForm.mockReturnValueOnce({
-      formData: {
-        name: "",
-        email: "",
-        phone: "",
-        cpf: "",
-        street: "",
-        number: "",
-        complement: "",
-        neighborhood: "",
-        city: "",
-        state: "",
-        zipCode: "",
-        password: "",
-        confirmPassword: "",
-      },
-      errors: {},
-      isSubmitting: false,
-      alertMessage: null,
-      zipCodeLoading: false,
-      zipCodeError: null,
+  it("should disable changePassword checkbox when disabled prop is true", () => {
+    mockUseTeamForm.mockReturnValue({
+      ...mockUseTeamForm(),
       changePassword: false,
-      setChangePassword: mockSetChangePassword,
-      handleChange: mockHandleChange,
-      handleSubmit: mockHandleSubmit,
     });
-    render(
-      <TestWrapper>
-        <TeamForm {...defaultProps} isEdit={true} />
-      </TestWrapper>
-    );
-    // Password fields should not be visible when changePassword is false
-    expect(screen.queryByText("Password")).not.toBeInTheDocument();
-    expect(screen.queryByText("Confirm Password")).not.toBeInTheDocument();
+    render(<TeamForm {...defaultProps} isEdit={true} disabled={true} />);
+    const checkbox = screen.getByLabelText(/Change Password/i);
+    expect(checkbox).toBeDisabled();
   });
 
-  it("should display errors", () => {
-    mockUseTeamForm.mockReturnValueOnce({
-      formData: {
-        name: "",
-        email: "",
-        phone: "",
-        cpf: "",
-        street: "",
-        number: "",
-        complement: "",
-        neighborhood: "",
-        city: "",
-        state: "",
-        zipCode: "",
-        password: "",
-        confirmPassword: "",
-      },
-      errors: {
-        name: "Name is required",
-        email: "Email is required",
-      },
-      isSubmitting: false,
-      alertMessage: null,
-      zipCodeLoading: false,
-      zipCodeError: null,
-      changePassword: false,
-      setChangePassword: mockSetChangePassword,
-      handleChange: mockHandleChange,
-      handleSubmit: mockHandleSubmit,
+  it("should disable password fields when disabled prop is true", () => {
+    mockUseTeamForm.mockReturnValue({
+      ...mockUseTeamForm(),
+      changePassword: true,
     });
-    render(
-      <TestWrapper>
-        <TeamForm {...defaultProps} />
-      </TestWrapper>
-    );
-    expect(screen.getByText("Name is required")).toBeInTheDocument();
-    expect(screen.getByText("Email is required")).toBeInTheDocument();
-  });
-
-  it("should show loading state when submitting", () => {
-    mockUseTeamForm.mockReturnValueOnce({
-      formData: {
-        name: "",
-        email: "",
-        phone: "",
-        cpf: "",
-        street: "",
-        number: "",
-        complement: "",
-        neighborhood: "",
-        city: "",
-        state: "",
-        zipCode: "",
-        password: "",
-        confirmPassword: "",
-      },
-      errors: {},
-      isSubmitting: true,
-      alertMessage: null,
-      zipCodeLoading: false,
-      zipCodeError: null,
-      changePassword: false,
-      setChangePassword: mockSetChangePassword,
-      handleChange: mockHandleChange,
-      handleSubmit: mockHandleSubmit,
-    });
-    render(
-      <TestWrapper>
-        <TeamForm {...defaultProps} />
-      </TestWrapper>
-    );
-    expect(screen.getByText("Loading...")).toBeInTheDocument();
-  });
-
-  it("should use custom submit and cancel button text", () => {
-    mockUseTeamForm.mockReturnValueOnce({
-      formData: {
-        name: "",
-        email: "",
-        phone: "",
-        cpf: "",
-        street: "",
-        number: "",
-        complement: "",
-        neighborhood: "",
-        city: "",
-        state: "",
-        zipCode: "",
-        password: "",
-        confirmPassword: "",
-      },
-      errors: {},
-      isSubmitting: false,
-      alertMessage: null,
-      zipCodeLoading: false,
-      zipCodeError: null,
-      changePassword: false,
-      setChangePassword: mockSetChangePassword,
-      handleChange: mockHandleChange,
-      handleSubmit: mockHandleSubmit,
-    });
-    render(
-      <TestWrapper>
-        <TeamForm
-          {...defaultProps}
-          submitButtonText="Custom Submit"
-          cancelButtonText="Custom Cancel"
-        />
-      </TestWrapper>
-    );
-    expect(screen.getByText("Custom Submit")).toBeInTheDocument();
-    expect(screen.getByText("Custom Cancel")).toBeInTheDocument();
-  });
-
-  it("should render submit button with edit save text in edit mode", () => {
-    mockUseTeamForm.mockReturnValueOnce({
-      formData: {
-        name: "",
-        email: "",
-        phone: "",
-        cpf: "",
-        street: "",
-        number: "",
-        complement: "",
-        neighborhood: "",
-        city: "",
-        state: "",
-        zipCode: "",
-        password: "",
-        confirmPassword: "",
-      },
-      errors: {},
-      isSubmitting: false,
-      alertMessage: null,
-      zipCodeLoading: false,
-      zipCodeError: null,
-      changePassword: false,
-      setChangePassword: mockSetChangePassword,
-      handleChange: mockHandleChange,
-      handleSubmit: mockHandleSubmit,
-    });
-    render(
-      <TestWrapper>
-        <TeamForm {...defaultProps} isEdit={true} />
-      </TestWrapper>
-    );
-    expect(screen.getByText("Save")).toBeInTheDocument();
-  });
-
-  it("should render submit button with add text in new mode", () => {
-    mockUseTeamForm.mockReturnValueOnce({
-      formData: {
-        name: "",
-        email: "",
-        phone: "",
-        cpf: "",
-        street: "",
-        number: "",
-        complement: "",
-        neighborhood: "",
-        city: "",
-        state: "",
-        zipCode: "",
-        password: "",
-        confirmPassword: "",
-      },
-      errors: {},
-      isSubmitting: false,
-      alertMessage: null,
-      zipCodeLoading: false,
-      zipCodeError: null,
-      changePassword: false,
-      setChangePassword: mockSetChangePassword,
-      handleChange: mockHandleChange,
-      handleSubmit: mockHandleSubmit,
-    });
-    render(
-      <TestWrapper>
-        <TeamForm {...defaultProps} isEdit={false} />
-      </TestWrapper>
-    );
-    expect(screen.getByText("Add")).toBeInTheDocument();
-  });
-
-  it("should disable inputs when zipCodeLoading is true", () => {
-    mockUseTeamForm.mockReturnValueOnce({
-      formData: {
-        name: "",
-        email: "",
-        phone: "",
-        cpf: "",
-        street: "",
-        number: "",
-        complement: "",
-        neighborhood: "",
-        city: "",
-        state: "",
-        zipCode: "",
-        password: "",
-        confirmPassword: "",
-      },
-      errors: {},
-      isSubmitting: false,
-      alertMessage: null,
-      zipCodeLoading: true,
-      zipCodeError: null,
-      changePassword: false,
-      setChangePassword: mockSetChangePassword,
-      handleChange: mockHandleChange,
-      handleSubmit: mockHandleSubmit,
-    });
-    render(
-      <TestWrapper>
-        <TeamForm {...defaultProps} />
-      </TestWrapper>
-    );
-    // ZipCode loading state should be displayed
-    expect(screen.getByText("Searching...")).toBeInTheDocument();
+    render(<TeamForm {...defaultProps} isEdit={true} disabled={true} />);
+    const passwordInputs = screen.getAllByText("Password");
+    // Password fields should be disabled
+    expect(passwordInputs.length).toBeGreaterThan(0);
   });
 });

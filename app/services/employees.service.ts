@@ -1,37 +1,47 @@
 import type { Employee, EmployeeFormData } from "~/types";
-import { mockEmployees } from "~/mocks/employees";
-import {
-  findById,
-  findByField,
-  findByFieldIncludes,
-  createEntity,
-  updateEntity,
-  deleteEntity,
-} from "./base-service";
+import { createEntityService } from "./entity-service-factory";
 
-const ID_PREFIX = "770e8400-e29b-41d4-a716";
-const DEFAULT_ID = "770e8400-e29b-41d4-a716-446655440009";
+const employeeService = createEntityService<Employee, EmployeeFormData>({
+  endpoint: "/employees",
+  entityName: "funcionário",
+  entityNamePlural: "funcionários",
+  supportsCNPJ: false,
+});
 
-export function getEmployeeById(employeeId: string | undefined): Employee | undefined {
-  return findById(mockEmployees, employeeId);
+/**
+ * Get all employees for the current user's company via API
+ */
+export async function getEmployees(): Promise<Employee[]> {
+  return employeeService.getAll();
 }
 
-export function getEmployeesByCompanyId(companyId: string): Employee[] {
-  return findByField(mockEmployees, "companyId", companyId);
+/**
+ * Get a single employee by ID via API
+ */
+export async function getEmployeeById(employeeId: string): Promise<Employee> {
+  return employeeService.getById(employeeId);
 }
 
-export function getEmployeesByPropertyId(propertyId: string): Employee[] {
-  return findByFieldIncludes(mockEmployees, "propertyIds", propertyId);
+/**
+ * Create a new employee via API
+ */
+export async function addEmployee(data: EmployeeFormData): Promise<Employee> {
+  return employeeService.add(data);
 }
 
-export function addEmployee(data: EmployeeFormData): Employee {
-  return createEntity(mockEmployees, data, ID_PREFIX, DEFAULT_ID);
+/**
+ * Update an employee via API
+ */
+export async function updateEmployee(
+  employeeId: string,
+  data: Partial<EmployeeFormData>
+): Promise<Employee> {
+  return employeeService.update(employeeId, data);
 }
 
-export function updateEmployee(employeeId: string, data: Partial<EmployeeFormData>): boolean {
-  return updateEntity(mockEmployees, employeeId, data);
-}
-
-export function deleteEmployee(employeeId: string): boolean {
-  return deleteEntity(mockEmployees, employeeId);
+/**
+ * Delete an employee via API
+ */
+export async function deleteEmployee(employeeId: string): Promise<void> {
+  return employeeService.remove(employeeId);
 }

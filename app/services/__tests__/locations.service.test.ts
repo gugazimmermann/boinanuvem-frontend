@@ -1,182 +1,348 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { ApiError } from "../api-client";
+import { AreaType, LocationType } from "~/types";
 import {
+  getLocations,
   getLocationById,
-  getLocationsByPropertyId,
-  getLocationsByCompanyId,
   addLocation,
   updateLocation,
   deleteLocation,
 } from "../locations.service";
-import { mockLocations } from "~/mocks/locations";
-import type { LocationFormData } from "~/types";
-import { LocationType, AreaType } from "~/types";
+
+vi.mock("../api-client", async () => {
+  const actual = await vi.importActual("../api-client");
+  return {
+    ...actual,
+    apiClient: {
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
+    },
+  };
+});
+
+import { apiClient } from "../api-client";
 
 describe("locations.service", () => {
+  const mockGet = apiClient.get as ReturnType<typeof vi.fn>;
+  const mockPost = apiClient.post as ReturnType<typeof vi.fn>;
+  const mockPut = apiClient.put as ReturnType<typeof vi.fn>;
+  const mockDelete = apiClient.delete as ReturnType<typeof vi.fn>;
+
   beforeEach(() => {
-    mockLocations.length = 0;
-    mockLocations.push(
-      {
-        id: "location-1",
-        companyId: "company-1",
-        propertyId: "property-1",
-        code: "LOC001",
-        name: "Location 1",
-        locationType: LocationType.PASTURE,
-        area: { value: 100, type: AreaType.HECTARES },
-        status: "active",
-        createdAt: "2025-01-01",
-      },
-      {
-        id: "location-2",
-        companyId: "company-1",
-        propertyId: "property-2",
-        code: "LOC002",
-        name: "Location 2",
-        locationType: LocationType.BARN,
-        area: { value: 50, type: AreaType.SQUARE_METERS },
-        status: "active",
-        createdAt: "2025-01-02",
-      },
-      {
-        id: "location-3",
-        companyId: "company-2",
-        propertyId: "property-1",
-        code: "LOC003",
-        name: "Location 3",
-        locationType: LocationType.CORRAL,
-        area: { value: 200, type: AreaType.HECTARES },
-        status: "inactive",
-        createdAt: "2025-01-03",
-      }
-    );
+    vi.clearAllMocks();
+  });
+
+  describe("getLocations", () => {
+    it("should fetch all locations", async () => {
+      const mockLocations = [{ id: "1", code: "001", name: "Location 1", status: "active" }];
+      mockGet.mockResolvedValue(mockLocations);
+
+      const result = await getLocations();
+
+      expect(mockGet).toHaveBeenCalledWith("/locations", undefined);
+      expect(result).toEqual(mockLocations);
+    });
+
+    it("should fetch locations with propertyId filter", async () => {
+      const mockLocations = [{ id: "1", code: "001", name: "Location 1", status: "active" }];
+      mockGet.mockResolvedValue(mockLocations);
+
+      const result = await getLocations("property-1");
+
+      expect(mockGet).toHaveBeenCalledWith("/locations", { propertyId: "property-1" });
+      expect(result).toEqual(mockLocations);
+    });
+
+    it("should fetch locations with empty string propertyId", async () => {
+      const mockLocations = [{ id: "1", code: "001", name: "Location 1", status: "active" }];
+      mockGet.mockResolvedValue(mockLocations);
+
+      const result = await getLocations("");
+
+      // Empty string is falsy, so it should pass undefined
+      expect(mockGet).toHaveBeenCalledWith("/locations", undefined);
+      expect(result).toEqual(mockLocations);
+    });
+
+    it("should handle 403 error", async () => {
+      mockGet.mockRejectedValue(new ApiError("Forbidden", 403));
+
+      await expect(getLocations()).rejects.toThrow(
+        "Você não tem permissão para visualizar localizações"
+      );
+    });
+
+    it("should handle 401 error", async () => {
+      mockGet.mockRejectedValue(new ApiError("Unauthorized", 401));
+
+      await expect(getLocations()).rejects.toThrow("Autenticação necessária");
+    });
+
+    it("should rethrow non-ApiError errors", async () => {
+      const genericError = new Error("Network error");
+      mockGet.mockRejectedValue(genericError);
+
+      await expect(getLocations()).rejects.toThrow("Network error");
+    });
   });
 
   describe("getLocationById", () => {
-    it("should return location when ID exists", () => {
-      const result = getLocationById("location-1");
-      expect(result).toBeDefined();
-      expect(result?.id).toBe("location-1");
-      expect(result?.name).toBe("Location 1");
+    it("should fetch location by id", async () => {
+      const mockLocation = { id: "1", code: "001", name: "Location 1", status: "active" };
+      mockGet.mockResolvedValue(mockLocation);
+
+      const result = await getLocationById("1");
+
+      expect(mockGet).toHaveBeenCalledWith("/locations/1");
+      expect(result).toEqual(mockLocation);
     });
 
-    it("should return undefined when ID does not exist", () => {
-      const result = getLocationById("location-nonexistent");
-      expect(result).toBeUndefined();
+    it("should handle 403 error", async () => {
+      mockGet.mockRejectedValue(new ApiError("Forbidden", 403));
+
+      await expect(getLocationById("1")).rejects.toThrow(
+        "Você não tem permissão para visualizar esta localização"
+      );
     });
 
-    it("should return undefined when ID is undefined", () => {
-      const result = getLocationById(undefined);
-      expect(result).toBeUndefined();
-    });
-  });
+    it("should handle 404 error", async () => {
+      mockGet.mockRejectedValue(new ApiError("Not Found", 404));
 
-  describe("getLocationsByPropertyId", () => {
-    it("should return all locations for a property", () => {
-      const result = getLocationsByPropertyId("property-1");
-      expect(result).toHaveLength(2);
-      expect(result[0]?.id).toBe("location-1");
-      expect(result[1]?.id).toBe("location-3");
+      await expect(getLocationById("1")).rejects.toThrow("Localização não encontrada");
     });
 
-    it("should return empty array when property has no locations", () => {
-      const result = getLocationsByPropertyId("property-nonexistent");
-      expect(result).toHaveLength(0);
-    });
-  });
+    it("should handle 401 error", async () => {
+      mockGet.mockRejectedValue(new ApiError("Unauthorized", 401));
 
-  describe("getLocationsByCompanyId", () => {
-    it("should return all locations for a company", () => {
-      const result = getLocationsByCompanyId("company-1");
-      expect(result).toHaveLength(2);
-      expect(result[0]?.id).toBe("location-1");
-      expect(result[1]?.id).toBe("location-2");
+      await expect(getLocationById("1")).rejects.toThrow("Autenticação necessária");
     });
 
-    it("should return empty array when company has no locations", () => {
-      const result = getLocationsByCompanyId("company-nonexistent");
-      expect(result).toHaveLength(0);
+    it("should rethrow non-ApiError errors", async () => {
+      const genericError = new Error("Network error");
+      mockGet.mockRejectedValue(genericError);
+
+      await expect(getLocationById("1")).rejects.toThrow("Network error");
     });
   });
 
   describe("addLocation", () => {
-    it("should add a new location with generated ID", () => {
-      const formData: LocationFormData = {
-        companyId: "company-1",
-        propertyId: "property-1",
-        code: "LOC004",
-        name: "Location 4",
-        locationType: LocationType.FIELD,
-        area: { value: 150, type: AreaType.HECTARES },
+    const formData = {
+      code: "001",
+      name: "New Location",
+      locationType: LocationType.PASTURE,
+      area: { value: 50, type: AreaType.HECTARES },
+      status: "active" as const,
+      companyId: "company-1",
+      propertyId: "property-1",
+    };
+
+    it("should create location successfully", async () => {
+      const mockLocation = { id: "1", ...formData };
+      mockPost.mockResolvedValue(mockLocation);
+
+      const result = await addLocation(formData);
+
+      expect(mockPost).toHaveBeenCalledWith("/locations", {
+        code: "001",
+        name: "New Location",
+        locationType: LocationType.PASTURE,
+        area: { value: 50, type: AreaType.HECTARES },
         status: "active",
-      };
-
-      const initialLength = mockLocations.length;
-      const result = addLocation(formData);
-
-      expect(mockLocations).toHaveLength(initialLength + 1);
-      expect(result.id).toBeDefined();
-      expect(result.companyId).toBe("company-1");
-      expect(result.name).toBe("Location 4");
-      expect(result.createdAt).toBeDefined();
+        propertyId: "property-1",
+      });
+      expect(result).toEqual(mockLocation);
     });
 
-    it("should generate ID with correct prefix", () => {
-      const formData: LocationFormData = {
-        companyId: "company-1",
-        propertyId: "property-1",
-        code: "LOC004",
-        name: "Location 4",
-        locationType: LocationType.FIELD,
-        area: { value: 150, type: AreaType.HECTARES },
-        status: "active",
-      };
+    it("should handle 403 error", async () => {
+      mockPost.mockRejectedValue(new ApiError("Forbidden", 403));
 
-      const result = addLocation(formData);
-      expect(result.id).toContain("660e8400-e29b-41d4-a716");
+      await expect(addLocation(formData)).rejects.toThrow(
+        "Você não tem permissão para adicionar localizações"
+      );
+    });
+
+    it("should handle 404 error", async () => {
+      mockPost.mockRejectedValue(new ApiError("Not Found", 404));
+
+      await expect(addLocation(formData)).rejects.toThrow("Propriedade não encontrada");
+    });
+
+    it("should handle 409 error", async () => {
+      mockPost.mockRejectedValue(new ApiError("Conflict", 409));
+
+      await expect(addLocation(formData)).rejects.toThrow(
+        "Já existe uma localização com este código"
+      );
+    });
+
+    it("should handle 400 error", async () => {
+      mockPost.mockRejectedValue(new ApiError("Bad Request", 400));
+
+      await expect(addLocation(formData)).rejects.toThrow(
+        "Dados inválidos. Verifique os campos preenchidos"
+      );
+    });
+
+    it("should rethrow non-ApiError errors", async () => {
+      const genericError = new Error("Network error");
+      mockPost.mockRejectedValue(genericError);
+
+      await expect(addLocation(formData)).rejects.toThrow("Network error");
     });
   });
 
   describe("updateLocation", () => {
-    it("should update location when ID exists", () => {
-      const updateData: Partial<LocationFormData> = {
-        name: "Updated Location 1",
-        status: "inactive",
-      };
+    const updateData = {
+      name: "Updated Location",
+    };
 
-      const result = updateLocation("location-1", updateData);
-      expect(result).toBe(true);
+    it("should update location successfully", async () => {
+      const mockLocation = { id: "1", code: "001", name: "Updated Location", status: "active" };
+      mockPut.mockResolvedValue(mockLocation);
 
-      const updated = mockLocations.find((loc) => loc.id === "location-1");
-      expect(updated?.name).toBe("Updated Location 1");
-      expect(updated?.status).toBe("inactive");
+      const result = await updateLocation("1", updateData);
+
+      expect(mockPut).toHaveBeenCalledWith(
+        "/locations/1",
+        expect.objectContaining({
+          name: "Updated Location",
+        })
+      );
+      expect(result).toEqual(mockLocation);
     });
 
-    it("should return false when ID does not exist", () => {
-      const updateData: Partial<LocationFormData> = {
-        name: "Updated Location",
+    it("should handle 403 error", async () => {
+      mockPut.mockRejectedValue(new ApiError("Forbidden", 403));
+
+      await expect(updateLocation("1", updateData)).rejects.toThrow(
+        "Você não tem permissão para editar localizações"
+      );
+    });
+
+    it("should handle 404 error", async () => {
+      mockPut.mockRejectedValue(new ApiError("Not Found", 404));
+
+      await expect(updateLocation("1", updateData)).rejects.toThrow("Localização não encontrada");
+    });
+
+    it("should handle 409 error", async () => {
+      mockPut.mockRejectedValue(new ApiError("Conflict", 409));
+
+      await expect(updateLocation("1", updateData)).rejects.toThrow(
+        "Já existe uma localização com este código"
+      );
+    });
+
+    it("should handle 400 error", async () => {
+      mockPut.mockRejectedValue(new ApiError("Bad Request", 400));
+
+      await expect(updateLocation("1", updateData)).rejects.toThrow(
+        "Dados inválidos. Verifique os campos preenchidos"
+      );
+    });
+
+    it("should rethrow non-ApiError errors", async () => {
+      const genericError = new Error("Network error");
+      mockPut.mockRejectedValue(genericError);
+
+      await expect(updateLocation("1", updateData)).rejects.toThrow("Network error");
+    });
+
+    it("should update location with partial data (only some fields)", async () => {
+      const mockLocation = { id: "1", code: "001", name: "Updated Name", status: "active" };
+      mockPut.mockResolvedValue(mockLocation);
+
+      const partialData = {
+        name: "Updated Name",
+        status: "inactive" as const,
       };
 
-      const result = updateLocation("location-nonexistent", updateData);
-      expect(result).toBe(false);
+      const result = await updateLocation("1", partialData);
+
+      expect(mockPut).toHaveBeenCalledWith("/locations/1", {
+        code: undefined,
+        name: "Updated Name",
+        locationType: undefined,
+        area: undefined,
+        status: "inactive",
+        propertyId: undefined,
+      });
+      expect(result).toEqual(mockLocation);
+    });
+
+    it("should update location with all fields undefined", async () => {
+      const mockLocation = { id: "1", code: "001", name: "Location 1", status: "active" };
+      mockPut.mockResolvedValue(mockLocation);
+
+      const emptyData = {};
+
+      const result = await updateLocation("1", emptyData);
+
+      expect(mockPut).toHaveBeenCalledWith("/locations/1", {
+        code: undefined,
+        name: undefined,
+        locationType: undefined,
+        area: undefined,
+        status: undefined,
+        propertyId: undefined,
+      });
+      expect(result).toEqual(mockLocation);
+    });
+
+    it("should update location with only code field", async () => {
+      const mockLocation = { id: "1", code: "NEW-001", name: "Location 1", status: "active" };
+      mockPut.mockResolvedValue(mockLocation);
+
+      const result = await updateLocation("1", { code: "NEW-001" });
+
+      expect(mockPut).toHaveBeenCalledWith("/locations/1", {
+        code: "NEW-001",
+        name: undefined,
+        locationType: undefined,
+        area: undefined,
+        status: undefined,
+        propertyId: undefined,
+      });
+      expect(result).toEqual(mockLocation);
     });
   });
 
   describe("deleteLocation", () => {
-    it("should delete location when ID exists", () => {
-      const initialLength = mockLocations.length;
-      const result = deleteLocation("location-1");
+    it("should delete location successfully", async () => {
+      mockDelete.mockResolvedValue(undefined);
 
-      expect(result).toBe(true);
-      expect(mockLocations).toHaveLength(initialLength - 1);
-      expect(mockLocations.find((loc) => loc.id === "location-1")).toBeUndefined();
+      await deleteLocation("1");
+
+      expect(mockDelete).toHaveBeenCalledWith("/locations/1");
     });
 
-    it("should return false when ID does not exist", () => {
-      const initialLength = mockLocations.length;
-      const result = deleteLocation("location-nonexistent");
+    it("should handle 403 error", async () => {
+      mockDelete.mockRejectedValue(new ApiError("Forbidden", 403));
 
-      expect(result).toBe(false);
-      expect(mockLocations).toHaveLength(initialLength);
+      await expect(deleteLocation("1")).rejects.toThrow(
+        "Você não tem permissão para excluir localizações"
+      );
+    });
+
+    it("should handle 404 error", async () => {
+      mockDelete.mockRejectedValue(new ApiError("Not Found", 404));
+
+      await expect(deleteLocation("1")).rejects.toThrow("Localização não encontrada");
+    });
+
+    it("should handle 401 error", async () => {
+      mockDelete.mockRejectedValue(new ApiError("Unauthorized", 401));
+
+      await expect(deleteLocation("1")).rejects.toThrow("Autenticação necessária");
+    });
+
+    it("should rethrow non-ApiError errors", async () => {
+      const genericError = new Error("Network error");
+      mockDelete.mockRejectedValue(genericError);
+
+      await expect(deleteLocation("1")).rejects.toThrow("Network error");
     });
   });
 });

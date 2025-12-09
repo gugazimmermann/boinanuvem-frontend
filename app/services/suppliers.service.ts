@@ -1,37 +1,47 @@
 import type { Supplier, SupplierFormData } from "~/types";
-import { mockSuppliers } from "~/mocks/suppliers";
-import {
-  findById,
-  findByField,
-  findByFieldIncludes,
-  createEntity,
-  updateEntity,
-  deleteEntity,
-} from "./base-service";
+import { createEntityService } from "./entity-service-factory";
 
-const ID_PREFIX = "990e8400-e29b-41d4-a716";
-const DEFAULT_ID = "990e8400-e29b-41d4-a716-446655440009";
+const supplierService = createEntityService<Supplier, SupplierFormData>({
+  endpoint: "/suppliers",
+  entityName: "fornecedor",
+  entityNamePlural: "fornecedores",
+  supportsCNPJ: true,
+});
 
-export function getSupplierById(supplierId: string | undefined): Supplier | undefined {
-  return findById(mockSuppliers, supplierId);
+/**
+ * Get all suppliers for the current user's company via API
+ */
+export async function getSuppliers(): Promise<Supplier[]> {
+  return supplierService.getAll();
 }
 
-export function getSuppliersByCompanyId(companyId: string): Supplier[] {
-  return findByField(mockSuppliers, "companyId", companyId);
+/**
+ * Get a single supplier by ID via API
+ */
+export async function getSupplierById(supplierId: string): Promise<Supplier> {
+  return supplierService.getById(supplierId);
 }
 
-export function getSuppliersByPropertyId(propertyId: string): Supplier[] {
-  return findByFieldIncludes(mockSuppliers, "propertyIds", propertyId);
+/**
+ * Create a new supplier via API
+ */
+export async function addSupplier(data: SupplierFormData): Promise<Supplier> {
+  return supplierService.add(data);
 }
 
-export function addSupplier(data: SupplierFormData): Supplier {
-  return createEntity(mockSuppliers, data, ID_PREFIX, DEFAULT_ID);
+/**
+ * Update a supplier via API
+ */
+export async function updateSupplier(
+  supplierId: string,
+  data: Partial<SupplierFormData>
+): Promise<Supplier> {
+  return supplierService.update(supplierId, data);
 }
 
-export function updateSupplier(supplierId: string, data: Partial<SupplierFormData>): boolean {
-  return updateEntity(mockSuppliers, supplierId, data);
-}
-
-export function deleteSupplier(supplierId: string): boolean {
-  return deleteEntity(mockSuppliers, supplierId);
+/**
+ * Delete a supplier via API
+ */
+export async function deleteSupplier(supplierId: string): Promise<void> {
+  return supplierService.remove(supplierId);
 }

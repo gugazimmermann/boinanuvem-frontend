@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Input, Select, Button, FixedAlert } from "~/components/ui";
 import { useTranslation } from "~/i18n";
@@ -8,15 +8,17 @@ import { formatCurrency } from "~/utils/currency";
 import { addAcquisition, calculateAcquisitionCostPerArroba } from "~/services/acquisitions.service";
 import { addAnimal } from "~/services/animals.service";
 import { addWeighing } from "~/services/weighings.service";
-import { getSuppliersByCompanyId } from "~/services/suppliers.service";
-import { getPropertiesByCompanyId } from "~/services/properties.service";
-import { getBirthByAnimalId, calculatePurity } from "~/services/births.service";
+import { getSuppliers } from "~/services/suppliers.service";
+import { getProperties } from "~/services/properties.service";
 import type {
+  Supplier,
+  Property,
   AcquisitionFormData,
   AcquisitionItem,
   AnimalFormData,
   WeighingFormData,
 } from "~/types";
+import { getBirthByAnimalId, calculatePurity } from "~/services/births.service";
 import {
   PricingMode,
   AcquisitionPaymentMethod,
@@ -74,8 +76,25 @@ export default function NewAcquisition() {
   const feeIdCounter = useRef(0);
   const [supplierSearch, setSupplierSearch] = useState("");
 
-  const suppliers = useMemo(() => getSuppliersByCompanyId(companyId), [companyId]);
-  const properties = useMemo(() => getPropertiesByCompanyId(companyId), [companyId]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [properties, setProperties] = useState<Property[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [suppliersData, propertiesData] = await Promise.all([
+          getSuppliers(),
+          getProperties(),
+        ]);
+        // Filter by companyId
+        setSuppliers(suppliersData.filter((sup) => sup.companyId === companyId));
+        setProperties(propertiesData.filter((prop) => prop.companyId === companyId));
+      } catch (error) {
+        console.error("Failed to load data:", error);
+      }
+    };
+    fetchData();
+  }, [companyId]);
 
   const filteredSuppliers = useMemo(() => {
     if (!supplierSearch.trim()) return suppliers;

@@ -17,55 +17,71 @@ describe("FinanceSubTabs", () => {
     vi.clearAllMocks();
   });
 
-  it("should render dashboard tab", () => {
+  it("should render both tabs", () => {
     render(<FinanceSubTabs {...defaultProps} />);
     expect(screen.getByText("Dashboard")).toBeInTheDocument();
-  });
-
-  it("should render transactions tab", () => {
-    render(<FinanceSubTabs {...defaultProps} />);
     expect(screen.getByText("Transactions")).toBeInTheDocument();
   });
 
-  it("should highlight active tab", () => {
-    render(<FinanceSubTabs {...defaultProps} activeTab="dashboard" />);
-    const dashboardButton = screen.getByText("Dashboard").closest("button");
-    expect(dashboardButton).toHaveClass("shadow-sm");
-  });
-
-  it("should highlight transactions tab when active", () => {
-    render(<FinanceSubTabs {...defaultProps} activeTab="transactions" />);
-    const transactionsButton = screen.getByText("Transactions").closest("button");
-    expect(transactionsButton).toHaveClass("shadow-sm");
-  });
-
   it("should call onTabChange when dashboard tab is clicked", async () => {
-    const onTabChange = vi.fn();
     const user = userEvent.setup();
-    render(<FinanceSubTabs {...defaultProps} onTabChange={onTabChange} activeTab="transactions" />);
-    const dashboardButton = screen.getByText("Dashboard");
-    await user.click(dashboardButton);
+    const onTabChange = vi.fn();
+    render(<FinanceSubTabs {...defaultProps} onTabChange={onTabChange} />);
+
+    const dashboardTab = screen.getByText("Dashboard");
+    await user.click(dashboardTab);
+
     expect(onTabChange).toHaveBeenCalledWith("dashboard");
   });
 
   it("should call onTabChange when transactions tab is clicked", async () => {
-    const onTabChange = vi.fn();
     const user = userEvent.setup();
-    render(<FinanceSubTabs {...defaultProps} onTabChange={onTabChange} activeTab="dashboard" />);
-    const transactionsButton = screen.getByText("Transactions");
-    await user.click(transactionsButton);
+    const onTabChange = vi.fn();
+    render(<FinanceSubTabs {...defaultProps} onTabChange={onTabChange} />);
+
+    const transactionsTab = screen.getByText("Transactions");
+    await user.click(transactionsTab);
+
     expect(onTabChange).toHaveBeenCalledWith("transactions");
   });
 
-  it("should apply active styling to dashboard tab", () => {
+  it("should apply active styles to active tab", () => {
     render(<FinanceSubTabs {...defaultProps} activeTab="dashboard" />);
-    const dashboardButton = screen.getByText("Dashboard").closest("button");
-    expect(dashboardButton).toHaveStyle({ backgroundColor: expect.any(String) });
+    const dashboardTab = screen.getByText("Dashboard");
+    expect(dashboardTab).toHaveClass("shadow-sm");
   });
 
-  it("should apply active styling to transactions tab", () => {
+  it("should apply inactive styles to inactive tab", () => {
+    render(<FinanceSubTabs {...defaultProps} activeTab="dashboard" />);
+    const transactionsTab = screen.getByText("Transactions");
+    expect(transactionsTab).toHaveClass("bg-gray-100");
+  });
+
+  it("should apply active styles when transactions tab is active", () => {
     render(<FinanceSubTabs {...defaultProps} activeTab="transactions" />);
-    const transactionsButton = screen.getByText("Transactions").closest("button");
-    expect(transactionsButton).toHaveStyle({ backgroundColor: expect.any(String) });
+    const transactionsTab = screen.getByText("Transactions");
+    expect(transactionsTab).toHaveClass("shadow-sm");
+    // Check that inline styles are applied (style prop is set, color is verified in DOM)
+    const htmlElement = transactionsTab as HTMLElement;
+    const styleAttribute = htmlElement.getAttribute("style");
+    expect(styleAttribute).toBeTruthy();
+    expect(styleAttribute).toContain("color");
+  });
+
+  it("should apply inactive styles to dashboard tab when transactions is active", () => {
+    render(<FinanceSubTabs {...defaultProps} activeTab="transactions" />);
+    const dashboardTab = screen.getByText("Dashboard");
+    expect(dashboardTab).toHaveClass("bg-gray-100");
+    expect(dashboardTab).not.toHaveClass("shadow-sm");
+  });
+
+  it("should apply active styles with correct colors when dashboard is active", () => {
+    render(<FinanceSubTabs {...defaultProps} activeTab="dashboard" />);
+    const dashboardTab = screen.getByText("Dashboard");
+    // Check that inline styles are applied (style prop is set, color is verified in DOM)
+    const htmlElement = dashboardTab as HTMLElement;
+    const styleAttribute = htmlElement.getAttribute("style");
+    expect(styleAttribute).toBeTruthy();
+    expect(styleAttribute).toContain("color");
   });
 });

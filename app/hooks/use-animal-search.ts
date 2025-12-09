@@ -30,10 +30,12 @@ export function useAnimalSearch({ companyId, gender, t }: UseAnimalSearchOptions
     return animals.filter((animal) => {
       const birth = getBirthByAnimalId(animal.id);
       const breedText = birth?.breed ? t.animals.breeds[birth.breed] || birth.breed : "";
+      const breedCode = birth?.breed || "";
       return (
         animal.code.toLowerCase().includes(searchLower) ||
         animal.registrationNumber.toLowerCase().includes(searchLower) ||
-        breedText.toLowerCase().includes(searchLower)
+        breedText.toLowerCase().includes(searchLower) ||
+        breedCode.toLowerCase().includes(searchLower)
       );
     });
   }, [allAnimals, gender, searchValue, t]);

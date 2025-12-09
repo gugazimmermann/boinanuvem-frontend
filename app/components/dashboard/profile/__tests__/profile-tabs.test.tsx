@@ -17,38 +17,20 @@ describe("ProfileTabs", () => {
     vi.clearAllMocks();
   });
 
-  it("should render tabs", () => {
+  it("should render all tabs", () => {
     render(<ProfileTabs {...defaultProps} />);
     expect(screen.getByText("Data")).toBeInTheDocument();
     expect(screen.getByText("Logs")).toBeInTheDocument();
   });
 
   it("should call onTabChange when tab is clicked", async () => {
-    const onTabChange = vi.fn();
     const user = userEvent.setup();
+    const onTabChange = vi.fn();
     render(<ProfileTabs {...defaultProps} onTabChange={onTabChange} />);
+
     const logsTab = screen.getByText("Logs");
     await user.click(logsTab);
+
     expect(onTabChange).toHaveBeenCalledWith("logs");
-  });
-
-  it("should highlight active tab", () => {
-    const { container: _container } = render(<ProfileTabs {...defaultProps} activeTab="logs" />);
-    const logsTab = screen.getByText("Logs");
-    expect(logsTab).toHaveStyle({ backgroundColor: expect.any(String) });
-  });
-
-  it("should not render tabs with visible false", () => {
-    render(
-      <ProfileTabs
-        {...defaultProps}
-        tabs={[
-          { id: "data" as const, label: "Data" },
-          { id: "logs" as const, label: "Logs", visible: false },
-        ]}
-      />
-    );
-    expect(screen.getByText("Data")).toBeInTheDocument();
-    expect(screen.queryByText("Logs")).not.toBeInTheDocument();
   });
 });

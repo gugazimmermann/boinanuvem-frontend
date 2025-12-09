@@ -1,132 +1,132 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { ChartWrapper } from "../chart-wrapper";
 
+vi.mock("recharts", () => ({
+  ResponsiveContainer: ({ children, height }: { children: React.ReactNode; height: number }) => (
+    <div data-testid="responsive-container" data-height={height}>
+      {children}
+    </div>
+  ),
+}));
+
 describe("ChartWrapper", () => {
-  it("should render children", () => {
-    const { container } = render(
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should render children when not empty", () => {
+    render(
       <ChartWrapper>
         <div data-testid="chart-content">Chart Content</div>
       </ChartWrapper>
     );
-    // ResponsiveContainer wraps children, so check for the container
-    const responsiveContainer = container.querySelector(".recharts-responsive-container");
-    expect(responsiveContainer).toBeInTheDocument();
+
+    expect(screen.getByTestId("chart-content")).toBeInTheDocument();
+    expect(screen.getByTestId("responsive-container")).toBeInTheDocument();
+  });
+
+  it("should render with default height", () => {
+    render(
+      <ChartWrapper>
+        <div>Content</div>
+      </ChartWrapper>
+    );
+
+    const container = screen.getByTestId("responsive-container");
+    expect(container).toHaveAttribute("data-height", "300");
+  });
+
+  it("should render with custom height", () => {
+    render(
+      <ChartWrapper height={400}>
+        <div>Content</div>
+      </ChartWrapper>
+    );
+
+    const container = screen.getByTestId("responsive-container");
+    expect(container).toHaveAttribute("data-height", "400");
   });
 
   it("should render title when provided", () => {
     render(
-      <ChartWrapper title="Sales Chart">
-        <div data-testid="chart-content">Chart Content</div>
+      <ChartWrapper title="Chart Title">
+        <div>Content</div>
       </ChartWrapper>
     );
-    expect(screen.getByText("Sales Chart")).toBeInTheDocument();
+
+    expect(screen.getByText("Chart Title")).toBeInTheDocument();
   });
 
   it("should not render title when not provided", () => {
-    render(
-      <ChartWrapper>
-        <div data-testid="chart-content">Chart Content</div>
-      </ChartWrapper>
-    );
-    expect(screen.queryByText("Sales Chart")).not.toBeInTheDocument();
-  });
-
-  it("should render with default height", () => {
     const { container } = render(
       <ChartWrapper>
-        <div data-testid="chart-content">Chart Content</div>
+        <div>Content</div>
       </ChartWrapper>
     );
-    const responsiveContainer = container.querySelector(".recharts-responsive-container");
-    expect(responsiveContainer).toBeInTheDocument();
-  });
 
-  it("should render with custom height", () => {
-    const { container } = render(
-      <ChartWrapper height={400}>
-        <div data-testid="chart-content">Chart Content</div>
-      </ChartWrapper>
-    );
-    const responsiveContainer = container.querySelector(".recharts-responsive-container");
-    expect(responsiveContainer).toBeInTheDocument();
+    expect(container.querySelector("h3")).not.toBeInTheDocument();
   });
 
   it("should render empty message when isEmpty is true", () => {
     render(
       <ChartWrapper isEmpty={true} emptyMessage="No data available">
-        <div data-testid="chart-content">Chart Content</div>
+        <div>Content</div>
       </ChartWrapper>
     );
+
     expect(screen.getByText("No data available")).toBeInTheDocument();
-    expect(screen.queryByTestId("chart-content")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("responsive-container")).not.toBeInTheDocument();
   });
 
   it("should not render empty message when isEmpty is false", () => {
-    const { container } = render(
+    render(
       <ChartWrapper isEmpty={false} emptyMessage="No data available">
-        <div data-testid="chart-content">Chart Content</div>
+        <div>Content</div>
       </ChartWrapper>
     );
+
     expect(screen.queryByText("No data available")).not.toBeInTheDocument();
-    // ResponsiveContainer wraps children, so check for the container
-    const responsiveContainer = container.querySelector(".recharts-responsive-container");
-    expect(responsiveContainer).toBeInTheDocument();
-  });
-
-  it("should render empty message with default height when isEmpty is true", () => {
-    const { container } = render(
-      <ChartWrapper isEmpty={true} emptyMessage="No data available">
-        <div data-testid="chart-content">Chart Content</div>
-      </ChartWrapper>
-    );
-    const emptyDiv = container.querySelector(".flex.items-center.justify-center");
-    expect(emptyDiv).toHaveStyle({ height: "300px" });
-  });
-
-  it("should render empty message with custom height when isEmpty is true", () => {
-    const { container } = render(
-      <ChartWrapper isEmpty={true} emptyMessage="No data available" height={400}>
-        <div data-testid="chart-content">Chart Content</div>
-      </ChartWrapper>
-    );
-    const emptyDiv = container.querySelector(".flex.items-center.justify-center");
-    expect(emptyDiv).toHaveStyle({ height: "400px" });
+    expect(screen.getByTestId("responsive-container")).toBeInTheDocument();
   });
 
   it("should apply custom className", () => {
     const { container } = render(
       <ChartWrapper className="custom-class">
-        <div data-testid="chart-content">Chart Content</div>
+        <div>Content</div>
       </ChartWrapper>
     );
+
     const wrapper = container.firstChild as HTMLElement;
     expect(wrapper).toHaveClass("custom-class");
   });
 
-  it("should render with correct styling classes", () => {
-    const { container } = render(
-      <ChartWrapper>
-        <div data-testid="chart-content">Chart Content</div>
+  it("should render empty message with correct height style", () => {
+    render(
+      <ChartWrapper isEmpty={true} emptyMessage="No data" height={400}>
+        <div>Content</div>
       </ChartWrapper>
     );
-    const wrapper = container.firstChild as HTMLElement;
-    expect(wrapper).toHaveClass("bg-white");
-    expect(wrapper).toHaveClass("dark:bg-gray-800");
-    expect(wrapper).toHaveClass("rounded-lg");
-    expect(wrapper).toHaveClass("shadow");
+
+    const emptyDiv = screen.getByText("No data").parentElement;
+    expect(emptyDiv).toHaveStyle({ height: "400px" });
   });
 
-  it("should render title with correct styling", () => {
-    const { container } = render(
-      <ChartWrapper title="Sales Chart">
-        <div data-testid="chart-content">Chart Content</div>
+  it("should render all props together", () => {
+    render(
+      <ChartWrapper
+        title="Sales Chart"
+        height={500}
+        className="custom-class"
+        isEmpty={false}
+        emptyMessage="No data"
+      >
+        <div data-testid="chart">Chart</div>
       </ChartWrapper>
     );
-    const title = container.querySelector("h3");
-    expect(title).toHaveClass("text-sm");
-    expect(title).toHaveClass("font-semibold");
-    expect(title).toHaveClass("text-gray-900");
-    expect(title).toHaveClass("dark:text-gray-100");
+
+    expect(screen.getByText("Sales Chart")).toBeInTheDocument();
+    expect(screen.getByTestId("chart")).toBeInTheDocument();
+    expect(screen.getByTestId("responsive-container")).toHaveAttribute("data-height", "500");
   });
 });

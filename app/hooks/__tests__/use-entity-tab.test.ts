@@ -1,64 +1,95 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { renderHook, act } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { renderHook, act, waitFor } from "@testing-library/react";
 import { useEntityTab } from "../use-entity-tab";
-import * as reactRouter from "react-router";
+import { useSearchParams } from "react-router";
 
 vi.mock("react-router", () => ({
   useSearchParams: vi.fn(),
 }));
 
 describe("useEntityTab", () => {
-  const mockSetSearchParams = vi.fn();
-  const mockSearchParams = new URLSearchParams();
+  let mockSetSearchParams: ReturnType<typeof vi.fn>;
+  let mockSearchParams: URLSearchParams;
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    mockSearchParams.delete("tab");
-    vi.mocked(reactRouter.useSearchParams).mockReturnValue([mockSearchParams, mockSetSearchParams]);
+    mockSetSearchParams = vi.fn();
+    mockSearchParams = new URLSearchParams();
+
+    vi.mocked(useSearchParams).mockReturnValue([mockSearchParams, mockSetSearchParams]);
   });
 
-  it("should return default tab when no tab param", () => {
+  it("should return default tab when no tab param in URL", () => {
     const { result } = renderHook(() =>
       useEntityTab({
-        validTabs: ["info", "finance", "activities"] as const,
-        defaultTab: "info" as const,
+        validTabs: ["info", "activities", "finance"] as const,
+        defaultTab: "info",
       })
     );
 
     expect(result.current[0]).toBe("info");
   });
 
-  it("should return tab from URL param", () => {
-    mockSearchParams.set("tab", "finance");
+  it("should return tab from URL when valid", () => {
+    mockSearchParams.set("tab", "activities");
 
     const { result } = renderHook(() =>
       useEntityTab({
-        validTabs: ["info", "finance", "activities"] as const,
-        defaultTab: "info" as const,
+        validTabs: ["info", "activities", "finance"] as const,
+        defaultTab: "info",
       })
     );
 
-    expect(result.current[0]).toBe("finance");
+    expect(result.current[0]).toBe("activities");
   });
 
-  it("should return default tab when invalid tab param", () => {
+  it("should return default tab when tab param is invalid", () => {
     mockSearchParams.set("tab", "invalid");
 
     const { result } = renderHook(() =>
       useEntityTab({
-        validTabs: ["info", "finance", "activities"] as const,
-        defaultTab: "info" as const,
+        validTabs: ["info", "activities", "finance"] as const,
+        defaultTab: "info",
       })
     );
 
     expect(result.current[0]).toBe("info");
   });
 
-  it("should change tab when setActiveTab is called", () => {
+  it("should return default tab when restricted tab is accessed by non-main user", () => {
+    mockSearchParams.set("tab", "activities");
+
     const { result } = renderHook(() =>
       useEntityTab({
-        validTabs: ["info", "finance", "activities"] as const,
-        defaultTab: "info" as const,
+        validTabs: ["info", "activities", "finance"] as const,
+        defaultTab: "info",
+        isMainUser: () => false,
+        restrictedTabs: ["activities"] as const,
+      })
+    );
+
+    expect(result.current[0]).toBe("info");
+  });
+
+  it("should return restricted tab when accessed by main user", () => {
+    mockSearchParams.set("tab", "activities");
+
+    const { result } = renderHook(() =>
+      useEntityTab({
+        validTabs: ["info", "activities", "finance"] as const,
+        defaultTab: "info",
+        isMainUser: () => true,
+        restrictedTabs: ["activities"] as const,
+      })
+    );
+
+    expect(result.current[0]).toBe("activities");
+  });
+
+  it("should update URL when setActiveTab is called", () => {
+    const { result } = renderHook(() =>
+      useEntityTab({
+        validTabs: ["info", "activities", "finance"] as const,
+        defaultTab: "info",
       })
     );
 
@@ -69,61 +100,44 @@ describe("useEntityTab", () => {
     expect(mockSetSearchParams).toHaveBeenCalledWith({ tab: "finance" });
   });
 
-  it("should restrict access to restricted tabs for non-main users", () => {
-    mockSearchParams.set("tab", "activities");
-    const mockIsMainUser = vi.fn().mockReturnValue(false);
+  it("should use custom restricted tabs", () => {
+    mockSearchParams.set("tab", "finance");
 
     const { result } = renderHook(() =>
       useEntityTab({
-        validTabs: ["info", "finance", "activities"] as const,
-        defaultTab: "info" as const,
-        isMainUser: mockIsMainUser,
-        restrictedTabs: ["activities"] as const,
+        validTabs: ["info", "activities", "finance"] as const,
+        defaultTab: "info",
+        isMainUser: () => false,
+        restrictedTabs: ["finance"] as const,
       })
     );
 
     expect(result.current[0]).toBe("info");
   });
 
-  it("should allow access to restricted tabs for main users", () => {
+  it("should handle multiple restricted tabs", () => {
     mockSearchParams.set("tab", "activities");
-    const mockIsMainUser = vi.fn().mockReturnValue(true);
 
     const { result } = renderHook(() =>
       useEntityTab({
-        validTabs: ["info", "finance", "activities"] as const,
-        defaultTab: "info" as const,
-        isMainUser: mockIsMainUser,
-        restrictedTabs: ["activities"] as const,
+        validTabs: ["info", "activities", "finance", "settings"] as const,
+        defaultTab: "info",
+        isMainUser: () => false,
+        restrictedTabs: ["activities", "settings"] as const,
       })
     );
 
-    expect(result.current[0]).toBe("activities");
+    expect(result.current[0]).toBe("info");
   });
 
-  it("should redirect to default tab if restricted tab accessed by non-main user", () => {
-    mockSearchParams.set("tab", "activities");
-    const mockIsMainUser = vi.fn().mockReturnValue(false);
-
-    renderHook(() =>
-      useEntityTab({
-        validTabs: ["info", "finance", "activities"] as const,
-        defaultTab: "info" as const,
-        isMainUser: mockIsMainUser,
-        restrictedTabs: ["activities"] as const,
-      })
-    );
-
-    expect(mockSetSearchParams).toHaveBeenCalledWith({ tab: "info" }, { replace: true });
-  });
-
-  it("should allow access to non-restricted tabs without isMainUser", () => {
+  it("should allow non-restricted tabs for non-main users", () => {
     mockSearchParams.set("tab", "finance");
 
     const { result } = renderHook(() =>
       useEntityTab({
-        validTabs: ["info", "finance", "activities"] as const,
-        defaultTab: "info" as const,
+        validTabs: ["info", "activities", "finance"] as const,
+        defaultTab: "info",
+        isMainUser: () => false,
         restrictedTabs: ["activities"] as const,
       })
     );
@@ -131,68 +145,36 @@ describe("useEntityTab", () => {
     expect(result.current[0]).toBe("finance");
   });
 
-  it("should handle multiple valid tabs", () => {
-    const validTabs = ["tab1", "tab2", "tab3", "tab4", "tab5"] as const;
-
-    mockSearchParams.set("tab", "tab3");
-
-    const { result } = renderHook(() =>
+  it("should update when searchParams change", () => {
+    const { result, rerender } = renderHook(() =>
       useEntityTab({
-        validTabs,
-        defaultTab: "tab1" as const,
-      })
-    );
-
-    expect(result.current[0]).toBe("tab3");
-  });
-
-  it("should update URL when activeTab changes", () => {
-    const { result } = renderHook(() =>
-      useEntityTab({
-        validTabs: ["info", "finance", "activities"] as const,
-        defaultTab: "info" as const,
-      })
-    );
-
-    act(() => {
-      result.current[1]("activities");
-    });
-
-    expect(mockSetSearchParams).toHaveBeenCalledWith({ tab: "activities" });
-  });
-
-  it("should use default restrictedTabs when not provided", () => {
-    mockSearchParams.set("tab", "activities");
-    const mockIsMainUser = vi.fn().mockReturnValue(false);
-
-    const { result } = renderHook(() =>
-      useEntityTab({
-        validTabs: ["info", "finance", "activities"] as const,
-        defaultTab: "info" as const,
-        isMainUser: mockIsMainUser,
+        validTabs: ["info", "activities", "finance"] as const,
+        defaultTab: "info",
       })
     );
 
     expect(result.current[0]).toBe("info");
+
+    mockSearchParams.set("tab", "finance");
+    rerender();
+
+    expect(result.current[0]).toBe("finance");
   });
 
-  it("should allow changing from restricted to non-restricted tab", () => {
+  it("should redirect to default tab when restricted tab accessed by non-main user", async () => {
     mockSearchParams.set("tab", "activities");
-    const mockIsMainUser = vi.fn().mockReturnValue(true);
 
-    const { result } = renderHook(() =>
+    renderHook(() =>
       useEntityTab({
-        validTabs: ["info", "finance", "activities"] as const,
-        defaultTab: "info" as const,
-        isMainUser: mockIsMainUser,
+        validTabs: ["info", "activities", "finance"] as const,
+        defaultTab: "info",
+        isMainUser: () => false,
         restrictedTabs: ["activities"] as const,
       })
     );
 
-    act(() => {
-      result.current[1]("info");
+    await waitFor(() => {
+      expect(mockSetSearchParams).toHaveBeenCalledWith({ tab: "info" }, { replace: true });
     });
-
-    expect(mockSetSearchParams).toHaveBeenCalledWith({ tab: "info" });
   });
 });

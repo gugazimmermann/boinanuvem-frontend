@@ -1,11 +1,9 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useState } from "react";
+import { useParams } from "react-router";
 import { Button, FixedAlert, PasturePlanningTable } from "~/components/ui";
-import { useTranslation } from "~/i18n";
-import { getPropertyViewRoute } from "~/routes.config";
-import { getPropertyById, updateProperty } from "~/services/properties.service";
 import type { PasturePlanningMonth } from "~/types/property";
-import { useAlert } from "~/hooks/use-alert";
+import { usePropertyEdit } from "~/hooks/use-property-edit";
+import type { Property } from "~/types";
 
 export function meta() {
   return [
@@ -22,55 +20,59 @@ export async function loader({ request }: { request: Request }) {
   return createRouteGuard(undefined, "edit")({ request });
 }
 
-export default function EditPasturePlanning() {
-  const t = useTranslation();
-  const navigate = useNavigate();
-  const { propertyId } = useParams<{ propertyId: string }>();
-  const property = getPropertyById(propertyId);
+type PasturePlanningFormProps = {
+  property: Property;
+  propertyId: string;
+  isSubmitting: boolean;
+  alertMessage: ReturnType<typeof usePropertyEdit>["alertMessage"];
+  navigateToView: () => void;
+  updateProperty: (data: Partial<Property>) => Promise<void>;
+  t: ReturnType<typeof usePropertyEdit>["t"];
+};
 
-  const generateDefaultPasturePlanning = (): PasturePlanningMonth[] => {
-    const months = [
-      "January",
-      "February",
-      "March",
-      "April",
-      "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December",
-    ];
-    return months.map((month) => ({
-      month,
-      min: 0,
-      max: 0,
-      precipitation: 0,
-      classification: "Medium" as const,
-    }));
-  };
+const generateDefaultPasturePlanning = (): PasturePlanningMonth[] => {
+  const months = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+  return months.map((month) => ({
+    month,
+    min: 0,
+    max: 0,
+    precipitation: 0,
+    classification: "Medium" as const,
+  }));
+};
 
-  const [pasturePlanning, setPasturePlanning] = useState<PasturePlanningMonth[]>(
-    generateDefaultPasturePlanning()
+function PasturePlanningForm({
+  property,
+  propertyId,
+  isSubmitting,
+  alertMessage,
+  navigateToView,
+  updateProperty,
+  t,
+}: Readonly<PasturePlanningFormProps>) {
+  const [pasturePlanning, setPasturePlanning] = useState<PasturePlanningMonth[]>(() =>
+    property.pasturePlanning && property.pasturePlanning.length > 0
+      ? property.pasturePlanning
+      : generateDefaultPasturePlanning()
   );
-  const [hasBeenModified, setHasBeenModified] = useState(false);
-
-  useEffect(() => {
-    if (property) {
-      const initial =
-        property.pasturePlanning && property.pasturePlanning.length > 0
-          ? property.pasturePlanning
-          : generateDefaultPasturePlanning();
-      setPasturePlanning(initial);
-      setHasBeenModified(property.pasturePlanningModifiedByUser || false);
-    }
-  }, [property]);
+  const [hasBeenModified, setHasBeenModified] = useState(
+    property.pasturePlanningModifiedByUser || false
+  );
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { alertMessage, showAlert } = useAlert();
 
   const validateMonth = (
     month: (typeof pasturePlanning)[0],
@@ -135,44 +137,11 @@ export default function EditPasturePlanning() {
     e.preventDefault();
     if (!validate() || !propertyId) return;
 
-    setIsSubmitting(true);
-    try {
-      const success = updateProperty(propertyId, {
-        pasturePlanning,
-        pasturePlanningModifiedByUser: hasBeenModified,
-      });
-      if (success) {
-        showAlert(t.properties.success.updated, "success");
-        setTimeout(() => {
-          navigate(getPropertyViewRoute(propertyId));
-        }, 1500);
-      } else {
-        showAlert(t.properties.errors.updateFailed, "error");
-      }
-    } catch (error) {
-      console.error("Error updating pasture planning:", error);
-      showAlert(t.properties.errors.updateFailed, "error");
-    } finally {
-      setIsSubmitting(false);
-    }
+    await updateProperty({
+      pasturePlanning,
+      pasturePlanningModifiedByUser: hasBeenModified,
+    });
   };
-
-  if (!property) {
-    return (
-      <div className="space-y-8">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-          <p className="text-gray-600 dark:text-gray-400">{t.properties.emptyState.title}</p>
-          <Button
-            variant="outline"
-            onClick={() => navigate(getPropertyViewRoute(propertyId!))}
-            className="mt-4"
-          >
-            {t.common.back}
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-8">
@@ -194,11 +163,7 @@ export default function EditPasturePlanning() {
             </div>
           )}
         </div>
-        <Button
-          variant="outline"
-          onClick={() => propertyId && navigate(getPropertyViewRoute(propertyId))}
-          disabled={isSubmitting}
-        >
+        <Button variant="outline" onClick={navigateToView} disabled={isSubmitting}>
           {t.common.back}
         </Button>
       </div>
@@ -221,7 +186,7 @@ export default function EditPasturePlanning() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => propertyId && navigate(getPropertyViewRoute(propertyId))}
+              onClick={navigateToView}
               disabled={isSubmitting}
             >
               {t.profile.company.cancel}
@@ -233,5 +198,47 @@ export default function EditPasturePlanning() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function EditPasturePlanning() {
+  const { propertyId } = useParams<{ propertyId: string }>();
+  const { property, isLoading, isSubmitting, alertMessage, updateProperty, navigateToView, t } =
+    usePropertyEdit({ propertyId });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+          <p className="text-gray-600 dark:text-gray-400">{t.common.loading}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!property || !propertyId) {
+    return (
+      <div className="space-y-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+          <p className="text-gray-600 dark:text-gray-400">{t.properties.emptyState.title}</p>
+          <Button variant="outline" onClick={navigateToView} className="mt-4">
+            {t.common.back}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <PasturePlanningForm
+      key={property.id}
+      property={property}
+      propertyId={propertyId}
+      isSubmitting={isSubmitting}
+      alertMessage={alertMessage}
+      navigateToView={navigateToView}
+      updateProperty={updateProperty}
+      t={t}
+    />
   );
 }

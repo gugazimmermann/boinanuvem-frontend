@@ -1,7 +1,7 @@
 export type { Language, Status, LanguageInfo } from "./common";
 export type { Area, Location, LocationFormData } from "./location";
 export { AreaType, LocationType } from "./location";
-export type { Property, PropertyFormData } from "./property";
+export type { Property, PropertyFormData, PasturePlanningMonth } from "./property";
 export type { Employee, EmployeeFormData } from "./employee";
 export type { ServiceProvider, ServiceProviderFormData } from "./service-provider";
 export type { Supplier, SupplierFormData } from "./supplier";

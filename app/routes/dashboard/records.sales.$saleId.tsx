@@ -17,12 +17,14 @@ import {
 import { getSaleById, deleteSale } from "~/services/sales.service";
 import { getBuyerById } from "~/services/buyers.service";
 import { getPropertyById } from "~/services/properties.service";
+import type { Buyer, Property } from "~/types";
 import { getAnimalById } from "~/services/animals.service";
 import { calculateAnimalProfitability } from "~/utils/profitability";
+import type { AnimalProfitability } from "~/utils/profitability";
 import { formatCurrency } from "~/utils/currency";
 import { SaleType as SaleTypeEnum, SalePaymentMethod as SalePaymentMethodEnum } from "~/types";
 import { getTotalFees } from "~/utils/fees";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export function meta() {
   return [
@@ -47,7 +49,55 @@ export default function SaleDetails() {
   const { canEdit, canRemove } = usePermissions();
   const sale = getSaleById(saleId);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [buyer, setBuyer] = useState<Buyer | null>(null);
+  const [property, setProperty] = useState<Property | null>(null);
+  const [profitabilities, setProfitabilities] = useState<Map<string, AnimalProfitability>>(
+    new Map()
+  );
   const { alertMessage, showAlert } = useAlert();
+
+  useEffect(() => {
+    const loadEntities = async () => {
+      if (sale) {
+        try {
+          const [buyerData, propertyData] = await Promise.all([
+            getBuyerById(sale.buyerId),
+            getPropertyById(sale.propertyId),
+          ]);
+          setBuyer(buyerData);
+          setProperty(propertyData);
+
+          // Load profitability for each sale item
+          const profitabilityPromises = sale.saleItems.map(async (item) => {
+            try {
+              const profitability = await calculateAnimalProfitability(
+                item.animalId,
+                item.price,
+                sale.saleDate,
+                item.weight
+              );
+              return { animalId: item.animalId, profitability };
+            } catch (error) {
+              console.error("Failed to calculate profitability:", error);
+              return null;
+            }
+          });
+          const results = await Promise.all(profitabilityPromises);
+          const profitabilityMap = new Map(
+            results
+              .filter(
+                (r): r is { animalId: string; profitability: AnimalProfitability } => r !== null
+              )
+              .map((r) => [r.animalId, r.profitability])
+          );
+          setProfitabilities(profitabilityMap);
+        } catch (error) {
+          console.error("Failed to load entities:", error);
+        }
+      }
+    };
+    loadEntities();
+  }, [sale]);
 
   let dateLocale = ptBR;
   if (language === "en") {
@@ -93,9 +143,6 @@ export default function SaleDetails() {
       </div>
     );
   }
-
-  const buyer = getBuyerById(sale.buyerId);
-  const property = getPropertyById(sale.propertyId);
 
   const totalFees = getTotalFees(sale.fees, sale.transportationFee, sale.additionalFees);
   const totalAmount = sale.totalPrice + totalFees;
@@ -247,12 +294,8 @@ export default function SaleDetails() {
           <div className="space-y-3">
             {sale.saleItems.map((item) => {
               const animal = getAnimalById(item.animalId);
-              const profitability = calculateAnimalProfitability(
-                item.animalId,
-                item.price,
-                sale.saleDate,
-                item.weight
-              );
+              const profitability = profitabilities.get(item.animalId);
+              if (!profitability) return null;
               return (
                 <div
                   key={item.animalId}

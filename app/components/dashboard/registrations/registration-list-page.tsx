@@ -1,4 +1,4 @@
-import { cloneElement, isValidElement } from "react";
+import { cloneElement, isValidElement, type MouseEvent } from "react";
 import { useNavigate } from "react-router";
 import {
   Table,
@@ -35,7 +35,7 @@ export interface RegistrationListPageConfig<
   readonly viewRoute: (id: string) => string;
   readonly editRoute?: (id: string) => string;
 
-  readonly deleteService: (item: T) => boolean;
+  readonly deleteService: (item: T) => boolean | Promise<boolean>;
   readonly deleteSuccessMessage: string;
   readonly deleteErrorMessage: string;
   readonly deleteModalTitle: string;
@@ -58,6 +58,7 @@ export interface RegistrationListPageConfig<
   readonly onRowClick?: (item: T) => void;
   readonly headerActions?: TableAction[];
   readonly additionalFilters?: TableFilter[];
+  readonly isLoading?: boolean;
 }
 
 export function RegistrationListPage<
@@ -165,8 +166,17 @@ export function RegistrationListPage<
               />
             </svg>
           ),
-          onClick: () => {
-            navigate(newRoute);
+          onClick: (e?: MouseEvent) => {
+            if (e) {
+              e.stopPropagation();
+              e.preventDefault();
+            }
+
+            try {
+              navigate(newRoute);
+            } catch (error) {
+              console.error("Error navigating to new route:", error);
+            }
           },
         },
       ]

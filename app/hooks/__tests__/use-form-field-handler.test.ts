@@ -1,141 +1,160 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { renderHook, act } from "@testing-library/react";
+import { useState } from "react";
 import { useFormFieldHandler } from "../use-form-field-handler";
 
 describe("useFormFieldHandler", () => {
-  const mockSetFormData = vi.fn();
-  const mockSetErrors = vi.fn();
-  const mockErrors = {};
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("should update form data when handleChange is called", () => {
-    const { result } = renderHook(() =>
-      useFormFieldHandler(mockSetFormData, mockErrors, mockSetErrors)
-    );
+    const TestComponent = () => {
+      const [formData, setFormData] = useState({ name: "", email: "" });
+      const [errors, setErrors] = useState<Record<string, string>>({});
+      const handleChange = useFormFieldHandler(setFormData, errors, setErrors);
 
-    act(() => {
-      result.current("name", "John Doe");
-    });
-
-    expect(mockSetFormData).toHaveBeenCalledWith(expect.any(Function));
-    const updateFn = mockSetFormData.mock.calls[0]?.[0];
-    if (typeof updateFn === "function") {
-      const prev = { name: "" };
-      const updated = updateFn(prev);
-      expect(updated).toEqual({ name: "John Doe" });
-    }
-  });
-
-  it("should clear error when field is changed and has error", () => {
-    const errorsWithName = { name: "Name is required" };
-
-    const { result } = renderHook(() =>
-      useFormFieldHandler(mockSetFormData, errorsWithName, mockSetErrors)
-    );
-
-    act(() => {
-      result.current("name", "John");
-    });
-
-    expect(mockSetErrors).toHaveBeenCalledWith(expect.any(Function));
-    const updateFn = mockSetErrors.mock.calls[0]?.[0];
-    if (typeof updateFn === "function") {
-      const prev = errorsWithName;
-      const updated = updateFn(prev);
-      expect(updated).not.toHaveProperty("name");
-    }
-  });
-
-  it("should not call setErrors when field has no error", () => {
-    const { result } = renderHook(() =>
-      useFormFieldHandler(mockSetFormData, mockErrors, mockSetErrors)
-    );
-
-    act(() => {
-      result.current("name", "John");
-    });
-
-    expect(mockSetErrors).not.toHaveBeenCalled();
-  });
-
-  it("should handle multiple field changes", () => {
-    const { result } = renderHook(() =>
-      useFormFieldHandler(mockSetFormData, mockErrors, mockSetErrors)
-    );
-
-    act(() => {
-      result.current("name", "John");
-      result.current("email", "john@example.com");
-    });
-
-    expect(mockSetFormData).toHaveBeenCalledTimes(2);
-  });
-
-  it("should handle different value types", () => {
-    const { result } = renderHook(() =>
-      useFormFieldHandler(mockSetFormData, mockErrors, mockSetErrors)
-    );
-
-    act(() => {
-      result.current("age", 25);
-      result.current("active", true);
-      result.current("tags", ["tag1", "tag2"]);
-    });
-
-    expect(mockSetFormData).toHaveBeenCalledTimes(3);
-  });
-
-  it("should clear multiple errors when multiple fields are changed", () => {
-    const errors = {
-      name: "Name is required",
-      email: "Email is required",
+      return { formData, handleChange };
     };
 
-    const { result } = renderHook(() =>
-      useFormFieldHandler(mockSetFormData, errors, mockSetErrors)
-    );
+    const { result } = renderHook(() => TestComponent());
 
     act(() => {
-      result.current("name", "John");
+      result.current.handleChange("name", "John Doe");
     });
 
-    expect(mockSetErrors).toHaveBeenCalled();
+    expect(result.current.formData.name).toBe("John Doe");
   });
 
-  it("should preserve other fields when updating one field", () => {
-    const { result } = renderHook(() =>
-      useFormFieldHandler(mockSetFormData, mockErrors, mockSetErrors)
-    );
+  it("should clear error for field when value changes", () => {
+    const TestComponent = () => {
+      const [formData, setFormData] = useState({ name: "", email: "" });
+      const [errors, setErrors] = useState<Record<string, string>>({
+        name: "Name is required",
+      });
+      const handleChange = useFormFieldHandler(setFormData, errors, setErrors);
+
+      return { formData, errors, handleChange };
+    };
+
+    const { result } = renderHook(() => TestComponent());
+
+    expect(result.current.errors.name).toBe("Name is required");
 
     act(() => {
-      result.current("name", "John");
+      result.current.handleChange("name", "John Doe");
     });
 
-    const updateFn = mockSetFormData.mock.calls[0]?.[0];
-    if (typeof updateFn === "function") {
-      const prev = { name: "", email: "test@example.com", age: 25 };
-      const updated = updateFn(prev);
-      expect(updated).toEqual({
-        name: "John",
-        email: "test@example.com",
-        age: 25,
+    expect(result.current.errors.name).toBeUndefined();
+    expect(result.current.formData.name).toBe("John Doe");
+  });
+
+  it("should preserve other errors when clearing one field", () => {
+    const TestComponent = () => {
+      const [formData, setFormData] = useState({ name: "", email: "" });
+      const [errors, setErrors] = useState<Record<string, string>>({
+        name: "Name is required",
+        email: "Email is required",
       });
-    }
+      const handleChange = useFormFieldHandler(setFormData, errors, setErrors);
+
+      return { formData, errors, handleChange };
+    };
+
+    const { result } = renderHook(() => TestComponent());
+
+    act(() => {
+      result.current.handleChange("name", "John Doe");
+    });
+
+    expect(result.current.errors.name).toBeUndefined();
+    expect(result.current.errors.email).toBe("Email is required");
+  });
+
+  it("should handle multiple field updates", () => {
+    const TestComponent = () => {
+      const [formData, setFormData] = useState({ name: "", email: "", age: 0 });
+      const [errors, setErrors] = useState<Record<string, string>>({});
+      const handleChange = useFormFieldHandler(setFormData, errors, setErrors);
+
+      return { formData, handleChange };
+    };
+
+    const { result } = renderHook(() => TestComponent());
+
+    act(() => {
+      result.current.handleChange("name", "John Doe");
+      result.current.handleChange("email", "john@example.com");
+      result.current.handleChange("age", 30);
+    });
+
+    expect(result.current.formData.name).toBe("John Doe");
+    expect(result.current.formData.email).toBe("john@example.com");
+    expect(result.current.formData.age).toBe(30);
   });
 
   it("should handle null and undefined values", () => {
-    const { result } = renderHook(() =>
-      useFormFieldHandler(mockSetFormData, mockErrors, mockSetErrors)
-    );
+    const TestComponent = () => {
+      const [formData, setFormData] = useState<Record<string, unknown>>({ value: "test" });
+      const [errors, setErrors] = useState<Record<string, string>>({});
+      const handleChange = useFormFieldHandler(setFormData, errors, setErrors);
+
+      return { formData, handleChange };
+    };
+
+    const { result } = renderHook(() => TestComponent());
 
     act(() => {
-      result.current("optionalField", null);
-      result.current("anotherField", undefined);
+      result.current.handleChange("value", null);
     });
 
-    expect(mockSetFormData).toHaveBeenCalledTimes(2);
+    expect(result.current.formData.value).toBeNull();
+
+    act(() => {
+      result.current.handleChange("value", undefined);
+    });
+
+    expect(result.current.formData.value).toBeUndefined();
+  });
+
+  it("should not clear error if field has no error", () => {
+    const TestComponent = () => {
+      const [formData, setFormData] = useState({ name: "", email: "" });
+      const [errors, setErrors] = useState<Record<string, string>>({
+        email: "Email is required",
+      });
+      const handleChange = useFormFieldHandler(setFormData, errors, setErrors);
+
+      return { formData, errors, handleChange };
+    };
+
+    const { result } = renderHook(() => TestComponent());
+
+    act(() => {
+      result.current.handleChange("name", "John Doe");
+    });
+
+    expect(result.current.errors.email).toBe("Email is required");
+    expect(result.current.formData.name).toBe("John Doe");
+  });
+
+  it("should preserve other form data when updating one field", () => {
+    const TestComponent = () => {
+      const [formData, setFormData] = useState({
+        name: "John",
+        email: "john@example.com",
+        age: 25,
+      });
+      const [errors, setErrors] = useState<Record<string, string>>({});
+      const handleChange = useFormFieldHandler(setFormData, errors, setErrors);
+
+      return { formData, handleChange };
+    };
+
+    const { result } = renderHook(() => TestComponent());
+
+    act(() => {
+      result.current.handleChange("name", "Jane");
+    });
+
+    expect(result.current.formData.name).toBe("Jane");
+    expect(result.current.formData.email).toBe("john@example.com");
+    expect(result.current.formData.age).toBe(25);
   });
 });

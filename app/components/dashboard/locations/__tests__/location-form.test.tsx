@@ -2,77 +2,68 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { LocationForm } from "../location-form";
-import { LanguageProvider } from "~/contexts/language-context";
-import { mockProperties } from "~/mocks/properties";
-import { LocationType, AreaType } from "~/types";
+import { useTranslation } from "~/i18n";
+import { LocationType, AreaType, type Property } from "~/types";
 
-const TestWrapper = ({ children }: { children: React.ReactNode }) => (
-  <LanguageProvider>{children}</LanguageProvider>
-);
-
+vi.mock("~/i18n");
 vi.mock("~/components/ui", () => ({
-  Input: vi.fn(
-    ({
-      value,
-      onChange,
-      placeholder,
-      error,
-      disabled,
-    }: {
-      value: string;
-      onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-      placeholder?: string;
-      error?: string;
-      disabled?: boolean;
-    }) => (
-      <input
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        data-error={error}
-        disabled={disabled}
-      />
-    )
+  Input: ({
+    label,
+    value,
+    onChange,
+    error,
+    disabled,
+  }: {
+    label: string;
+    value: string;
+    onChange: (e: { target: { value: string } }) => void;
+    error?: string;
+    disabled?: boolean;
+  }) => (
+    <div>
+      <label>{label}</label>
+      <input data-testid={`input-${label}`} value={value} onChange={onChange} disabled={disabled} />
+      {error && <span data-testid="error">{error}</span>}
+    </div>
   ),
-  Select: vi.fn(
-    ({
-      value,
-      onChange,
-      options,
-      placeholder: _placeholder,
-      disabled,
-    }: {
-      value: string;
-      onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-      options: Array<{ value: string; label: string }>;
-      placeholder?: string;
-      disabled?: boolean;
-    }) => (
-      <select value={value} onChange={onChange} disabled={disabled}>
+  Select: ({
+    label,
+    value,
+    onChange,
+    options,
+  }: {
+    label: string;
+    value: string;
+    onChange: (e: { target: { value: string } }) => void;
+    options: Array<{ value: string; label: string }>;
+  }) => (
+    <div>
+      <label>{label}</label>
+      <select data-testid={`select-${label}`} value={value} onChange={onChange}>
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
             {opt.label}
           </option>
         ))}
       </select>
-    )
+    </div>
   ),
-  FormFieldGroup: vi.fn(({ children }: { children: React.ReactNode }) => <div>{children}</div>),
+  FormFieldGroup: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
 describe("LocationForm", () => {
-  const defaultFormData = {
-    code: "",
-    name: "",
-    propertyId: "",
-    locationType: LocationType.PASTURE,
-    areaValue: "",
-    areaType: AreaType.HECTARES,
-    status: "active" as const,
-  };
+  const mockUseTranslation = vi.mocked(useTranslation);
 
   const defaultProps = {
-    formData: defaultFormData,
+    formData: {
+      code: "",
+      name: "",
+      locationType: LocationType.PASTURE,
+      areaValue: "",
+      areaType: AreaType.HECTARES,
+      status: "active" as const,
+      propertyId: "",
+    },
     errors: {},
     isSubmitting: false,
     onFieldChange: vi.fn(),
@@ -81,256 +72,58 @@ describe("LocationForm", () => {
         new: {
           nameLabel: "Name",
           propertyLabel: "Property",
-          selectProperty: "Select property",
           locationTypeLabel: "Location Type",
           areaLabel: "Area",
           statusLabel: "Status",
         },
         types: {
-          [LocationType.PASTURE]: "Pasture",
+          pasture: "Pasture",
         },
-        areaType: "Area Type",
         areaTypes: {
-          [AreaType.HECTARES]: "Hectares",
-          [AreaType.ACRES]: "Acres",
+          hectares: "Hectares",
         },
       },
     },
-    properties: mockProperties.slice(0, 2),
+    properties: [],
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseTranslation.mockReturnValue({
+      locations: {
+        new: {
+          nameLabel: "Name",
+        },
+      },
+    } as unknown as ReturnType<typeof useTranslation>);
   });
 
-  it("should render name input", () => {
-    const { container } = render(
-      <TestWrapper>
-        <LocationForm {...defaultProps} />
-      </TestWrapper>
-    );
-    // Input component is mocked, check that inputs exist
-    const inputs = container.querySelectorAll("input");
-    expect(inputs.length).toBeGreaterThan(0);
-  });
-
-  it("should render property select", () => {
-    render(
-      <TestWrapper>
-        <LocationForm {...defaultProps} />
-      </TestWrapper>
-    );
+  it("should render form fields", () => {
+    render(<LocationForm {...defaultProps} />);
+    expect(screen.getByText("Name")).toBeInTheDocument();
     expect(screen.getByText("Property")).toBeInTheDocument();
   });
 
-  it("should call onFieldChange when name changes", async () => {
-    const onFieldChange = vi.fn();
+  it("should call onFieldChange when field changes", async () => {
     const user = userEvent.setup();
-    const { container } = render(
-      <TestWrapper>
-        <LocationForm {...defaultProps} onFieldChange={onFieldChange} />
-      </TestWrapper>
-    );
-    // The Input component is mocked, so find inputs in the container
-    const inputs = container.querySelectorAll("input");
-    if (inputs.length > 1) {
-      await user.type(inputs[1], "Test");
-      expect(onFieldChange).toHaveBeenCalled();
-    }
+    const onFieldChange = vi.fn();
+    render(<LocationForm {...defaultProps} onFieldChange={onFieldChange} />);
+
+    const nameInput = screen.getByTestId("input-Name");
+    await user.type(nameInput, "Test Location");
+
+    expect(onFieldChange).toHaveBeenCalled();
   });
 
-  it("should display form data values", () => {
-    const { container } = render(
-      <TestWrapper>
-        <LocationForm
-          {...defaultProps}
-          formData={{ ...defaultFormData, name: "Test Location", code: "LOC001" }}
-        />
-      </TestWrapper>
-    );
-    const inputs = container.querySelectorAll("input");
-    expect(inputs.length).toBeGreaterThan(0);
-  });
-
-  it("should display errors", () => {
-    render(
-      <TestWrapper>
-        <LocationForm
-          {...defaultProps}
-          errors={{ name: "Name is required", propertyId: "Property is required" }}
-        />
-      </TestWrapper>
-    );
-    // Errors are displayed as paragraphs below the fields
-    expect(screen.getByText("Property is required")).toBeInTheDocument();
+  it("should display errors when provided", () => {
+    render(<LocationForm {...defaultProps} errors={{ name: "Name is required" }} />);
+    expect(screen.getByTestId("error")).toBeInTheDocument();
   });
 
   it("should disable inputs when isSubmitting is true", () => {
-    render(
-      <TestWrapper>
-        <LocationForm {...defaultProps} isSubmitting={true} />
-      </TestWrapper>
-    );
-    const inputs = screen.getAllByRole("textbox");
-    inputs.forEach((input) => {
-      expect(input).toBeDisabled();
-    });
-  });
-
-  it("should render in edit mode", () => {
-    const { container } = render(
-      <TestWrapper>
-        <LocationForm {...defaultProps} isEdit={true} />
-      </TestWrapper>
-    );
-    // Check that form renders
-    expect(container).toBeTruthy();
-    // Check for form fields
-    expect(container.querySelector("input")).toBeInTheDocument();
-  });
-
-  it("should handle code input change", async () => {
-    const onFieldChange = vi.fn();
-    const user = userEvent.setup();
-    const { container } = render(
-      <TestWrapper>
-        <LocationForm {...defaultProps} onFieldChange={onFieldChange} />
-      </TestWrapper>
-    );
-    const inputs = container.querySelectorAll("input");
-    if (inputs.length > 0) {
-      await user.type(inputs[0], "LOC001");
-      expect(onFieldChange).toHaveBeenCalledWith("code", expect.any(String));
-    }
-  });
-
-  it("should handle name input change", async () => {
-    const onFieldChange = vi.fn();
-    const user = userEvent.setup();
-    const { container } = render(
-      <TestWrapper>
-        <LocationForm {...defaultProps} onFieldChange={onFieldChange} />
-      </TestWrapper>
-    );
-    const inputs = container.querySelectorAll("input");
-    if (inputs.length > 1) {
-      await user.type(inputs[1], "Test Location");
-      expect(onFieldChange).toHaveBeenCalledWith("name", expect.any(String));
-    }
-  });
-
-  it("should handle propertyId select change", async () => {
-    const onFieldChange = vi.fn();
-    const user = userEvent.setup();
-    const { container } = render(
-      <TestWrapper>
-        <LocationForm {...defaultProps} onFieldChange={onFieldChange} />
-      </TestWrapper>
-    );
-    const propertySelect = container.querySelector("select") as HTMLSelectElement;
-    if (propertySelect) {
-      await user.selectOptions(propertySelect, mockProperties[0].id);
-      expect(onFieldChange).toHaveBeenCalledWith("propertyId", mockProperties[0].id);
-    }
-  });
-
-  it("should handle locationType select change", async () => {
-    const onFieldChange = vi.fn();
-    const user = userEvent.setup();
-    const { container } = render(
-      <TestWrapper>
-        <LocationForm {...defaultProps} onFieldChange={onFieldChange} />
-      </TestWrapper>
-    );
-    const selects = container.querySelectorAll("select");
-    const locationTypeSelect = selects[0] as HTMLSelectElement;
-    if (locationTypeSelect && selects.length > 1) {
-      // Find the location type select (second select)
-      const locationSelect = selects[1] as HTMLSelectElement;
-      if (locationSelect) {
-        await user.selectOptions(locationSelect, LocationType.BARN);
-        expect(onFieldChange).toHaveBeenCalledWith("locationType", LocationType.BARN);
-      }
-    }
-  });
-
-  it("should handle areaValue input change", async () => {
-    const onFieldChange = vi.fn();
-    const user = userEvent.setup();
-    const { container } = render(
-      <TestWrapper>
-        <LocationForm {...defaultProps} onFieldChange={onFieldChange} />
-      </TestWrapper>
-    );
-    const numberInputs = container.querySelectorAll('input[type="number"]');
-    if (numberInputs.length > 0) {
-      await user.type(numberInputs[0], "10");
-      expect(onFieldChange).toHaveBeenCalledWith("areaValue", expect.any(String));
-    }
-  });
-
-  it("should handle areaType select change", async () => {
-    const onFieldChange = vi.fn();
-    const user = userEvent.setup();
-    const { container } = render(
-      <TestWrapper>
-        <LocationForm {...defaultProps} onFieldChange={onFieldChange} />
-      </TestWrapper>
-    );
-    const selects = container.querySelectorAll("select");
-    // Find the area type select (should be one of the selects)
-    const areaTypeSelect = Array.from(selects).find((select) => {
-      const label = select.closest("div")?.querySelector("label");
-      return label?.textContent?.includes("Area Type");
-    }) as HTMLSelectElement;
-    if (areaTypeSelect) {
-      await user.selectOptions(areaTypeSelect, AreaType.ACRES);
-      expect(onFieldChange).toHaveBeenCalledWith("areaType", AreaType.ACRES);
-    }
-  });
-
-  it("should handle status select change", async () => {
-    const onFieldChange = vi.fn();
-    const user = userEvent.setup();
-    const { container } = render(
-      <TestWrapper>
-        <LocationForm {...defaultProps} onFieldChange={onFieldChange} />
-      </TestWrapper>
-    );
-    const selects = container.querySelectorAll("select");
-    // Find the status select (last select)
-    const statusSelect = selects[selects.length - 1] as HTMLSelectElement;
-    if (statusSelect) {
-      await user.selectOptions(statusSelect, "inactive");
-      expect(onFieldChange).toHaveBeenCalledWith("status", "inactive");
-    }
-  });
-
-  it("should display error for propertyId", () => {
-    render(
-      <TestWrapper>
-        <LocationForm {...defaultProps} errors={{ propertyId: "Property is required" }} />
-      </TestWrapper>
-    );
-    expect(screen.getByText("Property is required")).toBeInTheDocument();
-  });
-
-  it("should display error for locationType", () => {
-    render(
-      <TestWrapper>
-        <LocationForm {...defaultProps} errors={{ locationType: "Location type is required" }} />
-      </TestWrapper>
-    );
-    expect(screen.getByText("Location type is required")).toBeInTheDocument();
-  });
-
-  it("should display error for areaType", () => {
-    render(
-      <TestWrapper>
-        <LocationForm {...defaultProps} errors={{ areaType: "Area type is required" }} />
-      </TestWrapper>
-    );
-    expect(screen.getByText("Area type is required")).toBeInTheDocument();
+    render(<LocationForm {...defaultProps} isSubmitting={true} />);
+    const nameInput = screen.getByTestId("input-Name");
+    expect(nameInput).toBeDisabled();
   });
 
   it("should use edit translations when isEdit is true", () => {
@@ -339,133 +132,408 @@ describe("LocationForm", () => {
         edit: {
           nameLabel: "Edit Name",
           propertyLabel: "Edit Property",
-          selectProperty: "Select property",
           locationTypeLabel: "Edit Location Type",
           areaLabel: "Edit Area",
           statusLabel: "Edit Status",
+          selectProperty: "Select Property",
+        },
+        new: {
+          nameLabel: "Name",
+        },
+        types: {
+          pasture: "Pasture",
+          barn: "Barn",
+          storage: "Storage",
+          corral: "Corral",
+          silo: "Silo",
+          field: "Field",
+          paddock: "Paddock",
+          feedlot: "Feedlot",
+          semi_feedlot: "Semi Feedlot",
+          milking_parlor: "Milking Parlor",
+          warehouse: "Warehouse",
+          garage: "Garage",
+          office: "Office",
+          residence: "Residence",
+          other: "Other",
+        },
+        areaTypes: {
+          hectares: "Hectares",
+          square_meters: "Square Meters",
+          square_feet: "Square Feet",
+          acres: "Acres",
+          square_kilometers: "Square Kilometers",
+          square_miles: "Square Miles",
         },
         table: {
-          code: "Code",
           active: "Active",
           inactive: "Inactive",
         },
-        types: {
-          [LocationType.PASTURE]: "Pasture",
+      },
+    };
+    render(<LocationForm {...defaultProps} translation={translationWithEdit} isEdit={true} />);
+    expect(screen.getByText("Edit Name")).toBeInTheDocument();
+  });
+
+  it("should fall back to new translations when edit translations don't exist", () => {
+    const translationWithoutEdit = {
+      locations: {
+        new: {
+          nameLabel: "Name",
+          propertyLabel: "Property",
+          locationTypeLabel: "Location Type",
+          areaLabel: "Area",
+          statusLabel: "Status",
+          selectProperty: "Select Property",
         },
-        areaType: "Area Type",
+        types: {
+          pasture: "Pasture",
+        },
         areaTypes: {
-          [AreaType.HECTARES]: "Hectares",
+          hectares: "Hectares",
+        },
+        table: {
+          active: "Active",
+          inactive: "Inactive",
+        },
+      },
+    };
+    render(<LocationForm {...defaultProps} translation={translationWithoutEdit} isEdit={true} />);
+    expect(screen.getByText("Name")).toBeInTheDocument();
+  });
+
+  it("should call onFieldChange when property is selected", async () => {
+    const user = userEvent.setup();
+    const onFieldChange = vi.fn();
+    const properties: Property[] = [
+      {
+        id: "property-1",
+        name: "Property 1",
+        code: "PROP-1",
+        companyId: "company-1",
+        area: { value: 100, type: AreaType.HECTARES },
+        status: "active" as const,
+        createdAt: "2024-01-01T00:00:00Z",
+        street: "Main St",
+        number: "123",
+        complement: "",
+        neighborhood: "Downtown",
+        city: "City",
+        state: "ST",
+        zipCode: "12345-678",
+      },
+    ];
+    render(
+      <LocationForm {...defaultProps} onFieldChange={onFieldChange} properties={properties} />
+    );
+    const propertySelect = screen.getByRole("combobox", { name: /Property/i });
+    await user.selectOptions(propertySelect, "property-1");
+    expect(onFieldChange).toHaveBeenCalledWith("propertyId", "property-1");
+  });
+
+  it("should call onFieldChange when locationType is selected", async () => {
+    const user = userEvent.setup();
+    const onFieldChange = vi.fn();
+    const translationWithTypes = {
+      locations: {
+        new: {
+          nameLabel: "Name",
+          propertyLabel: "Property",
+          locationTypeLabel: "Location Type",
+          areaLabel: "Area",
+          statusLabel: "Status",
+          selectProperty: "Select Property",
+        },
+        types: {
+          pasture: "Pasture",
+          barn: "Barn",
+        },
+        areaTypes: {
+          hectares: "Hectares",
+        },
+        table: {
+          active: "Active",
+          inactive: "Inactive",
         },
       },
     };
     render(
-      <TestWrapper>
-        <LocationForm {...defaultProps} translation={translationWithEdit} isEdit={true} />
-      </TestWrapper>
+      <LocationForm
+        {...defaultProps}
+        onFieldChange={onFieldChange}
+        translation={translationWithTypes}
+      />
     );
-    expect(screen.getByText("Edit Property")).toBeInTheDocument();
+    const locationTypeSelect = screen.getByRole("combobox", { name: /Location Type/i });
+    await user.selectOptions(locationTypeSelect, LocationType.BARN);
+    expect(onFieldChange).toHaveBeenCalledWith("locationType", LocationType.BARN);
   });
 
-  it("should use new translations when isEdit is false", () => {
-    const { container } = render(
-      <TestWrapper>
-        <LocationForm {...defaultProps} isEdit={false} />
-      </TestWrapper>
+  it("should call onFieldChange when areaType is selected", async () => {
+    const user = userEvent.setup();
+    const onFieldChange = vi.fn();
+    const translationWithAreaTypes = {
+      locations: {
+        new: {
+          nameLabel: "Name",
+          propertyLabel: "Property",
+          locationTypeLabel: "Location Type",
+          areaLabel: "Area",
+          statusLabel: "Status",
+          selectProperty: "Select Property",
+        },
+        types: {
+          pasture: "Pasture",
+        },
+        areaTypes: {
+          hectares: "Hectares",
+          square_meters: "Square Meters",
+        },
+        table: {
+          active: "Active",
+          inactive: "Inactive",
+        },
+      },
+    };
+    render(
+      <LocationForm
+        {...defaultProps}
+        onFieldChange={onFieldChange}
+        translation={translationWithAreaTypes}
+      />
     );
-    // Check that form renders with new translations
-    expect(container).toBeTruthy();
-    expect(screen.getByText("Property")).toBeInTheDocument();
+    const areaTypeSelect = screen.getByRole("combobox", { name: /Tipo de Área/i });
+    await user.selectOptions(areaTypeSelect, AreaType.SQUARE_METERS);
+    expect(onFieldChange).toHaveBeenCalledWith("areaType", AreaType.SQUARE_METERS);
   });
 
-  it("should render all location type options", () => {
+  it("should call onFieldChange when status is selected", async () => {
+    const user = userEvent.setup();
+    const onFieldChange = vi.fn();
+    const translationWithStatus = {
+      locations: {
+        new: {
+          nameLabel: "Name",
+          propertyLabel: "Property",
+          locationTypeLabel: "Location Type",
+          areaLabel: "Area",
+          statusLabel: "Status",
+          selectProperty: "Select Property",
+        },
+        types: {
+          pasture: "Pasture",
+        },
+        areaTypes: {
+          hectares: "Hectares",
+        },
+        table: {
+          active: "Active",
+          inactive: "Inactive",
+        },
+      },
+    };
+    render(
+      <LocationForm
+        {...defaultProps}
+        onFieldChange={onFieldChange}
+        translation={translationWithStatus}
+      />
+    );
+    const statusSelect = screen.getByRole("combobox", { name: /Status/i });
+    await user.selectOptions(statusSelect, "inactive");
+    expect(onFieldChange).toHaveBeenCalledWith("status", "inactive");
+  });
+
+  it("should display property error when provided", () => {
+    render(<LocationForm {...defaultProps} errors={{ propertyId: "Property is required" }} />);
+    expect(screen.getByText("Property is required")).toBeInTheDocument();
+  });
+
+  it("should display locationType error when provided", () => {
+    render(
+      <LocationForm {...defaultProps} errors={{ locationType: "Location type is required" }} />
+    );
+    expect(screen.getByText("Location type is required")).toBeInTheDocument();
+  });
+
+  it("should display areaType error when provided", () => {
+    render(<LocationForm {...defaultProps} errors={{ areaType: "Area type is required" }} />);
+    expect(screen.getByText("Area type is required")).toBeInTheDocument();
+  });
+
+  it("should display all location type options", () => {
     const translationWithAllTypes = {
       locations: {
         new: {
           nameLabel: "Name",
           propertyLabel: "Property",
-          selectProperty: "Select property",
           locationTypeLabel: "Location Type",
           areaLabel: "Area",
           statusLabel: "Status",
+          selectProperty: "Select Property",
+        },
+        types: {
+          pasture: "Pasture",
+          barn: "Barn",
+          storage: "Storage",
+          corral: "Corral",
+          silo: "Silo",
+          field: "Field",
+          paddock: "Paddock",
+          feedlot: "Feedlot",
+          semi_feedlot: "Semi Feedlot",
+          milking_parlor: "Milking Parlor",
+          warehouse: "Warehouse",
+          garage: "Garage",
+          office: "Office",
+          residence: "Residence",
+          other: "Other",
+        },
+        areaTypes: {
+          hectares: "Hectares",
         },
         table: {
-          code: "Code",
           active: "Active",
           inactive: "Inactive",
         },
-        types: {
-          [LocationType.PASTURE]: "Pasture",
-          [LocationType.BARN]: "Barn",
-          [LocationType.STORAGE]: "Storage",
-          [LocationType.CORRAL]: "Corral",
-          [LocationType.SILO]: "Silo",
-          [LocationType.FIELD]: "Field",
-          [LocationType.PADDOCK]: "Paddock",
-          [LocationType.FEEDLOT]: "Feedlot",
-          [LocationType.SEMI_FEEDLOT]: "Semi Feedlot",
-          [LocationType.MILKING_PARLOR]: "Milking Parlor",
-          [LocationType.WAREHOUSE]: "Warehouse",
-          [LocationType.GARAGE]: "Garage",
-          [LocationType.OFFICE]: "Office",
-          [LocationType.RESIDENCE]: "Residence",
-          [LocationType.OTHER]: "Other",
-        },
-        areaType: "Area Type",
-        areaTypes: {
-          [AreaType.HECTARES]: "Hectares",
-          [AreaType.SQUARE_METERS]: "Square Meters",
-          [AreaType.SQUARE_FEET]: "Square Feet",
-          [AreaType.ACRES]: "Acres",
-          [AreaType.SQUARE_KILOMETERS]: "Square Kilometers",
-          [AreaType.SQUARE_MILES]: "Square Miles",
-        },
       },
     };
-    const { container } = render(
-      <TestWrapper>
-        <LocationForm {...defaultProps} translation={translationWithAllTypes} />
-      </TestWrapper>
-    );
-    const selects = container.querySelectorAll("select");
-    expect(selects.length).toBeGreaterThan(0);
+    render(<LocationForm {...defaultProps} translation={translationWithAllTypes} />);
+    const locationTypeSelect = screen.getByRole("combobox", { name: /Location Type/i });
+    expect(locationTypeSelect).toBeInTheDocument();
+    // All options should be present
+    expect(screen.getByText("Pasture")).toBeInTheDocument();
   });
 
-  it("should render all area type options", () => {
+  it("should display all area type options", () => {
     const translationWithAllAreaTypes = {
       locations: {
         new: {
           nameLabel: "Name",
           propertyLabel: "Property",
-          selectProperty: "Select property",
           locationTypeLabel: "Location Type",
           areaLabel: "Area",
           statusLabel: "Status",
+          selectProperty: "Select Property",
+        },
+        types: {
+          pasture: "Pasture",
+        },
+        areaTypes: {
+          hectares: "Hectares",
+          square_meters: "Square Meters",
+          square_feet: "Square Feet",
+          acres: "Acres",
+          square_kilometers: "Square Kilometers",
+          square_miles: "Square Miles",
         },
         table: {
-          code: "Code",
           active: "Active",
           inactive: "Inactive",
         },
-        types: {
-          [LocationType.PASTURE]: "Pasture",
-        },
-        areaType: "Area Type",
-        areaTypes: {
-          [AreaType.HECTARES]: "Hectares",
-          [AreaType.SQUARE_METERS]: "Square Meters",
-          [AreaType.SQUARE_FEET]: "Square Feet",
-          [AreaType.ACRES]: "Acres",
-          [AreaType.SQUARE_KILOMETERS]: "Square Kilometers",
-          [AreaType.SQUARE_MILES]: "Square Miles",
-        },
       },
     };
-    const { container } = render(
-      <TestWrapper>
-        <LocationForm {...defaultProps} translation={translationWithAllAreaTypes} />
-      </TestWrapper>
+    render(<LocationForm {...defaultProps} translation={translationWithAllAreaTypes} />);
+    const areaTypeSelect = screen.getByRole("combobox", { name: /Tipo de Área/i });
+    expect(areaTypeSelect).toBeInTheDocument();
+  });
+
+  it("should display properties in select", () => {
+    const properties = [
+      {
+        id: "property-1",
+        name: "Property 1",
+        code: "PROP-1",
+        companyId: "company-1",
+        area: { value: 100, type: AreaType.HECTARES },
+        status: "active" as const,
+        createdAt: "2024-01-01T00:00:00Z",
+        street: "Main St",
+        number: "123",
+        complement: "",
+        neighborhood: "Downtown",
+        city: "City",
+        state: "ST",
+        zipCode: "12345-678",
+      },
+      {
+        id: "property-2",
+        name: "Property 2",
+        code: "PROP-2",
+        companyId: "company-1",
+        area: { value: 200, type: AreaType.HECTARES },
+        status: "active" as const,
+        createdAt: "2024-01-01T00:00:00Z",
+        street: "Main St",
+        number: "456",
+        complement: "",
+        neighborhood: "Downtown",
+        city: "City",
+        state: "ST",
+        zipCode: "12345-678",
+      },
+    ];
+    render(<LocationForm {...defaultProps} properties={properties} />);
+    expect(screen.getByText("Property 1")).toBeInTheDocument();
+    expect(screen.getByText("Property 2")).toBeInTheDocument();
+  });
+
+  it("should display form data values", () => {
+    const formDataWithValues = {
+      code: "LOC001",
+      name: "Location 1",
+      locationType: LocationType.BARN,
+      areaValue: "100",
+      areaType: AreaType.SQUARE_METERS,
+      status: "inactive" as const,
+      propertyId: "property-1",
+    };
+    const properties: Property[] = [
+      {
+        id: "property-1",
+        name: "Property 1",
+        code: "PROP-1",
+        companyId: "company-1",
+        area: { value: 100, type: AreaType.HECTARES },
+        status: "active" as const,
+        createdAt: "2024-01-01T00:00:00Z",
+        street: "Main St",
+        number: "123",
+        complement: "",
+        neighborhood: "Downtown",
+        city: "City",
+        state: "ST",
+        zipCode: "12345-678",
+      },
+    ];
+    render(
+      <LocationForm {...defaultProps} formData={formDataWithValues} properties={properties} />
     );
-    const selects = container.querySelectorAll("select");
-    expect(selects.length).toBeGreaterThan(0);
+    expect(screen.getByDisplayValue("LOC001")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Location 1")).toBeInTheDocument();
+  });
+
+  it("should disable selects when isSubmitting is true", () => {
+    const properties: Property[] = [
+      {
+        id: "property-1",
+        name: "Property 1",
+        code: "PROP-1",
+        companyId: "company-1",
+        area: { value: 100, type: AreaType.HECTARES },
+        status: "active" as const,
+        createdAt: "2024-01-01T00:00:00Z",
+        street: "Main St",
+        number: "123",
+        complement: "",
+        neighborhood: "Downtown",
+        city: "City",
+        state: "ST",
+        zipCode: "12345-678",
+      },
+    ];
+    render(<LocationForm {...defaultProps} isSubmitting={true} properties={properties} />);
+    const propertySelect = screen.getByRole("combobox", { name: /Property/i });
+    expect(propertySelect).toBeDisabled();
   });
 });

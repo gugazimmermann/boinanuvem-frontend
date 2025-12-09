@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   getAverageDailyGain,
   getAverageDailyCarcassGain,
@@ -24,16 +24,16 @@ interface ProductionIndexesProps {
 export function ProductionIndexes({ propertyId, period }: ProductionIndexesProps) {
   const t = useTranslation();
 
-  const getDefaultPeriod = () => {
+  const getDefaultPeriod = useMemo(() => {
     const today = new Date();
     const oneYearAgo = subYears(today, 1);
     return {
       startDate: format(oneYearAgo, "yyyy-MM-dd"),
       endDate: format(today, "yyyy-MM-dd"),
     };
-  };
+  }, []);
 
-  const selectedPeriod = period || getDefaultPeriod();
+  const selectedPeriod = period || getDefaultPeriod;
 
   const adgResults = useMemo(
     () => getAverageDailyGain(propertyId, selectedPeriod),
@@ -57,15 +57,41 @@ export function ProductionIndexes({ propertyId, period }: ProductionIndexesProps
   );
 
   const averageAdc = useMemo(() => {
-    if (adcResults.length === 0) return 0;
+    if (!adcResults || adcResults.length === 0) return 0;
     const sum = adcResults.reduce((acc, result) => acc + result.adc, 0);
     return sum / adcResults.length;
   }, [adcResults]);
 
-  const daysOnFeed = useMemo(
-    () => getDaysOnFeed(propertyId, selectedPeriod),
-    [propertyId, selectedPeriod]
-  );
+  const [daysOnFeed, setDaysOnFeed] = useState<Awaited<ReturnType<typeof getDaysOnFeed>>>([]);
+  const [arrobaProduction, setArrobaProduction] = useState<Awaited<
+    ReturnType<typeof getArrobaProductionPerHectare>
+  > | null>(null);
+  const [kgNitrogenPerAU, setKgNitrogenPerAU] = useState<Awaited<
+    ReturnType<typeof getKgNitrogenPerAU>
+  > | null>(null);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [daysOnFeedResult, arrobaProductionResult, kgNitrogenPerAUResult] = await Promise.all(
+          [
+            getDaysOnFeed(propertyId, selectedPeriod),
+            getArrobaProductionPerHectare(propertyId, selectedPeriod),
+            getKgNitrogenPerAU(propertyId, selectedPeriod),
+          ]
+        );
+        setDaysOnFeed(daysOnFeedResult);
+        setArrobaProduction(arrobaProductionResult);
+        setKgNitrogenPerAU(kgNitrogenPerAUResult);
+      } catch (error) {
+        console.error("Failed to load production indexes:", error);
+        setDaysOnFeed([]);
+        setArrobaProduction(null);
+        setKgNitrogenPerAU(null);
+      }
+    };
+    loadData();
+  }, [propertyId, selectedPeriod]);
 
   const averageDaysOnFeed = useMemo(() => {
     if (daysOnFeed.length === 0) return 0;
@@ -75,16 +101,6 @@ export function ProductionIndexes({ propertyId, period }: ProductionIndexesProps
 
   const slaughterAge = useMemo(
     () => getSlaughterAge(propertyId, selectedPeriod),
-    [propertyId, selectedPeriod]
-  );
-
-  const arrobaProduction = useMemo(
-    () => getArrobaProductionPerHectare(propertyId, selectedPeriod),
-    [propertyId, selectedPeriod]
-  );
-
-  const kgNitrogenPerAU = useMemo(
-    () => getKgNitrogenPerAU(propertyId, selectedPeriod),
     [propertyId, selectedPeriod]
   );
 
@@ -364,7 +380,7 @@ export function ProductionIndexes({ propertyId, period }: ProductionIndexesProps
           </div>
           <div className="mb-3">
             <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {arrobaProduction.arrobasPerHectare.toFixed(2)}{" "}
+              {arrobaProduction ? arrobaProduction.arrobasPerHectare.toFixed(2) : "0.00"}{" "}
               <span className="text-sm font-normal text-gray-500 dark:text-gray-400">@/ha</span>
             </p>
           </div>
@@ -374,7 +390,7 @@ export function ProductionIndexes({ propertyId, period }: ProductionIndexesProps
                 {t.productionIndexes.arrobaProductionPerHectare.totalArrobas}:
               </span>
               <span className="font-semibold text-gray-900 dark:text-gray-100">
-                {arrobaProduction.totalArrobas.toFixed(2)} @
+                {arrobaProduction ? arrobaProduction.totalArrobas.toFixed(2) : "0.00"} @
               </span>
             </div>
             <div className="flex justify-between text-xs">
@@ -382,7 +398,7 @@ export function ProductionIndexes({ propertyId, period }: ProductionIndexesProps
                 {t.productionIndexes.arrobaProductionPerHectare.areaInHectares}:
               </span>
               <span className="font-semibold text-gray-900 dark:text-gray-100">
-                {arrobaProduction.areaInHectares.toFixed(2)} ha
+                {arrobaProduction ? arrobaProduction.areaInHectares.toFixed(2) : "0.00"} ha
               </span>
             </div>
           </div>
@@ -413,7 +429,7 @@ export function ProductionIndexes({ propertyId, period }: ProductionIndexesProps
           </div>
           <div className="mb-3">
             <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {kgNitrogenPerAU.kgNitrogenPerAU.toFixed(2)}{" "}
+              {kgNitrogenPerAU ? kgNitrogenPerAU.kgNitrogenPerAU.toFixed(2) : "0.00"}{" "}
               <span className="text-sm font-normal text-gray-500 dark:text-gray-400">kg N/AU</span>
             </p>
           </div>
@@ -423,7 +439,7 @@ export function ProductionIndexes({ propertyId, period }: ProductionIndexesProps
                 {t.productionIndexes.kgNitrogenPerAU.totalNitrogen}:
               </span>
               <span className="font-semibold text-gray-900 dark:text-gray-100">
-                {kgNitrogenPerAU.totalNitrogen.toFixed(2)} kg
+                {kgNitrogenPerAU ? kgNitrogenPerAU.totalNitrogen.toFixed(2) : "0.00"} kg
               </span>
             </div>
             <div className="flex justify-between text-xs">
@@ -431,7 +447,7 @@ export function ProductionIndexes({ propertyId, period }: ProductionIndexesProps
                 {t.productionIndexes.kgNitrogenPerAU.animalUnits}:
               </span>
               <span className="font-semibold text-gray-900 dark:text-gray-100">
-                {kgNitrogenPerAU.animalUnits.toFixed(2)} AU
+                {kgNitrogenPerAU ? kgNitrogenPerAU.animalUnits.toFixed(2) : "0.00"} AU
               </span>
             </div>
           </div>

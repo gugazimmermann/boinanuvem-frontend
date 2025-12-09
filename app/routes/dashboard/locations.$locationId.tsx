@@ -29,7 +29,7 @@ import {
   getInventoryViewRoute,
   getLocationInventoryMovementNewRoute,
 } from "~/routes.config";
-import { getLocationById } from "~/services/locations.service";
+import { getLocationById, getLocations } from "~/services/locations.service";
 import {
   AreaType,
   InventoryMovementType,
@@ -38,11 +38,15 @@ import {
   type Animal,
   type InventoryMovement,
   type Location,
+  type Property,
+  type Employee,
+  type ServiceProvider,
 } from "~/types";
-import { getPropertyById } from "~/services/properties.service";
+import { getProperties } from "~/services/properties.service";
 import { getLocationMovementsByLocationId } from "~/services/location-movements.service";
-import { getEmployeeById } from "~/services/employees.service";
-import { getServiceProviderById } from "~/services/service-providers.service";
+import { getEmployees } from "~/services/employees.service";
+import { getServiceProviders } from "~/services/service-providers.service";
+import { useAlert } from "~/hooks/use-alert";
 import { format, differenceInDays } from "date-fns";
 import {
   getAnimalsByLastMovementLocation,
@@ -194,14 +198,18 @@ function matchesInventoryMovementSearch(
   return consumptionText.includes(searchLower);
 }
 
-function matchesLocationNames(movement: MovementUnion, searchLower: string): boolean {
+function matchesLocationNames(
+  movement: MovementUnion,
+  searchLower: string,
+  locations: Location[]
+): boolean {
   const locationIds =
     movement.movementType === "location"
       ? (movement as LocationMovement).locationIds
       : [(movement as AnimalMovement).locationId];
   const locationNames = locationIds
     .map((id) => {
-      const loc = getLocationById(id);
+      const loc = locations.find((l) => l.id === id);
       return loc ? `${loc.name} ${loc.code}`.toLowerCase() : id.toLowerCase();
     })
     .join(" ");
@@ -270,7 +278,10 @@ function matchesMovementSearch(
         };
       };
     };
-  }
+  },
+  locations: Location[],
+  employees: Employee[],
+  serviceProviders: ServiceProvider[]
 ): boolean {
   if (checkMovementTypeSpecificSearch(movement, searchLower, t)) {
     return true;
@@ -279,7 +290,10 @@ function matchesMovementSearch(
   const dateText = formatDate(movement.date);
   if (dateText.toLowerCase().includes(searchLower)) return true;
 
-  if (movement.movementType !== "inventory" && matchesLocationNames(movement, searchLower)) {
+  if (
+    movement.movementType !== "inventory" &&
+    matchesLocationNames(movement, searchLower, locations)
+  ) {
     return true;
   }
 
@@ -290,22 +304,22 @@ function matchesMovementSearch(
     return true;
   }
 
-  const employeeNames = getEmployeeNamesForMovement(movement);
+  const employeeNames = getEmployeeNamesForMovement(movement, employees);
   if (employeeNames?.includes(searchLower)) return true;
 
-  const providerNames = getProviderNamesForMovement(movement);
+  const providerNames = getProviderNamesForMovement(movement, serviceProviders);
   if (providerNames?.includes(searchLower)) return true;
 
   return false;
 }
 
-function getEmployeeNamesForMovement(movement: MovementUnion): string {
+function getEmployeeNamesForMovement(movement: MovementUnion, employees: Employee[]): string {
   if (movement.movementType === "inventory") {
     const inventoryMovement = movement as InventoryMovement;
     if (!inventoryMovement.employeeIds) return "";
     return inventoryMovement.employeeIds
       .map((id) => {
-        const employee = getEmployeeById(id);
+        const employee = employees.find((e) => e.id === id);
         return employee ? employee.name.toLowerCase() : "";
       })
       .filter((name) => name !== "")
@@ -314,20 +328,23 @@ function getEmployeeNamesForMovement(movement: MovementUnion): string {
   if (!movement.employeeIds) return "";
   return movement.employeeIds
     .map((id) => {
-      const employee = getEmployeeById(id);
+      const employee = employees.find((e) => e.id === id);
       return employee ? employee.name.toLowerCase() : "";
     })
     .filter((name) => name !== "")
     .join(" ");
 }
 
-function getProviderNamesForMovement(movement: MovementUnion): string {
+function getProviderNamesForMovement(
+  movement: MovementUnion,
+  serviceProviders: ServiceProvider[]
+): string {
   if (movement.movementType === "inventory") {
     const inventoryMovement = movement as InventoryMovement;
     if (!inventoryMovement.serviceProviderIds) return "";
     return inventoryMovement.serviceProviderIds
       .map((id) => {
-        const provider = getServiceProviderById(id);
+        const provider = serviceProviders.find((sp) => sp.id === id);
         return provider ? provider.name.toLowerCase() : "";
       })
       .filter((name) => name !== "")
@@ -336,12 +353,36 @@ function getProviderNamesForMovement(movement: MovementUnion): string {
   if (!movement.serviceProviderIds) return "";
   return movement.serviceProviderIds
     .map((id) => {
-      const provider = getServiceProviderById(id);
+      const provider = serviceProviders.find((sp) => sp.id === id);
       return provider ? provider.name.toLowerCase() : "";
     })
     .filter((name) => name !== "")
     .join(" ");
 }
+
+function getEmployeeNames(employeeIds: string[] | undefined, employeesList: Employee[]): string[] {
+  if (!employeeIds) return [];
+  return employeeIds
+    .map((id) => {
+      const employee = employeesList.find((e) => e.id === id);
+      return employee ? employee.name : null;
+    })
+    .filter((name): name is string => name !== null);
+}
+
+function getProviderNames(
+  providerIds: string[] | undefined,
+  providersList: ServiceProvider[]
+): string[] {
+  if (!providerIds) return [];
+  return providerIds
+    .map((id) => {
+      const provider = providersList.find((sp) => sp.id === id);
+      return provider ? provider.name : null;
+    })
+    .filter((name): name is string => name !== null);
+}
+
 import {
   getLocationObservationsByLocationId,
   addLocationObservation,
@@ -367,24 +408,24 @@ type UnifiedMovement =
 
 type MovementSortValue = string | number | undefined;
 
-function getMovementLocationSortValue(movement: UnifiedMovement): string {
+function getMovementLocationSortValue(movement: UnifiedMovement, locations: Location[]): string {
   if (movement.movementType === "inventory") {
     const locationId = (movement as InventoryMovement).locationId;
-    const loc = locationId ? getLocationById(locationId) : null;
+    const loc = locationId ? locations.find((l) => l.id === locationId) : null;
     return loc ? `${loc.name} (${loc.code})` : locationId || "";
   }
   if (movement.movementType === "location") {
     const locationIds = (movement as LocationMovement).locationIds;
     const names = locationIds
       .map((id) => {
-        const loc = getLocationById(id);
+        const loc = locations.find((l) => l.id === id);
         return loc ? `${loc.name} (${loc.code})` : id;
       })
       .toSorted((a, b) => a.localeCompare(b));
     return names.join(", ");
   }
   const locationId = (movement as AnimalMovement).locationId;
-  const loc = locationId ? getLocationById(locationId) : null;
+  const loc = locationId ? locations.find((l) => l.id === locationId) : null;
   return loc ? `${loc.name} (${loc.code})` : locationId || "";
 }
 
@@ -399,12 +440,16 @@ function getMovementTypeSortValue(movement: UnifiedMovement): string {
   return item ? `${item.code} - ${item.name}` : "inventory";
 }
 
-function getMovementSortValue(movement: UnifiedMovement, column: string): MovementSortValue {
+function getMovementSortValue(
+  movement: UnifiedMovement,
+  column: string,
+  locations: Location[]
+): MovementSortValue {
   if (column === "date") {
     return new Date(movement.date).getTime();
   }
   if (column === "locations") {
-    return getMovementLocationSortValue(movement);
+    return getMovementLocationSortValue(movement, locations);
   }
   if (column === "type") {
     return getMovementTypeSortValue(movement);
@@ -666,8 +711,56 @@ export default function LocationDetails() {
   const { language } = useLanguage();
   const { canEdit, canRemove, isMainUser } = usePermissions();
   const [searchParams, setSearchParams] = useSearchParams();
-  const location = getLocationById(locationId);
-  const property = location ? getPropertyById(location.propertyId) : undefined;
+  const { showAlert } = useAlert();
+  const [location, setLocation] = useState<Location | null>(null);
+  const [property, setProperty] = useState<Property | null>(null);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [serviceProviders, setServiceProviders] = useState<ServiceProvider[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!locationId) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const [locationData, propertiesData, locationsData, employeesData, serviceProvidersData] =
+          await Promise.all([
+            getLocationById(locationId),
+            getProperties(),
+            getLocations(),
+            getEmployees(),
+            getServiceProviders(),
+          ]);
+        setLocation(locationData);
+        setLocations(locationsData);
+        setEmployees(employeesData);
+        setServiceProviders(serviceProvidersData);
+        const propertyData = propertiesData.find((p) => p.id === locationData.propertyId);
+        if (propertyData) {
+          setProperty(propertyData);
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : t.locations.errors.loadFailed;
+        showAlert(errorMessage, "error");
+        console.error("Failed to load location:", error);
+        setTimeout(() => {
+          navigate(ROUTES.LOCATIONS);
+        }, 2000);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [locationId, navigate, showAlert, t]);
+
+  const locationsMap = useMemo(() => new Map(locations.map((l) => [l.id, l])), [locations]);
+  const getLocationByIdSync = (id: string) => locationsMap.get(id);
 
   const tabParam = searchParams.get("tab");
   const [activeTab, setActiveTab] = useState<LocationTab>(getActiveTabFromParam(tabParam));
@@ -716,7 +809,6 @@ export default function LocationDetails() {
 
   useEffect(() => {
     if (location) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Need to sync observations with location changes
       setObservations(getLocationObservationsByLocationId(location.id));
     }
   }, [location]);
@@ -769,6 +861,16 @@ export default function LocationDetails() {
       t,
     ]
   );
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+          <p className="text-gray-600 dark:text-gray-400 mb-4">{t.common.loading}</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!location) {
     return (
@@ -1749,6 +1851,11 @@ export default function LocationDetails() {
         location &&
         property &&
         (() => {
+          const getLocationNameById = (id: string, locationsList: Location[]) => {
+            const loc = locationsList.find((l) => l.id === id);
+            return loc ? `${loc.name} (${loc.code})` : id;
+          };
+
           const locationMovements = getLocationMovementsByLocationId(location.id);
           const animalMovements = getAnimalMovementsByLocationId(location.id);
           const inventoryMovements = getMovementsByLocationId(location.id).filter(
@@ -1763,7 +1870,15 @@ export default function LocationDetails() {
 
           const filteredMovements = movements.filter((movement) => {
             if (!searchValue) return true;
-            return matchesMovementSearch(movement, searchValue.toLowerCase(), formatDate, t);
+            return matchesMovementSearch(
+              movement,
+              searchValue.toLowerCase(),
+              formatDate,
+              t,
+              locations,
+              employees,
+              serviceProviders
+            );
           });
 
           const sortedMovements = filteredMovements.toSorted((a, b) => {
@@ -1771,8 +1886,8 @@ export default function LocationDetails() {
               return new Date(b.date).getTime() - new Date(a.date).getTime();
             }
 
-            const aValue = getMovementSortValue(a, sortState.column);
-            const bValue = getMovementSortValue(b, sortState.column);
+            const aValue = getMovementSortValue(a, sortState.column, locations);
+            const bValue = getMovementSortValue(b, sortState.column, locations);
 
             if (aValue == null && bValue == null) return 0;
             if (aValue == null) return 1;
@@ -1848,8 +1963,8 @@ export default function LocationDetails() {
                 if (row.movementType === "inventory") {
                   const inventoryMovement = row as InventoryMovement;
                   const loc = inventoryMovement.locationId
-                    ? getLocationById(inventoryMovement.locationId)
-                    : null;
+                    ? getLocationByIdSync(inventoryMovement.locationId)
+                    : undefined;
                   return (
                     <span className="text-gray-700 dark:text-gray-300">
                       {loc ? `${loc.name} (${loc.code})` : "-"}
@@ -1861,10 +1976,7 @@ export default function LocationDetails() {
                     ? (row as LocationMovement).locationIds
                     : [(row as AnimalMovement).locationId];
                 const locationNames = locationIds
-                  .map((id) => {
-                    const loc = getLocationById(id);
-                    return loc ? `${loc.name} (${loc.code})` : id;
-                  })
+                  .map((id) => getLocationNameById(id, locations))
                   .join(", ");
                 return (
                   <span className="text-gray-700 dark:text-gray-300">{locationNames || "-"}</span>
@@ -1904,41 +2016,14 @@ export default function LocationDetails() {
 
                 if (row.movementType === "inventory") {
                   const inventoryMovement = row as InventoryMovement;
-                  employeeNames = inventoryMovement.employeeIds
-                    ? inventoryMovement.employeeIds
-                        .map((id) => {
-                          const employee = getEmployeeById(id);
-                          return employee ? employee.name : null;
-                        })
-                        .filter((name): name is string => name !== null)
-                    : [];
-
-                  providerNames = inventoryMovement.serviceProviderIds
-                    ? inventoryMovement.serviceProviderIds
-                        .map((id) => {
-                          const provider = getServiceProviderById(id);
-                          return provider ? provider.name : null;
-                        })
-                        .filter((name): name is string => name !== null)
-                    : [];
+                  employeeNames = getEmployeeNames(inventoryMovement.employeeIds, employees);
+                  providerNames = getProviderNames(
+                    inventoryMovement.serviceProviderIds,
+                    serviceProviders
+                  );
                 } else {
-                  employeeNames = row.employeeIds
-                    ? row.employeeIds
-                        .map((id) => {
-                          const employee = getEmployeeById(id);
-                          return employee ? employee.name : null;
-                        })
-                        .filter((name): name is string => name !== null)
-                    : [];
-
-                  providerNames = row.serviceProviderIds
-                    ? row.serviceProviderIds
-                        .map((id) => {
-                          const provider = getServiceProviderById(id);
-                          return provider ? provider.name : null;
-                        })
-                        .filter((name): name is string => name !== null)
-                    : [];
+                  employeeNames = getEmployeeNames(row.employeeIds, employees);
+                  providerNames = getProviderNames(row.serviceProviderIds, serviceProviders);
                 }
 
                 const allResponsibles = [...employeeNames, ...providerNames];

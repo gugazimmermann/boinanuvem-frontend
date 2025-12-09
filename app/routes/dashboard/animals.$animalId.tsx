@@ -32,7 +32,7 @@ import {
 } from "~/routes.config";
 import { createViewMeta } from "~/utils/route-helpers";
 import { getAnimalById } from "~/services/animals.service";
-import { getPropertyById } from "~/services/properties.service";
+import { getPropertyById, getProperties } from "~/services/properties.service";
 import {
   getBirthByAnimalId,
   getBirthsByFatherId,
@@ -43,8 +43,8 @@ import { getAcquisitionByAnimalId } from "~/services/acquisitions.service";
 import { getWeighingsByAnimalId } from "~/services/weighings.service";
 import { getSanitaryControlsByAnimalId } from "~/services/sanitary-controls.service";
 import { getInventoryItemById } from "~/services/inventory.service";
-import { getEmployeeById } from "~/services/employees.service";
-import { getServiceProviderById } from "~/services/service-providers.service";
+import { getEmployeeById, getEmployees } from "~/services/employees.service";
+import { getServiceProviderById, getServiceProviders } from "~/services/service-providers.service";
 import {
   getAnimalObservationsByAnimalId,
   addAnimalObservation,
@@ -55,9 +55,9 @@ import {
   deleteBreeding,
 } from "~/services/breedings.service";
 import { getAnimalMovementsByAnimalId } from "~/services/animal-movements.service";
-import { getLocationById } from "~/services/locations.service";
+import { getLocationById, getLocations } from "~/services/locations.service";
 import { getSalesByAnimalId } from "~/services/sales.service";
-import { getBuyerById } from "~/services/buyers.service";
+import { getBuyerById, getBuyers } from "~/services/buyers.service";
 import { calculateAnimalProfitability } from "~/utils/profitability";
 import type { Breeding, Birth, BirthPurity, Weighing } from "~/types";
 import type { AnimalObservation } from "~/types/animal-observation";
@@ -609,11 +609,12 @@ type AnimalDashboardTabProps = Readonly<{
   confirmedBreedings: Breeding[];
   pendingBreedings: Breeding[];
   averageCalvingInterval: number | null;
-  currentLocation: ReturnType<typeof getLocationById>;
-  currentProperty: ReturnType<typeof getPropertyById>;
+  currentLocation: Awaited<ReturnType<typeof getLocationById>> | undefined;
+  currentProperty: Awaited<ReturnType<typeof getPropertyById>> | undefined;
   animalMovements: ReturnType<typeof getAnimalMovementsByAnimalId>;
+  locationsMap: Map<string, Awaited<ReturnType<typeof getLocationById>>>;
   daysInCurrentLocation: number | null;
-  animalCostData: ReturnType<typeof getAnimalTotalCost> | null;
+  animalCostData: Awaited<ReturnType<typeof getAnimalTotalCost>> | null;
   totalCost: number;
   costPerKg: number;
   weighings: Weighing[];
@@ -652,6 +653,7 @@ function AnimalDashboardTab(props: AnimalDashboardTabProps) {
     currentLocation,
     currentProperty,
     animalMovements,
+    locationsMap,
     daysInCurrentLocation,
     animalCostData,
     totalCost,
@@ -1216,7 +1218,7 @@ function AnimalDashboardTab(props: AnimalDashboardTabProps) {
               </h3>
               <div className="space-y-2">
                 {recentMovementsList.map((movement) => {
-                  const location = getLocationById(movement.locationId);
+                  const location = locationsMap.get(movement.locationId);
                   return (
                     <div
                       key={movement.id}
@@ -1328,7 +1330,94 @@ export default function AnimalDetails() {
     variant: "success" | "error";
   } | null>(null);
   const [breedingsKey, setBreedingsKey] = useState(0);
+  const [employeesMap, setEmployeesMap] = useState<
+    Map<string, Awaited<ReturnType<typeof getEmployeeById>>>
+  >(new Map());
+  const [serviceProvidersMap, setServiceProvidersMap] = useState<
+    Map<string, Awaited<ReturnType<typeof getServiceProviderById>>>
+  >(new Map());
+  const [buyersMap, setBuyersMap] = useState<Map<string, Awaited<ReturnType<typeof getBuyerById>>>>(
+    new Map()
+  );
+  const [locationsMap, setLocationsMap] = useState<
+    Map<string, Awaited<ReturnType<typeof getLocationById>>>
+  >(new Map());
+  const [propertiesMap, setPropertiesMap] = useState<
+    Map<string, Awaited<ReturnType<typeof getPropertyById>>>
+  >(new Map());
+  const [salesProfitability, setSalesProfitability] = useState<
+    Map<string, Awaited<ReturnType<typeof calculateAnimalProfitability>>>
+  >(new Map());
   const itemsPerPage = 10;
+
+  useEffect(() => {
+    const loadEntities = async () => {
+      try {
+        const [employeesData, serviceProvidersData, buyersData, locationsData, propertiesData] =
+          await Promise.all([
+            getEmployees(),
+            getServiceProviders(),
+            getBuyers(),
+            getLocations(),
+            getProperties(),
+          ]);
+        setEmployeesMap(new Map(employeesData.map((e) => [e.id, e])));
+        setServiceProvidersMap(new Map(serviceProvidersData.map((sp) => [sp.id, sp])));
+        setBuyersMap(new Map(buyersData.map((b) => [b.id, b])));
+        setLocationsMap(new Map(locationsData.map((l) => [l.id, l])));
+        setPropertiesMap(new Map(propertiesData.map((p) => [p.id, p])));
+      } catch (error) {
+        console.error("Failed to load entities:", error);
+      }
+    };
+    loadEntities();
+  }, []);
+
+  const calculateSaleProfitability = async (
+    sale: ReturnType<typeof getSalesByAnimalId>[0],
+    animalId: string
+  ) => {
+    const saleItem = sale.saleItems.find((item) => item.animalId === animalId);
+    if (!saleItem) return null;
+    try {
+      const profitability = await calculateAnimalProfitability(
+        animalId,
+        saleItem.price,
+        sale.saleDate,
+        saleItem.weight
+      );
+      return { saleId: sale.id, profitability };
+    } catch (error) {
+      console.error("Failed to calculate profitability:", error);
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    const loadProfitability = async () => {
+      if (!animal) return;
+      const animalSales = getSalesByAnimalId(animal.id);
+
+      const profitabilityPromises = animalSales.map((sale) =>
+        calculateSaleProfitability(sale, animal.id)
+      );
+      const results = await Promise.all(profitabilityPromises);
+      const profitabilityMap = new Map(
+        results
+          .filter(
+            (
+              r
+            ): r is {
+              saleId: string;
+              profitability: Awaited<ReturnType<typeof calculateAnimalProfitability>>;
+            } => r !== null
+          )
+          .map((r) => [r.saleId, r.profitability])
+      );
+      setSalesProfitability(profitabilityMap);
+    };
+    loadProfitability();
+  }, [animal]);
 
   const breedings = useMemo(() => (animal ? getBreedingsByAnimalId(animal.id) : []), [animal]);
 
@@ -1407,13 +1496,42 @@ export default function AnimalDetails() {
     [animalMovements]
   );
   const currentMovement = sortedMovements[0];
-  const currentLocation = currentMovement ? getLocationById(currentMovement.locationId) : null;
-  const getCurrentProperty = () => {
-    if (currentLocation) return getPropertyById(currentLocation.propertyId);
-    if (animal?.propertyId) return getPropertyById(animal.propertyId);
-    return null;
-  };
-  const currentProperty = getCurrentProperty();
+  const [currentLocation, setCurrentLocation] = useState<Awaited<
+    ReturnType<typeof getLocationById>
+  > | null>(null);
+  const [currentProperty, setCurrentProperty] = useState<Awaited<
+    ReturnType<typeof getPropertyById>
+  > | null>(null);
+
+  useEffect(() => {
+    const loadLocationAndProperty = async () => {
+      if (currentMovement) {
+        try {
+          const location = await getLocationById(currentMovement.locationId);
+          setCurrentLocation(location);
+          const property = await getPropertyById(location.propertyId);
+          setCurrentProperty(property);
+        } catch (error) {
+          console.error("Failed to load location:", error);
+          setCurrentLocation(null);
+          setCurrentProperty(null);
+        }
+      } else if (animal?.propertyId) {
+        try {
+          const property = await getPropertyById(animal.propertyId);
+          setCurrentProperty(property);
+          setCurrentLocation(null);
+        } catch (error) {
+          console.error("Failed to load property:", error);
+          setCurrentProperty(null);
+        }
+      } else {
+        setCurrentLocation(null);
+        setCurrentProperty(null);
+      }
+    };
+    loadLocationAndProperty();
+  }, [currentMovement, animal?.propertyId]);
   const daysInCurrentLocation = useMemo(() => {
     if (!currentMovement) return null;
     const today = new Date();
@@ -1421,9 +1539,29 @@ export default function AnimalDetails() {
     return differenceInDays(today, movementDate);
   }, [currentMovement]);
 
-  const animalCostData = useMemo(() => {
-    if (!animal) return null;
-    return getAnimalTotalCost(animal.id, costsStartDate || undefined, costsEndDate || undefined);
+  const [animalCostData, setAnimalCostData] = useState<Awaited<
+    ReturnType<typeof getAnimalTotalCost>
+  > | null>(null);
+
+  useEffect(() => {
+    const loadCostData = async () => {
+      if (!animal) {
+        setAnimalCostData(null);
+        return;
+      }
+      try {
+        const costData = await getAnimalTotalCost(
+          animal.id,
+          costsStartDate || undefined,
+          costsEndDate || undefined
+        );
+        setAnimalCostData(costData);
+      } catch (error) {
+        console.error("Failed to load animal cost data:", error);
+        setAnimalCostData(null);
+      }
+    };
+    loadCostData();
   }, [animal, costsStartDate, costsEndDate]);
   const totalCost = animalCostData?.totalCost || 0;
   const costPerKg = currentWeight > 0 ? totalCost / currentWeight : 0;
@@ -1618,6 +1756,7 @@ export default function AnimalDetails() {
           currentLocation={currentLocation ?? undefined}
           currentProperty={currentProperty ?? undefined}
           animalMovements={animalMovements}
+          locationsMap={locationsMap}
           daysInCurrentLocation={daysInCurrentLocation}
           animalCostData={animalCostData}
           totalCost={totalCost}
@@ -1723,7 +1862,7 @@ export default function AnimalDetails() {
                   <div className="mt-1 flex flex-wrap gap-2">
                     {animal.propertyId ? (
                       (() => {
-                        const property = getPropertyById(animal.propertyId);
+                        const property = propertiesMap.get(animal.propertyId);
                         return property ? (
                           <button
                             type="button"
@@ -2684,16 +2823,14 @@ export default function AnimalDetails() {
               render: (_value, record) => {
                 if (!record) return <span className="text-sm text-gray-400">-</span>;
                 const employees = (record.employeeIds || [])
-                  .map((id: string) => getEmployeeById(id))
+                  .map((id: string) => employeesMap.get(id))
                   .filter(Boolean);
                 const serviceProviders = (record.serviceProviderIds || [])
-                  .map((id: string) => getServiceProviderById(id))
+                  .map((id: string) => serviceProvidersMap.get(id))
                   .filter(Boolean);
                 const allResponsible = [
-                  ...employees.map((e: { name?: string } | null | undefined) => e?.name || ""),
-                  ...serviceProviders.map(
-                    (sp: { name?: string } | null | undefined) => sp?.name || ""
-                  ),
+                  ...employees.map((e) => e?.name || ""),
+                  ...serviceProviders.map((sp) => sp?.name || ""),
                 ].filter(Boolean);
 
                 if (allResponsible.length === 0) {
@@ -2817,230 +2954,225 @@ export default function AnimalDetails() {
 
       {activeTab === "costs" && animal && (
         <div className="space-y-8">
-          {(() => {
-            const animalCostData = getAnimalTotalCost(
-              animal.id,
-              costsStartDate || undefined,
-              costsEndDate || undefined
-            );
+          {animalCostData &&
+            (() => {
+              const allConsumptionDetails = animalCostData.locationBreakdown.flatMap((location) =>
+                location.consumptionDetails.map((detail) => ({
+                  ...detail,
+                  locationId: location.locationId,
+                  locationName: location.locationName,
+                  costPerAnimal:
+                    detail.animalsPresent.length > 0
+                      ? detail.totalCost / detail.animalsPresent.length
+                      : 0,
+                }))
+              );
 
-            const allConsumptionDetails = animalCostData.locationBreakdown.flatMap((location) =>
-              location.consumptionDetails.map((detail) => ({
-                ...detail,
-                locationId: location.locationId,
-                locationName: location.locationName,
-                costPerAnimal:
-                  detail.animalsPresent.length > 0
-                    ? detail.totalCost / detail.animalsPresent.length
-                    : 0,
-              }))
-            );
-
-            return (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="h-1 w-12 bg-red-500 rounded-full"></div>
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                    {t.animals.details.costs?.title}
-                  </h2>
-                </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-                  {t.animals.details.costs?.description ||
-                    "Track inventory consumption costs for this animal"}
-                </p>
-
-                <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      {t.locations.costs.startDate}
-                    </label>
-                    <input
-                      type="date"
-                      value={costsStartDate}
-                      onChange={(e) => setCostsStartDate(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200"
-                    />
+              return (
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="h-1 w-12 bg-red-500 rounded-full"></div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                      {t.animals.details.costs?.title}
+                    </h2>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      {t.locations.costs.endDate}
-                    </label>
-                    <input
-                      type="date"
-                      value={costsEndDate}
-                      onChange={(e) => setCostsEndDate(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200"
-                    />
-                  </div>
-                  <div className="flex items-end">
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setCostsStartDate("");
-                        setCostsEndDate("");
-                      }}
-                      disabled={!costsStartDate && !costsEndDate}
-                    >
-                      {t.locations.costs.clearFilter}
-                    </Button>
-                  </div>
-                </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                    {t.animals.details.costs?.description ||
+                      "Track inventory consumption costs for this animal"}
+                  </p>
 
-                <div className="mb-6">
-                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-                    <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                      {t.animals.details.costs?.totalCost}
-                    </p>
-                    <p className="text-2xl font-bold text-blue-900 dark:text-blue-100 mt-1">
-                      {animalCostData.totalCost.toLocaleString(localeForNumber, {
-                        style: "currency",
-                        currency: "BRL",
-                      })}
-                    </p>
-                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                      {animalCostData.consumptionPeriods}{" "}
-                      {t.animals.details.costs?.consumptionPeriods}
-                    </p>
+                  <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {t.locations.costs.startDate}
+                      </label>
+                      <input
+                        type="date"
+                        value={costsStartDate}
+                        onChange={(e) => setCostsStartDate(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {t.locations.costs.endDate}
+                      </label>
+                      <input
+                        type="date"
+                        value={costsEndDate}
+                        onChange={(e) => setCostsEndDate(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200"
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setCostsStartDate("");
+                          setCostsEndDate("");
+                        }}
+                        disabled={!costsStartDate && !costsEndDate}
+                      >
+                        {t.locations.costs.clearFilter}
+                      </Button>
+                    </div>
                   </div>
-                </div>
 
-                {animalCostData.locationBreakdown.length > 0 && (
                   <div className="mb-6">
-                    <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                      {t.animals.details.costs?.costByLocation}
-                    </h3>
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                        <thead className="bg-gray-50 dark:bg-gray-900">
-                          <tr>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              {t.animals.details.costs?.location}
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              {t.animals.details.costs?.totalAllocatedCost}
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              {t.animals.details.costs?.consumptionPeriods}
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              Actions
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                          {animalCostData.locationBreakdown.map((location) => (
-                            <tr key={location.locationId}>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                {location.locationName}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
-                                {location.totalCost.toLocaleString(localeForNumber, {
-                                  style: "currency",
-                                  currency: "BRL",
-                                })}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                {location.consumptionPeriods}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() =>
-                                    navigate(
-                                      getLocationViewRoute(location.locationId) + "?tab=costs"
-                                    )
-                                  }
-                                >
-                                  View Location
-                                </Button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                      <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                        {t.animals.details.costs?.totalCost}
+                      </p>
+                      <p className="text-2xl font-bold text-blue-900 dark:text-blue-100 mt-1">
+                        {animalCostData.totalCost.toLocaleString(localeForNumber, {
+                          style: "currency",
+                          currency: "BRL",
+                        })}
+                      </p>
+                      <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                        {animalCostData.consumptionPeriods}{" "}
+                        {t.animals.details.costs?.consumptionPeriods}
+                      </p>
                     </div>
                   </div>
-                )}
 
-                {allConsumptionDetails.length > 0 && (
-                  <div>
-                    <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                      {t.animals.details.costs?.consumptionHistory}
-                    </h3>
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                        <thead className="bg-gray-50 dark:bg-gray-900">
-                          <tr>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              {t.locations.costs.date}
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              {t.animals.details.costs?.location}
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              {t.animals.details.costs?.itemName}
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              {t.animals.details.costs?.quantity}
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              {t.animals.details.costs?.costPerAnimal}
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              {t.animals.details.costs?.totalAllocatedCost}
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                          {allConsumptionDetails.map((detail) => (
-                            <tr key={detail.movement.id}>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                {format(new Date(detail.movement.date), "PP", {
-                                  locale: dateLocale,
-                                })}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                {detail.locationName}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                {detail.item.name}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                {detail.movement.quantity.toLocaleString(localeForNumber)}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                {detail.costPerAnimal.toLocaleString(localeForNumber, {
-                                  style: "currency",
-                                  currency: "BRL",
-                                })}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
-                                {detail.costPerAnimal.toLocaleString(localeForNumber, {
-                                  style: "currency",
-                                  currency: "BRL",
-                                })}
-                              </td>
+                  {animalCostData.locationBreakdown.length > 0 && (
+                    <div className="mb-6">
+                      <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                        {t.animals.details.costs?.costByLocation}
+                      </h3>
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                          <thead className="bg-gray-50 dark:bg-gray-900">
+                            <tr>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                {t.animals.details.costs?.location}
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                {t.animals.details.costs?.totalAllocatedCost}
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                {t.animals.details.costs?.consumptionPeriods}
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                Actions
+                              </th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                            {animalCostData.locationBreakdown.map((location) => (
+                              <tr key={location.locationId}>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                  {location.locationName}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                                  {location.totalCost.toLocaleString(localeForNumber, {
+                                    style: "currency",
+                                    currency: "BRL",
+                                  })}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                  {location.consumptionPeriods}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() =>
+                                      navigate(
+                                        getLocationViewRoute(location.locationId) + "?tab=costs"
+                                      )
+                                    }
+                                  >
+                                    View Location
+                                  </Button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {animalCostData.locationBreakdown.length === 0 && (
-                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                    <p className="font-medium">{t.animals.details.costs?.noCosts}</p>
-                    <p className="text-sm mt-2">
-                      {t.animals.details.costs?.noCostsDescription ||
-                        "This animal has no inventory consumption costs recorded yet."}
-                    </p>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
+                  {allConsumptionDetails.length > 0 && (
+                    <div>
+                      <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                        {t.animals.details.costs?.consumptionHistory}
+                      </h3>
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                          <thead className="bg-gray-50 dark:bg-gray-900">
+                            <tr>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                {t.locations.costs.date}
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                {t.animals.details.costs?.location}
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                {t.animals.details.costs?.itemName}
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                {t.animals.details.costs?.quantity}
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                {t.animals.details.costs?.costPerAnimal}
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                {t.animals.details.costs?.totalAllocatedCost}
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                            {allConsumptionDetails.map((detail) => (
+                              <tr key={detail.movement.id}>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                  {format(new Date(detail.movement.date), "PP", {
+                                    locale: dateLocale,
+                                  })}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                  {detail.locationName}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                  {detail.item.name}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                  {detail.movement.quantity.toLocaleString(localeForNumber)}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                  {detail.costPerAnimal.toLocaleString(localeForNumber, {
+                                    style: "currency",
+                                    currency: "BRL",
+                                  })}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                                  {detail.costPerAnimal.toLocaleString(localeForNumber, {
+                                    style: "currency",
+                                    currency: "BRL",
+                                  })}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {animalCostData.locationBreakdown.length === 0 && (
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                      <p className="font-medium">{t.animals.details.costs?.noCosts}</p>
+                      <p className="text-sm mt-2">
+                        {t.animals.details.costs?.noCostsDescription ||
+                          "This animal has no inventory consumption costs recorded yet."}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
         </div>
       )}
 
@@ -3053,27 +3185,23 @@ export default function AnimalDetails() {
                 const saleItem = sale.saleItems.find((item) => item.animalId === animal.id);
                 if (!saleItem) return null;
 
-                const profitability = calculateAnimalProfitability(
-                  animal.id,
-                  saleItem.price,
-                  sale.saleDate,
-                  saleItem.weight
-                );
+                const profitability = salesProfitability.get(sale.id);
+                if (!profitability) return null;
 
-                const buyer = getBuyerById(sale.buyerId);
+                const buyer = buyersMap.get(sale.buyerId);
 
                 return {
                   sale,
                   saleItem,
                   profitability,
-                  buyer,
+                  buyer: buyer ?? null,
                 };
               })
               .filter(Boolean) as Array<{
               sale: (typeof animalSales)[0];
               saleItem: (typeof animalSales)[0]["saleItems"][0];
-              profitability: ReturnType<typeof calculateAnimalProfitability>;
-              buyer: ReturnType<typeof getBuyerById>;
+              profitability: Awaited<ReturnType<typeof calculateAnimalProfitability>>;
+              buyer: Awaited<ReturnType<typeof getBuyerById>> | null;
             }>;
 
             return (

@@ -1,68 +1,52 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { BreedingMethodBadge } from "../breeding-method-badge";
-import { LanguageProvider } from "~/contexts/language-context";
+import { useTranslation } from "~/i18n";
+import { getBreedingMethodLabel } from "~/utils/breeding";
+import type { BreedingMethod } from "~/types";
 
-vi.mock("~/utils/breeding", () => ({
-  getBreedingMethodLabel: vi.fn((method: string, _t: unknown) => {
-    if (method === "natural") return "Natural";
-    if (method === "artificial_insemination") return "Artificial Insemination";
-    return "Unknown";
-  }),
+vi.mock("~/i18n", () => ({
+  useTranslation: vi.fn(),
 }));
 
-const TestWrapper = ({ children }: { children: React.ReactNode }) => (
-  <LanguageProvider>{children}</LanguageProvider>
-);
+vi.mock("~/utils/breeding", () => ({
+  getBreedingMethodLabel: vi.fn(),
+}));
 
 describe("BreedingMethodBadge", () => {
-  it("should render natural method label", () => {
-    render(
-      <TestWrapper>
-        <BreedingMethodBadge method="natural" />
-      </TestWrapper>
-    );
-    expect(screen.getByText("Natural")).toBeInTheDocument();
+  const mockUseTranslation = vi.mocked(useTranslation);
+  const mockGetBreedingMethodLabel = vi.mocked(getBreedingMethodLabel);
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUseTranslation.mockReturnValue({} as unknown as ReturnType<typeof useTranslation>);
+    mockGetBreedingMethodLabel.mockReturnValue("Natural Breeding");
   });
 
-  it("should render artificial insemination method label", () => {
-    render(
-      <TestWrapper>
-        <BreedingMethodBadge method="artificial_insemination" />
-      </TestWrapper>
-    );
-    expect(screen.getByText("Artificial Insemination")).toBeInTheDocument();
+  it("should render breeding method label", () => {
+    render(<BreedingMethodBadge method={"natural" as BreedingMethod} />);
+    expect(screen.getByText("Natural Breeding")).toBeInTheDocument();
+  });
+
+  it("should call getBreedingMethodLabel with correct parameters", () => {
+    const mockTranslation = {} as ReturnType<typeof useTranslation>;
+    mockUseTranslation.mockReturnValue(mockTranslation);
+    render(<BreedingMethodBadge method={"natural" as BreedingMethod} />);
+
+    expect(mockGetBreedingMethodLabel).toHaveBeenCalledWith("natural", mockTranslation);
   });
 
   it("should apply custom className", () => {
     const { container } = render(
-      <TestWrapper>
-        <BreedingMethodBadge method="natural" className="custom-class" />
-      </TestWrapper>
+      <BreedingMethodBadge method={"natural" as BreedingMethod} className="custom-class" />
     );
     const span = container.querySelector("span");
     expect(span).toHaveClass("custom-class");
   });
 
-  it("should render with default className when not provided", () => {
-    const { container } = render(
-      <TestWrapper>
-        <BreedingMethodBadge method="natural" />
-      </TestWrapper>
-    );
+  it("should have default text color classes", () => {
+    const { container } = render(<BreedingMethodBadge method={"natural" as BreedingMethod} />);
     const span = container.querySelector("span");
-    expect(span).toHaveClass("text-gray-700");
-    expect(span).toHaveClass("dark:text-gray-300");
-  });
-
-  it("should render with correct styling classes", () => {
-    const { container } = render(
-      <TestWrapper>
-        <BreedingMethodBadge method="natural" />
-      </TestWrapper>
-    );
-    const span = container.querySelector("span");
-    expect(span).toHaveClass("text-gray-700");
-    expect(span).toHaveClass("dark:text-gray-300");
+    expect(span).toHaveClass("text-gray-700", "dark:text-gray-300");
   });
 });

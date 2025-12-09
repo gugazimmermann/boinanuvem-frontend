@@ -75,7 +75,7 @@ export function SidebarItem({
 
   if (subItems && subItems.length > 0) {
     return (
-      <div>
+      <div data-testid={`sidebar-item-${label}`} data-expanded={isExpanded ? "true" : "false"}>
         <button
           type="button"
           className={className}
@@ -117,7 +117,13 @@ export function SidebarItem({
   }
 
   return (
-    <Link to={path} className={className} style={activeStyle} onClick={handleItemClick}>
+    <Link
+      to={path}
+      className={className}
+      style={activeStyle}
+      onClick={handleItemClick}
+      data-testid={`sidebar-item-${label}`}
+    >
       {icon && <span className="text-lg">{icon}</span>}
       <span className="font-medium">{label}</span>
     </Link>

@@ -30,6 +30,7 @@ interface ButtonAsButtonProps
   extends BaseButtonProps,
     Omit<ButtonHTMLAttributes<HTMLButtonElement>, "className" | "children"> {
   href?: never;
+  form?: string;
 }
 
 interface ButtonAsLinkProps

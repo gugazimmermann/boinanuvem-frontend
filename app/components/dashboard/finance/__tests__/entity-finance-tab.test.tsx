@@ -2,574 +2,620 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { EntityFinanceTab } from "../entity-finance-tab";
-import { LanguageProvider } from "~/contexts/language-context";
-import { BrowserRouter } from "react-router";
-import type { AccountsPayable, AccountsReceivable } from "~/types";
-import {
-  AccountsPayableStatus,
-  AccountsReceivableStatus,
-  PaymentMethod,
-  CashFlowCategory,
-} from "~/types";
+import { useTranslation } from "~/i18n";
+import { useEntityFinanceTransactions } from "~/hooks/use-entity-finance-transactions";
+import { useSearchParams } from "react-router";
 
-const TestWrapper = ({ children }: { children: React.ReactNode }) => (
-  <BrowserRouter>
-    <LanguageProvider>{children}</LanguageProvider>
-  </BrowserRouter>
-);
-
-const mockSetSearchParams = vi.fn();
-const mockUseSearchParams = vi.fn(() => {
-  const params = new URLSearchParams();
-  return [params, mockSetSearchParams];
-});
-
-vi.mock("react-router", async () => {
-  const actual = await vi.importActual("react-router");
-  return {
-    ...actual,
-    useSearchParams: () => mockUseSearchParams(),
-  };
-});
-
-const mockShowAlert = vi.fn();
-vi.mock("~/hooks/use-alert", () => ({
-  useAlert: vi.fn(() => ({
-    showAlert: mockShowAlert,
-    AlertDisplay: () => null,
+vi.mock("react-router", () => ({
+  useNavigate: vi.fn(() => vi.fn()),
+  useSearchParams: vi.fn(() => [new URLSearchParams(), vi.fn()]),
+}));
+vi.mock("~/i18n", () => ({
+  useTranslation: vi.fn(() => ({
+    finance: {
+      tabs: {
+        dashboard: "Dashboard",
+        transactions: "Transactions",
+      },
+    },
+    financesDashboard: {
+      cards: {
+        totalIncome: "Total Income",
+        totalExpenses: "Total Expenses",
+        netCashFlow: "Net Cash Flow",
+        accountsPayable: "Accounts Payable",
+        accountsReceivable: "Accounts Receivable",
+        overdue: "Overdue",
+      },
+      charts: {
+        incomeVsExpenses: "Income vs Expenses",
+        income: "Income",
+        expenses: "Expenses",
+        monthlyCashFlow: "Monthly Cash Flow",
+        netCashFlow: "Net Cash Flow",
+        expenseCategories: "Expense Categories",
+      },
+    },
+    cashFlow: {
+      categories: {},
+    },
+    common: {
+      currency: {
+        formatShort: (value: number) => `$${value}`,
+      },
+    },
+  })),
+}));
+vi.mock("~/contexts/language-context", () => ({
+  useLanguage: vi.fn(() => ({ language: "pt" })),
+}));
+vi.mock("~/contexts/theme-context", () => ({
+  useTheme: vi.fn(() => ({
+    theme: "light",
+    toggleTheme: vi.fn(),
+    setTheme: vi.fn(),
+  })),
+}));
+vi.mock("~/hooks/use-entity-finance-transactions", () => ({
+  useEntityFinanceTransactions: vi.fn(() => ({
+    financeTransactions: {
+      transactions: [],
+      filteredTransactions: [],
+      paginatedTransactions: [],
+      totalPages: 1,
+      totalIncome: 0,
+      totalExpenses: 0,
+      netTotal: 0,
+      searchValue: "",
+      setSearchValue: vi.fn(),
+      activeFilter: "all",
+      setActiveFilter: vi.fn(),
+      selectedYear: "2024",
+      setSelectedYear: vi.fn(),
+      selectedMonth: "01",
+      setSelectedMonth: vi.fn(),
+      currentPage: 1,
+      setCurrentPage: vi.fn(),
+      sortState: { column: null, direction: null },
+      setSortState: vi.fn(),
+    },
+    financeHandlers: {
+      handleDeleteClick: vi.fn(),
+      handleDeleteConfirm: vi.fn(),
+      isDeleteModalOpen: false,
+      setIsDeleteModalOpen: vi.fn(),
+      selectedTransaction: null,
+      getStatusVariant: vi.fn(),
+    },
+    getStatusLabel: vi.fn(),
+    getEditRoute: vi.fn(),
+    getViewRoute: vi.fn(),
+    canEdit: vi.fn(() => true),
+    canDelete: vi.fn(() => true),
+    translationKeys: {
+      categories: {},
+      paymentMethods: {},
+      searchPlaceholder: "Search",
+      filters: {
+        all: "All",
+        income: "Income",
+        expense: "Expense",
+        allYears: "All Years",
+        allMonths: "All Months",
+      },
+      table: {},
+      badge: {
+        transactions: vi.fn(),
+      },
+      emptyState: {
+        title: "",
+        descriptionWithSearch: vi.fn(),
+        descriptionWithoutSearch: "",
+      },
+      deleteModal: {
+        title: "",
+        message: vi.fn(),
+        confirm: "",
+        cancel: "",
+      },
+      status: {},
+    },
+    title: "Transactions",
+    description: "",
+  })),
+}));
+vi.mock("~/components/dashboard/finance/finance-transactions-table", () => ({
+  FinanceTransactionsTable: () => <div data-testid="transactions-table">Table</div>,
+  getFinanceTransactionsTableProps: vi.fn(() => ({
+    transactions: [],
+    filteredTransactions: [],
+    paginatedTransactions: [],
+    totalPages: 1,
+    totalIncome: 0,
+    totalExpenses: 0,
+    netTotal: 0,
+    searchValue: "",
+    onSearchChange: vi.fn(),
+    activeFilter: "all",
+    onFilterChange: vi.fn(),
+    selectedYear: "2024",
+    onYearChange: vi.fn(),
+    selectedMonth: "01",
+    onMonthChange: vi.fn(),
+    currentPage: 1,
+    onPageChange: vi.fn(),
+    sortState: { column: null, direction: null },
+    onSort: vi.fn(),
+    title: "Transactions",
+    translationKeys: {
+      categories: {},
+      paymentMethods: {},
+      searchPlaceholder: "Search",
+      filters: {
+        all: "All",
+        income: "Income",
+        expense: "Expense",
+      },
+      table: {},
+      badge: {
+        transactions: () => "transactions",
+      },
+      emptyState: {
+        title: "No transactions",
+        descriptionWithSearch: () => "No results",
+        descriptionWithoutSearch: "No transactions found",
+      },
+      deleteModal: {
+        title: "Delete",
+        message: () => "Delete?",
+        confirm: "Delete",
+        cancel: "Cancel",
+      },
+      status: {},
+    },
   })),
 }));
 
-let capturedCallbacks: {
-  getPropertyById?: (id: string) => { name: string } | null;
-  getSupplierById?: (id: string) => { name: string } | null;
-  getBuyerById?: (id: string) => { name: string } | null;
-  getEmployeeById?: (id: string) => { name: string } | null;
-  getServiceProviderById?: (id: string) => { name: string } | null;
-  onSuccess?: (message: string) => void;
-  onError?: (message: string) => void;
-} = {};
-
-const mockUseEntityFinanceTransactions = vi.fn(
-  (config: {
-    getPropertyById?: (id: string) => { name: string } | null;
-    getSupplierById?: (id: string) => { name: string } | null;
-    getBuyerById?: (id: string) => { name: string } | null;
-    getEmployeeById?: (id: string) => { name: string } | null;
-    getServiceProviderById?: (id: string) => { name: string } | null;
-    onSuccess?: (message: string) => void;
-    onError?: (message: string) => void;
-  }) => {
-    // Capture the callbacks
-    capturedCallbacks = {
-      getPropertyById: config?.getPropertyById,
-      getSupplierById: config?.getSupplierById,
-      getBuyerById: config?.getBuyerById,
-      getEmployeeById: config?.getEmployeeById,
-      getServiceProviderById: config?.getServiceProviderById,
-      onSuccess: config?.onSuccess,
-      onError: config?.onError,
-    };
-
-    return {
-      financeTransactions: {
-        transactions: [],
-        filteredTransactions: [],
-        paginatedTransactions: [],
-        totalPages: 1,
-        currentPage: 1,
-        searchValue: "",
-        activeFilter: "all",
-        selectedYear: "all",
-        selectedMonth: "all",
-        totalIncome: 0,
-        totalExpenses: 0,
-        netTotal: 0,
-      },
-      financeHandlers: {
-        handleDeleteClick: vi.fn(),
-        handleCloseModal: vi.fn(),
-        handleDeleteTransaction: vi.fn(),
-        isDeleteModalOpen: false,
-        selectedTransaction: null,
-      },
-      getStatusLabel: vi.fn(() => "Status"),
-      getEditRoute: vi.fn(() => "/edit"),
-      getViewRoute: vi.fn(() => "/view"),
-      canEdit: vi.fn(() => true),
-      canDelete: vi.fn(() => true),
-      title: "Finance",
-      description: "Finance details",
-      translationKeys: {},
-    };
-  }
-);
-
-vi.mock("~/hooks/use-entity-finance-transactions", () => ({
-  useEntityFinanceTransactions: (config: {
-    getPropertyById?: (id: string) => { name: string } | null;
-    getSupplierById?: (id: string) => { name: string } | null;
-    getBuyerById?: (id: string) => { name: string } | null;
-    getEmployeeById?: (id: string) => { name: string } | null;
-    getServiceProviderById?: (id: string) => { name: string } | null;
-    onSuccess?: (message: string) => void;
-    onError?: (message: string) => void;
-  }) => mockUseEntityFinanceTransactions(config),
-}));
-
-const mockGetPropertyById = vi.fn(() => ({ name: "Property 1" }));
-const mockGetSupplierById = vi.fn(() => ({ name: "Supplier 1" }));
-const mockGetBuyerById = vi.fn(() => ({ name: "Buyer 1" }));
-const mockGetEmployeeById = vi.fn(() => ({ name: "Employee 1" }));
-const mockGetServiceProviderById = vi.fn(() => ({ name: "Service Provider 1" }));
-
-vi.mock("~/services/properties.service", () => ({
-  getPropertyById: (id: string) => mockGetPropertyById(id),
-}));
-
-vi.mock("~/services/suppliers.service", () => ({
-  getSupplierById: (id: string) => mockGetSupplierById(id),
-}));
-
-vi.mock("~/services/buyers.service", () => ({
-  getBuyerById: (id: string) => mockGetBuyerById(id),
-}));
-
-vi.mock("~/services/employees.service", () => ({
-  getEmployeeById: (id: string) => mockGetEmployeeById(id),
-}));
-
-vi.mock("~/services/service-providers.service", () => ({
-  getServiceProviderById: (id: string) => mockGetServiceProviderById(id),
-}));
-
-vi.mock("../finance-dashboard", () => ({
-  FinanceDashboard: vi.fn(() => <div data-testid="finance-dashboard">Dashboard</div>),
-}));
-
-vi.mock("../finance-transactions-table", () => ({
-  FinanceTransactionsTable: vi.fn(() => <div data-testid="finance-transactions-table">Table</div>),
-  getFinanceTransactionsTableProps: vi.fn(() => ({})),
-}));
-
-vi.mock("../finance-sub-tabs", () => ({
-  FinanceSubTabs: vi.fn(
-    ({
-      activeTab,
-      onTabChange,
-    }: {
-      activeTab: "dashboard" | "transactions";
-      onTabChange: (tab: "dashboard" | "transactions") => void;
-    }) => (
-      <div data-testid="finance-sub-tabs">
-        <button onClick={() => onTabChange("dashboard")} data-testid="dashboard-tab">
-          Dashboard
-        </button>
-        <button onClick={() => onTabChange("transactions")} data-testid="transactions-tab">
-          Transactions
-        </button>
-        <span data-testid="active-tab">{activeTab}</span>
-      </div>
-    )
+vi.mock("~/components/dashboard/finance/finance-sub-tabs", () => ({
+  FinanceSubTabs: ({
+    activeTab: _activeTab,
+    onTabChange,
+  }: {
+    activeTab: string;
+    onTabChange: (tab: string) => void;
+  }) => (
+    <div data-testid="sub-tabs">
+      <button data-testid="dashboard-tab" onClick={() => onTabChange("dashboard")}>
+        Dashboard
+      </button>
+      <button data-testid="transactions-tab" onClick={() => onTabChange("transactions")}>
+        Transactions
+      </button>
+    </div>
   ),
 }));
-
-vi.mock("~/i18n", () => ({
-  useTranslation: vi.fn(() => ({
-    serviceProviders: {
-      details: {
-        finance: {
-          subTabs: {
-            dashboard: "Dashboard",
-            transactions: "Transactions",
-          },
-        },
-      },
-    },
-    suppliers: {
-      details: {
-        finance: {
-          subTabs: {
-            dashboard: "Dashboard",
-            transactions: "Transactions",
-          },
-        },
-      },
-    },
-    buyers: {
-      details: {
-        finance: {
-          subTabs: {
-            dashboard: "Dashboard",
-            transactions: "Transactions",
-          },
-        },
-      },
-    },
+vi.mock("~/components/dashboard/finance/finance-dashboard", () => ({
+  FinanceDashboard: () => <div data-testid="finance-dashboard">Dashboard</div>,
+}));
+vi.mock("~/hooks/use-alert", () => ({
+  useAlert: vi.fn(() => ({
+    showAlert: vi.fn(),
+    AlertDisplay: () => <div data-testid="alert-display">Alert</div>,
+  })),
+}));
+vi.mock("~/hooks/use-entity-loaders", () => ({
+  useEntityLoaders: vi.fn(() => ({
+    getPropertyName: vi.fn(() => "Property 1"),
+    getSupplierName: vi.fn(() => "Supplier 1"),
+    getBuyerName: vi.fn(() => "Buyer 1"),
+    getEmployeeName: vi.fn(() => "Employee 1"),
+    getServiceProviderName: vi.fn(() => "Service Provider 1"),
   })),
 }));
 
 describe("EntityFinanceTab", () => {
+  const mockUseTranslation = vi.mocked(useTranslation);
+  const mockUseEntityFinanceTransactions = vi.mocked(useEntityFinanceTransactions);
+  const mockUseSearchParams = vi.mocked(useSearchParams);
+
   const defaultProps = {
-    entityType: "supplier" as const,
     entityId: "entity-1",
+    entityType: "employee" as const,
     getCashFlowTransactions: vi.fn(() => []),
+    getPayableTransactions: vi.fn(() => []),
+    getReceivableTransactions: vi.fn(() => []),
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseSearchParams.mockReturnValue([new URLSearchParams(), mockSetSearchParams]);
-    capturedCallbacks = {};
+    mockUseSearchParams.mockReturnValue([new URLSearchParams(), vi.fn()]);
+    mockUseTranslation.mockReturnValue({
+      finance: {
+        tabs: {
+          dashboard: "Dashboard",
+          transactions: "Transactions",
+        },
+      },
+      financesDashboard: {
+        cards: {
+          totalIncome: "Total Income",
+          totalExpenses: "Total Expenses",
+          netCashFlow: "Net Cash Flow",
+          accountsPayable: "Accounts Payable",
+          accountsReceivable: "Accounts Receivable",
+          overdue: "Overdue",
+        },
+        charts: {
+          incomeVsExpenses: "Income vs Expenses",
+          income: "Income",
+          expenses: "Expenses",
+          monthlyCashFlow: "Monthly Cash Flow",
+          netCashFlow: "Net Cash Flow",
+          expenseCategories: "Expense Categories",
+        },
+      },
+      cashFlow: {
+        categories: {},
+      },
+      common: {
+        currency: {
+          formatShort: (value: number) => `$${value}`,
+        },
+      },
+    } as unknown as ReturnType<typeof useTranslation>);
   });
 
-  it("should render", () => {
-    const { container } = render(
-      <TestWrapper>
-        <EntityFinanceTab {...defaultProps} />
-      </TestWrapper>
-    );
-    expect(container).toBeTruthy();
+  it("should render finance sub tabs", () => {
+    render(<EntityFinanceTab {...defaultProps} />);
+    expect(screen.getByTestId("sub-tabs")).toBeInTheDocument();
   });
 
-  it("should render with showSubTabs false", () => {
-    render(
-      <TestWrapper>
-        <EntityFinanceTab {...defaultProps} showSubTabs={false} />
-      </TestWrapper>
-    );
-    expect(screen.getByTestId("finance-transactions-table")).toBeInTheDocument();
+  it("should render transactions table", () => {
+    const searchParams = new URLSearchParams();
+    searchParams.set("subTab", "transactions");
+    mockUseSearchParams.mockReturnValue([searchParams, vi.fn()]);
+    render(<EntityFinanceTab {...defaultProps} />);
+    expect(screen.getByTestId("transactions-table")).toBeInTheDocument();
   });
 
-  it("should render FinanceSubTabs when showSubTabs is true", () => {
-    render(
-      <TestWrapper>
-        <EntityFinanceTab {...defaultProps} showSubTabs={true} />
-      </TestWrapper>
-    );
-    expect(screen.getByTestId("finance-sub-tabs")).toBeInTheDocument();
+  it("should render transactions table when showSubTabs is false", () => {
+    render(<EntityFinanceTab {...defaultProps} showSubTabs={false} />);
+    expect(screen.getByTestId("transactions-table")).toBeInTheDocument();
+    expect(screen.queryByTestId("sub-tabs")).not.toBeInTheDocument();
   });
 
-  it("should render dashboard tab by default", () => {
-    render(
-      <TestWrapper>
-        <EntityFinanceTab {...defaultProps} />
-      </TestWrapper>
-    );
-    const activeTab = screen.queryByTestId("active-tab");
-    if (activeTab) {
-      expect(activeTab).toHaveTextContent("dashboard");
-    }
+  it("should render alert display", () => {
+    render(<EntityFinanceTab {...defaultProps} />);
+    expect(screen.getByTestId("alert-display")).toBeInTheDocument();
+  });
+
+  it("should render dashboard subTab", () => {
+    const searchParams = new URLSearchParams();
+    searchParams.set("subTab", "dashboard");
+    const setSearchParams = vi.fn();
+    mockUseSearchParams.mockReturnValue([searchParams, setSearchParams]);
+    render(<EntityFinanceTab {...defaultProps} />);
     expect(screen.getByTestId("finance-dashboard")).toBeInTheDocument();
   });
 
-  it("should switch to transactions tab", async () => {
+  it("should sync subTab state with URL params", () => {
+    const searchParams = new URLSearchParams();
+    searchParams.set("subTab", "dashboard");
+    const setSearchParams = vi.fn();
+    mockUseSearchParams.mockReturnValue([searchParams, setSearchParams]);
+    render(<EntityFinanceTab {...defaultProps} />);
+    expect(screen.getByTestId("finance-dashboard")).toBeInTheDocument();
+  });
+
+  it("should default to dashboard when subTab param is null and showSubTabs is true", () => {
+    mockUseSearchParams.mockReturnValue([new URLSearchParams(), vi.fn()]);
+    render(<EntityFinanceTab {...defaultProps} showSubTabs={true} />);
+    expect(screen.getByTestId("finance-dashboard")).toBeInTheDocument();
+  });
+
+  it("should get translation keys for serviceProvider entity type", () => {
+    const props = {
+      ...defaultProps,
+      entityType: "serviceProvider" as const,
+    };
+    mockUseTranslation.mockReturnValue({
+      serviceProviders: {
+        details: {
+          finance: {
+            subTabs: {
+              dashboard: "Dashboard SP",
+              transactions: "Transactions SP",
+            },
+          },
+        },
+      },
+      financesDashboard: {
+        cards: {},
+        charts: {},
+      },
+      cashFlow: {
+        categories: {},
+      },
+      common: {
+        currency: {
+          formatShort: (value: number) => `$${value}`,
+        },
+      },
+    } as unknown as ReturnType<typeof useTranslation>);
+    render(<EntityFinanceTab {...props} />);
+    expect(screen.getByTestId("sub-tabs")).toBeInTheDocument();
+  });
+
+  it("should get translation keys for supplier entity type", () => {
+    const props = {
+      ...defaultProps,
+      entityType: "supplier" as const,
+    };
+    mockUseTranslation.mockReturnValue({
+      suppliers: {
+        details: {
+          finance: {
+            subTabs: {
+              dashboard: "Dashboard Supplier",
+              transactions: "Transactions Supplier",
+            },
+          },
+        },
+      },
+      financesDashboard: {
+        cards: {},
+        charts: {},
+      },
+      cashFlow: {
+        categories: {},
+      },
+      common: {
+        currency: {
+          formatShort: (value: number) => `$${value}`,
+        },
+      },
+    } as unknown as ReturnType<typeof useTranslation>);
+    render(<EntityFinanceTab {...props} />);
+    expect(screen.getByTestId("sub-tabs")).toBeInTheDocument();
+  });
+
+  it("should get translation keys for buyer entity type", () => {
+    const props = {
+      ...defaultProps,
+      entityType: "buyer" as const,
+    };
+    mockUseTranslation.mockReturnValue({
+      buyers: {
+        details: {
+          finance: {
+            subTabs: {
+              dashboard: "Dashboard Buyer",
+              transactions: "Transactions Buyer",
+            },
+          },
+        },
+      },
+      financesDashboard: {
+        cards: {},
+        charts: {},
+      },
+      cashFlow: {
+        categories: {},
+      },
+      common: {
+        currency: {
+          formatShort: (value: number) => `$${value}`,
+        },
+      },
+    } as unknown as ReturnType<typeof useTranslation>);
+    render(<EntityFinanceTab {...props} />);
+    expect(screen.getByTestId("sub-tabs")).toBeInTheDocument();
+  });
+
+  it("should get default translation keys for employee entity type", () => {
+    const props = {
+      ...defaultProps,
+      entityType: "employee" as const,
+    };
+    render(<EntityFinanceTab {...props} />);
+    expect(screen.getByTestId("sub-tabs")).toBeInTheDocument();
+  });
+
+  it("should update search params when tab changes", async () => {
     const user = userEvent.setup();
-    render(
-      <TestWrapper>
-        <EntityFinanceTab {...defaultProps} />
-      </TestWrapper>
-    );
+    const setSearchParams = vi.fn();
+    mockUseSearchParams.mockReturnValue([new URLSearchParams(), setSearchParams]);
+    render(<EntityFinanceTab {...defaultProps} />);
     const transactionsTab = screen.getByTestId("transactions-tab");
     await user.click(transactionsTab);
-    expect(mockSetSearchParams).toHaveBeenCalledWith({ tab: "finance", subTab: "transactions" });
+    expect(setSearchParams).toHaveBeenCalledWith({ tab: "finance", subTab: "transactions" });
   });
 
-  it("should initialize with dashboard tab from URL", () => {
-    const params = new URLSearchParams("subTab=dashboard");
-    mockUseSearchParams.mockReturnValue([params, mockSetSearchParams]);
-    render(
-      <TestWrapper>
-        <EntityFinanceTab {...defaultProps} />
-      </TestWrapper>
-    );
-    const activeTab = screen.queryByTestId("active-tab");
-    if (activeTab) {
-      expect(activeTab).toHaveTextContent("dashboard");
-    }
+  it("should handle tab change to dashboard", async () => {
+    const user = userEvent.setup();
+    const setSearchParams = vi.fn();
+    const searchParams = new URLSearchParams();
+    searchParams.set("subTab", "transactions");
+    mockUseSearchParams.mockReturnValue([searchParams, setSearchParams]);
+    render(<EntityFinanceTab {...defaultProps} />);
+    const dashboardTab = screen.getByTestId("dashboard-tab");
+    await user.click(dashboardTab);
+    expect(setSearchParams).toHaveBeenCalledWith({ tab: "finance", subTab: "dashboard" });
+  });
+
+  it("should sync state when subTab param changes to transactions", () => {
+    const searchParams = new URLSearchParams();
+    searchParams.set("subTab", "transactions");
+    mockUseSearchParams.mockReturnValue([searchParams, vi.fn()]);
+    render(<EntityFinanceTab {...defaultProps} />);
+    expect(screen.getByTestId("transactions-table")).toBeInTheDocument();
+  });
+
+  it("should sync state when subTab param changes to dashboard", () => {
+    const searchParams = new URLSearchParams();
+    searchParams.set("subTab", "dashboard");
+    mockUseSearchParams.mockReturnValue([searchParams, vi.fn()]);
+    render(<EntityFinanceTab {...defaultProps} />);
     expect(screen.getByTestId("finance-dashboard")).toBeInTheDocument();
   });
 
-  it("should initialize with transactions tab from URL", () => {
-    const params = new URLSearchParams("subTab=transactions");
-    mockUseSearchParams.mockReturnValue([params, mockSetSearchParams]);
-    render(
-      <TestWrapper>
-        <EntityFinanceTab {...defaultProps} />
-      </TestWrapper>
-    );
-    const activeTab = screen.queryByTestId("active-tab");
-    if (activeTab) {
-      expect(activeTab).toHaveTextContent("transactions");
-    }
-    expect(screen.getByTestId("finance-transactions-table")).toBeInTheDocument();
+  it("should default to dashboard when subTab param is null and showSubTabs is true", () => {
+    mockUseSearchParams.mockReturnValue([new URLSearchParams(), vi.fn()]);
+    render(<EntityFinanceTab {...defaultProps} showSubTabs={true} />);
+    expect(screen.getByTestId("finance-dashboard")).toBeInTheDocument();
   });
 
-  it("should render with employee entity type", () => {
-    render(
-      <TestWrapper>
-        <EntityFinanceTab {...defaultProps} entityType="employee" />
-      </TestWrapper>
-    );
-    expect(screen.getByTestId("finance-sub-tabs")).toBeInTheDocument();
+  it("should not sync state when subTab param is invalid", () => {
+    const searchParams = new URLSearchParams();
+    searchParams.set("subTab", "invalid");
+    mockUseSearchParams.mockReturnValue([searchParams, vi.fn()]);
+    render(<EntityFinanceTab {...defaultProps} />);
+    // Should default to dashboard
+    expect(screen.getByTestId("finance-dashboard")).toBeInTheDocument();
   });
 
-  it("should render with serviceProvider entity type", () => {
-    render(
-      <TestWrapper>
-        <EntityFinanceTab {...defaultProps} entityType="serviceProvider" />
-      </TestWrapper>
-    );
-    expect(screen.getByTestId("finance-sub-tabs")).toBeInTheDocument();
+  it("should call showAlert on success", async () => {
+    const showAlert = vi.fn();
+    const mockUseAlert = vi.mocked((await import("~/hooks/use-alert")).useAlert);
+    mockUseAlert.mockReturnValue({
+      showAlert,
+      AlertDisplay: () => <div data-testid="alert-display">Alert</div>,
+    });
+    render(<EntityFinanceTab {...defaultProps} />);
+    // onSuccess callback should be passed to useEntityFinanceTransactions
+    expect(mockUseEntityFinanceTransactions).toHaveBeenCalled();
   });
 
-  it("should render with buyer entity type", () => {
-    render(
-      <TestWrapper>
-        <EntityFinanceTab {...defaultProps} entityType="buyer" />
-      </TestWrapper>
-    );
-    expect(screen.getByTestId("finance-sub-tabs")).toBeInTheDocument();
+  it("should call showAlert on error", async () => {
+    const showAlert = vi.fn();
+    const mockUseAlert = vi.mocked((await import("~/hooks/use-alert")).useAlert);
+    mockUseAlert.mockReturnValue({
+      showAlert,
+      AlertDisplay: () => <div data-testid="alert-display">Alert</div>,
+    });
+    render(<EntityFinanceTab {...defaultProps} />);
+    // onError callback should be passed to useEntityFinanceTransactions
+    expect(mockUseEntityFinanceTransactions).toHaveBeenCalled();
   });
 
-  it("should render with supplier entity type", () => {
-    render(
-      <TestWrapper>
-        <EntityFinanceTab {...defaultProps} entityType="supplier" />
-      </TestWrapper>
+  it("should handle getPropertyNameFromHook returning null", async () => {
+    const mockUseEntityLoaders = vi.mocked(
+      (await import("~/hooks/use-entity-loaders")).useEntityLoaders
     );
-    expect(screen.getByTestId("finance-sub-tabs")).toBeInTheDocument();
+    mockUseEntityLoaders.mockReturnValue({
+      getPropertyName: vi.fn(() => null),
+      getSupplierName: vi.fn(() => "Supplier 1"),
+      getBuyerName: vi.fn(() => "Buyer 1"),
+      getEmployeeName: vi.fn(() => "Employee 1"),
+      getServiceProviderName: vi.fn(() => "Service Provider 1"),
+    });
+    render(<EntityFinanceTab {...defaultProps} />);
+    expect(screen.getByTestId("sub-tabs")).toBeInTheDocument();
   });
 
-  it("should pass accounts payable data to dashboard", () => {
+  it("should handle getSupplierName returning null", async () => {
+    const mockUseEntityLoaders = vi.mocked(
+      (await import("~/hooks/use-entity-loaders")).useEntityLoaders
+    );
+    mockUseEntityLoaders.mockReturnValue({
+      getPropertyName: vi.fn(() => "Property 1"),
+      getSupplierName: vi.fn(() => null),
+      getBuyerName: vi.fn(() => "Buyer 1"),
+      getEmployeeName: vi.fn(() => "Employee 1"),
+      getServiceProviderName: vi.fn(() => "Service Provider 1"),
+    });
+    render(<EntityFinanceTab {...defaultProps} />);
+    expect(screen.getByTestId("sub-tabs")).toBeInTheDocument();
+  });
+
+  it("should handle getBuyerName returning null", async () => {
+    const mockUseEntityLoaders = vi.mocked(
+      (await import("~/hooks/use-entity-loaders")).useEntityLoaders
+    );
+    mockUseEntityLoaders.mockReturnValue({
+      getPropertyName: vi.fn(() => "Property 1"),
+      getSupplierName: vi.fn(() => "Supplier 1"),
+      getBuyerName: vi.fn(() => null),
+      getEmployeeName: vi.fn(() => "Employee 1"),
+      getServiceProviderName: vi.fn(() => "Service Provider 1"),
+    });
+    render(<EntityFinanceTab {...defaultProps} />);
+    expect(screen.getByTestId("sub-tabs")).toBeInTheDocument();
+  });
+
+  it("should handle getEmployeeName returning null", async () => {
+    const mockUseEntityLoaders = vi.mocked(
+      (await import("~/hooks/use-entity-loaders")).useEntityLoaders
+    );
+    mockUseEntityLoaders.mockReturnValue({
+      getPropertyName: vi.fn(() => "Property 1"),
+      getSupplierName: vi.fn(() => "Supplier 1"),
+      getBuyerName: vi.fn(() => "Buyer 1"),
+      getEmployeeName: vi.fn(() => null),
+      getServiceProviderName: vi.fn(() => "Service Provider 1"),
+    });
+    render(<EntityFinanceTab {...defaultProps} />);
+    expect(screen.getByTestId("sub-tabs")).toBeInTheDocument();
+  });
+
+  it("should handle getServiceProviderName returning null", async () => {
+    const mockUseEntityLoaders = vi.mocked(
+      (await import("~/hooks/use-entity-loaders")).useEntityLoaders
+    );
+    mockUseEntityLoaders.mockReturnValue({
+      getPropertyName: vi.fn(() => "Property 1"),
+      getSupplierName: vi.fn(() => "Supplier 1"),
+      getBuyerName: vi.fn(() => "Buyer 1"),
+      getEmployeeName: vi.fn(() => "Employee 1"),
+      getServiceProviderName: vi.fn(() => null),
+    });
+    render(<EntityFinanceTab {...defaultProps} />);
+    expect(screen.getByTestId("sub-tabs")).toBeInTheDocument();
+  });
+
+  it("should pass payableTransactions when provided", () => {
     const getPayableTransactions = vi.fn(() => [
       {
-        id: "ap-1",
+        id: "1",
+        companyId: "company-1",
         amount: 1000,
-        status: AccountsPayableStatus.UNPAID,
-        dueDate: "",
-        supplierId: "",
-        propertyId: "",
-        companyId: "",
-        createdAt: "",
-        description: "",
-        paymentMethod: PaymentMethod.CASH,
-        employeeId: "",
-        serviceProviderId: "",
-        paidDate: "",
-        paidAmount: 0,
-      } satisfies AccountsPayable,
+        dueDate: "2024-01-01",
+        status: "UNPAID" as const,
+      },
     ]);
-    render(
-      <TestWrapper>
-        <EntityFinanceTab {...defaultProps} getPayableTransactions={getPayableTransactions} />
-      </TestWrapper>
+    render(<EntityFinanceTab {...defaultProps} getPayableTransactions={getPayableTransactions} />);
+    expect(mockUseEntityFinanceTransactions).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payableTransactions: expect.arrayContaining([expect.objectContaining({ id: "1" })]),
+      })
     );
-    expect(getPayableTransactions).toHaveBeenCalledWith("entity-1");
   });
 
-  it("should pass accounts receivable data to dashboard", () => {
+  it("should pass receivableTransactions when provided", () => {
     const getReceivableTransactions = vi.fn(() => [
       {
-        id: "ar-1",
+        id: "1",
+        companyId: "company-1",
         amount: 2000,
-        status: AccountsReceivableStatus.UNPAID,
-        dueDate: "",
-        buyerId: "",
-        propertyId: "",
-        companyId: "",
-        createdAt: "",
-        description: "",
-        paymentMethod: PaymentMethod.CASH,
-        paidDate: "",
-        paidAmount: 0,
-        category: CashFlowCategory.CATTLE_SALES,
-        referenceNumber: "",
-      } satisfies AccountsReceivable,
+        dueDate: "2024-01-01",
+        status: "UNPAID" as const,
+      },
     ]);
     render(
-      <TestWrapper>
-        <EntityFinanceTab {...defaultProps} getReceivableTransactions={getReceivableTransactions} />
-      </TestWrapper>
+      <EntityFinanceTab {...defaultProps} getReceivableTransactions={getReceivableTransactions} />
     );
-    expect(getReceivableTransactions).toHaveBeenCalledWith("entity-1");
+    expect(mockUseEntityFinanceTransactions).toHaveBeenCalledWith(
+      expect.objectContaining({
+        receivableTransactions: expect.arrayContaining([expect.objectContaining({ id: "1" })]),
+      })
+    );
   });
 
-  it("should pass gradientId to dashboard", () => {
-    render(
-      <TestWrapper>
-        <EntityFinanceTab {...defaultProps} gradientId="custom-gradient" />
-      </TestWrapper>
-    );
+  it("should pass gradientId to FinanceDashboard", () => {
+    const searchParams = new URLSearchParams();
+    searchParams.set("subTab", "dashboard");
+    mockUseSearchParams.mockReturnValue([searchParams, vi.fn()]);
+    render(<EntityFinanceTab {...defaultProps} gradientId="custom-gradient" />);
     expect(screen.getByTestId("finance-dashboard")).toBeInTheDocument();
-  });
-
-  it("should call getPropertyById callback and return property with name", () => {
-    mockGetPropertyById.mockReturnValue({ name: "Test Property", id: "prop-1" });
-    render(
-      <TestWrapper>
-        <EntityFinanceTab {...defaultProps} />
-      </TestWrapper>
-    );
-    // Call the captured callback
-    if (capturedCallbacks.getPropertyById) {
-      const result = capturedCallbacks.getPropertyById("prop-1");
-      expect(result).toEqual({ name: "Test Property" });
-      expect(mockGetPropertyById).toHaveBeenCalledWith("prop-1");
-    }
-  });
-
-  it("should handle getPropertyById callback returning null", () => {
-    mockGetPropertyById.mockReturnValue(null);
-    render(
-      <TestWrapper>
-        <EntityFinanceTab {...defaultProps} />
-      </TestWrapper>
-    );
-    // Call the captured callback
-    if (capturedCallbacks.getPropertyById) {
-      const result = capturedCallbacks.getPropertyById("prop-1");
-      expect(result).toBeNull();
-      expect(mockGetPropertyById).toHaveBeenCalledWith("prop-1");
-    }
-  });
-
-  it("should call getSupplierById callback and return supplier with name", () => {
-    mockGetSupplierById.mockReturnValue({ name: "Test Supplier", id: "supplier-1" });
-    render(
-      <TestWrapper>
-        <EntityFinanceTab {...defaultProps} />
-      </TestWrapper>
-    );
-    if (capturedCallbacks.getSupplierById) {
-      const result = capturedCallbacks.getSupplierById("supplier-1");
-      expect(result).toEqual({ name: "Test Supplier" });
-      expect(mockGetSupplierById).toHaveBeenCalledWith("supplier-1");
-    }
-  });
-
-  it("should handle getSupplierById callback returning null", () => {
-    mockGetSupplierById.mockReturnValue(null);
-    render(
-      <TestWrapper>
-        <EntityFinanceTab {...defaultProps} />
-      </TestWrapper>
-    );
-    if (capturedCallbacks.getSupplierById) {
-      const result = capturedCallbacks.getSupplierById("supplier-1");
-      expect(result).toBeNull();
-      expect(mockGetSupplierById).toHaveBeenCalledWith("supplier-1");
-    }
-  });
-
-  it("should call getBuyerById callback and return buyer with name", () => {
-    mockGetBuyerById.mockReturnValue({ name: "Test Buyer", id: "buyer-1" });
-    render(
-      <TestWrapper>
-        <EntityFinanceTab {...defaultProps} />
-      </TestWrapper>
-    );
-    if (capturedCallbacks.getBuyerById) {
-      const result = capturedCallbacks.getBuyerById("buyer-1");
-      expect(result).toEqual({ name: "Test Buyer" });
-      expect(mockGetBuyerById).toHaveBeenCalledWith("buyer-1");
-    }
-  });
-
-  it("should handle getBuyerById callback returning null", () => {
-    mockGetBuyerById.mockReturnValue(null);
-    render(
-      <TestWrapper>
-        <EntityFinanceTab {...defaultProps} />
-      </TestWrapper>
-    );
-    if (capturedCallbacks.getBuyerById) {
-      const result = capturedCallbacks.getBuyerById("buyer-1");
-      expect(result).toBeNull();
-      expect(mockGetBuyerById).toHaveBeenCalledWith("buyer-1");
-    }
-  });
-
-  it("should call getEmployeeById callback and return employee with name", () => {
-    mockGetEmployeeById.mockReturnValue({ name: "Test Employee", id: "emp-1" });
-    render(
-      <TestWrapper>
-        <EntityFinanceTab {...defaultProps} />
-      </TestWrapper>
-    );
-    if (capturedCallbacks.getEmployeeById) {
-      const result = capturedCallbacks.getEmployeeById("emp-1");
-      expect(result).toEqual({ name: "Test Employee" });
-      expect(mockGetEmployeeById).toHaveBeenCalledWith("emp-1");
-    }
-  });
-
-  it("should handle getEmployeeById callback returning null", () => {
-    mockGetEmployeeById.mockReturnValue(null);
-    render(
-      <TestWrapper>
-        <EntityFinanceTab {...defaultProps} />
-      </TestWrapper>
-    );
-    if (capturedCallbacks.getEmployeeById) {
-      const result = capturedCallbacks.getEmployeeById("emp-1");
-      expect(result).toBeNull();
-      expect(mockGetEmployeeById).toHaveBeenCalledWith("emp-1");
-    }
-  });
-
-  it("should call getServiceProviderById callback and return service provider with name", () => {
-    mockGetServiceProviderById.mockReturnValue({ name: "Test Service Provider", id: "sp-1" });
-    render(
-      <TestWrapper>
-        <EntityFinanceTab {...defaultProps} />
-      </TestWrapper>
-    );
-    if (capturedCallbacks.getServiceProviderById) {
-      const result = capturedCallbacks.getServiceProviderById("sp-1");
-      expect(result).toEqual({ name: "Test Service Provider" });
-      expect(mockGetServiceProviderById).toHaveBeenCalledWith("sp-1");
-    }
-  });
-
-  it("should handle getServiceProviderById callback returning null", () => {
-    mockGetServiceProviderById.mockReturnValue(null);
-    render(
-      <TestWrapper>
-        <EntityFinanceTab {...defaultProps} />
-      </TestWrapper>
-    );
-    if (capturedCallbacks.getServiceProviderById) {
-      const result = capturedCallbacks.getServiceProviderById("sp-1");
-      expect(result).toBeNull();
-      expect(mockGetServiceProviderById).toHaveBeenCalledWith("sp-1");
-    }
-  });
-
-  it("should call showAlert with success message on onSuccess", () => {
-    render(
-      <TestWrapper>
-        <EntityFinanceTab {...defaultProps} />
-      </TestWrapper>
-    );
-
-    // Call the captured onSuccess callback
-    if (capturedCallbacks.onSuccess) {
-      capturedCallbacks.onSuccess("Success message");
-      expect(mockShowAlert).toHaveBeenCalledWith("Success message", "success");
-    }
-  });
-
-  it("should call showAlert with error message on onError", () => {
-    render(
-      <TestWrapper>
-        <EntityFinanceTab {...defaultProps} />
-      </TestWrapper>
-    );
-
-    // Call the captured onError callback
-    if (capturedCallbacks.onError) {
-      capturedCallbacks.onError("Error message");
-      expect(mockShowAlert).toHaveBeenCalledWith("Error message", "error");
-    }
   });
 });

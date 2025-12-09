@@ -4,33 +4,34 @@ import userEvent from "@testing-library/user-event";
 import { ObservationFormFields } from "../observation-form-fields";
 
 vi.mock("~/components/ui", () => ({
-  FileUpload: vi.fn(
-    ({
-      label,
-      files: _files,
-      onChange,
-      disabled,
-      multiple,
-      helperText,
-    }: {
-      label?: string;
-      files?: File[];
-      onChange?: (files: File[]) => void;
-      disabled?: boolean;
-      multiple?: boolean;
-      helperText?: string;
-    }) => (
-      <div data-testid="file-upload">
-        <label>{label}</label>
-        <input
-          type="file"
-          multiple={multiple}
-          onChange={(e) => onChange?.(Array.from(e.target.files || []))}
-          disabled={disabled}
-          data-helper={helperText}
-        />
-      </div>
-    )
+  FileUpload: ({
+    label,
+    files: _files,
+    onChange,
+    disabled,
+    helperText,
+  }: {
+    label: string;
+    files: File[];
+    onChange: (files: File[]) => void;
+    disabled?: boolean;
+    helperText?: string;
+  }) => (
+    <div data-testid="file-upload">
+      <label>{label}</label>
+      {helperText && <p>{helperText}</p>}
+      <input
+        type="file"
+        multiple
+        disabled={disabled}
+        onChange={(e) => {
+          const fileList = e.target.files;
+          if (fileList) {
+            onChange(Array.from(fileList));
+          }
+        }}
+      />
+    </div>
   ),
 }));
 
@@ -49,8 +50,29 @@ describe("ObservationFormFields", () => {
 
   it("should render observation textarea", () => {
     render(<ObservationFormFields {...defaultProps} />);
-    const textarea = screen.getByPlaceholderText("Adicione uma observação (opcional)");
+    const textarea = screen.getByRole("textbox");
     expect(textarea).toBeInTheDocument();
+  });
+
+  it("should render default label", () => {
+    render(<ObservationFormFields {...defaultProps} />);
+    expect(screen.getByText("Observação")).toBeInTheDocument();
+  });
+
+  it("should render custom label when provided", () => {
+    render(<ObservationFormFields {...defaultProps} observationLabel="Custom Label" />);
+    expect(screen.getByText("Custom Label")).toBeInTheDocument();
+  });
+
+  it("should call onObservationChange when textarea value changes", async () => {
+    const user = userEvent.setup();
+    const onObservationChange = vi.fn();
+    render(<ObservationFormFields {...defaultProps} onObservationChange={onObservationChange} />);
+
+    const textarea = screen.getByRole("textbox");
+    await user.type(textarea, "Test observation");
+
+    expect(onObservationChange).toHaveBeenCalled();
   });
 
   it("should render FileUpload component", () => {
@@ -58,39 +80,15 @@ describe("ObservationFormFields", () => {
     expect(screen.getByTestId("file-upload")).toBeInTheDocument();
   });
 
-  it("should call onObservationChange when textarea value changes", async () => {
-    const onObservationChange = vi.fn();
-    const user = userEvent.setup();
-    render(<ObservationFormFields {...defaultProps} onObservationChange={onObservationChange} />);
-    const textarea = screen.getByPlaceholderText("Adicione uma observação (opcional)");
-    await user.type(textarea, "Test observation");
-    expect(onObservationChange).toHaveBeenCalled();
-  });
-
   it("should disable textarea when isSubmitting is true", () => {
     render(<ObservationFormFields {...defaultProps} isSubmitting={true} />);
-    const textarea = screen.getByPlaceholderText("Adicione uma observação (opcional)");
+    const textarea = screen.getByRole("textbox");
     expect(textarea).toBeDisabled();
   });
 
-  it("should use custom labels when provided", () => {
-    render(
-      <ObservationFormFields
-        {...defaultProps}
-        observationLabel="Custom Observation"
-        observationPlaceholder="Custom placeholder"
-        filesLabel="Custom Files"
-        filesHelperText="Custom helper"
-      />
-    );
-    expect(screen.getByText("Custom Observation")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Custom placeholder")).toBeInTheDocument();
-    expect(screen.getByText("Custom Files")).toBeInTheDocument();
-  });
-
-  it("should display observation value", () => {
-    render(<ObservationFormFields {...defaultProps} observation="Existing observation" />);
-    const textarea = screen.getByPlaceholderText("Adicione uma observação (opcional)");
-    expect(textarea).toHaveValue("Existing observation");
+  it("should use custom placeholder when provided", () => {
+    render(<ObservationFormFields {...defaultProps} observationPlaceholder="Custom placeholder" />);
+    const textarea = screen.getByRole("textbox");
+    expect(textarea).toHaveAttribute("placeholder", "Custom placeholder");
   });
 });

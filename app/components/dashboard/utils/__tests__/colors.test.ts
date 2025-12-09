@@ -1,41 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { DASHBOARD_COLORS } from "../colors";
+import { COLORS } from "~/components/site/constants";
 
-describe("colors", () => {
-  it("should export DASHBOARD_COLORS", () => {
-    expect(DASHBOARD_COLORS).toBeDefined();
-  });
-
-  it("should have primary color", () => {
-    expect(DASHBOARD_COLORS.primary).toBeDefined();
-    expect(typeof DASHBOARD_COLORS.primary).toBe("string");
-  });
-
-  it("should have secondary color", () => {
-    expect(DASHBOARD_COLORS.secondary).toBeDefined();
-    expect(typeof DASHBOARD_COLORS.secondary).toBe("string");
-  });
-
-  it("should have primaryDark color", () => {
-    expect(DASHBOARD_COLORS.primaryDark).toBeDefined();
-    expect(typeof DASHBOARD_COLORS.primaryDark).toBe("string");
-  });
-
-  it("should have secondaryDark color", () => {
-    expect(DASHBOARD_COLORS.secondaryDark).toBeDefined();
-    expect(typeof DASHBOARD_COLORS.secondaryDark).toBe("string");
-  });
-
-  it("should have primaryLight color", () => {
-    expect(DASHBOARD_COLORS.primaryLight).toBeDefined();
-    expect(typeof DASHBOARD_COLORS.primaryLight).toBe("string");
-  });
-
-  it("should have secondaryLight color", () => {
-    expect(DASHBOARD_COLORS.secondaryLight).toBeDefined();
-    expect(typeof DASHBOARD_COLORS.secondaryLight).toBe("string");
-  });
-
+describe("DASHBOARD_COLORS", () => {
   it("should have all required color properties", () => {
     expect(DASHBOARD_COLORS).toHaveProperty("primary");
     expect(DASHBOARD_COLORS).toHaveProperty("secondary");
@@ -43,5 +10,33 @@ describe("colors", () => {
     expect(DASHBOARD_COLORS).toHaveProperty("secondaryDark");
     expect(DASHBOARD_COLORS).toHaveProperty("primaryLight");
     expect(DASHBOARD_COLORS).toHaveProperty("secondaryLight");
+  });
+
+  it("should map primary to COLORS.secondary", () => {
+    expect(DASHBOARD_COLORS.primary).toBe(COLORS.secondary);
+  });
+
+  it("should map secondary to COLORS.primary", () => {
+    expect(DASHBOARD_COLORS.secondary).toBe(COLORS.primary);
+  });
+
+  it("should map primaryDark to COLORS.secondaryDark", () => {
+    expect(DASHBOARD_COLORS.primaryDark).toBe(COLORS.secondaryDark);
+  });
+
+  it("should map secondaryDark to COLORS.primaryDark", () => {
+    expect(DASHBOARD_COLORS.secondaryDark).toBe(COLORS.primaryDark);
+  });
+
+  it("should map primaryLight to COLORS.secondaryLight", () => {
+    expect(DASHBOARD_COLORS.primaryLight).toBe(COLORS.secondaryLight);
+  });
+
+  it("should map secondaryLight to COLORS.primaryLight", () => {
+    expect(DASHBOARD_COLORS.secondaryLight).toBe(COLORS.primaryLight);
+  });
+
+  it("should be a readonly object", () => {
+    expect(Object.isFrozen(DASHBOARD_COLORS)).toBe(true);
   });
 });

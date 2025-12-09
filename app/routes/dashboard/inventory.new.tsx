@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useTranslation } from "~/i18n";
 import { FormPageLayout } from "~/components/dashboard/forms/form-page-layout";
@@ -15,11 +15,13 @@ import type {
   InventoryMovementFormData,
   CashFlowFormData,
   AccountsPayableFormData,
+  Property,
+  Supplier,
 } from "~/types";
 import { InventoryItemCategory, InventoryMovementType, AccountsPayableStatus } from "~/types";
 import { mockCompanies } from "~/mocks/companies";
-import { mockProperties } from "~/mocks/properties";
-import { mockSuppliers } from "~/mocks/suppliers";
+import { getProperties } from "~/services/properties.service";
+import { getSuppliers } from "~/services/suppliers.service";
 import { useInventoryForm } from "~/hooks/use-inventory-form";
 import { InventoryItemForm } from "~/components/dashboard/inventory/inventory-item-form";
 import { getCategoryForCashFlow } from "~/utils/inventory-utils";
@@ -60,7 +62,26 @@ export default function NewInventoryItem() {
 
   const [observationFiles, setObservationFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const { alertMessage, showAlert } = useAlert();
+
+  useEffect(() => {
+    const fetchEntities = async () => {
+      try {
+        const [propertiesData, suppliersData] = await Promise.all([
+          getProperties(),
+          getSuppliers(),
+        ]);
+        setProperties(propertiesData.filter((p) => p.companyId === companyId));
+        setSuppliers(suppliersData.filter((s) => s.companyId === companyId));
+      } catch (error) {
+        console.error("Failed to load properties or suppliers:", error);
+      }
+    };
+
+    fetchEntities();
+  }, [companyId]);
 
   const createCashFlowTransaction = (
     item: { category: InventoryItemCategory },
@@ -238,8 +259,8 @@ export default function NewInventoryItem() {
         isSubmitting={isSubmitting}
         onFieldChange={handleChange}
         translations={t}
-        suppliers={mockSuppliers}
-        properties={mockProperties}
+        suppliers={suppliers}
+        properties={properties}
         bankAccounts={bankAccounts}
         showInitialStock={true}
         showObservation={true}

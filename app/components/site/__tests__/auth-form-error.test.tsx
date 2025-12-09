@@ -13,33 +13,42 @@ describe("AuthFormError", () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it("should render error message when provided", () => {
-    render(<AuthFormError error="Test error message" />);
-    expect(screen.getByText("Test error message")).toBeInTheDocument();
+  it("should render error message when error is provided", () => {
+    render(<AuthFormError error="Invalid credentials" />);
+    expect(screen.getByTestId("auth-form-error")).toBeInTheDocument();
+    expect(screen.getByText("Invalid credentials")).toBeInTheDocument();
   });
 
-  it("should apply correct error classes", () => {
-    const { container } = render(<AuthFormError error="Error" />);
-    const errorDiv = container.querySelector("div");
-    expect(errorDiv).toHaveClass("mb-4");
-    expect(errorDiv).toHaveClass("p-3");
-    expect(errorDiv).toHaveClass("text-sm");
-    expect(errorDiv).toHaveClass("text-red-600");
-    expect(errorDiv).toHaveClass("bg-red-50");
-    expect(errorDiv).toHaveClass("border");
-    expect(errorDiv).toHaveClass("border-red-200");
-    expect(errorDiv).toHaveClass("rounded-lg");
+  it("should apply default className", () => {
+    render(<AuthFormError error="Test error" />);
+    const errorElement = screen.getByTestId("auth-form-error");
+    expect(errorElement).toHaveClass(
+      "mb-4",
+      "p-3",
+      "text-sm",
+      "text-red-600",
+      "dark:text-red-400",
+      "bg-red-50",
+      "dark:bg-red-900/20",
+      "border",
+      "border-red-200",
+      "dark:border-red-800",
+      "rounded-lg"
+    );
   });
 
   it("should apply custom className", () => {
-    const { container } = render(<AuthFormError error="Error" className="custom-class" />);
-    const errorDiv = container.querySelector("div");
-    expect(errorDiv).toHaveClass("custom-class");
+    render(<AuthFormError error="Test error" className="custom-class" />);
+    const errorElement = screen.getByTestId("auth-form-error");
+    expect(errorElement).toHaveClass("custom-class");
   });
 
-  it("should handle empty className", () => {
-    const { container } = render(<AuthFormError error="Error" className="" />);
-    const errorDiv = container.querySelector("div");
-    expect(errorDiv).toBeInTheDocument();
+  it("should render with different error messages", () => {
+    const { rerender } = render(<AuthFormError error="Error 1" />);
+    expect(screen.getByText("Error 1")).toBeInTheDocument();
+
+    rerender(<AuthFormError error="Error 2" />);
+    expect(screen.getByText("Error 2")).toBeInTheDocument();
+    expect(screen.queryByText("Error 1")).not.toBeInTheDocument();
   });
 });

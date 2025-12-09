@@ -57,7 +57,7 @@ export function ActivityLog({
 
     const matchesUser = showUser && log.user?.toLowerCase().includes(searchLower);
     const matchesAction = log.action.toLowerCase().includes(searchLower);
-    const matchesResource = log.resource.toLowerCase().includes(searchLower);
+    const matchesResource = log.resource?.toLowerCase()?.includes(searchLower) ?? false;
     const matchesDate = formattedDate.toLowerCase().includes(searchLower);
 
     return matchesUser || matchesAction || matchesResource || matchesDate;

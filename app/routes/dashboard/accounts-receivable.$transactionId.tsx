@@ -17,6 +17,7 @@ import type { AccountsReceivableObservation } from "~/types/accounts-receivable-
 import { ObservationSection } from "~/components/dashboard/observations/observation-section";
 import { FinanceDetailCard } from "~/components/dashboard/finance/finance-detail-card";
 import { getStatusVariant } from "~/utils/finance";
+import type { Buyer, Property } from "~/types";
 
 export function meta() {
   return [
@@ -47,10 +48,32 @@ export default function AccountsReceivableDetails() {
   );
   const [observations, setObservations] =
     useState<AccountsReceivableObservation[]>(initialObservations);
+  const [buyer, setBuyer] = useState<Buyer | null>(null);
+  const [property, setProperty] = useState<Property | null>(null);
 
   useEffect(() => {
     setObservations(initialObservations);
   }, [initialObservations]);
+
+  useEffect(() => {
+    const loadEntities = async () => {
+      if (!transaction) return;
+
+      const [buyerData, propertyData] = await Promise.all([
+        transaction.buyerId
+          ? getBuyerById(transaction.buyerId).catch(() => null)
+          : Promise.resolve(null),
+        transaction.propertyId
+          ? getPropertyById(transaction.propertyId).catch(() => null)
+          : Promise.resolve(null),
+      ]);
+
+      setBuyer(buyerData);
+      setProperty(propertyData);
+    };
+
+    loadEntities();
+  }, [transaction]);
 
   if (!transaction) {
     return (
@@ -67,8 +90,6 @@ export default function AccountsReceivableDetails() {
     );
   }
 
-  const buyer = transaction.buyerId ? getBuyerById(transaction.buyerId) : null;
-  const property = transaction.propertyId ? getPropertyById(transaction.propertyId) : null;
   const bankAccount = transaction.bankAccountId
     ? getBankAccountById(transaction.bankAccountId)
     : null;

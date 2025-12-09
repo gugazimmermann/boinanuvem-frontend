@@ -1,9 +1,10 @@
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
 import { Button } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { ROUTES, getPropertyViewRoute } from "~/routes.config";
 import { getPropertyById, updateProperty } from "~/services/properties.service";
-import type { PropertyFormData } from "~/types";
+import type { Property, PropertyFormData } from "~/types";
 import {
   PropertyForm,
   type PropertyFormValues,
@@ -31,8 +32,36 @@ export default function EditProperty() {
   const t = useTranslation();
   const navigate = useNavigate();
   const { propertyId } = useParams<{ propertyId: string }>();
-  const property = getPropertyById(propertyId);
   const { showAlert, AlertDisplay } = useAlert();
+  const [property, setProperty] = useState<Property | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProperty = async () => {
+      if (!propertyId) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const data = await getPropertyById(propertyId);
+        setProperty(data);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : t.properties.errors.loadFailed;
+        showAlert(errorMessage, "error");
+        console.error("Failed to load property:", error);
+        setTimeout(() => {
+          navigate(ROUTES.PROPERTIES);
+        }, 2000);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProperty();
+  }, [propertyId, navigate, showAlert, t]);
 
   const {
     formData,
@@ -81,17 +110,31 @@ export default function EditProperty() {
         state: data.state,
         zipCode: data.zipCode,
       };
-      const success = updateProperty(propertyId, propertyData);
-      if (success) {
+
+      try {
+        await updateProperty(propertyId, propertyData);
         showAlert(t.properties.success.updated, "success");
         setTimeout(() => {
           navigate(ROUTES.PROPERTIES);
         }, 1500);
-      } else {
-        showAlert(t.properties.errors.updateFailed, "error");
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : t.properties.errors.updateFailed;
+        showAlert(errorMessage, "error");
+        throw error;
       }
     },
   });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+          <p className="text-gray-600 dark:text-gray-400">{t.common.loading}</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!property) {
     return (

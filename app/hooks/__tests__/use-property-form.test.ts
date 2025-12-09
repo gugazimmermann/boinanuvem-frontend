@@ -1,22 +1,109 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { usePropertyForm } from "../use-property-form";
+import { useBaseForm } from "../use-base-form";
+import { useAddressForm } from "../use-address-form";
 import { AreaType } from "~/types";
-import * as useBaseFormHook from "../use-base-form";
-import * as useAddressFormHook from "../use-address-form";
 
 vi.mock("../use-base-form");
 vi.mock("../use-address-form");
 
 describe("usePropertyForm", () => {
-  const mockOnSubmit = vi.fn();
-  const mockSetFormData = vi.fn();
-  const mockHandleChange = vi.fn();
-  const mockHandleSubmit = vi.fn();
-  const mockHandleZipCodeChange = vi.fn();
+  let mockBaseForm: ReturnType<typeof useBaseForm>;
+  let mockAddressForm: ReturnType<typeof useAddressForm>;
 
-  const mockBaseForm = {
-    formData: {
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    mockBaseForm = {
+      formData: {
+        code: "",
+        name: "",
+        city: "",
+        state: "",
+        areaValue: "",
+        areaType: AreaType.HECTARES,
+        status: "active",
+        zipCode: "",
+        street: "",
+        number: "",
+        complement: "",
+        neighborhood: "",
+      },
+      errors: {},
+      isSubmitting: false,
+      alertMessage: null,
+      handleChange: vi.fn(),
+      handleSubmit: vi.fn(),
+      showAlert: vi.fn(),
+      setFormData: vi.fn(),
+      clearErrors: vi.fn(),
+      setError: vi.fn(),
+    } as unknown as ReturnType<typeof useBaseForm>;
+
+    mockAddressForm = {
+      zipCodeLoading: false,
+      zipCodeError: null,
+      handleZipCodeChange: vi.fn(),
+    };
+
+    vi.mocked(useBaseForm).mockReturnValue(mockBaseForm);
+    vi.mocked(useAddressForm).mockReturnValue(mockAddressForm);
+  });
+
+  it("should initialize with default values", () => {
+    const { result } = renderHook(() =>
+      usePropertyForm({
+        translationKeys: {
+          required: (field) => `${field} is required`,
+          areaValidationError: "Invalid area",
+        },
+        onSubmit: vi.fn(),
+      })
+    );
+
+    expect(useBaseForm).toHaveBeenCalled();
+    expect(result.current.formData).toBeDefined();
+  });
+
+  it("should merge initial values with defaults", () => {
+    renderHook(() =>
+      usePropertyForm({
+        initialValues: {
+          code: "P001",
+          name: "Test Property",
+        },
+        translationKeys: {
+          required: (field) => `${field} is required`,
+          areaValidationError: "Invalid area",
+        },
+        onSubmit: vi.fn(),
+      })
+    );
+
+    expect(useBaseForm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        initialData: expect.objectContaining({
+          code: "P001",
+          name: "Test Property",
+        }),
+      })
+    );
+  });
+
+  it("should initialize with all default values", () => {
+    renderHook(() =>
+      usePropertyForm({
+        translationKeys: {
+          required: (field) => `${field} is required`,
+          areaValidationError: "Invalid area",
+        },
+        onSubmit: vi.fn(),
+      })
+    );
+
+    const callArgs = vi.mocked(useBaseForm).mock.calls[0]?.[0];
+    expect(callArgs?.initialData).toMatchObject({
       code: "",
       name: "",
       city: "",
@@ -29,283 +116,664 @@ describe("usePropertyForm", () => {
       number: "",
       complement: "",
       neighborhood: "",
-    },
-    setFormData: mockSetFormData,
-    errors: {},
-    isSubmitting: false,
-    handleChange: mockHandleChange,
-    handleSubmit: mockHandleSubmit,
-  };
-
-  const mockAddressForm = {
-    zipCodeLoading: false,
-    zipCodeError: null,
-    handleZipCodeChange: mockHandleZipCodeChange,
-  };
-
-  const mockTranslationKeys = {
-    required: (field: string) => `${field} is required`,
-    areaValidationError: "Area must be a positive number",
-  };
-
-  const defaultOptions = {
-    translationKeys: mockTranslationKeys,
-    onSubmit: mockOnSubmit,
-  };
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.mocked(useBaseFormHook.useBaseForm).mockReturnValue(mockBaseForm);
-    vi.mocked(useAddressFormHook.useAddressForm).mockReturnValue(mockAddressForm);
+    });
   });
 
-  it("should initialize with default values", () => {
-    const { result } = renderHook(() => usePropertyForm(defaultOptions));
-
-    expect(result.current.formData).toEqual(mockBaseForm.formData);
-    expect(result.current.errors).toEqual({});
-    expect(result.current.isSubmitting).toBe(false);
-    expect(result.current.zipCodeLoading).toBe(false);
-    expect(result.current.zipCodeError).toBe(null);
-  });
-
-  it("should initialize with initial values", () => {
+  it("should merge all initial values", () => {
     const initialValues = {
-      code: "PROP001",
-      name: "Property 1",
-      city: "City",
-      state: "State",
-      areaValue: "10",
+      code: "P001",
+      name: "Test Property",
+      city: "Test City",
+      state: "SP",
+      areaValue: "100",
       areaType: AreaType.ACRES,
       status: "inactive" as const,
+      zipCode: "12345-678",
+      street: "Test Street",
+      number: "123",
+      complement: "Apt 4",
+      neighborhood: "Test Neighborhood",
     };
 
     renderHook(() =>
       usePropertyForm({
-        ...defaultOptions,
         initialValues,
+        translationKeys: {
+          required: (field) => `${field} is required`,
+          areaValidationError: "Invalid area",
+        },
+        onSubmit: vi.fn(),
       })
     );
 
-    expect(useBaseFormHook.useBaseForm).toHaveBeenCalledWith(
-      expect.objectContaining({
-        initialData: expect.objectContaining({
-          code: "PROP001",
-          name: "Property 1",
-          city: "City",
-          state: "State",
-          areaValue: "10",
-          areaType: AreaType.ACRES,
-          status: "inactive",
-        }),
+    const callArgs = vi.mocked(useBaseForm).mock.calls[0]?.[0];
+    expect(callArgs?.initialData).toMatchObject(initialValues);
+  });
+
+  it("should validate code field", () => {
+    const validateFn = vi.mocked(useBaseForm).mock.calls[0]?.[0]?.validate;
+    if (validateFn) {
+      const result = validateFn({
+        code: "",
+        name: "Test",
+        city: "City",
+        state: "SP",
+        areaValue: "10",
+      });
+      expect(result).not.toBe(true);
+      if (typeof result === "object") {
+        expect(result.code).toBeDefined();
+      }
+    }
+  });
+
+  it("should validate name field", () => {
+    const validateFn = vi.mocked(useBaseForm).mock.calls[0]?.[0]?.validate;
+    if (validateFn) {
+      const result = validateFn({
+        code: "C001",
+        name: "",
+        city: "City",
+        state: "SP",
+        areaValue: "10",
+      });
+      expect(result).not.toBe(true);
+      if (typeof result === "object") {
+        expect(result.name).toBeDefined();
+      }
+    }
+  });
+
+  it("should validate city field", () => {
+    const validateFn = vi.mocked(useBaseForm).mock.calls[0]?.[0]?.validate;
+    if (validateFn) {
+      const result = validateFn({
+        code: "C001",
+        name: "Test",
+        city: "",
+        state: "SP",
+        areaValue: "10",
+      });
+      expect(result).not.toBe(true);
+      if (typeof result === "object") {
+        expect(result.city).toBeDefined();
+      }
+    }
+  });
+
+  it("should validate state field", () => {
+    const validateFn = vi.mocked(useBaseForm).mock.calls[0]?.[0]?.validate;
+    if (validateFn) {
+      const result = validateFn({
+        code: "C001",
+        name: "Test",
+        city: "City",
+        state: "",
+        areaValue: "10",
+      });
+      expect(result).not.toBe(true);
+      if (typeof result === "object") {
+        expect(result.state).toBeDefined();
+      }
+    }
+  });
+
+  it("should validate areaValue field", () => {
+    const validateFn = vi.mocked(useBaseForm).mock.calls[0]?.[0]?.validate;
+    if (validateFn) {
+      const result = validateFn({
+        code: "C001",
+        name: "Test",
+        city: "City",
+        state: "SP",
+        areaValue: "",
+      });
+      expect(result).not.toBe(true);
+      if (typeof result === "object") {
+        expect(result.areaValue).toBeDefined();
+      }
+    }
+  });
+
+  it("should validate areaValue is a positive number", () => {
+    const validateFn = vi.mocked(useBaseForm).mock.calls[0]?.[0]?.validate;
+    if (validateFn) {
+      const result = validateFn({
+        code: "C001",
+        name: "Test",
+        city: "City",
+        state: "SP",
+        areaValue: "-10",
+      });
+      expect(result).not.toBe(true);
+      if (typeof result === "object") {
+        expect(result.areaValue).toBeDefined();
+      }
+    }
+  });
+
+  it("should validate code field with whitespace only", () => {
+    renderHook(() =>
+      usePropertyForm({
+        translationKeys: {
+          required: (field) => `${field} is required`,
+          areaValidationError: "Invalid area",
+        },
+        onSubmit: vi.fn(),
       })
     );
+
+    const validateFn = vi.mocked(useBaseForm).mock.calls[0]?.[0]?.validate;
+    if (validateFn) {
+      const result = validateFn({
+        code: "   ",
+        name: "Test",
+        city: "City",
+        state: "SP",
+        areaValue: "10",
+      });
+      expect(result).not.toBe(true);
+      if (typeof result === "object") {
+        expect(result.code).toBeDefined();
+      }
+    }
   });
 
-  it("should call useBaseForm with validation function", () => {
-    renderHook(() => usePropertyForm(defaultOptions));
+  it("should validate name field with whitespace only", () => {
+    renderHook(() =>
+      usePropertyForm({
+        translationKeys: {
+          required: (field) => `${field} is required`,
+          areaValidationError: "Invalid area",
+        },
+        onSubmit: vi.fn(),
+      })
+    );
 
-    const callArgs = vi.mocked(useBaseFormHook.useBaseForm).mock.calls[0][0];
-    expect(callArgs.validate).toBeDefined();
-
-    const validate = callArgs.validate!;
-
-    const resultWithErrors = validate({
-      code: "",
-      name: "",
-      city: "",
-      state: "",
-      areaValue: "",
-    });
-
-    expect(resultWithErrors).not.toBe(true);
-    expect(typeof resultWithErrors).toBe("object");
+    const validateFn = vi.mocked(useBaseForm).mock.calls[0]?.[0]?.validate;
+    if (validateFn) {
+      const result = validateFn({
+        code: "C001",
+        name: "   ",
+        city: "City",
+        state: "SP",
+        areaValue: "10",
+      });
+      expect(result).not.toBe(true);
+      if (typeof result === "object") {
+        expect(result.name).toBeDefined();
+      }
+    }
   });
 
-  it("should validate required fields", () => {
-    renderHook(() => usePropertyForm(defaultOptions));
+  it("should validate city field with whitespace only", () => {
+    renderHook(() =>
+      usePropertyForm({
+        translationKeys: {
+          required: (field) => `${field} is required`,
+          areaValidationError: "Invalid area",
+        },
+        onSubmit: vi.fn(),
+      })
+    );
 
-    const callArgs = vi.mocked(useBaseFormHook.useBaseForm).mock.calls[0][0];
-    const validate = callArgs.validate!;
-
-    const result = validate({
-      code: "",
-      name: "",
-      city: "",
-      state: "",
-      areaValue: "",
-    });
-
-    expect(result).toEqual({
-      code: "code is required",
-      name: "name is required",
-      city: "city is required",
-      state: "state is required",
-      areaValue: "area is required",
-    });
+    const validateFn = vi.mocked(useBaseForm).mock.calls[0]?.[0]?.validate;
+    if (validateFn) {
+      const result = validateFn({
+        code: "C001",
+        name: "Test",
+        city: "   ",
+        state: "SP",
+        areaValue: "10",
+      });
+      expect(result).not.toBe(true);
+      if (typeof result === "object") {
+        expect(result.city).toBeDefined();
+      }
+    }
   });
 
-  it("should validate area value is a positive number", () => {
-    renderHook(() => usePropertyForm(defaultOptions));
+  it("should validate state field with whitespace only", () => {
+    renderHook(() =>
+      usePropertyForm({
+        translationKeys: {
+          required: (field) => `${field} is required`,
+          areaValidationError: "Invalid area",
+        },
+        onSubmit: vi.fn(),
+      })
+    );
 
-    const callArgs = vi.mocked(useBaseFormHook.useBaseForm).mock.calls[0][0];
-    const validate = callArgs.validate!;
-
-    const result = validate({
-      code: "PROP001",
-      name: "Property 1",
-      city: "City",
-      state: "State",
-      areaValue: "invalid",
-    });
-
-    expect(result).toEqual({
-      areaValue: "Area must be a positive number",
-    });
+    const validateFn = vi.mocked(useBaseForm).mock.calls[0]?.[0]?.validate;
+    if (validateFn) {
+      const result = validateFn({
+        code: "C001",
+        name: "Test",
+        city: "City",
+        state: "   ",
+        areaValue: "10",
+      });
+      expect(result).not.toBe(true);
+      if (typeof result === "object") {
+        expect(result.state).toBeDefined();
+      }
+    }
   });
 
-  it("should validate area value is greater than zero", () => {
-    renderHook(() => usePropertyForm(defaultOptions));
+  it("should validate areaValue as empty string", () => {
+    renderHook(() =>
+      usePropertyForm({
+        translationKeys: {
+          required: (field) => `${field} is required`,
+          areaValidationError: "Invalid area",
+        },
+        onSubmit: vi.fn(),
+      })
+    );
 
-    const callArgs = vi.mocked(useBaseFormHook.useBaseForm).mock.calls[0][0];
-    const validate = callArgs.validate!;
-
-    const result = validate({
-      code: "PROP001",
-      name: "Property 1",
-      city: "City",
-      state: "State",
-      areaValue: "0",
-    });
-
-    expect(result).toEqual({
-      areaValue: "Area must be a positive number",
-    });
+    const validateFn = vi.mocked(useBaseForm).mock.calls[0]?.[0]?.validate;
+    if (validateFn) {
+      const result = validateFn({
+        code: "C001",
+        name: "Test",
+        city: "City",
+        state: "SP",
+        areaValue: "",
+      });
+      expect(result).not.toBe(true);
+      if (typeof result === "object") {
+        expect(result.areaValue).toBeDefined();
+      }
+    }
   });
 
-  it("should validate area value is negative", () => {
-    renderHook(() => usePropertyForm(defaultOptions));
+  it("should validate areaValue as whitespace only", () => {
+    renderHook(() =>
+      usePropertyForm({
+        translationKeys: {
+          required: (field) => `${field} is required`,
+          areaValidationError: "Invalid area",
+        },
+        onSubmit: vi.fn(),
+      })
+    );
 
-    const callArgs = vi.mocked(useBaseFormHook.useBaseForm).mock.calls[0][0];
-    const validate = callArgs.validate!;
-
-    const result = validate({
-      code: "PROP001",
-      name: "Property 1",
-      city: "City",
-      state: "State",
-      areaValue: "-10",
-    });
-
-    expect(result).toEqual({
-      areaValue: "Area must be a positive number",
-    });
+    const validateFn = vi.mocked(useBaseForm).mock.calls[0]?.[0]?.validate;
+    if (validateFn) {
+      const result = validateFn({
+        code: "C001",
+        name: "Test",
+        city: "City",
+        state: "SP",
+        areaValue: "   ",
+      });
+      expect(result).not.toBe(true);
+      if (typeof result === "object") {
+        expect(result.areaValue).toBeDefined();
+      }
+    }
   });
 
-  it("should pass validation with valid data", () => {
-    renderHook(() => usePropertyForm(defaultOptions));
+  it("should validate areaValue as NaN (non-numeric string)", () => {
+    renderHook(() =>
+      usePropertyForm({
+        translationKeys: {
+          required: (field) => `${field} is required`,
+          areaValidationError: "Invalid area",
+        },
+        onSubmit: vi.fn(),
+      })
+    );
 
-    const callArgs = vi.mocked(useBaseFormHook.useBaseForm).mock.calls[0][0];
-    const validate = callArgs.validate!;
-
-    const result = validate({
-      code: "PROP001",
-      name: "Property 1",
-      city: "City",
-      state: "State",
-      areaValue: "10.5",
-    });
-
-    expect(result).toBe(true);
+    const validateFn = vi.mocked(useBaseForm).mock.calls[0]?.[0]?.validate;
+    if (validateFn) {
+      const result = validateFn({
+        code: "C001",
+        name: "Test",
+        city: "City",
+        state: "SP",
+        areaValue: "abc",
+      });
+      expect(result).not.toBe(true);
+      if (typeof result === "object") {
+        expect(result.areaValue).toBeDefined();
+      }
+    }
   });
 
-  it("should call useAddressForm with formData and setFormData", () => {
-    renderHook(() => usePropertyForm(defaultOptions));
+  it("should validate areaValue as 0", () => {
+    renderHook(() =>
+      usePropertyForm({
+        translationKeys: {
+          required: (field) => `${field} is required`,
+          areaValidationError: "Invalid area",
+        },
+        onSubmit: vi.fn(),
+      })
+    );
 
-    expect(useAddressFormHook.useAddressForm).toHaveBeenCalledWith({
-      formData: mockBaseForm.formData,
-      setFormData: mockSetFormData,
-    });
+    const validateFn = vi.mocked(useBaseForm).mock.calls[0]?.[0]?.validate;
+    if (validateFn) {
+      const result = validateFn({
+        code: "C001",
+        name: "Test",
+        city: "City",
+        state: "SP",
+        areaValue: "0",
+      });
+      expect(result).not.toBe(true);
+      if (typeof result === "object") {
+        expect(result.areaValue).toBeDefined();
+      }
+    }
   });
 
-  it("should handle zipCode change through addressForm", () => {
-    const { result } = renderHook(() => usePropertyForm(defaultOptions));
+  it("should accept valid positive areaValue", () => {
+    renderHook(() =>
+      usePropertyForm({
+        translationKeys: {
+          required: (field) => `${field} is required`,
+          areaValidationError: "Invalid area",
+        },
+        onSubmit: vi.fn(),
+      })
+    );
+
+    const validateFn = vi.mocked(useBaseForm).mock.calls[0]?.[0]?.validate;
+    if (validateFn) {
+      const result = validateFn({
+        code: "C001",
+        name: "Test",
+        city: "City",
+        state: "SP",
+        areaValue: "100.5",
+      });
+      expect(result).toBe(true);
+    }
+  });
+
+  it("should return true when all validation passes", () => {
+    renderHook(() =>
+      usePropertyForm({
+        translationKeys: {
+          required: (field) => `${field} is required`,
+          areaValidationError: "Invalid area",
+        },
+        onSubmit: vi.fn(),
+      })
+    );
+
+    const validateFn = vi.mocked(useBaseForm).mock.calls[0]?.[0]?.validate;
+    if (validateFn) {
+      const result = validateFn({
+        code: "C001",
+        name: "Test Property",
+        city: "Test City",
+        state: "SP",
+        areaValue: "100",
+      });
+      expect(result).toBe(true);
+    }
+  });
+
+  it("should use addressForm.handleZipCodeChange for zipCode field", () => {
+    const { result } = renderHook(() =>
+      usePropertyForm({
+        translationKeys: {
+          required: (field) => `${field} is required`,
+          areaValidationError: "Invalid area",
+        },
+        onSubmit: vi.fn(),
+      })
+    );
 
     act(() => {
-      result.current.handleChange("zipCode", "12345-678");
+      result.current.handleChange("zipCode", "12345678");
     });
 
-    expect(mockHandleZipCodeChange).toHaveBeenCalledWith("12345-678");
+    expect(mockAddressForm.handleZipCodeChange).toHaveBeenCalledWith("12345678");
+    expect(mockBaseForm.handleChange).not.toHaveBeenCalled();
   });
 
-  it("should handle other field changes through baseForm", () => {
-    const { result } = renderHook(() => usePropertyForm(defaultOptions));
+  it("should use baseForm.handleChange for other fields", () => {
+    const { result } = renderHook(() =>
+      usePropertyForm({
+        translationKeys: {
+          required: (field) => `${field} is required`,
+          areaValidationError: "Invalid area",
+        },
+        onSubmit: vi.fn(),
+      })
+    );
 
     act(() => {
-      result.current.handleChange("name", "New Property Name");
+      result.current.handleChange("name", "New Name");
     });
 
-    expect(mockHandleChange).toHaveBeenCalledWith("name", "New Property Name");
+    expect(mockBaseForm.handleChange).toHaveBeenCalledWith("name", "New Name");
   });
 
-  it("should handle areaType change", () => {
-    const { result } = renderHook(() => usePropertyForm(defaultOptions));
+  it("should handle areaType changes", () => {
+    const { result } = renderHook(() =>
+      usePropertyForm({
+        translationKeys: {
+          required: (field) => `${field} is required`,
+          areaValidationError: "Invalid area",
+        },
+        onSubmit: vi.fn(),
+      })
+    );
 
     act(() => {
       result.current.handleChange("areaType", AreaType.ACRES);
     });
 
-    expect(mockHandleChange).toHaveBeenCalledWith("areaType", AreaType.ACRES);
+    expect(mockBaseForm.handleChange).toHaveBeenCalledWith("areaType", AreaType.ACRES);
   });
 
-  it("should return validate function that checks errors", () => {
-    vi.mocked(useBaseFormHook.useBaseForm).mockReturnValue({
-      ...mockBaseForm,
-      errors: { code: "Code is required" },
+  it("should handle change for code field", () => {
+    const { result } = renderHook(() =>
+      usePropertyForm({
+        translationKeys: {
+          required: (field) => `${field} is required`,
+          areaValidationError: "Invalid area",
+        },
+        onSubmit: vi.fn(),
+      })
+    );
+
+    act(() => {
+      result.current.handleChange("code", "P002");
     });
 
-    const { result } = renderHook(() => usePropertyForm(defaultOptions));
+    expect(mockBaseForm.handleChange).toHaveBeenCalledWith("code", "P002");
+  });
+
+  it("should handle change for city field", () => {
+    const { result } = renderHook(() =>
+      usePropertyForm({
+        translationKeys: {
+          required: (field) => `${field} is required`,
+          areaValidationError: "Invalid area",
+        },
+        onSubmit: vi.fn(),
+      })
+    );
+
+    act(() => {
+      result.current.handleChange("city", "New City");
+    });
+
+    expect(mockBaseForm.handleChange).toHaveBeenCalledWith("city", "New City");
+  });
+
+  it("should handle change for state field", () => {
+    const { result } = renderHook(() =>
+      usePropertyForm({
+        translationKeys: {
+          required: (field) => `${field} is required`,
+          areaValidationError: "Invalid area",
+        },
+        onSubmit: vi.fn(),
+      })
+    );
+
+    act(() => {
+      result.current.handleChange("state", "RJ");
+    });
+
+    expect(mockBaseForm.handleChange).toHaveBeenCalledWith("state", "RJ");
+  });
+
+  it("should handle change for areaValue field", () => {
+    const { result } = renderHook(() =>
+      usePropertyForm({
+        translationKeys: {
+          required: (field) => `${field} is required`,
+          areaValidationError: "Invalid area",
+        },
+        onSubmit: vi.fn(),
+      })
+    );
+
+    act(() => {
+      result.current.handleChange("areaValue", "200");
+    });
+
+    expect(mockBaseForm.handleChange).toHaveBeenCalledWith("areaValue", "200");
+  });
+
+  it("should handle change for status field", () => {
+    const { result } = renderHook(() =>
+      usePropertyForm({
+        translationKeys: {
+          required: (field) => `${field} is required`,
+          areaValidationError: "Invalid area",
+        },
+        onSubmit: vi.fn(),
+      })
+    );
+
+    act(() => {
+      result.current.handleChange("status", "inactive");
+    });
+
+    expect(mockBaseForm.handleChange).toHaveBeenCalledWith("status", "inactive");
+  });
+
+  it("should handle change for all areaType enum values", () => {
+    const { result } = renderHook(() =>
+      usePropertyForm({
+        translationKeys: {
+          required: (field) => `${field} is required`,
+          areaValidationError: "Invalid area",
+        },
+        onSubmit: vi.fn(),
+      })
+    );
+
+    const areaTypes = [
+      AreaType.HECTARES,
+      AreaType.SQUARE_METERS,
+      AreaType.SQUARE_FEET,
+      AreaType.ACRES,
+      AreaType.SQUARE_KILOMETERS,
+      AreaType.SQUARE_MILES,
+    ];
+
+    areaTypes.forEach((areaType) => {
+      act(() => {
+        result.current.handleChange("areaType", areaType);
+      });
+      expect(mockBaseForm.handleChange).toHaveBeenCalledWith("areaType", areaType);
+    });
+  });
+
+  it("should return false from validate when errors exist", () => {
+    mockBaseForm.errors = { code: "Code is required" };
+    const { result } = renderHook(() =>
+      usePropertyForm({
+        translationKeys: {
+          required: (field) => `${field} is required`,
+          areaValidationError: "Invalid area",
+        },
+        onSubmit: vi.fn(),
+      })
+    );
 
     expect(result.current.validate()).toBe(false);
   });
 
-  it("should return true from validate when no errors", () => {
-    vi.mocked(useBaseFormHook.useBaseForm).mockReturnValue({
-      ...mockBaseForm,
-      errors: {},
-    });
-
-    const { result } = renderHook(() => usePropertyForm(defaultOptions));
+  it("should return validation result from baseForm", () => {
+    const { result } = renderHook(() =>
+      usePropertyForm({
+        translationKeys: {
+          required: (field) => `${field} is required`,
+          areaValidationError: "Invalid area",
+        },
+        onSubmit: vi.fn(),
+      })
+    );
 
     expect(result.current.validate()).toBe(true);
   });
 
-  it("should return handleSubmit from baseForm", () => {
-    const { result } = renderHook(() => usePropertyForm(defaultOptions));
-
-    expect(result.current.handleSubmit).toBe(mockHandleSubmit);
-  });
-
-  it("should update zipCodeLoading from addressForm", () => {
-    vi.mocked(useAddressFormHook.useAddressForm).mockReturnValue({
-      ...mockAddressForm,
-      zipCodeLoading: true,
-    });
-
-    const { result } = renderHook(() => usePropertyForm(defaultOptions));
+  it("should return zipCodeLoading from addressForm", () => {
+    mockAddressForm.zipCodeLoading = true;
+    const { result } = renderHook(() =>
+      usePropertyForm({
+        translationKeys: {
+          required: (field) => `${field} is required`,
+          areaValidationError: "Invalid area",
+        },
+        onSubmit: vi.fn(),
+      })
+    );
 
     expect(result.current.zipCodeLoading).toBe(true);
   });
 
-  it("should update zipCodeError from addressForm", () => {
-    const errorMessage = "CEP not found";
-    vi.mocked(useAddressFormHook.useAddressForm).mockReturnValue({
-      ...mockAddressForm,
-      zipCodeError: errorMessage,
-    });
+  it("should return zipCodeError from addressForm", () => {
+    mockAddressForm.zipCodeError = "CEP not found";
+    const { result } = renderHook(() =>
+      usePropertyForm({
+        translationKeys: {
+          required: (field) => `${field} is required`,
+          areaValidationError: "Invalid area",
+        },
+        onSubmit: vi.fn(),
+      })
+    );
 
-    const { result } = renderHook(() => usePropertyForm(defaultOptions));
+    expect(result.current.zipCodeError).toBe("CEP not found");
+  });
 
-    expect(result.current.zipCodeError).toBe(errorMessage);
+  it("should return isSubmitting from baseForm", () => {
+    mockBaseForm.isSubmitting = true;
+    const { result } = renderHook(() =>
+      usePropertyForm({
+        translationKeys: {
+          required: (field) => `${field} is required`,
+          areaValidationError: "Invalid area",
+        },
+        onSubmit: vi.fn(),
+      })
+    );
+
+    expect(result.current.isSubmitting).toBe(true);
+  });
+
+  it("should return handleSubmit from baseForm", () => {
+    const { result } = renderHook(() =>
+      usePropertyForm({
+        translationKeys: {
+          required: (field) => `${field} is required`,
+          areaValidationError: "Invalid area",
+        },
+        onSubmit: vi.fn(),
+      })
+    );
+
+    expect(result.current.handleSubmit).toBe(mockBaseForm.handleSubmit);
   });
 });

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Input, Select, FormPageLayout } from "~/components/ui";
 import { useTranslation } from "~/i18n";
@@ -6,7 +6,7 @@ import { ROUTES } from "~/routes.config";
 import { addAnimal } from "~/services/animals.service";
 import type { AnimalFormData, Property } from "~/types";
 import { mockCompanies } from "~/mocks/companies";
-import { mockProperties } from "~/mocks/properties";
+import { getProperties } from "~/services/properties.service";
 import { createFormMeta } from "~/utils/route-helpers";
 import { useAlert } from "~/hooks/use-alert";
 
@@ -19,7 +19,22 @@ export default function NewAnimal() {
   const navigate = useNavigate();
   const company = mockCompanies[0];
   const companyId = company?.id || "";
+  const [properties, setProperties] = useState<Property[]>([]);
   const { alertMessage, showAlert } = useAlert();
+
+  useEffect(() => {
+    const fetchProperties = async () => {
+      if (companyId) {
+        try {
+          const propertiesData = await getProperties();
+          setProperties(propertiesData.filter((prop) => prop.companyId === companyId));
+        } catch (error) {
+          console.error("Failed to load properties:", error);
+        }
+      }
+    };
+    fetchProperties();
+  }, [companyId]);
 
   const [formData, setFormData] = useState<{
     code: string;
@@ -95,6 +110,8 @@ export default function NewAnimal() {
     }
   };
 
+  const formId = "animal-form";
+
   return (
     <FormPageLayout
       title={t.animals.addAnimal}
@@ -122,8 +139,9 @@ export default function NewAnimal() {
           isLoading: isSubmitting,
         },
       }}
+      formId={formId}
     >
-      <form onSubmit={handleSubmit} className="space-y-8">
+      <form id={formId} onSubmit={handleSubmit} className="space-y-8">
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Input
@@ -166,7 +184,7 @@ export default function NewAnimal() {
             options={[
               { value: "", label: "-" },
 
-              ...mockProperties.map((property: Property) => ({
+              ...properties.map((property: Property) => ({
                 value: property.id,
                 label: property.name,
               })),

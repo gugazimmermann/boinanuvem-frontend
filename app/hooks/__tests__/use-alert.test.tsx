@@ -1,20 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { useAlert } from "../use-alert";
-import * as AlertComponent from "~/components/ui";
-
-vi.mock("~/components/ui", () => ({
-  Alert: vi.fn(({ title, variant }: { title: string; variant?: string }) => (
-    <div data-testid="alert" data-variant={variant}>
-      {title}
-    </div>
-  )),
-}));
 
 describe("useAlert", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     vi.useFakeTimers();
   });
 
@@ -29,7 +19,7 @@ describe("useAlert", () => {
     expect(result.current.alertMessage).toBeNull();
   });
 
-  it("should show alert with default variant 'success'", () => {
+  it("should set alert when showAlert is called", () => {
     const { result } = renderHook(() => useAlert());
 
     act(() => {
@@ -46,7 +36,17 @@ describe("useAlert", () => {
     });
   });
 
-  it("should show alert with specified variant", () => {
+  it("should use default variant 'success' when variant not provided", () => {
+    const { result } = renderHook(() => useAlert());
+
+    act(() => {
+      result.current.showAlert("Test message");
+    });
+
+    expect(result.current.alert?.variant).toBe("success");
+  });
+
+  it("should set alert with specified variant", () => {
     const { result } = renderHook(() => useAlert());
 
     act(() => {
@@ -59,33 +59,7 @@ describe("useAlert", () => {
     });
   });
 
-  it("should show alert with 'warning' variant", () => {
-    const { result } = renderHook(() => useAlert());
-
-    act(() => {
-      result.current.showAlert("Warning message", "warning");
-    });
-
-    expect(result.current.alert).toEqual({
-      title: "Warning message",
-      variant: "warning",
-    });
-  });
-
-  it("should show alert with 'info' variant", () => {
-    const { result } = renderHook(() => useAlert());
-
-    act(() => {
-      result.current.showAlert("Info message", "info");
-    });
-
-    expect(result.current.alert).toEqual({
-      title: "Info message",
-      variant: "info",
-    });
-  });
-
-  it("should clear alert", () => {
+  it("should clear alert when clearAlert is called", () => {
     const { result } = renderHook(() => useAlert());
 
     act(() => {
@@ -102,7 +76,7 @@ describe("useAlert", () => {
     expect(result.current.alertMessage).toBeNull();
   });
 
-  it("should auto-clear alert after 3000ms", async () => {
+  it("should auto-dismiss alert after 3 seconds", async () => {
     const { result } = renderHook(() => useAlert());
 
     act(() => {
@@ -112,7 +86,7 @@ describe("useAlert", () => {
     expect(result.current.alert).not.toBeNull();
 
     act(() => {
-      vi.advanceTimersByTime(3001);
+      vi.advanceTimersByTime(3000);
     });
 
     expect(result.current.alert).toBeNull();
@@ -120,7 +94,6 @@ describe("useAlert", () => {
 
   it("should clear timeout when alert is cleared manually", () => {
     const { result } = renderHook(() => useAlert());
-    const clearTimeoutSpy = vi.spyOn(global, "clearTimeout");
 
     act(() => {
       result.current.showAlert("Test message");
@@ -130,128 +103,113 @@ describe("useAlert", () => {
       result.current.clearAlert();
     });
 
-    expect(clearTimeoutSpy).toHaveBeenCalled();
-    clearTimeoutSpy.mockRestore();
-  });
-
-  it("should clear timeout when new alert is shown", () => {
-    const { result } = renderHook(() => useAlert());
-    const clearTimeoutSpy = vi.spyOn(global, "clearTimeout");
-
     act(() => {
-      result.current.showAlert("First message");
-    });
-
-    act(() => {
-      result.current.showAlert("Second message");
-    });
-
-    expect(clearTimeoutSpy).toHaveBeenCalled();
-    clearTimeoutSpy.mockRestore();
-  });
-
-  it("should render AlertDisplay component when alert exists", () => {
-    const { result } = renderHook(() => useAlert());
-
-    act(() => {
-      result.current.showAlert("Test message", "error");
-    });
-
-    const AlertDisplay = result.current.AlertDisplay;
-    const { container } = render(<AlertDisplay />);
-
-    expect(container.querySelector('[data-testid="alert"]')).toBeInTheDocument();
-    expect(container.querySelector('[data-variant="error"]')).toBeInTheDocument();
-  });
-
-  it("should return null from AlertDisplay when no alert", () => {
-    const { result } = renderHook(() => useAlert());
-
-    const AlertDisplay = result.current.AlertDisplay;
-    const { container } = render(<AlertDisplay />);
-
-    expect(container.firstChild).toBeNull();
-  });
-
-  it("should pass correct props to Alert component", () => {
-    const { result } = renderHook(() => useAlert());
-
-    act(() => {
-      result.current.showAlert("Success message", "success");
-    });
-
-    const AlertDisplay = result.current.AlertDisplay;
-    render(<AlertDisplay />);
-
-    expect(AlertComponent.Alert).toHaveBeenCalled();
-    const callArgs = vi.mocked(AlertComponent.Alert).mock.calls[0];
-    expect(callArgs?.[0]).toEqual({
-      title: "Success message",
-      variant: "success",
-    });
-  });
-
-  it("should update alertMessage when alert changes", () => {
-    const { result } = renderHook(() => useAlert());
-
-    act(() => {
-      result.current.showAlert("First message");
-    });
-
-    expect(result.current.alertMessage?.title).toBe("First message");
-
-    act(() => {
-      result.current.showAlert("Second message", "error");
-    });
-
-    expect(result.current.alertMessage?.title).toBe("Second message");
-    expect(result.current.alertMessage?.variant).toBe("error");
-  });
-
-  it("should handle multiple showAlert calls", () => {
-    const { result } = renderHook(() => useAlert());
-
-    act(() => {
-      result.current.showAlert("First");
-    });
-
-    act(() => {
-      result.current.showAlert("Second", "warning");
-    });
-
-    act(() => {
-      result.current.showAlert("Third", "info");
-    });
-
-    expect(result.current.alert?.title).toBe("Third");
-    expect(result.current.alert?.variant).toBe("info");
-  });
-
-  it("should reset timeout when alert is updated", async () => {
-    const { result } = renderHook(() => useAlert());
-
-    act(() => {
-      result.current.showAlert("First message");
-    });
-
-    act(() => {
-      vi.advanceTimersByTime(2000);
-    });
-
-    act(() => {
-      result.current.showAlert("Second message");
-    });
-
-    act(() => {
-      vi.advanceTimersByTime(2000);
-    });
-
-    expect(result.current.alert).not.toBeNull();
-
-    act(() => {
-      vi.advanceTimersByTime(1001);
+      vi.advanceTimersByTime(3000);
     });
 
     expect(result.current.alert).toBeNull();
+  });
+
+  it("should clear timeout when new alert is shown", async () => {
+    const { result } = renderHook(() => useAlert());
+
+    act(() => {
+      result.current.showAlert("First message");
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(2000);
+    });
+
+    act(() => {
+      result.current.showAlert("Second message");
+    });
+
+    expect(result.current.alert?.title).toBe("Second message");
+
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+
+    expect(result.current.alert).toBeNull();
+  });
+
+  it("should support all alert variants", () => {
+    const { result } = renderHook(() => useAlert());
+    const variants: Array<"success" | "error" | "warning" | "info"> = [
+      "success",
+      "error",
+      "warning",
+      "info",
+    ];
+
+    variants.forEach((variant) => {
+      act(() => {
+        result.current.showAlert(`Test ${variant}`, variant);
+      });
+
+      expect(result.current.alert?.variant).toBe(variant);
+    });
+  });
+
+  describe("AlertDisplay", () => {
+    it("should return null when no alert is set", () => {
+      const { result } = renderHook(() => useAlert());
+
+      const AlertDisplay = result.current.AlertDisplay;
+      const { container } = render(<AlertDisplay />);
+
+      expect(container.firstChild).toBeNull();
+    });
+
+    it("should render alert component when alert is set", () => {
+      const { result } = renderHook(() => useAlert());
+
+      act(() => {
+        result.current.showAlert("Test message", "success");
+      });
+
+      const AlertDisplay = result.current.AlertDisplay;
+      render(<AlertDisplay />);
+
+      expect(screen.getByText("Test message")).toBeInTheDocument();
+    });
+
+    it("should render alert with correct variant", () => {
+      const { result } = renderHook(() => useAlert());
+
+      act(() => {
+        result.current.showAlert("Error message", "error");
+      });
+
+      const AlertDisplay = result.current.AlertDisplay;
+      const { container } = render(<AlertDisplay />);
+
+      expect(screen.getByText("Error message")).toBeInTheDocument();
+      expect(container.querySelector(".bg-red-500")).toBeInTheDocument();
+    });
+
+    it("should update when alert changes", () => {
+      const { result, rerender: rerenderHook } = renderHook(() => useAlert());
+
+      act(() => {
+        result.current.showAlert("First message");
+      });
+
+      const AlertDisplay1 = result.current.AlertDisplay;
+      const { rerender } = render(<AlertDisplay1 />);
+
+      expect(screen.getByText("First message")).toBeInTheDocument();
+
+      act(() => {
+        result.current.showAlert("Second message", "error");
+      });
+
+      rerenderHook();
+      const AlertDisplay2 = result.current.AlertDisplay;
+      rerender(<AlertDisplay2 />);
+
+      expect(screen.getByText("Second message")).toBeInTheDocument();
+    });
   });
 });

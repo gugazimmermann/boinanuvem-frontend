@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { Input, Select, Button, FixedAlert, FileUpload } from "~/components/ui";
 import { useTranslation } from "~/i18n";
@@ -12,13 +12,17 @@ import { getInventoryItemById } from "~/services/inventory.service";
 import { addInventoryMovement } from "~/services/inventory-movements.service";
 import { addCashFlow } from "~/services/cash-flow.service";
 import { addAccountsPayable } from "~/services/accounts-payable.service";
-import { getSuppliersByCompanyId } from "~/services/suppliers.service";
-import { getPropertiesByCompanyId } from "~/services/properties.service";
+import { getSuppliers } from "~/services/suppliers.service";
+import { getProperties } from "~/services/properties.service";
 import { getBankAccountsByCompanyId } from "~/services/bank-account.service";
-import { getLocationsByPropertyId } from "~/services/locations.service";
-import { getEmployeesByPropertyId } from "~/services/employees.service";
-import { getServiceProvidersByPropertyId } from "~/services/service-providers.service";
+import { getLocations } from "~/services/locations.service";
+import { getEmployees } from "~/services/employees.service";
+import { getServiceProviders } from "~/services/service-providers.service";
 import type {
+  Supplier,
+  Location,
+  Employee,
+  ServiceProvider,
   InventoryMovementFormData,
   CashFlowFormData,
   AccountsPayableFormData,
@@ -99,9 +103,36 @@ export default function NewInventoryMovement() {
   const item = getInventoryItemById(itemId);
   const company = mockCompanies[0];
   const companyId = company?.id || "";
-  const properties = getPropertiesByCompanyId(companyId);
-  const suppliers = getSuppliersByCompanyId(companyId);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [serviceProviders, setServiceProviders] = useState<ServiceProvider[]>([]);
   const bankAccounts = getBankAccountsByCompanyId(companyId);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [propertiesData, suppliersData, locationsData, employeesData, serviceProvidersData] =
+          await Promise.all([
+            getProperties(),
+            getSuppliers(),
+            getLocations(),
+            getEmployees(),
+            getServiceProviders(),
+          ]);
+        // Filter by companyId
+        setProperties(propertiesData.filter((prop) => prop.companyId === companyId));
+        setSuppliers(suppliersData.filter((sup) => sup.companyId === companyId));
+        setLocations(locationsData);
+        setEmployees(employeesData);
+        setServiceProviders(serviceProvidersData);
+      } catch (error) {
+        console.error("Failed to load data:", error);
+      }
+    };
+    fetchData();
+  }, [companyId]);
 
   const initialFormData: FormData = {
     type: InventoryMovementType.PURCHASE,
@@ -258,9 +289,11 @@ export default function NewInventoryMovement() {
   });
 
   const selectedProperty = properties.find((p) => p.id === formData.propertyId);
-  const employees = selectedProperty ? getEmployeesByPropertyId(selectedProperty.id) : [];
-  const serviceProviders = selectedProperty
-    ? getServiceProvidersByPropertyId(selectedProperty.id)
+  const propertyEmployees = selectedProperty
+    ? employees.filter((emp) => emp.propertyIds?.includes(selectedProperty.id))
+    : [];
+  const propertyServiceProviders = selectedProperty
+    ? serviceProviders.filter((sp) => sp.propertyIds?.includes(selectedProperty.id))
     : [];
 
   useEffect(() => {
@@ -450,10 +483,12 @@ export default function NewInventoryMovement() {
                 onChange={(e) => handleChange("locationId", e.target.value)}
                 options={[
                   { value: "", label: t.common.select },
-                  ...getLocationsByPropertyId(formData.propertyId).map((location) => ({
-                    value: location.id,
-                    label: location.name,
-                  })),
+                  ...locations
+                    .filter((loc) => loc.propertyId === formData.propertyId)
+                    .map((location) => ({
+                      value: location.id,
+                      label: location.name,
+                    })),
                 ]}
                 error={errors.locationId}
                 disabled={isSubmitting}
@@ -466,8 +501,8 @@ export default function NewInventoryMovement() {
                   {t.properties.details.movements.table.responsible}
                 </h3>
                 <ResponsibleSelectionSection
-                  employees={employees}
-                  serviceProviders={serviceProviders}
+                  employees={propertyEmployees}
+                  serviceProviders={propertyServiceProviders}
                   selectedEmployeeIds={formData.employeeIds}
                   selectedServiceProviderIds={formData.serviceProviderIds}
                   onToggleEmployee={(id) => toggleSelection("employeeIds", id)}

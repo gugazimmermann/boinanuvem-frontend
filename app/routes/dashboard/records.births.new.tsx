@@ -12,11 +12,18 @@ import { addBirth, calculatePurity, getBirthByAnimalId } from "~/services/births
 import { unconfirmMostRecentBreedingForAnimal } from "~/services/breedings.service";
 import { addAnimal, getAnimalsByCompanyId, getAnimalById } from "~/services/animals.service";
 import { addWeighing } from "~/services/weighings.service";
-import type { BirthFormData, AnimalFormData, WeighingFormData, Property } from "~/types";
+import type {
+  BirthFormData,
+  AnimalFormData,
+  WeighingFormData,
+  Property,
+  Employee,
+  ServiceProvider,
+} from "~/types";
 import { mockCompanies } from "~/mocks/companies";
-import { mockProperties } from "~/mocks/properties";
-import { mockEmployees } from "~/mocks/employees";
-import { mockServiceProviders } from "~/mocks/service-providers";
+import { getProperties } from "~/services/properties.service";
+import { getEmployees } from "~/services/employees.service";
+import { getServiceProviders } from "~/services/service-providers.service";
 import { useAlert } from "~/hooks/use-alert";
 
 export function meta() {
@@ -165,14 +172,31 @@ export default function NewBirth() {
     });
   };
 
-  const employees = useMemo(() => {
-    return mockEmployees.filter((emp) => emp.companyId === companyId && emp.status === "active");
-  }, [companyId]);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [serviceProviders, setServiceProviders] = useState<ServiceProvider[]>([]);
 
-  const serviceProviders = useMemo(() => {
-    return mockServiceProviders.filter(
-      (sp) => sp.companyId === companyId && sp.status === "active"
-    );
+  useEffect(() => {
+    const fetchEntities = async () => {
+      try {
+        const [propertiesData, employeesData, serviceProvidersData] = await Promise.all([
+          getProperties(),
+          getEmployees(),
+          getServiceProviders(),
+        ]);
+        setProperties(propertiesData.filter((p) => p.companyId === companyId));
+        setEmployees(
+          employeesData.filter((emp) => emp.companyId === companyId && emp.status === "active")
+        );
+        setServiceProviders(
+          serviceProvidersData.filter((sp) => sp.companyId === companyId && sp.status === "active")
+        );
+      } catch (error) {
+        console.error("Failed to load entities:", error);
+      }
+    };
+
+    fetchEntities();
   }, [companyId]);
 
   const validate = (): boolean => {
@@ -322,7 +346,7 @@ export default function NewBirth() {
                   options={[
                     { value: "", label: "-" },
 
-                    ...mockProperties.map((property: Property) => ({
+                    ...properties.map((property: Property) => ({
                       value: property.id,
                       label: property.name,
                     })),

@@ -160,8 +160,8 @@ export function FinanceTransactionListPage<T extends FinanceTransaction>({
             onMonthChange={onMonthChange}
             onPageChange={onPageChange}
             properties={properties as unknown as Property[]}
-            propertyLabel={t.reproductiveIndexes.propertyLabel}
-            allPropertiesLabel={t.reproductiveIndexes.allProperties}
+            propertyLabel={t.reproductiveIndexes?.propertyLabel || "Property"}
+            allPropertiesLabel={t.reproductiveIndexes?.allProperties || "All Properties"}
           />
         }
         pagination={{

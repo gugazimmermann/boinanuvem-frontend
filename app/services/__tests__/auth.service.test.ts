@@ -1,214 +1,218 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { authService } from "../auth.service";
-import { apiClient, ApiError } from "../api-client";
-import type { RegisterCompanyDto, LoginResponse, RegisterResponse } from "../auth.service";
+import { ApiError } from "../api-client";
+import { AuthService, authService } from "../auth.service";
 
-// Mock the API client
-vi.mock("../api-client", () => ({
-  apiClient: {
-    post: vi.fn(),
-  },
-  ApiError: class extends Error {
-    constructor(
-      message: string,
-      public status: number,
-      public response?: Response
-    ) {
-      super(message);
-      this.name = "ApiError";
-    }
-  },
-}));
+// Mock apiClient
+vi.mock("../api-client", async () => {
+  const actual = await vi.importActual("../api-client");
+  return {
+    ...actual,
+    apiClient: {
+      post: vi.fn(),
+    },
+  };
+});
 
-describe("auth.service", () => {
+import { apiClient } from "../api-client";
+
+describe("AuthService", () => {
+  let service: AuthService;
+  const mockPost = apiClient.post as ReturnType<typeof vi.fn>;
+
   beforeEach(() => {
+    service = new AuthService();
     vi.clearAllMocks();
   });
 
   describe("registerCompany", () => {
-    const mockRegisterData: RegisterCompanyDto = {
+    const mockRegisterData = {
       cnpj: "12345678000190",
       companyName: "Test Company",
       email: "company@test.com",
-      phone: "11999999999",
-      street: "Test Street",
+      phone: "11987654321",
+      street: "Main St",
       number: "123",
-      neighborhood: "Test Neighborhood",
-      city: "Test City",
+      neighborhood: "Downtown",
+      city: "São Paulo",
       state: "SP",
-      zipCode: "12345678",
-      userName: "Test User",
+      zipCode: "01234567",
+      userName: "John Doe",
       userEmail: "user@test.com",
-      userPhone: "11888888888",
+      userPhone: "11987654321",
       userPassword: "password123",
     };
 
-    const mockRegisterResponse: RegisterResponse = {
-      company: {
-        id: "company-1",
-        cnpj: "12345678000190",
-        companyName: "Test Company",
-        email: "company@test.com",
-        phone: "11999999999",
-        street: "Test Street",
-        number: "123",
-        complement: null,
-        neighborhood: "Test Neighborhood",
-        city: "Test City",
-        state: "SP",
-        zipCode: "12345678",
-        latitude: null,
-        longitude: null,
-        createdAt: "2025-01-01T00:00:00.000Z",
-        updatedAt: "2025-01-01T00:00:00.000Z",
-      },
-      user: {
-        id: "user-1",
-        email: "user@test.com",
-        name: "Test User",
-        status: "pending",
-        mainUser: true,
-        companyId: "company-1",
-        createdAt: "2025-01-01T00:00:00.000Z",
-        updatedAt: "2025-01-01T00:00:00.000Z",
-      },
-    };
-
     it("should register company successfully", async () => {
-      vi.mocked(apiClient.post).mockResolvedValue(mockRegisterResponse);
+      const mockResponse = {
+        company: { id: "1", ...mockRegisterData },
+        user: { id: "1", email: "user@test.com", name: "John Doe" },
+      };
+      mockPost.mockResolvedValue(mockResponse);
 
-      const result = await authService.registerCompany(mockRegisterData);
+      const result = await service.registerCompany(mockRegisterData);
 
-      expect(result).toEqual(mockRegisterResponse);
-      expect(apiClient.post).toHaveBeenCalledWith("/auth/register/company", mockRegisterData);
+      expect(mockPost).toHaveBeenCalledWith("/auth/register/company", mockRegisterData);
+      expect(result).toEqual(mockResponse);
     });
 
     it("should throw error on 409 conflict", async () => {
-      vi.mocked(apiClient.post).mockRejectedValue(new ApiError("Conflict", 409));
+      mockPost.mockRejectedValue(new ApiError("Conflict", 409));
 
-      await expect(authService.registerCompany(mockRegisterData)).rejects.toThrow(
+      await expect(service.registerCompany(mockRegisterData)).rejects.toThrow(
         "Company or user with this email/CNPJ already exists"
       );
     });
 
     it("should throw error on 400 bad request", async () => {
-      vi.mocked(apiClient.post).mockRejectedValue(new ApiError("Bad request", 400));
+      mockPost.mockRejectedValue(new ApiError("Bad Request", 400));
 
-      await expect(authService.registerCompany(mockRegisterData)).rejects.toThrow(
+      await expect(service.registerCompany(mockRegisterData)).rejects.toThrow(
         "Invalid registration data"
       );
+    });
+
+    it("should re-throw non-ApiError errors", async () => {
+      const error = new Error("Network error");
+      mockPost.mockRejectedValue(error);
+
+      await expect(service.registerCompany(mockRegisterData)).rejects.toThrow("Network error");
     });
   });
 
   describe("login", () => {
-    const mockLoginResponse: LoginResponse = {
-      access_token: "access-token-123",
-      refresh_token: "refresh-token-456",
-      user: {
-        id: "user-1",
-        email: "user@test.com",
-        name: "Test User",
-        mainUser: true,
-        companyId: "company-1",
-        permissions: {},
-        company: {},
-      },
-    };
-
     it("should login successfully", async () => {
-      vi.mocked(apiClient.post).mockResolvedValue(mockLoginResponse);
+      const mockResponse = {
+        access_token: "access-token",
+        refresh_token: "refresh-token",
+        user: {
+          id: "1",
+          email: "user@test.com",
+          name: "John Doe",
+          mainUser: true,
+          companyId: "company-1",
+          permissions: {},
+          company: {},
+        },
+      };
+      mockPost.mockResolvedValue(mockResponse);
 
-      const result = await authService.login("user@test.com", "password123", false);
+      const result = await service.login("user@test.com", "password123");
 
-      expect(result).toEqual(mockLoginResponse);
-      expect(apiClient.post).toHaveBeenCalledWith("/auth/login", {
+      expect(mockPost).toHaveBeenCalledWith("/auth/login", {
         email: "user@test.com",
         password: "password123",
         rememberMe: false,
       });
+      expect(result).toEqual(mockResponse);
     });
 
-    it("should login with rememberMe true", async () => {
-      vi.mocked(apiClient.post).mockResolvedValue(mockLoginResponse);
+    it("should include rememberMe when true", async () => {
+      mockPost.mockResolvedValue({ access_token: "token", refresh_token: "refresh", user: {} });
 
-      const result = await authService.login("user@test.com", "password123", true);
+      await service.login("user@test.com", "password123", true);
 
-      expect(result).toEqual(mockLoginResponse);
-      expect(apiClient.post).toHaveBeenCalledWith("/auth/login", {
+      expect(mockPost).toHaveBeenCalledWith("/auth/login", {
         email: "user@test.com",
         password: "password123",
         rememberMe: true,
       });
     });
 
-    it("should throw error on 401 with default message", async () => {
-      const error = new ApiError("Unauthorized", 401);
-      vi.mocked(apiClient.post).mockRejectedValue(error);
-
-      await expect(authService.login("user@test.com", "wrongpassword", false)).rejects.toThrow(
-        "Invalid credentials"
-      );
-    });
-
-    it("should throw error on 401 with custom message from response", async () => {
+    it("should extract error message from 401 response", async () => {
       const mockResponse = {
-        json: vi
-          .fn()
-          .mockResolvedValue({ message: "Account is not active. Please verify your email." }),
-      } as unknown as Response;
-      const error = new ApiError("Unauthorized", 401, mockResponse);
-      vi.mocked(apiClient.post).mockRejectedValue(error);
+        json: async () => ({ message: "Invalid email or password" }),
+      } as Response;
+      const apiError = new ApiError("Unauthorized", 401, mockResponse);
+      mockPost.mockRejectedValue(apiError);
 
-      await expect(authService.login("user@test.com", "password123", false)).rejects.toThrow(
-        "Account is not active. Please verify your email."
+      await expect(service.login("user@test.com", "wrong")).rejects.toThrow(
+        "Invalid email or password"
       );
     });
 
-    it("should throw error on 400", async () => {
-      vi.mocked(apiClient.post).mockRejectedValue(new ApiError("Bad request", 400));
+    it("should use default error message when 401 response has no message", async () => {
+      const mockResponse = {
+        json: async () => ({}),
+      } as Response;
+      const apiError = new ApiError("Unauthorized", 401, mockResponse);
+      mockPost.mockRejectedValue(apiError);
 
-      await expect(authService.login("user@test.com", "password123", false)).rejects.toThrow(
+      await expect(service.login("user@test.com", "wrong")).rejects.toThrow("Invalid credentials");
+    });
+
+    it("should handle 401 when response json parsing fails", async () => {
+      const mockResponse = {
+        json: async () => {
+          throw new Error("Parse error");
+        },
+      } as unknown as Response;
+      const apiError = new ApiError("Unauthorized", 401, mockResponse);
+      mockPost.mockRejectedValue(apiError);
+
+      await expect(service.login("user@test.com", "wrong")).rejects.toThrow("Invalid credentials");
+    });
+
+    it("should throw error on 400 bad request", async () => {
+      mockPost.mockRejectedValue(new ApiError("Bad Request", 400));
+
+      await expect(service.login("user@test.com", "password")).rejects.toThrow(
         "Invalid login data"
       );
+    });
+
+    it("should re-throw non-ApiError errors", async () => {
+      const error = new Error("Network error");
+      mockPost.mockRejectedValue(error);
+
+      await expect(service.login("user@test.com", "password")).rejects.toThrow("Network error");
     });
   });
 
   describe("forgotPassword", () => {
-    it("should send forgot password email", async () => {
-      vi.mocked(apiClient.post).mockResolvedValue({ message: "Password reset email sent" });
+    it("should send forgot password request successfully", async () => {
+      const mockResponse = { message: "Password reset email sent" };
+      mockPost.mockResolvedValue(mockResponse);
 
-      const result = await authService.forgotPassword("user@test.com");
+      const result = await service.forgotPassword("user@test.com");
 
-      expect(result).toEqual({ message: "Password reset email sent" });
-      expect(apiClient.post).toHaveBeenCalledWith("/auth/forgot-password", {
+      expect(mockPost).toHaveBeenCalledWith("/auth/forgot-password", {
         email: "user@test.com",
       });
+      expect(result).toEqual(mockResponse);
     });
 
-    it("should throw error on 400", async () => {
-      vi.mocked(apiClient.post).mockRejectedValue(new ApiError("Bad request", 400));
+    it("should throw error on 400 bad request", async () => {
+      mockPost.mockRejectedValue(new ApiError("Bad Request", 400));
 
-      await expect(authService.forgotPassword("user@test.com")).rejects.toThrow("User not found");
+      await expect(service.forgotPassword("user@test.com")).rejects.toThrow("User not found");
+    });
+
+    it("should re-throw non-ApiError errors", async () => {
+      const error = new Error("Network error");
+      mockPost.mockRejectedValue(error);
+
+      await expect(service.forgotPassword("user@test.com")).rejects.toThrow("Network error");
     });
   });
 
   describe("resetPassword", () => {
     it("should reset password successfully", async () => {
-      vi.mocked(apiClient.post).mockResolvedValue({ message: "Password reset successfully" });
+      const mockResponse = { message: "Password reset successfully" };
+      mockPost.mockResolvedValue(mockResponse);
 
-      const result = await authService.resetPassword("reset-token-123", "newpassword123");
+      const result = await service.resetPassword("token123", "newpassword");
 
-      expect(result).toEqual({ message: "Password reset successfully" });
-      expect(apiClient.post).toHaveBeenCalledWith("/auth/reset-password", {
-        token: "reset-token-123",
-        password: "newpassword123",
+      expect(mockPost).toHaveBeenCalledWith("/auth/reset-password", {
+        token: "token123",
+        password: "newpassword",
       });
+      expect(result).toEqual(mockResponse);
     });
 
-    it("should throw error on 400", async () => {
-      vi.mocked(apiClient.post).mockRejectedValue(new ApiError("Bad request", 400));
+    it("should throw error on 400 bad request", async () => {
+      mockPost.mockRejectedValue(new ApiError("Bad Request", 400));
 
-      await expect(authService.resetPassword("invalid-token", "newpassword123")).rejects.toThrow(
+      await expect(service.resetPassword("token", "password")).rejects.toThrow(
         "Invalid or expired reset token"
       );
     });
@@ -216,93 +220,114 @@ describe("auth.service", () => {
 
   describe("verifyEmail", () => {
     it("should verify email successfully", async () => {
-      vi.mocked(apiClient.post).mockResolvedValue({ message: "Email verified successfully" });
+      const mockResponse = { message: "Email verified successfully" };
+      mockPost.mockResolvedValue(mockResponse);
 
-      const result = await authService.verifyEmail("verification-token-123");
+      const result = await service.verifyEmail("token123");
 
-      expect(result).toEqual({ message: "Email verified successfully" });
-      expect(apiClient.post).toHaveBeenCalledWith("/auth/verify-email", {
-        token: "verification-token-123",
-      });
+      expect(mockPost).toHaveBeenCalledWith("/auth/verify-email", { token: "token123" });
+      expect(result).toEqual(mockResponse);
     });
 
-    it("should throw error on 400", async () => {
-      vi.mocked(apiClient.post).mockRejectedValue(new ApiError("Bad request", 400));
+    it("should throw error on 400 bad request", async () => {
+      mockPost.mockRejectedValue(new ApiError("Bad Request", 400));
 
-      await expect(authService.verifyEmail("invalid-token")).rejects.toThrow(
+      await expect(service.verifyEmail("token")).rejects.toThrow(
+        "Invalid or expired verification token"
+      );
+    });
+  });
+
+  describe("setupPassword", () => {
+    it("should setup password successfully", async () => {
+      const mockResponse = { message: "Password setup successfully" };
+      mockPost.mockResolvedValue(mockResponse);
+
+      const result = await service.setupPassword("token123", "newpassword");
+
+      expect(mockPost).toHaveBeenCalledWith("/auth/setup-password", {
+        token: "token123",
+        password: "newpassword",
+      });
+      expect(result).toEqual(mockResponse);
+    });
+
+    it("should throw error on 400 bad request", async () => {
+      mockPost.mockRejectedValue(new ApiError("Bad Request", 400));
+
+      await expect(service.setupPassword("token", "password")).rejects.toThrow(
         "Invalid or expired verification token"
       );
     });
   });
 
   describe("resendVerification", () => {
-    it("should resend verification email", async () => {
-      vi.mocked(apiClient.post).mockResolvedValue({ message: "Verification email sent" });
+    it("should resend verification email successfully", async () => {
+      const mockResponse = { message: "Verification email sent" };
+      mockPost.mockResolvedValue(mockResponse);
 
-      const result = await authService.resendVerification();
+      const result = await service.resendVerification();
 
-      expect(result).toEqual({ message: "Verification email sent" });
-      expect(apiClient.post).toHaveBeenCalled();
-      const calls = vi.mocked(apiClient.post).mock.calls;
-      expect(calls[0][0]).toBe("/auth/resend-verification");
+      expect(mockPost).toHaveBeenCalledWith("/auth/resend-verification");
+      expect(result).toEqual(mockResponse);
     });
 
-    it("should throw error on 401", async () => {
-      vi.mocked(apiClient.post).mockRejectedValue(new ApiError("Unauthorized", 401));
+    it("should throw error on 401 unauthorized", async () => {
+      mockPost.mockRejectedValue(new ApiError("Unauthorized", 401));
 
-      await expect(authService.resendVerification()).rejects.toThrow("Authentication required");
+      await expect(service.resendVerification()).rejects.toThrow("Authentication required");
     });
   });
 
   describe("changePassword", () => {
     it("should change password successfully", async () => {
-      vi.mocked(apiClient.post).mockResolvedValue({ message: "Password changed successfully" });
+      const mockResponse = { message: "Password changed successfully" };
+      mockPost.mockResolvedValue(mockResponse);
 
-      const result = await authService.changePassword("oldpassword", "newpassword123");
+      const result = await service.changePassword("oldpassword", "newpassword");
 
-      expect(result).toEqual({ message: "Password changed successfully" });
-      expect(apiClient.post).toHaveBeenCalledWith("/auth/change-password", {
+      expect(mockPost).toHaveBeenCalledWith("/auth/change-password", {
         currentPassword: "oldpassword",
-        newPassword: "newpassword123",
+        newPassword: "newpassword",
       });
+      expect(result).toEqual(mockResponse);
     });
 
-    it("should throw error on 401", async () => {
-      vi.mocked(apiClient.post).mockRejectedValue(new ApiError("Unauthorized", 401));
+    it("should throw error on 401 unauthorized", async () => {
+      mockPost.mockRejectedValue(new ApiError("Unauthorized", 401));
 
-      await expect(authService.changePassword("wrongpassword", "newpassword123")).rejects.toThrow(
+      await expect(service.changePassword("wrong", "new")).rejects.toThrow(
         "Current password is incorrect"
       );
     });
 
-    it("should throw error on 400", async () => {
-      vi.mocked(apiClient.post).mockRejectedValue(new ApiError("Bad request", 400));
+    it("should throw error on 400 bad request", async () => {
+      mockPost.mockRejectedValue(new ApiError("Bad Request", 400));
 
-      await expect(authService.changePassword("oldpassword", "short")).rejects.toThrow(
-        "Invalid password data"
-      );
+      await expect(service.changePassword("old", "new")).rejects.toThrow("Invalid password data");
     });
   });
 
   describe("logout", () => {
     it("should logout successfully", async () => {
-      vi.mocked(apiClient.post).mockResolvedValue({ message: "Logout successful" });
+      const mockResponse = { message: "Logged out successfully" };
+      mockPost.mockResolvedValue(mockResponse);
 
-      const result = await authService.logout("refresh-token-456");
+      const result = await service.logout("refresh-token");
 
-      expect(result).toEqual({ message: "Logout successful" });
-      expect(apiClient.post).toHaveBeenCalledWith("/auth/logout", {
-        refresh_token: "refresh-token-456",
+      expect(mockPost).toHaveBeenCalledWith("/auth/logout", {
+        refresh_token: "refresh-token",
       });
+      expect(result).toEqual(mockResponse);
     });
 
     it("should logout without refresh token", async () => {
-      vi.mocked(apiClient.post).mockResolvedValue({ message: "Logout successful" });
+      const mockResponse = { message: "Logged out successfully" };
+      mockPost.mockResolvedValue(mockResponse);
 
-      const result = await authService.logout();
+      await service.logout();
 
-      expect(result).toEqual({ message: "Logout successful" });
-      expect(apiClient.post).toHaveBeenCalledWith("/auth/logout", {
+      expect(mockPost).toHaveBeenCalledWith("/auth/logout", {
         refresh_token: undefined,
       });
     });
@@ -310,32 +335,38 @@ describe("auth.service", () => {
 
   describe("refreshToken", () => {
     it("should refresh token successfully", async () => {
-      vi.mocked(apiClient.post).mockResolvedValue({
+      const mockResponse = {
         access_token: "new-access-token",
         refresh_token: "new-refresh-token",
-      });
+      };
+      mockPost.mockResolvedValue(mockResponse);
 
-      const result = await authService.refreshToken("refresh-token-456");
+      const result = await service.refreshToken("refresh-token");
 
-      expect(result).toEqual({
-        access_token: "new-access-token",
-        refresh_token: "new-refresh-token",
-      });
-      expect(apiClient.post).toHaveBeenCalledWith(
+      expect(mockPost).toHaveBeenCalledWith(
         "/auth/refresh",
-        {
-          refresh_token: "refresh-token-456",
-        },
+        { refresh_token: "refresh-token" },
         false
       );
+      expect(result).toEqual(mockResponse);
+    });
+
+    it("should not retry on 401 for refresh endpoint", async () => {
+      mockPost.mockRejectedValue(new ApiError("Unauthorized", 401));
+
+      await expect(service.refreshToken("invalid-token")).rejects.toThrow("Invalid refresh token");
     });
 
     it("should throw error on 401", async () => {
-      vi.mocked(apiClient.post).mockRejectedValue(new ApiError("Unauthorized", 401));
+      mockPost.mockRejectedValue(new ApiError("Unauthorized", 401));
 
-      await expect(authService.refreshToken("invalid-token")).rejects.toThrow(
-        "Invalid refresh token"
-      );
+      await expect(service.refreshToken("invalid")).rejects.toThrow("Invalid refresh token");
+    });
+  });
+
+  describe("authService singleton", () => {
+    it("should be an instance of AuthService", () => {
+      expect(authService).toBeInstanceOf(AuthService);
     });
   });
 });

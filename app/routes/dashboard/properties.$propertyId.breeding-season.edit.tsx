@@ -1,10 +1,8 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useState } from "react";
+import { useParams } from "react-router";
 import { Button, FixedAlert } from "~/components/ui";
-import { useTranslation } from "~/i18n";
-import { getPropertyViewRoute } from "~/routes.config";
-import { getPropertyById, updateProperty } from "~/services/properties.service";
-import { useAlert } from "~/hooks/use-alert";
+import { usePropertyEdit } from "~/hooks/use-property-edit";
+import type { Property } from "~/types";
 
 export function meta() {
   return [
@@ -21,6 +19,16 @@ export async function loader({ request }: { request: Request }) {
   return createRouteGuard(undefined, "edit")({ request });
 }
 
+type BreedingSeasonFormProps = {
+  property: Property;
+  propertyId: string;
+  isSubmitting: boolean;
+  alertMessage: ReturnType<typeof usePropertyEdit>["alertMessage"];
+  updateProperty: (data: Partial<Property>) => Promise<void>;
+  navigateToView: () => void;
+  t: ReturnType<typeof usePropertyEdit>["t"];
+};
+
 const ALL_MONTHS = [
   "January",
   "February",
@@ -36,25 +44,21 @@ const ALL_MONTHS = [
   "December",
 ] as const;
 
-export default function EditBreedingSeason() {
-  const t = useTranslation();
-  const navigate = useNavigate();
-  const { propertyId } = useParams<{ propertyId: string }>();
-  const property = getPropertyById(propertyId);
-
-  const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
-  const [hasBeenModified, setHasBeenModified] = useState(false);
-
-  useEffect(() => {
-    if (property) {
-      const initial = property.breedingMonths || [];
-      setSelectedMonths(initial);
-      setHasBeenModified(property.breedingSeasonModifiedByUser || false);
-    }
-  }, [property]);
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { alertMessage, showAlert } = useAlert();
+function BreedingSeasonForm({
+  property,
+  propertyId,
+  isSubmitting,
+  alertMessage,
+  updateProperty,
+  navigateToView,
+  t,
+}: Readonly<BreedingSeasonFormProps>) {
+  const [selectedMonths, setSelectedMonths] = useState<string[]>(
+    () => property.breedingMonths || []
+  );
+  const [hasBeenModified, setHasBeenModified] = useState(
+    property.breedingSeasonModifiedByUser || false
+  );
 
   const handleMonthToggle = (month: string) => {
     setSelectedMonths((prev) => {
@@ -71,44 +75,11 @@ export default function EditBreedingSeason() {
     e.preventDefault();
     if (!propertyId) return;
 
-    setIsSubmitting(true);
-    try {
-      const success = updateProperty(propertyId, {
-        breedingMonths: selectedMonths,
-        breedingSeasonModifiedByUser: hasBeenModified,
-      });
-      if (success) {
-        showAlert(t.properties.success.updated, "success");
-        setTimeout(() => {
-          navigate(getPropertyViewRoute(propertyId));
-        }, 1500);
-      } else {
-        showAlert(t.properties.errors.updateFailed, "error");
-      }
-    } catch (error) {
-      console.error("Error updating breeding season:", error);
-      showAlert(t.properties.errors.updateFailed, "error");
-    } finally {
-      setIsSubmitting(false);
-    }
+    await updateProperty({
+      breedingMonths: selectedMonths,
+      breedingSeasonModifiedByUser: hasBeenModified,
+    });
   };
-
-  if (!property) {
-    return (
-      <div className="space-y-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-          <p className="text-gray-600 dark:text-gray-400">{t.properties.emptyState.title}</p>
-          <Button
-            variant="outline"
-            onClick={() => navigate(getPropertyViewRoute(propertyId!))}
-            className="mt-4"
-          >
-            {t.common.back}
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   const monthOrder = [...ALL_MONTHS];
   const sortedSelectedMonths = [...selectedMonths].sort(
@@ -137,11 +108,7 @@ export default function EditBreedingSeason() {
             </div>
           )}
         </div>
-        <Button
-          variant="outline"
-          onClick={() => propertyId && navigate(getPropertyViewRoute(propertyId))}
-          disabled={isSubmitting}
-        >
+        <Button variant="outline" onClick={navigateToView} disabled={isSubmitting}>
           {t.common.back}
         </Button>
       </div>
@@ -221,7 +188,7 @@ export default function EditBreedingSeason() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => propertyId && navigate(getPropertyViewRoute(propertyId))}
+              onClick={navigateToView}
               disabled={isSubmitting}
             >
               {t.profile.company.cancel}
@@ -233,5 +200,47 @@ export default function EditBreedingSeason() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function EditBreedingSeason() {
+  const { propertyId } = useParams<{ propertyId: string }>();
+  const { property, isLoading, isSubmitting, alertMessage, updateProperty, navigateToView, t } =
+    usePropertyEdit({ propertyId });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+          <p className="text-gray-600 dark:text-gray-400">{t.common.loading}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!property || !propertyId) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+          <p className="text-gray-600 dark:text-gray-400">{t.properties.emptyState.title}</p>
+          <Button variant="outline" onClick={navigateToView} className="mt-4">
+            {t.common.back}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <BreedingSeasonForm
+      key={property.id}
+      property={property}
+      propertyId={propertyId}
+      isSubmitting={isSubmitting}
+      alertMessage={alertMessage}
+      updateProperty={updateProperty}
+      navigateToView={navigateToView}
+      t={t}
+    />
   );
 }

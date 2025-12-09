@@ -1,12 +1,14 @@
-import type { TableColumn } from "~/components/ui";
-import { formatDate } from "~/utils/formatting";
-import { getPropertyById } from "~/services/properties.service";
+import type { TableColumn, TableFilter } from "~/components/ui";
+import { StatusBadge } from "~/components/ui";
+import { formatDate, formatCurrency } from "~/utils/formatting";
 import { renderEntityName } from "./entity-name-renderer";
-import type { Language } from "~/types";
+import { getStatusVariant } from "~/utils/finance";
+import type { Language, Property } from "~/types";
 
 interface PropertyColumnOptions {
   label: string;
   language: Language;
+  propertiesMap?: Map<string, Property>;
 }
 
 /**
@@ -15,13 +17,14 @@ interface PropertyColumnOptions {
 export function createPropertyColumn<T extends { propertyId: string }>({
   label,
   language: _language,
+  propertiesMap,
 }: PropertyColumnOptions): TableColumn<T> {
   return {
     key: "property",
     label,
     sortable: true,
     render: (_, row) => {
-      const property = getPropertyById(row.propertyId);
+      const property = propertiesMap?.get(row.propertyId);
       return <span className="text-gray-700 dark:text-gray-300">{property?.name || "-"}</span>;
     },
   };
@@ -131,4 +134,133 @@ export function createDateColumn<T extends { date?: string; dueDate?: string }>(
       );
     },
   };
+}
+
+interface AmountColumnOptions {
+  label: string;
+  colorClass?: "green" | "red";
+}
+
+/**
+ * Creates an amount column for finance transaction tables.
+ */
+export function createAmountColumn<T extends { amount: number }>({
+  label,
+  colorClass = "green",
+}: AmountColumnOptions): TableColumn<T> {
+  const colorClasses =
+    colorClass === "green"
+      ? "text-green-600 dark:text-green-400"
+      : "text-red-600 dark:text-red-400";
+  return {
+    key: "amount",
+    label,
+    sortable: true,
+    render: (_, row) => (
+      <span className={`font-medium ${colorClasses}`}>{formatCurrency(row.amount)}</span>
+    ),
+  };
+}
+
+interface StatusColumnOptions {
+  label: string;
+  statusMap: Record<string, string>;
+}
+
+/**
+ * Creates a status column for finance transaction tables.
+ */
+export function createStatusColumn<T extends { status: string }>({
+  label,
+  statusMap,
+}: StatusColumnOptions): TableColumn<T> {
+  return {
+    key: "status",
+    label,
+    sortable: true,
+    render: (_, row) => (
+      <StatusBadge
+        label={statusMap[row.status] || row.status}
+        variant={getStatusVariant(row.status)}
+      />
+    ),
+  };
+}
+
+interface PaidAmountColumnOptions {
+  label: string;
+}
+
+/**
+ * Creates a paid amount column for finance transaction tables.
+ */
+export function createPaidAmountColumn<T extends { paidAmount?: number }>({
+  label,
+}: PaidAmountColumnOptions): TableColumn<T> {
+  return {
+    key: "paidAmount",
+    label,
+    sortable: true,
+    render: (_, row) => (
+      <span className="text-gray-700 dark:text-gray-300">
+        {row.paidAmount ? formatCurrency(row.paidAmount) : "-"}
+      </span>
+    ),
+  };
+}
+
+interface FinanceFilterOptions {
+  allLabel: string;
+  paidLabel: string;
+  unpaidLabel: string;
+  overdueLabel: string;
+  partialLabel: string;
+  activeFilter: string;
+  onFilterChange: (value: string) => void;
+}
+
+/**
+ * Creates standard filters for accounts payable/receivable pages.
+ */
+export function createFinanceFilters({
+  allLabel,
+  paidLabel,
+  unpaidLabel,
+  overdueLabel,
+  partialLabel,
+  activeFilter,
+  onFilterChange,
+}: FinanceFilterOptions): TableFilter[] {
+  return [
+    {
+      label: allLabel,
+      value: "all",
+      active: activeFilter === "all",
+      onClick: () => onFilterChange("all"),
+    },
+    {
+      label: paidLabel,
+      value: "paid",
+      active: activeFilter === "paid",
+      onClick: () => onFilterChange("paid"),
+    },
+    {
+      label: unpaidLabel,
+      value: "unpaid",
+      active: activeFilter === "unpaid",
+      onClick: () => onFilterChange("unpaid"),
+    },
+    {
+      label: overdueLabel,
+      value: "overdue",
+      active: activeFilter === "overdue",
+      onClick: () => onFilterChange("overdue"),
+    },
+    {
+      label: partialLabel,
+      value: "partial",
+      active: activeFilter === "partial",
+      onClick: () => onFilterChange("partial"),
+    },
+  ];
 }

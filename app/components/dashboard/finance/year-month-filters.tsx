@@ -29,7 +29,7 @@ export function YearMonthFilters({
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div data-testid="year-month-filters" className="flex items-center gap-2">
       <div className="w-32">
         <Select
           value={selectedYear}

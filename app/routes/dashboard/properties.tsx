@@ -1,12 +1,12 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { TableActionButtons, type TableColumn } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
-import { mockProperties } from "~/mocks/properties";
-import { deleteProperty } from "~/services/properties.service";
-import type { Property } from "~/types";
-import { getLocationsByPropertyId } from "~/services/locations.service";
+import { getProperties, deleteProperty } from "~/services/properties.service";
+import { useAlert } from "~/hooks/use-alert";
+import type { Property, Location } from "~/types";
+import { getLocations } from "~/services/locations.service";
 import { getAnimalsByPropertyId } from "~/services/animals.service";
 import { ROUTES, getPropertyEditRoute, getPropertyViewRoute } from "~/routes.config";
 import { usePermissions } from "~/utils/permissions";
@@ -31,7 +31,33 @@ export default function Properties() {
   const { language } = useLanguage();
   const navigate = useNavigate();
   const { canEdit, canRemove } = usePermissions();
-  const [properties, setProperties] = useState<Property[]>([...mockProperties]);
+  const { showAlert } = useAlert();
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const [propertiesData, locationsData] = await Promise.all([
+          getProperties(),
+          getLocations(),
+        ]);
+        setProperties(propertiesData);
+        setLocations(locationsData);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : t.properties.errors.loadFailed;
+        showAlert(errorMessage, "error");
+        console.error("Failed to load data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [showAlert, t]);
 
   const columns: TableColumn<Property>[] = useMemo(
     () => [
@@ -52,8 +78,10 @@ export default function Properties() {
         label: t.properties.table.locations,
         sortable: true,
         render: (_, row) => {
-          const locations = getLocationsByPropertyId(row.id);
-          return <span className="text-gray-700 dark:text-gray-300">{locations.length}</span>;
+          const propertyLocations = locations.filter((loc) => loc.propertyId === row.id);
+          return (
+            <span className="text-gray-700 dark:text-gray-300">{propertyLocations.length}</span>
+          );
         },
       },
       {
@@ -85,7 +113,7 @@ export default function Properties() {
         ),
       },
     ],
-    [t, language, navigate, canEdit, canRemove]
+    [t, language, navigate, canEdit, canRemove, locations]
   );
 
   const filterOptions = useMemo(
@@ -113,13 +141,19 @@ export default function Properties() {
       addButtonLabel={t.properties.addProperty}
       newRoute={ROUTES.PROPERTIES_NEW}
       viewRoute={getPropertyViewRoute}
-      deleteService={(property) => {
-        const success = deleteProperty(property.id);
-        if (success) {
+      deleteService={async (property) => {
+        try {
+          await deleteProperty(property.id);
           setProperties(properties.filter((p) => p.id !== property.id));
+          return true;
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : t.properties.errors.deleteFailed;
+          showAlert(errorMessage, "error");
+          return false;
         }
-        return success;
       }}
+      isLoading={isLoading}
       deleteSuccessMessage={t.properties.success.deleted}
       deleteErrorMessage={t.properties.errors.deleteFailed}
       deleteModalTitle={t.properties.deleteModal.title}

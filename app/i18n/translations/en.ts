@@ -275,6 +275,7 @@ export const en = {
     errors: {
       deleteFailed: "Error deleting property. Please try again.",
       updateFailed: "Error updating property. Please try again.",
+      loadFailed: "Error loading property. Please try again.",
     },
     new: {
       title: "Add Property",
@@ -561,6 +562,7 @@ export const en = {
     errors: {
       deleteFailed: "Error deleting location. Please try again.",
       updateFailed: "Error updating location. Please try again.",
+      loadFailed: "Error loading location. Please try again.",
     },
     new: {
       title: "Add Location",
@@ -717,6 +719,7 @@ export const en = {
     errors: {
       deleteFailed: "Error deleting employee. Please try again.",
       updateFailed: "Error updating employee. Please try again.",
+      loadFailed: "Error loading employee. Please try again.",
     },
     new: {
       title: "Add Employee",
@@ -849,6 +852,7 @@ export const en = {
     errors: {
       deleteFailed: "Error deleting service provider. Please try again.",
       updateFailed: "Error updating service provider. Please try again.",
+      loadFailed: "Error loading service provider. Please try again.",
     },
     new: {
       title: "Add Service Provider",
@@ -986,6 +990,7 @@ export const en = {
     errors: {
       deleteFailed: "Error deleting supplier. Please try again.",
       updateFailed: "Error updating supplier. Please try again.",
+      loadFailed: "Error loading supplier. Please try again.",
     },
     new: {
       title: "Add Supplier",
@@ -1347,6 +1352,7 @@ export const en = {
     errors: {
       deleteFailed: "Error deleting buyer. Please try again.",
       updateFailed: "Error updating buyer. Please try again.",
+      loadFailed: "Error loading buyer. Please try again.",
     },
     new: {
       title: "Add Buyer",

@@ -9,6 +9,7 @@ interface AvatarButtonProps {
 export function AvatarButton({ onClick, isOpen, initial = "U" }: AvatarButtonProps) {
   return (
     <button
+      data-testid="avatar-button"
       onClick={onClick}
       className="relative z-10 flex items-center p-1.5 text-sm text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border border-transparent dark:border-gray-700 rounded-md focus:ring-opacity-40 focus:ring focus:outline-none hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
       style={

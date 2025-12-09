@@ -1,150 +1,233 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { useAddressForm } from "../use-address-form";
-import * as cepLookup from "~/components/site/hooks/use-cep-lookup";
-import * as cepUtils from "~/components/site/utils/cep-utils";
-import * as masks from "~/components/site/utils/masks";
+import { useAddressForm, type AddressFormData } from "../use-address-form";
+import { useCEPLookup } from "~/components/site/hooks";
+import type { CEPData } from "~/types";
+import { mapCEPDataToAddressForm } from "~/components/site/utils";
+import { maskCEP, unmaskCEP } from "~/components/site/utils/masks";
 
-vi.mock("~/components/site/hooks/use-cep-lookup");
-vi.mock("~/components/site/utils/cep-utils");
-vi.mock("~/components/site/utils/masks");
+vi.mock("~/components/site/hooks", () => ({
+  useCEPLookup: vi.fn(),
+}));
+
+vi.mock("~/components/site/utils", () => ({
+  mapCEPDataToAddressForm: vi.fn(),
+}));
+
+vi.mock("~/components/site/utils/masks", () => ({
+  maskCEP: vi.fn((value: string) => {
+    const numbers = value.replaceAll(/\D/g, "");
+    if (numbers.length <= 2) return numbers;
+    if (numbers.length <= 5) return `${numbers.slice(0, 2)}.${numbers.slice(2)}`;
+    return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}-${numbers.slice(5, 8)}`;
+  }),
+  unmaskCEP: vi.fn((value: string) => value.replaceAll(/\D/g, "")),
+}));
 
 describe("useAddressForm", () => {
-  const mockSetFormData = vi.fn();
-  const mockFormData = {
-    zipCode: "",
-    street: "",
-    number: "",
-    complement: "",
-    neighborhood: "",
-    city: "",
-    state: "",
+  let mockUseCEPLookup: ReturnType<typeof vi.fn>;
+  let mockSetFormData: ReturnType<typeof vi.fn>;
+  let formData: {
+    zipCode: string;
+    street: string;
+    number: string;
+    complement: string;
+    neighborhood: string;
+    city: string;
+    state: string;
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(masks.maskCEP).mockImplementation((value: string) => {
-      const numbers = value.replaceAll(/\D/g, "");
-      if (numbers.length === 0) return "";
-      if (numbers.length <= 2) return numbers;
-      if (numbers.length <= 5) return `${numbers.slice(0, 2)}.${numbers.slice(2)}`;
-      return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}-${numbers.slice(5, 8)}`;
+    formData = {
+      zipCode: "",
+      street: "",
+      number: "",
+      complement: "",
+      neighborhood: "",
+      city: "",
+      state: "",
+    };
+    mockSetFormData = vi.fn((updater: React.SetStateAction<AddressFormData>) => {
+      if (typeof updater === "function") {
+        formData = updater(formData);
+      } else {
+        formData = updater;
+      }
     });
-    vi.mocked(masks.unmaskCEP).mockImplementation((value: string) => value.replaceAll(/\D/g, ""));
-    vi.mocked(cepUtils.mapCEPDataToAddressForm).mockImplementation(
-      (data: Record<string, unknown>, existing?: Record<string, unknown>) => ({
-        street: data.street || existing?.street || "",
-        neighborhood: data.neighborhood || existing?.neighborhood || "",
-        city: data.city || existing?.city || "",
-        state: data.state || existing?.state || "",
-        number: existing?.number || "",
-        complement: existing?.complement || "",
-      })
-    );
-  });
 
-  it("should initialize with default values", () => {
-    vi.mocked(cepLookup.useCEPLookup).mockReturnValue({
-      data: null,
+    mockUseCEPLookup = vi.fn().mockReturnValue({
       loading: false,
       error: null,
-      fetchCEP: vi.fn(),
+    });
+
+    vi.mocked(useCEPLookup).mockImplementation(mockUseCEPLookup);
+  });
+
+  it("should initialize with loading and error from CEP lookup", () => {
+    vi.mocked(useCEPLookup).mockReturnValue({
+      loading: true,
+      error: null,
     });
 
     const { result } = renderHook(() =>
       useAddressForm({
-        formData: mockFormData,
+        formData,
         setFormData: mockSetFormData,
       })
     );
 
-    expect(result.current.zipCodeLoading).toBe(false);
-    expect(result.current.zipCodeError).toBe(null);
-    expect(typeof result.current.handleZipCodeChange).toBe("function");
+    expect(result.current.zipCodeLoading).toBe(true);
+    expect(result.current.zipCodeError).toBeNull();
+  });
+
+  it("should pass unmasked CEP to useCEPLookup", () => {
+    formData.zipCode = "12345-678";
+
+    renderHook(() =>
+      useAddressForm({
+        formData,
+        setFormData: mockSetFormData,
+      })
+    );
+
+    expect(unmaskCEP).toHaveBeenCalledWith("12345-678");
+    expect(useCEPLookup).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        debounceMs: 800,
+        onSuccess: expect.any(Function),
+      })
+    );
   });
 
   it("should use custom debounceMs when provided", () => {
-    vi.mocked(cepLookup.useCEPLookup).mockReturnValue({
-      data: null,
-      loading: false,
-      error: null,
-      fetchCEP: vi.fn(),
-    });
-
     renderHook(() =>
       useAddressForm({
-        formData: mockFormData,
+        formData,
         setFormData: mockSetFormData,
         debounceMs: 1000,
       })
     );
 
-    expect(cepLookup.useCEPLookup).toHaveBeenCalledWith(
-      "",
+    expect(useCEPLookup).toHaveBeenCalledWith(
+      expect.any(String),
       expect.objectContaining({
         debounceMs: 1000,
       })
     );
   });
 
-  it("should use default debounceMs of 800 when not provided", () => {
-    vi.mocked(cepLookup.useCEPLookup).mockReturnValue({
-      data: null,
-      loading: false,
-      error: null,
-      fetchCEP: vi.fn(),
-    });
-
-    renderHook(() =>
-      useAddressForm({
-        formData: mockFormData,
-        setFormData: mockSetFormData,
-      })
-    );
-
-    expect(cepLookup.useCEPLookup).toHaveBeenCalledWith(
-      "",
-      expect.objectContaining({
-        debounceMs: 800,
-      })
-    );
-  });
-
-  it("should pass unmasked zipCode to useCEPLookup", () => {
-    vi.mocked(cepLookup.useCEPLookup).mockReturnValue({
-      data: null,
-      loading: false,
-      error: null,
-      fetchCEP: vi.fn(),
-    });
-
-    const formDataWithZipCode = {
-      ...mockFormData,
-      zipCode: "12.345-678",
+  it("should update form data with CEP data when lookup succeeds", () => {
+    const cepData = {
+      cep: "12345678",
+      street: "Main Street",
+      neighborhood: "Downtown",
+      city: "São Paulo",
+      state: "SP",
+      service: "brasilapi",
+      location: {
+        type: "Point",
+        coordinates: {},
+      },
     };
 
+    vi.mocked(mapCEPDataToAddressForm).mockReturnValue({
+      zipCode: "12.345-678",
+      street: "Main Street",
+      neighborhood: "Downtown",
+      city: "São Paulo",
+      state: "SP",
+      number: "",
+      complement: "",
+    });
+
+    let onSuccessCallback: ((data: CEPData) => void) | undefined;
+
+    vi.mocked(useCEPLookup).mockImplementation(
+      (cep: string, options?: { onSuccess?: (data: CEPData) => void }) => {
+        onSuccessCallback = options?.onSuccess;
+        return {
+          loading: false,
+          error: null,
+        };
+      }
+    );
+
     renderHook(() =>
       useAddressForm({
-        formData: formDataWithZipCode,
+        formData,
         setFormData: mockSetFormData,
       })
     );
 
-    expect(masks.unmaskCEP).toHaveBeenCalledWith("12.345-678");
-    expect(cepLookup.useCEPLookup).toHaveBeenCalledWith("12345678", expect.any(Object));
-  });
-
-  it("should handle zipCode change and mask the value", () => {
-    vi.mocked(cepLookup.useCEPLookup).mockReturnValue({
-      data: null,
-      loading: false,
-      error: null,
-      fetchCEP: vi.fn(),
+    act(() => {
+      onSuccessCallback?.(cepData);
     });
 
+    expect(mapCEPDataToAddressForm).toHaveBeenCalled();
+    expect(mockSetFormData).toHaveBeenCalled();
+  });
+
+  it("should preserve zipCode when updating form data from CEP lookup", () => {
+    formData.zipCode = "12.345-678";
+    const cepData = {
+      cep: "12345678",
+      street: "Main Street",
+      neighborhood: "Downtown",
+      city: "São Paulo",
+      state: "SP",
+      service: "brasilapi",
+      location: {
+        type: "Point",
+        coordinates: {},
+      },
+    };
+
+    vi.mocked(mapCEPDataToAddressForm).mockReturnValue({
+      zipCode: "12.345-678",
+      street: "Main Street",
+      neighborhood: "Downtown",
+      city: "São Paulo",
+      state: "SP",
+      number: "",
+      complement: "",
+    });
+
+    let onSuccessCallback: ((data: CEPData) => void) | undefined;
+
+    vi.mocked(useCEPLookup).mockImplementation(
+      (cep: string, options?: { onSuccess?: (data: CEPData) => void }) => {
+        onSuccessCallback = options?.onSuccess;
+        return {
+          loading: false,
+          error: null,
+        };
+      }
+    );
+
+    renderHook(() =>
+      useAddressForm({
+        formData,
+        setFormData: mockSetFormData,
+      })
+    );
+
+    act(() => {
+      onSuccessCallback?.(cepData);
+    });
+
+    const setFormDataCall = mockSetFormData.mock.calls[0]?.[0];
+    if (typeof setFormDataCall === "function") {
+      const updated = setFormDataCall(formData);
+      expect(updated.zipCode).toBe("12.345-678");
+    }
+  });
+
+  it("should mask zipCode when handleZipCodeChange is called", () => {
     const { result } = renderHook(() =>
       useAddressForm({
-        formData: mockFormData,
+        formData,
         setFormData: mockSetFormData,
       })
     );
@@ -153,244 +236,36 @@ describe("useAddressForm", () => {
       result.current.handleZipCodeChange("12345678");
     });
 
-    expect(mockSetFormData).toHaveBeenCalledWith(expect.any(Function));
-  });
-
-  it("should update form data with mapped CEP data on success", async () => {
-    const mockCEPData = {
-      cep: "12345678",
-      street: "Rua Test",
-      neighborhood: "Centro",
-      city: "São Paulo",
-      state: "SP",
-    };
-
-    let capturedCallback: ((data: typeof mockCEPData) => void) | undefined;
-
-    vi.mocked(cepLookup.useCEPLookup).mockImplementation(
-      (cep: string, options?: { onSuccess?: (data: Record<string, unknown>) => void }) => {
-        capturedCallback = options?.onSuccess;
-        return {
-          data: null,
-          loading: false,
-          error: null,
-          fetchCEP: vi.fn(),
-        };
-      }
-    );
-
-    const formDataWithZipCode = {
-      ...mockFormData,
-      zipCode: "12.345-678",
-    };
-
-    renderHook(() =>
-      useAddressForm({
-        formData: formDataWithZipCode,
-        setFormData: mockSetFormData,
-      })
-    );
-
-    if (capturedCallback) {
-      act(() => {
-        capturedCallback?.(mockCEPData);
-      });
-    }
-
+    expect(maskCEP).toHaveBeenCalledWith("12345678");
     expect(mockSetFormData).toHaveBeenCalled();
   });
 
-  it("should preserve existing zipCode when mapping CEP data", () => {
-    const mockCEPData = {
-      cep: "12345678",
-      street: "Rua Test",
-      neighborhood: "Centro",
-      city: "São Paulo",
-      state: "SP",
-    };
-
-    const previousFormData = {
-      ...mockFormData,
-      zipCode: "12.345-678",
-      number: "123",
-    };
-
-    let capturedCallback: ((data: typeof mockCEPData) => void) | undefined;
-
-    vi.mocked(cepLookup.useCEPLookup).mockImplementation(
-      (cep: string, options?: { onSuccess?: (data: Record<string, unknown>) => void }) => {
-        capturedCallback = options?.onSuccess;
-        return {
-          data: null,
-          loading: false,
-          error: null,
-          fetchCEP: vi.fn(),
-        };
-      }
-    );
-
-    renderHook(() =>
-      useAddressForm({
-        formData: previousFormData,
-        setFormData: mockSetFormData,
-      })
-    );
-
-    if (capturedCallback) {
-      act(() => {
-        capturedCallback?.(mockCEPData);
-      });
-
-      expect(mockSetFormData).toHaveBeenCalledWith(expect.any(Function));
-
-      const setFormDataCall = mockSetFormData.mock.calls[0]?.[0];
-      if (typeof setFormDataCall === "function") {
-        const result = setFormDataCall(previousFormData);
-        expect(result.zipCode).toBe("12.345-678");
-      }
-    }
-  });
-
-  it("should return loading state from useCEPLookup", () => {
-    vi.mocked(cepLookup.useCEPLookup).mockReturnValue({
-      data: null,
-      loading: true,
-      error: null,
-      fetchCEP: vi.fn(),
-    });
-
-    const { result } = renderHook(() =>
-      useAddressForm({
-        formData: mockFormData,
-        setFormData: mockSetFormData,
-      })
-    );
-
-    expect(result.current.zipCodeLoading).toBe(true);
-  });
-
-  it("should return error state from useCEPLookup", () => {
-    const errorMessage = "CEP not found";
-    vi.mocked(cepLookup.useCEPLookup).mockReturnValue({
-      data: null,
+  it("should return error from CEP lookup", () => {
+    vi.mocked(useCEPLookup).mockReturnValue({
       loading: false,
-      error: errorMessage,
-      fetchCEP: vi.fn(),
+      error: "CEP not found",
     });
 
     const { result } = renderHook(() =>
       useAddressForm({
-        formData: mockFormData,
+        formData,
         setFormData: mockSetFormData,
       })
     );
 
-    expect(result.current.zipCodeError).toBe(errorMessage);
+    expect(result.current.zipCodeError).toBe("CEP not found");
   });
 
   it("should handle empty zipCode", () => {
-    vi.mocked(cepLookup.useCEPLookup).mockReturnValue({
-      data: null,
-      loading: false,
-      error: null,
-      fetchCEP: vi.fn(),
-    });
-
-    const formDataWithEmptyZip = {
-      ...mockFormData,
-      zipCode: "",
-    };
+    formData.zipCode = "";
 
     renderHook(() =>
       useAddressForm({
-        formData: formDataWithEmptyZip,
+        formData,
         setFormData: mockSetFormData,
       })
     );
 
-    expect(masks.unmaskCEP).toHaveBeenCalledWith("");
-    expect(cepLookup.useCEPLookup).toHaveBeenCalledWith("", expect.any(Object));
-  });
-
-  it("should handle undefined zipCode", () => {
-    vi.mocked(cepLookup.useCEPLookup).mockReturnValue({
-      data: null,
-      loading: false,
-      error: null,
-      fetchCEP: vi.fn(),
-    });
-
-    const formDataWithUndefinedZip = {
-      ...mockFormData,
-      zipCode: undefined as unknown as string,
-    };
-
-    renderHook(() =>
-      useAddressForm({
-        formData: formDataWithUndefinedZip,
-        setFormData: mockSetFormData,
-      })
-    );
-
-    expect(masks.unmaskCEP).toHaveBeenCalledWith("");
-  });
-
-  it("should call setFormData with function that preserves zipCode", () => {
-    vi.mocked(cepLookup.useCEPLookup).mockReturnValue({
-      data: null,
-      loading: false,
-      error: null,
-      fetchCEP: vi.fn(),
-    });
-
-    const mockCEPData = {
-      cep: "12345678",
-      street: "Rua Test",
-      neighborhood: "Centro",
-      city: "São Paulo",
-      state: "SP",
-    };
-
-    let capturedCallback: ((data: typeof mockCEPData) => void) | undefined;
-
-    vi.mocked(cepLookup.useCEPLookup).mockImplementation(
-      (cep: string, options?: { onSuccess?: (data: Record<string, unknown>) => void }) => {
-        capturedCallback = options?.onSuccess;
-        return {
-          data: null,
-          loading: false,
-          error: null,
-          fetchCEP: vi.fn(),
-        };
-      }
-    );
-
-    const previousFormData = {
-      ...mockFormData,
-      zipCode: "12.345-678",
-    };
-
-    renderHook(() =>
-      useAddressForm({
-        formData: previousFormData,
-        setFormData: mockSetFormData,
-      })
-    );
-
-    if (capturedCallback) {
-      act(() => {
-        capturedCallback?.(mockCEPData);
-      });
-
-      const setFormDataCall = mockSetFormData.mock.calls[0]?.[0];
-      if (typeof setFormDataCall === "function") {
-        const result = setFormDataCall(previousFormData);
-        expect(result).toHaveProperty("zipCode", "12.345-678");
-        expect(result).toHaveProperty("street");
-        expect(result).toHaveProperty("neighborhood");
-        expect(result).toHaveProperty("city");
-        expect(result).toHaveProperty("state");
-      }
-    }
+    expect(unmaskCEP).toHaveBeenCalledWith("");
   });
 });

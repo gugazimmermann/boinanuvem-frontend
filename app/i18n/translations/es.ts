@@ -275,6 +275,7 @@ export const es = {
     errors: {
       deleteFailed: "Error al eliminar propiedad. Intenta de nuevo.",
       updateFailed: "Error al actualizar propiedad. Intenta de nuevo.",
+      loadFailed: "Error al cargar propiedad. Intenta de nuevo.",
     },
     new: {
       title: "Agregar Propiedad",
@@ -562,6 +563,7 @@ export const es = {
     errors: {
       deleteFailed: "Error al eliminar ubicación. Intente nuevamente.",
       updateFailed: "Error al actualizar ubicación. Intente nuevamente.",
+      loadFailed: "Error al cargar ubicación. Intente nuevamente.",
     },
     new: {
       title: "Agregar Ubicación",
@@ -720,6 +722,7 @@ export const es = {
     errors: {
       deleteFailed: "Error al eliminar empleado. Intente nuevamente.",
       updateFailed: "Error al actualizar empleado. Intente nuevamente.",
+      loadFailed: "Error al cargar empleado. Intente nuevamente.",
     },
     new: {
       title: "Agregar Empleado",
@@ -854,6 +857,7 @@ export const es = {
     errors: {
       deleteFailed: "Error al eliminar prestador de servicio. Intente nuevamente.",
       updateFailed: "Error al actualizar prestador de servicio. Intente nuevamente.",
+      loadFailed: "Error al cargar prestador de servicio. Intente nuevamente.",
     },
     new: {
       title: "Agregar Prestador de Servicio",
@@ -993,6 +997,7 @@ export const es = {
     errors: {
       deleteFailed: "Error al eliminar proveedor. Intente nuevamente.",
       updateFailed: "Error al actualizar proveedor. Intente nuevamente.",
+      loadFailed: "Error al cargar proveedor. Intente nuevamente.",
     },
     new: {
       title: "Agregar Proveedor",
@@ -1358,6 +1363,7 @@ export const es = {
     errors: {
       deleteFailed: "Error al eliminar comprador. Intente nuevamente.",
       updateFailed: "Error al actualizar comprador. Intente nuevamente.",
+      loadFailed: "Error al cargar comprador. Intente nuevamente.",
     },
     new: {
       title: "Agregar Comprador",

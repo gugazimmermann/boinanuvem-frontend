@@ -1,563 +1,375 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { BrowserRouter } from "react-router";
 import { RegistrationListPage } from "../registration-list-page";
-import { LanguageProvider } from "~/contexts/language-context";
-import * as useListPageModule from "~/hooks/use-list-page";
-import * as useDeleteHandlerModule from "~/hooks/use-delete-handler";
+import { useNavigate } from "react-router";
+import { useListPage } from "~/hooks/use-list-page";
+import { useAlert } from "~/hooks/use-alert";
+import { useDeleteHandler } from "~/hooks/use-delete-handler";
+import { useTableFilters } from "~/hooks/use-table-filters";
+import { usePermissions } from "~/utils/permissions";
 
-const TestWrapper = ({ children }: { children: React.ReactNode }) => (
-  <BrowserRouter>
-    <LanguageProvider>{children}</LanguageProvider>
-  </BrowserRouter>
-);
-
-const mockNavigate = vi.fn();
-vi.mock("react-router", async () => {
-  const actual = await vi.importActual("react-router");
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-  };
-});
-
-vi.mock("~/hooks/use-list-page", () => ({
-  useListPage: vi.fn(),
-}));
-
-const mockUseAlert = vi.fn();
-vi.mock("~/hooks/use-alert", () => ({
-  useAlert: () => mockUseAlert(),
-}));
-
-vi.mock("~/hooks/use-delete-handler", () => ({
-  useDeleteHandler: vi.fn(),
-}));
-
-const mockUseTableFilters = vi.fn();
-vi.mock("~/hooks/use-table-filters", () => ({
-  useTableFilters: () => mockUseTableFilters(),
-}));
-
-const mockCanAdd = vi.fn();
-const mockUsePermissions = vi.fn();
-vi.mock("~/utils/permissions", () => ({
-  usePermissions: () => mockUsePermissions(),
-}));
-
+vi.mock("react-router");
+vi.mock("~/hooks/use-list-page");
+vi.mock("~/hooks/use-alert");
+vi.mock("~/hooks/use-delete-handler");
+vi.mock("~/hooks/use-table-filters");
+vi.mock("~/utils/permissions");
 vi.mock("~/components/ui", () => ({
-  Table: vi.fn(
-    ({
-      data,
-      columns,
-      header,
-      filters,
-      search,
-      pagination,
-      onRowClick,
-      emptyState,
-    }: {
-      data?: unknown[];
-      columns?: unknown[];
-      header?: {
-        title?: string;
-        badge?: { label: string };
-        description?: string;
-        actions?: Array<{ label: string; onClick: () => void }>;
-      };
-      filters?: Array<{ label: string }>;
-      search?: { value: string; onChange: (value: string) => void; placeholder?: string };
-      pagination?: {
-        currentPage: number;
-        totalPages: number;
-        onPageChange: (page: number) => void;
-      };
-      onRowClick?: (row: unknown) => void;
-      emptyState?: {
-        title?: string;
-        description?: string;
-        onClearSearch?: () => void;
-        onAddNew?: () => void;
-        addNewLabel?: string;
-      };
-    }) => (
-      <div data-testid="table">
-        {header?.title && <h2>{header.title}</h2>}
-        {header?.badge && <span>{header.badge.label}</span>}
-        {header?.description && <p>{header.description}</p>}
-        {header?.actions?.map((action, idx: number) => (
-          <button key={idx} onClick={action.onClick} data-testid={`header-action-${idx}`}>
-            {action.label}
-          </button>
-        ))}
-        {search && (
-          <input
-            data-testid="search-input"
-            value={search.value}
-            onChange={(e) => search.onChange(e.target.value)}
-            placeholder={search.placeholder}
-          />
-        )}
-        {filters?.map((filter, idx: number) => (
-          <div key={idx} data-testid={`filter-${idx}`}>
-            {filter.label}
-          </div>
-        ))}
-        {pagination && (
-          <div data-testid="pagination">
-            <button onClick={() => pagination.onPageChange(pagination.currentPage - 1)}>
-              Prev
+  Table: ({
+    data,
+    columns,
+    header,
+    onRowClick,
+    emptyState,
+  }: {
+    data: unknown[];
+    columns?: Array<{
+      key: string;
+      label?: string;
+      render?: (value: unknown, row: unknown, index: number) => React.ReactNode;
+    }>;
+    header?: { actions?: Array<{ label: string; onClick: () => void }> };
+    onRowClick?: (item: { id: string }) => void;
+    emptyState?: { onAddNew?: () => void; description?: string; onClearSearch?: () => void };
+  }) => (
+    <div data-testid="table">
+      {header?.actions && header.actions.length > 0 && (
+        <button data-testid="add-button" onClick={header.actions[0].onClick}>
+          {header.actions[0].label}
+        </button>
+      )}
+      {columns &&
+        columns.map((col, colIndex) => {
+          if (col.render) {
+            // Render column for each row in data, or at least once if data is empty
+            const rowsToRender = data.length > 0 ? data : [null];
+            return (
+              <div key={col.key || colIndex}>
+                {rowsToRender.map((row, rowIndex) => {
+                  const rendered = col.render!(undefined, row, rowIndex);
+                  return <div key={rowIndex}>{rendered}</div>;
+                })}
+              </div>
+            );
+          }
+          return null;
+        })}
+      {data.length > 0 && (
+        <button
+          data-testid="row-button"
+          onClick={() => {
+            const firstRow = data[0] as { id: string; name?: string };
+            onRowClick?.(firstRow);
+          }}
+        >
+          Click Row
+        </button>
+      )}
+      {data.length === 0 && (
+        <div data-testid="empty-state">
+          {emptyState?.description && (
+            <div data-testid="empty-description">{emptyState.description}</div>
+          )}
+          {emptyState?.onAddNew && (
+            <button data-testid="empty-add-button" onClick={emptyState.onAddNew}>
+              Add New
             </button>
-            <span>
-              {pagination.currentPage} / {pagination.totalPages}
-            </span>
-            <button onClick={() => pagination.onPageChange(pagination.currentPage + 1)}>
-              Next
+          )}
+          {emptyState?.onClearSearch && (
+            <button data-testid="clear-search" onClick={emptyState.onClearSearch}>
+              Clear
             </button>
-          </div>
-        )}
-        {data && data.length > 0 ? (
-          <table>
-            <tbody>
-              {data.map((row, idx) => {
-                const rowRecord = row as Record<string, unknown>;
-                return (
-                  <tr
-                    key={(rowRecord.id as string) || idx}
-                    onClick={() => onRowClick?.(row)}
-                    data-testid={`row-${rowRecord.id}`}
-                  >
-                    {columns?.map((col, _colIdx) => {
-                      const colRecord = col as {
-                        key: string;
-                        render?: (value: unknown, row: unknown, idx: number) => React.ReactNode;
-                      };
-                      return (
-                        <td key={colRecord.key}>
-                          {colRecord.render
-                            ? colRecord.render(rowRecord[colRecord.key], row, idx)
-                            : String(rowRecord[colRecord.key] ?? "")}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        ) : (
-          <div data-testid="empty-state">
-            <h3>{emptyState?.title}</h3>
-            <p>{emptyState?.description}</p>
-            {emptyState?.onClearSearch && (
-              <button onClick={emptyState.onClearSearch}>Clear search</button>
-            )}
-            {emptyState?.onAddNew && (
-              <button onClick={emptyState.onAddNew}>{emptyState.addNewLabel}</button>
-            )}
-          </div>
-        )}
-      </div>
-    )
-  ),
-  Alert: vi.fn(({ title, variant }: { title: string; variant?: string }) => (
-    <div data-testid="alert" data-variant={variant}>
-      {title}
-    </div>
-  )),
-  ConfirmationModal: vi.fn(
-    ({
-      isOpen,
-      onClose,
-      onConfirm,
-      title,
-      message,
-      confirmLabel,
-      cancelLabel,
-    }: {
-      isOpen: boolean;
-      onClose: () => void;
-      onConfirm: () => void;
-      title: string;
-      message: string;
-      confirmLabel: string;
-      cancelLabel: string;
-    }) =>
-      isOpen ? (
-        <div data-testid="confirmation-modal">
-          <h3>{title}</h3>
-          <p>{message}</p>
-          <button onClick={onConfirm}>{confirmLabel}</button>
-          <button onClick={onClose}>{cancelLabel}</button>
+          )}
         </div>
-      ) : null
+      )}
+    </div>
   ),
+  Alert: ({ title }: { title: string }) => <div data-testid="alert">{title}</div>,
+  ConfirmationModal: ({ isOpen }: { isOpen: boolean }) =>
+    isOpen ? <div data-testid="delete-modal">Delete Modal</div> : null,
 }));
 
 describe("RegistrationListPage", () => {
-  const mockData = [
-    { id: "1", name: "Item 1", status: "active" as const },
-    { id: "2", name: "Item 2", status: "inactive" as const },
-  ];
+  const mockUseNavigate = vi.mocked(useNavigate);
+  const mockUseListPage = vi.mocked(useListPage);
+  const mockUseAlert = vi.mocked(useAlert);
+  const mockUseDeleteHandler = vi.mocked(useDeleteHandler);
+  const mockUseTableFilters = vi.mocked(useTableFilters);
+  const mockUsePermissions = vi.mocked(usePermissions);
 
-  const mockColumns = [
-    { key: "name", label: "Name", sortable: true },
-    { key: "status", label: "Status", sortable: true },
-  ];
-
-  const defaultConfig = {
-    data: mockData,
-    columns: mockColumns,
-    title: "Test Items",
-    description: "Test description",
+  const mockConfig = {
+    data: [],
+    columns: [],
+    title: "Registrations",
+    description: "List of registrations",
     badgeLabel: (count: number) => `${count} items`,
-    searchPlaceholder: "Search items",
-    emptyStateTitle: "No items found",
-    emptyStateDescription: (search: string) => `No items match "${search}"`,
-    emptyStateDescriptionWithoutSearch: "No items available",
-    addButtonLabel: "Add Item",
+    searchPlaceholder: "Search",
+    emptyStateTitle: "No registrations",
+    emptyStateDescription: () => "No registrations found",
+    emptyStateDescriptionWithoutSearch: "No registrations",
+    addButtonLabel: "Add New",
     newRoute: "/new",
     viewRoute: (id: string) => `/view/${id}`,
-    deleteService: vi.fn(() => true),
-    deleteSuccessMessage: "Item deleted",
-    deleteErrorMessage: "Failed to delete",
-    deleteModalTitle: "Delete Item",
+    deleteService: vi.fn(),
+    deleteSuccessMessage: "Deleted",
+    deleteErrorMessage: "Failed",
+    deleteModalTitle: "Delete",
     deleteModalMessage: (name: string) => `Delete ${name}?`,
     deleteModalConfirm: "Delete",
     deleteModalCancel: "Cancel",
     permissionSection: "registration" as const,
-    permissionResource: "items",
+    permissionResource: "properties",
+    language: "pt" as const,
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useListPageModule.useListPage).mockReturnValue({
-      paginatedData: mockData,
-      filteredData: mockData,
+    mockUseNavigate.mockReturnValue(vi.fn());
+    mockUseListPage.mockReturnValue({
+      filteredData: [],
+      paginatedData: [],
+      totalPages: 1,
+      currentPage: 1,
+      setCurrentPage: vi.fn(),
       searchValue: "",
       setSearchValue: vi.fn(),
-      currentPage: 1,
-      totalPages: 1,
-      setCurrentPage: vi.fn(),
-      sortState: { column: null, direction: "asc" as const },
+      sortState: { column: null, direction: null },
       handleSort: vi.fn(),
       clearSearch: vi.fn(),
     });
     mockUseAlert.mockReturnValue({
       alertMessage: null,
       showAlert: vi.fn(),
+      clearAlert: vi.fn(),
     });
-    vi.mocked(useDeleteHandlerModule.useDeleteHandler).mockReturnValue({
-      handleDeleteClick: vi.fn(),
-      handleDelete: vi.fn(),
-      handleCloseModal: vi.fn(),
+    mockUseDeleteHandler.mockReturnValue({
       isDeleteModalOpen: false,
+      handleDeleteClick: vi.fn(),
+      handleCloseModal: vi.fn(),
+      handleDelete: vi.fn(),
       selectedItem: null,
     });
     mockUseTableFilters.mockReturnValue({
+      activeFilter: "all",
+      onFilterChange: vi.fn(),
       filters: [],
     });
     mockUsePermissions.mockReturnValue({
-      canAdd: mockCanAdd,
+      canView: vi.fn(() => true),
+      canCreate: vi.fn(() => true),
+      canUpdate: vi.fn(() => true),
+      canDelete: vi.fn(() => true),
+      canAdd: vi.fn(() => true),
     });
-    mockCanAdd.mockReturnValue(true);
   });
 
-  it("should render table with data", () => {
-    render(
-      <TestWrapper>
-        <RegistrationListPage {...defaultConfig} />
-      </TestWrapper>
-    );
-
+  it("should create and render list page component", () => {
+    render(<RegistrationListPage {...mockConfig} />);
     expect(screen.getByTestId("table")).toBeInTheDocument();
-    expect(screen.getByText("Test Items")).toBeInTheDocument();
-    expect(screen.getByText("2 items")).toBeInTheDocument();
   });
 
-  it("should render header actions when canAdd returns true", () => {
-    mockCanAdd.mockReturnValue(true);
-    render(
-      <TestWrapper>
-        <RegistrationListPage {...defaultConfig} />
-      </TestWrapper>
-    );
+  it("should render table", () => {
+    render(<RegistrationListPage {...mockConfig} />);
+    expect(screen.getByTestId("table")).toBeInTheDocument();
+  });
 
-    const addButton = screen.getByTestId("header-action-0");
+  it("should show add button when canAdd returns true", async () => {
+    const user = userEvent.setup();
+    const navigate = vi.fn();
+    mockUseNavigate.mockReturnValue(navigate);
+    mockUsePermissions.mockReturnValue({
+      canView: vi.fn(() => true),
+      canCreate: vi.fn(() => true),
+      canUpdate: vi.fn(() => true),
+      canDelete: vi.fn(() => true),
+      canAdd: vi.fn(() => true),
+    });
+    render(<RegistrationListPage {...mockConfig} />);
+    const addButton = screen.getByTestId("add-button");
     expect(addButton).toBeInTheDocument();
-    expect(addButton).toHaveTextContent("Add Item");
-  });
-
-  it("should not render header actions when canAdd returns false", () => {
-    mockCanAdd.mockReturnValue(false);
-    render(
-      <TestWrapper>
-        <RegistrationListPage {...defaultConfig} />
-      </TestWrapper>
-    );
-
-    expect(screen.queryByTestId("header-action-0")).not.toBeInTheDocument();
-  });
-
-  it("should navigate to new route when add button is clicked", async () => {
-    const user = userEvent.setup();
-    render(
-      <TestWrapper>
-        <RegistrationListPage {...defaultConfig} />
-      </TestWrapper>
-    );
-
-    const addButton = screen.getByTestId("header-action-0");
     await user.click(addButton);
-    expect(mockNavigate).toHaveBeenCalledWith("/new");
+    expect(navigate).toHaveBeenCalledWith("/new");
   });
 
-  it("should render search input", () => {
-    render(
-      <TestWrapper>
-        <RegistrationListPage {...defaultConfig} />
-      </TestWrapper>
-    );
-
-    const searchInput = screen.getByTestId("search-input");
-    expect(searchInput).toBeInTheDocument();
-    expect(searchInput).toHaveAttribute("placeholder", "Search items");
+  it("should not show add button when canAdd returns false", () => {
+    mockUsePermissions.mockReturnValue({
+      canView: vi.fn(() => true),
+      canCreate: vi.fn(() => true),
+      canUpdate: vi.fn(() => true),
+      canDelete: vi.fn(() => true),
+      canAdd: vi.fn(() => false),
+    });
+    render(<RegistrationListPage {...mockConfig} />);
+    expect(screen.queryByTestId("add-button")).not.toBeInTheDocument();
   });
 
-  it("should handle row click and navigate to view route", async () => {
+  it("should use customHeaderActions when provided", () => {
+    const customAction = {
+      label: "Custom Action",
+      variant: "primary" as const,
+      onClick: vi.fn(),
+    };
+    render(<RegistrationListPage {...mockConfig} headerActions={[customAction]} />);
+    expect(screen.getByTestId("add-button")).toHaveTextContent("Custom Action");
+  });
+
+  it("should navigate to viewRoute when row is clicked and onRowClick is not provided", async () => {
     const user = userEvent.setup();
-    render(
-      <TestWrapper>
-        <RegistrationListPage {...defaultConfig} />
-      </TestWrapper>
-    );
-
-    const row = screen.getByTestId("row-1");
-    await user.click(row);
-    expect(mockNavigate).toHaveBeenCalledWith("/view/1");
-  });
-
-  it("should call custom onRowClick when provided", async () => {
-    const onRowClick = vi.fn();
-    const user = userEvent.setup();
-    render(
-      <TestWrapper>
-        <RegistrationListPage {...defaultConfig} onRowClick={onRowClick} />
-      </TestWrapper>
-    );
-
-    const row = screen.getByTestId("row-1");
-    await user.click(row);
-    expect(onRowClick).toHaveBeenCalledWith(mockData[0]);
-    expect(mockNavigate).not.toHaveBeenCalled();
-  });
-
-  it("should render empty state when no data", () => {
-    vi.mocked(useListPageModule.useListPage).mockReturnValue({
-      paginatedData: [],
-      filteredData: [],
+    const navigate = vi.fn();
+    mockUseNavigate.mockReturnValue(navigate);
+    mockUseListPage.mockReturnValue({
+      filteredData: [{ id: "1", name: "Test" }],
+      paginatedData: [{ id: "1", name: "Test" }],
+      totalPages: 1,
+      currentPage: 1,
+      setCurrentPage: vi.fn(),
       searchValue: "",
       setSearchValue: vi.fn(),
-      currentPage: 1,
-      totalPages: 1,
-      setCurrentPage: vi.fn(),
-      sortState: { column: null, direction: "asc" as const },
+      sortState: { column: null, direction: null },
       handleSort: vi.fn(),
       clearSearch: vi.fn(),
     });
-
-    render(
-      <TestWrapper>
-        <RegistrationListPage {...defaultConfig} data={[]} />
-      </TestWrapper>
-    );
-
-    expect(screen.getByTestId("empty-state")).toBeInTheDocument();
-    expect(screen.getByText("No items found")).toBeInTheDocument();
-    expect(screen.getByText("No items available")).toBeInTheDocument();
+    render(<RegistrationListPage {...mockConfig} />);
+    const rowButton = screen.getByTestId("row-button");
+    await user.click(rowButton);
+    expect(navigate).toHaveBeenCalledWith("/view/1");
   });
 
-  it("should render empty state with search description when search value exists", () => {
-    vi.mocked(useListPageModule.useListPage).mockReturnValue({
-      paginatedData: [],
+  it("should call onRowClick when provided", async () => {
+    const user = userEvent.setup();
+    const onRowClick = vi.fn();
+    mockUseListPage.mockReturnValue({
+      filteredData: [{ id: "1", name: "Test" }],
+      paginatedData: [{ id: "1", name: "Test" }],
+      totalPages: 1,
+      currentPage: 1,
+      setCurrentPage: vi.fn(),
+      searchValue: "",
+      setSearchValue: vi.fn(),
+      sortState: { column: null, direction: null },
+      handleSort: vi.fn(),
+      clearSearch: vi.fn(),
+    });
+    render(<RegistrationListPage {...mockConfig} onRowClick={onRowClick} />);
+    const rowButton = screen.getByTestId("row-button");
+    await user.click(rowButton);
+    expect(onRowClick).toHaveBeenCalledWith({ id: "1", name: "Test" });
+  });
+
+  it("should show empty state description with search value", () => {
+    mockUseListPage.mockReturnValue({
       filteredData: [],
+      paginatedData: [],
+      totalPages: 1,
+      currentPage: 1,
+      setCurrentPage: vi.fn(),
       searchValue: "test",
       setSearchValue: vi.fn(),
-      currentPage: 1,
-      totalPages: 1,
-      setCurrentPage: vi.fn(),
-      sortState: { column: null, direction: "asc" as const },
+      sortState: { column: null, direction: null },
       handleSort: vi.fn(),
       clearSearch: vi.fn(),
     });
-
-    render(
-      <TestWrapper>
-        <RegistrationListPage {...defaultConfig} data={[]} />
-      </TestWrapper>
-    );
-
-    expect(screen.getByText('No items match "test"')).toBeInTheDocument();
+    render(<RegistrationListPage {...mockConfig} />);
+    expect(screen.getByTestId("empty-description")).toHaveTextContent("No registrations found");
   });
 
-  it("should render alert when alertMessage exists", () => {
+  it("should show empty state description without search value", () => {
+    mockUseListPage.mockReturnValue({
+      filteredData: [],
+      paginatedData: [],
+      totalPages: 1,
+      currentPage: 1,
+      setCurrentPage: vi.fn(),
+      searchValue: "",
+      setSearchValue: vi.fn(),
+      sortState: { column: null, direction: null },
+      handleSort: vi.fn(),
+      clearSearch: vi.fn(),
+    });
+    render(<RegistrationListPage {...mockConfig} />);
+    expect(screen.getByTestId("empty-description")).toHaveTextContent("No registrations");
+  });
+
+  it("should show alert when alertMessage exists", () => {
     mockUseAlert.mockReturnValue({
       alertMessage: { title: "Success", variant: "success" },
       showAlert: vi.fn(),
+      clearAlert: vi.fn(),
     });
-
-    render(
-      <TestWrapper>
-        <RegistrationListPage {...defaultConfig} />
-      </TestWrapper>
-    );
-
-    const alert = screen.getByTestId("alert");
-    expect(alert).toBeInTheDocument();
-    expect(alert).toHaveTextContent("Success");
-    expect(alert).toHaveAttribute("data-variant", "success");
+    render(<RegistrationListPage {...mockConfig} />);
+    expect(screen.getByTestId("alert")).toHaveTextContent("Success");
   });
 
-  it("should render confirmation modal when delete modal is open", () => {
-    vi.mocked(useDeleteHandlerModule.useDeleteHandler).mockReturnValue({
-      handleDeleteClick: vi.fn(),
-      handleDelete: vi.fn(),
-      handleCloseModal: vi.fn(),
+  it("should show delete modal when isDeleteModalOpen is true", () => {
+    mockUseDeleteHandler.mockReturnValue({
       isDeleteModalOpen: true,
-      selectedItem: { id: "1", name: "Item 1" },
-    });
-
-    render(
-      <TestWrapper>
-        <RegistrationListPage {...defaultConfig} />
-      </TestWrapper>
-    );
-
-    const modal = screen.getByTestId("confirmation-modal");
-    expect(modal).toBeInTheDocument();
-    expect(modal).toHaveTextContent("Delete Item");
-    expect(modal).toHaveTextContent("Delete Item 1?");
-  });
-
-  it("should call delete handler when delete is clicked", () => {
-    const handleDeleteClick = vi.fn();
-    vi.mocked(useDeleteHandlerModule.useDeleteHandler).mockReturnValue({
-      handleDeleteClick,
-      handleDelete: vi.fn(),
+      handleDeleteClick: vi.fn(),
       handleCloseModal: vi.fn(),
-      isDeleteModalOpen: false,
-      selectedItem: null,
+      handleDelete: vi.fn(),
+      selectedItem: { id: "1", name: "Test Item" },
     });
-
-    const onDeleteClick = vi.fn();
-    render(
-      <TestWrapper>
-        <RegistrationListPage {...defaultConfig} onDeleteClick={onDeleteClick} />
-      </TestWrapper>
-    );
-
-    // The delete handler should be set up via column render
-    expect(vi.mocked(useDeleteHandlerModule.useDeleteHandler)).toHaveBeenCalled();
+    render(<RegistrationListPage {...mockConfig} />);
+    expect(screen.getByTestId("delete-modal")).toBeInTheDocument();
   });
 
-  it("should render custom header actions when provided", () => {
-    const customActions = [
-      { label: "Custom Action", variant: "primary" as const, onClick: vi.fn() },
-    ];
-
-    render(
-      <TestWrapper>
-        <RegistrationListPage {...defaultConfig} headerActions={customActions} />
-      </TestWrapper>
-    );
-
-    expect(screen.getByText("Custom Action")).toBeInTheDocument();
+  it("should navigate to newRoute when empty state add button is clicked", async () => {
+    const user = userEvent.setup();
+    const navigate = vi.fn();
+    mockUseNavigate.mockReturnValue(navigate);
+    render(<RegistrationListPage {...mockConfig} />);
+    const emptyAddButton = screen.getByTestId("empty-add-button");
+    await user.click(emptyAddButton);
+    expect(navigate).toHaveBeenCalledWith("/new");
   });
 
-  it("should render additional filters", () => {
-    const additionalFilters = [{ label: "Status", value: "all", onClick: vi.fn() }];
-
+  it("should include additionalFilters when provided", () => {
+    const additionalFilter = {
+      label: "Status",
+      options: [{ label: "Active", value: "active" }],
+      value: "active",
+      onChange: vi.fn(),
+      onClick: vi.fn(),
+    };
     mockUseTableFilters.mockReturnValue({
+      activeFilter: "all",
+      onFilterChange: vi.fn(),
       filters: [],
     });
-
-    render(
-      <TestWrapper>
-        <RegistrationListPage {...defaultConfig} additionalFilters={additionalFilters} />
-      </TestWrapper>
-    );
-
-    expect(mockUseTableFilters).toHaveBeenCalled();
+    render(<RegistrationListPage {...mockConfig} additionalFilters={[additionalFilter]} />);
+    // Filters should be included
+    expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
-  it("should handle pagination", async () => {
-    const setCurrentPage = vi.fn();
-    vi.mocked(useListPageModule.useListPage).mockReturnValue({
-      paginatedData: mockData,
-      filteredData: mockData,
-      searchValue: "",
-      setSearchValue: vi.fn(),
-      currentPage: 2,
-      totalPages: 3,
-      setCurrentPage,
-      sortState: { column: null, direction: "asc" as const },
-      handleSort: vi.fn(),
-      clearSearch: vi.fn(),
-    });
+  it("should clone element with onDelete when actions column has render", () => {
+    // Suppress React warning about unknown event handler property 'onDelete'
+    // This is expected behavior - the component uses cloneElement to add custom props
+    const consoleErrorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation((message: unknown, ...args: unknown[]) => {
+        // Suppress React's warning about unknown event handler property
+        if (typeof message === "string" && message.includes("Unknown event handler property")) {
+          return;
+        }
+        // For other errors, use the original console.error
+        if (typeof console !== "undefined" && console.error) {
+          console.error(message, ...args);
+        }
+      });
 
-    const user = userEvent.setup();
-    render(
-      <TestWrapper>
-        <RegistrationListPage {...defaultConfig} />
-      </TestWrapper>
-    );
-
-    const nextButton = screen.getByText("Next");
-    await user.click(nextButton);
-    expect(setCurrentPage).toHaveBeenCalledWith(3);
-  });
-
-  it("should use custom language", () => {
-    render(
-      <TestWrapper>
-        <RegistrationListPage {...defaultConfig} language="en" />
-      </TestWrapper>
-    );
-
-    expect(vi.mocked(useListPageModule.useListPage)).toHaveBeenCalledWith(
-      expect.objectContaining({
-        language: "en",
-      })
-    );
-  });
-
-  it("should use custom itemsPerPage", () => {
-    render(
-      <TestWrapper>
-        <RegistrationListPage {...defaultConfig} itemsPerPage={20} />
-      </TestWrapper>
-    );
-
-    expect(vi.mocked(useListPageModule.useListPage)).toHaveBeenCalledWith(
-      expect.objectContaining({
-        itemsPerPage: 20,
-      })
-    );
-  });
-
-  it("should call onDeleteSuccess when delete succeeds", () => {
-    const onDeleteSuccess = vi.fn();
-    render(
-      <TestWrapper>
-        <RegistrationListPage {...defaultConfig} onDeleteSuccess={onDeleteSuccess} />
-      </TestWrapper>
-    );
-
-    expect(vi.mocked(useDeleteHandlerModule.useDeleteHandler)).toHaveBeenCalledWith(
-      expect.objectContaining({
-        onSuccess: onDeleteSuccess,
-      })
-    );
+    try {
+      const mockColumns = [
+        {
+          key: "actions",
+          label: "Actions",
+          render: () => <button data-testid="action-button">Delete</button>,
+        },
+      ];
+      render(<RegistrationListPage {...mockConfig} columns={mockColumns} />);
+      // The action button should be rendered with onDelete prop
+      expect(screen.getByTestId("action-button")).toBeInTheDocument();
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
   });
 });

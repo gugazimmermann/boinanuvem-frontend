@@ -1,17 +1,30 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { Statistics } from "../statistics";
-import { STATISTICS } from "../constants";
 
 describe("Statistics", () => {
   it("should render all statistics", () => {
     render(<Statistics />);
+    expect(screen.getByText("8+")).toBeInTheDocument();
+    expect(screen.getByText("50+")).toBeInTheDocument();
+    expect(screen.getByText("3")).toBeInTheDocument();
+    expect(screen.getByText("100%")).toBeInTheDocument();
+  });
 
-    STATISTICS.forEach((stat) => {
-      expect(screen.getByText(stat.number)).toBeInTheDocument();
-      expect(screen.getByText(stat.label)).toBeInTheDocument();
-      expect(screen.getByText(stat.description)).toBeInTheDocument();
-    });
+  it("should render statistics labels", () => {
+    render(<Statistics />);
+    expect(screen.getByText("Módulos Principais")).toBeInTheDocument();
+    expect(screen.getByText("Funcionalidades")).toBeInTheDocument();
+    expect(screen.getByText("Idiomas")).toBeInTheDocument();
+    expect(screen.getByText("Na Nuvem")).toBeInTheDocument();
+  });
+
+  it("should render statistics descriptions", () => {
+    render(<Statistics />);
+    expect(screen.getByText("Gestão completa da fazenda")).toBeInTheDocument();
+    expect(screen.getByText("Ferramentas poderosas")).toBeInTheDocument();
+    expect(screen.getByText("PT, EN, ES")).toBeInTheDocument();
+    expect(screen.getByText("Acesso de qualquer lugar")).toBeInTheDocument();
   });
 
   it("should render heading", () => {
@@ -20,20 +33,34 @@ describe("Statistics", () => {
     expect(screen.getByText(/Milhares/)).toBeInTheDocument();
   });
 
-  it("should render description", () => {
+  it("should render description paragraph", () => {
     render(<Statistics />);
-    expect(screen.getByText(/Um sistema completo, poderoso e intuitivo/)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Um sistema completo, poderoso e intuitivo que transforma a gestão da sua fazenda/
+      )
+    ).toBeInTheDocument();
   });
 
-  it("should apply correct grid classes", () => {
+  it("should apply correct styling to stat cards", () => {
     const { container } = render(<Statistics />);
-    const grid = container.querySelector(".grid.grid-cols-2.md\\:grid-cols-4");
-    expect(grid).toBeInTheDocument();
-  });
-
-  it("should render statistics with correct structure", () => {
-    const { container } = render(<Statistics />);
-    const statCards = container.querySelectorAll(".text-center.p-6");
-    expect(statCards.length).toBe(STATISTICS.length);
+    const statCard = container.querySelector(".text-center.p-6.rounded-2xl.bg-white");
+    expect(statCard).toBeInTheDocument();
+    expect(statCard).toHaveClass(
+      "text-center",
+      "p-6",
+      "md:p-8",
+      "rounded-2xl",
+      "bg-white",
+      "dark:bg-gray-800",
+      "border",
+      "border-gray-200",
+      "dark:border-gray-700",
+      "shadow-sm",
+      "hover:shadow-xl",
+      "hover:-translate-y-1",
+      "transition-all",
+      "duration-300"
+    );
   });
 });

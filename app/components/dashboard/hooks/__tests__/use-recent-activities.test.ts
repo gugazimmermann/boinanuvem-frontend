@@ -1,40 +1,30 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { useRecentActivities } from "../use-recent-activities";
-import type { useTranslation } from "~/i18n";
-import type { Animal, Birth, Weighing, Breeding, CashFlow, Sale } from "~/types";
-import { CashFlowCategory, PaymentMethod, SaleType, PricingMode, SalePaymentMethod } from "~/types";
-
-const mockTranslation = {
-  dashboard: {
-    recentActivities: {
-      newAnimalRegistered: "New animal registered",
-      newBirthRegistered: "New birth registered",
-      newWeighingRegistered: "New weighing registered",
-      newBreedingRegistered: "New breeding registered",
-      newTransactionRegistered: "New transaction registered",
-      newSaleRegistered: "New sale registered",
-    },
-  },
-} as ReturnType<typeof useTranslation>;
+import type { Animal, Birth, Breeding, Weighing, CashFlow, Sale } from "~/types";
 
 describe("useRecentActivities", () => {
+  const mockTranslation = {
+    dashboard: {
+      recentActivities: {
+        newAnimalRegistered: "New animal registered",
+        newBirthRegistered: "New birth registered",
+        newWeighingRegistered: "New weighing registered",
+        newBreedingRegistered: "New breeding registered",
+        newTransactionRegistered: "New transaction registered",
+        newSaleRegistered: "New sale registered",
+      },
+    },
+  } as ReturnType<typeof import("~/i18n").useTranslation>;
+
   const mockAnimals: Animal[] = [
     {
-      id: "animal-1",
+      id: "1",
       code: "A001",
-      registrationNumber: "BR-2025-A001",
+      name: "Animal 1",
+      createdAt: "2024-06-01T10:00:00Z",
+      registrationNumber: "REG001",
       status: "active",
-      createdAt: "2025-01-15",
-      companyId: "company-1",
-      propertyId: "property-1",
-    },
-    {
-      id: "animal-2",
-      code: "A002",
-      registrationNumber: "BR-2025-A002",
-      status: "active",
-      createdAt: "2025-01-20",
       companyId: "company-1",
       propertyId: "property-1",
     },
@@ -42,169 +32,223 @@ describe("useRecentActivities", () => {
 
   const mockBirths: Birth[] = [
     {
-      id: "birth-1",
-      animalId: "animal-1",
-      birthDate: "2025-01-10",
-      createdAt: "2025-01-10",
-      companyId: "company-1",
-    },
+      id: "1",
+      birthDate: "2024-06-02T10:00:00Z",
+    } as Birth,
   ];
 
   const mockWeighings: Weighing[] = [
     {
-      id: "weighing-1",
-      animalId: "animal-1",
-      date: "2025-01-12",
-      weight: 300,
-      employeeIds: [],
-      serviceProviderIds: [],
-      createdAt: "2025-01-12",
-      companyId: "company-1",
-    },
+      id: "1",
+      date: "2024-06-03T10:00:00Z",
+    } as Weighing,
   ];
 
   const mockBreedings: Breeding[] = [
     {
-      id: "breeding-1",
-      animalId: "animal-1",
-      date: "2025-01-14",
-      method: "natural",
-      employeeIds: [],
-      serviceProviderIds: [],
-      createdAt: "2025-01-14",
-      companyId: "company-1",
-    },
+      id: "1",
+      date: "2024-06-04T10:00:00Z",
+    } as Breeding,
   ];
 
   const mockCashFlow: CashFlow[] = [
     {
-      id: "cf-1",
-      date: "2025-01-16",
+      id: "1",
+      date: "2024-06-05T10:00:00Z",
       type: "income",
-      amount: 1000,
-      description: "Income",
-      category: CashFlowCategory.CATTLE_SALES,
-      paymentMethod: PaymentMethod.CASH,
-      status: "completed",
-      propertyId: "property-1",
-      createdAt: "2025-01-16",
-      companyId: "company-1",
-    },
+    } as CashFlow,
     {
-      id: "cf-2",
-      date: "2025-01-18",
+      id: "2",
+      date: "2024-06-06T10:00:00Z",
       type: "expense",
-      amount: 500,
-      description: "Expense",
-      category: CashFlowCategory.FEED,
-      paymentMethod: PaymentMethod.CASH,
-      status: "completed",
-      propertyId: "property-1",
-      createdAt: "2025-01-18",
-      companyId: "company-1",
-    },
+    } as CashFlow,
   ];
 
   const mockSales: Sale[] = [
     {
-      id: "sale-1",
-      saleDate: "2025-01-19",
-      companyId: "company-1",
-      propertyId: "property-1",
-      buyerId: "buyer-1",
-      saleType: SaleType.SLAUGHTERHOUSE,
-      pricingMode: PricingMode.INDIVIDUAL,
-      paymentMethod: SalePaymentMethod.CASH_FLOW,
-      totalPrice: 10000,
-      saleItems: [],
-      createdAt: "2025-01-19",
-    },
+      id: "1",
+      saleDate: "2024-06-07T10:00:00Z",
+    } as Sale,
   ];
 
-  const defaultOptions = {
-    animals: mockAnimals,
-    births: mockBirths,
-    weighings: mockWeighings,
-    breedings: mockBreedings,
-    cashFlowData: mockCashFlow,
-    sales: mockSales,
-    t: mockTranslation,
-  };
-
-  it("should return recent activities", () => {
-    const { result } = renderHook(() => useRecentActivities(defaultOptions));
-    expect(result.current).toBeDefined();
-    expect(Array.isArray(result.current)).toBe(true);
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it("should include animal activities", () => {
-    const { result } = renderHook(() => useRecentActivities(defaultOptions));
-    const animalActivities = result.current.filter((a) => a.type === "animal");
-    expect(animalActivities.length).toBe(2);
-    expect(animalActivities[0].icon).toBe("🐄");
-    expect(animalActivities[0].color).toBe("blue");
-  });
+  it("should return activities from all sources", () => {
+    const { result } = renderHook(() =>
+      useRecentActivities({
+        animals: mockAnimals,
+        births: mockBirths,
+        weighings: mockWeighings,
+        breedings: mockBreedings,
+        cashFlowData: mockCashFlow,
+        sales: mockSales,
+        t: mockTranslation,
+      })
+    );
 
-  it("should include birth activities", () => {
-    const { result } = renderHook(() => useRecentActivities(defaultOptions));
-    const birthActivities = result.current.filter((a) => a.type === "birth");
-    expect(birthActivities.length).toBe(1);
-    expect(birthActivities[0].icon).toBe("👶");
-    expect(birthActivities[0].color).toBe("purple");
-  });
-
-  it("should include weighing activities", () => {
-    const { result } = renderHook(() => useRecentActivities(defaultOptions));
-    const weighingActivities = result.current.filter((a) => a.type === "weighing");
-    expect(weighingActivities.length).toBe(1);
-    expect(weighingActivities[0].icon).toBe("⚖️");
-    expect(weighingActivities[0].color).toBe("teal");
-  });
-
-  it("should include breeding activities", () => {
-    const { result } = renderHook(() => useRecentActivities(defaultOptions));
-    const breedingActivities = result.current.filter((a) => a.type === "breeding");
-    expect(breedingActivities.length).toBe(1);
-    expect(breedingActivities[0].icon).toBe("💑");
-    expect(breedingActivities[0].color).toBe("pink");
-  });
-
-  it("should include transaction activities", () => {
-    const { result } = renderHook(() => useRecentActivities(defaultOptions));
-    const transactionActivities = result.current.filter((a) => a.type === "transaction");
-    expect(transactionActivities.length).toBe(2);
-    const incomeActivity = transactionActivities.find((a) => a.icon === "💰");
-    const expenseActivity = transactionActivities.find((a) => a.icon === "💸");
-    expect(incomeActivity).toBeDefined();
-    expect(expenseActivity).toBeDefined();
-    expect(incomeActivity?.color).toBe("green");
-    expect(expenseActivity?.color).toBe("red");
-  });
-
-  it("should include sale activities", () => {
-    const { result } = renderHook(() => useRecentActivities(defaultOptions));
-    const saleActivities = result.current.filter((a) => a.type === "sale");
-    expect(saleActivities.length).toBe(1);
-    expect(saleActivities[0].icon).toBe("💵");
-    expect(saleActivities[0].color).toBe("green");
+    expect(result.current.length).toBeGreaterThan(0);
+    expect(result.current.some((a) => a.type === "animal")).toBe(true);
+    expect(result.current.some((a) => a.type === "birth")).toBe(true);
+    expect(result.current.some((a) => a.type === "weighing")).toBe(true);
+    expect(result.current.some((a) => a.type === "breeding")).toBe(true);
+    expect(result.current.some((a) => a.type === "transaction")).toBe(true);
+    expect(result.current.some((a) => a.type === "sale")).toBe(true);
   });
 
   it("should sort activities by date descending", () => {
-    const { result } = renderHook(() => useRecentActivities(defaultOptions));
+    const { result } = renderHook(() =>
+      useRecentActivities({
+        animals: mockAnimals,
+        births: mockBirths,
+        weighings: mockWeighings,
+        breedings: mockBreedings,
+        cashFlowData: mockCashFlow,
+        sales: mockSales,
+        t: mockTranslation,
+      })
+    );
+
     const dates = result.current.map((a) => new Date(a.date).getTime());
     for (let i = 0; i < dates.length - 1; i++) {
       expect(dates[i]).toBeGreaterThanOrEqual(dates[i + 1]);
     }
   });
 
-  it("should limit activities to default limit", () => {
-    const { result } = renderHook(() => useRecentActivities(defaultOptions));
-    expect(result.current.length).toBeLessThanOrEqual(10);
+  it("should limit results to default limit of 10", () => {
+    const manyAnimals = Array.from({ length: 15 }, (_, i) => ({
+      id: String(i),
+      code: `A${i}`,
+      name: `Animal ${i}`,
+      createdAt: new Date(2024, 5, i + 1).toISOString(),
+      registrationNumber: `REG${i}`,
+      status: "active" as const,
+      companyId: "company-1",
+      propertyId: "property-1",
+    }));
+
+    const { result } = renderHook(() =>
+      useRecentActivities({
+        animals: manyAnimals,
+        births: [],
+        weighings: [],
+        breedings: [],
+        cashFlowData: [],
+        sales: [],
+        t: mockTranslation,
+      })
+    );
+
+    expect(result.current.length).toBe(10);
   });
 
-  it("should respect custom limit", () => {
-    const { result } = renderHook(() => useRecentActivities({ ...defaultOptions, limit: 5 }));
-    expect(result.current.length).toBeLessThanOrEqual(5);
+  it("should limit results to custom limit", () => {
+    const manyAnimals = Array.from({ length: 15 }, (_, i) => ({
+      id: String(i),
+      code: `A${i}`,
+      name: `Animal ${i}`,
+      createdAt: new Date(2024, 5, i + 1).toISOString(),
+      registrationNumber: `REG${i}`,
+      status: "active" as const,
+      companyId: "company-1",
+      propertyId: "property-1",
+    }));
+
+    const { result } = renderHook(() =>
+      useRecentActivities({
+        animals: manyAnimals,
+        births: [],
+        weighings: [],
+        breedings: [],
+        cashFlowData: [],
+        sales: [],
+        t: mockTranslation,
+        limit: 5,
+      })
+    );
+
+    expect(result.current.length).toBe(5);
+  });
+
+  it("should create animal activities with correct properties", () => {
+    const { result } = renderHook(() =>
+      useRecentActivities({
+        animals: mockAnimals,
+        births: [],
+        weighings: [],
+        breedings: [],
+        cashFlowData: [],
+        sales: [],
+        t: mockTranslation,
+      })
+    );
+
+    const animalActivity = result.current.find((a) => a.type === "animal");
+    expect(animalActivity).toBeDefined();
+    expect(animalActivity?.icon).toBe("🐄");
+    expect(animalActivity?.color).toBe("blue");
+    expect(animalActivity?.title).toBe("New animal registered");
+  });
+
+  it("should create birth activities with correct properties", () => {
+    const { result } = renderHook(() =>
+      useRecentActivities({
+        animals: [],
+        births: mockBirths,
+        weighings: [],
+        breedings: [],
+        cashFlowData: [],
+        sales: [],
+        t: mockTranslation,
+      })
+    );
+
+    const birthActivity = result.current.find((a) => a.type === "birth");
+    expect(birthActivity).toBeDefined();
+    expect(birthActivity?.icon).toBe("👶");
+    expect(birthActivity?.color).toBe("purple");
+    expect(birthActivity?.title).toBe("New birth registered");
+  });
+
+  it("should create income transaction activities with correct icon and color", () => {
+    const { result } = renderHook(() =>
+      useRecentActivities({
+        animals: [],
+        births: [],
+        weighings: [],
+        breedings: [],
+        cashFlowData: [{ id: "1", date: "2024-06-01", type: "income" } as CashFlow],
+        sales: [],
+        t: mockTranslation,
+      })
+    );
+
+    const transactionActivity = result.current.find(
+      (a) => a.type === "transaction" && a.color === "green"
+    );
+    expect(transactionActivity).toBeDefined();
+    expect(transactionActivity?.icon).toBe("💰");
+  });
+
+  it("should create expense transaction activities with correct icon and color", () => {
+    const { result } = renderHook(() =>
+      useRecentActivities({
+        animals: [],
+        births: [],
+        weighings: [],
+        breedings: [],
+        cashFlowData: [{ id: "1", date: "2024-06-01", type: "expense" } as CashFlow],
+        sales: [],
+        t: mockTranslation,
+      })
+    );
+
+    const transactionActivity = result.current.find(
+      (a) => a.type === "transaction" && a.color === "red"
+    );
+    expect(transactionActivity).toBeDefined();
+    expect(transactionActivity?.icon).toBe("💸");
   });
 
   it("should handle empty arrays", () => {
@@ -219,7 +263,35 @@ describe("useRecentActivities", () => {
         t: mockTranslation,
       })
     );
-    expect(result.current).toBeDefined();
-    expect(result.current.length).toBe(0);
+
+    expect(result.current).toEqual([]);
+  });
+
+  it("should use createdAt for animals when available", () => {
+    const animalWithCreatedAt: Animal = {
+      id: "1",
+      code: "A001",
+      name: "Animal 1",
+      createdAt: "2024-06-01T10:00:00Z",
+      registrationNumber: "REG001",
+      status: "active",
+      companyId: "company-1",
+      propertyId: "property-1",
+    };
+
+    const { result } = renderHook(() =>
+      useRecentActivities({
+        animals: [animalWithCreatedAt],
+        births: [],
+        weighings: [],
+        breedings: [],
+        cashFlowData: [],
+        sales: [],
+        t: mockTranslation,
+      })
+    );
+
+    const animalActivity = result.current.find((a) => a.type === "animal");
+    expect(animalActivity?.date).toBe("2024-06-01T10:00:00Z");
   });
 });

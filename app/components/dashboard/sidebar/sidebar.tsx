@@ -17,19 +17,22 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const location = useLocation();
   const { canView } = usePermissions();
 
-  const getInitialExpandedItem = () => {
+  const autoExpandedKey = useMemo(() => {
     for (const item of SIDEBAR_ITEMS) {
       if (item.subItems?.some((subItem: { path: string }) => location.pathname === subItem.path)) {
         return item.translationKey;
       }
     }
     return null;
-  };
+  }, [location.pathname]);
 
-  const [expandedItemKey, setExpandedItemKey] = useState<string | null>(getInitialExpandedItem);
+  const [manuallyExpandedKey, setManuallyExpandedKey] = useState<string | null>(null);
+
+  // Use manually expanded key if set, otherwise use auto-expanded key
+  const expandedItemKey = manuallyExpandedKey ?? autoExpandedKey;
 
   const handleToggle = (translationKey: string) => {
-    setExpandedItemKey((current) => (current === translationKey ? null : translationKey));
+    setManuallyExpandedKey((current) => (current === translationKey ? null : translationKey));
   };
 
   const filteredItems = useMemo(() => {
@@ -101,6 +104,8 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
   return (
     <aside
+      data-testid="sidebar"
+      data-open={isOpen ? "true" : "false"}
       className={`
         fixed sm:static
         top-12 left-0

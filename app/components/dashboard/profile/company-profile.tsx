@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { Input, FixedAlert, FormFieldGroup, Button } from "~/components/ui";
 import { AddressForm } from "./address-form";
 import { ActivityLog } from "./activity-log";
@@ -25,23 +25,24 @@ import {
   validateAddressFields,
 } from "~/utils/form-validation";
 import { useAuth } from "~/contexts/auth-context";
+import { useEntityLoader } from "~/hooks/use-entity-loader";
 
 /**
  * Convert backend company data to form data format
  */
 const mapCompanyToFormData = (company: EnhancedCompany): CompanyFormData => {
   return {
-    cnpj: maskCNPJ(company.cnpj),
-    companyName: company.companyName,
-    email: company.email,
-    phone: maskPhone(company.phone),
-    street: company.street,
-    number: company.number,
+    cnpj: maskCNPJ(company.cnpj || ""),
+    companyName: company.companyName || "",
+    email: company.email || "",
+    phone: maskPhone(company.phone || ""),
+    street: company.street || "",
+    number: company.number || "",
     complement: company.complement || "",
-    neighborhood: company.neighborhood,
-    city: company.city,
-    state: company.state,
-    zipCode: maskCEP(company.zipCode),
+    neighborhood: company.neighborhood || "",
+    city: company.city || "",
+    state: company.state || "",
+    zipCode: maskCEP(company.zipCode || ""),
   };
 };
 
@@ -50,68 +51,15 @@ export function CompanyProfile() {
   const { currentUser } = useAuth();
   const companyId = currentUser?.companyId;
 
-  const [company, setCompany] = useState<EnhancedCompany | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-
-  // Use refs to track loading state and prevent infinite loops
-  const loadedCompanyIdRef = useRef<string | undefined>(undefined);
-  const isLoadingRef = useRef(false);
-
-  // Fetch company data from backend
-  useEffect(() => {
-    // Prevent loading if we're already loading or if we've already loaded this companyId
-    if (isLoadingRef.current) {
-      return;
-    }
-
-    if (!companyId) {
-      setIsLoading(false);
-      setLoadError("Company ID not found");
-      return;
-    }
-
-    // If we've already loaded this companyId, don't reload
-    if (loadedCompanyIdRef.current === companyId) {
-      return;
-    }
-
-    let cancelled = false;
-    isLoadingRef.current = true;
-
-    const fetchCompany = async () => {
-      try {
-        setIsLoading(true);
-        setLoadError(null);
-        const companyData = await getCompany(companyId);
-
-        if (!cancelled) {
-          setCompany(companyData);
-          loadedCompanyIdRef.current = companyId;
-        }
-      } catch (error) {
-        if (!cancelled) {
-          const errorMessage =
-            error instanceof Error ? error.message : "Failed to load company data";
-          setLoadError(errorMessage);
-          // Don't call showAlert here to avoid potential re-render loops
-          console.error("Failed to load company data:", errorMessage);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-          isLoadingRef.current = false;
-        }
-      }
-    };
-
-    fetchCompany();
-
-    return () => {
-      cancelled = true;
-      isLoadingRef.current = false;
-    };
-  }, [companyId]);
+  const {
+    entity: company,
+    isLoading,
+    error: loadError,
+  } = useEntityLoader({
+    entityId: companyId,
+    loadEntity: getCompany,
+    errorMessage: "Failed to load company data",
+  });
 
   // Generate activity logs from company users
   const companyUsers = useMemo(() => {
@@ -270,7 +218,7 @@ export function CompanyProfile() {
         throw new Error("Company ID not found");
       }
 
-      const updatedCompany = await updateCompany(companyId, {
+      await updateCompany(companyId, {
         companyName: data.companyName,
         email: data.email,
         phone: unmaskPhone(data.phone),
@@ -283,8 +231,8 @@ export function CompanyProfile() {
         zipCode: unmaskCEP(data.zipCode),
       });
 
-      // Update local company state with the response
-      setCompany(updatedCompany);
+      // Note: Company state will be updated on next render via useEntityLoader
+      // if the entityId changes or component remounts
     },
     successMessage: t.profile.success.saved,
     errorMessage: t.profile.errors.saveFailed,
@@ -319,10 +267,10 @@ export function CompanyProfile() {
     [isEditing, setData]
   );
 
-  const { loading: cnpjLoading } = useCNPJLookup(unmaskCNPJ(data.cnpj), {
+  const { loading: cnpjLoading } = useCNPJLookup(unmaskCNPJ(data?.cnpj || ""), {
     debounceMs: 800,
     onSuccess: handleCNPJSuccess,
-    enabled: isEditing,
+    enabled: isEditing && !!data?.cnpj,
   });
 
   // Show loading state

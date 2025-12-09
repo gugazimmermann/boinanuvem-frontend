@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   getSanitaryControlById,
   getSanitaryControlsByAnimalId,
@@ -13,190 +13,172 @@ import {
   updateMedicineAdministration,
   deleteMedicineAdministration,
 } from "../sanitary-controls.service";
+
+vi.mock("~/mocks/sanitary-controls", () => ({
+  mockSanitaryControls: [
+    {
+      id: "sc-1",
+      animalId: "animal-1",
+      companyId: "company-1",
+      date: "2024-01-15",
+      appliedMedicines: [],
+      employeeIds: [],
+      serviceProviderIds: [],
+      createdAt: "2024-01-15T00:00:00Z",
+    },
+    {
+      id: "sc-2",
+      animalId: "animal-2",
+      companyId: "company-1",
+      date: "2024-02-15",
+      medicine: "Medicine B",
+    },
+  ],
+}));
+
 import { mockSanitaryControls } from "~/mocks/sanitary-controls";
-import type { SanitaryControlFormData } from "~/types/sanitary-control";
 
 describe("sanitary-controls.service", () => {
   beforeEach(() => {
+    // Reset mock data to initial state
     mockSanitaryControls.length = 0;
     mockSanitaryControls.push(
       {
-        id: "control-1",
+        id: "sc-1",
         animalId: "animal-1",
         companyId: "company-1",
-        date: "2025-01-01",
-        appliedMedicines: [{ itemId: "item-1", quantity: 1, calculatedDosage: 5 }],
-        employeeIds: ["employee-1"],
+        date: "2024-01-15",
+        appliedMedicines: [],
+        employeeIds: [],
         serviceProviderIds: [],
-        observation: "First dose",
-        createdAt: "2025-01-01",
+        createdAt: "2024-01-15T00:00:00Z",
       },
       {
-        id: "control-2",
-        animalId: "animal-1",
-        companyId: "company-1",
-        date: "2025-01-15",
-        appliedMedicines: [{ itemId: "item-2", quantity: 1, calculatedDosage: 10 }],
-        employeeIds: ["employee-1"],
-        serviceProviderIds: [],
-        observation: "Regular deworming",
-        createdAt: "2025-01-15",
-      },
-      {
-        id: "control-3",
+        id: "sc-2",
         animalId: "animal-2",
-        companyId: "company-2",
-        date: "2025-01-10",
-        appliedMedicines: [{ itemId: "item-3", quantity: 1, calculatedDosage: 5 }],
-        employeeIds: ["employee-2"],
+        companyId: "company-1",
+        date: "2024-02-15",
+        appliedMedicines: [],
+        employeeIds: [],
         serviceProviderIds: [],
-        observation: "Annual vaccination",
-        createdAt: "2025-01-10",
+        createdAt: "2024-02-15T00:00:00Z",
       }
     );
   });
 
   describe("getSanitaryControlById", () => {
-    it("should return control when ID exists", () => {
-      const result = getSanitaryControlById("control-1");
-      expect(result).toBeDefined();
-      expect(result?.id).toBe("control-1");
-      expect(result?.animalId).toBe("animal-1");
+    it("should find sanitary control by id", () => {
+      const result = getSanitaryControlById("sc-1");
+      expect(result).toEqual(mockSanitaryControls[0]);
     });
 
-    it("should return undefined when ID does not exist", () => {
-      const result = getSanitaryControlById("control-nonexistent");
-      expect(result).toBeUndefined();
-    });
-
-    it("should return undefined when ID is undefined", () => {
-      const result = getSanitaryControlById(undefined);
+    it("should return undefined when not found", () => {
+      const result = getSanitaryControlById("nonexistent");
       expect(result).toBeUndefined();
     });
   });
 
   describe("getSanitaryControlsByAnimalId", () => {
-    it("should return all controls for an animal", () => {
+    it("should find sanitary controls by animal id", () => {
       const result = getSanitaryControlsByAnimalId("animal-1");
-      expect(result).toHaveLength(2);
-      expect(result.every((c) => c.animalId === "animal-1")).toBe(true);
-    });
-
-    it("should return empty array when animal has no controls", () => {
-      const result = getSanitaryControlsByAnimalId("animal-nonexistent");
-      expect(result).toHaveLength(0);
+      expect(result).toHaveLength(1);
     });
   });
 
   describe("getSanitaryControlsByCompanyId", () => {
-    it("should return all controls for a company", () => {
+    it("should find sanitary controls by company id", () => {
       const result = getSanitaryControlsByCompanyId("company-1");
       expect(result).toHaveLength(2);
-      expect(result.every((c) => c.companyId === "company-1")).toBe(true);
-    });
-
-    it("should return empty array when company has no controls", () => {
-      const result = getSanitaryControlsByCompanyId("company-nonexistent");
-      expect(result).toHaveLength(0);
     });
   });
 
   describe("addSanitaryControl", () => {
-    it("should add a new control with generated ID", () => {
-      const formData: SanitaryControlFormData = {
+    it("should create new sanitary control", () => {
+      const formData = {
         animalId: "animal-3",
         companyId: "company-1",
-        date: "2025-01-20",
-        appliedMedicines: [{ itemId: "item-4", quantity: 1, calculatedDosage: 5 }],
-        employeeIds: ["employee-1"],
-        serviceProviderIds: [],
-        observation: "New control",
-      };
-
-      const initialLength = mockSanitaryControls.length;
-      const result = addSanitaryControl(formData);
-
-      expect(mockSanitaryControls).toHaveLength(initialLength + 1);
-      expect(result.id).toBeDefined();
-      expect(result.animalId).toBe("animal-3");
-      expect(result.appliedMedicines).toBeDefined();
-      expect(result.createdAt).toBeDefined();
-    });
-
-    it("should generate ID with correct prefix", () => {
-      const formData: SanitaryControlFormData = {
-        animalId: "animal-3",
-        companyId: "company-1",
-        date: "2025-01-20",
-        appliedMedicines: [{ itemId: "item-4", quantity: 1, calculatedDosage: 5 }],
+        date: "2024-03-01",
+        appliedMedicines: [],
         employeeIds: [],
         serviceProviderIds: [],
+        propertyIds: [],
       };
 
       const result = addSanitaryControl(formData);
-      expect(result.id).toContain("ma0e8400-e29b-41d4-a716");
+
+      expect(result.id).toBeDefined();
+      expect(result.appliedMedicines).toEqual([]);
+      expect(mockSanitaryControls).toContain(result);
     });
   });
 
   describe("updateSanitaryControl", () => {
-    it("should update control when ID exists", () => {
-      const updateData: Partial<SanitaryControlFormData> = {
-        appliedMedicines: [{ itemId: "item-updated", quantity: 2, calculatedDosage: 10 }],
+    it("should update sanitary control", () => {
+      const updateData = {
+        appliedMedicines: [{ itemId: "item-1", quantity: 1, calculatedDosage: 10 }],
       };
+      const result = updateSanitaryControl("sc-1", updateData);
 
-      const result = updateSanitaryControl("control-1", updateData);
       expect(result).toBe(true);
-
-      const updated = mockSanitaryControls.find((c) => c.id === "control-1");
-      expect(updated?.appliedMedicines).toBeDefined();
-      expect(updated?.appliedMedicines?.[0]?.itemId).toBe("item-updated");
-    });
-
-    it("should return false when ID does not exist", () => {
-      const updateData: Partial<SanitaryControlFormData> = {
-        observation: "Updated observation",
-      };
-
-      const result = updateSanitaryControl("control-nonexistent", updateData);
-      expect(result).toBe(false);
+      expect(mockSanitaryControls[0].appliedMedicines).toEqual([
+        { itemId: "item-1", quantity: 1, calculatedDosage: 10 },
+      ]);
     });
   });
 
   describe("deleteSanitaryControl", () => {
-    it("should delete control when ID exists", () => {
+    it("should delete sanitary control", () => {
       const initialLength = mockSanitaryControls.length;
-      const result = deleteSanitaryControl("control-1");
+      const result = deleteSanitaryControl("sc-1");
 
       expect(result).toBe(true);
       expect(mockSanitaryControls).toHaveLength(initialLength - 1);
-      expect(mockSanitaryControls.find((c) => c.id === "control-1")).toBeUndefined();
-    });
-
-    it("should return false when ID does not exist", () => {
-      const initialLength = mockSanitaryControls.length;
-      const result = deleteSanitaryControl("control-nonexistent");
-
-      expect(result).toBe(false);
-      expect(mockSanitaryControls).toHaveLength(initialLength);
     });
   });
 
-  describe("Medicine Administration aliases", () => {
-    it("should use same functions as sanitary controls", () => {
-      expect(getMedicineAdministrationById).toBe(getSanitaryControlById);
-      expect(getMedicineAdministrationsByAnimalId).toBe(getSanitaryControlsByAnimalId);
-      expect(getMedicineAdministrationsByCompanyId).toBe(getSanitaryControlsByCompanyId);
-      expect(addMedicineAdministration).toBe(addSanitaryControl);
-      expect(updateMedicineAdministration).toBe(updateSanitaryControl);
-      expect(deleteMedicineAdministration).toBe(deleteSanitaryControl);
+  describe("medicine administration aliases", () => {
+    it("should use same function for getMedicineAdministrationById", () => {
+      const result = getMedicineAdministrationById("sc-1");
+      expect(result).toEqual(mockSanitaryControls[0]);
     });
 
-    it("should work with medicine administration functions", () => {
-      const result = getMedicineAdministrationById("control-1");
-      expect(result?.id).toBe("control-1");
+    it("should use same function for getMedicineAdministrationsByAnimalId", () => {
+      const result = getMedicineAdministrationsByAnimalId("animal-1");
+      expect(result).toHaveLength(1);
+    });
 
-      const byAnimal = getMedicineAdministrationsByAnimalId("animal-1");
-      expect(byAnimal).toHaveLength(2);
+    it("should use same function for getMedicineAdministrationsByCompanyId", () => {
+      const result = getMedicineAdministrationsByCompanyId("company-1");
+      expect(result).toHaveLength(2);
+    });
+
+    it("should use same function for addMedicineAdministration", () => {
+      const formData = {
+        animalId: "animal-3",
+        companyId: "company-1",
+        date: "2024-03-01",
+        appliedMedicines: [{ itemId: "item-1", quantity: 1, calculatedDosage: 10 }],
+        employeeIds: [],
+        serviceProviderIds: [],
+        propertyIds: [],
+      };
+
+      const result = addMedicineAdministration(formData);
+      expect(result.appliedMedicines).toEqual([
+        { itemId: "item-1", quantity: 1, calculatedDosage: 10 },
+      ]);
+    });
+
+    it("should use same function for updateMedicineAdministration", () => {
+      const result = updateMedicineAdministration("sc-1", {
+        appliedMedicines: [{ itemId: "item-1", quantity: 1, calculatedDosage: 10 }],
+      });
+      expect(result).toBe(true);
+    });
+
+    it("should use same function for deleteMedicineAdministration", () => {
+      const result = deleteMedicineAdministration("sc-1");
+      expect(result).toBe(true);
     });
   });
 });

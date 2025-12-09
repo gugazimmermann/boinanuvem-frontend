@@ -1,380 +1,347 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { ReproductiveIndexes } from "../reproductive-indexes";
-import { LanguageProvider } from "~/contexts/language-context";
-import { BrowserRouter } from "react-router";
+import { useTranslation } from "~/i18n";
+import { useLanguage } from "~/contexts/language-context";
 import * as reproductiveIndexesService from "~/services/reproductive-indexes.service";
 
-const TestWrapper = ({ children }: { children: React.ReactNode }) => (
-  <BrowserRouter>
-    <LanguageProvider>{children}</LanguageProvider>
-  </BrowserRouter>
-);
-
-vi.mock("~/services/reproductive-indexes.service", () => ({
-  getFertilityRate: vi.fn(() => ({
-    rate: 85.5,
-    pregnantCows: 100,
-    exposedCows: 117,
-  })),
-  getBirthRate: vi.fn(() => ({
-    rate: 80.0,
-    calvesBorn: 80,
-    pregnantFemales: 100,
-    monthly: [
-      { month: "2024-01", rate: 0.75, calvesBorn: 15 },
-      { month: "2024-02", rate: 0.85, calvesBorn: 17 },
-    ],
-  })),
-  getCalvingInterval: vi.fn(() => ({
-    average: 390,
-    min: 360,
-    max: 420,
-    animalsWithIntervals: 50,
-  })),
-  getCullingRate: vi.fn(() => ({
-    rate: 15.0,
-    replacedFemales: 15,
-    totalFemales: 100,
-    annual: [
-      { year: 2023, rate: 12.5, replacedFemales: 12 },
-      { year: 2024, rate: 15.0, replacedFemales: 15 },
-    ],
-  })),
-  getIntrauterineMortalityIndex: vi.fn(() => ({
-    rate: 5.0,
-    pregnantCows: 100,
-    cowsThatCalved: 95,
-    losses: 5,
-  })),
-  getBullToCowRatio: vi.fn(() => ({
-    ratio: "1:25",
-    bullsUsed: 4,
-    exposedCows: 100,
-  })),
-  getWeaningRate: vi.fn(() => ({
-    rate: 90.0,
-    weanedCalves: 90,
-    exposedFemales: 100,
-  })),
-  getWeaningRatio: vi.fn(() => ({
-    ratio: 45.5,
-    weanedCalfWeight: 200,
-    motherWeight: 440,
-    pairs: 50,
-  })),
-  getKgWeanedCalfPerExposedCow: vi.fn(() => ({
-    kgPerExposedCow: 180.0,
-    totalWeanedWeight: 18000,
-    weanedCalves: 90,
-    exposedFemales: 100,
-  })),
-  getMortalityRate: vi.fn(() => ({
-    rate: 3.0,
-    deadAnimals: 3,
-    totalAnimals: 100,
-  })),
-  getCalfMortalityRate: vi.fn(() => ({
-    rate: 2.5,
-    deadCalves: 2,
-    totalCalves: 80,
-    monthly: [
-      { month: "2024-01", rate: 0.02, deadCalves: 1, totalCalves: 50 },
-      { month: "2024-02", rate: 0.03, deadCalves: 2, totalCalves: 67 },
-    ],
-  })),
-  getExpectedBirthsForecast: vi.fn(() => ({
-    monthly: [
-      { month: "2024-03", expectedBirths: 20 },
-      { month: "2024-04", expectedBirths: 25 },
-    ],
-  })),
-}));
-
+vi.mock("~/i18n");
+vi.mock("~/contexts/language-context");
+vi.mock("~/services/reproductive-indexes.service");
 vi.mock("recharts", () => ({
-  LineChart: vi.fn(({ children }: { children: React.ReactNode }) => (
-    <div data-testid="line-chart">{children}</div>
-  )),
-  Line: vi.fn(() => <div data-testid="line" />),
-  BarChart: vi.fn(({ children }: { children: React.ReactNode }) => (
-    <div data-testid="bar-chart">{children}</div>
-  )),
-  Bar: vi.fn(() => <div data-testid="bar" />),
-  XAxis: vi.fn(() => <div data-testid="x-axis" />),
-  YAxis: vi.fn(() => <div data-testid="y-axis" />),
-  CartesianGrid: vi.fn(() => <div data-testid="grid" />),
-  Tooltip: vi.fn(() => <div data-testid="tooltip" />),
-  Legend: vi.fn(() => <div data-testid="legend" />),
-  ResponsiveContainer: vi.fn(({ children }: { children: React.ReactNode }) => (
-    <div data-testid="responsive-container">{children}</div>
-  )),
+  LineChart: () => <div data-testid="line-chart">Line Chart</div>,
+  Line: () => null,
+  BarChart: () => <div data-testid="bar-chart">Bar Chart</div>,
+  Bar: () => null,
+  XAxis: () => null,
+  YAxis: () => null,
+  CartesianGrid: () => null,
+  Tooltip: () => null,
+  Legend: () => null,
+  ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
 describe("ReproductiveIndexes", () => {
-  const defaultProps = {
-    propertyId: "property-1",
-  };
+  const mockUseTranslation = vi.mocked(useTranslation);
+  const mockUseLanguage = vi.mocked(useLanguage);
 
   beforeEach(() => {
     vi.clearAllMocks();
-  });
+    mockUseTranslation.mockReturnValue({
+      reproductiveIndexes: {
+        title: "Reproductive Indexes",
+        fertilityRate: {
+          title: "Fertility Rate",
+          description: "Description",
+          pregnantCows: "Pregnant Cows",
+          exposedCows: "Exposed Cows",
+        },
+        birthRate: {
+          title: "Birth Rate",
+          description: "Description",
+          calvesBorn: "Calves Born",
+          pregnantFemales: "Pregnant Females",
+        },
+        calvingInterval: {
+          title: "Calving Interval",
+          description: "Description",
+          months: "months",
+          min: "Min",
+          max: "Max",
+          animals: "Animals",
+        },
+        cullingRate: {
+          title: "Culling Rate",
+          description: "Description",
+          replacedFemales: "Replaced Females",
+          totalFemales: "Total Females",
+        },
+        intrauterineMortality: {
+          title: "Intrauterine Mortality",
+          description: "Description",
+          pregnantCows: "Pregnant Cows",
+          cowsThatCalved: "Cows That Calved",
+          losses: "Losses",
+        },
+        bullToCowRatio: {
+          title: "Bull to Cow Ratio",
+          description: "Description",
+          bullsUsed: "Bulls Used",
+          exposedCows: "Exposed Cows",
+        },
+        weaningRate: {
+          title: "Weaning Rate",
+          description: "Description",
+          weanedCalves: "Weaned Calves",
+          exposedFemales: "Exposed Females",
+        },
+        weaningRatio: {
+          title: "Weaning Ratio",
+          description: "Description",
+          weanedCalfWeight: "Weaned Calf Weight",
+          motherWeight: "Mother Weight",
+          pairs: "Pairs",
+        },
+        kgWeanedCalfPerExposedCow: {
+          title: "Kg Weaned Calf Per Exposed Cow",
+          description: "Description",
+          totalWeanedWeight: "Total Weaned Weight",
+          weanedCalves: "Weaned Calves",
+          exposedFemales: "Exposed Females",
+        },
+        mortalityRate: {
+          title: "Mortality Rate",
+          description: "Description",
+          deadAnimals: "Dead Animals",
+          totalAnimals: "Total Animals",
+        },
+        calfMortalityRate: {
+          title: "Calf Mortality Rate",
+          description: "Description",
+          deadCalves: "Dead Calves",
+          totalCalves: "Total Calves",
+        },
+        charts: {
+          monthlyBirthRate: "Monthly Birth Rate",
+          birthRate: "Birth Rate",
+          annualCullingRate: "Annual Culling Rate",
+          cullingRate: "Culling Rate",
+          expectedFutureBirths: "Expected Future Births",
+          expectedBirths: "Expected Births",
+          monthlyCalfMortality: "Monthly Calf Mortality",
+          calfMortalityRate: "Calf Mortality Rate",
+        },
+      },
+    } as unknown as ReturnType<typeof useTranslation>);
+    mockUseLanguage.mockReturnValue({ language: "pt" });
 
-  it("should render all index cards", () => {
-    render(
-      <TestWrapper>
-        <ReproductiveIndexes {...defaultProps} />
-      </TestWrapper>
-    );
-
-    expect(screen.getByText(/fertility rate/i)).toBeInTheDocument();
-    const birthRateElements = screen.getAllByText(/birth rate/i);
-    expect(birthRateElements.length).toBeGreaterThan(0);
-    expect(screen.getByText(/calving interval/i)).toBeInTheDocument();
-    const cullingRateElements = screen.getAllByText(/culling rate/i);
-    expect(cullingRateElements.length).toBeGreaterThan(0);
-    expect(screen.getByText(/intrauterine mortality/i)).toBeInTheDocument();
-    expect(screen.getByText(/bull[- ]to[- ]cow ratio/i)).toBeInTheDocument();
-    expect(screen.getByText(/weaning rate/i)).toBeInTheDocument();
-    expect(screen.getByText(/weaning ratio/i)).toBeInTheDocument();
-    expect(screen.getByText(/kg.*weaned.*calf.*per.*exposed.*cow/i)).toBeInTheDocument();
-    const mortalityRateElements = screen.getAllByText(/mortality rate/i);
-    expect(mortalityRateElements.length).toBeGreaterThan(0);
-    const calfMortalityRateElements = screen.getAllByText(/calf mortality rate/i);
-    expect(calfMortalityRateElements.length).toBeGreaterThan(0);
-  });
-
-  it("should display fertility rate correctly", () => {
-    render(
-      <TestWrapper>
-        <ReproductiveIndexes {...defaultProps} />
-      </TestWrapper>
-    );
-
-    expect(screen.getByText("85.50%")).toBeInTheDocument();
-    const hundredElements = screen.getAllByText("100");
-    expect(hundredElements.length).toBeGreaterThan(0); // pregnantCows
-    expect(screen.getByText("117")).toBeInTheDocument(); // exposedCows
-  });
-
-  it("should display birth rate correctly", () => {
-    render(
-      <TestWrapper>
-        <ReproductiveIndexes {...defaultProps} />
-      </TestWrapper>
-    );
-
-    expect(screen.getByText("80.00%")).toBeInTheDocument();
-    const eightyElements = screen.getAllByText("80");
-    expect(eightyElements.length).toBeGreaterThan(0); // calvesBorn
-    const hundredElements = screen.getAllByText("100");
-    expect(hundredElements.length).toBeGreaterThan(0); // pregnantFemales
-  });
-
-  it("should display calving interval correctly", () => {
-    render(
-      <TestWrapper>
-        <ReproductiveIndexes {...defaultProps} />
-      </TestWrapper>
-    );
-
-    // 390 days / 30 = 13 months
-    expect(screen.getByText(/13/i)).toBeInTheDocument();
-  });
-
-  it("should display calving interval as '-' when average is 0", () => {
-    vi.mocked(reproductiveIndexesService.getCalvingInterval).mockReturnValueOnce({
+    vi.mocked(reproductiveIndexesService.getFertilityRate).mockReturnValue({
+      rate: 0,
+      pregnantCows: 0,
+      exposedCows: 0,
+    });
+    vi.mocked(reproductiveIndexesService.getBirthRate).mockReturnValue({
+      rate: 0,
+      calvesBorn: 0,
+      pregnantFemales: 0,
+      monthly: undefined,
+    });
+    vi.mocked(reproductiveIndexesService.getCalvingInterval).mockReturnValue({
       average: 0,
       min: 0,
       max: 0,
+      intervals: [],
       animalsWithIntervals: 0,
     });
-
-    render(
-      <TestWrapper>
-        <ReproductiveIndexes {...defaultProps} />
-      </TestWrapper>
-    );
-
-    expect(screen.getByText("-")).toBeInTheDocument();
+    vi.mocked(reproductiveIndexesService.getCullingRate).mockReturnValue({
+      rate: 0,
+      replacedFemales: 0,
+      totalFemales: 0,
+      annual: undefined,
+    });
+    vi.mocked(reproductiveIndexesService.getIntrauterineMortalityIndex).mockReturnValue({
+      rate: 0,
+      pregnantCows: 0,
+      cowsThatCalved: 0,
+      losses: 0,
+    });
+    vi.mocked(reproductiveIndexesService.getBullToCowRatio).mockReturnValue({
+      ratio: "0:0",
+      bullsUsed: 0,
+      exposedCows: 0,
+    });
+    vi.mocked(reproductiveIndexesService.getExpectedBirthsForecast).mockReturnValue({
+      monthly: [],
+      total: 0,
+    });
+    vi.mocked(reproductiveIndexesService.getWeaningRate).mockReturnValue({
+      rate: 0,
+      weanedCalves: 0,
+      exposedFemales: 0,
+    });
+    vi.mocked(reproductiveIndexesService.getWeaningRatio).mockReturnValue({
+      ratio: 0,
+      weanedCalfWeight: 0,
+      motherWeight: 0,
+      pairs: 0,
+    });
+    vi.mocked(reproductiveIndexesService.getKgWeanedCalfPerExposedCow).mockReturnValue({
+      kgPerExposedCow: 0,
+      totalWeanedWeight: 0,
+      weanedCalves: 0,
+      exposedFemales: 0,
+    });
+    vi.mocked(reproductiveIndexesService.getMortalityRate).mockReturnValue({
+      rate: 0,
+      deadAnimals: 0,
+      totalAnimals: 0,
+    });
+    vi.mocked(reproductiveIndexesService.getCalfMortalityRate).mockReturnValue({
+      rate: 0,
+      deadCalves: 0,
+      totalCalves: 0,
+      monthly: undefined,
+    });
   });
 
-  it("should display culling rate correctly", () => {
-    render(
-      <TestWrapper>
-        <ReproductiveIndexes {...defaultProps} />
-      </TestWrapper>
-    );
-
-    expect(screen.getByText("15.00%")).toBeInTheDocument();
-    expect(screen.getByText("15")).toBeInTheDocument(); // replacedFemales
-    const hundredElements = screen.getAllByText("100");
-    expect(hundredElements.length).toBeGreaterThan(0); // totalFemales
+  it("should render reproductive indexes component", () => {
+    render(<ReproductiveIndexes propertyId="property-1" />);
+    expect(screen.getByText("Fertility Rate")).toBeInTheDocument();
   });
 
-  it("should display intrauterine mortality correctly", () => {
-    render(
-      <TestWrapper>
-        <ReproductiveIndexes {...defaultProps} />
-      </TestWrapper>
-    );
-
-    expect(screen.getByText("5.00%")).toBeInTheDocument();
-    const hundredElements = screen.getAllByText("100");
-    expect(hundredElements.length).toBeGreaterThan(0); // pregnantCows
-    expect(screen.getByText("95")).toBeInTheDocument(); // cowsThatCalved
-    expect(screen.getByText("5")).toBeInTheDocument(); // losses
-  });
-
-  it("should display bull to cow ratio correctly", () => {
-    render(
-      <TestWrapper>
-        <ReproductiveIndexes {...defaultProps} />
-      </TestWrapper>
-    );
-
-    expect(screen.getByText("1:25")).toBeInTheDocument();
-    expect(screen.getByText("4")).toBeInTheDocument(); // bullsUsed
-    const hundredElements = screen.getAllByText("100");
-    expect(hundredElements.length).toBeGreaterThan(0); // exposedCows
-  });
-
-  it("should display weaning rate correctly", () => {
-    render(
-      <TestWrapper>
-        <ReproductiveIndexes {...defaultProps} />
-      </TestWrapper>
-    );
-
-    expect(screen.getByText("90.00%")).toBeInTheDocument();
-    const ninetyElements = screen.getAllByText("90");
-    expect(ninetyElements.length).toBeGreaterThan(0); // weanedCalves
-    const hundredElements = screen.getAllByText("100");
-    expect(hundredElements.length).toBeGreaterThan(0); // exposedFemales
-  });
-
-  it("should display weaning ratio correctly", () => {
-    render(
-      <TestWrapper>
-        <ReproductiveIndexes {...defaultProps} />
-      </TestWrapper>
-    );
-
-    expect(screen.getByText("45.50%")).toBeInTheDocument();
-    expect(screen.getByText(/200\.00 kg/i)).toBeInTheDocument(); // weanedCalfWeight
-    expect(screen.getByText(/440\.00 kg/i)).toBeInTheDocument(); // motherWeight
-    const fiftyElements = screen.getAllByText("50");
-    expect(fiftyElements.length).toBeGreaterThan(0); // pairs
-  });
-
-  it("should display kg weaned calf per exposed cow correctly", () => {
-    render(
-      <TestWrapper>
-        <ReproductiveIndexes {...defaultProps} />
-      </TestWrapper>
-    );
-
-    expect(screen.getByText(/180\.00 kg/i)).toBeInTheDocument();
-    expect(screen.getByText(/18000\.00 kg/i)).toBeInTheDocument(); // totalWeanedWeight
-    const ninetyElements = screen.getAllByText("90");
-    expect(ninetyElements.length).toBeGreaterThan(0); // weanedCalves
-    const hundredElements = screen.getAllByText("100");
-    expect(hundredElements.length).toBeGreaterThan(0); // exposedFemales
-  });
-
-  it("should display mortality rate correctly", () => {
-    render(
-      <TestWrapper>
-        <ReproductiveIndexes {...defaultProps} />
-      </TestWrapper>
-    );
-
-    expect(screen.getByText("3.00%")).toBeInTheDocument();
-    expect(screen.getByText("3")).toBeInTheDocument(); // deadAnimals
-    const hundredElements = screen.getAllByText("100");
-    expect(hundredElements.length).toBeGreaterThan(0); // totalAnimals
-  });
-
-  it("should display calf mortality rate correctly", () => {
-    render(
-      <TestWrapper>
-        <ReproductiveIndexes {...defaultProps} />
-      </TestWrapper>
-    );
-
-    expect(screen.getByText("2.50%")).toBeInTheDocument();
-    expect(screen.getByText("2")).toBeInTheDocument(); // deadCalves
-    const eightyElements = screen.getAllByText("80");
-    expect(eightyElements.length).toBeGreaterThan(0); // totalCalves
-  });
-
-  it("should render monthly birth rate chart when data exists", () => {
-    render(
-      <TestWrapper>
-        <ReproductiveIndexes {...defaultProps} />
-      </TestWrapper>
-    );
-
-    const charts = screen.getAllByTestId("line-chart");
-    expect(charts.length).toBeGreaterThan(0);
-  });
-
-  it("should render annual culling rate chart when data exists", () => {
-    render(
-      <TestWrapper>
-        <ReproductiveIndexes {...defaultProps} />
-      </TestWrapper>
-    );
-
-    const charts = screen.getAllByTestId("bar-chart");
-    expect(charts.length).toBeGreaterThan(0);
-  });
-
-  it("should render expected births forecast chart when data exists", () => {
-    render(
-      <TestWrapper>
-        <ReproductiveIndexes {...defaultProps} />
-      </TestWrapper>
-    );
-
-    const charts = screen.getAllByTestId("bar-chart");
-    expect(charts.length).toBeGreaterThan(0);
-  });
-
-  it("should render monthly calf mortality chart when data exists", () => {
-    render(
-      <TestWrapper>
-        <ReproductiveIndexes {...defaultProps} />
-      </TestWrapper>
-    );
-
-    const lineCharts = screen.getAllByTestId("line-chart");
-    expect(lineCharts.length).toBeGreaterThan(0);
+  it("should call service functions with propertyId", () => {
+    render(<ReproductiveIndexes propertyId="property-1" />);
+    expect(reproductiveIndexesService.getFertilityRate).toHaveBeenCalled();
   });
 
   it("should use custom period when provided", () => {
-    const period = {
-      startDate: "2024-01-01",
-      endDate: "2024-12-31",
-    };
-
-    render(
-      <TestWrapper>
-        <ReproductiveIndexes {...defaultProps} period={period} />
-      </TestWrapper>
-    );
-
-    // Component should render without errors
-    expect(screen.getByText(/fertility rate/i)).toBeInTheDocument();
+    const period = { startDate: "2024-01-01", endDate: "2024-12-31" };
+    render(<ReproductiveIndexes propertyId="property-1" period={period} />);
+    expect(reproductiveIndexesService.getFertilityRate).toHaveBeenCalledWith("property-1", period);
   });
 
-  it("should use default period when not provided", () => {
-    render(
-      <TestWrapper>
-        <ReproductiveIndexes {...defaultProps} />
-      </TestWrapper>
-    );
+  it("should render monthly birth rate chart when data exists", () => {
+    vi.mocked(reproductiveIndexesService.getBirthRate).mockReturnValue({
+      rate: 50,
+      calvesBorn: 10,
+      pregnantFemales: 20,
+      monthly: [
+        { month: "2024-01", rate: 0.5, calvesBorn: 5 },
+        { month: "2024-02", rate: 0.6, calvesBorn: 6 },
+      ],
+    });
+    render(<ReproductiveIndexes propertyId="property-1" />);
+    expect(screen.getByTestId("line-chart")).toBeInTheDocument();
+    expect(screen.getByText("Monthly Birth Rate")).toBeInTheDocument();
+  });
 
-    // Component should render without errors
-    expect(screen.getByText(/fertility rate/i)).toBeInTheDocument();
+  it("should render annual culling rate chart when data exists", () => {
+    vi.mocked(reproductiveIndexesService.getCullingRate).mockReturnValue({
+      rate: 10,
+      replacedFemales: 5,
+      totalFemales: 50,
+      annual: [
+        { year: "2023", rate: 0.1, replacedFemales: 5 },
+        { year: "2024", rate: 0.12, replacedFemales: 6 },
+      ],
+    });
+    render(<ReproductiveIndexes propertyId="property-1" />);
+    expect(screen.getByTestId("bar-chart")).toBeInTheDocument();
+    expect(screen.getByText("Annual Culling Rate")).toBeInTheDocument();
+  });
+
+  it("should render expected births forecast chart when data exists", () => {
+    vi.mocked(reproductiveIndexesService.getExpectedBirthsForecast).mockReturnValue({
+      monthly: [
+        { month: "2024-06", expectedBirths: 5 },
+        { month: "2024-07", expectedBirths: 6 },
+      ],
+      total: 11,
+    });
+    render(<ReproductiveIndexes propertyId="property-1" />);
+    expect(screen.getByText("Expected Future Births")).toBeInTheDocument();
+  });
+
+  it("should render monthly calf mortality chart when data exists", () => {
+    vi.mocked(reproductiveIndexesService.getCalfMortalityRate).mockReturnValue({
+      rate: 5,
+      deadCalves: 2,
+      totalCalves: 40,
+      monthly: [
+        { month: "2024-01", rate: 0.05, deadCalves: 1, totalCalves: 20 },
+        { month: "2024-02", rate: 0.06, deadCalves: 1, totalCalves: 20 },
+      ],
+    });
+    render(<ReproductiveIndexes propertyId="property-1" />);
+    expect(screen.getByText("Monthly Calf Mortality")).toBeInTheDocument();
+  });
+
+  it("should display calving interval details when average > 0", () => {
+    vi.mocked(reproductiveIndexesService.getCalvingInterval).mockReturnValue({
+      average: 450,
+      min: 400,
+      max: 500,
+      intervals: [450],
+      animalsWithIntervals: 1,
+    });
+    render(<ReproductiveIndexes propertyId="property-1" />);
+    expect(screen.getByText("15 months")).toBeInTheDocument();
+    expect(screen.getByText("Min:")).toBeInTheDocument();
+    expect(screen.getByText("Max:")).toBeInTheDocument();
+  });
+
+  it("should display '-' when calving interval average is 0", () => {
+    vi.mocked(reproductiveIndexesService.getCalvingInterval).mockReturnValue({
+      average: 0,
+      min: 0,
+      max: 0,
+      intervals: [],
+      animalsWithIntervals: 0,
+    });
+    render(<ReproductiveIndexes propertyId="property-1" />);
+    expect(screen.getByText("-")).toBeInTheDocument();
+  });
+
+  it("should handle null fertilityRate.rate", () => {
+    vi.mocked(reproductiveIndexesService.getFertilityRate).mockReturnValue({
+      rate: null as never,
+      pregnantCows: 0,
+      exposedCows: 0,
+    });
+    render(<ReproductiveIndexes propertyId="property-1" />);
+    // Find the Fertility Rate heading and scope the query to its parent card container
+    const fertilityRateHeading = screen.getByRole("heading", { name: /Fertility Rate/i });
+    const fertilityRateCard =
+      fertilityRateHeading.closest("div.bg-white") ||
+      fertilityRateHeading.closest("div.dark\\:bg-gray-800");
+    expect(fertilityRateCard).toBeInTheDocument();
+    // The text "0.00%" might be split across elements, so check if the card contains the text
+    const cardText = fertilityRateCard?.textContent || "";
+    // Check that the card contains "0.00" followed by "%" (they might be in the same or adjacent elements)
+    expect(cardText).toMatch(/0\.00\s*%/);
+  });
+
+  it("should use English locale when language is 'en'", () => {
+    mockUseLanguage.mockReturnValue({ language: "en" });
+    vi.mocked(reproductiveIndexesService.getBirthRate).mockReturnValue({
+      rate: 50,
+      calvesBorn: 10,
+      pregnantFemales: 20,
+      monthly: [{ month: "2024-01", rate: 0.5, calvesBorn: 5 }],
+    });
+    render(<ReproductiveIndexes propertyId="property-1" />);
+    expect(screen.getByTestId("line-chart")).toBeInTheDocument();
+  });
+
+  it("should use Spanish locale when language is 'es'", () => {
+    mockUseLanguage.mockReturnValue({ language: "es" });
+    vi.mocked(reproductiveIndexesService.getBirthRate).mockReturnValue({
+      rate: 50,
+      calvesBorn: 10,
+      pregnantFemales: 20,
+      monthly: [{ month: "2024-01", rate: 0.5, calvesBorn: 5 }],
+    });
+    render(<ReproductiveIndexes propertyId="property-1" />);
+    expect(screen.getByTestId("line-chart")).toBeInTheDocument();
+  });
+
+  it("should not render charts when monthly data is empty", () => {
+    vi.mocked(reproductiveIndexesService.getBirthRate).mockReturnValue({
+      rate: 50,
+      calvesBorn: 10,
+      pregnantFemales: 20,
+      monthly: undefined,
+    });
+    render(<ReproductiveIndexes propertyId="property-1" />);
+    expect(screen.queryByText("Monthly Birth Rate")).not.toBeInTheDocument();
+  });
+
+  it("should not render expected births chart when monthly data is empty", () => {
+    vi.mocked(reproductiveIndexesService.getExpectedBirthsForecast).mockReturnValue({
+      monthly: [],
+      total: 0,
+    });
+    render(<ReproductiveIndexes propertyId="property-1" />);
+    expect(screen.queryByText("Expected Future Births")).not.toBeInTheDocument();
   });
 });

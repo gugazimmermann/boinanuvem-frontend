@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useState, useDeferredValue, lazy, Suspense } from "react";
+import { useMemo, useCallback, useState, useDeferredValue, lazy, Suspense, useEffect } from "react";
 import { format, parseISO, subYears } from "date-fns";
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip } from "recharts";
 import { useTranslation } from "~/i18n";
@@ -41,7 +41,8 @@ const ProductionIndexes = lazy(() =>
   }))
 );
 import { mockCompanies } from "~/mocks/companies";
-import { getPropertiesByCompanyId } from "~/services/properties.service";
+import { getProperties } from "~/services/properties.service";
+import type { Property } from "~/types";
 import { useDashboardData } from "~/components/dashboard/hooks/use-dashboard-data";
 import { useMonthlyTrends } from "~/components/dashboard/hooks/use-monthly-trends";
 import { useRecentActivities } from "~/components/dashboard/hooks/use-recent-activities";
@@ -83,7 +84,7 @@ export function meta() {
   ];
 }
 
-function collectPropertyIndexes(
+async function collectPropertyIndexes(
   properties: Array<{ id: string }>,
   period?: { startDate?: string; endDate?: string }
 ) {
@@ -101,10 +102,13 @@ function collectPropertyIndexes(
     const carcassYield = getCarcassYield(property.id, period);
     allCarcassYields.push(carcassYield);
     allAdcResults.push(...getAverageDailyCarcassGain(property.id, period, carcassYield.yield));
-    allDaysOnFeed.push(...getDaysOnFeed(property.id, period));
+    const daysOnFeed = await getDaysOnFeed(property.id, period);
+    allDaysOnFeed.push(...daysOnFeed);
     allSlaughterAges.push(getSlaughterAge(property.id, period));
-    allArrobaProductions.push(getArrobaProductionPerHectare(property.id, period));
-    allKgNitrogenPerAU.push(getKgNitrogenPerAU(property.id, period));
+    const arrobaProduction = await getArrobaProductionPerHectare(property.id, period);
+    allArrobaProductions.push(arrobaProduction);
+    const kgNitrogenPerAU = await getKgNitrogenPerAU(property.id, period);
+    allKgNitrogenPerAU.push(kgNitrogenPerAU);
     allKgMeatPerKgNitrogen.push(getKgMeatPerKgNitrogen(property.id, period));
   }
 
@@ -174,7 +178,7 @@ function aggregateSlaughterAge(allSlaughterAges: SlaughterAgeResult[]): Slaughte
   };
 }
 
-function aggregateIndexes(
+async function aggregateIndexes(
   properties: Array<{ id: string }>,
   period?: { startDate?: string; endDate?: string }
 ) {
@@ -187,7 +191,7 @@ function aggregateIndexes(
     allArrobaProductions,
     allKgNitrogenPerAU,
     allKgMeatPerKgNitrogen,
-  } = collectPropertyIndexes(properties, period);
+  } = await collectPropertyIndexes(properties, period);
 
   const averageAdg = calculateAverage(allAdgResults, "adg");
   const averageAdc = calculateAverage(allAdcResults, "adc");
@@ -246,11 +250,21 @@ export default function Dashboard() {
 
   const company = mockCompanies[0];
   const companyId = company?.id || "";
+  const [properties, setProperties] = useState<Property[]>([]);
 
-  const properties = useMemo(
-    () => (company ? getPropertiesByCompanyId(company.id) : []),
-    [company]
-  );
+  useEffect(() => {
+    const fetchProperties = async () => {
+      if (company) {
+        try {
+          const propertiesData = await getProperties();
+          setProperties(propertiesData.filter((prop) => prop.companyId === company.id));
+        } catch (error) {
+          console.error("Failed to load properties:", error);
+        }
+      }
+    };
+    fetchProperties();
+  }, [company]);
 
   const getDefaultPeriod = () => {
     const today = new Date();
@@ -270,12 +284,26 @@ export default function Dashboard() {
     endDate?: string;
   }>(getDefaultPeriod());
 
-  const aggregatedIndexesRaw = useMemo(() => {
-    if (selectedPropertyId !== ALL_PROPERTIES_ID || properties.length === 0) {
-      return null;
+  const shouldLoadIndexes = selectedPropertyId === ALL_PROPERTIES_ID && properties.length > 0;
+  const [aggregatedIndexesRaw, setAggregatedIndexesRaw] = useState<Awaited<
+    ReturnType<typeof aggregateIndexes>
+  > | null>(null);
+
+  // Load aggregated indexes when conditions are met
+  useEffect(() => {
+    if (!shouldLoadIndexes) {
+      // Use a microtask to avoid synchronous setState
+      Promise.resolve().then(() => {
+        setAggregatedIndexesRaw(null);
+      });
+      return;
     }
-    return aggregateIndexes(properties, selectedPeriod);
-  }, [selectedPropertyId, properties, selectedPeriod]);
+    const loadIndexes = async () => {
+      const result = await aggregateIndexes(properties, selectedPeriod);
+      setAggregatedIndexesRaw(result);
+    };
+    loadIndexes();
+  }, [shouldLoadIndexes, properties, selectedPeriod]);
 
   const aggregatedIndexes = useDeferredValue(aggregatedIndexesRaw);
   const isCalculatingIndexes = aggregatedIndexesRaw !== aggregatedIndexes;
@@ -584,7 +612,7 @@ export default function Dashboard() {
           <StatCard
             title={t.dashboard.additionalStats.salesThisMonth}
             value={salesThisMonth}
-            subtitle={`${salesMetrics.totalAnimalsSold} ${t.dashboard.additionalStats.animalsSold}`}
+            subtitle={`${salesMetrics?.totalAnimalsSold ?? 0} ${t.dashboard.additionalStats.animalsSold}`}
             icon={<span className="text-lg">💵</span>}
           />
         </div>
@@ -1167,9 +1195,9 @@ export default function Dashboard() {
 
           <StatCard
             title={t.dashboard.financial.totalSalesRevenue}
-            value={formatCurrency(salesMetrics.totalRevenue, language)}
+            value={formatCurrency(salesMetrics?.totalRevenue ?? 0, language)}
             valueColor="green"
-            subtitle={`${t.dashboard.financial.averagePricePerKg}: ${formatCurrency(salesMetrics.averagePricePerKg, language)}`}
+            subtitle={`${t.dashboard.financial.averagePricePerKg}: ${formatCurrency(salesMetrics?.averagePricePerKg ?? 0, language)}`}
             icon={<span className="text-lg">💰</span>}
             link={{ to: ROUTES.SALES, text: t.dashboard.financial.viewSales }}
           />

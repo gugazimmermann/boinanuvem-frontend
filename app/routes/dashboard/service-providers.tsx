@@ -1,12 +1,11 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router";
 import { TableActionButtons, type TableColumn } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
-import { mockServiceProviders } from "~/mocks/service-providers";
-import { deleteServiceProvider } from "~/services/service-providers.service";
+import { getServiceProviders, deleteServiceProvider } from "~/services/service-providers.service";
+import { useAlert } from "~/hooks/use-alert";
 import type { ServiceProvider } from "~/types";
-import { getPropertyById } from "~/services/properties.service";
 import { ROUTES, getServiceProviderEditRoute, getServiceProviderViewRoute } from "~/routes.config";
 import { getLocationMovementsByServiceProviderId } from "~/services/location-movements.service";
 import { getServiceProviderObservationsByServiceProviderId } from "~/services/service-provider-observations.service";
@@ -21,6 +20,7 @@ import {
   createLastMovementColumn,
 } from "~/components/dashboard/registrations/table-columns";
 import { createRegistrationMeta, createRegistrationLoader } from "~/utils/route-helpers";
+import { useRegistrationList } from "~/hooks/use-registration-list";
 
 export function meta() {
   return createRegistrationMeta(
@@ -38,9 +38,17 @@ export default function ServiceProviders() {
   const { language } = useLanguage();
   const navigate = useNavigate();
   const { canEdit, canRemove } = usePermissions();
-  const [serviceProviders, setServiceProviders] = useState<ServiceProvider[]>([
-    ...mockServiceProviders,
-  ]);
+  const { showAlert } = useAlert();
+
+  const {
+    entities: serviceProviders,
+    isLoading,
+    setEntities: setServiceProviders,
+    getPropertyById,
+  } = useRegistrationList<ServiceProvider>({
+    fetchEntities: getServiceProviders,
+    loadErrorMessage: t.serviceProviders.errors.loadFailed,
+  });
 
   const columns: TableColumn<ServiceProvider>[] = useMemo(
     () => [
@@ -95,7 +103,7 @@ export default function ServiceProviders() {
         ),
       },
     ],
-    [t, language, navigate, canEdit, canRemove]
+    [t, language, navigate, canEdit, canRemove, getPropertyById]
   );
 
   const filterOptions = useMemo(
@@ -123,13 +131,19 @@ export default function ServiceProviders() {
       addButtonLabel={t.serviceProviders.addServiceProvider}
       newRoute={ROUTES.SERVICE_PROVIDERS_NEW}
       viewRoute={getServiceProviderViewRoute}
-      deleteService={(serviceProvider) => {
-        const success = deleteServiceProvider(serviceProvider.id);
-        if (success) {
+      deleteService={async (serviceProvider) => {
+        try {
+          await deleteServiceProvider(serviceProvider.id);
           setServiceProviders(serviceProviders.filter((sp) => sp.id !== serviceProvider.id));
+          return true;
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : t.serviceProviders.errors.deleteFailed;
+          showAlert(errorMessage, "error");
+          return false;
         }
-        return success;
       }}
+      isLoading={isLoading}
       deleteSuccessMessage={t.serviceProviders.success.deleted}
       deleteErrorMessage={t.serviceProviders.errors.deleteFailed}
       deleteModalTitle={t.serviceProviders.deleteModal.title}

@@ -116,6 +116,8 @@ export default function NewBankAccount() {
     { value: "inactive", label: t.bankAccounts.status.inactive },
   ];
 
+  const formId = "bank-account-form";
+
   return (
     <FormPageLayout
       title={t.bankAccounts.addBankAccount}
@@ -143,8 +145,9 @@ export default function NewBankAccount() {
           isLoading: isSubmitting,
         },
       }}
+      formId={formId}
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form id={formId} onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-4">
           <Input
             label={t.bankAccounts.new.bankNameLabel}

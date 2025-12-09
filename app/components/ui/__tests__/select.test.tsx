@@ -2,143 +2,168 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Select } from "../select";
+import { createRef } from "react";
 
 vi.mock("~/i18n/use-translation", () => ({
-  useTranslation: () => ({
+  useTranslation: vi.fn(() => ({
     common: {
       select: "Select...",
     },
-  }),
+  })),
 }));
 
 describe("Select", () => {
-  const options = [
-    { value: "1", label: "Option 1" },
-    { value: "2", label: "Option 2" },
-    { value: "3", label: "Option 3" },
+  const mockOptions = [
+    { value: "option1", label: "Option 1" },
+    { value: "option2", label: "Option 2" },
+    { value: "option3", label: "Option 3" },
   ];
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("should render with label", () => {
-    render(<Select label="Test Label" options={options} />);
-    expect(screen.getByLabelText("Test Label")).toBeInTheDocument();
-  });
-
-  it("should render with helper text", () => {
-    render(<Select helperText="Helper text" options={options} />);
-    expect(screen.getByText("Helper text")).toBeInTheDocument();
-  });
-
-  it("should render with error message", () => {
-    render(<Select error="Error message" options={options} />);
-    expect(screen.getByText("Error message")).toBeInTheDocument();
+  it("should render select element", () => {
+    render(<Select options={mockOptions} />);
     const select = screen.getByRole("combobox");
-    expect(select).toHaveAttribute("aria-invalid", "true");
+    expect(select).toBeInTheDocument();
   });
 
-  it("should prioritize error over helper text", () => {
-    render(<Select helperText="Helper" error="Error" options={options} />);
-    expect(screen.getByText("Error")).toBeInTheDocument();
-    expect(screen.queryByText("Helper")).not.toBeInTheDocument();
+  it("should render with label", () => {
+    render(<Select label="Test Label" options={mockOptions} />);
+    expect(screen.getByText("Test Label")).toBeInTheDocument();
+    const select = screen.getByLabelText("Test Label");
+    expect(select).toBeInTheDocument();
   });
 
   it("should render all options", () => {
-    render(<Select options={options} />);
+    render(<Select options={mockOptions} />);
     expect(screen.getByText("Option 1")).toBeInTheDocument();
     expect(screen.getByText("Option 2")).toBeInTheDocument();
     expect(screen.getByText("Option 3")).toBeInTheDocument();
   });
 
-  it("should render placeholder option by default", () => {
-    render(<Select options={options} />);
+  it("should render placeholder by default", () => {
+    render(<Select options={mockOptions} />);
     expect(screen.getByText("Select...")).toBeInTheDocument();
   });
 
   it("should render custom placeholder", () => {
-    render(<Select options={options} placeholder="Choose..." />);
-    expect(screen.getByText("Choose...")).toBeInTheDocument();
+    render(<Select options={mockOptions} placeholder="Choose an option" />);
+    expect(screen.getByText("Choose an option")).toBeInTheDocument();
   });
 
   it("should not render placeholder when showPlaceholder is false", () => {
-    render(<Select options={options} showPlaceholder={false} />);
+    render(<Select options={mockOptions} showPlaceholder={false} />);
     expect(screen.queryByText("Select...")).not.toBeInTheDocument();
   });
 
-  it("should generate id when not provided", () => {
-    render(<Select label="Test" options={options} />);
-    const select = screen.getByLabelText("Test");
-    expect(select).toHaveAttribute("id");
+  it("should render helper text", () => {
+    render(<Select options={mockOptions} helperText="Helper text" />);
+    expect(screen.getByText("Helper text")).toBeInTheDocument();
+    expect(screen.getByText("Helper text")).toHaveClass("text-gray-400");
   });
 
-  it("should use custom id when provided", () => {
-    render(<Select id="custom-id" label="Test" options={options} />);
-    const select = screen.getByLabelText("Test");
-    expect(select).toHaveAttribute("id", "custom-id");
+  it("should render error message", () => {
+    render(<Select options={mockOptions} error="Error message" />);
+    expect(screen.getByText("Error message")).toBeInTheDocument();
+    expect(screen.getByText("Error message")).toHaveClass("text-red-500");
   });
 
-  it("should set aria-invalid when error exists", () => {
-    render(<Select error="Error" options={options} />);
+  it("should prioritize error over helper text", () => {
+    render(<Select options={mockOptions} error="Error" helperText="Helper" />);
+    expect(screen.getByText("Error")).toBeInTheDocument();
+    expect(screen.queryByText("Helper")).not.toBeInTheDocument();
+  });
+
+  it("should apply error styles when error is present", () => {
+    render(<Select options={mockOptions} error="Error" />);
     const select = screen.getByRole("combobox");
+    expect(select).toHaveClass("border-red-400");
     expect(select).toHaveAttribute("aria-invalid", "true");
   });
 
-  it("should handle onChange events", async () => {
-    const handleChange = vi.fn();
-    const user = userEvent.setup();
-    render(<Select options={options} onChange={handleChange} />);
-    const select = screen.getByRole("combobox");
-    await user.selectOptions(select, "1");
-    expect(handleChange).toHaveBeenCalled();
+  it("should use provided id", () => {
+    render(<Select id="custom-id" label="Label" options={mockOptions} />);
+    const select = screen.getByLabelText("Label");
+    expect(select).toHaveAttribute("id", "custom-id");
   });
 
-  it("should apply error styles when error exists", () => {
-    const { container } = render(<Select error="Error" options={options} />);
-    const select = container.querySelector("select");
-    expect(select).toHaveClass("border-red-400");
+  it("should generate id when not provided", () => {
+    render(<Select label="Label" options={mockOptions} />);
+    const select = screen.getByLabelText("Label");
+    expect(select).toHaveAttribute("id");
+    expect(select.getAttribute("id")).toBeTruthy();
   });
 
-  it("should apply custom className to wrapper", () => {
-    const { container } = render(<Select className="wrapper-class" options={options} />);
-    const wrapper = container.firstChild;
-    expect(wrapper).toHaveClass("wrapper-class");
+  it("should apply custom className", () => {
+    const { container } = render(<Select options={mockOptions} className="custom-class" />);
+    const wrapper = container.firstChild as HTMLElement;
+    expect(wrapper).toHaveClass("custom-class");
   });
 
   it("should apply custom selectClassName", () => {
-    const { container } = render(<Select selectClassName="select-class" options={options} />);
-    const select = container.querySelector("select");
-    expect(select).toHaveClass("select-class");
+    render(<Select options={mockOptions} selectClassName="custom-select-class" />);
+    const select = screen.getByRole("combobox");
+    expect(select).toHaveClass("custom-select-class");
   });
 
-  it("should handle value prop", () => {
-    render(<Select options={options} value="2" onChange={() => {}} />);
+  it("should handle value change", async () => {
+    const handleChange = vi.fn();
+    const user = userEvent.setup();
+    render(<Select options={mockOptions} onChange={handleChange} />);
+    const select = screen.getByRole("combobox");
+    await user.selectOptions(select, "option2");
+    expect(handleChange).toHaveBeenCalled();
+  });
+
+  it("should display selected value", () => {
+    render(<Select options={mockOptions} value="option2" onChange={vi.fn()} />);
     const select = screen.getByRole("combobox") as HTMLSelectElement;
-    expect(select.value).toBe("2");
+    expect(select.value).toBe("option2");
   });
 
-  it("should forward ref", () => {
-    const ref = vi.fn();
-    render(<Select ref={ref} options={options} />);
-    expect(ref).toHaveBeenCalled();
+  it("should forward ref to select element", () => {
+    const ref = createRef<HTMLSelectElement>();
+    render(<Select options={mockOptions} ref={ref} />);
+    expect(ref.current).toBeInstanceOf(HTMLSelectElement);
+  });
+
+  it("should pass through select props", () => {
+    render(<Select options={mockOptions} required disabled />);
+    const select = screen.getByRole("combobox");
+    expect(select).toBeRequired();
+    expect(select).toBeDisabled();
   });
 
   it("should render dropdown icon", () => {
-    const { container } = render(<Select options={options} />);
-    const svg = container.querySelector("svg");
-    expect(svg).toBeInTheDocument();
+    const { container } = render(<Select options={mockOptions} />);
+    const icon = container.querySelector("svg");
+    expect(icon).toBeInTheDocument();
+  });
+
+  it("should have correct base styles", () => {
+    render(<Select options={mockOptions} />);
+    const select = screen.getByRole("combobox");
+    expect(select).toHaveClass("mt-2", "block", "w-full", "rounded-lg");
   });
 
   it("should handle empty options array", () => {
     render(<Select options={[]} />);
     const select = screen.getByRole("combobox");
     expect(select).toBeInTheDocument();
+    const options = select.querySelectorAll("option");
+    // Only placeholder option should be present
+    expect(options.length).toBe(1);
   });
 
-  it("should pass through other select props", () => {
-    render(<Select options={options} disabled />);
-    const select = screen.getByRole("combobox");
-    expect(select).toBeDisabled();
+  it("should handle multiple options with same value", () => {
+    const duplicateOptions = [
+      { value: "option1", label: "Option 1" },
+      { value: "option1", label: "Option 1 Duplicate" },
+    ];
+    render(<Select options={duplicateOptions} />);
+    const options = screen.getAllByText(/Option 1/);
+    expect(options.length).toBeGreaterThan(0);
   });
 });

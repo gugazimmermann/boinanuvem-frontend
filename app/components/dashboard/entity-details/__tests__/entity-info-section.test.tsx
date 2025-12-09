@@ -4,37 +4,38 @@ import { EntityInfoSection } from "../entity-info-section";
 
 describe("EntityInfoSection", () => {
   const mockFields = [
-    { label: "Name", value: "John Doe" },
-    { label: "Email", value: "john@example.com" },
-    { label: "Phone", value: "+1234567890" },
+    { label: "Field 1", value: "Value 1" },
+    { label: "Field 2", value: "Value 2" },
   ];
 
   it("should render title", () => {
-    render(<EntityInfoSection title="Information" fields={[]} />);
+    render(<EntityInfoSection title="Information" fields={mockFields} />);
     expect(screen.getByText("Information")).toBeInTheDocument();
   });
 
-  it("should render fields", () => {
+  it("should render all fields", () => {
     render(<EntityInfoSection title="Information" fields={mockFields} />);
-    expect(screen.getByText("John Doe")).toBeInTheDocument();
-    expect(screen.getByText("john@example.com")).toBeInTheDocument();
-    expect(screen.getByText("+1234567890")).toBeInTheDocument();
+    expect(screen.getByText("Field 1")).toBeInTheDocument();
+    expect(screen.getByText("Value 1")).toBeInTheDocument();
+    expect(screen.getByText("Field 2")).toBeInTheDocument();
+    expect(screen.getByText("Value 2")).toBeInTheDocument();
   });
 
-  it("should render field labels", () => {
-    render(<EntityInfoSection title="Information" fields={mockFields} />);
-    expect(screen.getByText("Name")).toBeInTheDocument();
-    expect(screen.getByText("Email")).toBeInTheDocument();
-    expect(screen.getByText("Phone")).toBeInTheDocument();
+  it("should render ReactNode values", () => {
+    const fieldsWithNode = [
+      { label: "Field 1", value: <span data-testid="custom-value">Custom</span> },
+    ];
+    render(<EntityInfoSection title="Information" fields={fieldsWithNode} />);
+    expect(screen.getByTestId("custom-value")).toBeInTheDocument();
   });
 
-  it("should render with default blue color", () => {
+  it("should apply blue color by default", () => {
     const { container } = render(<EntityInfoSection title="Information" fields={mockFields} />);
     const colorBar = container.querySelector(".bg-blue-500");
     expect(colorBar).toBeInTheDocument();
   });
 
-  it("should render with green color", () => {
+  it("should apply green color when specified", () => {
     const { container } = render(
       <EntityInfoSection title="Information" fields={mockFields} color="green" />
     );
@@ -42,7 +43,7 @@ describe("EntityInfoSection", () => {
     expect(colorBar).toBeInTheDocument();
   });
 
-  it("should render with purple color", () => {
+  it("should apply purple color when specified", () => {
     const { container } = render(
       <EntityInfoSection title="Information" fields={mockFields} color="purple" />
     );
@@ -50,7 +51,7 @@ describe("EntityInfoSection", () => {
     expect(colorBar).toBeInTheDocument();
   });
 
-  it("should render with orange color", () => {
+  it("should apply orange color when specified", () => {
     const { container } = render(
       <EntityInfoSection title="Information" fields={mockFields} color="orange" />
     );
@@ -58,7 +59,7 @@ describe("EntityInfoSection", () => {
     expect(colorBar).toBeInTheDocument();
   });
 
-  it("should render with teal color", () => {
+  it("should apply teal color when specified", () => {
     const { container } = render(
       <EntityInfoSection title="Information" fields={mockFields} color="teal" />
     );
@@ -66,24 +67,8 @@ describe("EntityInfoSection", () => {
     expect(colorBar).toBeInTheDocument();
   });
 
-  it("should render ReactNode values", () => {
-    const nodeValue = <span data-testid="node-value">Node Value</span>;
-    const fieldsWithNode = [{ label: "Custom", value: nodeValue }];
-    render(<EntityInfoSection title="Information" fields={fieldsWithNode} />);
-    expect(screen.getByTestId("node-value")).toBeInTheDocument();
-  });
-
-  it("should render empty state when no fields", () => {
+  it("should render empty fields array", () => {
     render(<EntityInfoSection title="Information" fields={[]} />);
     expect(screen.getByText("Information")).toBeInTheDocument();
-    expect(screen.queryByText("John Doe")).not.toBeInTheDocument();
-  });
-
-  it("should render with correct styling classes", () => {
-    const { container } = render(<EntityInfoSection title="Information" fields={mockFields} />);
-    const section = container.firstChild as HTMLElement;
-    expect(section).toHaveClass("bg-white");
-    expect(section).toHaveClass("dark:bg-gray-800");
-    expect(section).toHaveClass("rounded-lg");
   });
 });

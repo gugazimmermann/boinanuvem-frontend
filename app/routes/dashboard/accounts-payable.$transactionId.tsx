@@ -19,6 +19,7 @@ import type { AccountsPayableObservation } from "~/types/accounts-payable-observ
 import { ObservationSection } from "~/components/dashboard/observations/observation-section";
 import { FinanceDetailCard } from "~/components/dashboard/finance/finance-detail-card";
 import { getStatusVariant } from "~/utils/finance";
+import type { Supplier, Employee, ServiceProvider, Property } from "~/types";
 
 export function meta() {
   return [
@@ -48,10 +49,42 @@ export default function AccountsPayableDetails() {
   );
   const [observations, setObservations] =
     useState<AccountsPayableObservation[]>(initialObservations);
+  const [supplier, setSupplier] = useState<Supplier | null>(null);
+  const [employee, setEmployee] = useState<Employee | null>(null);
+  const [serviceProvider, setServiceProvider] = useState<ServiceProvider | null>(null);
+  const [property, setProperty] = useState<Property | null>(null);
 
   useEffect(() => {
     setObservations(initialObservations);
   }, [initialObservations]);
+
+  useEffect(() => {
+    const loadEntities = async () => {
+      if (!transaction) return;
+
+      const [supplierData, employeeData, serviceProviderData, propertyData] = await Promise.all([
+        transaction.supplierId
+          ? getSupplierById(transaction.supplierId).catch(() => null)
+          : Promise.resolve(null),
+        transaction.employeeId
+          ? getEmployeeById(transaction.employeeId).catch(() => null)
+          : Promise.resolve(null),
+        transaction.serviceProviderId
+          ? getServiceProviderById(transaction.serviceProviderId).catch(() => null)
+          : Promise.resolve(null),
+        transaction.propertyId
+          ? getPropertyById(transaction.propertyId).catch(() => null)
+          : Promise.resolve(null),
+      ]);
+
+      setSupplier(supplierData);
+      setEmployee(employeeData);
+      setServiceProvider(serviceProviderData);
+      setProperty(propertyData);
+    };
+
+    loadEntities();
+  }, [transaction]);
 
   if (!transaction) {
     return (
@@ -68,12 +101,6 @@ export default function AccountsPayableDetails() {
     );
   }
 
-  const supplier = transaction.supplierId ? getSupplierById(transaction.supplierId) : null;
-  const employee = transaction.employeeId ? getEmployeeById(transaction.employeeId) : null;
-  const serviceProvider = transaction.serviceProviderId
-    ? getServiceProviderById(transaction.serviceProviderId)
-    : null;
-  const property = transaction.propertyId ? getPropertyById(transaction.propertyId) : null;
   const bankAccount = transaction.bankAccountId
     ? getBankAccountById(transaction.bankAccountId)
     : null;

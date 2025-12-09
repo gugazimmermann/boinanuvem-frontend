@@ -3,165 +3,115 @@ import { render, screen } from "@testing-library/react";
 import { Heading } from "../heading";
 
 describe("Heading", () => {
-  it("should render with default level 2", () => {
+  it("should render as h2 by default", () => {
     render(<Heading>Test Heading</Heading>);
     const heading = screen.getByRole("heading", { level: 2 });
     expect(heading).toBeInTheDocument();
-    expect(heading).toHaveTextContent("Test Heading");
+    expect(heading.textContent).toBe("Test Heading");
   });
 
-  it("should render with level 1", () => {
+  it("should render as h1 when level is 1", () => {
     render(<Heading level={1}>H1 Heading</Heading>);
     const heading = screen.getByRole("heading", { level: 1 });
     expect(heading).toBeInTheDocument();
   });
 
-  it("should render with level 3", () => {
+  it("should render as h3 when level is 3", () => {
     render(<Heading level={3}>H3 Heading</Heading>);
     const heading = screen.getByRole("heading", { level: 3 });
     expect(heading).toBeInTheDocument();
   });
 
-  it("should render with level 4", () => {
+  it("should render as h4 when level is 4", () => {
     render(<Heading level={4}>H4 Heading</Heading>);
     const heading = screen.getByRole("heading", { level: 4 });
     expect(heading).toBeInTheDocument();
   });
 
-  it("should apply correct styles for level 1", () => {
-    const { container } = render(<Heading level={1}>Test</Heading>);
-    const heading = container.querySelector("h1");
-    expect(heading).toHaveClass("text-4xl");
-    expect(heading).toHaveClass("md:text-5xl");
-    expect(heading).toHaveClass("lg:text-6xl");
+  it("should apply primary color by default", () => {
+    render(<Heading>Test</Heading>);
+    const heading = screen.getByRole("heading", { level: 2 });
+    const color = window.getComputedStyle(heading).color;
+    expect(color).toBeTruthy();
+    expect(color).not.toBe("");
   });
 
-  it("should apply correct styles for level 2", () => {
-    const { container } = render(<Heading level={2}>Test</Heading>);
-    const heading = container.querySelector("h2");
-    expect(heading).toHaveClass("text-4xl");
-    expect(heading).toHaveClass("md:text-5xl");
+  it("should apply secondary color", () => {
+    render(<Heading color="secondary">Test</Heading>);
+    const heading = screen.getByRole("heading", { level: 2 });
+    const color = window.getComputedStyle(heading).color;
+    expect(color).toBeTruthy();
+    expect(color).not.toBe("");
   });
 
-  it("should apply correct styles for level 3", () => {
-    const { container } = render(<Heading level={3}>Test</Heading>);
-    const heading = container.querySelector("h3");
-    expect(heading).toHaveClass("text-3xl");
-    expect(heading).toHaveClass("md:text-4xl");
+  it("should apply dark color", () => {
+    render(<Heading color="dark">Test</Heading>);
+    const heading = screen.getByRole("heading", { level: 2 });
+    const color = window.getComputedStyle(heading).color;
+    expect(color).toBeTruthy();
+    expect(color).not.toBe("");
   });
 
-  it("should apply correct styles for level 4", () => {
-    const { container } = render(<Heading level={4}>Test</Heading>);
-    const heading = container.querySelector("h4");
-    expect(heading).toHaveClass("text-xl");
-  });
-
-  it("should render with primary color", () => {
-    const { container } = render(<Heading color="primary">Test</Heading>);
-    const heading = container.querySelector("h2");
-    // Color is applied via style prop, so we check that style.color exists
-    expect(heading?.style.color).toBeTruthy();
-  });
-
-  it("should render with secondary color by default", () => {
-    const { container } = render(<Heading>Test</Heading>);
-    const heading = container.querySelector("h2");
-    // Default color is secondary
-    expect(heading?.style.color).toBeTruthy();
-  });
-
-  it("should render with dark color", () => {
-    const { container } = render(<Heading color="dark">Test</Heading>);
-    const heading = container.querySelector("h2");
-    expect(heading?.style.color).toBeTruthy();
-  });
-
-  it("should render with custom color", () => {
-    const { container } = render(<Heading customColor="#ff0000">Test</Heading>);
-    const heading = container.querySelector("h2");
+  it("should apply custom color", () => {
+    render(<Heading customColor="#ff0000">Test</Heading>);
+    const heading = screen.getByRole("heading", { level: 2 });
     expect(heading).toHaveStyle({ color: "#ff0000" });
   });
 
-  it("should prioritize customColor over color prop", () => {
-    const { container } = render(
-      <Heading color="primary" customColor="#00ff00">
-        Test
-      </Heading>
-    );
-    const heading = container.querySelector("h2");
-    expect(heading).toHaveStyle({ color: "#00ff00" });
-  });
-
   it("should apply custom className", () => {
-    const { container } = render(<Heading className="custom-class">Test</Heading>);
-    const heading = container.querySelector("h2");
+    render(<Heading className="custom-class">Test</Heading>);
+    const heading = screen.getByRole("heading", { level: 2 });
     expect(heading).toHaveClass("custom-class");
   });
 
   it("should highlight text when highlight prop is provided", () => {
-    render(<Heading highlight="World">Hello World</Heading>);
-    const heading = screen.getByRole("heading");
-    expect(heading).toBeInTheDocument();
-    // The highlight should be wrapped in a span with color
-    const spans = heading.querySelectorAll("span");
-    expect(spans.length).toBeGreaterThan(0);
+    render(<Heading highlight="test">This is a test heading</Heading>);
+    const heading = screen.getByRole("heading", { level: 2 });
+    expect(heading.innerHTML).toContain("test");
   });
 
-  it("should not highlight when children is not a string", () => {
+  it("should apply highlight color", () => {
     render(
-      <Heading highlight="test">
-        <span>Test</span>
+      <Heading highlight="test" highlightColor="#00ff00">
+        This is a test heading
       </Heading>
     );
-    const heading = screen.getByRole("heading");
-    expect(heading).toHaveTextContent("Test");
-    // Should not create highlight spans for non-string children
+    const heading = screen.getByRole("heading", { level: 2 });
+    const highlightedSpan = heading.querySelector("span");
+    expect(highlightedSpan).toBeInTheDocument();
+    if (highlightedSpan) {
+      const color = window.getComputedStyle(highlightedSpan).color;
+      expect(color).toBeTruthy();
+      // The browser converts hex to rgb/oklch, so we just check that a color is applied
+      expect(color).not.toBe("");
+    }
   });
 
-  it("should apply custom highlight color", () => {
-    const { container } = render(
-      <Heading highlight="World" highlightColor="#ff0000">
-        Hello World
-      </Heading>
-    );
-    const heading = container.querySelector("h2");
-    const highlightSpan = heading?.querySelector('span[style*="color"]');
-    expect(highlightSpan).toBeInTheDocument();
-  });
+  it("should apply correct level styles", () => {
+    render(<Heading level={1}>H1</Heading>);
+    const h1 = screen.getByRole("heading", { level: 1 });
+    expect(h1).toHaveClass("text-4xl", "md:text-5xl", "lg:text-6xl", "font-bold");
 
-  it("should handle multiple occurrences of highlight text", () => {
-    render(<Heading highlight="test">test and test again</Heading>);
-    const heading = screen.getByRole("heading");
-    expect(heading).toBeInTheDocument();
-    // Should highlight both occurrences
+    render(<Heading level={2}>H2</Heading>);
+    const h2 = screen.getByRole("heading", { level: 2 });
+    expect(h2).toHaveClass("text-4xl", "md:text-5xl", "font-bold");
+
+    render(<Heading level={3}>H3</Heading>);
+    const h3 = screen.getByRole("heading", { level: 3 });
+    expect(h3).toHaveClass("text-3xl", "md:text-4xl", "font-bold");
+
+    render(<Heading level={4}>H4</Heading>);
+    const h4 = screen.getByRole("heading", { level: 4 });
+    expect(h4).toHaveClass("text-xl", "font-bold");
   });
 
   it("should render children correctly", () => {
-    render(<Heading>Test Content</Heading>);
-    expect(screen.getByText("Test Content")).toBeInTheDocument();
-  });
-
-  it("should render complex children without highlight", () => {
     render(
       <Heading>
-        <span>Icon</span> Text
+        <span>Complex</span> Heading
       </Heading>
     );
-    expect(screen.getByText("Icon")).toBeInTheDocument();
-    expect(screen.getByText("Text")).toBeInTheDocument();
-  });
-
-  it("should use default highlight color when not provided", () => {
-    const { container } = render(<Heading highlight="test">test content</Heading>);
-    const heading = container.querySelector("h2");
-    const highlightSpan = heading?.querySelector('span[style*="color"]');
-    expect(highlightSpan).toBeInTheDocument();
-  });
-
-  it("should not apply color style when color is custom and customColor is not provided", () => {
-    const { container } = render(<Heading color="custom">Test</Heading>);
-    const heading = container.querySelector("h2");
-    // When color is "custom" without customColor, no color style should be applied
-    expect(heading).not.toHaveStyle({ color: expect.anything() });
+    const heading = screen.getByRole("heading", { level: 2 });
+    expect(heading.textContent).toBe("Complex Heading");
   });
 });

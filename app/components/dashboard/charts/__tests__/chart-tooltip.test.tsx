@@ -1,55 +1,81 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getTooltipStyle } from "../chart-tooltip";
+import { getChartColors } from "../../utils/chart-colors";
 
 vi.mock("../../utils/chart-colors", () => ({
-  getChartColors: vi.fn((isDark: boolean) => {
-    if (isDark) {
-      return {
-        background: "#1f2937",
-        border: "#374151",
-        text: "#9ca3af",
-      };
-    }
-    return {
+  getChartColors: vi.fn(),
+}));
+
+describe("getTooltipStyle", () => {
+  const mockChartColors = {
+    income: "#10b981",
+    expense: "#ef4444",
+    net: "#3b82f6",
+    weight: "#3b82f6",
+    paid: "#10b981",
+    unpaid: "#f59e0b",
+    overdue: "#ef4444",
+    partial: "#6366f1",
+    grid: "#374151",
+    text: "#9ca3af",
+    background: "#1f2937",
+    border: "#374151",
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should return tooltip style for dark theme", () => {
+    vi.mocked(getChartColors).mockReturnValue(mockChartColors);
+    const result = getTooltipStyle(true);
+
+    expect(getChartColors).toHaveBeenCalledWith(true);
+    expect(result).toEqual({
+      contentStyle: {
+        backgroundColor: mockChartColors.background,
+        border: `1px solid ${mockChartColors.border}`,
+        borderRadius: "8px",
+      },
+      labelStyle: {
+        color: mockChartColors.text,
+        fontSize: "12px",
+        fontWeight: "bold",
+      },
+    });
+  });
+
+  it("should return tooltip style for light theme", () => {
+    const lightColors = {
+      ...mockChartColors,
       background: "#ffffff",
       border: "#e5e7eb",
       text: "#6b7280",
     };
-  }),
-}));
+    vi.mocked(getChartColors).mockReturnValue(lightColors);
+    const result = getTooltipStyle(false);
 
-describe("getTooltipStyle", () => {
-  it("should return tooltip style for light mode", () => {
-    const style = getTooltipStyle(false);
-    expect(style.contentStyle.backgroundColor).toBe("#ffffff");
-    expect(style.contentStyle.border).toBe("1px solid #e5e7eb");
-    expect(style.contentStyle.borderRadius).toBe("8px");
-    expect(style.labelStyle.color).toBe("#6b7280");
-    expect(style.labelStyle.fontSize).toBe("12px");
-    expect(style.labelStyle.fontWeight).toBe("bold");
-  });
-
-  it("should return tooltip style for dark mode", () => {
-    const style = getTooltipStyle(true);
-    expect(style.contentStyle.backgroundColor).toBe("#1f2937");
-    expect(style.contentStyle.border).toBe("1px solid #374151");
-    expect(style.contentStyle.borderRadius).toBe("8px");
-    expect(style.labelStyle.color).toBe("#9ca3af");
-    expect(style.labelStyle.fontSize).toBe("12px");
-    expect(style.labelStyle.fontWeight).toBe("bold");
+    expect(getChartColors).toHaveBeenCalledWith(false);
+    expect(result.contentStyle.backgroundColor).toBe(lightColors.background);
+    expect(result.contentStyle.border).toBe(`1px solid ${lightColors.border}`);
+    expect(result.labelStyle.color).toBe(lightColors.text);
   });
 
   it("should have correct contentStyle properties", () => {
-    const style = getTooltipStyle(false);
-    expect(style.contentStyle).toHaveProperty("backgroundColor");
-    expect(style.contentStyle).toHaveProperty("border");
-    expect(style.contentStyle).toHaveProperty("borderRadius");
+    vi.mocked(getChartColors).mockReturnValue(mockChartColors);
+    const result = getTooltipStyle(true);
+
+    expect(result.contentStyle).toHaveProperty("backgroundColor");
+    expect(result.contentStyle).toHaveProperty("border");
+    expect(result.contentStyle).toHaveProperty("borderRadius", "8px");
   });
 
   it("should have correct labelStyle properties", () => {
-    const style = getTooltipStyle(false);
-    expect(style.labelStyle).toHaveProperty("color");
-    expect(style.labelStyle).toHaveProperty("fontSize");
-    expect(style.labelStyle).toHaveProperty("fontWeight");
+    vi.mocked(getChartColors).mockReturnValue(mockChartColors);
+    const result = getTooltipStyle(true);
+
+    expect(result.labelStyle).toHaveProperty("color");
+    expect(result.labelStyle).toHaveProperty("fontSize", "12px");
+    expect(result.labelStyle).toHaveProperty("fontWeight", "bold");
   });
 });

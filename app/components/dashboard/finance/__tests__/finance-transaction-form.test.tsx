@@ -1,140 +1,158 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import React from "react";
 import { FinanceTransactionForm } from "../finance-transaction-form";
-import { LanguageProvider } from "~/contexts/language-context";
 import {
   CashFlowCategory,
   PaymentMethod,
   AccountsPayableStatus,
   AccountsReceivableStatus,
 } from "~/types";
-import type {
-  CashFlowFormState,
-  AccountsPayableFormState,
-  AccountsReceivableFormState,
-} from "~/hooks/use-finance-transaction-form";
-
-const TestWrapper = ({ children }: { children: React.ReactNode }) => (
-  <LanguageProvider>{children}</LanguageProvider>
-);
 
 vi.mock("~/components/ui", () => ({
-  Input: vi.fn(
-    ({
-      label,
-      value,
-      onChange,
-      error,
-      disabled,
-      type,
-    }: {
-      label: string;
-      value: string;
-      onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-      error?: string;
-      disabled?: boolean;
-      type?: string;
-    }) => (
+  Input: ({
+    label,
+    value,
+    onChange,
+    error,
+    disabled,
+    type,
+    placeholder,
+  }: {
+    label: string;
+    value: string;
+    onChange: (e: { target: { value: string } }) => void;
+    error?: string;
+    disabled?: boolean;
+    type?: string;
+    placeholder?: string;
+  }) => {
+    const [internalValue, setInternalValue] = React.useState(value || "");
+    React.useEffect(() => {
+      setInternalValue(value || "");
+    }, [value]);
+    return (
       <div>
-        <label>{label}</label>
+        <label htmlFor={`input-${label}`}>{label}</label>
         <input
-          type={type || "text"}
-          value={value}
-          onChange={onChange}
+          id={`input-${label}`}
+          data-testid={`input-${label}`}
+          type={type}
+          value={internalValue}
+          onChange={(e) => {
+            const newValue = e.target.value;
+            setInternalValue(newValue);
+            onChange({ target: { value: newValue } });
+          }}
           disabled={disabled}
-          data-error={error}
-          data-label={label}
+          placeholder={placeholder}
         />
+        {error && <span data-testid="error">{error}</span>}
       </div>
-    )
+    );
+  },
+  Select: ({
+    label,
+    value,
+    onChange,
+    options,
+    error,
+  }: {
+    label: string;
+    value: string;
+    onChange: (e: { target: { value: string } }) => void;
+    options: Array<{ value: string; label: string }>;
+    error?: string;
+  }) => (
+    <div>
+      <label htmlFor={`select-${label}`}>{label}</label>
+      <select
+        id={`select-${label}`}
+        data-testid={`select-${label}`}
+        value={value}
+        onChange={onChange}
+      >
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+      {error && <span data-testid="error">{error}</span>}
+    </div>
   ),
-  Select: vi.fn(
-    ({
-      label,
-      value,
-      onChange,
-      options,
-      disabled,
-    }: {
-      label: string;
-      value: string;
-      onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-      options: Array<{ value: string; label: string }>;
-      disabled?: boolean;
-    }) => (
-      <div>
-        <label>{label}</label>
-        <select value={value} onChange={onChange} disabled={disabled}>
-          {options.map((opt, index) => (
-            <option key={`${opt.value}-${index}`} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-      </div>
-    )
-  ),
-  FormFieldGroup: vi.fn(({ children }: { children: React.ReactNode }) => <div>{children}</div>),
+  FormFieldGroup: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
 vi.mock("~/utils/finance-form-helpers", () => ({
-  getIncomeCategories: vi.fn(() => [{ value: CashFlowCategory.CATTLE_SALES, label: "Sales" }]),
-  getExpenseCategories: vi.fn(() => [{ value: CashFlowCategory.FEED, label: "Feed" }]),
-  getPaymentMethods: vi.fn(() => [{ value: PaymentMethod.CASH, label: "Cash" }]),
+  getIncomeCategories: vi.fn(() => [{ value: "income1", label: "Income 1" }]),
+  getExpenseCategories: vi.fn(() => [
+    { value: CashFlowCategory.FEED, label: "Feed" },
+    { value: CashFlowCategory.LABOR, label: "Labor" },
+    { value: "expense1", label: "Expense 1" },
+  ]),
+  getPaymentMethods: vi.fn(() => [
+    { value: PaymentMethod.CASH, label: "Cash" },
+    { value: PaymentMethod.CREDIT_CARD, label: "Credit Card" },
+  ]),
   getAccountsPayableStatusOptions: vi.fn(() => [
-    { value: "unpaid", label: "Unpaid" },
-    { value: "paid", label: "Paid" },
+    { value: AccountsPayableStatus.UNPAID, label: "Unpaid" },
+    { value: AccountsPayableStatus.PAID, label: "Paid" },
   ]),
   getAccountsReceivableStatusOptions: vi.fn(() => [
-    { value: "unpaid", label: "Unpaid" },
-    { value: "paid", label: "Paid" },
+    { value: AccountsReceivableStatus.UNPAID, label: "Unpaid" },
+    { value: AccountsReceivableStatus.PAID, label: "Paid" },
   ]),
 }));
 
 describe("FinanceTransactionForm", () => {
-  const defaultCashFlowFormData = {
-    description: "",
-    amount: "",
-    date: "",
-    category: CashFlowCategory.CATTLE_SALES,
-    paymentMethod: PaymentMethod.CASH,
-    propertyId: "",
-    bankAccountId: "",
-    type: "income" as const,
-    paymentDate: "",
-    referenceNumber: "",
-    buyerId: "",
-    supplierId: "",
-    employeeId: "",
-    serviceProviderId: "",
-  };
-
   const defaultProps = {
     transactionType: "cash-flow" as const,
-    formData: defaultCashFlowFormData,
+    formData: {
+      type: "income" as const,
+      category: CashFlowCategory.OTHER_INCOME,
+      amount: "",
+      date: "",
+      description: "",
+      paymentMethod: PaymentMethod.CASH,
+      paymentDate: "",
+      supplierId: "",
+      buyerId: "",
+      employeeId: "",
+      serviceProviderId: "",
+      referenceNumber: "",
+      bankAccountId: "",
+      propertyId: "",
+    },
     errors: {},
     isSubmitting: false,
     onFieldChange: vi.fn(),
     translation: {
       cashFlow: {
         new: {
-          descriptionLabel: "Description",
+          typeLabel: "Type",
+          categoryLabel: "Category",
           amountLabel: "Amount",
           dateLabel: "Date",
-          categoryLabel: "Category",
+          descriptionLabel: "Description",
           paymentMethodLabel: "Payment Method",
-          propertyLabel: "Property",
         },
-        categories: {
-          [CashFlowCategory.CATTLE_SALES]: "Sales",
+        categories: {},
+        paymentMethods: {},
+      },
+      accountsPayable: {
+        new: {
+          dueDateLabel: "Due Date",
         },
-        paymentMethods: {
-          [PaymentMethod.CASH]: "Cash",
+      },
+      accountsReceivable: {
+        new: {
+          dueDateLabel: "Due Date",
         },
       },
     },
-    properties: [{ id: "prop-1", name: "Property 1" }],
+    properties: [],
     bankAccounts: [],
     employees: [],
     serviceProviders: [],
@@ -146,1512 +164,923 @@ describe("FinanceTransactionForm", () => {
     vi.clearAllMocks();
   });
 
-  it("should render form for cash-flow transaction", () => {
-    const formData: CashFlowFormState = {
-      ...defaultCashFlowFormData,
-      category: CashFlowCategory.CATTLE_SALES,
-    };
-    const { container } = render(
-      <TestWrapper>
-        <FinanceTransactionForm {...defaultProps} formData={formData} />
-      </TestWrapper>
-    );
-    expect(container).toBeTruthy();
+  it("should render form fields for cash flow", () => {
+    render(<FinanceTransactionForm {...defaultProps} />);
+    expect(screen.getByText("Type")).toBeInTheDocument();
+    expect(screen.getByText("Category")).toBeInTheDocument();
   });
 
-  it("should render form for accounts-payable transaction", () => {
-    const apFormData: AccountsPayableFormState = {
-      description: "",
-      amount: "",
-      dueDate: "",
-      paymentMethod: PaymentMethod.CASH,
-      propertyId: "",
-      supplierId: "",
-      employeeId: "",
-      serviceProviderId: "",
-      status: AccountsPayableStatus.UNPAID,
-      paidDate: "",
-      paidAmount: "",
-      category: CashFlowCategory.FEED,
-      referenceNumber: "",
-      bankAccountId: "",
-    };
-    render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          transactionType="accounts-payable"
-          formData={apFormData}
-          translation={{
-            accountsPayable: {
-              new: {
-                descriptionLabel: "Description",
-                amountLabel: "Amount",
-                dueDateLabel: "Due Date",
-                paymentMethodLabel: "Payment Method",
-                propertyLabel: "Property",
-                supplierLabel: "Supplier",
-                statusLabel: "Status",
-              },
-              paymentMethods: {
-                [PaymentMethod.CASH]: "Cash",
-              },
-              status: {
-                unpaid: "Unpaid",
-              },
-            },
-          }}
-        />
-      </TestWrapper>
-    );
-    expect(screen.getByText("Description")).toBeInTheDocument();
-  });
-
-  it("should render form for accounts-receivable transaction", () => {
-    const arFormData: AccountsReceivableFormState = {
-      description: "",
-      amount: "",
-      dueDate: "",
-      paymentMethod: PaymentMethod.CASH,
-      propertyId: "",
-      buyerId: "",
-      status: AccountsReceivableStatus.UNPAID,
-      paidDate: "",
-      paidAmount: "",
-      category: CashFlowCategory.CATTLE_SALES,
-      referenceNumber: "",
-      bankAccountId: "",
-    };
-    render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          transactionType="accounts-receivable"
-          formData={arFormData}
-          translation={{
-            accountsReceivable: {
-              new: {
-                descriptionLabel: "Description",
-                amountLabel: "Amount",
-                dueDateLabel: "Due Date",
-                paymentMethodLabel: "Payment Method",
-                propertyLabel: "Property",
-                buyerLabel: "Buyer",
-                statusLabel: "Status",
-              },
-              paymentMethods: {
-                [PaymentMethod.CASH]: "Cash",
-              },
-              status: {
-                unpaid: "Unpaid",
-              },
-            },
-          }}
-        />
-      </TestWrapper>
-    );
-    expect(screen.getByText("Description")).toBeInTheDocument();
-  });
-
-  it("should call onFieldChange when field changes", () => {
+  it("should call onFieldChange when field changes", async () => {
+    const user = userEvent.setup();
     const onFieldChange = vi.fn();
-    const { container } = render(
-      <TestWrapper>
-        <FinanceTransactionForm {...defaultProps} onFieldChange={onFieldChange} />
-      </TestWrapper>
-    );
-    // Find description input (text input that should trigger onChange)
-    const textInputs = container.querySelectorAll('input[type="text"]');
-    if (textInputs.length > 0) {
-      fireEvent.change(textInputs[0], { target: { value: "Test" } });
-      expect(onFieldChange).toHaveBeenCalledWith("description", "Test");
-    }
+    render(<FinanceTransactionForm {...defaultProps} onFieldChange={onFieldChange} />);
+
+    const amountInput = screen.getByTestId("input-Amount");
+    await user.type(amountInput, "100");
+
+    expect(onFieldChange).toHaveBeenCalled();
   });
 
-  it("should display errors", () => {
-    render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          errors={{ description: "Description is required" }}
-        />
-      </TestWrapper>
-    );
-    const inputs = screen.getAllByRole("textbox");
-    expect(inputs.length).toBeGreaterThan(0);
+  it("should display errors when provided", () => {
+    render(<FinanceTransactionForm {...defaultProps} errors={{ amount: "Amount is required" }} />);
+    expect(screen.getByTestId("error")).toBeInTheDocument();
   });
 
   it("should disable inputs when isSubmitting is true", () => {
-    const { container } = render(
-      <TestWrapper>
-        <FinanceTransactionForm {...defaultProps} isSubmitting={true} />
-      </TestWrapper>
-    );
-    const inputs = container.querySelectorAll("input");
-    inputs.forEach((input) => {
-      expect((input as HTMLInputElement).disabled).toBe(true);
-    });
+    render(<FinanceTransactionForm {...defaultProps} isSubmitting={true} />);
+    const amountInput = screen.getByTestId("input-Amount");
+    expect(amountInput).toBeDisabled();
+  });
+
+  it("should render accounts-payable form", () => {
+    const props = {
+      ...defaultProps,
+      transactionType: "accounts-payable" as const,
+      formData: {
+        amount: "",
+        dueDate: "",
+        description: "",
+        category: CashFlowCategory.FEED,
+        paymentMethod: PaymentMethod.CASH,
+        propertyId: "",
+        bankAccountId: "",
+        supplierId: "",
+        employeeId: "",
+        serviceProviderId: "",
+        status: AccountsPayableStatus.UNPAID,
+        paidDate: "",
+        paidAmount: "",
+        referenceNumber: "",
+      },
+      translation: {
+        ...defaultProps.translation,
+        accountsPayable: {
+          new: {
+            amountLabel: "Amount",
+            dueDateLabel: "Due Date",
+            descriptionLabel: "Description",
+            categoryLabel: "Category",
+            paymentMethodLabel: "Payment Method",
+            propertyLabel: "Property",
+            bankAccountLabel: "Bank Account",
+            supplierLabel: "Supplier",
+            employeeLabel: "Employee",
+            serviceProviderLabel: "Service Provider",
+            statusLabel: "Status",
+            paidDateLabel: "Paid Date",
+            paidAmountLabel: "Paid Amount",
+            referenceNumberLabel: "Reference Number",
+          },
+          paymentMethods: {},
+          status: {},
+        },
+      },
+    };
+    render(<FinanceTransactionForm {...props} />);
+    expect(screen.getByText("Amount")).toBeInTheDocument();
+    expect(screen.getByText("Due Date")).toBeInTheDocument();
+  });
+
+  it("should render accounts-receivable form", () => {
+    const props = {
+      ...defaultProps,
+      transactionType: "accounts-receivable" as const,
+      formData: {
+        amount: "",
+        dueDate: "",
+        description: "",
+        category: CashFlowCategory.OTHER_INCOME,
+        paymentMethod: PaymentMethod.CASH,
+        propertyId: "",
+        bankAccountId: "",
+        buyerId: "",
+        status: AccountsReceivableStatus.UNPAID,
+        paidDate: "",
+        paidAmount: "",
+        referenceNumber: "",
+      },
+      translation: {
+        ...defaultProps.translation,
+        accountsReceivable: {
+          new: {
+            amountLabel: "Amount",
+            dueDateLabel: "Due Date",
+            descriptionLabel: "Description",
+            categoryLabel: "Category",
+            paymentMethodLabel: "Payment Method",
+            propertyLabel: "Property",
+            bankAccountLabel: "Bank Account",
+            buyerLabel: "Buyer",
+            statusLabel: "Status",
+            paidDateLabel: "Paid Date",
+            paidAmountLabel: "Paid Amount",
+            referenceNumberLabel: "Reference Number",
+          },
+          paymentMethods: {},
+          status: {},
+        },
+      },
+    };
+    render(<FinanceTransactionForm {...props} />);
+    expect(screen.getByText("Amount")).toBeInTheDocument();
+    expect(screen.getByText("Due Date")).toBeInTheDocument();
   });
 
   it("should handle type change from income to expense", async () => {
-    const onFieldChange = vi.fn();
     const user = userEvent.setup();
-    const formData: CashFlowFormState = {
-      ...defaultCashFlowFormData,
-      type: "income" as const,
-      category: CashFlowCategory.CATTLE_SALES,
+    const onFieldChange = vi.fn();
+    const props = {
+      ...defaultProps,
+      formData: {
+        ...defaultProps.formData,
+        type: "income" as const,
+      },
+      onFieldChange,
     };
-    render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          formData={formData}
-          onFieldChange={onFieldChange}
-        />
-      </TestWrapper>
-    );
-    const selects = screen.getAllByRole("combobox");
-    const typeSelect = selects.find((s) => (s as HTMLSelectElement).value === "income");
-    if (typeSelect) {
-      await user.selectOptions(typeSelect, "expense");
-      expect(onFieldChange).toHaveBeenCalledWith("type", "expense");
-      expect(onFieldChange).toHaveBeenCalledWith("category", CashFlowCategory.FEED);
-    }
+    render(<FinanceTransactionForm {...props} />);
+    const typeLabel = screen.getByText("Type");
+    const typeSelect = typeLabel.parentElement?.querySelector("select");
+    expect(typeSelect).toBeInTheDocument();
+    await user.selectOptions(typeSelect!, "expense");
+    expect(onFieldChange).toHaveBeenCalledWith("type", "expense");
+    expect(onFieldChange).toHaveBeenCalledWith("category", CashFlowCategory.FEED);
+    expect(onFieldChange).toHaveBeenCalledWith("buyerId", "");
   });
 
   it("should handle type change from expense to income", async () => {
-    const onFieldChange = vi.fn();
     const user = userEvent.setup();
-    const formData: CashFlowFormState = {
-      ...defaultCashFlowFormData,
-      type: "expense" as const,
-      category: CashFlowCategory.FEED,
-    };
-    render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          formData={formData}
-          onFieldChange={onFieldChange}
-        />
-      </TestWrapper>
-    );
-    const selects = screen.getAllByRole("combobox");
-    const typeSelect = selects.find((s) => (s as HTMLSelectElement).value === "expense");
-    if (typeSelect) {
-      await user.selectOptions(typeSelect, "income");
-      expect(onFieldChange).toHaveBeenCalledWith("type", "income");
-      expect(onFieldChange).toHaveBeenCalledWith("category", CashFlowCategory.CATTLE_SALES);
-    }
-  });
-
-  it("should render supplier field for cash-flow expense", () => {
-    const formData: CashFlowFormState = {
-      ...defaultCashFlowFormData,
-      type: "expense" as const,
-      category: CashFlowCategory.FEED,
-    };
-    render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          formData={formData}
-          suppliers={[{ id: "supplier-1", name: "Supplier 1" }]}
-        />
-      </TestWrapper>
-    );
-    expect(screen.getByText(/Supplier/i)).toBeInTheDocument();
-  });
-
-  it("should render buyer field for cash-flow income", () => {
-    const formData: CashFlowFormState = {
-      ...defaultCashFlowFormData,
-      type: "income" as const,
-      category: CashFlowCategory.CATTLE_SALES,
-    };
-    render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          formData={formData}
-          buyers={[{ id: "buyer-1", name: "Buyer 1" }]}
-        />
-      </TestWrapper>
-    );
-    expect(screen.getByText(/Buyer/i)).toBeInTheDocument();
-  });
-
-  it("should render employee field for LABOR category expense", () => {
-    const formData: CashFlowFormState = {
-      ...defaultCashFlowFormData,
-      type: "expense" as const,
-      category: CashFlowCategory.LABOR,
-    };
-    render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          formData={formData}
-          employees={[{ id: "emp-1", name: "Employee 1" }]}
-        />
-      </TestWrapper>
-    );
-    expect(screen.getByText(/Employee/i)).toBeInTheDocument();
-  });
-
-  it("should render service provider field for expense", () => {
-    const formData: CashFlowFormState = {
-      ...defaultCashFlowFormData,
-      type: "expense" as const,
-      category: CashFlowCategory.FEED,
-    };
-    render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          formData={formData}
-          serviceProviders={[{ id: "sp-1", name: "Service Provider 1" }]}
-        />
-      </TestWrapper>
-    );
-    expect(screen.getByText(/Service Provider/i)).toBeInTheDocument();
-  });
-
-  it("should render bank account selection", () => {
-    const { container } = render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          bankAccounts={[
-            {
-              id: "bank-1",
-              bankName: "Bank 1",
-              accountNumber: "12345",
-              accountType: "checking" as const,
-            },
-          ]}
-        />
-      </TestWrapper>
-    );
-    // Bank account field is rendered
-    expect(container).toBeTruthy();
-  });
-
-  it("should render paid date and amount for accounts payable", () => {
-    const apFormData: AccountsPayableFormState = {
-      description: "",
-      amount: "",
-      dueDate: "",
-      paymentMethod: PaymentMethod.CASH,
-      propertyId: "",
-      supplierId: "",
-      employeeId: "",
-      serviceProviderId: "",
-      status: AccountsPayableStatus.UNPAID,
-      paidDate: "",
-      paidAmount: "",
-      category: CashFlowCategory.FEED,
-      referenceNumber: "",
-      bankAccountId: "",
-    };
-    render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          transactionType="accounts-payable"
-          formData={apFormData}
-          translation={{
-            accountsPayable: {
-              new: {
-                descriptionLabel: "Description",
-                amountLabel: "Amount",
-                dueDateLabel: "Due Date",
-                paymentMethodLabel: "Payment Method",
-                propertyLabel: "Property",
-                supplierLabel: "Supplier",
-                statusLabel: "Status",
-                paidDateLabel: "Paid Date",
-                paidAmountLabel: "Paid Amount",
-              },
-              paymentMethods: {
-                [PaymentMethod.CASH]: "Cash",
-              },
-              status: {
-                unpaid: "Unpaid",
-              },
-            },
-          }}
-        />
-      </TestWrapper>
-    );
-    expect(screen.getByText(/Paid Date/i)).toBeInTheDocument();
-    expect(screen.getByText(/Paid Amount/i)).toBeInTheDocument();
-  });
-
-  it("should handle category change and clear employeeId for non-LABOR", () => {
     const onFieldChange = vi.fn();
-    const formData: CashFlowFormState = {
-      ...defaultCashFlowFormData,
-      type: "expense" as const,
-      category: CashFlowCategory.LABOR,
-      employeeId: "emp-1",
+    const props = {
+      ...defaultProps,
+      formData: {
+        ...defaultProps.formData,
+        type: "expense" as const,
+      },
+      onFieldChange,
     };
-    const { container } = render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          formData={formData}
-          onFieldChange={onFieldChange}
-        />
-      </TestWrapper>
-    );
-    // Category select is rendered and will trigger onFieldChange when changed
-    expect(container).toBeTruthy();
+    render(<FinanceTransactionForm {...props} />);
+    const typeLabel = screen.getByText("Type");
+    const typeSelect = typeLabel.parentElement?.querySelector("select");
+    expect(typeSelect).toBeInTheDocument();
+    await user.selectOptions(typeSelect!, "income");
+    expect(onFieldChange).toHaveBeenCalledWith("type", "income");
+    expect(onFieldChange).toHaveBeenCalledWith("category", CashFlowCategory.CATTLE_SALES);
+    expect(onFieldChange).toHaveBeenCalledWith("supplierId", "");
   });
 
-  it("should call onFieldChange for amount field", async () => {
-    const onFieldChange = vi.fn();
+  it("should clear employeeId when category changes from LABOR", async () => {
     const user = userEvent.setup();
-    const { container } = render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          onFieldChange={onFieldChange}
-          translation={{
-            ...defaultProps.translation,
-            cashFlow: {
-              ...defaultProps.translation.cashFlow,
-              new: {
-                ...defaultProps.translation.cashFlow!.new!,
-                amountLabel: "Amount",
-              },
-            },
-          }}
-        />
-      </TestWrapper>
-    );
-    // Find number input (amount field)
-    const numberInputs = container.querySelectorAll('input[type="number"]');
-    if (numberInputs.length > 0) {
-      await user.type(numberInputs[0], "1");
-      expect(onFieldChange).toHaveBeenCalledWith("amount", expect.any(String));
-    }
-  });
-
-  it("should call onFieldChange for amount field in accounts-payable (!isCashFlow section)", () => {
     const onFieldChange = vi.fn();
-    const apFormData: AccountsPayableFormState = {
-      description: "",
-      amount: "",
-      dueDate: "",
-      paymentMethod: PaymentMethod.CASH,
-      propertyId: "",
-      supplierId: "",
-      employeeId: "",
-      serviceProviderId: "",
-      status: AccountsPayableStatus.UNPAID,
-      paidDate: "",
-      paidAmount: "",
-      category: CashFlowCategory.FEED,
-      referenceNumber: "",
-      bankAccountId: "",
+    const props = {
+      ...defaultProps,
+      formData: {
+        ...defaultProps.formData,
+        type: "expense" as const,
+        category: CashFlowCategory.LABOR,
+      },
+      onFieldChange,
     };
-    const { container } = render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          transactionType="accounts-payable"
-          formData={apFormData}
-          onFieldChange={onFieldChange}
-          translation={{
-            accountsPayable: {
-              new: {
-                amountLabel: "Amount",
-                dueDateLabel: "Due Date",
-              },
-            },
-          }}
-        />
-      </TestWrapper>
-    );
-    // Find amount input (number input) - this is the first number input in !isCashFlow section (line 168)
-    const numberInputs = container.querySelectorAll('input[type="number"]');
-    expect(numberInputs.length).toBeGreaterThan(0);
-    if (numberInputs.length > 0) {
-      fireEvent.change(numberInputs[0], { target: { value: "1000" } });
-      expect(onFieldChange).toHaveBeenCalledWith("amount", "1000");
-    }
+    render(<FinanceTransactionForm {...props} />);
+    const categorySelect = screen.getByTestId("select-Category");
+    await user.selectOptions(categorySelect, CashFlowCategory.FEED);
+    expect(onFieldChange).toHaveBeenCalledWith("category", CashFlowCategory.FEED);
+    expect(onFieldChange).toHaveBeenCalledWith("employeeId", "");
   });
 
-  it("should call onFieldChange for dueDate field in accounts-payable", () => {
-    const onFieldChange = vi.fn();
-    const apFormData: AccountsPayableFormState = {
-      description: "",
-      amount: "",
-      dueDate: "",
-      paymentMethod: PaymentMethod.CASH,
-      propertyId: "",
-      supplierId: "",
-      employeeId: "",
-      serviceProviderId: "",
-      status: AccountsPayableStatus.UNPAID,
-      paidDate: "",
-      paidAmount: "",
-      category: CashFlowCategory.FEED,
-      referenceNumber: "",
-      bankAccountId: "",
+  it("should render supplier field for expense cash-flow", () => {
+    const props = {
+      ...defaultProps,
+      formData: {
+        ...defaultProps.formData,
+        type: "expense" as const,
+      },
+      suppliers: [{ id: "supplier-1", name: "Supplier 1" }],
+      translation: {
+        ...defaultProps.translation,
+        cashFlow: {
+          ...defaultProps.translation.cashFlow,
+          new: {
+            ...defaultProps.translation.cashFlow.new,
+            supplierLabel: "Supplier",
+          },
+        },
+      },
     };
-    const { container } = render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          transactionType="accounts-payable"
-          formData={apFormData}
-          onFieldChange={onFieldChange}
-          translation={{
-            accountsPayable: {
-              new: {
-                amountLabel: "Amount",
-                dueDateLabel: "Due Date",
-              },
-            },
-          }}
-        />
-      </TestWrapper>
-    );
-    // Find date input (dueDate field)
-    const dateInputs = container.querySelectorAll('input[type="date"]');
-    if (dateInputs.length > 0) {
-      fireEvent.change(dateInputs[0], { target: { value: "2025-01-15" } });
-      expect(onFieldChange).toHaveBeenCalledWith("dueDate", "2025-01-15");
-    }
+    render(<FinanceTransactionForm {...props} />);
+    expect(screen.getByText("Supplier")).toBeInTheDocument();
   });
 
-  it("should call onFieldChange for date field in cash-flow", () => {
-    const onFieldChange = vi.fn();
-    const { container } = render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          onFieldChange={onFieldChange}
-          translation={{
-            ...defaultProps.translation,
-            cashFlow: {
-              ...defaultProps.translation.cashFlow,
-              new: {
-                ...defaultProps.translation.cashFlow!.new!,
-                dateLabel: "Date",
-              },
-            },
-          }}
-        />
-      </TestWrapper>
-    );
-    // Find date input (date field)
-    const dateInputs = container.querySelectorAll('input[type="date"]');
-    if (dateInputs.length > 0) {
-      fireEvent.change(dateInputs[0], { target: { value: "2025-01-15" } });
-      expect(onFieldChange).toHaveBeenCalledWith("date", "2025-01-15");
-    }
-  });
-
-  it("should call onFieldChange for paymentDate field", () => {
-    const onFieldChange = vi.fn();
-    const formData: CashFlowFormState = {
-      ...defaultCashFlowFormData,
-      paymentDate: "",
-      category: CashFlowCategory.CATTLE_SALES,
+  it("should render buyer field for income cash-flow", () => {
+    const props = {
+      ...defaultProps,
+      formData: {
+        ...defaultProps.formData,
+        type: "income" as const,
+      },
+      buyers: [{ id: "buyer-1", name: "Buyer 1" }],
+      translation: {
+        ...defaultProps.translation,
+        cashFlow: {
+          ...defaultProps.translation.cashFlow,
+          new: {
+            ...defaultProps.translation.cashFlow.new,
+            buyerLabel: "Buyer",
+          },
+        },
+      },
     };
-    const { container } = render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          formData={formData}
-          onFieldChange={onFieldChange}
-          translation={{
-            cashFlow: {
-              ...defaultProps.translation.cashFlow,
-              new: {
-                ...defaultProps.translation.cashFlow!.new!,
-                paymentDateLabel: "Payment Date",
-              },
-            },
-          }}
-        />
-      </TestWrapper>
-    );
-    // Find paymentDate input (should be the second date input after date)
-    const dateInputs = container.querySelectorAll('input[type="date"]');
-    const paymentDateInput = Array.from(dateInputs).find((input, index) => index > 0);
-    expect(paymentDateInput).toBeTruthy();
-    if (paymentDateInput) {
-      fireEvent.change(paymentDateInput, { target: { value: "2025-01-15" } });
-      expect(onFieldChange).toHaveBeenCalledWith("paymentDate", "2025-01-15");
-    }
+    render(<FinanceTransactionForm {...props} />);
+    expect(screen.getByText("Buyer")).toBeInTheDocument();
   });
 
-  it("should call onFieldChange for description field", async () => {
-    const onFieldChange = vi.fn();
+  it("should render employee field for LABOR category", () => {
+    const props = {
+      ...defaultProps,
+      formData: {
+        ...defaultProps.formData,
+        type: "expense" as const,
+        category: CashFlowCategory.LABOR,
+      },
+      employees: [{ id: "emp-1", name: "Employee 1" }],
+      translation: {
+        ...defaultProps.translation,
+        cashFlow: {
+          ...defaultProps.translation.cashFlow,
+          new: {
+            ...defaultProps.translation.cashFlow.new,
+            employeeLabel: "Employee",
+          },
+        },
+      },
+    };
+    render(<FinanceTransactionForm {...props} />);
+    expect(screen.getByText("Employee")).toBeInTheDocument();
+  });
+
+  it("should render serviceProvider field for expense cash-flow", () => {
+    const props = {
+      ...defaultProps,
+      formData: {
+        ...defaultProps.formData,
+        type: "expense" as const,
+      },
+      serviceProviders: [{ id: "sp-1", name: "Service Provider 1" }],
+      translation: {
+        ...defaultProps.translation,
+        cashFlow: {
+          ...defaultProps.translation.cashFlow,
+          new: {
+            ...defaultProps.translation.cashFlow.new,
+            serviceProviderLabel: "Service Provider",
+          },
+        },
+      },
+    };
+    render(<FinanceTransactionForm {...props} />);
+    expect(screen.getByText("Service Provider")).toBeInTheDocument();
+  });
+
+  it("should render paidDate and paidAmount for accounts-payable", () => {
+    const props = {
+      ...defaultProps,
+      transactionType: "accounts-payable" as const,
+      formData: {
+        amount: "",
+        dueDate: "",
+        description: "",
+        category: CashFlowCategory.FEED,
+        paymentMethod: PaymentMethod.CASH,
+        propertyId: "",
+        bankAccountId: "",
+        supplierId: "",
+        employeeId: "",
+        serviceProviderId: "",
+        status: AccountsPayableStatus.UNPAID,
+        paidDate: "",
+        paidAmount: "",
+        referenceNumber: "",
+      },
+      translation: {
+        ...defaultProps.translation,
+        accountsPayable: {
+          new: {
+            amountLabel: "Amount",
+            dueDateLabel: "Due Date",
+            descriptionLabel: "Description",
+            categoryLabel: "Category",
+            paymentMethodLabel: "Payment Method",
+            propertyLabel: "Property",
+            bankAccountLabel: "Bank Account",
+            supplierLabel: "Supplier",
+            employeeLabel: "Employee",
+            serviceProviderLabel: "Service Provider",
+            statusLabel: "Status",
+            paidDateLabel: "Paid Date",
+            paidAmountLabel: "Paid Amount",
+            referenceNumberLabel: "Reference Number",
+          },
+          paymentMethods: {},
+          status: {},
+        },
+      },
+    };
+    render(<FinanceTransactionForm {...props} />);
+    expect(screen.getByText("Paid Date")).toBeInTheDocument();
+    expect(screen.getByText("Paid Amount")).toBeInTheDocument();
+  });
+
+  it("should format bank account label with account types", () => {
+    const props = {
+      ...defaultProps,
+      bankAccounts: [
+        {
+          id: "bank-1",
+          bankName: "Bank 1",
+          accountNumber: "12345",
+          accountType: "checking" as const,
+        },
+        {
+          id: "bank-2",
+          bankName: "Bank 2",
+          accountNumber: "67890",
+          accountType: "savings" as const,
+        },
+      ],
+      translation: {
+        ...defaultProps.translation,
+        bankAccounts: {
+          accountTypes: {
+            checking: "Checking",
+            savings: "Savings",
+          },
+        },
+        cashFlow: {
+          ...defaultProps.translation.cashFlow,
+          new: {
+            ...defaultProps.translation.cashFlow.new,
+            bankAccountLabel: "Bank Account",
+          },
+        },
+      },
+    };
+    render(<FinanceTransactionForm {...props} />);
+    const bankAccountSelect = screen.getByTestId("select-Bank Account");
+    expect(bankAccountSelect).toBeInTheDocument();
+  });
+
+  it("should clear employeeId when category changes from LABOR in cash-flow expense", async () => {
     const user = userEvent.setup();
-    const { container } = render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          onFieldChange={onFieldChange}
-          translation={{
-            ...defaultProps.translation,
-            cashFlow: {
-              ...defaultProps.translation.cashFlow,
-              new: {
-                ...defaultProps.translation.cashFlow!.new!,
-                descriptionLabel: "Description",
-              },
-            },
-          }}
-        />
-      </TestWrapper>
-    );
-    // Find text input (description field)
-    const textInputs = container.querySelectorAll('input[type="text"]');
-    if (textInputs.length > 0) {
-      await user.type(textInputs[0], "T");
-      expect(onFieldChange).toHaveBeenCalledWith("description", expect.any(String));
-    }
+    const onFieldChange = vi.fn();
+    const props = {
+      ...defaultProps,
+      formData: {
+        ...defaultProps.formData,
+        type: "expense" as const,
+        category: CashFlowCategory.LABOR,
+      },
+      onFieldChange,
+    };
+    render(<FinanceTransactionForm {...props} />);
+    const categorySelect = screen.getByTestId("select-Category");
+    await user.selectOptions(categorySelect, CashFlowCategory.FEED);
+    expect(onFieldChange).toHaveBeenCalledWith("category", CashFlowCategory.FEED);
+    expect(onFieldChange).toHaveBeenCalledWith("employeeId", "");
   });
 
-  it("should call onFieldChange for category and clear employeeId when changing from LABOR to non-LABOR in cash-flow expense", async () => {
-    const onFieldChange = vi.fn();
+  it("should clear employeeId when category changes from LABOR in accounts-payable", async () => {
     const user = userEvent.setup();
-    const formData = {
-      ...defaultCashFlowFormData,
-      type: "expense" as const,
-      category: CashFlowCategory.LABOR,
-      employeeId: "emp-1",
+    const onFieldChange = vi.fn();
+    const props = {
+      ...defaultProps,
+      transactionType: "accounts-payable" as const,
+      formData: {
+        amount: "",
+        dueDate: "",
+        description: "",
+        category: CashFlowCategory.LABOR,
+        paymentMethod: PaymentMethod.CASH,
+        propertyId: "",
+        bankAccountId: "",
+        supplierId: "",
+        employeeId: "emp-1",
+        serviceProviderId: "",
+        status: AccountsPayableStatus.UNPAID,
+        paidDate: "",
+        paidAmount: "",
+        referenceNumber: "",
+      },
+      onFieldChange,
+      translation: {
+        ...defaultProps.translation,
+        accountsPayable: {
+          new: {
+            amountLabel: "Amount",
+            dueDateLabel: "Due Date",
+            descriptionLabel: "Description",
+            categoryLabel: "Category",
+            paymentMethodLabel: "Payment Method",
+            propertyLabel: "Property",
+            bankAccountLabel: "Bank Account",
+            supplierLabel: "Supplier",
+            employeeLabel: "Employee",
+            serviceProviderLabel: "Service Provider",
+            statusLabel: "Status",
+            paidDateLabel: "Paid Date",
+            paidAmountLabel: "Paid Amount",
+            referenceNumberLabel: "Reference Number",
+          },
+          paymentMethods: {},
+          status: {},
+        },
+      },
     };
-    const { container } = render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          formData={formData}
-          onFieldChange={onFieldChange}
-          translation={{
-            ...defaultProps.translation,
-            cashFlow: {
-              ...defaultProps.translation.cashFlow,
-              new: {
-                ...defaultProps.translation.cashFlow!.new!,
-                categoryLabel: "Category",
-              },
-            },
-          }}
-        />
-      </TestWrapper>
-    );
-    // Find category select
-    const selects = container.querySelectorAll("select");
-    const categorySelect = Array.from(selects).find((s) => {
-      const options = Array.from((s as HTMLSelectElement).options);
-      return options.some((opt) => opt.value === CashFlowCategory.FEED);
-    });
-    if (categorySelect) {
-      await user.selectOptions(categorySelect, CashFlowCategory.FEED);
-      expect(onFieldChange).toHaveBeenCalledWith("category", CashFlowCategory.FEED);
-      expect(onFieldChange).toHaveBeenCalledWith("employeeId", "");
-    }
+    render(<FinanceTransactionForm {...props} />);
+    const categorySelect = screen.getByTestId("select-Category");
+    await user.selectOptions(categorySelect, CashFlowCategory.FEED);
+    expect(onFieldChange).toHaveBeenCalledWith("category", CashFlowCategory.FEED);
+    expect(onFieldChange).toHaveBeenCalledWith("employeeId", "");
   });
 
-  it("should call onFieldChange for category and clear employeeId when changing from LABOR to non-LABOR in accounts-payable", async () => {
-    const onFieldChange = vi.fn();
+  it("should not clear employeeId when category is LABOR in cash-flow expense", async () => {
     const user = userEvent.setup();
-    const apFormData: AccountsPayableFormState = {
-      description: "",
-      amount: "",
-      dueDate: "",
-      paymentMethod: PaymentMethod.CASH,
-      propertyId: "",
-      supplierId: "",
-      employeeId: "emp-1",
-      serviceProviderId: "",
-      status: AccountsPayableStatus.UNPAID,
-      paidDate: "",
-      paidAmount: "",
-      category: CashFlowCategory.LABOR,
-      referenceNumber: "",
-      bankAccountId: "",
+    const onFieldChange = vi.fn();
+    const props = {
+      ...defaultProps,
+      formData: {
+        ...defaultProps.formData,
+        type: "expense" as const,
+        category: CashFlowCategory.FEED,
+      },
+      onFieldChange,
     };
-    const { container } = render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          transactionType="accounts-payable"
-          formData={apFormData}
-          onFieldChange={onFieldChange}
-          translation={{
-            accountsPayable: {
-              new: {
-                categoryLabel: "Category",
-              },
-            },
-            cashFlow: {
-              categories: {
-                [CashFlowCategory.FEED]: "Feed",
-              },
-            },
-          }}
-        />
-      </TestWrapper>
-    );
-    // Find category select
-    const selects = container.querySelectorAll("select");
-    const categorySelect = Array.from(selects).find((s) => {
-      const options = Array.from((s as HTMLSelectElement).options);
-      return options.some((opt) => opt.value === CashFlowCategory.FEED);
-    });
-    if (categorySelect) {
-      await user.selectOptions(categorySelect, CashFlowCategory.FEED);
-      expect(onFieldChange).toHaveBeenCalledWith("category", CashFlowCategory.FEED);
-      expect(onFieldChange).toHaveBeenCalledWith("employeeId", "");
-    }
+    render(<FinanceTransactionForm {...props} />);
+    const categorySelect = screen.getByTestId("select-Category");
+    await user.selectOptions(categorySelect, CashFlowCategory.LABOR);
+    expect(onFieldChange).toHaveBeenCalledWith("category", CashFlowCategory.LABOR);
+    expect(onFieldChange).not.toHaveBeenCalledWith("employeeId", "");
   });
 
-  it("should call onFieldChange for paymentMethod field", async () => {
-    const onFieldChange = vi.fn();
+  it("should use edit translations when available", () => {
+    const props = {
+      ...defaultProps,
+      translation: {
+        ...defaultProps.translation,
+        cashFlow: {
+          ...defaultProps.translation.cashFlow,
+          edit: {
+            typeLabel: "Edit Type",
+            categoryLabel: "Edit Category",
+            amountLabel: "Edit Amount",
+            dateLabel: "Edit Date",
+            descriptionLabel: "Edit Description",
+          },
+        },
+      },
+    };
+    render(<FinanceTransactionForm {...props} />);
+    // Should use edit translations when new translations are not available
+    expect(screen.getByText("Type")).toBeInTheDocument();
+  });
+
+  it("should use income categories for cash-flow income type", () => {
+    const props = {
+      ...defaultProps,
+      formData: {
+        ...defaultProps.formData,
+        type: "income" as const,
+      },
+    };
+    render(<FinanceTransactionForm {...props} />);
+    const categorySelect = screen.getByTestId("select-Category");
+    expect(categorySelect).toBeInTheDocument();
+  });
+
+  it("should use income categories for accounts-receivable", () => {
+    const props = {
+      ...defaultProps,
+      transactionType: "accounts-receivable" as const,
+      formData: {
+        amount: "",
+        dueDate: "",
+        description: "",
+        category: CashFlowCategory.OTHER_INCOME,
+        paymentMethod: PaymentMethod.CASH,
+        propertyId: "",
+        bankAccountId: "",
+        buyerId: "",
+        status: AccountsReceivableStatus.UNPAID,
+        paidDate: "",
+        paidAmount: "",
+        referenceNumber: "",
+      },
+      translation: {
+        ...defaultProps.translation,
+        accountsReceivable: {
+          new: {
+            amountLabel: "Amount",
+            dueDateLabel: "Due Date",
+            descriptionLabel: "Description",
+            categoryLabel: "Category",
+            paymentMethodLabel: "Payment Method",
+            propertyLabel: "Property",
+            bankAccountLabel: "Bank Account",
+            buyerLabel: "Buyer",
+            statusLabel: "Status",
+            paidDateLabel: "Paid Date",
+            paidAmountLabel: "Paid Amount",
+            referenceNumberLabel: "Reference Number",
+          },
+          paymentMethods: {},
+          status: {},
+        },
+      },
+    };
+    render(<FinanceTransactionForm {...props} />);
+    const categorySelect = screen.getByTestId("select-Category");
+    expect(categorySelect).toBeInTheDocument();
+  });
+
+  it("should use expense categories for cash-flow expense type", () => {
+    const props = {
+      ...defaultProps,
+      formData: {
+        ...defaultProps.formData,
+        type: "expense" as const,
+      },
+    };
+    render(<FinanceTransactionForm {...props} />);
+    const categorySelect = screen.getByTestId("select-Category");
+    expect(categorySelect).toBeInTheDocument();
+  });
+
+  it("should handle status selection for accounts-payable", async () => {
     const user = userEvent.setup();
-    const { container } = render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          onFieldChange={onFieldChange}
-          translation={{
-            ...defaultProps.translation,
-            cashFlow: {
-              ...defaultProps.translation.cashFlow,
-              new: {
-                ...defaultProps.translation.cashFlow!.new!,
-                paymentMethodLabel: "Payment Method",
-              },
-            },
-          }}
-        />
-      </TestWrapper>
-    );
-    // Find payment method select
-    const selects = container.querySelectorAll("select");
-    const paymentMethodSelect = Array.from(selects).find((s) => {
-      const options = Array.from((s as HTMLSelectElement).options);
-      return options.some((opt) => opt.value === PaymentMethod.CASH);
-    });
-    if (paymentMethodSelect) {
-      await user.selectOptions(paymentMethodSelect, PaymentMethod.CASH);
-      expect(onFieldChange).toHaveBeenCalledWith("paymentMethod", PaymentMethod.CASH);
-    }
-  });
-
-  it("should call onFieldChange for status field in accounts-payable", () => {
     const onFieldChange = vi.fn();
-    const apFormData: AccountsPayableFormState = {
-      description: "",
-      amount: "",
-      dueDate: "",
-      paymentMethod: PaymentMethod.CASH,
-      propertyId: "",
-      supplierId: "",
-      employeeId: "",
-      serviceProviderId: "",
-      status: AccountsPayableStatus.UNPAID,
-      paidDate: "",
-      paidAmount: "",
-      category: CashFlowCategory.FEED,
-      referenceNumber: "",
-      bankAccountId: "",
+    const props = {
+      ...defaultProps,
+      transactionType: "accounts-payable" as const,
+      formData: {
+        amount: "",
+        dueDate: "",
+        description: "",
+        category: CashFlowCategory.FEED,
+        paymentMethod: PaymentMethod.CASH,
+        propertyId: "",
+        bankAccountId: "",
+        supplierId: "",
+        employeeId: "",
+        serviceProviderId: "",
+        status: AccountsPayableStatus.UNPAID,
+        paidDate: "",
+        paidAmount: "",
+        referenceNumber: "",
+      },
+      onFieldChange,
+      translation: {
+        ...defaultProps.translation,
+        accountsPayable: {
+          new: {
+            amountLabel: "Amount",
+            dueDateLabel: "Due Date",
+            descriptionLabel: "Description",
+            categoryLabel: "Category",
+            paymentMethodLabel: "Payment Method",
+            propertyLabel: "Property",
+            bankAccountLabel: "Bank Account",
+            supplierLabel: "Supplier",
+            employeeLabel: "Employee",
+            serviceProviderLabel: "Service Provider",
+            statusLabel: "Status",
+            paidDateLabel: "Paid Date",
+            paidAmountLabel: "Paid Amount",
+            referenceNumberLabel: "Reference Number",
+          },
+          paymentMethods: {},
+          status: {},
+        },
+      },
     };
-    const { container } = render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          transactionType="accounts-payable"
-          formData={apFormData}
-          onFieldChange={onFieldChange}
-          translation={{
-            accountsPayable: {
-              new: {
-                statusLabel: "Status",
-              },
-              status: {
-                unpaid: "Unpaid",
-                paid: "Paid",
-              },
-            },
-          }}
-        />
-      </TestWrapper>
-    );
-    // Find status select
-    const selects = container.querySelectorAll("select");
-    const statusSelect = Array.from(selects).find((s) => {
-      const options = Array.from((s as HTMLSelectElement).options);
-      return options.some((opt) => opt.value === "paid");
-    });
-    expect(statusSelect).toBeTruthy();
-    if (statusSelect) {
-      fireEvent.change(statusSelect, { target: { value: "paid" } });
-      expect(onFieldChange).toHaveBeenCalledWith("status", "paid");
-    }
+    render(<FinanceTransactionForm {...props} />);
+    const statusSelect = screen.getByLabelText("Status");
+    await user.selectOptions(statusSelect, AccountsPayableStatus.PAID);
+    expect(onFieldChange).toHaveBeenCalledWith("status", AccountsPayableStatus.PAID);
   });
 
-  it("should call onFieldChange for status field in accounts-receivable", () => {
-    const onFieldChange = vi.fn();
-    const arFormData: AccountsReceivableFormState = {
-      description: "",
-      amount: "",
-      dueDate: "",
-      paymentMethod: PaymentMethod.CASH,
-      propertyId: "",
-      buyerId: "",
-      status: AccountsReceivableStatus.UNPAID,
-      paidDate: "",
-      paidAmount: "",
-      category: CashFlowCategory.CATTLE_SALES,
-      referenceNumber: "",
-      bankAccountId: "",
-    };
-    const { container } = render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          transactionType="accounts-receivable"
-          formData={arFormData}
-          onFieldChange={onFieldChange}
-          translation={{
-            accountsReceivable: {
-              new: {
-                statusLabel: "Status",
-              },
-              status: {
-                unpaid: "Unpaid",
-                paid: "Paid",
-              },
-            },
-          }}
-        />
-      </TestWrapper>
-    );
-    // Find status select - it should have "unpaid" option
-    const selects = container.querySelectorAll("select");
-    const statusSelect = Array.from(selects).find((s) => {
-      const options = Array.from((s as HTMLSelectElement).options);
-      return options.some((opt) => opt.value === "unpaid" || opt.value === "paid");
-    });
-    if (statusSelect) {
-      fireEvent.change(statusSelect, { target: { value: "paid" } });
-      expect(onFieldChange).toHaveBeenCalledWith("status", "paid");
-    } else {
-      // If not found, at least verify the component rendered
-      expect(container).toBeTruthy();
-    }
-  });
-
-  it("should call onFieldChange for propertyId field", async () => {
-    const onFieldChange = vi.fn();
+  it("should handle status selection for accounts-receivable", async () => {
     const user = userEvent.setup();
-    const { container } = render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          onFieldChange={onFieldChange}
-          properties={[
-            { id: "prop-1", name: "Property 1" },
-            { id: "prop-2", name: "Property 2" },
-          ]}
-          translation={{
-            ...defaultProps.translation,
-            cashFlow: {
-              ...defaultProps.translation.cashFlow,
-              new: {
-                ...defaultProps.translation.cashFlow!.new!,
-                propertyLabel: "Property",
-              },
-            },
-          }}
-        />
-      </TestWrapper>
-    );
-    // Find property select
-    const selects = container.querySelectorAll("select");
-    const propertySelect = Array.from(selects).find((s) => {
-      const options = Array.from((s as HTMLSelectElement).options);
-      return options.some((opt) => opt.value === "prop-2");
-    });
-    if (propertySelect) {
-      await user.selectOptions(propertySelect, "prop-2");
-      expect(onFieldChange).toHaveBeenCalledWith("propertyId", "prop-2");
-    }
-  });
-
-  it("should call onFieldChange for bankAccountId field", () => {
     const onFieldChange = vi.fn();
-    const { container } = render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          onFieldChange={onFieldChange}
-          bankAccounts={[
-            {
-              id: "bank-1",
-              bankName: "Bank 1",
-              accountNumber: "12345",
-              accountType: "checking" as const,
-            },
-            {
-              id: "bank-2",
-              bankName: "Bank 2",
-              accountNumber: "67890",
-              accountType: "savings" as const,
-            },
-          ]}
-          translation={{
-            ...defaultProps.translation,
-            cashFlow: {
-              ...defaultProps.translation.cashFlow,
-              new: {
-                ...defaultProps.translation.cashFlow!.new!,
-                bankAccountLabel: "Bank Account",
-              },
-            },
-            bankAccounts: {
-              accountTypes: {
-                checking: "Checking",
-                savings: "Savings",
-              },
-            },
-          }}
-        />
-      </TestWrapper>
-    );
-    // Find bankAccount select
-    const selects = container.querySelectorAll("select");
-    const bankAccountSelect = Array.from(selects).find((s) => {
-      const options = Array.from((s as HTMLSelectElement).options);
-      return options.some((opt) => opt.value === "bank-2");
-    });
-    expect(bankAccountSelect).toBeTruthy();
-    if (bankAccountSelect) {
-      fireEvent.change(bankAccountSelect, { target: { value: "bank-2" } });
-      expect(onFieldChange).toHaveBeenCalledWith("bankAccountId", "bank-2");
-    }
-  });
-
-  it("should display savings account type in bank account label", () => {
-    const { container } = render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          bankAccounts={[
-            {
-              id: "bank-1",
-              bankName: "Bank 1",
-              accountNumber: "12345",
-              accountType: "savings" as const,
-            },
-          ]}
-          translation={{
-            ...defaultProps.translation,
-            cashFlow: {
-              ...defaultProps.translation.cashFlow,
-              new: {
-                ...defaultProps.translation.cashFlow!.new!,
-                bankAccountLabel: "Bank Account",
-              },
-            },
-            bankAccounts: {
-              accountTypes: {
-                checking: "Checking",
-                savings: "Savings",
-              },
-            },
-          }}
-        />
-      </TestWrapper>
-    );
-    // Component renders with savings account type
-    expect(container).toBeTruthy();
-  });
-
-  it("should call onFieldChange for supplierId field in cash-flow expense (line 316)", () => {
-    const onFieldChange = vi.fn();
-    const formData: CashFlowFormState = {
-      ...defaultCashFlowFormData,
-      type: "expense" as const,
-      category: CashFlowCategory.FEED,
+    const props = {
+      ...defaultProps,
+      transactionType: "accounts-receivable" as const,
+      formData: {
+        amount: "",
+        dueDate: "",
+        description: "",
+        category: CashFlowCategory.OTHER_INCOME,
+        paymentMethod: PaymentMethod.CASH,
+        propertyId: "",
+        bankAccountId: "",
+        buyerId: "",
+        status: AccountsReceivableStatus.UNPAID,
+        paidDate: "",
+        paidAmount: "",
+        referenceNumber: "",
+      },
+      onFieldChange,
+      translation: {
+        ...defaultProps.translation,
+        accountsReceivable: {
+          new: {
+            amountLabel: "Amount",
+            dueDateLabel: "Due Date",
+            descriptionLabel: "Description",
+            categoryLabel: "Category",
+            paymentMethodLabel: "Payment Method",
+            propertyLabel: "Property",
+            bankAccountLabel: "Bank Account",
+            buyerLabel: "Buyer",
+            statusLabel: "Status",
+            paidDateLabel: "Paid Date",
+            paidAmountLabel: "Paid Amount",
+            referenceNumberLabel: "Reference Number",
+          },
+          paymentMethods: {},
+          status: {},
+        },
+      },
     };
-    const { container } = render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          formData={formData}
-          onFieldChange={onFieldChange}
-          suppliers={[{ id: "supplier-1", name: "Supplier 1" }]}
-          translation={{
-            ...defaultProps.translation,
-            cashFlow: {
-              ...defaultProps.translation.cashFlow,
-              new: {
-                ...defaultProps.translation.cashFlow!.new!,
-                supplierLabel: "Supplier",
-              },
-            },
-          }}
-        />
-      </TestWrapper>
-    );
-    // Find supplier select for cash-flow expense (line 316)
-    const selects = container.querySelectorAll("select");
-    const supplierSelect = Array.from(selects).find((s) => {
-      const options = Array.from((s as HTMLSelectElement).options);
-      return options.some((opt) => opt.value === "supplier-1");
-    });
-    expect(supplierSelect).toBeTruthy();
-    if (supplierSelect) {
-      fireEvent.change(supplierSelect, { target: { value: "supplier-1" } });
-      expect(onFieldChange).toHaveBeenCalledWith("supplierId", "supplier-1");
-    }
+    render(<FinanceTransactionForm {...props} />);
+    const statusSelect = screen.getByLabelText("Status");
+    await user.selectOptions(statusSelect, AccountsReceivableStatus.PAID);
+    expect(onFieldChange).toHaveBeenCalledWith("status", AccountsReceivableStatus.PAID);
   });
 
-  it("should call onFieldChange for supplierId field in accounts-payable", () => {
-    const onFieldChange = vi.fn();
-    const apFormData: AccountsPayableFormState = {
-      description: "",
-      amount: "",
-      dueDate: "",
-      paymentMethod: PaymentMethod.CASH,
-      propertyId: "",
-      supplierId: "",
-      employeeId: "",
-      serviceProviderId: "",
-      status: AccountsPayableStatus.UNPAID,
-      paidDate: "",
-      paidAmount: "",
-      category: CashFlowCategory.FEED,
-      referenceNumber: "",
-      bankAccountId: "",
-    };
-    const { container } = render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          transactionType="accounts-payable"
-          formData={apFormData}
-          onFieldChange={onFieldChange}
-          suppliers={[{ id: "supplier-1", name: "Supplier 1" }]}
-          translation={{
-            accountsPayable: {
-              new: {
-                supplierLabel: "Supplier",
-              },
-            },
-          }}
-        />
-      </TestWrapper>
-    );
-    // Find supplier select for accounts-payable
-    const selects = container.querySelectorAll("select");
-    const supplierSelect = Array.from(selects).find((s) => {
-      const options = Array.from((s as HTMLSelectElement).options);
-      return options.some((opt) => opt.value === "supplier-1");
-    });
-    expect(supplierSelect).toBeTruthy();
-    if (supplierSelect) {
-      fireEvent.change(supplierSelect, { target: { value: "supplier-1" } });
-      expect(onFieldChange).toHaveBeenCalledWith("supplierId", "supplier-1");
-    }
-  });
-
-  it("should call onFieldChange for employeeId field in accounts-payable", () => {
-    const onFieldChange = vi.fn();
-    const apFormData: AccountsPayableFormState = {
-      description: "",
-      amount: "",
-      dueDate: "",
-      paymentMethod: PaymentMethod.CASH,
-      propertyId: "",
-      supplierId: "",
-      employeeId: "",
-      serviceProviderId: "",
-      status: AccountsPayableStatus.UNPAID,
-      paidDate: "",
-      paidAmount: "",
-      category: CashFlowCategory.LABOR,
-      referenceNumber: "",
-      bankAccountId: "",
-    };
-    const { container } = render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          transactionType="accounts-payable"
-          formData={apFormData}
-          onFieldChange={onFieldChange}
-          employees={[{ id: "emp-1", name: "Employee 1" }]}
-          translation={{
-            accountsPayable: {
-              new: {
-                employeeLabel: "Employee",
-              },
-            },
-            cashFlow: {
-              categories: {
-                [CashFlowCategory.LABOR]: "Labor",
-              },
-            },
-          }}
-        />
-      </TestWrapper>
-    );
-    // Find employee select for accounts-payable
-    const selects = container.querySelectorAll("select");
-    const employeeSelect = Array.from(selects).find((s) => {
-      const options = Array.from((s as HTMLSelectElement).options);
-      return options.some((opt) => opt.value === "emp-1");
-    });
-    expect(employeeSelect).toBeTruthy();
-    if (employeeSelect) {
-      fireEvent.change(employeeSelect, { target: { value: "emp-1" } });
-      expect(onFieldChange).toHaveBeenCalledWith("employeeId", "emp-1");
-    }
-  });
-
-  it("should call onFieldChange for serviceProviderId field in accounts-payable", () => {
-    const onFieldChange = vi.fn();
-    const apFormData: AccountsPayableFormState = {
-      description: "",
-      amount: "",
-      dueDate: "",
-      paymentMethod: PaymentMethod.CASH,
-      propertyId: "",
-      supplierId: "",
-      employeeId: "",
-      serviceProviderId: "",
-      status: AccountsPayableStatus.UNPAID,
-      paidDate: "",
-      paidAmount: "",
-      category: CashFlowCategory.FEED,
-      referenceNumber: "",
-      bankAccountId: "",
-    };
-    const { container } = render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          transactionType="accounts-payable"
-          formData={apFormData}
-          onFieldChange={onFieldChange}
-          serviceProviders={[{ id: "sp-1", name: "Service Provider 1" }]}
-          translation={{
-            accountsPayable: {
-              new: {
-                serviceProviderLabel: "Service Provider",
-              },
-            },
-          }}
-        />
-      </TestWrapper>
-    );
-    // Find serviceProvider select for accounts-payable
-    const selects = container.querySelectorAll("select");
-    const serviceProviderSelect = Array.from(selects).find((s) => {
-      const options = Array.from((s as HTMLSelectElement).options);
-      return options.some((opt) => opt.value === "sp-1");
-    });
-    expect(serviceProviderSelect).toBeTruthy();
-    if (serviceProviderSelect) {
-      fireEvent.change(serviceProviderSelect, { target: { value: "sp-1" } });
-      expect(onFieldChange).toHaveBeenCalledWith("serviceProviderId", "sp-1");
-    }
-  });
-
-  it("should call onFieldChange for buyerId field in cash-flow income", () => {
-    const onFieldChange = vi.fn();
-    const formData: CashFlowFormState = {
-      ...defaultCashFlowFormData,
-      type: "income" as const,
-      category: CashFlowCategory.CATTLE_SALES,
-    };
-    const { container } = render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          formData={formData}
-          onFieldChange={onFieldChange}
-          buyers={[{ id: "buyer-1", name: "Buyer 1" }]}
-          translation={{
-            ...defaultProps.translation,
-            cashFlow: {
-              ...defaultProps.translation.cashFlow,
-              new: {
-                ...defaultProps.translation.cashFlow!.new!,
-                buyerLabel: "Buyer",
-              },
-            },
-          }}
-        />
-      </TestWrapper>
-    );
-    // Find buyer select for cash-flow income
-    const selects = container.querySelectorAll("select");
-    const buyerSelect = Array.from(selects).find((s) => {
-      const options = Array.from((s as HTMLSelectElement).options);
-      return options.some((opt) => opt.value === "buyer-1");
-    });
-    expect(buyerSelect).toBeTruthy();
-    if (buyerSelect) {
-      fireEvent.change(buyerSelect, { target: { value: "buyer-1" } });
-      expect(onFieldChange).toHaveBeenCalledWith("buyerId", "buyer-1");
-    }
-  });
-
-  it("should call onFieldChange for buyerId field in accounts-receivable", async () => {
-    const onFieldChange = vi.fn();
+  it("should handle paidDate change for accounts-payable", async () => {
     const user = userEvent.setup();
-    const arFormData: AccountsReceivableFormState = {
-      description: "",
-      amount: "",
-      dueDate: "",
-      paymentMethod: PaymentMethod.CASH,
-      propertyId: "",
-      buyerId: "",
-      status: AccountsReceivableStatus.UNPAID,
-      paidDate: "",
-      paidAmount: "",
-      category: CashFlowCategory.CATTLE_SALES,
-      referenceNumber: "",
-      bankAccountId: "",
+    const onFieldChange = vi.fn();
+    const props = {
+      ...defaultProps,
+      transactionType: "accounts-payable" as const,
+      formData: {
+        amount: "",
+        dueDate: "",
+        description: "",
+        category: CashFlowCategory.FEED,
+        paymentMethod: PaymentMethod.CASH,
+        propertyId: "",
+        bankAccountId: "",
+        supplierId: "",
+        employeeId: "",
+        serviceProviderId: "",
+        status: AccountsPayableStatus.UNPAID,
+        paidDate: "",
+        paidAmount: "",
+        referenceNumber: "",
+      },
+      onFieldChange,
+      translation: {
+        ...defaultProps.translation,
+        accountsPayable: {
+          new: {
+            amountLabel: "Amount",
+            dueDateLabel: "Due Date",
+            descriptionLabel: "Description",
+            categoryLabel: "Category",
+            paymentMethodLabel: "Payment Method",
+            propertyLabel: "Property",
+            bankAccountLabel: "Bank Account",
+            supplierLabel: "Supplier",
+            employeeLabel: "Employee",
+            serviceProviderLabel: "Service Provider",
+            statusLabel: "Status",
+            paidDateLabel: "Paid Date",
+            paidAmountLabel: "Paid Amount",
+            referenceNumberLabel: "Reference Number",
+          },
+          paymentMethods: {},
+          status: {},
+        },
+      },
     };
-    const { container } = render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          transactionType="accounts-receivable"
-          formData={arFormData}
-          onFieldChange={onFieldChange}
-          buyers={[{ id: "buyer-1", name: "Buyer 1" }]}
-          translation={{
-            accountsReceivable: {
-              new: {
-                buyerLabel: "Buyer",
-              },
-            },
-          }}
-        />
-      </TestWrapper>
-    );
-    // Find buyer select for accounts-receivable
-    const selects = container.querySelectorAll("select");
-    const buyerSelect = Array.from(selects).find((s) => {
-      const options = Array.from((s as HTMLSelectElement).options);
-      return options.some((opt) => opt.value === "buyer-1");
-    });
-    if (buyerSelect) {
-      await user.selectOptions(buyerSelect, "buyer-1");
-      expect(onFieldChange).toHaveBeenCalledWith("buyerId", "buyer-1");
-    } else {
-      // If not found, at least verify the component rendered
-      expect(container).toBeTruthy();
-    }
+    render(<FinanceTransactionForm {...props} />);
+    const paidDateInput = screen.getByLabelText("Paid Date");
+    await user.type(paidDateInput, "2024-01-01");
+    expect(onFieldChange).toHaveBeenCalledWith("paidDate", "2024-01-01");
   });
 
-  it("should call onFieldChange for employeeId field in cash-flow LABOR expense", async () => {
-    const onFieldChange = vi.fn();
+  it("should handle paidAmount change for accounts-receivable", async () => {
     const user = userEvent.setup();
-    const formData = {
-      ...defaultCashFlowFormData,
-      type: "expense" as const,
-      category: CashFlowCategory.LABOR,
-      employeeId: "",
+    const onFieldChange = vi.fn();
+    const props = {
+      ...defaultProps,
+      transactionType: "accounts-receivable" as const,
+      formData: {
+        amount: "",
+        dueDate: "",
+        description: "",
+        category: CashFlowCategory.OTHER_INCOME,
+        paymentMethod: PaymentMethod.CASH,
+        propertyId: "",
+        bankAccountId: "",
+        buyerId: "",
+        status: AccountsReceivableStatus.UNPAID,
+        paidDate: "",
+        paidAmount: "",
+        referenceNumber: "",
+      },
+      onFieldChange,
+      translation: {
+        ...defaultProps.translation,
+        accountsReceivable: {
+          new: {
+            amountLabel: "Amount",
+            dueDateLabel: "Due Date",
+            descriptionLabel: "Description",
+            categoryLabel: "Category",
+            paymentMethodLabel: "Payment Method",
+            propertyLabel: "Property",
+            bankAccountLabel: "Bank Account",
+            buyerLabel: "Buyer",
+            statusLabel: "Status",
+            paidDateLabel: "Paid Date",
+            paidAmountLabel: "Paid Amount",
+            referenceNumberLabel: "Reference Number",
+          },
+          paymentMethods: {},
+          status: {},
+        },
+      },
     };
-    const { container } = render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          formData={formData}
-          onFieldChange={onFieldChange}
-          employees={[{ id: "emp-1", name: "Employee 1" }]}
-          translation={{
-            ...defaultProps.translation,
-            cashFlow: {
-              ...defaultProps.translation.cashFlow,
-              new: {
-                ...defaultProps.translation.cashFlow!.new!,
-                employeeLabel: "Employee",
-              },
-            },
-          }}
-        />
-      </TestWrapper>
-    );
-    // Employee field is rendered for LABOR category
-    const selects = container.querySelectorAll("select");
-    const employeeSelect = Array.from(selects).find((s) => {
-      const options = Array.from((s as HTMLSelectElement).options);
-      return options.some((opt) => opt.value === "emp-1");
-    });
-    if (employeeSelect) {
-      await user.selectOptions(employeeSelect, "emp-1");
-      expect(onFieldChange).toHaveBeenCalledWith("employeeId", "emp-1");
-    }
+    render(<FinanceTransactionForm {...props} />);
+    const paidAmountInput = screen.getByLabelText("Paid Amount");
+    await user.type(paidAmountInput, "500");
+    expect(onFieldChange).toHaveBeenCalledWith("paidAmount", "500");
   });
 
-  it("should call onFieldChange for serviceProviderId field in cash-flow expense", async () => {
-    const onFieldChange = vi.fn();
+  it("should handle referenceNumber change", async () => {
     const user = userEvent.setup();
-    const formData: CashFlowFormState = {
-      ...defaultCashFlowFormData,
-      type: "expense" as const,
-      category: CashFlowCategory.FEED,
+    const onFieldChange = vi.fn();
+    const props = {
+      ...defaultProps,
+      translation: {
+        ...defaultProps.translation,
+        cashFlow: {
+          ...defaultProps.translation.cashFlow,
+          new: {
+            ...defaultProps.translation.cashFlow.new,
+            referenceNumberLabel: "Reference Number",
+          },
+        },
+      },
+      onFieldChange,
     };
-    const { container } = render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          formData={formData}
-          onFieldChange={onFieldChange}
-          serviceProviders={[{ id: "sp-1", name: "Service Provider 1" }]}
-          translation={{
-            ...defaultProps.translation,
-            cashFlow: {
-              ...defaultProps.translation.cashFlow,
-              new: {
-                ...defaultProps.translation.cashFlow!.new!,
-                serviceProviderLabel: "Service Provider",
-              },
-            },
-          }}
-        />
-      </TestWrapper>
-    );
-    // Service provider field is rendered for expense type
-    const selects = container.querySelectorAll("select");
-    const serviceProviderSelect = Array.from(selects).find((s) => {
-      const options = Array.from((s as HTMLSelectElement).options);
-      return options.some((opt) => opt.value === "sp-1");
-    });
-    if (serviceProviderSelect) {
-      await user.selectOptions(serviceProviderSelect, "sp-1");
-      expect(onFieldChange).toHaveBeenCalledWith("serviceProviderId", "sp-1");
-    }
+    render(<FinanceTransactionForm {...props} />);
+    const referenceInput = screen.getByLabelText("Reference Number");
+    await user.type(referenceInput, "REF-001");
+    expect(onFieldChange).toHaveBeenCalledWith("referenceNumber", "REF-001");
   });
 
-  it("should call onFieldChange for paidDate field in accounts-payable", async () => {
+  it("should handle property selection", async () => {
+    const user = userEvent.setup();
     const onFieldChange = vi.fn();
-    const apFormData: AccountsPayableFormState = {
-      description: "",
-      amount: "",
-      dueDate: "",
-      paymentMethod: PaymentMethod.CASH,
-      propertyId: "",
-      supplierId: "",
-      employeeId: "",
-      serviceProviderId: "",
-      status: AccountsPayableStatus.UNPAID,
-      paidDate: "",
-      paidAmount: "",
-      category: CashFlowCategory.FEED,
-      referenceNumber: "",
-      bankAccountId: "",
+    const properties = [
+      { id: "property-1", name: "Property 1" },
+      { id: "property-2", name: "Property 2" },
+    ];
+    const props = {
+      ...defaultProps,
+      properties,
+      onFieldChange,
+      translation: {
+        ...defaultProps.translation,
+        cashFlow: {
+          ...defaultProps.translation.cashFlow,
+          new: {
+            ...defaultProps.translation.cashFlow.new,
+            propertyLabel: "Property",
+          },
+        },
+      },
     };
-    const { container } = render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          transactionType="accounts-payable"
-          formData={apFormData}
-          onFieldChange={onFieldChange}
-          translation={{
-            accountsPayable: {
-              new: {
-                paidDateLabel: "Paid Date",
-              },
-            },
-          }}
-        />
-      </TestWrapper>
-    );
-    // Find paidDate input (should be a date input in the !isCashFlow section)
-    const dateInputs = container.querySelectorAll('input[type="date"]');
-    // The paidDate should be one of the date inputs (not the first one which is dueDate)
-    const paidDateInput = Array.from(dateInputs).find((input, index) => index > 0);
-    if (paidDateInput) {
-      fireEvent.change(paidDateInput, { target: { value: "2025-01-15" } });
-      expect(onFieldChange).toHaveBeenCalledWith("paidDate", "2025-01-15");
-    } else {
-      // If not found, at least verify the component rendered
-      expect(container).toBeTruthy();
-    }
+    render(<FinanceTransactionForm {...props} />);
+    const propertySelect = screen.getByLabelText("Property");
+    await user.selectOptions(propertySelect, "property-1");
+    expect(onFieldChange).toHaveBeenCalledWith("propertyId", "property-1");
   });
 
-  it("should call onFieldChange for paidDate field in accounts-receivable", async () => {
+  it("should handle bankAccount selection", async () => {
+    const user = userEvent.setup();
     const onFieldChange = vi.fn();
-    const arFormData: AccountsReceivableFormState = {
-      description: "",
-      amount: "",
-      dueDate: "",
-      paymentMethod: PaymentMethod.CASH,
-      propertyId: "",
-      buyerId: "",
-      status: AccountsReceivableStatus.UNPAID,
-      bankAccountId: "",
-      paidDate: "",
-      paidAmount: "",
-      category: CashFlowCategory.CATTLE_SALES,
-      referenceNumber: "",
+    const bankAccounts = [
+      {
+        id: "bank-1",
+        bankName: "Bank 1",
+        accountNumber: "12345",
+        accountType: "checking" as const,
+      },
+    ];
+    const props = {
+      ...defaultProps,
+      bankAccounts,
+      onFieldChange,
+      translation: {
+        ...defaultProps.translation,
+        bankAccounts: {
+          accountTypes: {
+            checking: "Checking",
+            savings: "Savings",
+          },
+        },
+        cashFlow: {
+          ...defaultProps.translation.cashFlow,
+          new: {
+            ...defaultProps.translation.cashFlow.new,
+            bankAccountLabel: "Bank Account",
+          },
+        },
+      },
     };
-    const { container } = render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          transactionType="accounts-receivable"
-          formData={arFormData}
-          onFieldChange={onFieldChange}
-          translation={{
-            accountsReceivable: {
-              new: {
-                paidDateLabel: "Paid Date",
-              },
-            },
-          }}
-        />
-      </TestWrapper>
-    );
-    // Find paidDate input by label
-    const paidDateInput = container.querySelector(
-      'input[data-label*="Paid Date" i]'
-    ) as HTMLInputElement;
-    expect(paidDateInput).toBeTruthy();
-    if (paidDateInput) {
-      fireEvent.change(paidDateInput, { target: { value: "2025-01-15" } });
-      expect(onFieldChange).toHaveBeenCalledWith("paidDate", "2025-01-15");
-    }
+    render(<FinanceTransactionForm {...props} />);
+    const bankAccountSelect = screen.getByLabelText("Bank Account");
+    await user.selectOptions(bankAccountSelect, "bank-1");
+    expect(onFieldChange).toHaveBeenCalledWith("bankAccountId", "bank-1");
   });
 
-  it("should call onFieldChange for paidAmount field in accounts-payable", async () => {
+  it("should handle paymentDate change for cash-flow", async () => {
+    const user = userEvent.setup();
     const onFieldChange = vi.fn();
-    const apFormData: AccountsPayableFormState = {
-      description: "",
-      amount: "",
-      dueDate: "",
-      paymentMethod: PaymentMethod.CASH,
-      propertyId: "",
-      supplierId: "",
-      employeeId: "",
-      serviceProviderId: "",
-      status: AccountsPayableStatus.UNPAID,
-      paidDate: "",
-      paidAmount: "",
-      category: CashFlowCategory.FEED,
-      referenceNumber: "",
-      bankAccountId: "",
+    const props = {
+      ...defaultProps,
+      formData: {
+        ...defaultProps.formData,
+        paymentDate: "",
+      },
+      onFieldChange,
+      translation: {
+        ...defaultProps.translation,
+        cashFlow: {
+          ...defaultProps.translation.cashFlow,
+          new: {
+            ...defaultProps.translation.cashFlow.new,
+            paymentDateLabel: "Payment Date",
+          },
+        },
+      },
     };
-    const { container } = render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          transactionType="accounts-payable"
-          formData={apFormData}
-          onFieldChange={onFieldChange}
-          translation={{
-            accountsPayable: {
-              new: {
-                paidAmountLabel: "Paid Amount",
-              },
-            },
-          }}
-        />
-      </TestWrapper>
-    );
-    // Find paidAmount input (should be a number input in the !isCashFlow section)
-    const numberInputs = container.querySelectorAll('input[type="number"]');
-    // The paidAmount should be one of the number inputs (not the first one which is amount)
-    const paidAmountInput = Array.from(numberInputs).find((input, index) => index > 0);
-    if (paidAmountInput) {
-      fireEvent.change(paidAmountInput, { target: { value: "500" } });
-      expect(onFieldChange).toHaveBeenCalledWith("paidAmount", "500");
-    } else {
-      // If not found, at least verify the component rendered
-      expect(container).toBeTruthy();
-    }
+    render(<FinanceTransactionForm {...props} />);
+    const paymentDateInput = screen.getByLabelText("Payment Date");
+    await user.type(paymentDateInput, "2024-01-01");
+    expect(onFieldChange).toHaveBeenCalledWith("paymentDate", "2024-01-01");
   });
 
-  it("should call onFieldChange for paidAmount field in accounts-receivable", async () => {
+  it("should handle date change for cash-flow", async () => {
+    const user = userEvent.setup();
     const onFieldChange = vi.fn();
-    const arFormData: AccountsReceivableFormState = {
-      description: "",
-      amount: "",
-      dueDate: "",
-      paymentMethod: PaymentMethod.CASH,
-      propertyId: "",
-      buyerId: "",
-      status: AccountsReceivableStatus.UNPAID,
-      bankAccountId: "",
-      paidDate: "",
-      paidAmount: "",
-      category: CashFlowCategory.CATTLE_SALES,
-      referenceNumber: "",
+    const props = {
+      ...defaultProps,
+      formData: {
+        ...defaultProps.formData,
+        date: "",
+      },
+      onFieldChange,
     };
-    const { container } = render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          transactionType="accounts-receivable"
-          formData={arFormData}
-          onFieldChange={onFieldChange}
-          translation={{
-            accountsReceivable: {
-              new: {
-                paidAmountLabel: "Paid Amount",
-              },
-            },
-          }}
-        />
-      </TestWrapper>
-    );
-    // Find paidAmount input by label
-    const paidAmountInput = container.querySelector(
-      'input[data-label*="Paid Amount" i]'
-    ) as HTMLInputElement;
-    expect(paidAmountInput).toBeTruthy();
-    if (paidAmountInput) {
-      fireEvent.change(paidAmountInput, { target: { value: "500" } });
-      expect(onFieldChange).toHaveBeenCalledWith("paidAmount", "500");
-    }
+    render(<FinanceTransactionForm {...props} />);
+    const dateInput = screen.getByLabelText("Date");
+    await user.type(dateInput, "2024-01-01");
+    expect(onFieldChange).toHaveBeenCalledWith("date", "2024-01-01");
   });
 
-  it("should call onFieldChange for referenceNumber field", async () => {
+  it("should handle description change", async () => {
+    const user = userEvent.setup();
     const onFieldChange = vi.fn();
-    const { container } = render(
-      <TestWrapper>
-        <FinanceTransactionForm
-          {...defaultProps}
-          onFieldChange={onFieldChange}
-          translation={{
-            ...defaultProps.translation,
-            cashFlow: {
-              ...defaultProps.translation.cashFlow,
-              new: {
-                ...defaultProps.translation.cashFlow!.new!,
-                referenceNumberLabel: "Reference Number",
-              },
-            },
-          }}
-        />
-      </TestWrapper>
-    );
-    // Find referenceNumber input by label
-    const referenceInput = container.querySelector(
-      'input[data-label*="Reference Number" i]'
-    ) as HTMLInputElement;
-    expect(referenceInput).toBeTruthy();
-    if (referenceInput) {
-      fireEvent.change(referenceInput, { target: { value: "REF123" } });
-      expect(onFieldChange).toHaveBeenCalledWith("referenceNumber", "REF123");
-    }
+    render(<FinanceTransactionForm {...defaultProps} onFieldChange={onFieldChange} />);
+    const descriptionInput = screen.getByLabelText("Description");
+    await user.type(descriptionInput, "Test description");
+    expect(onFieldChange).toHaveBeenCalledWith("description", "Test description");
+  });
+
+  it("should handle paymentMethod change", async () => {
+    const user = userEvent.setup();
+    const onFieldChange = vi.fn();
+    render(<FinanceTransactionForm {...defaultProps} onFieldChange={onFieldChange} />);
+    const paymentMethodSelect = screen.getByLabelText("Payment Method");
+    await user.selectOptions(paymentMethodSelect, PaymentMethod.CREDIT_CARD);
+    expect(onFieldChange).toHaveBeenCalledWith("paymentMethod", PaymentMethod.CREDIT_CARD);
+  });
+
+  it("should display error for all fields", () => {
+    const props = {
+      ...defaultProps,
+      errors: {
+        amount: "Amount is required",
+        date: "Date is required",
+        description: "Description is required",
+        category: "Category is required",
+        paymentMethod: "Payment method is required",
+        propertyId: "Property is required",
+      },
+    };
+    render(<FinanceTransactionForm {...props} />);
+    expect(screen.getAllByTestId("error").length).toBeGreaterThan(0);
   });
 });

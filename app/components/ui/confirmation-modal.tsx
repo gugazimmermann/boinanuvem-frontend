@@ -18,6 +18,7 @@ export function ConfirmationModal({
 }: Readonly<ConfirmationModalProps>) {
   const [isProcessing, setIsProcessing] = useState(false);
   const isMountedRef = useRef(true);
+  const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -25,6 +26,21 @@ export function ConfirmationModal({
       isMountedRef.current = false;
     };
   }, []);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    if (isOpen) {
+      if (typeof dialog.showModal === "function") {
+        dialog.showModal();
+      }
+      return;
+    }
+    if (typeof dialog.close === "function") {
+      dialog.close();
+    }
+  }, [isOpen]);
 
   const handleConfirm = async () => {
     setIsProcessing(true);
@@ -86,20 +102,38 @@ export function ConfirmationModal({
   const displayIcon = icon || defaultIcon;
   const isDisabled = isLoading || isProcessing;
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex items-center justify-center min-h-screen px-4 py-4 text-center sm:block sm:p-0">
-        <div
-          className="fixed inset-0 transition-opacity bg-black/5 dark:bg-black/10 backdrop-blur-sm cursor-pointer"
-          onClick={onClose}
-          aria-hidden="true"
-        />
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDialogElement>) => {
+    // Close dialog when clicking on the backdrop (the dialog element itself)
+    if (e.target === dialogRef.current) {
+      onClose();
+    }
+  };
 
+  const handleBackdropKeyDown = (e: React.KeyboardEvent<HTMLDialogElement>) => {
+    // Close dialog when pressing Escape on the backdrop
+    if (e.key === "Escape" && e.target === dialogRef.current) {
+      onClose();
+    }
+  };
+
+  return (
+    <dialog
+      ref={dialogRef}
+      className="fixed inset-0 z-50 overflow-y-auto bg-transparent"
+      onClick={handleBackdropClick}
+      onKeyDown={handleBackdropKeyDown}
+      onClose={onClose}
+    >
+      <div className="flex items-center justify-center min-h-screen px-4 py-4 text-center sm:block sm:p-0">
         <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
           &#8203;
         </span>
 
-        <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-200 dark:border-gray-700 relative z-10">
+        <div
+          className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-200 dark:border-gray-700 relative z-10"
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
           <div className="px-4 pt-5 pb-4 sm:p-6">
             <div className="sm:flex sm:items-start">
               <div
@@ -149,6 +183,6 @@ export function ConfirmationModal({
           </div>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }

@@ -1,42 +1,47 @@
 import type { ServiceProvider, ServiceProviderFormData } from "~/types";
-import { mockServiceProviders } from "~/mocks/service-providers";
-import {
-  findById,
-  findByField,
-  findByFieldIncludes,
-  createEntity,
-  updateEntity,
-  deleteEntity,
-} from "./base-service";
+import { createEntityService } from "./entity-service-factory";
 
-const ID_PREFIX = "880e8400-e29b-41d4-a716";
-const DEFAULT_ID = "880e8400-e29b-41d4-a716-446655440009";
+const serviceProviderService = createEntityService<ServiceProvider, ServiceProviderFormData>({
+  endpoint: "/service-providers",
+  entityName: "prestador de serviço",
+  entityNamePlural: "prestadores de serviço",
+  supportsCNPJ: true,
+});
 
-export function getServiceProviderById(
-  serviceProviderId: string | undefined
-): ServiceProvider | undefined {
-  return findById(mockServiceProviders, serviceProviderId);
+/**
+ * Get all service providers for the current user's company via API
+ */
+export async function getServiceProviders(): Promise<ServiceProvider[]> {
+  return serviceProviderService.getAll();
 }
 
-export function getServiceProvidersByCompanyId(companyId: string): ServiceProvider[] {
-  return findByField(mockServiceProviders, "companyId", companyId);
+/**
+ * Get a single service provider by ID via API
+ */
+export async function getServiceProviderById(serviceProviderId: string): Promise<ServiceProvider> {
+  return serviceProviderService.getById(serviceProviderId);
 }
 
-export function getServiceProvidersByPropertyId(propertyId: string): ServiceProvider[] {
-  return findByFieldIncludes(mockServiceProviders, "propertyIds", propertyId);
+/**
+ * Create a new service provider via API
+ */
+export async function addServiceProvider(data: ServiceProviderFormData): Promise<ServiceProvider> {
+  return serviceProviderService.add(data);
 }
 
-export function addServiceProvider(data: ServiceProviderFormData): ServiceProvider {
-  return createEntity(mockServiceProviders, data, ID_PREFIX, DEFAULT_ID);
-}
-
-export function updateServiceProvider(
+/**
+ * Update a service provider via API
+ */
+export async function updateServiceProvider(
   serviceProviderId: string,
   data: Partial<ServiceProviderFormData>
-): boolean {
-  return updateEntity(mockServiceProviders, serviceProviderId, data);
+): Promise<ServiceProvider> {
+  return serviceProviderService.update(serviceProviderId, data);
 }
 
-export function deleteServiceProvider(serviceProviderId: string): boolean {
-  return deleteEntity(mockServiceProviders, serviceProviderId);
+/**
+ * Delete a service provider via API
+ */
+export async function deleteServiceProvider(serviceProviderId: string): Promise<void> {
+  return serviceProviderService.remove(serviceProviderId);
 }

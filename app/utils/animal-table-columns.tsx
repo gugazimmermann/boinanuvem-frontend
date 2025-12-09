@@ -1,10 +1,9 @@
 import { differenceInMonths, differenceInDays, format } from "date-fns";
 import type { Locale } from "date-fns";
-import type { Animal, TableColumn, Language } from "~/types";
+import type { Animal, TableColumn, Language, Property } from "~/types";
 import { getBirthByAnimalId } from "~/services/births.service";
 import { getWeighingsByAnimalId } from "~/services/weighings.service";
 import { getBreedingsByAnimalId } from "~/services/breedings.service";
-import { getPropertyById } from "~/services/properties.service";
 import { formatDate } from "~/utils/formatting";
 import type { ReactNode } from "react";
 
@@ -13,6 +12,7 @@ type StatusBadgeVariant = "success" | "default" | "warning";
 export interface AnimalTableColumnsOptions {
   language: Language;
   dateLocale: Locale;
+  propertiesMap?: Map<string, Property>;
   translations: {
     table: {
       registration: string;
@@ -66,6 +66,7 @@ export function createAnimalTableColumns(
   options: AnimalTableColumnsOptions
 ): TableColumn<Animal>[] {
   const {
+    propertiesMap,
     language,
     dateLocale,
     translations,
@@ -310,7 +311,7 @@ export function createAnimalTableColumns(
             label: translations.table.properties,
             sortable: false,
             render: (_: unknown, row: Animal) => {
-              const property = getPropertyById(row.propertyId);
+              const property = propertiesMap?.get(row.propertyId);
               return (
                 <span className="text-gray-700 dark:text-gray-300">
                   {property ? property.name : "-"}

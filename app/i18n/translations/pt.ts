@@ -274,6 +274,7 @@ export const pt = {
     errors: {
       deleteFailed: "Erro ao excluir propriedade. Tente novamente.",
       updateFailed: "Erro ao atualizar propriedade. Tente novamente.",
+      loadFailed: "Erro ao carregar propriedade. Tente novamente.",
     },
     new: {
       title: "Adicionar Propriedade",
@@ -561,6 +562,7 @@ export const pt = {
     errors: {
       deleteFailed: "Erro ao excluir localização. Tente novamente.",
       updateFailed: "Erro ao atualizar localização. Tente novamente.",
+      loadFailed: "Erro ao carregar localização. Tente novamente.",
     },
     new: {
       title: "Adicionar Localização",
@@ -719,6 +721,7 @@ export const pt = {
     errors: {
       deleteFailed: "Erro ao excluir funcionário. Tente novamente.",
       updateFailed: "Erro ao atualizar funcionário. Tente novamente.",
+      loadFailed: "Erro ao carregar funcionário. Tente novamente.",
     },
     new: {
       title: "Adicionar Funcionário",
@@ -853,6 +856,7 @@ export const pt = {
     errors: {
       deleteFailed: "Erro ao excluir prestador de serviço. Tente novamente.",
       updateFailed: "Erro ao atualizar prestador de serviço. Tente novamente.",
+      loadFailed: "Erro ao carregar prestador de serviço. Tente novamente.",
     },
     new: {
       title: "Adicionar Prestador de Serviço",
@@ -992,6 +996,7 @@ export const pt = {
     errors: {
       deleteFailed: "Erro ao excluir fornecedor. Tente novamente.",
       updateFailed: "Erro ao atualizar fornecedor. Tente novamente.",
+      loadFailed: "Erro ao carregar fornecedor. Tente novamente.",
     },
     new: {
       title: "Adicionar Fornecedor",
@@ -1357,6 +1362,7 @@ export const pt = {
     errors: {
       deleteFailed: "Erro ao excluir comprador. Tente novamente.",
       updateFailed: "Erro ao atualizar comprador. Tente novamente.",
+      loadFailed: "Erro ao carregar comprador. Tente novamente.",
     },
     new: {
       title: "Adicionar Comprador",

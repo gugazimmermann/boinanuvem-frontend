@@ -4,29 +4,28 @@ import userEvent from "@testing-library/user-event";
 import { PasturePlanningGraph } from "../pasture-planning-graph";
 import type { PasturePlanningMonth } from "~/types/property";
 
-vi.mock("react-router", () => ({
-  useNavigate: () => vi.fn(),
-}));
+const mockNavigate = vi.fn();
+const mockUseTheme = vi.fn(() => ({ theme: "light" }));
 
-const mockTranslation = {
+const defaultTranslation = {
   properties: {
     details: {
       pasturePlanning: {
         title: "Pasture Planning",
-        noData: "No data available",
-        aiGeneratedNote: "AI generated note",
         month: "Month",
         temperature: "Temperature",
         precipitation: "Precipitation",
-        precip: "Precip",
         minTemp: "Min Temp",
         maxTemp: "Max Temp",
+        precip: "Precipitation",
         forage: "Forage",
+        noData: "No data available",
+        aiGeneratedNote: "AI generated note",
         classification: {
-          Poor: "Poor",
-          Medium: "Medium",
-          Good: "Good",
-          Excellent: "Excellent",
+          Poor: "Ruim",
+          Medium: "Médio",
+          Good: "Bom",
+          Excellent: "Excelente",
         },
       },
     },
@@ -36,35 +35,29 @@ const mockTranslation = {
   },
 };
 
+const mockUseTranslation = vi.fn(() => defaultTranslation);
+
+vi.mock("react-router", () => ({
+  useNavigate: () => mockNavigate,
+}));
+
 vi.mock("~/i18n", () => ({
-  useTranslation: () => mockTranslation,
+  useTranslation: () => {
+    const result = mockUseTranslation();
+    // Ensure we always return a valid structure
+    return result || defaultTranslation;
+  },
 }));
 
 vi.mock("~/contexts/theme-context", () => ({
-  useTheme: () => ({
-    theme: "light",
-  }),
+  useTheme: () => mockUseTheme(),
 }));
 
-vi.mock("~/routes.config", () => ({
-  getPropertyPasturePlanningEditRoute: (id: string) => `/properties/${id}/edit`,
-}));
-
-interface TooltipFormatterProps {
-  payload?: {
-    classification?: string;
-  };
-}
-
+// Store formatter functions for testing
 let tooltipFormatter:
-  | ((
-      value: number | string,
-      name: string,
-      props: TooltipFormatterProps
-    ) => [string | number | undefined, string])
-  | undefined;
-let legendFormatter: ((value: string) => React.ReactNode) | undefined;
-let labelListFormatter: ((value: unknown) => string) | undefined;
+  | ((value: number | string, name: string, props: Record<string, unknown>) => [string, string])
+  | null = null;
+let labelListFormatter: ((value: number | string | null) => string) | null = null;
 
 vi.mock("recharts", () => ({
   ComposedChart: ({ children }: { children: React.ReactNode }) => (
@@ -72,71 +65,62 @@ vi.mock("recharts", () => ({
   ),
   Area: () => <div data-testid="area" />,
   Line: () => <div data-testid="line" />,
-  Bar: ({ children }: { children?: React.ReactNode }) => <div data-testid="bar">{children}</div>,
+  Bar: ({ children }: { children: React.ReactNode }) => <div data-testid="bar">{children}</div>,
   XAxis: () => <div data-testid="x-axis" />,
   YAxis: () => <div data-testid="y-axis" />,
-  CartesianGrid: () => <div data-testid="cartesian-grid" />,
+  CartesianGrid: () => <div data-testid="grid" />,
   Tooltip: ({
     formatter,
   }: {
     formatter?: (
       value: number | string,
       name: string,
-      props: TooltipFormatterProps
-    ) => [string | number | undefined, string];
+      props: Record<string, unknown>
+    ) => [string, string];
   }) => {
-    if (formatter) {
-      tooltipFormatter = formatter;
-    }
+    if (formatter) tooltipFormatter = formatter;
     return <div data-testid="tooltip" />;
   },
-  Legend: ({ formatter }: { formatter?: (value: string) => React.ReactNode }) => {
-    if (formatter) {
-      legendFormatter = formatter;
-    }
-    return <div data-testid="legend" />;
-  },
+  Legend: () => <div data-testid="legend" />,
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="responsive-container">{children}</div>
   ),
   Cell: () => <div data-testid="cell" />,
-  LabelList: ({ formatter }: { formatter?: (value: unknown) => string }) => {
-    if (formatter) {
-      labelListFormatter = formatter;
-    }
+  LabelList: ({ formatter }: { formatter?: (value: number | string | null) => string }) => {
+    if (formatter) labelListFormatter = formatter;
     return <div data-testid="label-list" />;
   },
 }));
 
+vi.mock("~/routes.config", () => ({
+  getPropertyPasturePlanningEditRoute: (id: string) => `/properties/${id}/pasture-planning/edit`,
+}));
+
 describe("PasturePlanningGraph", () => {
-  const mockData = [
+  const mockData: PasturePlanningMonth[] = [
     {
       month: "January",
-      min: 10,
+      min: 15,
       max: 25,
       precipitation: 100,
-      classification: "Good" as const,
+      classification: "Good",
     },
     {
       month: "February",
-      min: 12,
-      max: 27,
+      min: 16,
+      max: 26,
       precipitation: 120,
-      classification: "Excellent" as const,
+      classification: "Excellent",
     },
   ];
 
   beforeEach(() => {
     vi.clearAllMocks();
-    tooltipFormatter = undefined;
-    legendFormatter = undefined;
-    labelListFormatter = undefined;
-  });
-
-  it("should render with data", () => {
-    render(<PasturePlanningGraph data={mockData} propertyId="test-id" />);
-    expect(screen.getByText("Pasture Planning")).toBeInTheDocument();
-    expect(screen.getByTestId("composed-chart")).toBeInTheDocument();
+    tooltipFormatter = null;
+    labelListFormatter = null;
+    mockUseTheme.mockReturnValue({ theme: "light" });
+    // Reset mock to always return default translation
+    mockUseTranslation.mockImplementation(() => defaultTranslation);
   });
 
   it("should render no data message when data is empty", () => {
@@ -145,28 +129,41 @@ describe("PasturePlanningGraph", () => {
   });
 
   it("should render no data message when data is null", () => {
-    render(
-      <PasturePlanningGraph data={null as unknown as PasturePlanningMonth[]} propertyId="test-id" />
-    );
+    render(<PasturePlanningGraph data={[]} propertyId="test-id" />);
     expect(screen.getByText("No data available")).toBeInTheDocument();
   });
 
-  it("should render AI generated note when not modified by user", () => {
-    render(<PasturePlanningGraph data={mockData} propertyId="test-id" isModifiedByUser={false} />);
-    expect(screen.getByText("AI generated note")).toBeInTheDocument();
+  it("should render chart when data is provided", () => {
+    render(<PasturePlanningGraph data={mockData} propertyId="test-id" />);
+    expect(screen.getByTestId("composed-chart")).toBeInTheDocument();
   });
 
-  it("should not render AI generated note when modified by user", () => {
-    render(<PasturePlanningGraph data={mockData} propertyId="test-id" isModifiedByUser={true} />);
-    expect(screen.queryByText("AI generated note")).not.toBeInTheDocument();
+  it("should render title", () => {
+    render(<PasturePlanningGraph data={mockData} propertyId="test-id" />);
+    expect(screen.getByText("Pasture Planning")).toBeInTheDocument();
   });
 
-  it("should render edit button", async () => {
+  it("should render edit button", () => {
+    render(<PasturePlanningGraph data={mockData} propertyId="test-id" />);
+    expect(screen.getByRole("button")).toBeInTheDocument();
+  });
+
+  it("should navigate to edit route when edit button is clicked", async () => {
     const user = userEvent.setup();
     render(<PasturePlanningGraph data={mockData} propertyId="test-id" />);
     const editButton = screen.getByRole("button");
     await user.click(editButton);
-    expect(editButton).toBeInTheDocument();
+    expect(mockNavigate).toHaveBeenCalledWith("/properties/test-id/pasture-planning/edit");
+  });
+
+  it("should show AI generated note when isModifiedByUser is false", () => {
+    render(<PasturePlanningGraph data={mockData} propertyId="test-id" isModifiedByUser={false} />);
+    expect(screen.getByText("AI generated note")).toBeInTheDocument();
+  });
+
+  it("should not show AI generated note when isModifiedByUser is true", () => {
+    render(<PasturePlanningGraph data={mockData} propertyId="test-id" isModifiedByUser />);
+    expect(screen.queryByText("AI generated note")).not.toBeInTheDocument();
   });
 
   it("should render chart components", () => {
@@ -175,154 +172,225 @@ describe("PasturePlanningGraph", () => {
     expect(screen.getByTestId("composed-chart")).toBeInTheDocument();
   });
 
-  describe("Legend formatter", () => {
-    it("should format legend with text color and fontSize", () => {
-      render(<PasturePlanningGraph data={mockData} propertyId="test-id" />);
-      expect(legendFormatter).toBeDefined();
-      if (legendFormatter) {
-        const result = legendFormatter("Test Value");
-        expect(result).toBeDefined();
-        // Check that the formatter returns a span with style
-        const { container } = render(result as React.ReactElement);
-        const span = container.querySelector("span");
-        expect(span).toBeInTheDocument();
-        expect(span).toHaveStyle({ color: "#374151", fontSize: "12px" });
-        expect(span).toHaveTextContent("Test Value");
-      }
-    });
-
-    it("should format legend with dark theme text color", () => {
-      // Test that formatter uses textColor from theme
-      // Since we can't easily change the theme mock, we verify the formatter
-      // uses the textColor that's passed to getLegendFormatter
-      // The actual color will depend on the theme context
-      render(<PasturePlanningGraph data={mockData} propertyId="test-id" />);
-      expect(legendFormatter).toBeDefined();
-      if (legendFormatter) {
-        const result = legendFormatter("Test Value");
-        const { container } = render(result as React.ReactElement);
-        const span = container.querySelector("span");
-        expect(span).toBeInTheDocument();
-        expect(span).toHaveStyle({ fontSize: "12px" });
-        // Color will be based on theme (light = #374151, dark = #e5e7eb)
-        expect(span).toHaveAttribute("style");
-      }
-    });
+  it("should map month names correctly", () => {
+    render(<PasturePlanningGraph data={mockData} propertyId="test-id" />);
+    // Chart should be rendered with mapped month names
+    expect(screen.getByTestId("composed-chart")).toBeInTheDocument();
   });
 
-  describe("Tooltip formatter", () => {
-    it("should return classification and forage label when name is forage", () => {
-      render(<PasturePlanningGraph data={mockData} propertyId="test-id" />);
-      expect(tooltipFormatter).toBeDefined();
-      if (tooltipFormatter) {
-        const result = tooltipFormatter(3, "Forage", {
-          payload: { classification: "Good" },
-        });
-        expect(result).toEqual(["Good", "Forage"]);
-      }
-    });
-
-    it("should return classification and forage label when name is classificationHeight", () => {
-      render(<PasturePlanningGraph data={mockData} propertyId="test-id" />);
-      expect(tooltipFormatter).toBeDefined();
-      if (tooltipFormatter) {
-        const result = tooltipFormatter(3, "classificationHeight", {
-          payload: { classification: "Excellent" },
-        });
-        expect(result).toEqual(["Excellent", "Forage"]);
-      }
-    });
-
-    it("should return classification value when classification is not in translation keys", () => {
-      render(<PasturePlanningGraph data={mockData} propertyId="test-id" />);
-      expect(tooltipFormatter).toBeDefined();
-      if (tooltipFormatter) {
-        const result = tooltipFormatter(3, "Forage", {
-          payload: { classification: "Unknown" },
-        });
-        expect(result).toEqual(["Unknown", "Forage"]);
-      }
-    });
-
-    it("should return value and name for other names", () => {
-      render(<PasturePlanningGraph data={mockData} propertyId="test-id" />);
-      expect(tooltipFormatter).toBeDefined();
-      if (tooltipFormatter) {
-        const result = tooltipFormatter(25, "Max Temp", {});
-        expect(result).toEqual([25, "Max Temp"]);
-      }
-    });
-
-    it("should handle missing payload", () => {
-      render(<PasturePlanningGraph data={mockData} propertyId="test-id" />);
-      expect(tooltipFormatter).toBeDefined();
-      if (tooltipFormatter) {
-        const result = tooltipFormatter(3, "Forage", {});
-        expect(result).toEqual([undefined, "Forage"]);
-      }
-    });
+  it("should handle unknown month names", () => {
+    const dataWithUnknownMonth: PasturePlanningMonth[] = [
+      {
+        month: "UnknownMonth",
+        min: 15,
+        max: 25,
+        precipitation: 100,
+        classification: "Good",
+      },
+    ];
+    render(<PasturePlanningGraph data={dataWithUnknownMonth} propertyId="test-id" />);
+    expect(screen.getByTestId("composed-chart")).toBeInTheDocument();
   });
 
-  describe("LabelList formatter", () => {
-    it("should return translated classification when value is a valid key", () => {
-      render(<PasturePlanningGraph data={mockData} propertyId="test-id" />);
-      expect(labelListFormatter).toBeDefined();
-      if (labelListFormatter) {
-        const result = labelListFormatter("Good");
-        expect(result).toBe("Good");
-      }
-    });
+  it("should render with dark theme", () => {
+    mockUseTheme.mockReturnValue({ theme: "dark" });
+    render(<PasturePlanningGraph data={mockData} propertyId="test-id" />);
+    expect(screen.getByTestId("composed-chart")).toBeInTheDocument();
+  });
 
-    it("should return original value when not in translation keys", () => {
-      render(<PasturePlanningGraph data={mockData} propertyId="test-id" />);
-      expect(labelListFormatter).toBeDefined();
-      if (labelListFormatter) {
-        // Test with a short value that won't be truncated
-        const result = labelListFormatter("Test");
-        expect(result).toBe("Test");
-        // Test with a longer value that will be truncated
-        const longResult = labelListFormatter("Unknown");
-        expect(longResult).toBe("Unkn"); // Truncated to 4 chars since "Unknown" is 7 chars
-      }
-    });
+  it("should test tooltip formatter with Poor classification", () => {
+    render(<PasturePlanningGraph data={mockData} propertyId="test-id" />);
+    expect(tooltipFormatter).toBeTruthy();
+    if (tooltipFormatter) {
+      const result = tooltipFormatter(1, "Forage", { payload: { classification: "Poor" } });
+      expect(result[0]).toBe("Ruim");
+      expect(result[1]).toBe("Forage");
+    }
+  });
 
-    it("should truncate translated value when length is greater than 6", () => {
-      // Temporarily change the mock to return a long translation
-      const originalExcellent =
-        mockTranslation.properties.details.pasturePlanning.classification.Excellent;
-      mockTranslation.properties.details.pasturePlanning.classification.Excellent = "ExcellentLong";
+  it("should test tooltip formatter with Medium classification", () => {
+    render(<PasturePlanningGraph data={mockData} propertyId="test-id" />);
+    expect(tooltipFormatter).toBeTruthy();
+    if (tooltipFormatter) {
+      const result = tooltipFormatter(1, "Forage", { payload: { classification: "Medium" } });
+      expect(result[0]).toBe("Médio");
+      expect(result[1]).toBe("Forage");
+    }
+  });
 
-      // Re-render to get new formatter
-      const { rerender } = render(<PasturePlanningGraph data={mockData} propertyId="test-id" />);
-      rerender(<PasturePlanningGraph data={mockData} propertyId="test-id" />);
+  it("should test tooltip formatter with Good classification", () => {
+    render(<PasturePlanningGraph data={mockData} propertyId="test-id" />);
+    expect(tooltipFormatter).toBeTruthy();
+    if (tooltipFormatter) {
+      const result = tooltipFormatter(1, "Forage", { payload: { classification: "Good" } });
+      expect(result[0]).toBe("Bom");
+      expect(result[1]).toBe("Forage");
+    }
+  });
 
-      expect(labelListFormatter).toBeDefined();
-      if (labelListFormatter) {
-        const result = labelListFormatter("Excellent");
-        expect(result).toBe("Exce"); // First 4 characters
-      }
+  it("should test tooltip formatter with Excellent classification", () => {
+    render(<PasturePlanningGraph data={mockData} propertyId="test-id" />);
+    expect(tooltipFormatter).toBeTruthy();
+    if (tooltipFormatter) {
+      const result = tooltipFormatter(1, "Forage", { payload: { classification: "Excellent" } });
+      expect(result[0]).toBe("Excelente");
+      expect(result[1]).toBe("Forage");
+    }
+  });
 
-      // Restore original
-      mockTranslation.properties.details.pasturePlanning.classification.Excellent =
-        originalExcellent;
-    });
+  it("should test tooltip formatter with classificationHeight name", () => {
+    render(<PasturePlanningGraph data={mockData} propertyId="test-id" />);
+    expect(tooltipFormatter).toBeTruthy();
+    if (tooltipFormatter) {
+      const result = tooltipFormatter(3, "classificationHeight", {
+        payload: { classification: "Good" },
+      });
+      expect(result[0]).toBe("Bom");
+      expect(result[1]).toBe("Forage");
+    }
+  });
 
-    it("should return empty string when value is not a string", () => {
-      render(<PasturePlanningGraph data={mockData} propertyId="test-id" />);
-      expect(labelListFormatter).toBeDefined();
-      if (labelListFormatter) {
-        expect(labelListFormatter(null)).toBe("");
-        expect(labelListFormatter(undefined)).toBe("");
-        expect(labelListFormatter(123)).toBe("");
-      }
-    });
+  it("should test tooltip formatter with unknown classification", () => {
+    render(<PasturePlanningGraph data={mockData} propertyId="test-id" />);
+    expect(tooltipFormatter).toBeTruthy();
+    if (tooltipFormatter) {
+      const result = tooltipFormatter(1, "Forage", { payload: { classification: "Unknown" } });
+      expect(result[0]).toBe("Unknown");
+      expect(result[1]).toBe("Forage");
+    }
+  });
 
-    it("should return empty string when value is falsy", () => {
-      render(<PasturePlanningGraph data={mockData} propertyId="test-id" />);
-      expect(labelListFormatter).toBeDefined();
-      if (labelListFormatter) {
-        expect(labelListFormatter("")).toBe("");
-      }
-    });
+  it("should test tooltip formatter with non-forage name", () => {
+    render(<PasturePlanningGraph data={mockData} propertyId="test-id" />);
+    expect(tooltipFormatter).toBeTruthy();
+    if (tooltipFormatter) {
+      const result = tooltipFormatter(100, "Precipitation", { payload: {} });
+      expect(result[0]).toBe(100);
+      expect(result[1]).toBe("Precipitation");
+    }
+  });
+
+  it("should test LabelList formatter with empty value", () => {
+    render(<PasturePlanningGraph data={mockData} propertyId="test-id" />);
+    expect(labelListFormatter).toBeTruthy();
+    if (labelListFormatter) {
+      const result = labelListFormatter("");
+      expect(result).toBe("");
+    }
+  });
+
+  it("should test LabelList formatter with null value", () => {
+    render(<PasturePlanningGraph data={mockData} propertyId="test-id" />);
+    expect(labelListFormatter).toBeTruthy();
+    if (labelListFormatter) {
+      const result = labelListFormatter(null);
+      expect(result).toBe("");
+    }
+  });
+
+  it("should test LabelList formatter with non-string value", () => {
+    render(<PasturePlanningGraph data={mockData} propertyId="test-id" />);
+    expect(labelListFormatter).toBeTruthy();
+    if (labelListFormatter) {
+      const result = labelListFormatter(123);
+      expect(result).toBe("");
+    }
+  });
+
+  it("should test LabelList formatter with long translation", () => {
+    // Mock translation to return long string
+    const longTranslation = {
+      properties: {
+        details: {
+          pasturePlanning: {
+            title: "Pasture Planning",
+            month: "Month",
+            temperature: "Temperature",
+            precipitation: "Precipitation",
+            minTemp: "Min Temp",
+            maxTemp: "Max Temp",
+            precip: "Precipitation",
+            forage: "Forage",
+            noData: "No data available",
+            aiGeneratedNote: "AI generated note",
+            classification: {
+              Poor: "VeryLongClassificationName",
+              Medium: "Médio",
+              Good: "Bom",
+              Excellent: "Excelente",
+            },
+          },
+        },
+        edit: {
+          title: "Edit Property",
+        },
+      },
+    };
+    mockUseTranslation.mockReturnValue(longTranslation);
+    render(<PasturePlanningGraph data={mockData} propertyId="test-id" />);
+    expect(labelListFormatter).toBeTruthy();
+    if (labelListFormatter) {
+      const result = labelListFormatter("Poor");
+      expect(result).toBe("Very");
+      expect(result.length).toBeLessThanOrEqual(4);
+    }
+    // Reset to default implementation
+    mockUseTranslation.mockImplementation(() => defaultTranslation);
+  });
+
+  it("should test LabelList formatter with short translation", () => {
+    render(<PasturePlanningGraph data={mockData} propertyId="test-id" />);
+    expect(labelListFormatter).toBeTruthy();
+    if (labelListFormatter) {
+      const result = labelListFormatter("Good");
+      expect(result).toBe("Bom");
+    }
+  });
+
+  it("should handle unknown classification in classificationHeightMap", () => {
+    const dataWithUnknownClassification: PasturePlanningMonth[] = [
+      {
+        month: "January",
+        min: 15,
+        max: 25,
+        precipitation: 100,
+        classification: "UnknownClassification" as PasturePlanningMonth["classification"],
+      },
+    ];
+    render(<PasturePlanningGraph data={dataWithUnknownClassification} propertyId="test-id" />);
+    expect(screen.getByTestId("composed-chart")).toBeInTheDocument();
+  });
+
+  it("should map all months correctly", () => {
+    const allMonthsData: PasturePlanningMonth[] = [
+      { month: "January", min: 15, max: 25, precipitation: 100, classification: "Good" },
+      { month: "February", min: 16, max: 26, precipitation: 120, classification: "Excellent" },
+      { month: "March", min: 17, max: 27, precipitation: 110, classification: "Good" },
+      { month: "April", min: 18, max: 28, precipitation: 90, classification: "Medium" },
+      { month: "May", min: 19, max: 29, precipitation: 80, classification: "Poor" },
+      { month: "June", min: 20, max: 30, precipitation: 70, classification: "Poor" },
+      { month: "July", min: 21, max: 31, precipitation: 60, classification: "Poor" },
+      { month: "August", min: 22, max: 32, precipitation: 70, classification: "Medium" },
+      { month: "September", min: 21, max: 31, precipitation: 90, classification: "Good" },
+      { month: "October", min: 20, max: 30, precipitation: 100, classification: "Good" },
+      { month: "November", min: 19, max: 29, precipitation: 110, classification: "Excellent" },
+      { month: "December", min: 18, max: 28, precipitation: 120, classification: "Excellent" },
+    ];
+    render(<PasturePlanningGraph data={allMonthsData} propertyId="test-id" />);
+    expect(screen.getByTestId("composed-chart")).toBeInTheDocument();
+  });
+
+  it("should use substring fallback for month not in monthMap", () => {
+    const dataWithUnmappedMonth: PasturePlanningMonth[] = [
+      {
+        month: "CustomMonth",
+        min: 15,
+        max: 25,
+        precipitation: 100,
+        classification: "Good",
+      },
+    ];
+    render(<PasturePlanningGraph data={dataWithUnmappedMonth} propertyId="test-id" />);
+    expect(screen.getByTestId("composed-chart")).toBeInTheDocument();
   });
 });

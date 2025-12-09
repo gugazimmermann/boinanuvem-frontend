@@ -82,7 +82,7 @@ export function SaleForm({
   });
 
   const filteredAnimals = useMemo(() => {
-    if (!animalSearch.trim()) return animals;
+    if (!animalSearch?.trim()) return animals;
     const searchLower = animalSearch.toLowerCase();
     return animals.filter(
       (animal) =>

@@ -3,12 +3,16 @@ import { ANIMAL_UNIT_WEIGHT_KG } from "../constants";
 
 describe("constants", () => {
   describe("ANIMAL_UNIT_WEIGHT_KG", () => {
-    it("should be a number", () => {
-      expect(typeof ANIMAL_UNIT_WEIGHT_KG).toBe("number");
+    it("should export the constant", () => {
+      expect(ANIMAL_UNIT_WEIGHT_KG).toBeDefined();
     });
 
-    it("should equal 450", () => {
+    it("should have the correct value", () => {
       expect(ANIMAL_UNIT_WEIGHT_KG).toBe(450);
+    });
+
+    it("should be a number", () => {
+      expect(typeof ANIMAL_UNIT_WEIGHT_KG).toBe("number");
     });
   });
 });

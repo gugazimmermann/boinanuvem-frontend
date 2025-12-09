@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router";
 import {
   Table,
@@ -15,11 +15,11 @@ import { useLanguage } from "~/contexts/language-context";
 import { formatCurrency } from "~/utils/currency";
 import { formatDate } from "~/utils/formatting";
 import { deleteSale, getSalesByCompanyId } from "~/services/sales.service";
-import { getBuyerById } from "~/services/buyers.service";
-import { getPropertyById, getPropertiesByCompanyId } from "~/services/properties.service";
-import { getAnimalById } from "~/services/animals.service";
-import type { Sale } from "~/types";
+import { getBuyers } from "~/services/buyers.service";
+import { getProperties } from "~/services/properties.service";
+import type { Property, Buyer, Sale } from "~/types";
 import { SaleType as SaleTypeEnum } from "~/types";
+import { getAnimalById } from "~/services/animals.service";
 import { mockCompanies } from "~/mocks/companies";
 import { ROUTES, getSaleEditRoute, getSaleViewRoute } from "~/routes.config";
 import { usePermissions } from "~/utils/permissions";
@@ -52,10 +52,26 @@ export default function Sales() {
   const company = mockCompanies[0];
   const companyId = company?.id || "";
   const [sales, setSales] = useState<Sale[]>(() => getSalesByCompanyId(companyId));
-  const properties = useMemo(
-    () => (company ? getPropertiesByCompanyId(company.id) : []),
-    [company]
-  );
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [buyers, setBuyers] = useState<Buyer[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (company) {
+        try {
+          const [propertiesData, buyersData] = await Promise.all([getProperties(), getBuyers()]);
+          setProperties(propertiesData.filter((prop) => prop.companyId === company.id));
+          setBuyers(buyersData.filter((buy) => buy.companyId === company.id));
+        } catch (error) {
+          console.error("Failed to load data:", error);
+        }
+      }
+    };
+    fetchData();
+  }, [company]);
+
+  const propertiesMap = useMemo(() => new Map(properties.map((p) => [p.id, p])), [properties]);
+  const buyersMap = useMemo(() => new Map(buyers.map((b) => [b.id, b])), [buyers]);
 
   const { alertMessage, showAlert } = useAlert();
 
@@ -91,9 +107,9 @@ export default function Sales() {
       const matchesSearch = (() => {
         if (!searchValue) return true;
         const searchLower = searchValue.toLowerCase();
-        const property = getPropertyById(sale.propertyId);
+        const property = propertiesMap.get(sale.propertyId);
         const propertyName = property?.name?.toLowerCase() || "";
-        const buyer = getBuyerById(sale.buyerId);
+        const buyer = buyersMap.get(sale.buyerId);
         const buyerName = buyer?.name?.toLowerCase() || "";
         const animalCodes = sale.saleItems
           .map((item) => {
@@ -154,7 +170,7 @@ export default function Sales() {
         label: t.sales?.table?.buyer,
         sortable: false,
         render: (_, row) => {
-          const buyer = getBuyerById(row.buyerId);
+          const buyer = buyersMap.get(row.buyerId);
           return <span className="text-gray-700 dark:text-gray-300">{buyer?.name || "-"}</span>;
         },
       },
@@ -241,7 +257,7 @@ export default function Sales() {
         canDelete: canRemove("records", "sales"),
       }),
     ],
-    [t, language, navigate, handleDeleteClick, canEdit, canRemove]
+    [t, language, navigate, handleDeleteClick, canEdit, canRemove, buyersMap]
   );
 
   const headerActions: TableAction[] = useMemo(

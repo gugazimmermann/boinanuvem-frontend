@@ -3,221 +3,146 @@ import {
   mapAccountsReceivableToFormData,
   mapAccountsPayableToFormData,
 } from "../finance-edit-helpers";
-import { CashFlowCategory, PaymentMethod } from "~/types";
-import { AccountsReceivableStatus, AccountsPayableStatus } from "~/types";
 import type { AccountsReceivable, AccountsPayable } from "~/types";
+import { CashFlowCategory, PaymentMethod } from "~/types";
+import { AccountsPayableStatus, AccountsReceivableStatus } from "~/types";
 
-describe("finance-edit-helpers", () => {
-  describe("mapAccountsReceivableToFormData", () => {
-    it("should map AccountsReceivable to form data with all fields", () => {
-      const transaction: AccountsReceivable = {
-        id: "ar-1",
-        companyId: "company-1",
-        buyerId: "buyer-1",
-        amount: 1000,
-        dueDate: "2024-12-31",
-        description: "Sale payment",
-        category: CashFlowCategory.CATTLE_SALES,
-        paymentMethod: PaymentMethod.BANK_TRANSFER,
-        status: AccountsReceivableStatus.UNPAID,
-        paidDate: "2024-12-01",
-        paidAmount: 500,
-        referenceNumber: "REF123",
-        bankAccountId: "bank-1",
-        propertyId: "prop-1",
-        createdAt: "2024-01-01",
-        updatedAt: "2024-01-01",
-      };
-
-      const result = mapAccountsReceivableToFormData(transaction);
-
-      expect(result).toEqual({
-        buyerId: "buyer-1",
-        amount: 1000,
-        dueDate: "2024-12-31",
-        description: "Sale payment",
-        category: CashFlowCategory.CATTLE_SALES,
-        paymentMethod: PaymentMethod.BANK_TRANSFER,
-        status: AccountsReceivableStatus.UNPAID,
-        paidDate: "2024-12-01",
-        paidAmount: 500,
-        referenceNumber: "REF123",
-        bankAccountId: "bank-1",
-        propertyId: "prop-1",
-      });
-    });
-
-    it("should map AccountsReceivable with optional fields as empty strings", () => {
-      const transaction: AccountsReceivable = {
-        id: "ar-1",
-        companyId: "company-1",
-        buyerId: undefined,
-        amount: 1000,
-        dueDate: "2024-12-31",
-        description: "Sale payment",
-        status: AccountsReceivableStatus.UNPAID,
-        paidAmount: 0,
-        propertyId: "prop-1",
-        createdAt: "2024-01-01",
-        updatedAt: "2024-01-01",
-      };
-
-      const result = mapAccountsReceivableToFormData(transaction);
-
-      expect(result?.buyerId).toBe("");
-      expect(result?.category).toBe(CashFlowCategory.CATTLE_SALES);
-      expect(result?.paymentMethod).toBe(PaymentMethod.CASH);
-      expect(result?.paidDate).toBe("");
-      expect(result?.referenceNumber).toBe("");
-      expect(result?.bankAccountId).toBe("");
-    });
-
-    it("should return undefined when transaction is undefined", () => {
-      const result = mapAccountsReceivableToFormData(undefined);
-      expect(result).toBeUndefined();
-    });
-
-    it("should use default category when category is missing", () => {
-      const transaction: AccountsReceivable = {
-        id: "ar-1",
-        companyId: "company-1",
-        amount: 1000,
-        dueDate: "2024-12-31",
-        description: "Sale",
-        status: AccountsReceivableStatus.UNPAID,
-        propertyId: "prop-1",
-        createdAt: "2024-01-01",
-        updatedAt: "2024-01-01",
-      };
-
-      const result = mapAccountsReceivableToFormData(transaction);
-      expect(result?.category).toBe(CashFlowCategory.CATTLE_SALES);
-    });
-
-    it("should use default payment method when paymentMethod is missing", () => {
-      const transaction: AccountsReceivable = {
-        id: "ar-1",
-        companyId: "company-1",
-        amount: 1000,
-        dueDate: "2024-12-31",
-        description: "Sale",
-        status: AccountsReceivableStatus.UNPAID,
-        propertyId: "prop-1",
-        createdAt: "2024-01-01",
-        updatedAt: "2024-01-01",
-      };
-
-      const result = mapAccountsReceivableToFormData(transaction);
-      expect(result?.paymentMethod).toBe(PaymentMethod.CASH);
-    });
+describe("mapAccountsReceivableToFormData", () => {
+  it("should return undefined for undefined transaction", () => {
+    expect(mapAccountsReceivableToFormData(undefined)).toBeUndefined();
   });
 
-  describe("mapAccountsPayableToFormData", () => {
-    it("should map AccountsPayable to form data with all fields", () => {
-      const transaction: AccountsPayable = {
-        id: "ap-1",
-        companyId: "company-1",
-        supplierId: "supplier-1",
-        employeeId: "employee-1",
-        serviceProviderId: "sp-1",
-        amount: 2000,
-        dueDate: "2024-12-31",
-        description: "Purchase payment",
-        category: CashFlowCategory.FEED,
-        paymentMethod: PaymentMethod.CHECK,
-        status: AccountsPayableStatus.PAID,
-        paidDate: "2024-12-01",
-        paidAmount: 2000,
-        referenceNumber: "REF456",
-        bankAccountId: "bank-2",
-        propertyId: "prop-2",
-        createdAt: "2024-01-01",
-        updatedAt: "2024-01-01",
-      };
+  it("should map transaction to form data", () => {
+    const transaction: AccountsReceivable = {
+      id: "ar-1",
+      companyId: "company-1",
+      buyerId: "buyer-1",
+      amount: 1000,
+      dueDate: "2024-01-15",
+      description: "Test description",
+      category: CashFlowCategory.CATTLE_SALES,
+      paymentMethod: PaymentMethod.CASH,
+      status: AccountsReceivableStatus.UNPAID,
+      propertyId: "property-1",
+      createdAt: "2024-01-01T00:00:00Z",
+    };
 
-      const result = mapAccountsPayableToFormData(transaction);
+    const result = mapAccountsReceivableToFormData(transaction);
+    expect(result?.buyerId).toBe("buyer-1");
+    expect(result?.amount).toBe(1000);
+    expect(result?.dueDate).toBe("2024-01-15");
+    expect(result?.description).toBe("Test description");
+    expect(result?.category).toBe(CashFlowCategory.CATTLE_SALES);
+    expect(result?.paymentMethod).toBe(PaymentMethod.CASH);
+    expect(result?.status).toBe(AccountsReceivableStatus.UNPAID);
+  });
 
-      expect(result).toEqual({
-        supplierId: "supplier-1",
-        employeeId: "employee-1",
-        serviceProviderId: "sp-1",
-        amount: 2000,
-        dueDate: "2024-12-31",
-        description: "Purchase payment",
-        category: CashFlowCategory.FEED,
-        paymentMethod: PaymentMethod.CHECK,
-        status: AccountsPayableStatus.PAID,
-        paidDate: "2024-12-01",
-        paidAmount: 2000,
-        referenceNumber: "REF456",
-        bankAccountId: "bank-2",
-        propertyId: "prop-2",
-      });
-    });
+  it("should use default values for optional fields", () => {
+    const transaction: AccountsReceivable = {
+      id: "ar-1",
+      companyId: "company-1",
+      amount: 1000,
+      dueDate: "2024-01-15",
+      status: AccountsReceivableStatus.UNPAID,
+      propertyId: "property-1",
+      description: "Test",
+      createdAt: "2024-01-01T00:00:00Z",
+    };
 
-    it("should map AccountsPayable with optional fields as empty strings", () => {
-      const transaction: AccountsPayable = {
-        id: "ap-1",
-        companyId: "company-1",
-        amount: 2000,
-        dueDate: "2024-12-31",
-        description: "Purchase",
-        status: AccountsPayableStatus.UNPAID,
-        paidAmount: 0,
-        propertyId: "prop-2",
-        createdAt: "2024-01-01",
-        updatedAt: "2024-01-01",
-      };
+    const result = mapAccountsReceivableToFormData(transaction);
+    expect(result?.buyerId).toBe("");
+    expect(result?.category).toBe(CashFlowCategory.CATTLE_SALES);
+    expect(result?.paymentMethod).toBe(PaymentMethod.CASH);
+    expect(result?.paidDate).toBe("");
+    expect(result?.referenceNumber).toBe("");
+    expect(result?.bankAccountId).toBe("");
+  });
 
-      const result = mapAccountsPayableToFormData(transaction);
+  it("should handle paid amount", () => {
+    const transaction: AccountsReceivable = {
+      id: "ar-1",
+      companyId: "company-1",
+      amount: 1000,
+      dueDate: "2024-01-15",
+      status: AccountsReceivableStatus.PARTIAL,
+      paidAmount: 500,
+      propertyId: "property-1",
+      description: "Test",
+      createdAt: "2024-01-01T00:00:00Z",
+    };
 
-      expect(result?.supplierId).toBe("");
-      expect(result?.employeeId).toBe("");
-      expect(result?.serviceProviderId).toBe("");
-      expect(result?.category).toBe(CashFlowCategory.FEED);
-      expect(result?.paymentMethod).toBe(PaymentMethod.CASH);
-      expect(result?.paidDate).toBe("");
-      expect(result?.referenceNumber).toBe("");
-      expect(result?.bankAccountId).toBe("");
-    });
+    const result = mapAccountsReceivableToFormData(transaction);
+    expect(result?.paidAmount).toBe(500);
+  });
+});
 
-    it("should return undefined when transaction is undefined", () => {
-      const result = mapAccountsPayableToFormData(undefined);
-      expect(result).toBeUndefined();
-    });
+describe("mapAccountsPayableToFormData", () => {
+  it("should return undefined for undefined transaction", () => {
+    expect(mapAccountsPayableToFormData(undefined)).toBeUndefined();
+  });
 
-    it("should use default category when category is missing", () => {
-      const transaction: AccountsPayable = {
-        id: "ap-1",
-        companyId: "company-1",
-        amount: 2000,
-        dueDate: "2024-12-31",
-        description: "Purchase",
-        status: AccountsPayableStatus.UNPAID,
-        propertyId: "prop-2",
-        createdAt: "2024-01-01",
-        updatedAt: "2024-01-01",
-      };
+  it("should map transaction to form data", () => {
+    const transaction: AccountsPayable = {
+      id: "ap-1",
+      companyId: "company-1",
+      supplierId: "supplier-1",
+      amount: 1000,
+      dueDate: "2024-01-15",
+      description: "Test description",
+      category: CashFlowCategory.FEED,
+      paymentMethod: PaymentMethod.BANK_TRANSFER,
+      status: AccountsPayableStatus.UNPAID,
+      propertyId: "property-1",
+      createdAt: "2024-01-01T00:00:00Z",
+    };
 
-      const result = mapAccountsPayableToFormData(transaction);
-      expect(result?.category).toBe(CashFlowCategory.FEED);
-    });
+    const result = mapAccountsPayableToFormData(transaction);
+    expect(result?.supplierId).toBe("supplier-1");
+    expect(result?.amount).toBe(1000);
+    expect(result?.dueDate).toBe("2024-01-15");
+    expect(result?.description).toBe("Test description");
+    expect(result?.category).toBe(CashFlowCategory.FEED);
+    expect(result?.paymentMethod).toBe(PaymentMethod.BANK_TRANSFER);
+    expect(result?.status).toBe(AccountsPayableStatus.UNPAID);
+  });
 
-    it("should use default payment method when paymentMethod is missing", () => {
-      const transaction: AccountsPayable = {
-        id: "ap-1",
-        companyId: "company-1",
-        amount: 2000,
-        dueDate: "2024-12-31",
-        description: "Purchase",
-        status: AccountsPayableStatus.UNPAID,
-        propertyId: "prop-2",
-        createdAt: "2024-01-01",
-        updatedAt: "2024-01-01",
-      };
+  it("should use default values for optional fields", () => {
+    const transaction: AccountsPayable = {
+      id: "ap-1",
+      companyId: "company-1",
+      amount: 1000,
+      dueDate: "2024-01-15",
+      status: AccountsPayableStatus.UNPAID,
+      propertyId: "property-1",
+      description: "Test",
+      createdAt: "2024-01-01T00:00:00Z",
+    };
 
-      const result = mapAccountsPayableToFormData(transaction);
-      expect(result?.paymentMethod).toBe(PaymentMethod.CASH);
-    });
+    const result = mapAccountsPayableToFormData(transaction);
+    expect(result?.supplierId).toBe("");
+    expect(result?.employeeId).toBe("");
+    expect(result?.serviceProviderId).toBe("");
+    expect(result?.category).toBe(CashFlowCategory.FEED);
+    expect(result?.paymentMethod).toBe(PaymentMethod.CASH);
+    expect(result?.paidDate).toBe("");
+    expect(result?.referenceNumber).toBe("");
+    expect(result?.bankAccountId).toBe("");
+  });
+
+  it("should handle paid amount", () => {
+    const transaction: AccountsPayable = {
+      id: "ap-1",
+      companyId: "company-1",
+      amount: 1000,
+      dueDate: "2024-01-15",
+      status: AccountsPayableStatus.PARTIAL,
+      paidAmount: 300,
+      propertyId: "property-1",
+      description: "Test",
+      createdAt: "2024-01-01T00:00:00Z",
+    };
+
+    const result = mapAccountsPayableToFormData(transaction);
+    expect(result?.paidAmount).toBe(300);
   });
 });

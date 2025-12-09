@@ -1,100 +1,95 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { Services } from "../services";
-import { SERVICES, FEATURES } from "../constants";
-import * as useAutoRotateHook from "../hooks/use-auto-rotate";
+
+const mockSetActiveTab = vi.fn();
 
 vi.mock("../hooks/use-auto-rotate", () => ({
-  useAutoRotate: vi.fn(),
+  useAutoRotate: vi.fn(() => [0, mockSetActiveTab]),
 }));
 
 describe("Services", () => {
   beforeEach(() => {
-    vi.useFakeTimers();
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    vi.useRealTimers();
+    vi.clearAllMocks();
   });
 
   it("should render heading", () => {
-    vi.mocked(useAutoRotateHook.useAutoRotate).mockReturnValue([0, vi.fn()]);
-
     render(<Services />);
-    const headings = screen.getAllByText(/Funcionalidades/);
-    expect(headings.length).toBeGreaterThan(0);
+    // The heading contains "Funcionalidades" and "Completas" in a span
+    // "Funcionalidades" might appear multiple times, use getAllByText
+    const headingElements = screen.getAllByText(/Funcionalidades/);
+    expect(headingElements.length).toBeGreaterThan(0);
+    // Check that "Completas" is also present (might be in a child span)
     expect(screen.getByText(/Completas/)).toBeInTheDocument();
   });
 
-  it("should render all services", () => {
-    vi.mocked(useAutoRotateHook.useAutoRotate).mockReturnValue([0, vi.fn()]);
-
+  it("should render description", () => {
     render(<Services />);
-
-    SERVICES.forEach((service) => {
-      expect(screen.getByText(service.title)).toBeInTheDocument();
-      expect(screen.getByText(service.content)).toBeInTheDocument();
-    });
+    expect(
+      screen.getByText(/Explore todas as áreas de gestão disponíveis no Boi na Nuvem/)
+    ).toBeInTheDocument();
   });
 
-  it("should highlight active service", () => {
-    vi.mocked(useAutoRotateHook.useAutoRotate).mockReturnValue([1, vi.fn()]);
-
-    const { container } = render(<Services />);
-    const activeService = container.querySelector(".border-l-4.border-primary");
-    expect(activeService).toBeInTheDocument();
+  it("should render all service items", () => {
+    render(<Services />);
+    expect(screen.getByText("Gestão de Propriedades e Pastos")).toBeInTheDocument();
+    expect(screen.getByText("Controle de Animais e Peso")).toBeInTheDocument();
+    expect(screen.getByText("Gestão de Nascimentos e Reprodução")).toBeInTheDocument();
+    expect(screen.getByText("Gestão Financeira Completa")).toBeInTheDocument();
+    expect(screen.getByText("Controle de Estoque e Inventário")).toBeInTheDocument();
+    expect(screen.getByText("Vendas e Análise de Rentabilidade")).toBeInTheDocument();
+    expect(screen.getByText("Equipe e Colaboradores")).toBeInTheDocument();
+    expect(screen.getByText("Dashboard e Relatórios")).toBeInTheDocument();
   });
 
-  it("should switch active service when clicked", async () => {
-    const mockSetActiveTab = vi.fn();
-    vi.mocked(useAutoRotateHook.useAutoRotate).mockReturnValue([0, mockSetActiveTab]);
-
-    render(<Services />);
-
-    const secondServiceButtons = screen.getAllByText(SERVICES[1].title);
-    const secondService = secondServiceButtons[0].closest("button");
-    if (secondService) {
-      secondService.click();
-      expect(mockSetActiveTab).toHaveBeenCalledWith(1);
-    }
-  }, 10000);
-
-  it("should render features section", () => {
-    vi.mocked(useAutoRotateHook.useAutoRotate).mockReturnValue([0, vi.fn()]);
-
+  it("should render 'Por que Escolher' section", () => {
     render(<Services />);
     expect(screen.getByText(/Por que/)).toBeInTheDocument();
     expect(screen.getByText(/Escolher/)).toBeInTheDocument();
   });
 
-  it("should render all features", () => {
-    vi.mocked(useAutoRotateHook.useAutoRotate).mockReturnValue([0, vi.fn()]);
-
+  it("should render feature cards", () => {
     render(<Services />);
-
-    FEATURES.forEach((feature) => {
-      const titles = screen.getAllByText(feature.title);
-      const badges = screen.getAllByText(feature.badge);
-      expect(titles.length).toBeGreaterThan(0);
-      expect(screen.getByText(feature.content)).toBeInTheDocument();
-      expect(badges.length).toBeGreaterThan(0);
-    });
+    expect(screen.getByText("Economia de Tempo")).toBeInTheDocument();
+    expect(screen.getByText("Totalmente Adaptável")).toBeInTheDocument();
+    expect(screen.getByText("Gestão Completa")).toBeInTheDocument();
+    expect(screen.getByText("Análises Avançadas")).toBeInTheDocument();
+    // "Trabalho em Equipe" might appear multiple times, use getAllByText
+    expect(screen.getAllByText("Trabalho em Equipe").length).toBeGreaterThan(0);
+    // The feature title is "Multi-idioma" - check it exists (might be in a heading)
+    const multiIdiomaHeading = screen.getByRole("heading", { name: /Multi-idioma/i });
+    expect(multiIdiomaHeading).toBeInTheDocument();
   });
 
-  it("should render image for first service", () => {
-    vi.mocked(useAutoRotateHook.useAutoRotate).mockReturnValue([0, vi.fn()]);
+  it("should allow clicking on service items", async () => {
+    const user = userEvent.setup();
+    render(<Services />);
+    const firstService = screen.getByText("Gestão de Propriedades e Pastos").closest("button");
 
-    const { container } = render(<Services />);
-    const image = container.querySelector('img[alt="Gestão de Propriedades e Pastos"]');
+    if (firstService) {
+      await user.click(firstService);
+      expect(mockSetActiveTab).toHaveBeenCalledWith(0);
+    }
+  });
+
+  it("should render service image for first item", () => {
+    render(<Services />);
+    const image = screen.queryByAltText("Gestão de Propriedades e Pastos");
     expect(image).toBeInTheDocument();
   });
 
-  it("should render placeholder for other services", () => {
-    vi.mocked(useAutoRotateHook.useAutoRotate).mockReturnValue([1, vi.fn()]);
-
+  it("should apply correct section classes", () => {
     const { container } = render(<Services />);
-    const svg = container.querySelector("svg");
-    expect(svg).toBeInTheDocument();
+    const section = container.querySelector("section");
+    expect(section).toHaveClass(
+      "bg-gradient-to-b",
+      "from-white",
+      "via-gray-50",
+      "to-white",
+      "dark:from-gray-950",
+      "dark:via-gray-900",
+      "dark:to-gray-950"
+    );
   });
 });

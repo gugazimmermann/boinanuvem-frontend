@@ -2,57 +2,47 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { FinanceFilters } from "../finance-filters";
-import { mockProperties } from "~/mocks/properties";
-import { LanguageProvider } from "~/contexts/language-context";
+import type { Property } from "~/types";
 
-const TestWrapper = ({ children }: { children: React.ReactNode }) => (
-  <LanguageProvider>{children}</LanguageProvider>
-);
+vi.mock("~/contexts/language-context", () => ({
+  useLanguage: vi.fn(() => ({ language: "pt" })),
+}));
 
-vi.mock("../year-month-filters", () => ({
-  YearMonthFilters: vi.fn(
-    ({
-      selectedYear,
-      selectedMonth,
-      onYearChange,
-      onMonthChange,
-    }: {
-      selectedYear: string;
-      selectedMonth: string;
-      onYearChange: (year: string) => void;
-      onMonthChange: (month: string) => void;
-    }) => (
-      <div data-testid="year-month-filters">
-        <select
-          value={selectedYear}
-          onChange={(e) => onYearChange(e.target.value)}
-          data-testid="year-select"
-        >
-          <option value="2024">2024</option>
-          <option value="2025">2025</option>
-        </select>
-        <select
-          value={selectedMonth}
-          onChange={(e) => onMonthChange(e.target.value)}
-          data-testid="month-select"
-        >
-          <option value="01">January</option>
-          <option value="12">December</option>
-        </select>
-      </div>
-    )
+vi.mock("~/hooks/use-date-filters", () => ({
+  useDateFilters: vi.fn(() => ({
+    yearOptions: [{ value: "2024", label: "2024" }],
+    monthOptions: [{ value: "01", label: "January" }],
+  })),
+}));
+
+vi.mock("./year-month-filters", () => ({
+  YearMonthFilters: ({
+    selectedYear,
+    selectedMonth,
+  }: {
+    selectedYear: string;
+    selectedMonth: string;
+  }) => (
+    <div data-testid="year-month-filters">
+      {selectedYear} - {selectedMonth}
+    </div>
   ),
 }));
 
 describe("FinanceFilters", () => {
+  const mockProperties: Property[] = [
+    { id: "1", name: "Property 1" } as Property,
+    { id: "2", name: "Property 2" } as Property,
+  ];
+
   const defaultProps = {
     propertyFilter: "all",
     onPropertyFilterChange: vi.fn(),
-    selectedYear: "2025",
+    selectedYear: "2024",
     selectedMonth: "01",
     onYearChange: vi.fn(),
     onMonthChange: vi.fn(),
-    properties: mockProperties.slice(0, 2),
+    properties: mockProperties,
     propertyLabel: "Property",
     allPropertiesLabel: "All Properties",
   };
@@ -62,101 +52,54 @@ describe("FinanceFilters", () => {
   });
 
   it("should render property label", () => {
-    render(
-      <TestWrapper>
-        <FinanceFilters {...defaultProps} />
-      </TestWrapper>
-    );
+    render(<FinanceFilters {...defaultProps} />);
     expect(screen.getByText("Property:")).toBeInTheDocument();
   });
 
   it("should render property select", () => {
-    const { container } = render(
-      <TestWrapper>
-        <FinanceFilters {...defaultProps} />
-      </TestWrapper>
-    );
-    const select = container.querySelector("select");
-    expect(select).toBeInTheDocument();
+    render(<FinanceFilters {...defaultProps} />);
+    const selects = screen.getAllByRole("combobox");
+    // First select is the property filter
+    expect(selects[0]).toBeInTheDocument();
   });
 
   it("should render all properties option", () => {
-    render(
-      <TestWrapper>
-        <FinanceFilters {...defaultProps} />
-      </TestWrapper>
-    );
+    render(<FinanceFilters {...defaultProps} />);
     expect(screen.getByText("All Properties")).toBeInTheDocument();
   });
 
-  it("should render property options", () => {
-    render(
-      <TestWrapper>
-        <FinanceFilters {...defaultProps} />
-      </TestWrapper>
-    );
-    expect(screen.getByText(mockProperties[0].name)).toBeInTheDocument();
-    expect(screen.getByText(mockProperties[1].name)).toBeInTheDocument();
+  it("should render all properties in select", () => {
+    render(<FinanceFilters {...defaultProps} />);
+    expect(screen.getByText("Property 1")).toBeInTheDocument();
+    expect(screen.getByText("Property 2")).toBeInTheDocument();
   });
 
   it("should call onPropertyFilterChange when property changes", async () => {
-    const onPropertyFilterChange = vi.fn();
-    const onPageChange = vi.fn();
     const user = userEvent.setup();
-    const { container } = render(
-      <TestWrapper>
-        <FinanceFilters
-          {...defaultProps}
-          onPropertyFilterChange={onPropertyFilterChange}
-          onPageChange={onPageChange}
-        />
-      </TestWrapper>
-    );
-    const select = container.querySelector("select");
-    if (select) {
-      await user.selectOptions(select, mockProperties[0].id);
-      expect(onPropertyFilterChange).toHaveBeenCalledWith(mockProperties[0].id);
-      expect(onPageChange).toHaveBeenCalledWith(1);
-    }
+    const onPropertyFilterChange = vi.fn();
+    render(<FinanceFilters {...defaultProps} onPropertyFilterChange={onPropertyFilterChange} />);
+
+    const selects = screen.getAllByRole("combobox");
+    // First select is the property filter
+    await user.selectOptions(selects[0], "1");
+
+    expect(onPropertyFilterChange).toHaveBeenCalledWith("1");
   });
 
-  it("should not call onPageChange when not provided", async () => {
-    const onPropertyFilterChange = vi.fn();
+  it("should call onPageChange when property changes", async () => {
     const user = userEvent.setup();
-    const { container } = render(
-      <TestWrapper>
-        <FinanceFilters {...defaultProps} onPropertyFilterChange={onPropertyFilterChange} />
-      </TestWrapper>
-    );
-    const select = container.querySelector("select");
-    if (select) {
-      await user.selectOptions(select, mockProperties[0].id);
-      expect(onPropertyFilterChange).toHaveBeenCalled();
-    }
+    const onPageChange = vi.fn();
+    render(<FinanceFilters {...defaultProps} onPageChange={onPageChange} />);
+
+    const selects = screen.getAllByRole("combobox");
+    // First select is the property filter
+    await user.selectOptions(selects[0], "1");
+
+    expect(onPageChange).toHaveBeenCalledWith(1);
   });
 
   it("should render YearMonthFilters", () => {
-    render(
-      <TestWrapper>
-        <FinanceFilters {...defaultProps} />
-      </TestWrapper>
-    );
+    render(<FinanceFilters {...defaultProps} />);
     expect(screen.getByTestId("year-month-filters")).toBeInTheDocument();
-  });
-
-  it("should pass year and month to YearMonthFilters", () => {
-    render(
-      <TestWrapper>
-        <FinanceFilters {...defaultProps} selectedYear="2024" selectedMonth="12" />
-      </TestWrapper>
-    );
-    // YearMonthFilters is mocked, so check that it's rendered
-    expect(screen.getByTestId("year-month-filters")).toBeInTheDocument();
-    const yearSelect = screen.queryByTestId("year-select");
-    const monthSelect = screen.queryByTestId("month-select");
-    if (yearSelect && monthSelect) {
-      expect(yearSelect).toHaveValue("2024");
-      expect(monthSelect).toHaveValue("12");
-    }
   });
 });

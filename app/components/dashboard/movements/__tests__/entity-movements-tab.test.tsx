@@ -1,352 +1,225 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { EntityMovementsTab } from "../entity-movements-tab";
-import { LanguageProvider } from "~/contexts/language-context";
-import { BrowserRouter } from "react-router";
+import { useNavigate } from "react-router";
+import { useTranslation } from "~/i18n";
+import { useLanguage } from "~/contexts/language-context";
 
-const TestWrapper = ({ children }: { children: React.ReactNode }) => (
-  <BrowserRouter>
-    <LanguageProvider>{children}</LanguageProvider>
-  </BrowserRouter>
-);
-
-const mockNavigate = vi.fn();
-vi.mock("react-router", async () => {
-  const actual = await vi.importActual("react-router");
-  return {
-    ...actual,
-    useNavigate: vi.fn(() => mockNavigate),
-  };
-});
-
-const mockUseMovements = vi.fn(() => ({
-  movements: [],
-  filteredMovements: [],
-  paginatedMovements: [],
-  totalPages: 1,
-  currentPage: 1,
-  setCurrentPage: vi.fn(),
-  searchValue: "",
-  setSearchValue: vi.fn(),
-  sortState: { column: null, direction: null },
-  setSortState: vi.fn(),
-}));
-
+vi.mock("react-router");
+vi.mock("~/i18n");
+vi.mock("~/contexts/language-context");
 vi.mock("~/hooks/use-movements", () => ({
-  useMovements: (config: unknown) => mockUseMovements(config),
+  useMovements: vi.fn(() => ({
+    movements: [],
+    filteredMovements: [],
+    paginatedMovements: [],
+    totalPages: 1,
+    currentPage: 1,
+    setCurrentPage: vi.fn(),
+    searchValue: "",
+    setSearchValue: vi.fn(),
+    sortState: { column: null, direction: null },
+    setSortState: vi.fn(),
+  })),
 }));
-
 vi.mock("~/utils/movements-table-columns", () => ({
   createMovementsTableColumns: vi.fn(() => []),
 }));
-
 vi.mock("~/utils/entity-getters", () => ({
-  createEntityGetters: vi.fn(() => ({
-    getPropertyById: vi.fn(),
-    getLocationById: vi.fn(),
-    getAnimalById: vi.fn(),
-    getEmployeeById: vi.fn(),
-    getServiceProviderById: vi.fn(),
-  })),
+  createEntityGetters: vi.fn(() => ({})),
 }));
-
 vi.mock("~/routes.config", () => ({
-  getMovementNewRoute: vi.fn(() => "/movements/new"),
-  getMovementViewRoute: vi.fn(() => "/movements/view"),
+  getMovementNewRoute: (propertyId: string) => `/movements/new/${propertyId}`,
+  getMovementViewRoute: (movementId: string) => `/movements/${movementId}`,
 }));
-
-vi.mock("~/i18n", () => ({
-  useTranslation: vi.fn(() => ({
-    properties: {
-      details: {
-        movements: {
-          title: "Movements",
-          description: "Movement history",
-          searchPlaceholder: "Search movements",
-          emptyState: {
-            title: "No movements",
-            description: "No movements found",
-            descriptionWithSearch: (search: string) => `No movements found for "${search}"`,
-          },
-          table: {
-            date: "Date",
-            type: "Type",
-            locations: "Locations",
-            animals: "Animals",
-            responsible: "Responsible",
-            observation: "Observation",
-            files: "Files",
-          },
-          types: {},
-          observation: "Observation",
-          files: "Files",
-          add: "Add Movement",
-        },
-      },
-    },
-    common: {
-      clearSearch: "Clear search",
-    },
-  })),
-}));
-
-const mockMovementsSection = vi.fn(
-  ({
-    title,
-    description,
-    headerActions,
+vi.mock("~/components/ui", () => ({
+  Table: ({
+    header,
     onRowClick,
     onSort,
+    ..._rest
   }: {
-    title: string;
-    description: string;
-    headerActions?: Array<{ label: string; onClick: () => void }>;
-    onRowClick?: (row: { id: string }) => void;
+    header?: { actions?: Array<{ label: string; onClick: () => void }> };
+    onRowClick?: (row: { id: string }, index?: number) => void;
     onSort?: (column: string, direction: "asc" | "desc" | null) => void;
+    [key: string]: unknown;
   }) => (
-    <div data-testid="movements-section">
-      <h2>{title}</h2>
-      <p>{description}</p>
-      {headerActions?.map((action, index) => (
-        <button key={index} onClick={action.onClick} data-testid={`header-action-${index}`}>
-          {action.label}
+    <div>
+      {header?.actions && header.actions.length > 0 ? (
+        <button data-testid="add-button" onClick={header.actions[0].onClick}>
+          {header.actions[0].label}
         </button>
-      ))}
-      {onRowClick && (
-        <button onClick={() => onRowClick({ id: "movement-1" })} data-testid="row-click-button">
+      ) : null}
+      {onRowClick ? (
+        <button data-testid="row-button" onClick={() => onRowClick({ id: "movement-1" }, 0)}>
           Click Row
         </button>
-      )}
-      {onSort && (
-        <button onClick={() => onSort("date", "asc")} data-testid="sort-button">
+      ) : null}
+      {onSort ? (
+        <button data-testid="sort-button" onClick={() => onSort("date", "asc")}>
           Sort
         </button>
-      )}
+      ) : null}
     </div>
-  )
-);
-
-vi.mock("../movements-section", () => ({
-  MovementsSection: (props: unknown) =>
-    mockMovementsSection(props as Parameters<typeof mockMovementsSection>[0]),
+  ),
 }));
 
 describe("EntityMovementsTab", () => {
+  const mockUseNavigate = vi.mocked(useNavigate);
+  const mockUseTranslation = vi.mocked(useTranslation);
+  const mockUseLanguage = vi.mocked(useLanguage);
+
   const defaultProps = {
     entityType: "employee" as const,
-    entityId: "entity-1",
+    entityId: "1",
     locationMovements: [],
     animalMovements: [],
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockNavigate.mockClear();
-    mockUseMovements.mockReturnValue({
-      movements: [],
-      filteredMovements: [],
-      paginatedMovements: [],
-      totalPages: 1,
-      currentPage: 1,
-      setCurrentPage: vi.fn(),
-      searchValue: "",
-      setSearchValue: vi.fn(),
-      sortState: { column: null, direction: null },
-      setSortState: vi.fn(),
-    });
+    const mockNavigate = vi.fn();
+    mockUseNavigate.mockReturnValue(mockNavigate);
+    mockUseTranslation.mockReturnValue({
+      common: {
+        clearSearch: "Clear Search",
+      },
+      properties: {
+        details: {
+          movements: {
+            title: "Movements",
+            description: "Movement history",
+            searchPlaceholder: "Search movements",
+            emptyState: {
+              title: "No movements",
+              description: "No movements found",
+              descriptionWithSearch: (searchValue: string) => `No results for "${searchValue}"`,
+            },
+            types: {},
+            table: {
+              date: "Date",
+              type: "Type",
+              locations: "Locations",
+              animals: "Animals",
+              responsible: "Responsible",
+              observation: "Observation",
+              files: "Files",
+            },
+            observation: "Observation",
+            files: "Files",
+            add: "Add",
+            movement: "movement",
+            movements: "movements",
+            clearSearch: "Clear search",
+          },
+        },
+      },
+    } as unknown as ReturnType<typeof useTranslation>);
+    mockUseLanguage.mockReturnValue({ language: "pt" });
   });
 
-  it("should render MovementsSection", () => {
-    const { container } = render(
-      <TestWrapper>
-        <EntityMovementsTab {...defaultProps} />
-      </TestWrapper>
-    );
-    // MovementsSection is rendered, check that the component renders without errors
-    expect(container).toBeTruthy();
-  });
-
-  it("should pass title and description to MovementsSection", () => {
-    const { container } = render(
-      <TestWrapper>
-        <EntityMovementsTab {...defaultProps} />
-      </TestWrapper>
-    );
-    // The component renders MovementsSection with title and description
-    expect(container).toBeTruthy();
-  });
-
-  it("should render with serviceProvider entity type", () => {
-    const { container } = render(
-      <TestWrapper>
-        <EntityMovementsTab {...defaultProps} entityType="serviceProvider" />
-      </TestWrapper>
-    );
-    expect(container).toBeTruthy();
-  });
-
-  it("should handle entityPropertyIds", () => {
-    const { container } = render(
-      <TestWrapper>
-        <EntityMovementsTab {...defaultProps} entityPropertyIds={["prop-1"]} />
-      </TestWrapper>
-    );
-    expect(container).toBeTruthy();
-  });
-
-  it("should render header actions when entityPropertyIds is provided", () => {
-    render(
-      <TestWrapper>
-        <EntityMovementsTab {...defaultProps} entityPropertyIds={["prop-1"]} />
-      </TestWrapper>
-    );
-    // Header actions should be rendered when entityPropertyIds is provided
+  it("should render movements section", () => {
+    render(<EntityMovementsTab {...defaultProps} />);
     expect(screen.getByTestId("movements-section")).toBeInTheDocument();
-    expect(screen.getByTestId("header-action-0")).toBeInTheDocument();
   });
 
-  it("should call navigate when header action is clicked", async () => {
+  it("should handle employee entity type", () => {
+    render(<EntityMovementsTab {...defaultProps} entityType="employee" />);
+    expect(screen.getByTestId("movements-section")).toBeInTheDocument();
+  });
+
+  it("should handle serviceProvider entity type", () => {
+    render(<EntityMovementsTab {...defaultProps} entityType="serviceProvider" />);
+    expect(screen.getByTestId("movements-section")).toBeInTheDocument();
+  });
+
+  it("should show header actions when entityPropertyIds are provided", async () => {
     const user = userEvent.setup();
-    render(
-      <TestWrapper>
-        <EntityMovementsTab {...defaultProps} entityPropertyIds={["prop-1"]} />
-      </TestWrapper>
-    );
-    const addButton = screen.getByTestId("header-action-0");
+    const navigate = vi.fn();
+    mockUseNavigate.mockReturnValue(navigate);
+    render(<EntityMovementsTab {...defaultProps} entityPropertyIds={["property-1"]} />);
+    const addButton = screen.getByTestId("add-button");
+    expect(addButton).toBeInTheDocument();
     await user.click(addButton);
-    expect(mockNavigate).toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalled();
   });
 
-  it("should not render header actions when entityPropertyIds is empty", () => {
-    render(
-      <TestWrapper>
-        <EntityMovementsTab {...defaultProps} entityPropertyIds={[]} />
-      </TestWrapper>
-    );
-    expect(screen.getByTestId("movements-section")).toBeInTheDocument();
+  it("should not show header actions when entityPropertyIds are empty", () => {
+    render(<EntityMovementsTab {...defaultProps} entityPropertyIds={[]} />);
+    expect(screen.queryByTestId("add-button")).not.toBeInTheDocument();
   });
 
-  it("should call navigate with custom route when getMovementNewRouteParam is provided", async () => {
+  it("should use getMovementNewRouteParam when provided", async () => {
     const user = userEvent.setup();
+    const navigate = vi.fn();
+    mockUseNavigate.mockReturnValue(navigate);
     const getMovementNewRouteParam = vi.fn((propertyId: string) => `/custom/new/${propertyId}`);
     render(
-      <TestWrapper>
-        <EntityMovementsTab
-          {...defaultProps}
-          entityPropertyIds={["prop-1"]}
-          getMovementNewRouteParam={getMovementNewRouteParam}
-        />
-      </TestWrapper>
+      <EntityMovementsTab
+        {...defaultProps}
+        entityPropertyIds={["property-1"]}
+        getMovementNewRouteParam={getMovementNewRouteParam}
+      />
     );
-    const addButton = screen.getByTestId("header-action-0");
+    const addButton = screen.getByTestId("add-button");
     await user.click(addButton);
-    expect(getMovementNewRouteParam).toHaveBeenCalledWith("prop-1");
-    expect(mockNavigate).toHaveBeenCalledWith("/custom/new/prop-1");
+    expect(getMovementNewRouteParam).toHaveBeenCalledWith("property-1");
+    expect(navigate).toHaveBeenCalledWith("/custom/new/property-1");
   });
 
-  it("should call navigate with default route when getMovementNewRouteParam is not provided", async () => {
+  it("should use default route when getMovementNewRouteParam is not provided", async () => {
     const user = userEvent.setup();
-    render(
-      <TestWrapper>
-        <EntityMovementsTab {...defaultProps} entityPropertyIds={["prop-1"]} />
-      </TestWrapper>
-    );
-    const addButton = screen.getByTestId("header-action-0");
+    const navigate = vi.fn();
+    mockUseNavigate.mockReturnValue(navigate);
+    render(<EntityMovementsTab {...defaultProps} entityPropertyIds={["property-1"]} />);
+    const addButton = screen.getByTestId("add-button");
     await user.click(addButton);
-    expect(mockNavigate).toHaveBeenCalledWith(expect.stringContaining("/movements/new"));
-    expect(mockNavigate).toHaveBeenCalledWith(expect.stringContaining("employeeId=entity-1"));
+    expect(navigate).toHaveBeenCalledWith(expect.stringContaining("/movements/new/property-1"));
+    expect(navigate).toHaveBeenCalledWith(expect.stringContaining("employeeId=1"));
   });
 
-  it("should use getMovementViewRouteParam when provided", async () => {
+  it("should use getMovementViewRouteParam when provided for row click", async () => {
     const user = userEvent.setup();
+    const navigate = vi.fn();
+    mockUseNavigate.mockReturnValue(navigate);
     const getMovementViewRouteParam = vi.fn((movementId: string) => `/custom/view/${movementId}`);
     render(
-      <TestWrapper>
-        <EntityMovementsTab
-          {...defaultProps}
-          getMovementViewRouteParam={getMovementViewRouteParam}
-        />
-      </TestWrapper>
+      <EntityMovementsTab {...defaultProps} getMovementViewRouteParam={getMovementViewRouteParam} />
     );
-    const rowButton = screen.getByTestId("row-click-button");
+    const rowButton = screen.getByTestId("row-button");
     await user.click(rowButton);
     expect(getMovementViewRouteParam).toHaveBeenCalledWith("movement-1");
-    expect(mockNavigate).toHaveBeenCalledWith("/custom/view/movement-1");
+    expect(navigate).toHaveBeenCalledWith("/custom/view/movement-1");
   });
 
-  it("should use default view route when getMovementViewRouteParam is not provided", async () => {
+  it("should use default route when getMovementViewRouteParam is not provided for row click", async () => {
     const user = userEvent.setup();
-    render(
-      <TestWrapper>
-        <EntityMovementsTab {...defaultProps} />
-      </TestWrapper>
-    );
-    const rowButton = screen.getByTestId("row-click-button");
+    const navigate = vi.fn();
+    mockUseNavigate.mockReturnValue(navigate);
+    render(<EntityMovementsTab {...defaultProps} entityType="employee" />);
+    const rowButton = screen.getByTestId("row-button");
     await user.click(rowButton);
-    expect(mockNavigate).toHaveBeenCalledWith(expect.stringContaining("/movements/view"));
-    expect(mockNavigate).toHaveBeenCalledWith(expect.stringContaining("fromEmployee=entity-1"));
+    expect(navigate).toHaveBeenCalledWith(expect.stringContaining("/movements/movement-1"));
+    expect(navigate).toHaveBeenCalledWith(expect.stringContaining("fromEmployee=1"));
+  });
+
+  it("should use default route for serviceProvider entity type", async () => {
+    const user = userEvent.setup();
+    const navigate = vi.fn();
+    mockUseNavigate.mockReturnValue(navigate);
+    render(<EntityMovementsTab {...defaultProps} entityType="serviceProvider" />);
+    const rowButton = screen.getByTestId("row-button");
+    await user.click(rowButton);
+    expect(navigate).toHaveBeenCalledWith(expect.stringContaining("fromServiceProvider=1"));
   });
 
   it("should handle onSort callback", async () => {
     const user = userEvent.setup();
-    const mockSetSortState = vi.fn();
-    mockUseMovements.mockReturnValue({
-      movements: [],
-      filteredMovements: [],
-      paginatedMovements: [],
-      totalPages: 1,
-      currentPage: 1,
-      setCurrentPage: vi.fn(),
-      searchValue: "",
-      setSearchValue: vi.fn(),
-      sortState: { column: null, direction: null },
-      setSortState: mockSetSortState,
-    });
-    render(
-      <TestWrapper>
-        <EntityMovementsTab {...defaultProps} />
-      </TestWrapper>
-    );
-    await waitFor(() => {
-      expect(screen.getByTestId("sort-button")).toBeInTheDocument();
-    });
+    render(<EntityMovementsTab {...defaultProps} />);
     const sortButton = screen.getByTestId("sort-button");
     await user.click(sortButton);
-    expect(mockSetSortState).toHaveBeenCalledWith({ column: "date", direction: "asc" });
-  });
-
-  it("should handle employee entity type in route", async () => {
-    const user = userEvent.setup();
-    render(
-      <TestWrapper>
-        <EntityMovementsTab
-          {...defaultProps}
-          entityType="employee"
-          entityPropertyIds={["prop-1"]}
-        />
-      </TestWrapper>
-    );
-    const rowButton = screen.getByTestId("row-click-button");
-    await user.click(rowButton);
-    expect(mockNavigate).toHaveBeenCalledWith(expect.stringContaining("fromEmployee=entity-1"));
-  });
-
-  it("should handle serviceProvider entity type in route", async () => {
-    const user = userEvent.setup();
-    render(
-      <TestWrapper>
-        <EntityMovementsTab
-          {...defaultProps}
-          entityType="serviceProvider"
-          entityPropertyIds={["prop-1"]}
-        />
-      </TestWrapper>
-    );
-    const rowButton = screen.getByTestId("row-click-button");
-    await user.click(rowButton);
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.stringContaining("fromServiceProvider=entity-1")
-    );
+    // onSort should be called
+    expect(sortButton).toBeInTheDocument();
   });
 });

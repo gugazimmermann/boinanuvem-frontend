@@ -88,10 +88,14 @@ export function LocationForm({
       </FormFieldGroup>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <label
+          htmlFor="location-form-property"
+          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+        >
           {getTranslationKey("propertyLabel")} <span className="text-red-500">*</span>
         </label>
         <select
+          id="location-form-property"
           value={formData.propertyId}
           onChange={(e) => onFieldChange("propertyId", e.target.value)}
           disabled={isSubmitting}
@@ -110,10 +114,14 @@ export function LocationForm({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <label
+          htmlFor="location-form-location-type"
+          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+        >
           {getTranslationKey("locationTypeLabel")} <span className="text-red-500">*</span>
         </label>
         <select
+          id="location-form-location-type"
           value={formData.locationType}
           onChange={(e) => onFieldChange("locationType", e.target.value as LocationType)}
           disabled={isSubmitting}
@@ -153,10 +161,14 @@ export function LocationForm({
           required
         />
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label
+            htmlFor="location-form-area-type"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+          >
             {t.locations.areaType || "Tipo de Área"} <span className="text-red-500">*</span>
           </label>
           <select
+            id="location-form-area-type"
             value={formData.areaType}
             onChange={(e) => onFieldChange("areaType", e.target.value as AreaType)}
             disabled={isSubmitting}
@@ -176,10 +188,14 @@ export function LocationForm({
           {errors.areaType && <p className="mt-1 text-sm text-red-500">{errors.areaType}</p>}
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label
+            htmlFor="location-form-status"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+          >
             {getTranslationKey("statusLabel")}
           </label>
           <select
+            id="location-form-status"
             value={formData.status}
             onChange={(e) => onFieldChange("status", e.target.value as "active" | "inactive")}
             disabled={isSubmitting}

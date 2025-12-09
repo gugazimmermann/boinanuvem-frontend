@@ -1,7 +1,5 @@
-import { getSupplierById } from "~/services/suppliers.service";
-import { getEmployeeById } from "~/services/employees.service";
-import { getServiceProviderById } from "~/services/service-providers.service";
-import { getBuyerById } from "~/services/buyers.service";
+import type { ReactElement } from "react";
+import type { Supplier, Employee, ServiceProvider, Buyer } from "~/types";
 
 interface EntityNameRendererOptions {
   supplierId?: string;
@@ -9,14 +7,29 @@ interface EntityNameRendererOptions {
   serviceProviderId?: string;
   buyerId?: string;
   type?: "income" | "expense";
+  suppliersMap?: Map<string, Supplier>;
+  employeesMap?: Map<string, Employee>;
+  serviceProvidersMap?: Map<string, ServiceProvider>;
+  buyersMap?: Map<string, Buyer>;
 }
 
 /**
  * Renders the name of an entity (supplier, employee, service provider, or buyer)
  * based on the provided IDs. For CashFlow transactions, it considers the type
  * (income/expense) to determine which entity to show.
+ * If entity maps are not provided, returns "-".
  */
-import type { ReactElement } from "react";
+const renderName = (name: string | undefined): ReactElement => (
+  <span className="text-gray-700 dark:text-gray-300">{name || "-"}</span>
+);
+
+const getEntityName = (
+  id: string | undefined,
+  map: Map<string, { name: string }> | undefined
+): string | undefined => {
+  if (!id || !map) return undefined;
+  return map.get(id)?.name;
+};
 
 export function renderEntityName({
   supplierId,
@@ -24,37 +37,31 @@ export function renderEntityName({
   serviceProviderId,
   buyerId,
   type,
+  suppliersMap,
+  employeesMap,
+  serviceProvidersMap,
+  buyersMap,
 }: EntityNameRendererOptions): ReactElement {
-  // For expense transactions or accounts payable, check supplier/employee/serviceProvider
-  if (type === "expense" || !type) {
-    if (supplierId) {
-      const supplier = getSupplierById(supplierId);
-      return <span className="text-gray-700 dark:text-gray-300">{supplier?.name || "-"}</span>;
-    }
-    if (employeeId) {
-      const employee = getEmployeeById(employeeId);
-      return <span className="text-gray-700 dark:text-gray-300">{employee?.name || "-"}</span>;
-    }
-    if (serviceProviderId) {
-      const serviceProvider = getServiceProviderById(serviceProviderId);
-      return (
-        <span className="text-gray-700 dark:text-gray-300">{serviceProvider?.name || "-"}</span>
-      );
-    }
+  const isExpense = type === "expense" || !type;
+  const isIncome = type === "income";
+
+  if (isExpense) {
+    const supplierName = getEntityName(supplierId, suppliersMap);
+    if (supplierName) return renderName(supplierName);
+
+    const employeeName = getEntityName(employeeId, employeesMap);
+    if (employeeName) return renderName(employeeName);
+
+    const serviceProviderName = getEntityName(serviceProviderId, serviceProvidersMap);
+    if (serviceProviderName) return renderName(serviceProviderName);
   }
 
-  // For income transactions, check buyer/serviceProvider
-  if (type === "income") {
-    if (buyerId) {
-      const buyer = getBuyerById(buyerId);
-      return <span className="text-gray-700 dark:text-gray-300">{buyer?.name || "-"}</span>;
-    }
-    if (serviceProviderId) {
-      const serviceProvider = getServiceProviderById(serviceProviderId);
-      return (
-        <span className="text-gray-700 dark:text-gray-300">{serviceProvider?.name || "-"}</span>
-      );
-    }
+  if (isIncome) {
+    const buyerName = getEntityName(buyerId, buyersMap);
+    if (buyerName) return renderName(buyerName);
+
+    const serviceProviderName = getEntityName(serviceProviderId, serviceProvidersMap);
+    if (serviceProviderName) return renderName(serviceProviderName);
   }
 
   return <span className="text-gray-400 dark:text-gray-500">-</span>;

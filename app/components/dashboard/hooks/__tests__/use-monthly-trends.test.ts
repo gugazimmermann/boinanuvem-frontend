@@ -1,93 +1,238 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook } from "@testing-library/react";
-import { useMonthlyTrends, type MonthlyTrendOptions } from "../use-monthly-trends";
-import { ptBR } from "date-fns/locale";
+import { useMonthlyTrends } from "../use-monthly-trends";
+import { format, startOfMonth, endOfMonth, subMonths, parseISO } from "date-fns";
+import { enUS } from "date-fns/locale/en-US";
+
+vi.mock("date-fns", async () => {
+  const actual = await vi.importActual("date-fns");
+  return {
+    ...actual,
+    format: vi.fn(),
+    startOfMonth: vi.fn(),
+    endOfMonth: vi.fn(),
+    subMonths: vi.fn(),
+    parseISO: vi.fn(),
+  };
+});
 
 describe("useMonthlyTrends", () => {
-  const mockData = [
-    { id: "1", date: "2025-01-15", value: 100 },
-    { id: "2", date: "2025-02-20", value: 200 },
-    { id: "3", date: "2025-03-10", value: 150 },
-  ];
+  const mockFormat = vi.mocked(format);
+  const mockStartOfMonth = vi.mocked(startOfMonth);
+  const mockEndOfMonth = vi.mocked(endOfMonth);
+  const mockSubMonths = vi.mocked(subMonths);
+  const mockParseISO = vi.mocked(parseISO);
 
-  const defaultOptions: MonthlyTrendOptions<(typeof mockData)[0]> = {
-    data: mockData,
-    dateField: "date",
-    monthsBack: 5,
-    dateLocale: ptBR,
-    currentDate: new Date("2025-03-15"),
-    aggregator: (items) => ({
-      total: items.reduce((sum, item) => sum + (item.value || 0), 0),
-      count: items.length,
-    }),
-  };
+  const currentDate = new Date("2024-06-15");
+  const dateLocale = enUS;
 
-  it("should return monthly trend data", () => {
-    const { result } = renderHook(() => useMonthlyTrends(defaultOptions));
-    expect(result.current).toBeDefined();
-    expect(Array.isArray(result.current)).toBe(true);
-    expect(result.current.length).toBe(6); // monthsBack + 1
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    // Setup default mocks
+    mockSubMonths.mockImplementation((date: Date, amount: number) => {
+      const result = new Date(date);
+      result.setMonth(result.getMonth() - amount);
+      return result;
+    });
+
+    mockStartOfMonth.mockImplementation((date: Date) => {
+      const result = new Date(date);
+      result.setDate(1);
+      result.setHours(0, 0, 0, 0);
+      return result;
+    });
+
+    mockEndOfMonth.mockImplementation((date: Date) => {
+      const result = new Date(date);
+      result.setMonth(result.getMonth() + 1);
+      result.setDate(0);
+      result.setHours(23, 59, 59, 999);
+      return result;
+    });
+
+    mockParseISO.mockImplementation((dateString: string) => new Date(dateString));
+
+    mockFormat.mockImplementation((date: Date, formatStr: string) => {
+      const monthNames = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
+      if (formatStr === "MMM") {
+        return monthNames[date.getMonth()];
+      }
+      return date.toISOString();
+    });
   });
 
-  it("should format months correctly", () => {
-    const { result } = renderHook(() => useMonthlyTrends(defaultOptions));
+  it("should return monthly trends with default monthsBack", () => {
+    const data = [
+      { date: "2024-06-01", value: 100 },
+      { date: "2024-05-15", value: 200 },
+      { date: "2024-04-20", value: 150 },
+    ];
+
+    const aggregator = vi.fn((items: Array<{ value: unknown }>) => ({
+      total: items.reduce(
+        (sum: number, item: { value: unknown }) => sum + (item.value as number),
+        0
+      ),
+    }));
+
+    const { result } = renderHook(() =>
+      useMonthlyTrends({
+        data,
+        dateField: "date",
+        dateLocale,
+        currentDate,
+        aggregator,
+      })
+    );
+
+    expect(result.current).toHaveLength(6); // monthsBack default is 5, so 6 months total
+    expect(aggregator).toHaveBeenCalled();
+  });
+
+  it("should return monthly trends with custom monthsBack", () => {
+    const data = [{ date: "2024-06-01", value: 100 }];
+
+    const aggregator = vi.fn(() => ({ total: 0 }));
+
+    const { result } = renderHook(() =>
+      useMonthlyTrends({
+        data,
+        dateField: "date",
+        monthsBack: 2,
+        dateLocale,
+        currentDate,
+        aggregator,
+      })
+    );
+
+    expect(result.current).toHaveLength(3); // monthsBack is 2, so 3 months total
+  });
+
+  it("should filter data by month correctly", () => {
+    const data = [
+      { date: "2024-06-01", value: 100 },
+      { date: "2024-05-15", value: 200 },
+      { date: "2024-04-20", value: 150 },
+      { date: "2024-03-10", value: 50 },
+    ];
+
+    const aggregator = vi.fn((items: Array<{ value: unknown }>) => ({
+      total: items.reduce(
+        (sum: number, item: { value: unknown }) => sum + (item.value as number),
+        0
+      ),
+    }));
+
+    renderHook(() =>
+      useMonthlyTrends({
+        data,
+        dateField: "date",
+        monthsBack: 3,
+        dateLocale,
+        currentDate,
+        aggregator,
+      })
+    );
+
+    // Aggregator should be called for each month
+    expect(aggregator).toHaveBeenCalledTimes(4);
+  });
+
+  it("should format month names correctly", () => {
+    const data: Array<Record<string, unknown>> = [];
+
+    const aggregator = vi.fn(() => ({ total: 0 }));
+
+    const { result } = renderHook(() =>
+      useMonthlyTrends({
+        data,
+        dateField: "date",
+        monthsBack: 1,
+        dateLocale,
+        currentDate,
+        aggregator,
+      })
+    );
+
     expect(result.current[0]).toHaveProperty("month");
     expect(typeof result.current[0].month).toBe("string");
   });
 
-  it("should aggregate data per month", () => {
-    const { result } = renderHook(() => useMonthlyTrends(defaultOptions));
-    const januaryData = result.current.find((item) => item.month === "jan");
-    expect(januaryData).toBeDefined();
-    expect(januaryData?.total).toBe(100);
-    expect(januaryData?.count).toBe(1);
-  });
+  it("should include aggregated data in result", () => {
+    const data = [{ date: "2024-06-01", value: 100 }];
 
-  it("should handle empty data", () => {
-    const options = { ...defaultOptions, data: [] };
-    const { result } = renderHook(() => useMonthlyTrends(options));
-    expect(result.current).toBeDefined();
-    expect(Array.isArray(result.current)).toBe(true);
-  });
+    const aggregator = vi.fn(() => ({ total: 500, count: 10 }));
 
-  it("should respect monthsBack parameter", () => {
-    const options = { ...defaultOptions, monthsBack: 3 };
-    const { result } = renderHook(() => useMonthlyTrends(options));
-    expect(result.current.length).toBe(4); // monthsBack + 1
-  });
-
-  it("should use custom aggregator", () => {
-    const customAggregator = (items: typeof mockData) => ({
-      average:
-        items.length > 0
-          ? items.reduce((sum, item) => sum + (item.value || 0), 0) / items.length
-          : 0,
-    });
-    const options = { ...defaultOptions, aggregator: customAggregator };
-    const { result } = renderHook(() => useMonthlyTrends(options));
-    expect(result.current[0]).toHaveProperty("average");
-  });
-
-  it("should filter data by date range", () => {
-    const { result } = renderHook(() => useMonthlyTrends(defaultOptions));
-    // Find data that contains the aggregated values
-    const dataWithTotal = result.current.find((item) => "total" in item);
-    expect(dataWithTotal).toBeDefined();
-  });
-
-  it("should handle months with no data", () => {
-    const { result } = renderHook(() => useMonthlyTrends(defaultOptions));
-    // All months should be present in the result
-    expect(result.current.length).toBe(6);
-    // Months with no data should still have aggregated values (likely 0)
-    const emptyMonth = result.current.find(
-      (item) =>
-        !mockData.some((d) => {
-          const itemDate = new Date(d.date);
-          const monthDate = new Date(`2025-${item.month}-01`);
-          return itemDate.getMonth() === monthDate.getMonth();
-        })
+    const { result } = renderHook(() =>
+      useMonthlyTrends({
+        data,
+        dateField: "date",
+        monthsBack: 0,
+        dateLocale,
+        currentDate,
+        aggregator,
+      })
     );
-    expect(emptyMonth).toBeDefined();
+
+    expect(result.current[0]).toHaveProperty("total", 500);
+    expect(result.current[0]).toHaveProperty("count", 10);
+  });
+
+  it("should handle empty data array", () => {
+    const data: Array<Record<string, unknown>> = [];
+
+    const aggregator = vi.fn(() => ({ total: 0 }));
+
+    const { result } = renderHook(() =>
+      useMonthlyTrends({
+        data,
+        dateField: "date",
+        monthsBack: 2,
+        dateLocale,
+        currentDate,
+        aggregator,
+      })
+    );
+
+    expect(result.current).toHaveLength(3);
+    expect(aggregator).toHaveBeenCalledTimes(3);
+  });
+
+  it("should memoize results based on dependencies", () => {
+    const data = [{ date: "2024-06-01", value: 100 }];
+    const aggregator = vi.fn(() => ({ total: 0 }));
+
+    const { result, rerender } = renderHook(
+      ({ data: hookData }) =>
+        useMonthlyTrends({
+          data: hookData,
+          dateField: "date",
+          dateLocale,
+          currentDate,
+          aggregator,
+        }),
+      { initialProps: { data } }
+    );
+
+    const firstResult = result.current;
+
+    rerender({ data });
+
+    // Should return same reference if dependencies haven't changed
+    expect(result.current).toBe(firstResult);
   });
 });

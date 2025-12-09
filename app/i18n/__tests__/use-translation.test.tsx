@@ -1,134 +1,267 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook } from "@testing-library/react";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
 import { useTranslation } from "../use-translation";
-import * as languageContext from "~/contexts/language-context";
+import { LanguageProvider, useLanguage } from "~/contexts/language-context";
+import userEvent from "@testing-library/user-event";
 
-vi.mock("~/contexts/language-context", () => ({
-  useLanguage: vi.fn(),
-}));
+// Test component that uses the translation hook
+function TestComponent() {
+  const t = useTranslation();
+  return (
+    <div>
+      <div data-testid="common-loading">{t.common.loading}</div>
+      <div data-testid="common-save">{t.common.save}</div>
+      <div data-testid="common-cancel">{t.common.cancel}</div>
+      <div data-testid="common-days-ago-0">{t.common.daysAgo(0)}</div>
+      <div data-testid="common-days-ago-1">{t.common.daysAgo(1)}</div>
+      <div data-testid="common-days-ago-5">{t.common.daysAgo(5)}</div>
+    </div>
+  );
+}
+
+// Test component that uses both translation and language hooks
+function TestComponentWithLanguage() {
+  const t = useTranslation();
+  const { setLanguage } = useLanguage();
+  return (
+    <div>
+      <div data-testid="common-loading">{t.common.loading}</div>
+      <button onClick={() => setLanguage("en")}>Switch to English</button>
+      <button onClick={() => setLanguage("es")}>Switch to Spanish</button>
+      <button onClick={() => setLanguage("pt")}>Switch to Portuguese</button>
+    </div>
+  );
+}
 
 describe("useTranslation", () => {
+  let localStorageMock: {
+    getItem: ReturnType<typeof vi.fn>;
+    setItem: ReturnType<typeof vi.fn>;
+    removeItem: ReturnType<typeof vi.fn>;
+    clear: ReturnType<typeof vi.fn>;
+    length: number;
+    key: ReturnType<typeof vi.fn>;
+  };
+
   beforeEach(() => {
+    // Setup localStorage mock
+    localStorageMock = {
+      getItem: vi.fn(),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+      clear: vi.fn(),
+      length: 0,
+      key: vi.fn(),
+    };
+    Object.defineProperty(window, "localStorage", {
+      value: localStorageMock as Storage,
+      writable: true,
+    });
+
     vi.clearAllMocks();
   });
 
-  it("should return Portuguese translations when language is pt", () => {
-    vi.mocked(languageContext.useLanguage).mockReturnValue({
-      language: "pt",
-      setLanguage: vi.fn(),
-      languageInfo: {
-        code: "pt",
-        name: "Português",
-        flag: "/flags/br.svg",
-      },
+  describe("translation retrieval", () => {
+    it("should return Portuguese translations when language is pt", async () => {
+      localStorageMock.getItem.mockReturnValue("pt");
+
+      render(
+        <LanguageProvider>
+          <TestComponent />
+        </LanguageProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("common-loading")).toHaveTextContent("Carregando...");
+        expect(screen.getByTestId("common-save")).toHaveTextContent("Salvar");
+        expect(screen.getByTestId("common-cancel")).toHaveTextContent("Cancelar");
+      });
     });
 
-    const { result } = renderHook(() => useTranslation());
+    it("should return English translations when language is en", async () => {
+      localStorageMock.getItem.mockReturnValue("en");
 
-    expect(result.current).toBeDefined();
-    expect(result.current.common.language).toBe("Idioma");
-    expect(result.current.common.loading).toBe("Carregando...");
+      render(
+        <LanguageProvider>
+          <TestComponent />
+        </LanguageProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("common-loading")).toHaveTextContent("Loading...");
+        expect(screen.getByTestId("common-save")).toHaveTextContent("Save");
+        expect(screen.getByTestId("common-cancel")).toHaveTextContent("Cancel");
+      });
+    });
+
+    it("should return Spanish translations when language is es", async () => {
+      localStorageMock.getItem.mockReturnValue("es");
+
+      render(
+        <LanguageProvider>
+          <TestComponent />
+        </LanguageProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("common-loading")).toHaveTextContent("Cargando...");
+        expect(screen.getByTestId("common-save")).toHaveTextContent("Guardar");
+        expect(screen.getByTestId("common-cancel")).toHaveTextContent("Cancelar");
+      });
+    });
   });
 
-  it("should return English translations when language is en", () => {
-    vi.mocked(languageContext.useLanguage).mockReturnValue({
-      language: "en",
-      setLanguage: vi.fn(),
-      languageInfo: {
-        code: "en",
-        name: "English",
-        flag: "/flags/us.svg",
-      },
+  describe("function translations", () => {
+    it("should handle function translations correctly for Portuguese", async () => {
+      localStorageMock.getItem.mockReturnValue("pt");
+
+      render(
+        <LanguageProvider>
+          <TestComponent />
+        </LanguageProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("common-days-ago-0")).toHaveTextContent("Hoje");
+        expect(screen.getByTestId("common-days-ago-1")).toHaveTextContent("Há 1 dia");
+        expect(screen.getByTestId("common-days-ago-5")).toHaveTextContent("Há 5 dias");
+      });
     });
 
-    const { result } = renderHook(() => useTranslation());
+    it("should handle function translations correctly for English", async () => {
+      localStorageMock.getItem.mockReturnValue("en");
 
-    expect(result.current).toBeDefined();
-    expect(result.current.common.language).toBe("Language");
-    expect(result.current.common.loading).toBe("Loading...");
+      render(
+        <LanguageProvider>
+          <TestComponent />
+        </LanguageProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("common-days-ago-0")).toHaveTextContent("Today");
+        expect(screen.getByTestId("common-days-ago-1")).toHaveTextContent("1 day ago");
+        expect(screen.getByTestId("common-days-ago-5")).toHaveTextContent("5 days ago");
+      });
+    });
+
+    it("should handle function translations correctly for Spanish", async () => {
+      localStorageMock.getItem.mockReturnValue("es");
+
+      render(
+        <LanguageProvider>
+          <TestComponent />
+        </LanguageProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("common-days-ago-0")).toHaveTextContent("Hoy");
+        expect(screen.getByTestId("common-days-ago-1")).toHaveTextContent("Hace 1 día");
+        expect(screen.getByTestId("common-days-ago-5")).toHaveTextContent("Hace 5 días");
+      });
+    });
   });
 
-  it("should return Spanish translations when language is es", () => {
-    vi.mocked(languageContext.useLanguage).mockReturnValue({
-      language: "es",
-      setLanguage: vi.fn(),
-      languageInfo: {
-        code: "es",
-        name: "Español",
-        flag: "/flags/es.svg",
-      },
+  describe("language context updates", () => {
+    it("should update translations when language changes", async () => {
+      const user = userEvent.setup();
+      localStorageMock.getItem.mockReturnValue("pt");
+
+      render(
+        <LanguageProvider>
+          <TestComponentWithLanguage />
+        </LanguageProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("common-loading")).toHaveTextContent("Carregando...");
+      });
+
+      const switchButton = screen.getByText("Switch to English");
+      await user.click(switchButton);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("common-loading")).toHaveTextContent("Loading...");
+      });
     });
 
-    const { result } = renderHook(() => useTranslation());
+    it("should update translations when language changes from en to es", async () => {
+      const user = userEvent.setup();
+      localStorageMock.getItem.mockReturnValue("en");
 
-    expect(result.current).toBeDefined();
-    expect(result.current.common.language).toBe("Idioma");
-    expect(result.current.common.loading).toBe("Cargando...");
+      function TestComponentWithSave() {
+        const t = useTranslation();
+        const { setLanguage } = useLanguage();
+        return (
+          <div>
+            <div data-testid="common-save">{t.common.save}</div>
+            <button onClick={() => setLanguage("es")}>Switch to Spanish</button>
+          </div>
+        );
+      }
+
+      render(
+        <LanguageProvider>
+          <TestComponentWithSave />
+        </LanguageProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("common-save")).toHaveTextContent("Save");
+      });
+
+      const switchButton = screen.getByText("Switch to Spanish");
+      await user.click(switchButton);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("common-save")).toHaveTextContent("Guardar");
+      });
+    });
   });
 
-  it("should update translations when language changes", () => {
-    vi.mocked(languageContext.useLanguage).mockReturnValue({
-      language: "pt",
-      setLanguage: vi.fn(),
-      languageInfo: {
-        code: "pt",
-        name: "Português",
-        flag: "/flags/br.svg",
-      },
+  describe("translation object structure", () => {
+    it("should return translation object with common properties", async () => {
+      localStorageMock.getItem.mockReturnValue("pt");
+
+      function TestComponentStructure() {
+        const t = useTranslation();
+        return (
+          <div>
+            <div data-testid="has-common">{t.common ? "yes" : "no"}</div>
+          </div>
+        );
+      }
+
+      render(
+        <LanguageProvider>
+          <TestComponentStructure />
+        </LanguageProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("has-common")).toHaveTextContent("yes");
+      });
     });
 
-    const { result, rerender } = renderHook(() => useTranslation());
+    it("should return translation object that updates when language changes", async () => {
+      const user = userEvent.setup();
+      localStorageMock.getItem.mockReturnValue("pt");
 
-    expect(result.current.common.language).toBe("Idioma");
+      render(
+        <LanguageProvider>
+          <TestComponentWithLanguage />
+        </LanguageProvider>
+      );
 
-    vi.mocked(languageContext.useLanguage).mockReturnValue({
-      language: "en",
-      setLanguage: vi.fn(),
-      languageInfo: {
-        code: "en",
-        name: "English",
-        flag: "/flags/us.svg",
-      },
+      await waitFor(() => {
+        expect(screen.getByTestId("common-loading")).toHaveTextContent("Carregando...");
+      });
+
+      const switchButton = screen.getByText("Switch to English");
+      await user.click(switchButton);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("common-loading")).toHaveTextContent("Loading...");
+      });
     });
-
-    rerender();
-    expect(result.current.common.language).toBe("Language");
-  });
-
-  it("should have function properties that work correctly", () => {
-    vi.mocked(languageContext.useLanguage).mockReturnValue({
-      language: "pt",
-      setLanguage: vi.fn(),
-      languageInfo: {
-        code: "pt",
-        name: "Português",
-        flag: "/flags/br.svg",
-      },
-    });
-
-    const { result } = renderHook(() => useTranslation());
-
-    expect(typeof result.current.common.daysAgo).toBe("function");
-    expect(result.current.common.daysAgo(0)).toBe("Hoje");
-    expect(result.current.common.daysAgo(1)).toBe("Há 1 dia");
-    expect(result.current.common.daysAgo(5)).toBe("Há 5 dias");
-  });
-
-  it("should have nested properties accessible", () => {
-    vi.mocked(languageContext.useLanguage).mockReturnValue({
-      language: "en",
-      setLanguage: vi.fn(),
-      languageInfo: {
-        code: "en",
-        name: "English",
-        flag: "/flags/us.svg",
-      },
-    });
-
-    const { result } = renderHook(() => useTranslation());
-
-    expect(result.current.common.ariaLabels).toBeDefined();
-    expect(result.current.common.ariaLabels.tabs).toBe("Tabs");
-    expect(result.current.common.ariaLabels.email).toBe("Email");
   });
 });

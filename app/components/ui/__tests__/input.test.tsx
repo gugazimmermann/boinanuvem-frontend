@@ -2,15 +2,15 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Input } from "../input";
-import * as masks from "~/components/site/utils/masks";
+import { createRef } from "react";
 
 vi.mock("~/i18n/use-translation", () => ({
-  useTranslation: () => ({
+  useTranslation: vi.fn(() => ({
     common: {
       showPassword: "Show password",
       hidePassword: "Hide password",
     },
-  }),
+  })),
 }));
 
 describe("Input", () => {
@@ -18,52 +18,87 @@ describe("Input", () => {
     vi.clearAllMocks();
   });
 
+  it("should render input element", () => {
+    render(<Input />);
+    const input = screen.getByRole("textbox");
+    expect(input).toBeInTheDocument();
+  });
+
   it("should render with label", () => {
     render(<Input label="Test Label" />);
-    expect(screen.getByLabelText("Test Label")).toBeInTheDocument();
+    expect(screen.getByText("Test Label")).toBeInTheDocument();
+    const input = screen.getByLabelText("Test Label");
+    expect(input).toBeInTheDocument();
   });
 
-  it("should render with helper text", () => {
+  it("should render helper text", () => {
     render(<Input helperText="Helper text" />);
     expect(screen.getByText("Helper text")).toBeInTheDocument();
+    expect(screen.getByText("Helper text")).toHaveClass("text-gray-400");
   });
 
-  it("should render with error message", () => {
+  it("should render error message", () => {
     render(<Input error="Error message" />);
     expect(screen.getByText("Error message")).toBeInTheDocument();
-    const input = screen.getByRole("textbox");
-    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByText("Error message")).toHaveClass("text-red-500");
   });
 
   it("should prioritize error over helper text", () => {
-    render(<Input helperText="Helper" error="Error" />);
+    render(<Input error="Error" helperText="Helper" />);
     expect(screen.getByText("Error")).toBeInTheDocument();
     expect(screen.queryByText("Helper")).not.toBeInTheDocument();
   });
 
-  it("should generate id when not provided", () => {
-    render(<Input label="Test" />);
-    const input = screen.getByLabelText("Test");
-    expect(input).toHaveAttribute("id");
+  it("should apply error styles when error is present", () => {
+    render(<Input error="Error" />);
+    const input = screen.getByRole("textbox");
+    expect(input).toHaveClass("border-red-400");
+    expect(input).toHaveAttribute("aria-invalid", "true");
   });
 
-  it("should use custom id when provided", () => {
-    render(<Input id="custom-id" label="Test" />);
-    const input = screen.getByLabelText("Test");
+  it("should have aria-describedby when helper text or error is present", () => {
+    const { rerender } = render(<Input helperText="Helper" />);
+    let input = screen.getByRole("textbox");
+    expect(input).toHaveAttribute("aria-describedby");
+    expect(input.getAttribute("aria-describedby")).toContain("-helper");
+
+    rerender(<Input error="Error" />);
+    input = screen.getByRole("textbox");
+    expect(input).toHaveAttribute("aria-describedby");
+  });
+
+  it("should not have aria-describedby when no helper text or error", () => {
+    render(<Input />);
+    const input = screen.getByRole("textbox");
+    expect(input).not.toHaveAttribute("aria-describedby");
+  });
+
+  it("should use provided id", () => {
+    render(<Input id="custom-id" label="Label" />);
+    const input = screen.getByLabelText("Label");
     expect(input).toHaveAttribute("id", "custom-id");
   });
 
-  it("should set aria-describedby when helper text or error exists", () => {
-    const { rerender } = render(<Input helperText="Helper" id="test" />);
-    let input = screen.getByRole("textbox");
-    expect(input).toHaveAttribute("aria-describedby", "test-helper");
-
-    rerender(<Input error="Error" id="test" />);
-    input = screen.getByRole("textbox");
-    expect(input).toHaveAttribute("aria-describedby", "test-helper");
+  it("should generate id when not provided", () => {
+    render(<Input label="Label" />);
+    const input = screen.getByLabelText("Label");
+    expect(input).toHaveAttribute("id");
+    expect(input.getAttribute("id")).toBeTruthy();
   });
 
-  it("should handle onChange events", async () => {
+  it("should apply custom className", () => {
+    const { container } = render(<Input className="custom-class" />);
+    const wrapper = container.firstChild as HTMLElement;
+    expect(wrapper).toHaveClass("custom-class");
+  });
+
+  it("should apply custom inputClassName", () => {
+    render(<Input inputClassName="custom-input-class" />);
+    const input = screen.getByRole("textbox");
+    expect(input).toHaveClass("custom-input-class");
+  });
+
+  it("should handle text input", async () => {
     const handleChange = vi.fn();
     const user = userEvent.setup();
     render(<Input onChange={handleChange} />);
@@ -72,24 +107,28 @@ describe("Input", () => {
     expect(handleChange).toHaveBeenCalled();
   });
 
-  it("should toggle password visibility when showPasswordToggle is true", async () => {
-    const user = userEvent.setup();
-    render(<Input type="password" showPasswordToggle />);
-    const input = document.querySelector('input[type="password"]') as HTMLInputElement;
-    expect(input).toHaveAttribute("type", "password");
-
-    const toggleButton = screen.getByRole("button");
-    await user.click(toggleButton);
-    const textInput = document.querySelector('input[type="text"]') as HTMLInputElement;
-    expect(textInput).toBeInTheDocument();
+  it("should handle number input", () => {
+    render(<Input type="number" />);
+    const input = screen.getByRole("spinbutton");
+    expect(input).toHaveAttribute("type", "number");
   });
 
-  it("should show hide password label when password is visible", async () => {
-    const user = userEvent.setup();
+  it("should handle email input", () => {
+    render(<Input type="email" />);
+    const input = screen.getByRole("textbox");
+    expect(input).toHaveAttribute("type", "email");
+  });
+
+  it("should show password toggle when showPasswordToggle is true and type is password", () => {
     render(<Input type="password" showPasswordToggle />);
-    const toggleButton = screen.getByRole("button", { name: /show password/i });
-    await user.click(toggleButton);
-    expect(screen.getByRole("button", { name: /hide password/i })).toBeInTheDocument();
+    const toggleButton = screen.getByRole("button");
+    expect(toggleButton).toBeInTheDocument();
+    expect(toggleButton).toHaveAttribute("aria-label", "Show password");
+  });
+
+  it("should not show password toggle when showPasswordToggle is false", () => {
+    render(<Input type="password" />);
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
   it("should not show password toggle for non-password types", () => {
@@ -97,94 +136,105 @@ describe("Input", () => {
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
-  it("should mask date input", async () => {
-    const handleChange = vi.fn();
-    vi.spyOn(masks, "maskDate").mockReturnValue("12/31/2024");
-    vi.spyOn(masks, "dateToISO").mockReturnValue("2024-12-31");
+  it("should toggle password visibility", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<Input type="password" showPasswordToggle label="Password" />);
+    const input = container.querySelector(
+      'input[type="password"], input[type="text"]'
+    ) as HTMLInputElement;
+    const toggleButton = screen.getByRole("button");
 
+    expect(input).toHaveAttribute("type", "password");
+    await user.click(toggleButton);
+    expect(input).toHaveAttribute("type", "text");
+    expect(toggleButton).toHaveAttribute("aria-label", "Hide password");
+
+    await user.click(toggleButton);
+    expect(input).toHaveAttribute("type", "password");
+    expect(toggleButton).toHaveAttribute("aria-label", "Show password");
+  });
+
+  it("should handle date input with ISO format", async () => {
+    const handleChange = vi.fn();
     const user = userEvent.setup();
     render(<Input type="date" onChange={handleChange} />);
     const input = screen.getByRole("textbox");
-    await user.type(input, "12312024");
 
-    expect(masks.maskDate).toHaveBeenCalled();
-    expect(masks.dateToISO).toHaveBeenCalled();
+    await user.type(input, "15/01/2024");
+    expect(handleChange).toHaveBeenCalled();
+    const lastCall = handleChange.mock.calls[handleChange.mock.calls.length - 1][0];
+    expect(lastCall.target.value).toBeTruthy();
   });
 
-  it("should convert ISO date to display format", () => {
-    vi.spyOn(masks, "isoToDate").mockReturnValue("31/12/2024");
-    render(<Input type="date" value="2024-12-31" readOnly />);
-    const input = screen.getByRole("textbox");
-    expect(input).toHaveValue("31/12/2024");
+  it("should display ISO date as DD/MM/YYYY format", () => {
+    render(<Input type="date" value="2024-01-15" onChange={vi.fn()} />);
+    const input = screen.getByRole("textbox") as HTMLInputElement;
+    expect(input.value).toBe("15/01/2024");
   });
 
-  it("should set placeholder for date inputs", () => {
-    render(<Input type="date" />);
+  it("should display non-ISO date as-is", () => {
+    render(<Input type="date" value="15/01/2024" onChange={vi.fn()} />);
+    const input = screen.getByRole("textbox") as HTMLInputElement;
+    expect(input.value).toBe("15/01/2024");
+  });
+
+  it("should have placeholder for date input", () => {
+    render(<Input type="date" onChange={vi.fn()} />);
     const input = screen.getByRole("textbox");
     expect(input).toHaveAttribute("placeholder", "dd/MM/yyyy");
   });
 
-  it("should set maxLength for date inputs", () => {
-    render(<Input type="date" />);
+  it("should have maxLength of 10 for date input", () => {
+    render(<Input type="date" onChange={vi.fn()} />);
     const input = screen.getByRole("textbox");
     expect(input).toHaveAttribute("maxLength", "10");
   });
 
-  it("should not mask non-date inputs", async () => {
-    const handleChange = vi.fn();
-    const user = userEvent.setup();
-    render(<Input type="text" onChange={handleChange} />);
-    const input = screen.getByRole("textbox");
-    await user.type(input, "test");
-    expect(masks.maskDate).not.toHaveBeenCalled();
+  it("should forward ref to input element", () => {
+    const ref = createRef<HTMLInputElement>();
+    render(<Input ref={ref} />);
+    expect(ref.current).toBeInstanceOf(HTMLInputElement);
   });
 
-  it("should apply error styles when error exists", () => {
-    const { container } = render(<Input error="Error" />);
-    const input = container.querySelector("input");
-    expect(input).toHaveClass("border-red-400");
-  });
-
-  it("should apply custom className to wrapper", () => {
-    const { container } = render(<Input className="wrapper-class" />);
-    const wrapper = container.firstChild;
-    expect(wrapper).toHaveClass("wrapper-class");
-  });
-
-  it("should apply custom inputClassName", () => {
-    const { container } = render(<Input inputClassName="input-class" />);
-    const input = container.querySelector("input");
-    expect(input).toHaveClass("input-class");
-  });
-
-  it("should handle value prop", () => {
-    render(<Input value="test value" readOnly />);
-    const input = screen.getByRole("textbox");
-    expect(input).toHaveValue("test value");
-  });
-
-  it("should handle placeholder prop for non-date inputs", () => {
-    render(<Input placeholder="Enter text" />);
+  it("should pass through input props", () => {
+    render(<Input placeholder="Enter text" required />);
     const input = screen.getByRole("textbox");
     expect(input).toHaveAttribute("placeholder", "Enter text");
+    expect(input).toBeRequired();
   });
 
-  it("should forward ref", () => {
-    const ref = vi.fn();
-    render(<Input ref={ref} />);
-    expect(ref).toHaveBeenCalled();
+  it("should have pr-10 class when password toggle is shown", () => {
+    const { container } = render(<Input type="password" showPasswordToggle label="Password" />);
+    const input = container.querySelector('input[type="password"]') as HTMLInputElement;
+    expect(input).toBeTruthy();
+    expect(input).toHaveClass("pr-10");
   });
 
-  it("should handle date input with incomplete value", async () => {
-    const handleChange = vi.fn();
-    vi.spyOn(masks, "maskDate").mockReturnValue("12/31");
-    vi.spyOn(masks, "dateToISO").mockReturnValue("12/31");
+  it("should handle controlled input value", () => {
+    const { rerender } = render(<Input value="initial" onChange={vi.fn()} />);
+    let input = screen.getByRole("textbox") as HTMLInputElement;
+    expect(input.value).toBe("initial");
 
-    const user = userEvent.setup();
-    render(<Input type="date" onChange={handleChange} />);
-    const input = screen.getByRole("textbox");
-    await user.type(input, "1231");
+    rerender(<Input value="updated" onChange={vi.fn()} />);
+    input = screen.getByRole("textbox") as HTMLInputElement;
+    expect(input.value).toBe("updated");
+  });
 
-    expect(masks.maskDate).toHaveBeenCalled();
+  it("should handle empty value", () => {
+    render(<Input value="" onChange={vi.fn()} />);
+    const input = screen.getByRole("textbox") as HTMLInputElement;
+    expect(input.value).toBe("");
+  });
+
+  it("should handle null value for date input", () => {
+    render(<Input type="date" value={undefined} onChange={vi.fn()} />);
+    const input = screen.getByRole("textbox") as HTMLInputElement;
+    expect(input.value).toBe("");
+  });
+
+  it("should handle non-string value for date input", () => {
+    render(<Input type="date" value={123 as unknown as string} onChange={vi.fn()} />);
+    const input = screen.getByRole("textbox") as HTMLInputElement;
+    expect(input.value).toBe("");
   });
 });

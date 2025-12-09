@@ -23,6 +23,7 @@ import {
 import type { CashFlowObservation } from "~/types/cash-flow-observation";
 import { ObservationSection } from "~/components/dashboard/observations/observation-section";
 import { FinanceDetailCard } from "~/components/dashboard/finance/finance-detail-card";
+import type { Supplier, Buyer, Employee, ServiceProvider, Property } from "~/types";
 
 export function meta() {
   return [
@@ -51,28 +52,48 @@ export default function CashFlowDetails() {
     [transaction]
   );
   const [observations, setObservations] = useState<CashFlowObservation[]>(initialObservations);
+  const [supplier, setSupplier] = useState<Supplier | null>(null);
+  const [buyer, setBuyer] = useState<Buyer | null>(null);
+  const [employee, setEmployee] = useState<Employee | null>(null);
+  const [serviceProvider, setServiceProvider] = useState<ServiceProvider | null>(null);
+  const [property, setProperty] = useState<Property | null>(null);
 
   useEffect(() => {
     setObservations(initialObservations);
   }, [initialObservations]);
 
-  const getRelatedEntities = () => {
-    const supplier =
-      transaction?.type === "expense" && transaction?.supplierId
-        ? getSupplierById(transaction.supplierId)
-        : null;
-    const buyer =
-      transaction?.type === "income" && transaction?.buyerId
-        ? getBuyerById(transaction.buyerId)
-        : null;
-    const employee = transaction?.employeeId ? getEmployeeById(transaction.employeeId) : null;
-    const serviceProvider = transaction?.serviceProviderId
-      ? getServiceProviderById(transaction.serviceProviderId)
-      : null;
-    return { supplier, buyer, employee, serviceProvider };
-  };
-  const { supplier, buyer, employee, serviceProvider } = getRelatedEntities();
-  const property = transaction?.propertyId ? getPropertyById(transaction.propertyId) : null;
+  useEffect(() => {
+    const loadEntities = async () => {
+      if (!transaction) return;
+
+      const [supplierData, buyerData, employeeData, serviceProviderData, propertyData] =
+        await Promise.all([
+          transaction.type === "expense" && transaction.supplierId
+            ? getSupplierById(transaction.supplierId).catch(() => null)
+            : Promise.resolve(null),
+          transaction.type === "income" && transaction.buyerId
+            ? getBuyerById(transaction.buyerId).catch(() => null)
+            : Promise.resolve(null),
+          transaction.employeeId
+            ? getEmployeeById(transaction.employeeId).catch(() => null)
+            : Promise.resolve(null),
+          transaction.serviceProviderId
+            ? getServiceProviderById(transaction.serviceProviderId).catch(() => null)
+            : Promise.resolve(null),
+          transaction.propertyId
+            ? getPropertyById(transaction.propertyId).catch(() => null)
+            : Promise.resolve(null),
+        ]);
+
+      setSupplier(supplierData);
+      setBuyer(buyerData);
+      setEmployee(employeeData);
+      setServiceProvider(serviceProviderData);
+      setProperty(propertyData);
+    };
+
+    loadEntities();
+  }, [transaction]);
 
   const handleAddObservation = async (observationText: string, files: File[]) => {
     if (!transaction) return;

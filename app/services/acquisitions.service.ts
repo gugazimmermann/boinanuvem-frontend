@@ -71,10 +71,26 @@ export function addAcquisition(data: AcquisitionFormData): Acquisition {
 
   const updatedItems = data.acquisitionItems.map((item) => {
     const costPerArroba = calculateAcquisitionCostPerArroba(item.weight, costPerAnimal);
+    // Explicitly construct the item without spreading to avoid any price conflicts
     return {
-      ...item,
+      animalId: item.animalId,
+      weight: item.weight,
       price: costPerAnimal,
       costPerArroba,
+      // Include other optional fields if they exist
+      ...(item.breed && { breed: item.breed }),
+      ...(item.gender && { gender: item.gender }),
+      ...(item.birthDate && { birthDate: item.birthDate }),
+      ...(item.motherId && { motherId: item.motherId }),
+      ...(item.fatherId && { fatherId: item.fatherId }),
+      ...(item.motherRegistrationNumber && {
+        motherRegistrationNumber: item.motherRegistrationNumber,
+      }),
+      ...(item.fatherRegistrationNumber && {
+        fatherRegistrationNumber: item.fatherRegistrationNumber,
+      }),
+      ...(item.purity && { purity: item.purity }),
+      ...(item.birthObservation && { birthObservation: item.birthObservation }),
     };
   });
 
@@ -118,12 +134,18 @@ export function addAcquisition(data: AcquisitionFormData): Acquisition {
       status: AccountsPayableStatus.UNPAID,
       propertyId: data.propertyId,
     });
-    acquisition.linkedAccountsPayableId = accountsPayable.id;
+    acquisition.linkedAccountsReceivableId = accountsPayable.id;
   }
 
-  updateEntity(mockAcquisitions, acquisition.id, acquisition);
+  // Update the acquisition in the array to ensure all fields are properly set
+  updateEntity(mockAcquisitions, acquisition.id, {
+    ...acquisition,
+    acquisitionItems: updatedItems, // Ensure we use the updated items with correct prices
+  });
 
-  return acquisition;
+  // Return the updated acquisition from the array to ensure we have the latest data
+  const updatedAcquisition = getAcquisitionById(acquisition.id);
+  return updatedAcquisition || acquisition;
 }
 
 function updateAcquisitionItems(items: AcquisitionItem[], totalCost: number): AcquisitionItem[] {

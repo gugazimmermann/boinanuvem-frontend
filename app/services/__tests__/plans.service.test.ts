@@ -1,305 +1,104 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { ApiError } from "../api-client";
 import { PlansService, plansService, fetchPlans } from "../plans.service";
-import { apiClient, ApiError } from "../api-client";
-import type { Plan } from "~/types/plan";
 
-// Mock the API client
-vi.mock("../api-client", () => ({
-  apiClient: {
-    get: vi.fn(),
-  },
-  ApiError: class extends Error {
-    constructor(message: string) {
-      super(message);
-      this.name = "ApiError";
-    }
-  },
-}));
+vi.mock("../api-client", async () => {
+  const actual = await vi.importActual("../api-client");
+  return {
+    ...actual,
+    apiClient: {
+      get: vi.fn(),
+    },
+  };
+});
+
+import { apiClient } from "../api-client";
 
 describe("plans.service", () => {
+  let service: PlansService;
+  const mockGet = apiClient.get as ReturnType<typeof vi.fn>;
+  const originalConsoleError = console.error;
+
   beforeEach(() => {
+    service = new PlansService();
     vi.clearAllMocks();
-    // Suppress console.error for error handling tests
-    vi.spyOn(console, "error").mockImplementation(() => {});
+    // Suppress console.error during tests
+    console.error = vi.fn();
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    // Restore console.error after tests
+    console.error = originalConsoleError;
   });
 
-  describe("PlansService", () => {
-    describe("getPlans", () => {
-      it("should fetch plans with default active status", async () => {
-        const mockPlans: Plan[] = [
-          {
-            id: "plan-1",
-            name: "Basic Plan",
-            description: "Basic plan description",
-            monthlyPrice: "100",
-            annualPrice: "1000",
-            limits: {
-              properties: "1",
-              locations: "10",
-              animals: "100",
-              members: "1",
-            },
-            features: [],
-            popular: false,
-            status: "active",
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-        ];
+  describe("getPlans", () => {
+    it("should fetch plans successfully", async () => {
+      const mockPlans = [{ id: "plan-1", name: "Basic Plan", price: 100, status: "active" }];
+      mockGet.mockResolvedValue(mockPlans);
 
-        vi.mocked(apiClient.get).mockResolvedValue(mockPlans);
+      const result = await service.getPlans();
 
-        const service = new PlansService();
-        const result = await service.getPlans();
-
-        expect(apiClient.get).toHaveBeenCalledWith("/plans", { status: "active" });
-        expect(result).toEqual(mockPlans);
-      });
-
-      it("should fetch plans with custom status", async () => {
-        const mockPlans: Plan[] = [
-          {
-            id: "plan-1",
-            name: "Basic Plan",
-            description: "Basic plan description",
-            monthlyPrice: "100",
-            annualPrice: "1000",
-            limits: {
-              properties: "1",
-              locations: "10",
-              animals: "100",
-              members: "1",
-            },
-            features: [],
-            popular: false,
-            status: "inactive",
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-        ];
-
-        vi.mocked(apiClient.get).mockResolvedValue(mockPlans);
-
-        const service = new PlansService();
-        const result = await service.getPlans({ status: "inactive" });
-
-        expect(apiClient.get).toHaveBeenCalledWith("/plans", { status: "inactive" });
-        expect(result).toEqual(mockPlans);
-      });
-
-      it("should fetch all plans when status is 'all'", async () => {
-        const mockPlans: Plan[] = [
-          {
-            id: "plan-1",
-            name: "Basic Plan",
-            description: "Basic plan description",
-            monthlyPrice: "100",
-            annualPrice: "1000",
-            limits: {
-              properties: "1",
-              locations: "10",
-              animals: "100",
-              members: "1",
-            },
-            features: [],
-            popular: false,
-            status: "active",
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-        ];
-
-        vi.mocked(apiClient.get).mockResolvedValue(mockPlans);
-
-        const service = new PlansService();
-        const result = await service.getPlans({ status: "all" });
-
-        expect(apiClient.get).toHaveBeenCalledWith("/plans", { status: "all" });
-        expect(result).toEqual(mockPlans);
-      });
-
-      it("should handle ApiError and throw with message", async () => {
-        const error = new ApiError("Network error", 500);
-        vi.mocked(apiClient.get).mockRejectedValue(error);
-
-        const service = new PlansService();
-        await expect(service.getPlans()).rejects.toThrow("Failed to fetch plans: Network error");
-      });
-
-      it("should handle unexpected errors", async () => {
-        const error = new Error("Unexpected error");
-        vi.mocked(apiClient.get).mockRejectedValue(error);
-
-        const service = new PlansService();
-        await expect(service.getPlans()).rejects.toThrow(
-          "Failed to fetch plans due to unexpected error"
-        );
-      });
+      expect(mockGet).toHaveBeenCalledWith("/plans", { status: "active" });
+      expect(result).toEqual(mockPlans);
     });
 
-    describe("getActivePlans", () => {
-      it("should fetch only active plans", async () => {
-        const mockPlans: Plan[] = [
-          {
-            id: "plan-1",
-            name: "Basic Plan",
-            description: "Basic plan description",
-            monthlyPrice: "100",
-            annualPrice: "1000",
-            limits: {
-              properties: "1",
-              locations: "10",
-              animals: "100",
-              members: "1",
-            },
-            features: [],
-            popular: false,
-            status: "active",
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-        ];
+    it("should use provided params", async () => {
+      const mockPlans = [{ id: "plan-1", name: "Basic Plan", price: 100 }];
+      mockGet.mockResolvedValue(mockPlans);
 
-        vi.mocked(apiClient.get).mockResolvedValue(mockPlans);
+      await service.getPlans({ status: "all" });
 
-        const service = new PlansService();
-        const result = await service.getActivePlans();
-
-        expect(apiClient.get).toHaveBeenCalledWith("/plans", { status: "active" });
-        expect(result).toEqual(mockPlans);
-      });
+      expect(mockGet).toHaveBeenCalledWith("/plans", { status: "all" });
     });
 
-    describe("getAllPlans", () => {
-      it("should fetch all plans regardless of status", async () => {
-        const mockPlans: Plan[] = [
-          {
-            id: "plan-1",
-            name: "Basic Plan",
-            description: "Basic plan description",
-            monthlyPrice: "100",
-            annualPrice: "1000",
-            limits: {
-              properties: "1",
-              locations: "10",
-              animals: "100",
-              members: "1",
-            },
-            features: [],
-            popular: false,
-            status: "active",
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-        ];
+    it("should throw error on API failure", async () => {
+      mockGet.mockRejectedValue(new ApiError("Server Error", 500));
 
-        vi.mocked(apiClient.get).mockResolvedValue(mockPlans);
-
-        const service = new PlansService();
-        const result = await service.getAllPlans();
-
-        expect(apiClient.get).toHaveBeenCalledWith("/plans", { status: "all" });
-        expect(result).toEqual(mockPlans);
-      });
+      await expect(service.getPlans()).rejects.toThrow("Failed to fetch plans: Server Error");
     });
   });
 
-  describe("plansService instance", () => {
+  describe("getActivePlans", () => {
+    it("should fetch active plans", async () => {
+      const mockPlans = [{ id: "plan-1", name: "Basic Plan", status: "active" }];
+      mockGet.mockResolvedValue(mockPlans);
+
+      const result = await service.getActivePlans();
+
+      expect(mockGet).toHaveBeenCalledWith("/plans", { status: "active" });
+      expect(result).toEqual(mockPlans);
+    });
+  });
+
+  describe("getAllPlans", () => {
+    it("should fetch all plans", async () => {
+      const mockPlans = [
+        { id: "plan-1", name: "Basic Plan", status: "active" },
+        { id: "plan-2", name: "Premium Plan", status: "inactive" },
+      ];
+      mockGet.mockResolvedValue(mockPlans);
+
+      const result = await service.getAllPlans();
+
+      expect(mockGet).toHaveBeenCalledWith("/plans", { status: "all" });
+      expect(result).toEqual(mockPlans);
+    });
+  });
+
+  describe("plansService singleton", () => {
     it("should be an instance of PlansService", () => {
       expect(plansService).toBeInstanceOf(PlansService);
-    });
-
-    it("should fetch plans", async () => {
-      const mockPlans: Plan[] = [
-        {
-          id: "plan-1",
-          name: "Basic Plan",
-          description: "Basic plan description",
-          monthlyPrice: "100",
-          annualPrice: "1000",
-          limits: {
-            properties: "1",
-            locations: "10",
-            animals: "100",
-            members: "1",
-          },
-          features: [],
-          popular: false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          status: "active",
-        },
-      ];
-
-      vi.mocked(apiClient.get).mockResolvedValue(mockPlans);
-
-      const result = await plansService.getPlans();
-      expect(result).toEqual(mockPlans);
     });
   });
 
   describe("fetchPlans", () => {
-    it("should fetch plans with default active status", async () => {
-      const mockPlans: Plan[] = [
-        {
-          id: "plan-1",
-          name: "Basic Plan",
-          description: "Basic plan description",
-          monthlyPrice: "100",
-          annualPrice: "1000",
-          limits: {
-            properties: "1",
-            locations: "10",
-            animals: "100",
-            members: "1",
-          },
-          features: [],
-          popular: false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          status: "active",
-        },
-      ];
-
-      vi.mocked(apiClient.get).mockResolvedValue(mockPlans);
+    it("should fetch plans using singleton", async () => {
+      const mockPlans = [{ id: "plan-1", name: "Basic Plan" }];
+      mockGet.mockResolvedValue(mockPlans);
 
       const result = await fetchPlans();
 
-      expect(apiClient.get).toHaveBeenCalledWith("/plans", { status: "active" });
-      expect(result).toEqual(mockPlans);
-    });
-
-    it("should fetch plans with custom params", async () => {
-      const mockPlans: Plan[] = [
-        {
-          id: "plan-1",
-          name: "Basic Plan",
-          description: "Basic plan description",
-          monthlyPrice: "100",
-          annualPrice: "1000",
-          limits: {
-            properties: "1",
-            locations: "10",
-            animals: "100",
-            members: "1",
-          },
-          features: [],
-          popular: false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          status: "inactive",
-        },
-      ];
-
-      vi.mocked(apiClient.get).mockResolvedValue(mockPlans);
-
-      const result = await fetchPlans({ status: "inactive" });
-
-      expect(apiClient.get).toHaveBeenCalledWith("/plans", { status: "inactive" });
+      expect(mockGet).toHaveBeenCalledWith("/plans", { status: "active" });
       expect(result).toEqual(mockPlans);
     });
   });

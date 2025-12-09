@@ -97,7 +97,7 @@ export function FileUpload({
             disabled={disabled}
             onChange={handleFileChange}
             className="hidden"
-            aria-invalid={hasError}
+            aria-invalid={hasError ? "true" : undefined}
             aria-describedby={helperId}
           />
           <div className="text-center">

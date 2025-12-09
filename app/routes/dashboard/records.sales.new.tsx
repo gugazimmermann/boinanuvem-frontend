@@ -1,17 +1,13 @@
-import { useMemo } from "react";
-import { useNavigate, useLocation } from "react-router";
+import { useNavigate } from "react-router";
 import { useTranslation } from "~/i18n";
 import { ROUTES } from "~/routes.config";
 import { addSale } from "~/services/sales.service";
-import { getAnimalsByCompanyId } from "~/services/animals.service";
-import { getBuyersByCompanyId } from "~/services/buyers.service";
-import { getPropertiesByCompanyId } from "~/services/properties.service";
-import { mockCompanies } from "~/mocks/companies";
 import {
   SaleForm,
   type SaleFormData as SaleFormDataType,
 } from "~/components/dashboard/records/sale-form";
 import { transformSaleFormData } from "~/utils/sale-form-helpers";
+import { useSaleFormData } from "~/hooks/use-sale-form-data";
 
 export function meta() {
   return [
@@ -31,22 +27,14 @@ export async function loader({ request }: { request: Request }) {
 export default function NewSale() {
   const t = useTranslation();
   const navigate = useNavigate();
-  const location = useLocation();
-  const company = mockCompanies[0];
-  const companyId = company?.id || "";
 
-  const allAnimals = useMemo(
-    () => getAnimalsByCompanyId(companyId).filter((a) => a.status === "active"),
-    [companyId]
-  );
-
-  const buyers = useMemo(() => getBuyersByCompanyId(companyId), [companyId]);
-  const properties = useMemo(() => getPropertiesByCompanyId(companyId), [companyId]);
-
-  const preSelectedAnimalIds = useMemo(() => {
-    const state = location.state as { animalIds?: string[] } | null;
-    return state?.animalIds || [];
-  }, [location.state]);
+  const {
+    animals: allAnimals,
+    buyers,
+    properties,
+    companyId,
+    preSelectedAnimalIds,
+  } = useSaleFormData();
 
   const handleSubmit = async (data: SaleFormDataType) => {
     const saleData = transformSaleFormData(data, companyId);

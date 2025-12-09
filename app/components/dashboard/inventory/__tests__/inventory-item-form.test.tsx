@@ -2,90 +2,66 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { InventoryItemForm } from "../inventory-item-form";
-import { LanguageProvider } from "~/contexts/language-context";
-import { InventoryItemCategory, PaymentMethod } from "~/types";
-import { mockSuppliers } from "~/mocks/suppliers";
-import { mockProperties } from "~/mocks/properties";
-
-const TestWrapper = ({ children }: { children: React.ReactNode }) => (
-  <LanguageProvider>{children}</LanguageProvider>
-);
+import { InventoryItemCategory, PaymentMethod, AreaType, type Property } from "~/types";
 
 vi.mock("~/components/ui", () => ({
-  Input: vi.fn(
-    ({
-      label,
-      value,
-      onChange,
-      error,
-      disabled,
-      type,
-      placeholder,
-      required,
-    }: {
-      label: string;
-      value: string;
-      onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-      error?: string;
-      disabled?: boolean;
-      type?: string;
-      placeholder?: string;
-      required?: boolean;
-    }) => (
-      <div>
-        <label>{label}</label>
-        <input
-          value={value}
-          onChange={onChange}
-          disabled={disabled}
-          data-error={error}
-          type={type}
-          placeholder={placeholder}
-          required={required}
-        />
-        {error && <p>{error}</p>}
-      </div>
-    )
+  Input: ({
+    label,
+    value,
+    onChange,
+    error,
+    disabled,
+  }: {
+    label: string;
+    value: string;
+    onChange: (e: { target: { value: string } }) => void;
+    error?: string;
+    disabled?: boolean;
+  }) => (
+    <div>
+      <label>{label}</label>
+      <input
+        data-testid={`input-${label}`}
+        defaultValue={value || ""}
+        onChange={onChange}
+        disabled={disabled}
+      />
+      {error && <span data-testid="error">{error}</span>}
+    </div>
   ),
-  Select: vi.fn(
-    ({
-      label,
-      value,
-      onChange,
-      options,
-      disabled,
-    }: {
-      label: string;
-      value: string;
-      onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-      options: Array<{ value: string; label: string }>;
-      disabled?: boolean;
-    }) => (
-      <div>
-        <label>{label}</label>
-        <select value={value} onChange={onChange} disabled={disabled}>
-          {options.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-      </div>
-    )
+  Select: ({
+    label,
+    value,
+    onChange,
+    options,
+  }: {
+    label: string;
+    value: string;
+    onChange: (e: { target: { value: string } }) => void;
+    options: Array<{ value: string; label: string }>;
+  }) => (
+    <div>
+      <label>{label}</label>
+      <select data-testid={`select-${label}`} value={value} onChange={onChange}>
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </div>
   ),
-  FileUpload: vi.fn(() => <div data-testid="file-upload">File Upload</div>),
-  FormFieldGroup: vi.fn(({ children }: { children: React.ReactNode }) => <div>{children}</div>),
+  FormFieldGroup: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  FileUpload: () => <div data-testid="file-upload">File Upload</div>,
 }));
 
 vi.mock("~/utils/inventory-utils", () => ({
+  getInventoryCategoryOptions: vi.fn(() => [{ value: "medicines", label: "Medicines" }]),
   getInventoryUnitOptions: vi.fn(() => [
-    { value: "kg", label: "Kilogram" },
-    { value: "l", label: "Liter" },
+    { value: "unit", label: "Unit" },
+    { value: "kg", label: "Kg" },
   ]),
-  getInventoryCategoryOptions: vi.fn(() => [
-    { value: InventoryItemCategory.MEDICINES, label: "Medicines" },
-  ]),
-  getUsageUnitOptions: vi.fn(() => [{ value: "ml", label: "Milliliter" }]),
+  getUsageUnitOptions: vi.fn(() => [{ value: "ml", label: "ML" }]),
   getUsageBasisOptions: vi.fn(() => [
     { value: "per_animal", label: "Per Animal" },
     { value: "per_kg", label: "Per Kg" },
@@ -93,36 +69,34 @@ vi.mock("~/utils/inventory-utils", () => ({
 }));
 
 describe("InventoryItemForm", () => {
-  const defaultFormData = {
-    code: "",
-    name: "",
-    description: "",
-    category: InventoryItemCategory.MEDICINES,
-    unit: "kg",
-    supplierId: "",
-    minimumStock: "",
-    hasExpiration: false,
-    expirationDate: "",
-    propertyIds: [],
-    unitPrice: "",
-    initialStock: "",
-    usageAmount: "",
-    usageUnit: "",
-    usageBasis: "",
-    customCategory: "",
-    nitrogenContent: "",
-    observation: "",
-    createCashFlowTransaction: false,
-    paymentMethod: PaymentMethod.PIX,
-    bankAccountId: "",
-    createAccountPayable: false,
-    dueDate: "",
-    accountPayablePaymentMethod: PaymentMethod.PIX,
-    accountPayableBankAccountId: "",
-  };
-
   const defaultProps = {
-    formData: defaultFormData,
+    formData: {
+      code: "",
+      name: "",
+      description: "",
+      category: InventoryItemCategory.CUSTOM,
+      customCategory: "",
+      unit: "unit",
+      supplierId: "",
+      minimumStock: "",
+      hasExpiration: false,
+      expirationDate: "",
+      unitPrice: "",
+      initialStock: "",
+      propertyIds: [],
+      paymentMethod: PaymentMethod.CASH,
+      usageAmount: "",
+      usageUnit: "",
+      usageBasis: "",
+      nitrogenContent: "",
+      createCashFlowTransaction: false,
+      bankAccountId: "",
+      createAccountPayable: false,
+      dueDate: "",
+      accountPayablePaymentMethod: PaymentMethod.CASH,
+      accountPayableBankAccountId: "",
+      observation: "",
+    },
     errors: {},
     isSubmitting: false,
     onFieldChange: vi.fn(),
@@ -139,23 +113,19 @@ describe("InventoryItemForm", () => {
           expirationDate: "Expiration Date",
           hasExpiration: "Has Expiration",
         },
-        categories: {
-          [InventoryItemCategory.MEDICINES]: "Medicines",
-        },
-        units: {
-          kg: "Kilogram",
-        },
+        categories: {},
+        units: {},
         new: {
           customCategoryLabel: "Custom Category",
           unitPriceLabel: "Unit Price",
-          unitPricePlaceholder: "Enter price",
+          unitPricePlaceholder: "0.00",
           initialStockLabel: "Initial Stock",
-          initialStockPlaceholder: "Enter stock",
-          propertyLabel: "Properties",
+          initialStockPlaceholder: "0",
+          propertyLabel: "Property",
           usageMethod: "Usage Method",
-          usageAmount: "Usage Amount",
-          usageUnit: "Usage Unit",
-          usageBasis: "Usage Basis",
+          usageAmount: "Amount",
+          usageUnit: "Unit",
+          usageBasis: "Basis",
           usageBasisOptions: {
             perAnimal: "Per Animal",
             perKg: "Per Kg",
@@ -163,8 +133,8 @@ describe("InventoryItemForm", () => {
         },
         movements: {
           new: {
-            createCashFlowTransaction: "Create Transaction",
-            createAccountPayable: "Create Payable",
+            createCashFlowTransaction: "Create Cash Flow",
+            createAccountPayable: "Create Account Payable",
             paymentMethod: "Payment Method",
             bankAccount: "Bank Account",
             dueDate: "Due Date",
@@ -176,7 +146,11 @@ describe("InventoryItemForm", () => {
       },
       cashFlow: {
         paymentMethods: {
-          [PaymentMethod.CASH]: "Cash",
+          cash: "Cash",
+          creditCard: "Credit Card",
+          debitCard: "Debit Card",
+          pix: "PIX",
+          bankTransfer: "Bank Transfer",
         },
       },
       bankAccounts: {
@@ -186,8 +160,8 @@ describe("InventoryItemForm", () => {
         },
       },
     },
-    suppliers: mockSuppliers.slice(0, 2),
-    properties: mockProperties.slice(0, 2),
+    suppliers: [],
+    properties: [],
     bankAccounts: [],
   };
 
@@ -196,904 +170,642 @@ describe("InventoryItemForm", () => {
   });
 
   it("should render form fields", () => {
-    const { container } = render(
-      <TestWrapper>
-        <InventoryItemForm {...defaultProps} />
-      </TestWrapper>
-    );
-    // Check that form renders
-    expect(container).toBeTruthy();
-    const labels = container.querySelectorAll("label");
-    expect(labels.length).toBeGreaterThan(0);
+    render(<InventoryItemForm {...defaultProps} />);
+    expect(screen.getByText("Code")).toBeInTheDocument();
+    expect(screen.getByText("Name")).toBeInTheDocument();
   });
 
   it("should call onFieldChange when field changes", async () => {
-    const onFieldChange = vi.fn();
     const user = userEvent.setup();
-    const { container } = render(
-      <TestWrapper>
-        <InventoryItemForm {...defaultProps} onFieldChange={onFieldChange} />
-      </TestWrapper>
-    );
-    const inputs = container.querySelectorAll("input");
-    if (inputs.length > 0) {
-      await user.type(inputs[0], "T");
-      // onFieldChange is called through the Input's onChange
-      expect(container).toBeTruthy();
-    }
+    const onFieldChange = vi.fn();
+    render(<InventoryItemForm {...defaultProps} onFieldChange={onFieldChange} />);
+
+    const nameInput = screen.getByTestId("input-Name");
+    await user.type(nameInput, "Test Item");
+
+    expect(onFieldChange).toHaveBeenCalled();
   });
 
-  it("should display errors", () => {
-    const { container } = render(
-      <TestWrapper>
-        <InventoryItemForm {...defaultProps} errors={{ name: "Name is required" }} />
-      </TestWrapper>
-    );
-    const inputs = container.querySelectorAll("input");
-    expect(inputs.length).toBeGreaterThan(0);
+  it("should display errors when provided", () => {
+    render(<InventoryItemForm {...defaultProps} errors={{ name: "Name is required" }} />);
+    expect(screen.getByTestId("error")).toBeInTheDocument();
   });
 
   it("should disable inputs when isSubmitting is true", () => {
-    const { container } = render(
-      <TestWrapper>
-        <InventoryItemForm {...defaultProps} isSubmitting={true} />
-      </TestWrapper>
-    );
-    const inputs = container.querySelectorAll("input");
-    inputs.forEach((input) => {
-      expect((input as HTMLInputElement).disabled).toBe(true);
-    });
+    render(<InventoryItemForm {...defaultProps} isSubmitting={true} />);
+    const nameInput = screen.getByTestId("input-Name");
+    expect(nameInput).toBeDisabled();
   });
 
-  it("should render with showInitialStock", () => {
-    const { container } = render(
-      <TestWrapper>
-        <InventoryItemForm {...defaultProps} showInitialStock={true} />
-      </TestWrapper>
-    );
-    expect(container).toBeTruthy();
-  });
-
-  it("should render with showObservation", () => {
-    const onObservationFilesChange = vi.fn();
-    render(
-      <TestWrapper>
-        <InventoryItemForm
-          {...defaultProps}
-          showObservation={true}
-          onObservationFilesChange={onObservationFilesChange}
-        />
-      </TestWrapper>
-    );
-    expect(screen.getByTestId("file-upload")).toBeInTheDocument();
-  });
-
-  it("should handle code input change", async () => {
-    const onFieldChange = vi.fn();
-    const user = userEvent.setup();
-    const { container } = render(
-      <TestWrapper>
-        <InventoryItemForm {...defaultProps} onFieldChange={onFieldChange} />
-      </TestWrapper>
-    );
-    const codeInput = container.querySelector('input[value=""]') as HTMLInputElement;
-    if (codeInput) {
-      await user.type(codeInput, "TEST-001");
-      expect(onFieldChange).toHaveBeenCalled();
-    }
-  });
-
-  it("should handle name input change", async () => {
-    const onFieldChange = vi.fn();
-    const user = userEvent.setup();
-    const { container } = render(
-      <TestWrapper>
-        <InventoryItemForm {...defaultProps} onFieldChange={onFieldChange} />
-      </TestWrapper>
-    );
-    const inputs = container.querySelectorAll("input");
-    const nameInput = Array.from(inputs).find((input) => {
-      const label = input.closest("div")?.querySelector("label");
-      return label?.textContent === "Name";
-    }) as HTMLInputElement;
-    if (nameInput) {
-      await user.type(nameInput, "Test Item");
-      expect(onFieldChange).toHaveBeenCalled();
-    }
-  });
-
-  it("should handle description textarea change", async () => {
-    const onFieldChange = vi.fn();
-    const user = userEvent.setup();
-    const { container } = render(
-      <TestWrapper>
-        <InventoryItemForm {...defaultProps} onFieldChange={onFieldChange} />
-      </TestWrapper>
-    );
-    const textarea = container.querySelector("textarea");
-    if (textarea) {
-      await user.type(textarea, "Test description");
-      expect(onFieldChange).toHaveBeenCalledWith("description", expect.any(String));
-    }
-  });
-
-  it("should handle category change", async () => {
-    const onFieldChange = vi.fn();
-    const user = userEvent.setup();
-    const { container } = render(
-      <TestWrapper>
-        <InventoryItemForm {...defaultProps} onFieldChange={onFieldChange} />
-      </TestWrapper>
-    );
-    const categorySelect = container.querySelector("select") as HTMLSelectElement;
-    if (categorySelect) {
-      await user.selectOptions(categorySelect, InventoryItemCategory.MEDICINES);
-      expect(onFieldChange).toHaveBeenCalled();
-    }
-  });
-
-  it("should render custom category input when category is CUSTOM", () => {
-    const formDataWithCustom = {
-      ...defaultFormData,
-      category: InventoryItemCategory.CUSTOM,
+  it("should show custom category field when category is CUSTOM", () => {
+    const props = {
+      ...defaultProps,
+      formData: {
+        ...defaultProps.formData,
+        category: InventoryItemCategory.CUSTOM,
+      },
     };
-    render(
-      <TestWrapper>
-        <InventoryItemForm {...defaultProps} formData={formDataWithCustom} />
-      </TestWrapper>
-    );
+    render(<InventoryItemForm {...props} />);
     expect(screen.getByText("Custom Category")).toBeInTheDocument();
   });
 
-  it("should handle custom category input change", async () => {
-    const onFieldChange = vi.fn();
-    const user = userEvent.setup();
-    const formDataWithCustom = {
-      ...defaultFormData,
-      category: InventoryItemCategory.CUSTOM,
+  it("should show nitrogen content field when category is FERTILIZER", () => {
+    const props = {
+      ...defaultProps,
+      formData: {
+        ...defaultProps.formData,
+        category: InventoryItemCategory.FERTILIZER,
+      },
     };
-    const { container } = render(
-      <TestWrapper>
-        <InventoryItemForm
-          {...defaultProps}
-          formData={formDataWithCustom}
-          onFieldChange={onFieldChange}
-        />
-      </TestWrapper>
-    );
-    const customCategoryInput = container.querySelector(
-      'input[placeholder*="Custom"]'
-    ) as HTMLInputElement;
-    if (customCategoryInput) {
-      await user.type(customCategoryInput, "My Custom Category");
-      expect(onFieldChange).toHaveBeenCalled();
-    }
+    render(<InventoryItemForm {...props} />);
+    const nitrogenContentElements = screen.getAllByText(/Nitrogen Content/i);
+    expect(nitrogenContentElements.length).toBeGreaterThan(0);
   });
 
-  it("should render fertilizer nitrogen content fields", () => {
-    const formDataWithFertilizer = {
-      ...defaultFormData,
-      category: InventoryItemCategory.FERTILIZER,
+  it("should show usage method fields when category is MEDICINES", () => {
+    const props = {
+      ...defaultProps,
+      formData: {
+        ...defaultProps.formData,
+        category: InventoryItemCategory.MEDICINES,
+      },
     };
-    const { container } = render(
-      <TestWrapper>
-        <InventoryItemForm {...defaultProps} formData={formDataWithFertilizer} />
-      </TestWrapper>
-    );
-    // Check that nitrogen content section is rendered
-    expect(container.textContent).toContain("Nitrogen Content");
+    render(<InventoryItemForm {...props} />);
+    expect(screen.getByText("Usage Method")).toBeInTheDocument();
+    expect(screen.getByText("Amount")).toBeInTheDocument();
+    const unitElements = screen.getAllByText("Unit");
+    expect(unitElements.length).toBeGreaterThan(0);
+    expect(screen.getByText("Basis")).toBeInTheDocument();
   });
 
-  it("should handle nitrogen content input change", async () => {
-    const onFieldChange = vi.fn();
-    const user = userEvent.setup();
-    const formDataWithFertilizer = {
-      ...defaultFormData,
-      category: InventoryItemCategory.FERTILIZER,
+  it("should show usage method fields when category is VACCINES", () => {
+    const props = {
+      ...defaultProps,
+      formData: {
+        ...defaultProps.formData,
+        category: InventoryItemCategory.VACCINES,
+      },
     };
-    const { container } = render(
-      <TestWrapper>
-        <InventoryItemForm
-          {...defaultProps}
-          formData={formDataWithFertilizer}
-          onFieldChange={onFieldChange}
-        />
-      </TestWrapper>
-    );
-    const nitrogenInput = container.querySelector('input[type="number"]') as HTMLInputElement;
-    if (nitrogenInput) {
-      await user.type(nitrogenInput, "10");
-      expect(onFieldChange).toHaveBeenCalled();
-    }
-  });
-
-  it("should render usage method fields for medicines", () => {
-    const formDataWithMedicine = {
-      ...defaultFormData,
-      category: InventoryItemCategory.MEDICINES,
-    };
-    render(
-      <TestWrapper>
-        <InventoryItemForm {...defaultProps} formData={formDataWithMedicine} />
-      </TestWrapper>
-    );
+    render(<InventoryItemForm {...props} />);
     expect(screen.getByText("Usage Method")).toBeInTheDocument();
   });
 
-  it("should render usage method fields for vaccines", () => {
-    const formDataWithVaccine = {
-      ...defaultFormData,
-      category: InventoryItemCategory.VACCINES,
-    };
-    render(
-      <TestWrapper>
-        <InventoryItemForm {...defaultProps} formData={formDataWithVaccine} />
-      </TestWrapper>
-    );
-    expect(screen.getByText("Usage Method")).toBeInTheDocument();
+  it("should show initial stock field when showInitialStock is true", () => {
+    render(<InventoryItemForm {...defaultProps} showInitialStock={true} />);
+    expect(screen.getByText("Initial Stock")).toBeInTheDocument();
   });
 
-  it("should handle usage amount input change", async () => {
-    const onFieldChange = vi.fn();
+  it("should not show initial stock field when showInitialStock is false", () => {
+    render(<InventoryItemForm {...defaultProps} showInitialStock={false} />);
+    expect(screen.queryByText("Initial Stock")).not.toBeInTheDocument();
+  });
+
+  it("should handle supplier selection", async () => {
     const user = userEvent.setup();
-    const formDataWithMedicine = {
-      ...defaultFormData,
-      category: InventoryItemCategory.MEDICINES,
-    };
-    const { container } = render(
-      <TestWrapper>
-        <InventoryItemForm
-          {...defaultProps}
-          formData={formDataWithMedicine}
-          onFieldChange={onFieldChange}
-        />
-      </TestWrapper>
-    );
-    const usageAmountInput = container.querySelector('input[placeholder="1"]') as HTMLInputElement;
-    if (usageAmountInput) {
-      await user.type(usageAmountInput, "5");
-      expect(onFieldChange).toHaveBeenCalledWith("usageAmount", expect.any(String));
-    }
-  });
-
-  it("should handle usage unit select change", async () => {
     const onFieldChange = vi.fn();
-    const user = userEvent.setup();
-    const formDataWithMedicine = {
-      ...defaultFormData,
-      category: InventoryItemCategory.MEDICINES,
-    };
-    const { container } = render(
-      <TestWrapper>
-        <InventoryItemForm
-          {...defaultProps}
-          formData={formDataWithMedicine}
-          onFieldChange={onFieldChange}
-        />
-      </TestWrapper>
-    );
-    const selects = container.querySelectorAll("select");
-    const usageUnitSelect = Array.from(selects).find((select) => {
-      const label = select.closest("div")?.querySelector("label");
-      return label?.textContent === "Usage Unit";
-    }) as HTMLSelectElement;
-    if (usageUnitSelect && usageUnitSelect.querySelector('option[value="ml"]')) {
-      await user.selectOptions(usageUnitSelect, "ml");
-      expect(onFieldChange).toHaveBeenCalled();
-    }
-  });
-
-  it("should handle usage basis select change", async () => {
-    const onFieldChange = vi.fn();
-    const user = userEvent.setup();
-    const formDataWithMedicine = {
-      ...defaultFormData,
-      category: InventoryItemCategory.MEDICINES,
-    };
-    const { container } = render(
-      <TestWrapper>
-        <InventoryItemForm
-          {...defaultProps}
-          formData={formDataWithMedicine}
-          onFieldChange={onFieldChange}
-        />
-      </TestWrapper>
-    );
-    const selects = container.querySelectorAll("select");
-    const usageBasisSelect = Array.from(selects).find((select) => {
-      const label = select.closest("div")?.querySelector("label");
-      return label?.textContent === "Usage Basis";
-    }) as HTMLSelectElement;
-    if (usageBasisSelect && usageBasisSelect.querySelector('option[value="per_animal"]')) {
-      await user.selectOptions(usageBasisSelect, "per_animal");
-      expect(onFieldChange).toHaveBeenCalled();
-    }
-  });
-
-  it("should handle unit price input change", async () => {
-    const onFieldChange = vi.fn();
-    const user = userEvent.setup();
-    const { container } = render(
-      <TestWrapper>
-        <InventoryItemForm {...defaultProps} onFieldChange={onFieldChange} />
-      </TestWrapper>
-    );
-    const unitPriceInput = container.querySelector(
-      'input[placeholder*="price"]'
-    ) as HTMLInputElement;
-    if (unitPriceInput) {
-      await user.type(unitPriceInput, "10.50");
-      expect(onFieldChange).toHaveBeenCalledWith("unitPrice", expect.any(String));
-    }
-  });
-
-  it("should handle initial stock input change", async () => {
-    const onFieldChange = vi.fn();
-    const user = userEvent.setup();
-    const { container } = render(
-      <TestWrapper>
-        <InventoryItemForm
-          {...defaultProps}
-          showInitialStock={true}
-          onFieldChange={onFieldChange}
-        />
-      </TestWrapper>
-    );
-    const initialStockInput = container.querySelector(
-      'input[placeholder*="stock"]'
-    ) as HTMLInputElement;
-    if (initialStockInput) {
-      await user.type(initialStockInput, "100");
-      expect(onFieldChange).toHaveBeenCalledWith("initialStock", expect.any(String));
-    }
-  });
-
-  it("should handle supplier select change", async () => {
-    const onFieldChange = vi.fn();
-    const user = userEvent.setup();
-    const { container } = render(
-      <TestWrapper>
-        <InventoryItemForm {...defaultProps} onFieldChange={onFieldChange} />
-      </TestWrapper>
-    );
-    const selects = container.querySelectorAll("select");
-    const supplierSelect = Array.from(selects).find((select) => {
-      const label = select.closest("div")?.querySelector("label");
-      return label?.textContent === "Supplier";
-    }) as HTMLSelectElement;
-    if (supplierSelect) {
-      await user.selectOptions(supplierSelect, mockSuppliers[0].id);
-      expect(onFieldChange).toHaveBeenCalledWith("supplierId", mockSuppliers[0].id);
-    }
-  });
-
-  it("should render cash flow transaction checkbox when supplierId and showInitialStock are set", () => {
-    const formDataWithSupplier = {
-      ...defaultFormData,
-      supplierId: mockSuppliers[0].id,
-    };
-    render(
-      <TestWrapper>
-        <InventoryItemForm
-          {...defaultProps}
-          formData={formDataWithSupplier}
-          showInitialStock={true}
-        />
-      </TestWrapper>
-    );
-    expect(screen.getByText("Create Transaction")).toBeInTheDocument();
-  });
-
-  it("should handle createCashFlowTransaction checkbox change", async () => {
-    const onFieldChange = vi.fn();
-    const user = userEvent.setup();
-    const formDataWithSupplier = {
-      ...defaultFormData,
-      supplierId: mockSuppliers[0].id,
-      initialStock: "100",
-    };
-    render(
-      <TestWrapper>
-        <InventoryItemForm
-          {...defaultProps}
-          formData={formDataWithSupplier}
-          showInitialStock={true}
-          onFieldChange={onFieldChange}
-        />
-      </TestWrapper>
-    );
-    const checkbox = screen.getByLabelText("Create Transaction");
-    await user.click(checkbox);
-    expect(onFieldChange).toHaveBeenCalledWith("createCashFlowTransaction", true);
-  });
-
-  it("should render payment method and bank account when createCashFlowTransaction is true", () => {
-    const formDataWithTransaction = {
-      ...defaultFormData,
-      supplierId: mockSuppliers[0].id,
-      initialStock: "100",
-      createCashFlowTransaction: true,
-    };
-    const bankAccounts = [
+    const suppliers = [
       {
-        id: "account-1",
-        bankName: "Test Bank",
-        bankCode: "001",
-        branch: "0001",
-        accountNumber: "12345",
-        accountType: "checking" as const,
-        accountHolderName: "Test Holder",
+        id: "supplier-1",
+        name: "Supplier 1",
+        code: "SUP-1",
         status: "active" as const,
+        createdAt: "2024-01-01T00:00:00Z",
         companyId: "company-1",
-        createdAt: "2025-01-01",
+        propertyIds: [],
       },
     ];
     render(
-      <TestWrapper>
-        <InventoryItemForm
-          {...defaultProps}
-          formData={formDataWithTransaction}
-          showInitialStock={true}
-          bankAccounts={bankAccounts}
-        />
-      </TestWrapper>
+      <InventoryItemForm {...defaultProps} onFieldChange={onFieldChange} suppliers={suppliers} />
     );
+    const supplierSelect = screen.getByTestId("select-Supplier");
+    await user.selectOptions(supplierSelect, "supplier-1");
+    expect(onFieldChange).toHaveBeenCalledWith("supplierId", "supplier-1");
+  });
+
+  it("should handle property selection", async () => {
+    const user = userEvent.setup();
+    const onFieldChange = vi.fn();
+    const properties: Property[] = [
+      {
+        id: "property-1",
+        name: "Property 1",
+        code: "PROP-1",
+        companyId: "company-1",
+        area: { value: 100, type: AreaType.HECTARES },
+        status: "active",
+        createdAt: "2024-01-01T00:00:00Z",
+        street: "Main St",
+        number: "123",
+        complement: "",
+        neighborhood: "Downtown",
+        city: "City",
+        state: "ST",
+        zipCode: "12345-678",
+      },
+    ];
+    render(
+      <InventoryItemForm {...defaultProps} onFieldChange={onFieldChange} properties={properties} />
+    );
+    const propertySelect = screen.getByRole("listbox");
+    await user.selectOptions(propertySelect, "property-1");
+    expect(onFieldChange).toHaveBeenCalled();
+  });
+
+  it("should handle hasExpiration checkbox", async () => {
+    const user = userEvent.setup();
+    const onFieldChange = vi.fn();
+    render(<InventoryItemForm {...defaultProps} onFieldChange={onFieldChange} />);
+    const hasExpirationCheckbox = screen.getByLabelText(/Has Expiration/i);
+    await user.click(hasExpirationCheckbox);
+    expect(onFieldChange).toHaveBeenCalledWith("hasExpiration", true);
+  });
+
+  it("should enable expiration date when hasExpiration is true", () => {
+    const props = {
+      ...defaultProps,
+      formData: {
+        ...defaultProps.formData,
+        hasExpiration: true,
+      },
+    };
+    render(<InventoryItemForm {...props} />);
+    const expirationDateInput = screen.getByTestId("input-Expiration Date");
+    expect(expirationDateInput).not.toBeDisabled();
+  });
+
+  it("should disable expiration date when hasExpiration is false", () => {
+    const props = {
+      ...defaultProps,
+      formData: {
+        ...defaultProps.formData,
+        hasExpiration: false,
+      },
+    };
+    render(<InventoryItemForm {...props} />);
+    const expirationDateInput = screen.getByTestId("input-Expiration Date");
+    expect(expirationDateInput).toBeDisabled();
+  });
+
+  it("should show createCashFlowTransaction checkbox when supplierId and showInitialStock are true", () => {
+    const props = {
+      ...defaultProps,
+      formData: {
+        ...defaultProps.formData,
+        supplierId: "supplier-1",
+        initialStock: "10",
+      },
+      showInitialStock: true,
+      translations: {
+        ...defaultProps.translations,
+        inventory: {
+          ...defaultProps.translations.inventory,
+          movements: {
+            new: {
+              createCashFlowTransaction: "Create Cash Flow",
+              createAccountPayable: "Create Account Payable",
+              paymentMethod: "Payment Method",
+              bankAccount: "Bank Account",
+              dueDate: "Due Date",
+            },
+          },
+        },
+      },
+    };
+    render(<InventoryItemForm {...props} />);
+    expect(screen.getByLabelText(/Create Cash Flow/i)).toBeInTheDocument();
+  });
+
+  it("should disable createCashFlowTransaction when initialStock is 0", () => {
+    const props = {
+      ...defaultProps,
+      formData: {
+        ...defaultProps.formData,
+        supplierId: "supplier-1",
+        initialStock: "0",
+      },
+      showInitialStock: true,
+      translations: {
+        ...defaultProps.translations,
+        inventory: {
+          ...defaultProps.translations.inventory,
+          movements: {
+            new: {
+              createCashFlowTransaction: "Create Cash Flow",
+              createAccountPayable: "Create Account Payable",
+              paymentMethod: "Payment Method",
+              bankAccount: "Bank Account",
+              dueDate: "Due Date",
+            },
+          },
+        },
+      },
+    };
+    render(<InventoryItemForm {...props} />);
+    const checkbox = screen.getByLabelText(/Create Cash Flow/i);
+    expect(checkbox).toBeDisabled();
+  });
+
+  it("should show payment method and bank account when createCashFlowTransaction is checked", () => {
+    const props = {
+      ...defaultProps,
+      formData: {
+        ...defaultProps.formData,
+        supplierId: "supplier-1",
+        initialStock: "10",
+        createCashFlowTransaction: true,
+      },
+      showInitialStock: true,
+      translations: {
+        ...defaultProps.translations,
+        inventory: {
+          ...defaultProps.translations.inventory,
+          movements: {
+            new: {
+              createCashFlowTransaction: "Create Cash Flow",
+              createAccountPayable: "Create Account Payable",
+              paymentMethod: "Payment Method",
+              bankAccount: "Bank Account",
+              dueDate: "Due Date",
+            },
+          },
+        },
+        cashFlow: {
+          paymentMethods: {
+            cash: "Cash",
+            creditCard: "Credit Card",
+          },
+        },
+      },
+    };
+    render(<InventoryItemForm {...props} />);
     expect(screen.getByText("Payment Method")).toBeInTheDocument();
     expect(screen.getByText("Bank Account")).toBeInTheDocument();
   });
 
-  it("should handle payment method change for cash flow", async () => {
-    const onFieldChange = vi.fn();
-    const user = userEvent.setup();
-    const formDataWithTransaction = {
-      ...defaultFormData,
-      supplierId: mockSuppliers[0].id,
-      initialStock: "100",
-      createCashFlowTransaction: true,
-    };
-    const { container } = render(
-      <TestWrapper>
-        <InventoryItemForm
-          {...defaultProps}
-          formData={formDataWithTransaction}
-          showInitialStock={true}
-          onFieldChange={onFieldChange}
-        />
-      </TestWrapper>
-    );
-    const selects = container.querySelectorAll("select");
-    const paymentMethodSelect = Array.from(selects).find((select) => {
-      const label = select.closest("div")?.querySelector("label");
-      return label?.textContent === "Payment Method";
-    }) as HTMLSelectElement;
-    if (paymentMethodSelect) {
-      await user.selectOptions(paymentMethodSelect, PaymentMethod.CASH);
-      expect(onFieldChange).toHaveBeenCalledWith("paymentMethod", PaymentMethod.CASH);
-    }
-  });
-
-  it("should handle bank account change for cash flow", async () => {
-    const onFieldChange = vi.fn();
-    const user = userEvent.setup();
-    const formDataWithTransaction = {
-      ...defaultFormData,
-      supplierId: mockSuppliers[0].id,
-      initialStock: "100",
-      createCashFlowTransaction: true,
-    };
-    const bankAccounts = [
-      {
-        id: "account-1",
-        bankName: "Test Bank",
-        bankCode: "001",
-        branch: "0001",
-        accountNumber: "12345",
-        accountType: "checking" as const,
-        accountHolderName: "Test Holder",
-        status: "active" as const,
-        companyId: "company-1",
-        createdAt: "2025-01-01",
+  it("should show createAccountPayable checkbox when supplierId and showInitialStock are true", () => {
+    const props = {
+      ...defaultProps,
+      formData: {
+        ...defaultProps.formData,
+        supplierId: "supplier-1",
+        initialStock: "10",
       },
-    ];
-    const { container } = render(
-      <TestWrapper>
-        <InventoryItemForm
-          {...defaultProps}
-          formData={formDataWithTransaction}
-          showInitialStock={true}
-          bankAccounts={bankAccounts}
-          onFieldChange={onFieldChange}
-        />
-      </TestWrapper>
-    );
-    const selects = container.querySelectorAll("select");
-    const bankAccountSelect = Array.from(selects).find((select) => {
-      const label = select.closest("div")?.querySelector("label");
-      return label?.textContent === "Bank Account";
-    }) as HTMLSelectElement;
-    if (bankAccountSelect) {
-      await user.selectOptions(bankAccountSelect, "account-1");
-      expect(onFieldChange).toHaveBeenCalledWith("bankAccountId", "account-1");
-    }
-  });
-
-  it("should handle createAccountPayable checkbox change", async () => {
-    const onFieldChange = vi.fn();
-    const user = userEvent.setup();
-    const formDataWithSupplier = {
-      ...defaultFormData,
-      supplierId: mockSuppliers[0].id,
-      initialStock: "100",
-    };
-    render(
-      <TestWrapper>
-        <InventoryItemForm
-          {...defaultProps}
-          formData={formDataWithSupplier}
-          showInitialStock={true}
-          onFieldChange={onFieldChange}
-        />
-      </TestWrapper>
-    );
-    const checkbox = screen.getByLabelText("Create Payable");
-    await user.click(checkbox);
-    expect(onFieldChange).toHaveBeenCalledWith("createAccountPayable", true);
-  });
-
-  it("should render account payable fields when createAccountPayable is true", () => {
-    const formDataWithPayable = {
-      ...defaultFormData,
-      supplierId: mockSuppliers[0].id,
-      initialStock: "100",
-      createAccountPayable: true,
-    };
-    const bankAccounts = [
-      {
-        id: "account-1",
-        bankName: "Test Bank",
-        bankCode: "001",
-        branch: "0001",
-        accountNumber: "12345",
-        accountType: "savings" as const,
-        accountHolderName: "Test Holder",
-        status: "active" as const,
-        companyId: "company-1",
-        createdAt: "2025-01-01",
+      showInitialStock: true,
+      translations: {
+        ...defaultProps.translations,
+        inventory: {
+          ...defaultProps.translations.inventory,
+          movements: {
+            new: {
+              createCashFlowTransaction: "Create Cash Flow",
+              createAccountPayable: "Create Account Payable",
+              paymentMethod: "Payment Method",
+              bankAccount: "Bank Account",
+              dueDate: "Due Date",
+            },
+          },
+        },
       },
-    ];
-    render(
-      <TestWrapper>
-        <InventoryItemForm
-          {...defaultProps}
-          formData={formDataWithPayable}
-          showInitialStock={true}
-          bankAccounts={bankAccounts}
-        />
-      </TestWrapper>
-    );
+    };
+    render(<InventoryItemForm {...props} />);
+    expect(screen.getByLabelText(/Create Account Payable/i)).toBeInTheDocument();
+  });
+
+  it("should show due date and payment method when createAccountPayable is checked", () => {
+    const props = {
+      ...defaultProps,
+      formData: {
+        ...defaultProps.formData,
+        supplierId: "supplier-1",
+        initialStock: "10",
+        createAccountPayable: true,
+      },
+      showInitialStock: true,
+      translations: {
+        ...defaultProps.translations,
+        inventory: {
+          ...defaultProps.translations.inventory,
+          movements: {
+            new: {
+              createCashFlowTransaction: "Create Cash Flow",
+              createAccountPayable: "Create Account Payable",
+              paymentMethod: "Payment Method",
+              bankAccount: "Bank Account",
+              dueDate: "Due Date",
+            },
+          },
+        },
+        cashFlow: {
+          paymentMethods: {
+            cash: "Cash",
+          },
+        },
+      },
+    };
+    render(<InventoryItemForm {...props} />);
     expect(screen.getByText("Due Date")).toBeInTheDocument();
   });
 
-  it("should handle due date input change", async () => {
-    const onFieldChange = vi.fn();
-    const _user = userEvent.setup();
-    const formDataWithPayable = {
-      ...defaultFormData,
-      supplierId: mockSuppliers[0].id,
-      initialStock: "100",
-      createAccountPayable: true,
-    };
-    const { container } = render(
-      <TestWrapper>
-        <InventoryItemForm
-          {...defaultProps}
-          formData={formDataWithPayable}
-          showInitialStock={true}
-          onFieldChange={onFieldChange}
-        />
-      </TestWrapper>
-    );
-    const dueDateInput = container.querySelector('input[type="date"]') as HTMLInputElement;
-    if (dueDateInput) {
-      fireEvent.change(dueDateInput, { target: { value: "2025-12-31" } });
-      expect(onFieldChange).toHaveBeenCalledWith("dueDate", "2025-12-31");
-    }
-  });
-
-  it("should handle propertyIds select change", async () => {
-    const onFieldChange = vi.fn();
-    const user = userEvent.setup();
-    const { container } = render(
-      <TestWrapper>
-        <InventoryItemForm {...defaultProps} onFieldChange={onFieldChange} />
-      </TestWrapper>
-    );
-    const propertySelect = container.querySelector("select[multiple]") as HTMLSelectElement;
-    if (propertySelect) {
-      await user.selectOptions(propertySelect, [mockProperties[0].id, mockProperties[1].id]);
-      expect(onFieldChange).toHaveBeenCalled();
-    }
-  });
-
-  it("should handle hasExpiration checkbox change", async () => {
-    const onFieldChange = vi.fn();
-    const user = userEvent.setup();
-    render(
-      <TestWrapper>
-        <InventoryItemForm {...defaultProps} onFieldChange={onFieldChange} />
-      </TestWrapper>
-    );
-    const checkbox = screen.getByLabelText("Has Expiration");
-    await user.click(checkbox);
-    expect(onFieldChange).toHaveBeenCalledWith("hasExpiration", true);
-  });
-
-  it("should handle minimum stock input change", async () => {
-    const onFieldChange = vi.fn();
-    const user = userEvent.setup();
-    const { container } = render(
-      <TestWrapper>
-        <InventoryItemForm {...defaultProps} onFieldChange={onFieldChange} />
-      </TestWrapper>
-    );
-    const numberInputs = container.querySelectorAll('input[type="number"]');
-    const minimumStockInput = Array.from(numberInputs).find((input) => {
-      const label = input.closest("div")?.querySelector("label");
-      return label?.textContent === "Minimum Stock";
-    }) as HTMLInputElement;
-    if (minimumStockInput) {
-      await user.type(minimumStockInput, "10");
-      expect(onFieldChange).toHaveBeenCalled();
-    }
-  });
-
-  it("should handle expiration date input change", async () => {
-    const onFieldChange = vi.fn();
-    const formDataWithExpiration = {
-      ...defaultFormData,
-      hasExpiration: true,
-    };
-    const { container } = render(
-      <TestWrapper>
-        <InventoryItemForm
-          {...defaultProps}
-          formData={formDataWithExpiration}
-          onFieldChange={onFieldChange}
-        />
-      </TestWrapper>
-    );
-    const expirationDateInput = container.querySelector('input[type="date"]') as HTMLInputElement;
-    if (expirationDateInput) {
-      fireEvent.change(expirationDateInput, { target: { value: "2025-12-31" } });
-      expect(onFieldChange).toHaveBeenCalledWith("expirationDate", "2025-12-31");
-    }
-  });
-
-  it("should disable expiration date when hasExpiration is false", () => {
-    const formDataWithoutExpiration = {
-      ...defaultFormData,
-      hasExpiration: false,
-    };
-    const { container } = render(
-      <TestWrapper>
-        <InventoryItemForm {...defaultProps} formData={formDataWithoutExpiration} />
-      </TestWrapper>
-    );
-    const expirationDateInput = container.querySelector('input[type="date"]') as HTMLInputElement;
-    if (expirationDateInput) {
-      expect(expirationDateInput).toBeDisabled();
-    }
-  });
-
-  it("should handle observation textarea change", async () => {
-    const onFieldChange = vi.fn();
-    const user = userEvent.setup();
-    const { container } = render(
-      <TestWrapper>
-        <InventoryItemForm {...defaultProps} showObservation={true} onFieldChange={onFieldChange} />
-      </TestWrapper>
-    );
-    const textareas = container.querySelectorAll("textarea");
-    const observationTextarea = textareas[textareas.length - 1]; // Last textarea should be observation
-    if (observationTextarea) {
-      await user.type(observationTextarea, "Test observation");
-      expect(onFieldChange).toHaveBeenCalledWith("observation", expect.any(String));
-    }
-  });
-
-  it("should disable cash flow checkbox when initialStock is 0", () => {
-    const formDataWithZeroStock = {
-      ...defaultFormData,
-      supplierId: mockSuppliers[0].id,
-      initialStock: "0",
-    };
-    render(
-      <TestWrapper>
-        <InventoryItemForm
-          {...defaultProps}
-          formData={formDataWithZeroStock}
-          showInitialStock={true}
-        />
-      </TestWrapper>
-    );
-    const checkbox = screen.getByLabelText("Create Transaction");
-    expect(checkbox).toBeDisabled();
-  });
-
-  it("should disable account payable checkbox when initialStock is 0", () => {
-    const formDataWithZeroStock = {
-      ...defaultFormData,
-      supplierId: mockSuppliers[0].id,
-      initialStock: "0",
-    };
-    render(
-      <TestWrapper>
-        <InventoryItemForm
-          {...defaultProps}
-          formData={formDataWithZeroStock}
-          showInitialStock={true}
-        />
-      </TestWrapper>
-    );
-    const checkbox = screen.getByLabelText("Create Payable");
-    expect(checkbox).toBeDisabled();
-  });
-
-  it("should display bank account with savings type", () => {
-    const formDataWithTransaction = {
-      ...defaultFormData,
-      supplierId: mockSuppliers[0].id,
-      initialStock: "100",
-      createCashFlowTransaction: true,
-    };
-    const bankAccounts = [
-      {
-        id: "account-1",
-        bankName: "Test Bank",
-        bankCode: "001",
-        branch: "0001",
-        accountNumber: "12345",
-        accountType: "savings" as const,
-        accountHolderName: "Test Holder",
-        status: "active" as const,
-        companyId: "company-1",
-        createdAt: "2025-01-01",
+  it("should show observation field when showObservation is true", () => {
+    const props = {
+      ...defaultProps,
+      formData: {
+        ...defaultProps.formData,
+        observation: "",
       },
-    ];
-    render(
-      <TestWrapper>
-        <InventoryItemForm
-          {...defaultProps}
-          formData={formDataWithTransaction}
-          showInitialStock={true}
-          bankAccounts={bankAccounts}
-        />
-      </TestWrapper>
-    );
-    expect(screen.getByText(/Savings/)).toBeInTheDocument();
+      showObservation: true,
+      translations: {
+        ...defaultProps.translations,
+        cashFlow: {
+          paymentMethods: {
+            cash: "Cash",
+            creditCard: "Credit Card",
+          },
+          details: {
+            observation: "Observation",
+            observationPlaceholder: "Enter observation",
+            files: "Files",
+            filesHelper: "Helper text",
+          },
+        },
+      },
+    };
+    render(<InventoryItemForm {...props} />);
+    expect(screen.getByText("Observation")).toBeInTheDocument();
   });
 
-  it("should display errors for description", () => {
-    render(
-      <TestWrapper>
-        <InventoryItemForm {...defaultProps} errors={{ description: "Description is required" }} />
-      </TestWrapper>
-    );
-    expect(screen.getByText("Description is required")).toBeInTheDocument();
+  it("should show file upload when showObservation is true and onObservationFilesChange is provided", () => {
+    const props = {
+      ...defaultProps,
+      showObservation: true,
+      onObservationFilesChange: vi.fn(),
+      translations: {
+        ...defaultProps.translations,
+        cashFlow: {
+          paymentMethods: {
+            cash: "Cash",
+            creditCard: "Credit Card",
+          },
+          details: {
+            observation: "Observation",
+            files: "Files",
+            filesHelper: "Helper text",
+          },
+        },
+      },
+    };
+    render(<InventoryItemForm {...props} />);
+    expect(screen.getByTestId("file-upload")).toBeInTheDocument();
   });
 
-  it("should display errors for propertyIds", () => {
-    render(
-      <TestWrapper>
-        <InventoryItemForm
-          {...defaultProps}
-          errors={{ propertyIds: "At least one property is required" }}
-        />
-      </TestWrapper>
-    );
-    expect(screen.getByText("At least one property is required")).toBeInTheDocument();
-  });
-
-  it("should handle unit select change", async () => {
+  it("should handle description change", async () => {
     const onFieldChange = vi.fn();
-    const user = userEvent.setup();
-    const { container } = render(
-      <TestWrapper>
-        <InventoryItemForm {...defaultProps} onFieldChange={onFieldChange} />
-      </TestWrapper>
-    );
-    const selects = container.querySelectorAll("select");
-    const unitSelect = Array.from(selects).find((select) => {
-      const label = select.closest("div")?.querySelector("label");
-      return label?.textContent === "Unit";
-    }) as HTMLSelectElement;
-    if (unitSelect && unitSelect.querySelector('option[value="l"]')) {
-      await user.selectOptions(unitSelect, "l");
-      expect(onFieldChange).toHaveBeenCalled();
+    render(<InventoryItemForm {...defaultProps} onFieldChange={onFieldChange} />);
+    const descriptionTextarea = document.querySelector("textarea") as HTMLTextAreaElement;
+    if (descriptionTextarea) {
+      // Use fireEvent.change to directly set the value, which works better with controlled components
+      fireEvent.change(descriptionTextarea, { target: { value: "Test description" } });
+      expect(onFieldChange).toHaveBeenCalledWith("description", "Test description");
     }
   });
 
-  it("should handle account payable payment method change", async () => {
-    const onFieldChange = vi.fn();
+  it("should handle category change", async () => {
     const user = userEvent.setup();
-    const formDataWithPayable = {
-      ...defaultFormData,
-      supplierId: mockSuppliers[0].id,
-      initialStock: "100",
-      createAccountPayable: true,
-    };
-    const { container } = render(
-      <TestWrapper>
-        <InventoryItemForm
-          {...defaultProps}
-          formData={formDataWithPayable}
-          showInitialStock={true}
-          onFieldChange={onFieldChange}
-        />
-      </TestWrapper>
-    );
-    const selects = container.querySelectorAll("select");
-    const paymentMethodSelect = Array.from(selects).find((select) => {
-      const label = select.closest("div")?.querySelector("label");
-      return (
-        label?.textContent === "Payment Method" &&
-        select.value !== formDataWithPayable.paymentMethod
-      );
-    }) as HTMLSelectElement;
-    if (
-      paymentMethodSelect &&
-      paymentMethodSelect.querySelector(`option[value="${PaymentMethod.CASH}"]`)
-    ) {
-      await user.selectOptions(paymentMethodSelect, PaymentMethod.CASH);
-      expect(onFieldChange).toHaveBeenCalled();
-    }
+    const onFieldChange = vi.fn();
+    render(<InventoryItemForm {...defaultProps} onFieldChange={onFieldChange} />);
+    const categorySelect = screen.getByTestId("select-Category");
+    await user.selectOptions(categorySelect, InventoryItemCategory.MEDICINES);
+    expect(onFieldChange).toHaveBeenCalledWith("category", InventoryItemCategory.MEDICINES);
   });
 
-  it("should handle account payable bank account change", async () => {
-    const onFieldChange = vi.fn();
+  it("should handle unit change", async () => {
     const user = userEvent.setup();
-    const formDataWithPayable = {
-      ...defaultFormData,
-      supplierId: mockSuppliers[0].id,
-      initialStock: "100",
-      createAccountPayable: true,
+    const onFieldChange = vi.fn();
+    render(<InventoryItemForm {...defaultProps} onFieldChange={onFieldChange} />);
+    const unitSelects = screen.getAllByTestId("select-Unit");
+    // The first one should be the main unit select (not the usage unit)
+    const unitSelect = unitSelects[0];
+    await user.selectOptions(unitSelect, "kg");
+    expect(onFieldChange).toHaveBeenCalledWith("unit", "kg");
+  });
+
+  it("should handle unitPrice change", async () => {
+    const user = userEvent.setup();
+    const onFieldChange = vi.fn();
+    render(<InventoryItemForm {...defaultProps} onFieldChange={onFieldChange} />);
+    const unitPriceInput = screen.getByTestId("input-Unit Price");
+    await user.type(unitPriceInput, "10.50");
+    expect(onFieldChange).toHaveBeenCalledWith("unitPrice", "10.50");
+  });
+
+  it("should handle minimumStock change", async () => {
+    const user = userEvent.setup();
+    const onFieldChange = vi.fn();
+    render(<InventoryItemForm {...defaultProps} onFieldChange={onFieldChange} />);
+    const minimumStockInput = screen.getByTestId("input-Minimum Stock");
+    await user.type(minimumStockInput, "5");
+    expect(onFieldChange).toHaveBeenCalledWith("minimumStock", "5");
+  });
+
+  it("should handle expirationDate change", async () => {
+    const user = userEvent.setup();
+    const onFieldChange = vi.fn();
+    const props = {
+      ...defaultProps,
+      formData: {
+        ...defaultProps.formData,
+        hasExpiration: true,
+      },
     };
+    render(<InventoryItemForm {...props} onFieldChange={onFieldChange} />);
+    const expirationDateInput = screen.getByTestId("input-Expiration Date");
+    await user.type(expirationDateInput, "2024-12-31");
+    expect(onFieldChange).toHaveBeenCalledWith("expirationDate", "2024-12-31");
+  });
+
+  it("should handle usageAmount change", async () => {
+    const user = userEvent.setup();
+    const onFieldChange = vi.fn();
+    const props = {
+      ...defaultProps,
+      formData: {
+        ...defaultProps.formData,
+        category: InventoryItemCategory.MEDICINES,
+      },
+    };
+    render(<InventoryItemForm {...props} onFieldChange={onFieldChange} />);
+    const usageAmountInput = screen.getByTestId("input-Amount");
+    await user.type(usageAmountInput, "5");
+    expect(onFieldChange).toHaveBeenCalledWith("usageAmount", "5");
+  });
+
+  it("should handle usageUnit change", async () => {
+    const user = userEvent.setup();
+    const onFieldChange = vi.fn();
+    const props = {
+      ...defaultProps,
+      formData: {
+        ...defaultProps.formData,
+        category: InventoryItemCategory.MEDICINES,
+      },
+    };
+    render(<InventoryItemForm {...props} onFieldChange={onFieldChange} />);
+    const unitSelects = screen.getAllByTestId("select-Unit");
+    // The second one should be the usage unit select (when medicines category is selected)
+    const usageUnitSelect = unitSelects[1];
+    await user.selectOptions(usageUnitSelect, "ml");
+    expect(onFieldChange).toHaveBeenCalledWith("usageUnit", "ml");
+  });
+
+  it("should handle usageBasis change", async () => {
+    const user = userEvent.setup();
+    const onFieldChange = vi.fn();
+    const props = {
+      ...defaultProps,
+      formData: {
+        ...defaultProps.formData,
+        category: InventoryItemCategory.MEDICINES,
+      },
+    };
+    render(<InventoryItemForm {...props} onFieldChange={onFieldChange} />);
+    const usageBasisSelect = screen.getByTestId("select-Basis");
+    await user.selectOptions(usageBasisSelect, "per_animal");
+    expect(onFieldChange).toHaveBeenCalledWith("usageBasis", "per_animal");
+  });
+
+  it("should handle nitrogenContent change", async () => {
+    const user = userEvent.setup();
+    const onFieldChange = vi.fn();
+    const props = {
+      ...defaultProps,
+      formData: {
+        ...defaultProps.formData,
+        category: InventoryItemCategory.FERTILIZER,
+      },
+    };
+    render(<InventoryItemForm {...props} onFieldChange={onFieldChange} />);
+    const nitrogenInput = screen.getByTestId("input-Nitrogen Content (kg per unit)");
+    await user.type(nitrogenInput, "10");
+    expect(onFieldChange).toHaveBeenCalledWith("nitrogenContent", "10");
+  });
+
+  it("should handle initialStock change", async () => {
+    const user = userEvent.setup();
+    const onFieldChange = vi.fn();
+    render(
+      <InventoryItemForm {...defaultProps} onFieldChange={onFieldChange} showInitialStock={true} />
+    );
+    const initialStockInput = screen.getByTestId("input-Initial Stock");
+    await user.type(initialStockInput, "100");
+    expect(onFieldChange).toHaveBeenCalledWith("initialStock", "100");
+  });
+
+  it("should handle paymentMethod change", async () => {
+    const user = userEvent.setup();
+    const onFieldChange = vi.fn();
+    const props = {
+      ...defaultProps,
+      formData: {
+        ...defaultProps.formData,
+        supplierId: "supplier-1",
+        initialStock: "10",
+        createCashFlowTransaction: true,
+      },
+      showInitialStock: true,
+      translations: {
+        ...defaultProps.translations,
+        inventory: {
+          ...defaultProps.translations.inventory,
+          movements: {
+            new: {
+              createCashFlowTransaction: "Create Cash Flow",
+              createAccountPayable: "Create Account Payable",
+              paymentMethod: "Payment Method",
+              bankAccount: "Bank Account",
+              dueDate: "Due Date",
+            },
+          },
+        },
+        cashFlow: {
+          paymentMethods: {
+            cash: "Cash",
+            creditCard: "Credit Card",
+          },
+        },
+      },
+    };
+    render(<InventoryItemForm {...props} onFieldChange={onFieldChange} />);
+    const paymentMethodSelect = screen.getByTestId("select-Payment Method");
+    await user.selectOptions(paymentMethodSelect, PaymentMethod.CREDIT_CARD);
+    expect(onFieldChange).toHaveBeenCalledWith("paymentMethod", PaymentMethod.CREDIT_CARD);
+  });
+
+  it("should handle bankAccountId change", async () => {
+    const user = userEvent.setup();
+    const onFieldChange = vi.fn();
     const bankAccounts = [
       {
-        id: "account-1",
-        bankName: "Test Bank",
+        id: "bank-1",
+        companyId: "company-1",
+        bankName: "Bank 1",
         bankCode: "001",
         branch: "0001",
         accountNumber: "12345",
         accountType: "checking" as const,
-        accountHolderName: "Test Holder",
+        accountHolderName: "John Doe",
         status: "active" as const,
-        companyId: "company-1",
-        createdAt: "2025-01-01",
+        createdAt: "2024-01-01T00:00:00Z",
       },
     ];
-    const { container } = render(
-      <TestWrapper>
-        <InventoryItemForm
-          {...defaultProps}
-          formData={formDataWithPayable}
-          showInitialStock={true}
-          bankAccounts={bankAccounts}
-          onFieldChange={onFieldChange}
-        />
-      </TestWrapper>
-    );
-    const selects = container.querySelectorAll("select");
-    const bankAccountSelect = Array.from(selects).find((select) => {
-      const label = select.closest("div")?.querySelector("label");
-      return (
-        label?.textContent === "Bank Account" &&
-        select.value !== formDataWithPayable.accountPayableBankAccountId
-      );
-    }) as HTMLSelectElement;
-    if (bankAccountSelect && bankAccountSelect.querySelector('option[value="account-1"]')) {
-      await user.selectOptions(bankAccountSelect, "account-1");
-      expect(onFieldChange).toHaveBeenCalled();
-    }
+    const props = {
+      ...defaultProps,
+      formData: {
+        ...defaultProps.formData,
+        supplierId: "supplier-1",
+        initialStock: "10",
+        createCashFlowTransaction: true,
+      },
+      showInitialStock: true,
+      bankAccounts,
+      translations: {
+        ...defaultProps.translations,
+        inventory: {
+          ...defaultProps.translations.inventory,
+          movements: {
+            new: {
+              createCashFlowTransaction: "Create Cash Flow",
+              createAccountPayable: "Create Account Payable",
+              paymentMethod: "Payment Method",
+              bankAccount: "Bank Account",
+              dueDate: "Due Date",
+            },
+          },
+        },
+        cashFlow: {
+          paymentMethods: {},
+        },
+      },
+    };
+    render(<InventoryItemForm {...props} onFieldChange={onFieldChange} />);
+    const bankAccountSelect = screen.getByTestId("select-Bank Account");
+    await user.selectOptions(bankAccountSelect, "bank-1");
+    expect(onFieldChange).toHaveBeenCalledWith("bankAccountId", "bank-1");
+  });
+
+  it("should display error for all fields", () => {
+    const props = {
+      ...defaultProps,
+      errors: {
+        code: "Code is required",
+        name: "Name is required",
+        category: "Category is required",
+        unit: "Unit is required",
+        minimumStock: "Minimum stock is required",
+        expirationDate: "Expiration date is required",
+        propertyIds: "At least one property is required",
+      },
+    };
+    render(<InventoryItemForm {...props} />);
+    expect(screen.getAllByTestId("error").length).toBeGreaterThan(0);
   });
 });

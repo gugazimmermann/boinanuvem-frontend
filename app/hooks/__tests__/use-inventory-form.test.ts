@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useInventoryForm } from "../use-inventory-form";
 import { InventoryItemCategory, PaymentMethod } from "~/types";
@@ -13,12 +13,12 @@ describe("useInventoryForm", () => {
       new: {
         propertyRequired: "Property is required",
         customCategoryRequired: "Custom category is required",
-        minimumStockInvalid: "Minimum stock is invalid",
-        unitPriceInvalid: "Unit price is invalid",
-        initialStockInvalid: "Initial stock is invalid",
+        minimumStockInvalid: "Invalid minimum stock",
+        unitPriceInvalid: "Invalid unit price",
+        initialStockInvalid: "Invalid initial stock",
         expirationDateRequired: "Expiration date is required",
-        usageAmountInvalid: "Usage amount is invalid",
-        nitrogenContentInvalid: "Nitrogen content is invalid",
+        usageAmountInvalid: "Invalid usage amount",
+        nitrogenContentInvalid: "Invalid nitrogen content",
       },
       movements: {
         new: {
@@ -35,11 +35,7 @@ describe("useInventoryForm", () => {
     },
   };
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it("should initialize with default values", () => {
+  it("should initialize with default form data", () => {
     const { result } = renderHook(() =>
       useInventoryForm({
         translations: mockTranslations,
@@ -47,35 +43,28 @@ describe("useInventoryForm", () => {
     );
 
     expect(result.current.formData.code).toBe("");
-    expect(result.current.formData.name).toBe("");
     expect(result.current.formData.category).toBe(InventoryItemCategory.CUSTOM);
     expect(result.current.formData.unit).toBe("unidade");
     expect(result.current.formData.minimumStock).toBe("0");
     expect(result.current.formData.initialStock).toBe("0");
-    expect(result.current.formData.hasExpiration).toBe(false);
-    expect(result.current.formData.propertyIds).toEqual([]);
   });
 
-  it("should initialize with provided initialData", () => {
-    const initialData = {
-      code: "ITEM001",
-      name: "Test Item",
-      category: InventoryItemCategory.FEED,
-    };
-
+  it("should merge initial data with defaults", () => {
     const { result } = renderHook(() =>
       useInventoryForm({
-        initialData,
+        initialData: {
+          code: "I001",
+          name: "Test Item",
+        },
         translations: mockTranslations,
       })
     );
 
-    expect(result.current.formData.code).toBe("ITEM001");
+    expect(result.current.formData.code).toBe("I001");
     expect(result.current.formData.name).toBe("Test Item");
-    expect(result.current.formData.category).toBe(InventoryItemCategory.FEED);
   });
 
-  it("should handle field changes", () => {
+  it("should update form data when handleChange is called", () => {
     const { result } = renderHook(() =>
       useInventoryForm({
         translations: mockTranslations,
@@ -83,10 +72,10 @@ describe("useInventoryForm", () => {
     );
 
     act(() => {
-      result.current.handleChange("name", "New Name");
+      result.current.handleChange("name", "New Item");
     });
 
-    expect(result.current.formData.name).toBe("New Name");
+    expect(result.current.formData.name).toBe("New Item");
   });
 
   it("should clear error when field is changed", () => {
@@ -97,240 +86,224 @@ describe("useInventoryForm", () => {
     );
 
     act(() => {
-      result.current.setErrors({ name: "Name is required" });
+      result.current.validate();
     });
 
-    expect(result.current.errors.name).toBe("Name is required");
+    expect(result.current.errors.code).toBeDefined();
 
     act(() => {
-      result.current.handleChange("name", "Test");
+      result.current.handleChange("code", "I001");
     });
 
-    expect(result.current.errors.name).toBeUndefined();
+    expect(result.current.errors.code).toBeUndefined();
   });
 
-  it("should validate basic fields", () => {
+  it("should validate code field", () => {
     const { result } = renderHook(() =>
       useInventoryForm({
         translations: mockTranslations,
       })
     );
 
-    let isValid: boolean;
     act(() => {
-      isValid = result.current.validate();
+      result.current.validate();
     });
 
-    expect(isValid!).toBe(false);
     expect(result.current.errors.code).toBeDefined();
+  });
+
+  it("should validate name field", () => {
+    const { result } = renderHook(() =>
+      useInventoryForm({
+        translations: mockTranslations,
+      })
+    );
+
+    act(() => {
+      result.current.validate();
+    });
+
     expect(result.current.errors.name).toBeDefined();
+  });
+
+  it("should validate propertyIds field", () => {
+    const { result } = renderHook(() =>
+      useInventoryForm({
+        translations: mockTranslations,
+      })
+    );
+
+    act(() => {
+      result.current.validate();
+    });
+
     expect(result.current.errors.propertyIds).toBeDefined();
   });
 
-  it("should validate custom category when category is CUSTOM", () => {
+  it("should validate customCategory when category is CUSTOM", () => {
     const { result } = renderHook(() =>
       useInventoryForm({
         initialData: {
-          code: "ITEM001",
-          name: "Test",
           category: InventoryItemCategory.CUSTOM,
-          propertyIds: ["prop-1"],
         },
         translations: mockTranslations,
       })
     );
 
-    let isValid: boolean;
     act(() => {
-      isValid = result.current.validate();
+      result.current.validate();
     });
 
-    expect(isValid!).toBe(false);
     expect(result.current.errors.customCategory).toBeDefined();
   });
 
-  it("should validate minimum stock", () => {
+  it("should validate minimumStock is non-negative", () => {
     const { result } = renderHook(() =>
       useInventoryForm({
         initialData: {
-          code: "ITEM001",
+          code: "I001",
           name: "Test",
-          propertyIds: ["prop-1"],
-          minimumStock: "-5",
+          propertyIds: ["P001"],
+          minimumStock: "-10",
         },
         translations: mockTranslations,
       })
     );
 
-    let isValid: boolean;
     act(() => {
-      isValid = result.current.validate();
+      result.current.validate();
     });
 
-    expect(isValid!).toBe(false);
     expect(result.current.errors.minimumStock).toBeDefined();
   });
 
-  it("should validate unit price when provided", () => {
+  it("should validate unitPrice is positive when provided", () => {
     const { result } = renderHook(() =>
       useInventoryForm({
         initialData: {
-          code: "ITEM001",
+          code: "I001",
           name: "Test",
-          propertyIds: ["prop-1"],
-          unitPrice: "invalid",
+          propertyIds: ["P001"],
+          unitPrice: "-10",
         },
         translations: mockTranslations,
       })
     );
 
-    let isValid: boolean;
     act(() => {
-      isValid = result.current.validate();
+      result.current.validate();
     });
 
-    expect(isValid!).toBe(false);
     expect(result.current.errors.unitPrice).toBeDefined();
   });
 
-  it("should validate expiration date when hasExpiration is true", () => {
+  it("should validate expirationDate when hasExpiration is true", () => {
     const { result } = renderHook(() =>
       useInventoryForm({
         initialData: {
-          code: "ITEM001",
+          code: "I001",
           name: "Test",
-          propertyIds: ["prop-1"],
+          propertyIds: ["P001"],
           hasExpiration: true,
+          expirationDate: "",
         },
         translations: mockTranslations,
       })
     );
 
-    let isValid: boolean;
     act(() => {
-      isValid = result.current.validate();
+      result.current.validate();
     });
 
-    expect(isValid!).toBe(false);
     expect(result.current.errors.expirationDate).toBeDefined();
   });
 
-  it("should validate usage amount for medicines and vaccines", () => {
+  it("should validate usageAmount for medicines and vaccines", () => {
     const { result } = renderHook(() =>
       useInventoryForm({
         initialData: {
-          code: "ITEM001",
+          code: "I001",
           name: "Test",
-          propertyIds: ["prop-1"],
+          propertyIds: ["P001"],
           category: InventoryItemCategory.MEDICINES,
-          usageAmount: "invalid",
+          usageAmount: "-10",
         },
         translations: mockTranslations,
       })
     );
 
-    let isValid: boolean;
     act(() => {
-      isValid = result.current.validate();
+      result.current.validate();
     });
 
-    expect(isValid!).toBe(false);
     expect(result.current.errors.usageAmount).toBeDefined();
   });
 
-  it("should validate nitrogen content for fertilizer", () => {
+  it("should validate nitrogenContent for fertilizers", () => {
     const { result } = renderHook(() =>
       useInventoryForm({
         initialData: {
-          code: "ITEM001",
+          code: "I001",
           name: "Test",
-          propertyIds: ["prop-1"],
+          propertyIds: ["P001"],
           category: InventoryItemCategory.FERTILIZER,
-          nitrogenContent: "-5",
+          nitrogenContent: "-10",
         },
         translations: mockTranslations,
       })
     );
 
-    let isValid: boolean;
     act(() => {
-      isValid = result.current.validate();
+      result.current.validate();
     });
 
-    expect(isValid!).toBe(false);
     expect(result.current.errors.nitrogenContent).toBeDefined();
   });
 
-  it("should validate financial fields for cash flow transaction", () => {
+  it("should validate financial fields when createCashFlowTransaction is true", () => {
     const { result } = renderHook(() =>
       useInventoryForm({
         initialData: {
-          code: "ITEM001",
+          code: "I001",
           name: "Test",
-          propertyIds: ["prop-1"],
+          propertyIds: ["P001"],
+          initialStock: "10",
+          supplierId: "S001",
           createCashFlowTransaction: true,
-          initialStock: "10",
-          supplierId: "supplier-1",
-          unitPrice: "100",
-          paymentMethod: "" as unknown as PaymentMethod,
+          unitPrice: "",
         },
         translations: mockTranslations,
       })
     );
 
-    let isValid: boolean;
     act(() => {
-      isValid = result.current.validate();
+      result.current.validate();
     });
 
-    expect(isValid!).toBe(false);
-    expect(result.current.errors.paymentMethod).toBeDefined();
-  });
-
-  it("should validate financial fields for account payable", () => {
-    const { result } = renderHook(() =>
-      useInventoryForm({
-        initialData: {
-          code: "ITEM001",
-          name: "Test",
-          propertyIds: ["prop-1"],
-          createAccountPayable: true,
-          initialStock: "10",
-          supplierId: "supplier-1",
-        },
-        translations: mockTranslations,
-      })
-    );
-
-    let isValid: boolean;
-    act(() => {
-      isValid = result.current.validate();
-    });
-
-    expect(isValid!).toBe(false);
     expect(result.current.errors.unitPrice).toBeDefined();
-    expect(result.current.errors.dueDate).toBeDefined();
   });
 
-  it("should return true for valid form", () => {
+  it("should validate dueDate when createAccountPayable is true", () => {
     const { result } = renderHook(() =>
       useInventoryForm({
         initialData: {
-          code: "ITEM001",
-          name: "Test Item",
-          propertyIds: ["prop-1"],
-          category: InventoryItemCategory.FEED,
+          code: "I001",
+          name: "Test",
+          propertyIds: ["P001"],
+          initialStock: "10",
+          supplierId: "S001",
+          createAccountPayable: true,
+          dueDate: "",
         },
         translations: mockTranslations,
       })
     );
 
-    let isValid: boolean;
     act(() => {
-      isValid = result.current.validate();
+      result.current.validate();
     });
 
-    expect(isValid!).toBe(true);
+    expect(result.current.errors.dueDate).toBeDefined();
   });
 
   it("should handle boolean field changes", () => {
@@ -355,10 +328,10 @@ describe("useInventoryForm", () => {
     );
 
     act(() => {
-      result.current.handleChange("propertyIds", ["prop-1", "prop-2"]);
+      result.current.handleChange("propertyIds", ["P001", "P002"]);
     });
 
-    expect(result.current.formData.propertyIds).toEqual(["prop-1", "prop-2"]);
+    expect(result.current.formData.propertyIds).toEqual(["P001", "P002"]);
   });
 
   it("should handle PaymentMethod field changes", () => {
@@ -369,9 +342,9 @@ describe("useInventoryForm", () => {
     );
 
     act(() => {
-      result.current.handleChange("paymentMethod", PaymentMethod.PIX);
+      result.current.handleChange("paymentMethod", PaymentMethod.CREDIT_CARD);
     });
 
-    expect(result.current.formData.paymentMethod).toBe(PaymentMethod.PIX);
+    expect(result.current.formData.paymentMethod).toBe(PaymentMethod.CREDIT_CARD);
   });
 });

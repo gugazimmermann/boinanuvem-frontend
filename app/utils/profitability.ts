@@ -23,54 +23,58 @@ export function calculateAnimalProfitability(
   salePrice: number,
   saleDate: string,
   saleWeight: number
-): AnimalProfitability {
-  const costData = getAnimalTotalCost(animalId, undefined, saleDate);
-  const totalCost = costData?.totalCost || 0;
+): Promise<AnimalProfitability> {
+  return (async () => {
+    const costData = await getAnimalTotalCost(animalId, undefined, saleDate);
+    const totalCost = costData?.totalCost || 0;
 
-  const acquisition = getAcquisitionByAnimalId(animalId);
-  const acquisitionItem = acquisition?.acquisitionItems.find((item) => item.animalId === animalId);
-  const acquisitionCost = acquisitionItem?.price || 0;
+    const acquisition = getAcquisitionByAnimalId(animalId);
+    const acquisitionItem = acquisition?.acquisitionItems.find(
+      (item) => item.animalId === animalId
+    );
+    const acquisitionCost = acquisitionItem?.price || 0;
 
-  const birthCost = 0;
+    const birthCost = 0;
 
-  const totalAccumulatedCost = totalCost + acquisitionCost + birthCost;
+    const totalAccumulatedCost = totalCost + acquisitionCost + birthCost;
 
-  let acquisitionArrobaValue: number | undefined;
-  let saleArrobaValue: number | undefined;
-  let spreadPerArroba: number | undefined;
-  let totalSpread: number | undefined;
+    let acquisitionArrobaValue: number | undefined;
+    let saleArrobaValue: number | undefined;
+    let spreadPerArroba: number | undefined;
+    let totalSpread: number | undefined;
 
-  if (acquisitionItem && acquisitionItem.weight > 0) {
-    acquisitionArrobaValue = acquisitionItem.costPerArroba;
+    if (acquisitionItem && acquisitionItem.weight > 0) {
+      acquisitionArrobaValue = acquisitionItem.costPerArroba;
 
-    const saleArrobas = saleWeight / ARROBA_KG;
-    saleArrobaValue = saleArrobas > 0 ? salePrice / saleArrobas : 0;
+      const saleArrobas = saleWeight / ARROBA_KG;
+      saleArrobaValue = saleArrobas > 0 ? salePrice / saleArrobas : 0;
 
-    spreadPerArroba = saleArrobaValue - acquisitionArrobaValue;
+      spreadPerArroba = saleArrobaValue - acquisitionArrobaValue;
 
-    totalSpread = spreadPerArroba * saleArrobas;
-  }
+      totalSpread = spreadPerArroba * saleArrobas;
+    }
 
-  const profit = salePrice - totalAccumulatedCost;
-  const profitMargin = salePrice > 0 ? (profit / salePrice) * 100 : 0;
-  const costPerKg = saleWeight > 0 ? totalAccumulatedCost / saleWeight : 0;
-  const pricePerKg = saleWeight > 0 ? salePrice / saleWeight : 0;
-  const roi = totalAccumulatedCost > 0 ? (profit / totalAccumulatedCost) * 100 : 0;
+    const profit = salePrice - totalAccumulatedCost;
+    const profitMargin = salePrice > 0 ? (profit / salePrice) * 100 : 0;
+    const costPerKg = saleWeight > 0 ? totalAccumulatedCost / saleWeight : 0;
+    const pricePerKg = saleWeight > 0 ? salePrice / saleWeight : 0;
+    const roi = totalAccumulatedCost > 0 ? (profit / totalAccumulatedCost) * 100 : 0;
 
-  return {
-    animalId,
-    totalCost: totalAccumulatedCost,
-    salePrice,
-    profit,
-    profitMargin,
-    costPerKg,
-    pricePerKg,
-    roi,
-    acquisitionArrobaValue,
-    saleArrobaValue,
-    spreadPerArroba,
-    totalSpread,
-  };
+    return {
+      animalId,
+      totalCost: totalAccumulatedCost,
+      salePrice,
+      profit,
+      profitMargin,
+      costPerKg,
+      pricePerKg,
+      roi,
+      acquisitionArrobaValue,
+      saleArrobaValue,
+      spreadPerArroba,
+      totalSpread,
+    };
+  })();
 }
 
 export function calculateAggregatedProfitability(profitabilities: AnimalProfitability[]): {

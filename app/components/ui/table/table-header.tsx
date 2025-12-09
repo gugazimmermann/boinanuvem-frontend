@@ -39,10 +39,10 @@ export function TableHeader({
         <div className="flex items-center mt-4 gap-x-3 sm:mt-0">
           {actions.map((action) => (
             <Button
-              key={action.label || action.onClick.toString()}
+              key={action.label || (action.onClick ? action.onClick.toString() : "")}
               variant={action.variant || "outline"}
               size="sm"
-              onClick={action.onClick}
+              onClick={action.onClick ? (e) => action.onClick?.(e) : undefined}
               leftIcon={action.leftIcon || action.icon}
               rightIcon={action.rightIcon}
               className={action.variant === "primary" ? "" : "w-1/2 sm:w-auto"}

@@ -81,7 +81,12 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     const inputType = getInputType();
 
     const getDisplayValue = () => {
-      if (!isDateType || !value || typeof value !== "string") return value;
+      if (!isDateType) {
+        return value;
+      }
+      if (!value || typeof value !== "string") {
+        return "";
+      }
       if (value.includes("-") && value.length === 10) return isoToDate(value);
       return value;
     };

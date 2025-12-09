@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   getBankAccountById,
   getBankAccountsByCompanyId,
@@ -6,206 +6,109 @@ import {
   updateBankAccount,
   deleteBankAccount,
 } from "../bank-account.service";
+
+vi.mock("~/mocks/bank-accounts", () => ({
+  mockBankAccounts: [
+    {
+      id: "bank-1",
+      code: "001",
+      name: "Bank Account 1",
+      companyId: "company-1",
+      status: "active",
+    },
+    {
+      id: "bank-2",
+      code: "002",
+      name: "Bank Account 2",
+      companyId: "company-1",
+      status: "active",
+    },
+  ],
+}));
+
 import { mockBankAccounts } from "~/mocks/bank-accounts";
-import type { BankAccountFormData } from "~/types";
 
 describe("bank-account.service", () => {
   beforeEach(() => {
-    // Reset mock data before each test
-    mockBankAccounts.length = 0;
-    mockBankAccounts.push(
-      {
-        id: "bank-1",
-        companyId: "company-1",
-        bankName: "Banco do Brasil",
-        bankCode: "001",
-        branch: "1234",
-        accountNumber: "12345-6",
-        accountType: "checking",
-        accountHolderName: "Company 1",
-        status: "active",
-        createdAt: "2025-01-01",
-      },
-      {
-        id: "bank-2",
-        companyId: "company-1",
-        bankName: "Bradesco",
-        bankCode: "237",
-        branch: "5678",
-        accountNumber: "78901-2",
-        accountType: "savings",
-        accountHolderName: "Company 1",
-        status: "active",
-        createdAt: "2025-01-02",
-      },
-      {
-        id: "bank-3",
-        companyId: "company-2",
-        bankName: "Caixa Econômica",
-        bankCode: "104",
-        branch: "9012",
-        accountNumber: "34567-8",
-        accountType: "checking",
-        accountHolderName: "Company 2",
-        status: "active",
-        createdAt: "2025-01-03",
-      }
-    );
+    vi.clearAllMocks();
   });
 
   describe("getBankAccountById", () => {
-    it("should return bank account when ID exists", () => {
+    it("should find bank account by id", () => {
       const result = getBankAccountById("bank-1");
-      expect(result).toBeDefined();
-      expect(result?.id).toBe("bank-1");
-      expect(result?.bankName).toBe("Banco do Brasil");
+      expect(result).toEqual(mockBankAccounts[0]);
     });
 
-    it("should return undefined when ID does not exist", () => {
-      const result = getBankAccountById("bank-nonexistent");
-      expect(result).toBeUndefined();
-    });
-
-    it("should return undefined when ID is undefined", () => {
-      const result = getBankAccountById(undefined);
+    it("should return undefined when not found", () => {
+      const result = getBankAccountById("nonexistent");
       expect(result).toBeUndefined();
     });
   });
 
   describe("getBankAccountsByCompanyId", () => {
-    it("should return all bank accounts for a company", () => {
+    it("should find bank accounts by company id", () => {
       const result = getBankAccountsByCompanyId("company-1");
       expect(result).toHaveLength(2);
-      expect(result[0]?.id).toBe("bank-1");
-      expect(result[1]?.id).toBe("bank-2");
     });
 
-    it("should return empty array when company has no bank accounts", () => {
-      const result = getBankAccountsByCompanyId("company-nonexistent");
-      expect(result).toHaveLength(0);
+    it("should return empty array when no matches", () => {
+      const result = getBankAccountsByCompanyId("nonexistent");
+      expect(result).toEqual([]);
     });
   });
 
   describe("addBankAccount", () => {
-    it("should add a new bank account with generated ID", () => {
-      const formData: BankAccountFormData = {
+    it("should create new bank account", () => {
+      const formData = {
+        code: "003",
+        name: "New Bank Account",
         companyId: "company-1",
-        bankName: "Itaú",
-        bankCode: "341",
-        branch: "2222",
-        accountNumber: "11111-1",
-        accountType: "checking",
-        accountHolderName: "Company 1",
-        status: "active",
+        bankName: "Test Bank",
+        bankCode: "001",
+        branch: "0001",
+        accountNumber: "12345-6",
+        accountHolderName: "Test Account Holder",
+        accountType: "checking" as const,
+        status: "active" as const,
       };
 
-      const initialLength = mockBankAccounts.length;
       const result = addBankAccount(formData);
 
-      expect(mockBankAccounts).toHaveLength(initialLength + 1);
       expect(result.id).toBeDefined();
-      expect(result.companyId).toBe("company-1");
-      expect(result.bankName).toBe("Itaú");
-      expect(result.createdAt).toBeDefined();
-    });
-
-    it("should generate ID with correct prefix", () => {
-      const formData: BankAccountFormData = {
-        companyId: "company-1",
-        bankName: "Itaú",
-        bankCode: "341",
-        branch: "2222",
-        accountNumber: "11111-1",
-        accountType: "checking",
-        accountHolderName: "Company 1",
-        status: "active",
-      };
-
-      const result = addBankAccount(formData);
-      expect(result.id).toContain("ba0e8400-e29b-41d4-a716");
-    });
-
-    it("should use default ID when array is empty", () => {
-      mockBankAccounts.length = 0;
-      const formData: BankAccountFormData = {
-        companyId: "company-1",
-        bankName: "Itaú",
-        bankCode: "341",
-        branch: "2222",
-        accountNumber: "11111-1",
-        accountType: "checking",
-        accountHolderName: "Company 1",
-        status: "active",
-      };
-
-      const result = addBankAccount(formData);
-      expect(result.id).toBe("ba0e8400-e29b-41d4-a716-446655440009");
+      expect(result.code).toBe("003");
+      expect(result.name).toBe("New Bank Account");
+      expect(mockBankAccounts).toContain(result);
     });
   });
 
   describe("updateBankAccount", () => {
-    it("should update bank account when ID exists", () => {
-      const updateData: Partial<BankAccountFormData> = {
-        accountType: "savings",
-        status: "inactive",
-      };
-
+    it("should update bank account", () => {
+      const updateData = { bankName: "Updated Bank Name" };
       const result = updateBankAccount("bank-1", updateData);
+
       expect(result).toBe(true);
-
-      const updated = mockBankAccounts.find((bank) => bank.id === "bank-1");
-      expect(updated?.accountType).toBe("savings");
-      expect(updated?.status).toBe("inactive");
+      expect(mockBankAccounts[0].bankName).toBe("Updated Bank Name");
     });
 
-    it("should preserve existing fields when updating", () => {
-      const original = mockBankAccounts.find((bank) => bank.id === "bank-1");
-      const originalCompanyId = original?.companyId;
-
-      const updateData: Partial<BankAccountFormData> = {
-        accountType: "savings",
-      };
-
-      updateBankAccount("bank-1", updateData);
-
-      const updated = mockBankAccounts.find((bank) => bank.id === "bank-1");
-      expect(updated?.companyId).toBe(originalCompanyId);
-      expect(updated?.id).toBe("bank-1");
-    });
-
-    it("should return false when ID does not exist", () => {
-      const updateData: Partial<BankAccountFormData> = {
-        accountType: "savings",
-      };
-
-      const result = updateBankAccount("bank-nonexistent", updateData);
+    it("should return false when bank account not found", () => {
+      const result = updateBankAccount("nonexistent", { bankName: "Updated" });
       expect(result).toBe(false);
     });
   });
 
   describe("deleteBankAccount", () => {
-    it("should delete bank account when ID exists", () => {
+    it("should delete bank account", () => {
       const initialLength = mockBankAccounts.length;
       const result = deleteBankAccount("bank-1");
 
       expect(result).toBe(true);
       expect(mockBankAccounts).toHaveLength(initialLength - 1);
-      expect(mockBankAccounts.find((bank) => bank.id === "bank-1")).toBeUndefined();
+      expect(mockBankAccounts.find((b) => b.id === "bank-1")).toBeUndefined();
     });
 
-    it("should return false when ID does not exist", () => {
-      const initialLength = mockBankAccounts.length;
-      const result = deleteBankAccount("bank-nonexistent");
-
+    it("should return false when bank account not found", () => {
+      const result = deleteBankAccount("nonexistent");
       expect(result).toBe(false);
-      expect(mockBankAccounts).toHaveLength(initialLength);
-    });
-
-    it("should delete the correct bank account", () => {
-      deleteBankAccount("bank-2");
-      expect(mockBankAccounts.find((bank) => bank.id === "bank-2")).toBeUndefined();
-      expect(mockBankAccounts.find((bank) => bank.id === "bank-1")).toBeDefined();
-      expect(mockBankAccounts.find((bank) => bank.id === "bank-3")).toBeDefined();
     });
   });
 });

@@ -1,12 +1,8 @@
 import { useMemo } from "react";
 import { useTranslation } from "~/i18n";
 import { formatCurrency } from "~/utils/formatting";
-import { getPropertyById } from "~/services/properties.service";
-import { getSupplierById } from "~/services/suppliers.service";
-import { getBuyerById } from "~/services/buyers.service";
-import { getEmployeeById } from "~/services/employees.service";
-import { getServiceProviderById } from "~/services/service-providers.service";
 import type { CashFlow, AccountsPayable, AccountsReceivable } from "~/types";
+import { useEntityLoaders } from "~/hooks/use-entity-loaders";
 
 type FinanceTransaction = CashFlow | AccountsPayable | AccountsReceivable;
 
@@ -29,10 +25,7 @@ export interface FinanceFilterConfig {
   enableTypeFilter?: boolean;
 }
 
-function getEntityNameById(
-  id: EntityId,
-  getter: (id: string) => { name?: string } | undefined
-): string {
+function getEntityNameById(id: EntityId, lookup: (id: string) => string | undefined): string {
   if (!id) return "";
   let idValue: string;
   if (typeof id === "string") {
@@ -43,20 +36,36 @@ function getEntityNameById(
     idValue = "";
   }
   if (!idValue) return "";
-  const entity = getter(idValue);
-  return entity?.name?.toLowerCase() || "";
+  return lookup(idValue)?.toLowerCase() || "";
+}
+
+interface MatchesSearchCriteriaOptions {
+  readonly searchValue: string;
+  readonly t: ReturnType<typeof useTranslation>;
+  readonly getPropertyName: (id: string) => string | undefined;
+  readonly getSupplierName: (id: string) => string | undefined;
+  readonly getBuyerName: (id: string) => string | undefined;
+  readonly getEmployeeName: (id: string) => string | undefined;
+  readonly getServiceProviderName: (id: string) => string | undefined;
 }
 
 function matchesSearchCriteria<T extends FinanceTransaction>(
   transaction: T,
-  searchValue: string,
-  t: ReturnType<typeof useTranslation>
+  options: MatchesSearchCriteriaOptions
 ): boolean {
+  const {
+    searchValue,
+    t,
+    getPropertyName,
+    getSupplierName,
+    getBuyerName,
+    getEmployeeName,
+    getServiceProviderName,
+  } = options;
   if (!searchValue) return true;
 
   const searchLower = searchValue.toLowerCase();
-  const property = getPropertyById(transaction.propertyId);
-  const propertyName = property?.name?.toLowerCase() || "";
+  const propertyName = getPropertyName(transaction.propertyId)?.toLowerCase() || "";
   const category = transaction.category
     ? t.cashFlow.categories[transaction.category]?.toLowerCase() || ""
     : "";
@@ -67,19 +76,19 @@ function matchesSearchCriteria<T extends FinanceTransaction>(
 
   const supplierName =
     "supplierId" in transaction
-      ? getEntityNameById(transaction.supplierId as EntityId, getSupplierById)
+      ? getEntityNameById(transaction.supplierId as EntityId, getSupplierName)
       : "";
   const buyerName =
     "buyerId" in transaction
-      ? getEntityNameById(transaction.buyerId as EntityId, getBuyerById)
+      ? getEntityNameById(transaction.buyerId as EntityId, getBuyerName)
       : "";
   const employeeName =
     "employeeId" in transaction
-      ? getEntityNameById(transaction.employeeId as EntityId, getEmployeeById)
+      ? getEntityNameById(transaction.employeeId as EntityId, getEmployeeName)
       : "";
   const serviceProviderName =
     "serviceProviderId" in transaction
-      ? getEntityNameById(transaction.serviceProviderId as EntityId, getServiceProviderById)
+      ? getEntityNameById(transaction.serviceProviderId as EntityId, getServiceProviderName)
       : "";
 
   return (
@@ -177,9 +186,25 @@ export function useFinanceFilters<T extends FinanceTransaction>(
     selectedBuyer,
   } = options;
 
+  const {
+    getPropertyName,
+    getSupplierName,
+    getBuyerName,
+    getEmployeeName,
+    getServiceProviderName,
+  } = useEntityLoaders();
+
   const filteredData = useMemo(() => {
     return transactions.filter((transaction) => {
-      const matchesSearch = matchesSearchCriteria(transaction, searchValue, t);
+      const matchesSearch = matchesSearchCriteria(transaction, {
+        searchValue,
+        t,
+        getPropertyName,
+        getSupplierName,
+        getBuyerName,
+        getEmployeeName,
+        getServiceProviderName,
+      });
       const matchesType = matchesTypeFilter(
         transaction,
         activeFilter,
@@ -227,6 +252,11 @@ export function useFinanceFilters<T extends FinanceTransaction>(
     config.enableTypeFilter,
     config.enableSupplierFilter,
     config.enableBuyerFilter,
+    getPropertyName,
+    getSupplierName,
+    getBuyerName,
+    getEmployeeName,
+    getServiceProviderName,
   ]);
 
   return filteredData;

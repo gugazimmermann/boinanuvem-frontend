@@ -1,10 +1,9 @@
-import type { Breeding, BreedingFormData, Animal } from "~/types";
+import type { Breeding, BreedingFormData, Animal, Property } from "~/types";
 import { mockBreedings } from "~/mocks/breedings";
 import { findById, findByField, createEntity, updateEntity, deleteEntity } from "./base-service";
 import { mockBirths } from "~/mocks/births";
 import { getAnimalsByPropertyId, getAnimalById } from "./animals.service";
 import { getBirthByAnimalId } from "./births.service";
-import { getPropertyById } from "./properties.service";
 
 const ID_PREFIX = "pp0e8400-e29b-41d4-a716";
 const DEFAULT_ID = "pp0e8400-e29b-41d4-a716-446655440009";
@@ -138,19 +137,20 @@ export function getPregnantCowsByPropertyId(propertyId: string): string[] {
 
 export function enrichBreedingWithAnimalData(breeding: Breeding): Breeding & {
   animal?: Animal;
-  property?: ReturnType<typeof getPropertyById>;
+  property?: Property;
   bull?: Animal;
   breed?: string;
 } {
   const animal = getAnimalById(breeding.animalId);
-  const property = animal ? getPropertyById(animal.propertyId) : null;
+  // Note: property is set to undefined here since getPropertyById is async
+  // The property should be loaded separately if needed
   const bull = breeding.bullId ? getAnimalById(breeding.bullId) : null;
   const birth = animal ? getBirthByAnimalId(animal.id) : null;
 
   return {
     ...breeding,
     animal: animal || undefined,
-    property: property || undefined,
+    property: undefined, // Property needs to be loaded asynchronously
     bull: bull || undefined,
     breed: birth?.breed,
   };

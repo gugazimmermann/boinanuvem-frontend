@@ -13,7 +13,7 @@ interface EntityTabsProps {
 
 export function EntityTabs({ tabs, activeTab }: EntityTabsProps) {
   return (
-    <div className="mb-4 border-b border-gray-200 dark:border-gray-700">
+    <div data-testid="tabs" className="mb-4 border-b border-gray-200 dark:border-gray-700">
       <nav className="flex space-x-8" aria-label="Tabs">
         {tabs.map((tab) => (
           <button

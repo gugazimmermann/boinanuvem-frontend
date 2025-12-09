@@ -6,10 +6,10 @@ import { FormPageLayout } from "~/components/dashboard/forms/form-page-layout";
 import { ROUTES, getInventoryViewRoute } from "~/routes.config";
 import { getInventoryItemById, updateInventoryItem } from "~/services/inventory.service";
 import { getNitrogenContent, setNitrogenContent } from "~/services/nitrogen-content.service";
-import type { InventoryItemFormData } from "~/types";
+import type { InventoryItemFormData, Property, Supplier } from "~/types";
 import { PaymentMethod } from "~/types";
-import { mockProperties } from "~/mocks/properties";
-import { mockSuppliers } from "~/mocks/suppliers";
+import { getProperties } from "~/services/properties.service";
+import { getSuppliers } from "~/services/suppliers.service";
 import { useInventoryForm } from "~/hooks/use-inventory-form";
 import { InventoryItemForm } from "~/components/dashboard/inventory/inventory-item-form";
 import { mockCompanies } from "~/mocks/companies";
@@ -45,6 +45,26 @@ export default function EditInventoryItem() {
   const company = mockCompanies[0];
   const companyId = company?.id || "";
   const bankAccounts = getBankAccountsByCompanyId(companyId);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (companyId) {
+        try {
+          const [propertiesData, suppliersData] = await Promise.all([
+            getProperties(),
+            getSuppliers(),
+          ]);
+          setProperties(propertiesData.filter((prop) => prop.companyId === companyId));
+          setSuppliers(suppliersData.filter((sup) => sup.companyId === companyId));
+        } catch (error) {
+          console.error("Failed to load properties or suppliers:", error);
+        }
+      }
+    };
+    fetchData();
+  }, [companyId]);
 
   const { formData, errors, handleChange, validate, setFormData } = useInventoryForm({
     translations: t,
@@ -162,8 +182,8 @@ export default function EditInventoryItem() {
         isSubmitting={isSubmitting}
         onFieldChange={handleChange}
         translations={t}
-        suppliers={mockSuppliers}
-        properties={mockProperties}
+        suppliers={suppliers}
+        properties={properties}
         bankAccounts={bankAccounts}
         showInitialStock={false}
         showObservation={false}

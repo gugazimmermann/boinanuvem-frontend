@@ -1,37 +1,44 @@
 import type { Buyer, BuyerFormData } from "~/types";
-import { mockBuyers } from "~/mocks/buyers";
-import {
-  findById,
-  findByField,
-  findByFieldIncludes,
-  createEntity,
-  updateEntity,
-  deleteEntity,
-} from "./base-service";
+import { createEntityService } from "./entity-service-factory";
 
-const ID_PREFIX = "aa0e8400-e29b-41d4-a716";
-const DEFAULT_ID = "aa0e8400-e29b-41d4-a716-446655440009";
+const buyerService = createEntityService<Buyer, BuyerFormData>({
+  endpoint: "/buyers",
+  entityName: "comprador",
+  entityNamePlural: "compradores",
+  supportsCNPJ: true,
+});
 
-export function getBuyerById(buyerId: string | undefined): Buyer | undefined {
-  return findById(mockBuyers, buyerId);
+/**
+ * Get all buyers for the current user's company via API
+ */
+export async function getBuyers(): Promise<Buyer[]> {
+  return buyerService.getAll();
 }
 
-export function getBuyersByCompanyId(companyId: string): Buyer[] {
-  return findByField(mockBuyers, "companyId", companyId);
+/**
+ * Get a single buyer by ID via API
+ */
+export async function getBuyerById(buyerId: string): Promise<Buyer> {
+  return buyerService.getById(buyerId);
 }
 
-export function getBuyersByPropertyId(propertyId: string): Buyer[] {
-  return findByFieldIncludes(mockBuyers, "propertyIds", propertyId);
+/**
+ * Create a new buyer via API
+ */
+export async function addBuyer(data: BuyerFormData): Promise<Buyer> {
+  return buyerService.add(data);
 }
 
-export function addBuyer(data: BuyerFormData): Buyer {
-  return createEntity(mockBuyers, data, ID_PREFIX, DEFAULT_ID);
+/**
+ * Update a buyer via API
+ */
+export async function updateBuyer(buyerId: string, data: Partial<BuyerFormData>): Promise<Buyer> {
+  return buyerService.update(buyerId, data);
 }
 
-export function updateBuyer(buyerId: string, data: Partial<BuyerFormData>): boolean {
-  return updateEntity(mockBuyers, buyerId, data);
-}
-
-export function deleteBuyer(buyerId: string): boolean {
-  return deleteEntity(mockBuyers, buyerId);
+/**
+ * Delete a buyer via API
+ */
+export async function deleteBuyer(buyerId: string): Promise<void> {
+  return buyerService.remove(buyerId);
 }

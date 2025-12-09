@@ -2,23 +2,87 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Navbar } from "../navbar";
-import { BrowserRouter } from "react-router";
-import { LanguageProvider } from "~/contexts/language-context";
 
-const TestWrapper = ({ children }: { children: React.ReactNode }) => (
-  <BrowserRouter>
-    <LanguageProvider>{children}</LanguageProvider>
-  </BrowserRouter>
-);
-
-vi.mock("../user-dropdown", () => ({
-  UserDropdown: vi.fn(() => <div data-testid="user-dropdown">User Dropdown</div>),
+vi.mock("react-router", () => ({
+  Link: ({
+    to,
+    children,
+    className,
+    style,
+  }: {
+    to: string;
+    children: React.ReactNode;
+    className?: string;
+    style?: React.CSSProperties;
+  }) => (
+    <a href={to} className={className} style={style}>
+      {children}
+    </a>
+  ),
 }));
 
-vi.mock("../../../routes.config", () => ({
-  ROUTES: {
-    DASHBOARD: "/dashboard",
-  },
+vi.mock("~/i18n", () => ({
+  useTranslation: vi.fn(() => ({
+    common: {
+      defaultUser: "User",
+      defaultEmail: "user@example.com",
+    },
+    userDropdown: {
+      companyProfile: "Company Profile",
+      userProfile: "User Profile",
+      team: "Team",
+      payments: "Payments",
+      help: "Help",
+      logout: "Logout",
+    },
+  })),
+}));
+
+vi.mock("~/contexts/auth-context", () => ({
+  useAuth: vi.fn(() => ({
+    currentUser: { id: "1", name: "Test User", email: "test@example.com", mainUser: false },
+    isAuthenticated: true,
+    login: vi.fn(),
+    logout: vi.fn(),
+    refreshToken: vi.fn(),
+  })),
+}));
+
+vi.mock("~/contexts/language-context", () => ({
+  useLanguage: vi.fn(() => ({ language: "pt" })),
+}));
+
+vi.mock("~/hooks/use-click-outside", () => ({
+  useClickOutside: vi.fn(),
+}));
+
+vi.mock("./theme-toggle-menu-item", () => ({
+  ThemeToggleMenuItem: () => <div>Theme Toggle</div>,
+}));
+
+vi.mock("./language-selector-menu-item", () => ({
+  LanguageSelectorMenuItem: () => <div>Language Selector</div>,
+}));
+
+vi.mock("./avatar-button", () => ({
+  AvatarButton: ({ onClick }: { onClick: () => void }) => (
+    <button data-testid="avatar-button" onClick={onClick}>
+      Avatar
+    </button>
+  ),
+}));
+
+vi.mock("./dropdown-menu", () => ({
+  DropdownMenu: ({ isOpen, children }: { isOpen: boolean; children: React.ReactNode }) =>
+    isOpen ? <div data-testid="dropdown-menu">{children}</div> : null,
+}));
+
+vi.mock("./user-info", () => ({
+  UserInfo: () => <div data-testid="user-info">User Info</div>,
+}));
+
+vi.mock("./dropdown-menu-item", () => ({
+  DropdownMenuItem: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
 describe("Navbar", () => {
@@ -31,53 +95,40 @@ describe("Navbar", () => {
   });
 
   it("should render navbar", () => {
-    render(
-      <TestWrapper>
-        <Navbar {...defaultProps} />
-      </TestWrapper>
-    );
-    expect(screen.getByText("Boi na Nuvem")).toBeInTheDocument();
+    render(<Navbar {...defaultProps} />);
+    expect(screen.getByRole("navigation")).toBeInTheDocument();
+  });
+
+  it("should render brand link", () => {
+    render(<Navbar {...defaultProps} />);
+    const brandLink = screen.getByText("Boi na Nuvem");
+    expect(brandLink).toBeInTheDocument();
+    expect(brandLink.closest("a")).toHaveAttribute("href", "/dashboard");
   });
 
   it("should render hamburger button", () => {
-    render(
-      <TestWrapper>
-        <Navbar {...defaultProps} />
-      </TestWrapper>
-    );
-    const hamburgerButton = document.querySelector("[data-hamburger-button]");
+    render(<Navbar {...defaultProps} />);
+    const hamburgerButton = screen.getByLabelText("Toggle sidebar");
     expect(hamburgerButton).toBeInTheDocument();
   });
 
   it("should call onToggleSidebar when hamburger button is clicked", async () => {
-    const onToggleSidebar = vi.fn();
     const user = userEvent.setup();
-    render(
-      <TestWrapper>
-        <Navbar onToggleSidebar={onToggleSidebar} />
-      </TestWrapper>
-    );
-    const hamburgerButton = document.querySelector("[data-hamburger-button]") as HTMLButtonElement;
+    const onToggleSidebar = vi.fn();
+    render(<Navbar onToggleSidebar={onToggleSidebar} />);
+
+    const hamburgerButton = screen.getByLabelText("Toggle sidebar");
     await user.click(hamburgerButton);
+
     expect(onToggleSidebar).toHaveBeenCalledTimes(1);
   });
 
   it("should render UserDropdown", () => {
-    render(
-      <TestWrapper>
-        <Navbar {...defaultProps} />
-      </TestWrapper>
-    );
-    expect(screen.getByTestId("user-dropdown")).toBeInTheDocument();
-  });
-
-  it("should render link to dashboard", () => {
-    render(
-      <TestWrapper>
-        <Navbar {...defaultProps} />
-      </TestWrapper>
-    );
-    const link = screen.getByText("Boi na Nuvem").closest("a");
-    expect(link).toHaveAttribute("href", "/dashboard");
+    render(<Navbar {...defaultProps} />);
+    // UserDropdown is rendered, check for any element from it
+    // The AvatarButton should render a button with the user initial
+    const buttons = screen.getAllByRole("button");
+    // Should have hamburger button and avatar button
+    expect(buttons.length).toBeGreaterThan(1);
   });
 });

@@ -9,7 +9,7 @@ import {
   validateAddressFields,
 } from "../form-validation";
 
-// Mock the mask functions
+// Mock the unmask functions
 vi.mock("~/components/site/utils/masks", () => ({
   unmaskCPF: (value: string) => value.replaceAll(/\D/g, ""),
   unmaskCNPJ: (value: string) => value.replaceAll(/\D/g, ""),
@@ -17,236 +17,248 @@ vi.mock("~/components/site/utils/masks", () => ({
   unmaskCEP: (value: string) => value.replaceAll(/\D/g, ""),
 }));
 
-describe("form-validation", () => {
+describe("validateRequired", () => {
+  const getRequiredError = (field: string) => `${field} is required`;
+
+  it("should return null for valid non-empty values", () => {
+    expect(validateRequired("value", "Field", getRequiredError)).toBeNull();
+    expect(validateRequired("  value  ", "Field", getRequiredError)).toBeNull();
+    expect(validateRequired("0", "Field", getRequiredError)).toBeNull();
+  });
+
+  it("should return error for empty strings", () => {
+    expect(validateRequired("", "Field", getRequiredError)).toBe("Field is required");
+  });
+
+  it("should return error for whitespace-only strings", () => {
+    expect(validateRequired("   ", "Field", getRequiredError)).toBe("Field is required");
+    expect(validateRequired("\t", "Field", getRequiredError)).toBe("Field is required");
+    expect(validateRequired("\n", "Field", getRequiredError)).toBe("Field is required");
+  });
+
+  it("should return error for null", () => {
+    expect(validateRequired(null, "Field", getRequiredError)).toBe("Field is required");
+  });
+
+  it("should return error for undefined", () => {
+    expect(validateRequired(undefined, "Field", getRequiredError)).toBe("Field is required");
+  });
+});
+
+describe("validateEmail", () => {
   const getRequiredError = (field: string) => `${field} is required`;
   const getInvalidError = (field: string) => `${field} is invalid`;
 
-  describe("validateRequired", () => {
-    it("should return null for valid value", () => {
-      expect(validateRequired("test", "Name", getRequiredError)).toBeNull();
-      expect(validateRequired("  test  ", "Name", getRequiredError)).toBeNull();
-    });
-
-    it("should return error for empty value", () => {
-      expect(validateRequired("", "Name", getRequiredError)).toBe("Name is required");
-      expect(validateRequired("   ", "Name", getRequiredError)).toBe("Name is required");
-      expect(validateRequired(null, "Name", getRequiredError)).toBe("Name is required");
-      expect(validateRequired(undefined, "Name", getRequiredError)).toBe("Name is required");
-    });
+  it("should return null for valid emails", () => {
+    expect(
+      validateEmail("user@example.com", "Email", getRequiredError, getInvalidError)
+    ).toBeNull();
+    expect(validateEmail("test@domain.org", "Email", getRequiredError, getInvalidError)).toBeNull();
   });
 
-  describe("validateEmail", () => {
-    it("should return null for valid email", () => {
-      expect(
-        validateEmail("test@example.com", "Email", getRequiredError, getInvalidError)
-      ).toBeNull();
-      expect(
-        validateEmail("user.name@domain.co.uk", "Email", getRequiredError, getInvalidError)
-      ).toBeNull();
-    });
-
-    it("should return required error for empty email", () => {
-      expect(validateEmail("", "Email", getRequiredError, getInvalidError)).toBe(
-        "Email is required"
-      );
-      expect(validateEmail("   ", "Email", getRequiredError, getInvalidError)).toBe(
-        "Email is required"
-      );
-    });
-
-    it("should return invalid error for invalid email", () => {
-      expect(validateEmail("invalid", "Email", getRequiredError, getInvalidError)).toBe(
-        "Email is invalid"
-      );
-      expect(validateEmail("invalid@", "Email", getRequiredError, getInvalidError)).toBe(
-        "Email is invalid"
-      );
-      expect(validateEmail("@example.com", "Email", getRequiredError, getInvalidError)).toBe(
-        "Email is invalid"
-      );
-    });
+  it("should return required error for empty values", () => {
+    expect(validateEmail("", "Email", getRequiredError, getInvalidError)).toBe("Email is required");
+    expect(validateEmail("   ", "Email", getRequiredError, getInvalidError)).toBe(
+      "Email is required"
+    );
+    expect(validateEmail(null, "Email", getRequiredError, getInvalidError)).toBe(
+      "Email is required"
+    );
   });
 
-  describe("validateCPF", () => {
-    it("should return null for valid CPF", () => {
-      expect(validateCPF("123.456.789-00", "CPF", getRequiredError, getInvalidError)).toBeNull();
-      expect(validateCPF("12345678900", "CPF", getRequiredError, getInvalidError)).toBeNull();
-    });
+  it("should return invalid error for invalid emails", () => {
+    expect(validateEmail("invalid", "Email", getRequiredError, getInvalidError)).toBe(
+      "Email is invalid"
+    );
+    expect(validateEmail("user@", "Email", getRequiredError, getInvalidError)).toBe(
+      "Email is invalid"
+    );
+    expect(validateEmail("@example.com", "Email", getRequiredError, getInvalidError)).toBe(
+      "Email is invalid"
+    );
+  });
+});
 
-    it("should return required error for empty CPF", () => {
-      expect(validateCPF("", "CPF", getRequiredError, getInvalidError)).toBe("CPF is required");
-      expect(validateCPF("   ", "CPF", getRequiredError, getInvalidError)).toBe("CPF is required");
-    });
+describe("validateCPF", () => {
+  const getRequiredError = (field: string) => `${field} is required`;
+  const getInvalidError = (field: string) => `${field} is invalid`;
 
-    it("should return invalid error for CPF with wrong length", () => {
-      expect(validateCPF("123456789", "CPF", getRequiredError, getInvalidError)).toBe(
-        "CPF is invalid"
-      );
-      expect(validateCPF("123456789012", "CPF", getRequiredError, getInvalidError)).toBe(
-        "CPF is invalid"
-      );
-    });
+  it("should return null for valid CPF (11 digits)", () => {
+    expect(validateCPF("12345678901", "CPF", getRequiredError, getInvalidError)).toBeNull();
+    expect(validateCPF("123.456.789-01", "CPF", getRequiredError, getInvalidError)).toBeNull(); // Masked
   });
 
-  describe("validateCNPJ", () => {
-    it("should return null for valid CNPJ", () => {
-      expect(
-        validateCNPJ("12.345.678/0001-90", "CNPJ", getRequiredError, getInvalidError)
-      ).toBeNull();
-      expect(validateCNPJ("12345678000190", "CNPJ", getRequiredError, getInvalidError)).toBeNull();
-    });
-
-    it("should return null for empty CNPJ when getRequiredError returns undefined", () => {
-      const getRequiredErrorOptional = () => undefined;
-      expect(validateCNPJ("", "CNPJ", getRequiredErrorOptional, getInvalidError)).toBeNull();
-    });
-
-    it("should return required error for empty CNPJ when getRequiredError returns string", () => {
-      expect(validateCNPJ("", "CNPJ", getRequiredError, getInvalidError)).toBe("CNPJ is required");
-    });
-
-    it("should return invalid error for CNPJ with wrong length", () => {
-      expect(validateCNPJ("123456789", "CNPJ", getRequiredError, getInvalidError)).toBe(
-        "CNPJ is invalid"
-      );
-      expect(validateCNPJ("123456780001901", "CNPJ", getRequiredError, getInvalidError)).toBe(
-        "CNPJ is invalid"
-      );
-    });
+  it("should return required error for empty values", () => {
+    expect(validateCPF("", "CPF", getRequiredError, getInvalidError)).toBe("CPF is required");
+    expect(validateCPF("   ", "CPF", getRequiredError, getInvalidError)).toBe("CPF is required");
   });
 
-  describe("validatePhone", () => {
-    it("should return null for valid phone (10 digits)", () => {
-      expect(
-        validatePhone("(11) 1234-5678", "Phone", getRequiredError, getInvalidError)
-      ).toBeNull();
-      expect(validatePhone("1112345678", "Phone", getRequiredError, getInvalidError)).toBeNull();
-    });
+  it("should return invalid error for invalid CPF lengths", () => {
+    expect(validateCPF("1234567890", "CPF", getRequiredError, getInvalidError)).toBe(
+      "CPF is invalid"
+    ); // 10 digits
+    expect(validateCPF("123456789012", "CPF", getRequiredError, getInvalidError)).toBe(
+      "CPF is invalid"
+    ); // 12 digits
+    expect(validateCPF("123", "CPF", getRequiredError, getInvalidError)).toBe("CPF is invalid"); // Too short
+  });
+});
 
-    it("should return null for valid phone (11 digits)", () => {
-      expect(
-        validatePhone("(11) 91234-5678", "Phone", getRequiredError, getInvalidError)
-      ).toBeNull();
-      expect(validatePhone("11912345678", "Phone", getRequiredError, getInvalidError)).toBeNull();
-    });
+describe("validateCNPJ", () => {
+  const getRequiredError = (field: string) => `${field} is required`;
+  const getInvalidError = (field: string) => `${field} is invalid`;
 
-    it("should return required error for empty phone", () => {
-      expect(validatePhone("", "Phone", getRequiredError, getInvalidError)).toBe(
-        "Phone is required"
-      );
-    });
-
-    it("should return invalid error for phone with wrong length", () => {
-      expect(validatePhone("123", "Phone", getRequiredError, getInvalidError)).toBe(
-        "Phone is invalid"
-      );
-      expect(validatePhone("123456789012", "Phone", getRequiredError, getInvalidError)).toBe(
-        "Phone is invalid"
-      );
-    });
+  it("should return null for valid CNPJ (14 digits)", () => {
+    expect(validateCNPJ("12345678000190", "CNPJ", getRequiredError, getInvalidError)).toBeNull();
+    expect(
+      validateCNPJ("12.345.678/0001-90", "CNPJ", getRequiredError, getInvalidError)
+    ).toBeNull(); // Masked
   });
 
-  describe("validateCEP", () => {
-    it("should return null for valid CEP", () => {
-      expect(validateCEP("12345-678", "CEP", getRequiredError, getInvalidError)).toBeNull();
-      expect(validateCEP("12345678", "CEP", getRequiredError, getInvalidError)).toBeNull();
-    });
-
-    it("should return required error for empty CEP", () => {
-      expect(validateCEP("", "CEP", getRequiredError, getInvalidError)).toBe("CEP is required");
-    });
-
-    it("should return invalid error for CEP with wrong length", () => {
-      expect(validateCEP("12345", "CEP", getRequiredError, getInvalidError)).toBe("CEP is invalid");
-      expect(validateCEP("123456789", "CEP", getRequiredError, getInvalidError)).toBe(
-        "CEP is invalid"
-      );
-    });
+  it("should return null for empty when getRequiredError returns undefined", () => {
+    const getOptionalError = () => undefined;
+    expect(validateCNPJ("", "CNPJ", getOptionalError, getInvalidError)).toBeNull();
   });
 
-  describe("validateAddressFields", () => {
-    it("should return empty object for valid address", () => {
-      const data = {
-        street: "Rua Test",
-        neighborhood: "Centro",
-        city: "São Paulo",
-        state: "SP",
-        zipCode: "12345-678",
-      };
-      const fieldLabels = {
-        street: "Street",
-        neighborhood: "Neighborhood",
-        city: "City",
-        state: "State",
-        zipCode: "ZIP Code",
-      };
-      const errors = validateAddressFields(data, fieldLabels, getRequiredError, getInvalidError);
-      expect(errors).toEqual({});
-    });
+  it("should return required error when provided", () => {
+    expect(validateCNPJ("", "CNPJ", getRequiredError, getInvalidError)).toBe("CNPJ is required");
+  });
 
-    it("should return errors for missing required fields", () => {
-      const data = {
-        street: "",
-        neighborhood: "",
-        city: "",
-        state: "",
-        zipCode: "",
-      };
-      const fieldLabels = {
-        street: "Street",
-        neighborhood: "Neighborhood",
-        city: "City",
-        state: "State",
-        zipCode: "ZIP Code",
-      };
-      const errors = validateAddressFields(data, fieldLabels, getRequiredError, getInvalidError);
-      expect(errors.street).toBe("Street is required");
-      expect(errors.neighborhood).toBe("Neighborhood is required");
-      expect(errors.city).toBe("City is required");
-      expect(errors.state).toBe("State is required");
-      expect(errors.zipCode).toBe("ZIP Code is required");
-    });
+  it("should return invalid error for invalid CNPJ lengths", () => {
+    expect(validateCNPJ("1234567800019", "CNPJ", getRequiredError, getInvalidError)).toBe(
+      "CNPJ is invalid"
+    ); // 13 digits
+    expect(validateCNPJ("123456780001901", "CNPJ", getRequiredError, getInvalidError)).toBe(
+      "CNPJ is invalid"
+    ); // 15 digits
+  });
+});
 
-    it("should return error for invalid CEP", () => {
-      const data = {
-        street: "Rua Test",
-        neighborhood: "Centro",
-        city: "São Paulo",
-        state: "SP",
-        zipCode: "12345",
-      };
-      const fieldLabels = {
-        street: "Street",
-        neighborhood: "Neighborhood",
-        city: "City",
-        state: "State",
-        zipCode: "ZIP Code",
-      };
-      const errors = validateAddressFields(data, fieldLabels, getRequiredError, getInvalidError);
-      expect(errors.zipCode).toBe("ZIP Code is invalid");
-    });
+describe("validatePhone", () => {
+  const getRequiredError = (field: string) => `${field} is required`;
+  const getInvalidError = (field: string) => `${field} is invalid`;
 
-    it("should only return errors for invalid fields", () => {
-      const data = {
-        street: "Rua Test",
-        neighborhood: "",
-        city: "São Paulo",
-        state: "SP",
-        zipCode: "12345-678",
-      };
-      const fieldLabels = {
-        street: "Street",
-        neighborhood: "Neighborhood",
-        city: "City",
-        state: "State",
-        zipCode: "ZIP Code",
-      };
-      const errors = validateAddressFields(data, fieldLabels, getRequiredError, getInvalidError);
-      expect(errors.neighborhood).toBe("Neighborhood is required");
-      expect(errors.street).toBeUndefined();
-      expect(errors.city).toBeUndefined();
-      expect(errors.state).toBeUndefined();
-      expect(errors.zipCode).toBeUndefined();
-    });
+  it("should return null for valid phone with 10 digits", () => {
+    expect(validatePhone("1234567890", "Phone", getRequiredError, getInvalidError)).toBeNull();
+    expect(validatePhone("(12) 3456-7890", "Phone", getRequiredError, getInvalidError)).toBeNull(); // Masked
+  });
+
+  it("should return null for valid phone with 11 digits", () => {
+    expect(validatePhone("12345678901", "Phone", getRequiredError, getInvalidError)).toBeNull();
+    expect(validatePhone("(12) 34567-8901", "Phone", getRequiredError, getInvalidError)).toBeNull(); // Masked
+  });
+
+  it("should return required error for empty values", () => {
+    expect(validatePhone("", "Phone", getRequiredError, getInvalidError)).toBe("Phone is required");
+  });
+
+  it("should return invalid error for invalid phone lengths", () => {
+    expect(validatePhone("123456789", "Phone", getRequiredError, getInvalidError)).toBe(
+      "Phone is invalid"
+    ); // 9 digits
+    expect(validatePhone("123456789012", "Phone", getRequiredError, getInvalidError)).toBe(
+      "Phone is invalid"
+    ); // 12 digits
+  });
+});
+
+describe("validateCEP", () => {
+  const getRequiredError = (field: string) => `${field} is required`;
+  const getInvalidError = (field: string) => `${field} is invalid`;
+
+  it("should return null for valid CEP (8 digits)", () => {
+    expect(validateCEP("12345678", "CEP", getRequiredError, getInvalidError)).toBeNull();
+    expect(validateCEP("12.345-678", "CEP", getRequiredError, getInvalidError)).toBeNull(); // Masked
+  });
+
+  it("should return required error for empty values", () => {
+    expect(validateCEP("", "CEP", getRequiredError, getInvalidError)).toBe("CEP is required");
+  });
+
+  it("should return invalid error for invalid CEP lengths", () => {
+    expect(validateCEP("1234567", "CEP", getRequiredError, getInvalidError)).toBe("CEP is invalid"); // 7 digits
+    expect(validateCEP("123456789", "CEP", getRequiredError, getInvalidError)).toBe(
+      "CEP is invalid"
+    ); // 9 digits
+  });
+});
+
+describe("validateAddressFields", () => {
+  const getRequiredError = (field: string) => `${field} is required`;
+  const getInvalidError = (field: string) => `${field} is invalid`;
+
+  const fieldLabels = {
+    street: "Street",
+    neighborhood: "Neighborhood",
+    city: "City",
+    state: "State",
+    zipCode: "Zip Code",
+  };
+
+  it("should return empty object for valid address", () => {
+    const data = {
+      street: "Main Street",
+      neighborhood: "Downtown",
+      city: "São Paulo",
+      state: "SP",
+      zipCode: "12345678",
+    };
+    expect(validateAddressFields(data, fieldLabels, getRequiredError, getInvalidError)).toEqual({});
+  });
+
+  it("should return errors for missing required fields", () => {
+    const data = {
+      street: "",
+      neighborhood: "",
+      city: "",
+      state: "",
+      zipCode: "",
+    };
+    const errors = validateAddressFields(data, fieldLabels, getRequiredError, getInvalidError);
+    expect(errors.street).toBe("Street is required");
+    expect(errors.neighborhood).toBe("Neighborhood is required");
+    expect(errors.city).toBe("City is required");
+    expect(errors.state).toBe("State is required");
+    expect(errors.zipCode).toBe("Zip Code is required");
+  });
+
+  it("should return errors for partial invalid data", () => {
+    const data = {
+      street: "Main Street",
+      neighborhood: "",
+      city: "São Paulo",
+      state: "",
+      zipCode: "123", // Invalid CEP
+    };
+    const errors = validateAddressFields(data, fieldLabels, getRequiredError, getInvalidError);
+    expect(errors.street).toBeUndefined();
+    expect(errors.neighborhood).toBe("Neighborhood is required");
+    expect(errors.city).toBeUndefined();
+    expect(errors.state).toBe("State is required");
+    expect(errors.zipCode).toBe("Zip Code is invalid");
+  });
+
+  it("should handle null values", () => {
+    const data = {
+      street: null,
+      neighborhood: null,
+      city: null,
+      state: null,
+      zipCode: null,
+    };
+    const errors = validateAddressFields(data, fieldLabels, getRequiredError, getInvalidError);
+    expect(Object.keys(errors).length).toBeGreaterThan(0);
+  });
+
+  it("should validate CEP format correctly", () => {
+    const data = {
+      street: "Main Street",
+      neighborhood: "Downtown",
+      city: "São Paulo",
+      state: "SP",
+      zipCode: "12345-678", // Valid masked CEP
+    };
+    const errors = validateAddressFields(data, fieldLabels, getRequiredError, getInvalidError);
+    expect(errors.zipCode).toBeUndefined();
   });
 });

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { format } from "date-fns";
 import { Table, Tooltip, type TableColumn } from "~/components/ui";
@@ -9,7 +9,8 @@ import { mockCompanies } from "~/mocks/companies";
 import { getPregnantAnimals, getMostRecentConfirmedBreeding } from "~/services/breedings.service";
 import { getAnimalById } from "~/services/animals.service";
 import { getBirthByAnimalId } from "~/services/births.service";
-import { getPropertyById, getPropertiesByCompanyId } from "~/services/properties.service";
+import { getProperties } from "~/services/properties.service";
+import type { Property, Animal } from "~/types";
 import { useListPage } from "~/hooks/use-list-page";
 import { PropertyFilterDropdown } from "~/components/dashboard/breedings/property-filter-dropdown";
 import { AnimalCodeDisplay } from "~/components/dashboard/breedings/animal-code-display";
@@ -20,7 +21,6 @@ import {
   calculateDaysPregnant,
 } from "~/utils/breeding";
 import { getDateLocale } from "~/utils/date";
-import type { Animal } from "~/types";
 import { getAnimalViewRoute } from "~/routes.config";
 
 export function meta() {
@@ -47,18 +47,31 @@ export default function PregnantCows() {
   const companyId = company?.id || "";
 
   const dateLocale = useMemo(() => getDateLocale(language), [language]);
+  const [properties, setProperties] = useState<Property[]>([]);
 
   const pregnantAnimalIds = useMemo(() => getPregnantAnimals(companyId), [companyId]);
-  const properties = useMemo(
-    () => (company ? getPropertiesByCompanyId(company.id) : []),
-    [company]
-  );
+
+  useEffect(() => {
+    const fetchProperties = async () => {
+      if (company) {
+        try {
+          const propertiesData = await getProperties();
+          setProperties(propertiesData.filter((prop) => prop.companyId === company.id));
+        } catch (error) {
+          console.error("Failed to load properties:", error);
+        }
+      }
+    };
+    fetchProperties();
+  }, [company]);
 
   const pregnantAnimals = useMemo(() => {
     return pregnantAnimalIds
       .map((id) => getAnimalById(id))
       .filter((animal): animal is Animal => animal !== undefined);
   }, [pregnantAnimalIds]);
+
+  const propertiesMap = useMemo(() => new Map(properties.map((p) => [p.id, p])), [properties]);
 
   const animalsWithBreedingInfo = useMemo(() => {
     return pregnantAnimals.map((animal) => {
@@ -69,7 +82,7 @@ export default function PregnantCows() {
       const daysPregnant = mostRecentBreeding ? calculateDaysPregnant(mostRecentBreeding.date) : 0;
 
       const birth = getBirthByAnimalId(animal.id);
-      const property = getPropertyById(animal.propertyId);
+      const property = propertiesMap.get(animal.propertyId);
       const breedName = (() => {
         if (!birth?.breed) return "";
         return t.animals.breeds[birth.breed] || birth.breed;
@@ -85,7 +98,7 @@ export default function PregnantCows() {
         propertyName: property?.name || "",
       };
     });
-  }, [pregnantAnimals, t]);
+  }, [pregnantAnimals, t, propertiesMap]);
 
   const searchFields: Array<
     | keyof (typeof animalsWithBreedingInfo)[0]
@@ -151,7 +164,7 @@ export default function PregnantCows() {
       label: t.animals.table.properties,
       sortable: false,
       render: (_, row) => {
-        const property = getPropertyById(row.propertyId);
+        const property = propertiesMap.get(row.propertyId);
         return <span className="text-gray-700 dark:text-gray-300">{property?.name || "-"}</span>;
       },
     },

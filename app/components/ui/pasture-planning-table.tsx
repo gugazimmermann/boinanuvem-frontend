@@ -94,8 +94,13 @@ export function PasturePlanningTable({
                   step="0.01"
                   value={Number.isNaN(month.min) ? "" : month.min.toString()}
                   onChange={(e) => {
-                    const val = e.target.value === "" ? 0 : Number.parseFloat(e.target.value);
-                    handleChange(index, "min", Number.isNaN(val) ? 0 : val);
+                    const inputValue = e.target.value;
+                    if (inputValue === "" || inputValue === "-") {
+                      handleChange(index, "min", 0);
+                    } else {
+                      const val = Number.parseFloat(inputValue);
+                      handleChange(index, "min", Number.isNaN(val) ? 0 : val);
+                    }
                   }}
                   error={errors[`pasturePlanning.${index}.min`]}
                   disabled={disabled}
@@ -109,8 +114,13 @@ export function PasturePlanningTable({
                   step="0.01"
                   value={Number.isNaN(month.max) ? "" : month.max.toString()}
                   onChange={(e) => {
-                    const val = e.target.value === "" ? 0 : Number.parseFloat(e.target.value);
-                    handleChange(index, "max", Number.isNaN(val) ? 0 : val);
+                    const inputValue = e.target.value;
+                    if (inputValue === "" || inputValue === "-") {
+                      handleChange(index, "max", 0);
+                    } else {
+                      const val = Number.parseFloat(inputValue);
+                      handleChange(index, "max", Number.isNaN(val) ? 0 : val);
+                    }
                   }}
                   error={errors[`pasturePlanning.${index}.max`]}
                   disabled={disabled}
@@ -125,8 +135,13 @@ export function PasturePlanningTable({
                   min="0"
                   value={Number.isNaN(month.precipitation) ? "" : month.precipitation.toString()}
                   onChange={(e) => {
-                    const val = e.target.value === "" ? 0 : Number.parseFloat(e.target.value);
-                    handleChange(index, "precipitation", Number.isNaN(val) ? 0 : val);
+                    const inputValue = e.target.value;
+                    if (inputValue === "" || inputValue === "-") {
+                      handleChange(index, "precipitation", 0);
+                    } else {
+                      const val = Number.parseFloat(inputValue);
+                      handleChange(index, "precipitation", Number.isNaN(val) ? 0 : val);
+                    }
                   }}
                   error={errors[`pasturePlanning.${index}.precipitation`]}
                   disabled={disabled}

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import {
   Table,
@@ -16,13 +16,13 @@ import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
 import { mockInventoryItems } from "~/mocks/inventory";
 import { deleteInventoryItem, getCurrentStock } from "~/services/inventory.service";
-import type { InventoryItem } from "~/types";
+import type { InventoryItem, Supplier, Property } from "~/types";
 import { InventoryItemCategory } from "~/types";
-import { getSupplierById } from "~/services/suppliers.service";
+import { getSuppliers } from "~/services/suppliers.service";
 import { ROUTES, getInventoryEditRoute, getInventoryViewRoute } from "~/routes.config";
 import { usePermissions } from "~/utils/permissions";
 import { mockCompanies } from "~/mocks/companies";
-import { getPropertiesByCompanyId } from "~/services/properties.service";
+import { getProperties } from "~/services/properties.service";
 import { useInventoryStock } from "~/hooks/use-inventory-stock";
 import { useInventoryFilters } from "~/hooks/use-inventory-filters";
 import { getUnitLabel, isExpiringSoon, formatInventoryDate } from "~/utils/inventory-utils";
@@ -51,21 +51,47 @@ export default function Inventory() {
   const company = mockCompanies[0];
   const companyId = company?.id || "";
   const [items, setItems] = useState<InventoryItem[]>([...mockInventoryItems]);
+  const [suppliers, setSuppliers] = useState<Map<string, Supplier>>(new Map());
   const [currentPage, setCurrentPage] = useState(1);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const { alertMessage, showAlert } = useAlert();
   const itemsPerPage = 10;
 
+  useEffect(() => {
+    const loadSuppliers = async () => {
+      try {
+        const suppliersData = await getSuppliers();
+        setSuppliers(new Map(suppliersData.map((s) => [s.id, s])));
+      } catch (error) {
+        console.error("Failed to load suppliers:", error);
+      }
+    };
+    loadSuppliers();
+  }, []);
+
+  const getSupplierName = (id: string) => suppliers.get(id)?.name;
+
   const { lowStockItems, expiringItems } = useInventoryStock({
     items,
     companyId,
   });
 
-  const properties = useMemo(
-    () => (company ? getPropertiesByCompanyId(company.id) : []),
-    [company]
-  );
+  const [properties, setProperties] = useState<Property[]>([]);
+
+  useEffect(() => {
+    const fetchProperties = async () => {
+      if (company) {
+        try {
+          const propertiesData = await getProperties();
+          setProperties(propertiesData.filter((prop) => prop.companyId === company.id));
+        } catch (error) {
+          console.error("Failed to load properties:", error);
+        }
+      }
+    };
+    fetchProperties();
+  }, [company]);
 
   const {
     searchValue,
@@ -175,8 +201,8 @@ export default function Inventory() {
       sortable: false,
       render: (_, row) => {
         if (!row.supplierId) return <span className="text-gray-400 dark:text-gray-500">-</span>;
-        const supplier = getSupplierById(row.supplierId);
-        return <span className="text-gray-700 dark:text-gray-300">{supplier?.name || "-"}</span>;
+        const supplierName = getSupplierName(row.supplierId);
+        return <span className="text-gray-700 dark:text-gray-300">{supplierName || "-"}</span>;
       },
     },
     {

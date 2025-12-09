@@ -1,7 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { startOfMonth, endOfMonth, parseISO } from "date-fns";
-import { mockProperties } from "~/mocks/properties";
-import { mockLocations } from "~/mocks/locations";
+import { getProperties } from "~/services/properties.service";
+import { getLocations } from "~/services/locations.service";
+import type { Property, Location, Employee, Supplier, Buyer } from "~/types";
+import { AccountsPayableStatus, AccountsReceivableStatus } from "~/types";
 import { getAnimalsByCompanyId, getAnimalsByPropertyId } from "~/services/animals.service";
 import { getWeighingsByCompanyId } from "~/services/weighings.service";
 import { getExpectedBirthsForecast } from "~/services/reproductive-indexes.service";
@@ -10,12 +12,11 @@ import { getAccountsPayableByCompanyId } from "~/services/accounts-payable.servi
 import { getAccountsReceivableByCompanyId } from "~/services/accounts-receivable.service";
 import { getBirthsByCompanyId, getBirthsByPropertyId } from "~/services/births.service";
 import { getBreedingsByCompanyId, getBreedingsByPropertyId } from "~/services/breedings.service";
-import { getEmployeesByCompanyId } from "~/services/employees.service";
-import { getSuppliersByCompanyId } from "~/services/suppliers.service";
-import { getBuyersByCompanyId } from "~/services/buyers.service";
+import { getEmployees } from "~/services/employees.service";
+import { getSuppliers } from "~/services/suppliers.service";
+import { getBuyers } from "~/services/buyers.service";
 import { getSalesByCompanyId } from "~/services/sales.service";
 import { getSalesMetrics } from "~/services/sales-analytics.service";
-import { AccountsPayableStatus, AccountsReceivableStatus } from "~/types";
 import { convertToHectares } from "~/utils/area";
 import { ANIMAL_UNIT_WEIGHT_KG } from "~/utils/constants";
 
@@ -26,6 +27,36 @@ export interface DashboardFilters {
 }
 
 export function useDashboardData(companyId: string, filters?: DashboardFilters) {
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [buyers, setBuyers] = useState<Buyer[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [propertiesData, locationsData, employeesData, suppliersData, buyersData] =
+          await Promise.all([
+            getProperties(),
+            getLocations(),
+            getEmployees(),
+            getSuppliers(),
+            getBuyers(),
+          ]);
+        // Filter by companyId
+        setProperties(propertiesData.filter((prop) => prop.companyId === companyId));
+        setLocations(locationsData.filter((loc) => loc.companyId === companyId));
+        setEmployees(employeesData.filter((emp) => emp.companyId === companyId));
+        setSuppliers(suppliersData.filter((sup) => sup.companyId === companyId));
+        setBuyers(buyersData.filter((buy) => buy.companyId === companyId));
+      } catch (error) {
+        console.error("Failed to load dashboard data:", error);
+      }
+    };
+    fetchData();
+  }, [companyId]);
+
   const allAnimals = useMemo(() => {
     if (filters?.propertyId) {
       return getAnimalsByPropertyId(filters.propertyId);
@@ -39,8 +70,8 @@ export function useDashboardData(companyId: string, filters?: DashboardFilters) 
   );
 
   const totalAnimals = animals.length;
-  const totalProperties = mockProperties.length;
-  const totalLocations = mockLocations.length;
+  const totalProperties = properties.length;
+  const totalLocations = locations.length;
 
   const totalWeight = useMemo(() => {
     const allWeighingsData = getWeighingsByCompanyId(companyId);
@@ -79,13 +110,13 @@ export function useDashboardData(companyId: string, filters?: DashboardFilters) 
 
   const totalAreaInHectares = useMemo(() => {
     if (filters?.propertyId) {
-      const property = mockProperties.find((p) => p.id === filters.propertyId);
+      const property = properties.find((p) => p.id === filters.propertyId);
       return property ? convertToHectares(property.area.value, property.area.type) : 0;
     }
-    return mockProperties.reduce((sum, property) => {
+    return properties.reduce((sum, property) => {
       return sum + convertToHectares(property.area.value, property.area.type);
     }, 0);
-  }, [filters]);
+  }, [filters, properties]);
 
   const stockingRate = useMemo(
     () => (totalAreaInHectares > 0 && animalUnits > 0 ? animalUnits / totalAreaInHectares : 0),
@@ -182,9 +213,7 @@ export function useDashboardData(companyId: string, filters?: DashboardFilters) 
     }, 0);
   }, [accountsReceivableData]);
 
-  const employees = useMemo(() => getEmployeesByCompanyId(companyId), [companyId]);
-  const suppliers = useMemo(() => getSuppliersByCompanyId(companyId), [companyId]);
-  const buyers = useMemo(() => getBuyersByCompanyId(companyId), [companyId]);
+  // employees, suppliers, and buyers are now loaded via useEffect above
 
   const births = useMemo(() => {
     const allBirths = filters?.propertyId
@@ -264,13 +293,26 @@ export function useDashboardData(companyId: string, filters?: DashboardFilters) 
     return filtered;
   }, [companyId, filters]);
 
-  const salesMetrics = useMemo(() => {
-    return getSalesMetrics(companyId, {
-      startDate: filters?.startDate,
-      endDate: filters?.endDate,
-      propertyId: filters?.propertyId,
-    });
-  }, [companyId, filters]);
+  const [salesMetrics, setSalesMetrics] = useState<Awaited<
+    ReturnType<typeof getSalesMetrics>
+  > | null>(null);
+
+  useEffect(() => {
+    const loadSalesMetrics = async () => {
+      try {
+        const metrics = await getSalesMetrics(companyId, {
+          startDate: filters?.startDate,
+          endDate: filters?.endDate,
+          propertyId: filters?.propertyId,
+        });
+        setSalesMetrics(metrics);
+      } catch (error) {
+        console.error("Failed to load sales metrics:", error);
+        setSalesMetrics(null);
+      }
+    };
+    loadSalesMetrics();
+  }, [companyId, filters?.startDate, filters?.endDate, filters?.propertyId]);
 
   const salesThisMonth = useMemo(() => {
     return sales.filter((sale) => {

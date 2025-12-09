@@ -15,6 +15,7 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
           <div className="flex items-center gap-3">
             <button
               data-hamburger-button
+              data-testid="toggle-sidebar"
               onClick={onToggleSidebar}
               className="sm:hidden p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
               aria-label="Toggle sidebar"

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
 import { formatDate } from "~/utils/formatting";
 import {
@@ -23,12 +23,13 @@ import {
 } from "~/routes.config";
 import { getBankAccountById } from "~/services/bank-account.service";
 import { getCashFlowByBankAccountId, deleteCashFlow } from "~/services/cash-flow.service";
-import { getPropertyById } from "~/services/properties.service";
+import { getProperties } from "~/services/properties.service";
+import { getSuppliers } from "~/services/suppliers.service";
+import { getBuyers } from "~/services/buyers.service";
 import { renderEntityName } from "~/utils/entity-name-renderer";
-import { mockSuppliers } from "~/mocks/suppliers";
-import { mockBuyers } from "~/mocks/buyers";
+import type { Supplier, Buyer, Property, CashFlow } from "~/types";
 import { sortItems } from "~/utils/table-helpers";
-import type { CashFlow } from "~/types";
+import { DetailPageEmptyState } from "~/utils/detail-page-helpers";
 
 export function meta() {
   return [
@@ -59,6 +60,9 @@ export default function BankAccountDetails() {
     return [];
   }, [bankAccountId]);
   const [allTransactions, setAllTransactions] = useState<CashFlow[]>(initialTransactions);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [buyers, setBuyers] = useState<Buyer[]>([]);
+  const [properties, setProperties] = useState<Map<string, Property>>(new Map());
   const [searchValue, setSearchValue] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [selectedSupplier, setSelectedSupplier] = useState<string>("all");
@@ -73,6 +77,26 @@ export default function BankAccountDetails() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<CashFlow | null>(null);
   const itemsPerPage = 10;
+
+  useEffect(() => {
+    const loadEntities = async () => {
+      try {
+        const [propertiesData, suppliersData, buyersData] = await Promise.all([
+          getProperties(),
+          getSuppliers(),
+          getBuyers(),
+        ]);
+        setProperties(new Map(propertiesData.map((p) => [p.id, p])));
+        setSuppliers(suppliersData);
+        setBuyers(buyersData);
+      } catch (error) {
+        console.error("Failed to load entities:", error);
+      }
+    };
+    loadEntities();
+  }, []);
+
+  const getPropertyName = (id: string) => properties.get(id)?.name;
 
   const handleDeleteClick = (transaction: CashFlow) => {
     setSelectedTransaction(transaction);
@@ -91,14 +115,11 @@ export default function BankAccountDetails() {
 
   if (!bankAccount) {
     return (
-      <div className="space-y-8">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-          <p className="text-gray-600 dark:text-gray-400 mb-4">{t.bankAccounts.emptyState.title}</p>
-          <Button variant="outline" onClick={() => navigate(ROUTES.BANK_ACCOUNTS)}>
-            {t.common.back}
-          </Button>
-        </div>
-      </div>
+      <DetailPageEmptyState
+        message={t.bankAccounts.emptyState.title}
+        backLabel={t.common.back}
+        onBack={() => navigate(ROUTES.BANK_ACCOUNTS)}
+      />
     );
   }
 
@@ -287,8 +308,8 @@ export default function BankAccountDetails() {
       label: t.cashFlow.table.property,
       sortable: true,
       render: (_, row) => {
-        const property = getPropertyById(row.propertyId);
-        return <span className="text-gray-700 dark:text-gray-300">{property?.name || "-"}</span>;
+        const propertyName = getPropertyName(row.propertyId);
+        return <span className="text-gray-700 dark:text-gray-300">{propertyName || "-"}</span>;
       },
     },
     {
@@ -480,7 +501,7 @@ export default function BankAccountDetails() {
                         value: "all",
                         label: t.cashFlow.filters.allSuppliers,
                       },
-                      ...mockSuppliers.map((supplier) => ({
+                      ...suppliers.map((supplier) => ({
                         value: supplier.id,
                         label: supplier.name,
                       })),
@@ -502,7 +523,7 @@ export default function BankAccountDetails() {
                         value: "all",
                         label: t.cashFlow.filters.allBuyers,
                       },
-                      ...mockBuyers.map((buyer) => ({
+                      ...buyers.map((buyer) => ({
                         value: buyer.id,
                         label: buyer.name,
                       })),

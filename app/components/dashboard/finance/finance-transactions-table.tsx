@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router";
 import { formatDate, formatCurrency } from "~/utils/formatting";
 import { useLanguage } from "~/contexts/language-context";
+import { useTranslation } from "~/i18n";
 import {
   Table,
   StatusBadge,
@@ -10,7 +11,6 @@ import {
   type TableFilter,
   type SortDirection,
 } from "~/components/ui";
-import { getPropertyById } from "~/services/properties.service";
 import { renderEntityName } from "~/utils/entity-name-renderer";
 import type { UnifiedTransaction } from "~/hooks/use-finance-transactions";
 import type { CashFlow, AccountsPayable, AccountsReceivable } from "~/types";
@@ -97,6 +97,7 @@ interface FinanceTransactionsTableProps {
   readonly getViewRoute: (transaction: UnifiedTransaction) => string;
   readonly canEdit?: (transaction: UnifiedTransaction) => boolean;
   readonly canDelete?: (transaction: UnifiedTransaction) => boolean;
+  readonly getPropertyName?: (propertyId: string) => string | undefined;
 }
 
 export interface GetFinanceTransactionsTablePropsParams {
@@ -244,9 +245,11 @@ export function FinanceTransactionsTable({
   getViewRoute,
   canEdit,
   canDelete,
+  getPropertyName,
 }: FinanceTransactionsTableProps) {
   const navigate = useNavigate();
   const { language } = useLanguage();
+  const t = useTranslation();
 
   const financeFilters: TableFilter[] = [
     createTableFilter(
@@ -315,8 +318,9 @@ export function FinanceTransactionsTable({
       label: translationKeys.table.property,
       sortable: true,
       render: (_, row) => {
-        const property = row.propertyId ? getPropertyById(row.propertyId) : null;
-        return <span className="text-gray-700 dark:text-gray-300">{property?.name || "-"}</span>;
+        const propertyName =
+          row.propertyId && getPropertyName ? getPropertyName(row.propertyId) : undefined;
+        return <span className="text-gray-700 dark:text-gray-300">{propertyName || "-"}</span>;
       },
     },
     {
@@ -476,17 +480,17 @@ export function FinanceTransactionsTable({
         }}
         onRowClick={(row) => navigate(getViewRoute(row))}
         emptyState={{
-          title: translationKeys.emptyState.title,
+          title: translationKeys.emptyState?.title || "",
           description: searchValue
-            ? translationKeys.emptyState.descriptionWithSearch(searchValue)
-            : translationKeys.emptyState.descriptionWithoutSearch,
+            ? translationKeys.emptyState?.descriptionWithSearch?.(searchValue) || ""
+            : translationKeys.emptyState?.descriptionWithoutSearch || "",
           onClearSearch: () => {
             onSearchChange("");
             onFilterChange("all");
             onYearChange("all");
             onMonthChange("all");
           },
-          clearSearchLabel: "Limpar busca",
+          clearSearchLabel: t.common.clearSearch,
         }}
       />
 

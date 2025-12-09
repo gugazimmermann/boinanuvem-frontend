@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { Input, Button, FixedAlert, Select } from "~/components/ui";
 import { useTranslation } from "~/i18n";
@@ -14,11 +14,11 @@ import {
 } from "~/services/inventory.service";
 import { addInventoryMovement } from "~/services/inventory-movements.service";
 import { getAnimalMovementsByAnimalId } from "~/services/animal-movements.service";
-import type { InventoryItem } from "~/types";
+import type { InventoryItem, Employee, ServiceProvider } from "~/types";
 import { InventoryItemCategory, InventoryMovementType } from "~/types";
 import { mockCompanies } from "~/mocks/companies";
-import { mockEmployees } from "~/mocks/employees";
-import { mockServiceProviders } from "~/mocks/service-providers";
+import { getEmployees } from "~/services/employees.service";
+import { getServiceProviders } from "~/services/service-providers.service";
 import { getUnitLabel } from "~/utils/inventory-utils";
 import { useAlert } from "~/hooks/use-alert";
 
@@ -54,16 +54,28 @@ export default function NewSanitaryControl() {
   }, [location.state]);
 
   const [animalSearch, setAnimalSearch] = useState("");
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [serviceProviders, setServiceProviders] = useState<ServiceProvider[]>([]);
 
   const animals = useMemo(() => getAnimalsByCompanyId(companyId), [companyId]);
-  const employees = useMemo(
-    () => mockEmployees.filter((e) => e.companyId === companyId),
-    [companyId]
-  );
-  const serviceProviders = useMemo(
-    () => mockServiceProviders.filter((sp) => sp.companyId === companyId),
-    [companyId]
-  );
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (companyId) {
+        try {
+          const [employeesData, serviceProvidersData] = await Promise.all([
+            getEmployees(),
+            getServiceProviders(),
+          ]);
+          setEmployees(employeesData.filter((e) => e.companyId === companyId));
+          setServiceProviders(serviceProvidersData.filter((sp) => sp.companyId === companyId));
+        } catch (error) {
+          console.error("Failed to load employees or service providers:", error);
+        }
+      }
+    };
+    fetchData();
+  }, [companyId]);
 
   const filteredAnimals = useMemo(() => {
     let filtered = animals;

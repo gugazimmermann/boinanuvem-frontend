@@ -1,6 +1,6 @@
 import { useParams, useNavigate, useSearchParams } from "react-router";
 import { format } from "date-fns";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Button, Table, Tooltip, StatusBadge, type TableColumn } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
@@ -15,14 +15,8 @@ import {
   getServiceProviderViewRoute,
   getAnimalViewRoute,
 } from "~/routes.config";
-import {
-  getEmployeeById,
-  getEmployeeById as getEmployeeByIdForCheck,
-} from "~/services/employees.service";
-import {
-  getServiceProviderById,
-  getServiceProviderById as getServiceProviderByIdForCheck,
-} from "~/services/service-providers.service";
+import { getEmployeeById } from "~/services/employees.service";
+import { getServiceProviderById } from "~/services/service-providers.service";
 import { getLocationMovementById } from "~/services/location-movements.service";
 import { getAnimalMovementById } from "~/services/animal-movements.service";
 import { getPropertyById } from "~/services/properties.service";
@@ -30,8 +24,9 @@ import { getLocationById } from "~/services/locations.service";
 import { getAnimalById } from "~/services/animals.service";
 import type { LocationMovement } from "~/types/location-movement";
 import type { AnimalMovement } from "~/types/animal-movement";
-import type { Animal } from "~/types";
+import type { Animal, Location } from "~/types";
 import { createAnimalTableColumns } from "~/utils/animal-table-columns";
+import { DetailPageEmptyState } from "~/utils/detail-page-helpers";
 
 export function meta() {
   return [
@@ -67,45 +62,82 @@ export default function MovementDetails() {
   const fromServiceProviderId = searchParams.get("fromServiceProvider");
   const fromPropertyId = searchParams.get("fromProperty");
 
+  const [property, setProperty] = useState<Awaited<ReturnType<typeof getPropertyById>> | null>(
+    null
+  );
+  const [locations, setLocations] = useState<Awaited<ReturnType<typeof getLocationById>>[]>([]);
+  const [employees, setEmployees] = useState<Awaited<ReturnType<typeof getEmployeeById>>[]>([]);
+  const [serviceProviders, setServiceProviders] = useState<
+    Awaited<ReturnType<typeof getServiceProviderById>>[]
+  >([]);
+  const [animals, setAnimals] = useState<Animal[]>([]);
+
+  useEffect(() => {
+    const loadEntities = async () => {
+      if (!movement) return;
+
+      try {
+        let locationPromises: Promise<Location | undefined>[] = [];
+        if (isLocationMovement) {
+          locationPromises = (movement as LocationMovement).locationIds.map(
+            (id) => getLocationById(id) as Promise<Location | undefined>
+          );
+        } else if (isAnimalMovement) {
+          locationPromises = [
+            getLocationById((movement as AnimalMovement).locationId) as Promise<
+              Location | undefined
+            >,
+          ];
+        }
+
+        const [propertyData, ...locationResults] = await Promise.all([
+          getPropertyById(movement.propertyId),
+          ...locationPromises,
+        ]);
+
+        const locationsData = locationResults;
+        const employeesData = await Promise.all(
+          movement.employeeIds.map((id) => getEmployeeById(id))
+        );
+        const serviceProvidersData = await Promise.all(
+          movement.serviceProviderIds.map((id) => getServiceProviderById(id))
+        );
+        const animalsData = isAnimalMovement
+          ? (movement as AnimalMovement).animalIds.map((id) => getAnimalById(id))
+          : [];
+
+        setProperty(propertyData);
+        setLocations(
+          locationsData.filter((loc): loc is NonNullable<typeof loc> => loc !== undefined)
+        );
+        setEmployees(
+          employeesData.filter((emp): emp is NonNullable<typeof emp> => emp !== undefined)
+        );
+        setServiceProviders(
+          serviceProvidersData.filter(
+            (prov): prov is NonNullable<typeof prov> => prov !== undefined
+          )
+        );
+        setAnimals(
+          animalsData.filter((animal): animal is NonNullable<typeof animal> => animal !== undefined)
+        );
+      } catch (error) {
+        console.error("Failed to load entities:", error);
+      }
+    };
+
+    loadEntities();
+  }, [movement, isLocationMovement, isAnimalMovement]);
+
   if (!movement) {
     return (
-      <div className="space-y-8">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
-            {t.properties.details.movements.emptyState.title}
-          </p>
-          <Button variant="outline" onClick={() => navigate(ROUTES.PROPERTIES)}>
-            {t.team.new.back}
-          </Button>
-        </div>
-      </div>
+      <DetailPageEmptyState
+        message={t.properties.details.movements.emptyState.title}
+        backLabel={t.team.new.back}
+        onBack={() => navigate(ROUTES.PROPERTIES)}
+      />
     );
   }
-
-  const property = getPropertyById(movement.propertyId);
-  const locations = (() => {
-    if (isLocationMovement) {
-      return (movement as LocationMovement).locationIds
-        .map((id) => getLocationById(id))
-        .filter((loc): loc is NonNullable<typeof loc> => loc !== undefined);
-    }
-    if (isAnimalMovement) {
-      const location = getLocationById((movement as AnimalMovement).locationId);
-      return location ? [location] : [];
-    }
-    return [];
-  })();
-  const employees = movement.employeeIds
-    .map((id) => getEmployeeById(id))
-    .filter((emp): emp is NonNullable<typeof emp> => emp !== undefined);
-  const serviceProviders = movement.serviceProviderIds
-    .map((id) => getServiceProviderById(id))
-    .filter((prov): prov is NonNullable<typeof prov> => prov !== undefined);
-  const animals = isAnimalMovement
-    ? (movement as AnimalMovement).animalIds
-        .map((id) => getAnimalById(id))
-        .filter((animal): animal is NonNullable<typeof animal> => animal !== undefined)
-    : [];
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -139,16 +171,13 @@ export default function MovementDetails() {
           <Button
             variant="outline"
             onClick={() => {
-              if (fromLocationId && getLocationById(fromLocationId)) {
+              if (fromLocationId) {
                 navigate(`${getLocationViewRoute(fromLocationId)}?tab=movements`);
-              } else if (fromEmployeeId && getEmployeeByIdForCheck(fromEmployeeId)) {
+              } else if (fromEmployeeId) {
                 navigate(getEmployeeViewRoute(fromEmployeeId));
-              } else if (
-                fromServiceProviderId &&
-                getServiceProviderByIdForCheck(fromServiceProviderId)
-              ) {
+              } else if (fromServiceProviderId) {
                 navigate(getServiceProviderViewRoute(fromServiceProviderId));
-              } else if (fromPropertyId && getPropertyById(fromPropertyId)) {
+              } else if (fromPropertyId) {
                 navigate(`${getPropertyViewRoute(fromPropertyId)}?tab=movements`);
               } else if (property) {
                 navigate(`${getPropertyViewRoute(property.id)}?tab=movements`);

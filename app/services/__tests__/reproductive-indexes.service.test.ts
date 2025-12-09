@@ -13,168 +13,78 @@ import {
   getMortalityRate,
   getCalfMortalityRate,
 } from "../reproductive-indexes.service";
-import { mockBreedings } from "~/mocks/breedings";
-import { mockBirths } from "~/mocks/births";
-import { mockAnimals } from "~/mocks/animals";
-import { mockDeaths } from "~/mocks/deaths";
-import { mockWeighings } from "~/mocks/weighings";
 
-// Mock dependencies
 vi.mock("../breedings.service", () => ({
-  getBreedingsByPropertyId: vi.fn((propertyId: string) => {
-    return mockBreedings.filter((b) => {
-      const animal = mockAnimals.find((a) => a.id === b.animalId);
-      return animal?.propertyId === propertyId;
-    });
-  }),
-  getBreedingsByCompanyId: vi.fn((companyId: string) => {
-    return mockBreedings.filter((b) => {
-      const animal = mockAnimals.find((a) => a.id === b.animalId);
-      return animal?.companyId === companyId;
-    });
-  }),
+  getBreedingsByPropertyId: vi.fn(),
+  getBreedingsByCompanyId: vi.fn(),
 }));
 
 vi.mock("../births.service", () => ({
-  getBirthsByPropertyId: vi.fn((propertyId: string) => {
-    return mockBirths.filter((b) => b.propertyId === propertyId);
-  }),
-  getBirthsByCompanyId: vi.fn((companyId: string) => {
-    return mockBirths.filter((b) => b.companyId === companyId);
-  }),
-  getCalvingIntervalsByAnimalId: vi.fn((_animalId: string) => {
-    // Return mock intervals
-    return [365, 380];
-  }),
-  getBirthByAnimalId: vi.fn((animalId: string) => {
-    return mockBirths.find((b) => b.animalId === animalId);
-  }),
+  getBirthsByPropertyId: vi.fn(),
+  getBirthsByCompanyId: vi.fn(),
+  getCalvingIntervalsByAnimalId: vi.fn(),
+  getBirthByAnimalId: vi.fn(),
 }));
 
 vi.mock("../animals.service", () => ({
-  getAnimalsByPropertyId: vi.fn((propertyId: string) => {
-    return mockAnimals.filter((a) => a.propertyId === propertyId);
-  }),
-  getAnimalById: vi.fn((id: string) => mockAnimals.find((a) => a.id === id)),
-}));
-
-vi.mock("../deaths.service", () => ({
-  getDeathsByCompanyId: vi.fn((companyId: string) => {
-    return mockDeaths.filter((d) => {
-      const animal = mockAnimals.find((a) => a.id === d.animalId);
-      return animal?.companyId === companyId;
-    });
-  }),
-  getDeathByAnimalId: vi.fn((animalId: string) => {
-    return mockDeaths.find((d) => d.animalId === animalId);
-  }),
+  getAnimalsByPropertyId: vi.fn(),
+  getAnimalById: vi.fn(),
 }));
 
 vi.mock("../weighings.service", () => ({
-  getWeighingsByAnimalId: vi.fn((animalId: string) => {
-    return mockWeighings.filter((w) => w.animalId === animalId);
-  }),
+  getWeighingsByAnimalId: vi.fn(),
 }));
+
+vi.mock("../deaths.service", () => ({
+  getDeathsByCompanyId: vi.fn(),
+  getDeathByAnimalId: vi.fn(),
+}));
+
+import { getBreedingsByPropertyId, getBreedingsByCompanyId } from "../breedings.service";
+import {
+  getBirthsByPropertyId,
+  getBirthsByCompanyId,
+  getBirthByAnimalId,
+  getCalvingIntervalsByAnimalId,
+} from "../births.service";
+import { getAnimalsByPropertyId, getAnimalById } from "../animals.service";
+import { getWeighingsByAnimalId } from "../weighings.service";
+import { getDeathsByCompanyId } from "../deaths.service";
 
 describe("reproductive-indexes.service", () => {
   beforeEach(() => {
-    mockBreedings.length = 0;
-    mockBirths.length = 0;
-    mockAnimals.length = 0;
-    mockDeaths.length = 0;
-    mockWeighings.length = 0;
-
-    mockAnimals.push(
-      {
-        id: "animal-1",
-        companyId: "company-1",
-        propertyId: "property-1",
-        code: "ANM001",
-        registrationNumber: "REG001",
-        status: "active",
-        createdAt: "2025-01-01",
-      },
-      {
-        id: "animal-2",
-        companyId: "company-1",
-        propertyId: "property-1",
-        code: "ANM002",
-        registrationNumber: "REG002",
-        status: "active",
-        createdAt: "2025-01-01",
-      },
-      {
-        id: "bull-1",
-        companyId: "company-1",
-        propertyId: "property-1",
-        code: "BULL001",
-        registrationNumber: "BREG001",
-        status: "active",
-        createdAt: "2025-01-01",
-      }
-    );
-
-    mockBirths.push(
-      {
-        id: "birth-1",
-        animalId: "animal-1",
-        birthDate: "2024-01-01",
-        gender: "female",
-        companyId: "company-1",
-        propertyId: "property-1",
-        createdAt: "2024-01-01",
-      },
-      {
-        id: "birth-2",
-        animalId: "animal-2",
-        birthDate: "2024-01-01",
-        gender: "female",
-        companyId: "company-1",
-        propertyId: "property-1",
-        createdAt: "2024-01-01",
-      },
-      {
-        id: "birth-3",
-        animalId: "calf-1",
-        birthDate: "2025-06-01",
-        gender: "male",
-        motherId: "animal-1",
-        companyId: "company-1",
-        propertyId: "property-1",
-        createdAt: "2025-06-01",
-      }
-    );
-
-    mockBreedings.push(
-      {
-        id: "breeding-1",
-        animalId: "animal-1",
-        date: "2025-01-15",
-        method: "natural",
-        confirmed: true,
-        bullId: "bull-1",
-        companyId: "company-1",
-        employeeIds: [],
-        serviceProviderIds: [],
-        createdAt: "2025-01-15",
-      },
-      {
-        id: "breeding-2",
-        animalId: "animal-2",
-        date: "2025-01-20",
-        method: "natural",
-        confirmed: true,
-        bullId: "bull-1",
-        companyId: "company-1",
-        employeeIds: [],
-        serviceProviderIds: [],
-        createdAt: "2025-01-20",
-      }
-    );
+    vi.clearAllMocks();
   });
 
   describe("getFertilityRate", () => {
     it("should calculate fertility rate", () => {
+      const getBreedings = getBreedingsByPropertyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+      const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
+
+      getBreedings.mockReturnValue([
+        {
+          id: "breeding-1",
+          animalId: "animal-1",
+          date: "2024-01-15",
+          confirmed: true,
+          bullId: "bull-1",
+        },
+        {
+          id: "breeding-2",
+          animalId: "animal-2",
+          date: "2024-01-20",
+          confirmed: false,
+        },
+      ]);
+      getAnimal.mockImplementation((id: string) => {
+        if (id === "animal-1" || id === "animal-2") {
+          return { id, code: `00${id.slice(-1)}` };
+        }
+        return undefined;
+      });
+      getBirth.mockReturnValue({ gender: "female" });
+
       const result = getFertilityRate("property-1");
       expect(result.rate).toBeGreaterThanOrEqual(0);
       expect(result.pregnantCows).toBeGreaterThanOrEqual(0);
@@ -182,502 +92,1176 @@ describe("reproductive-indexes.service", () => {
     });
 
     it("should filter by period", () => {
+      const getBreedings = getBreedingsByPropertyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+      const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
+
+      getBreedings.mockReturnValue([
+        {
+          id: "breeding-1",
+          animalId: "animal-1",
+          date: "2024-01-15",
+          confirmed: true,
+        },
+        {
+          id: "breeding-2",
+          animalId: "animal-2",
+          date: "2024-03-15",
+          confirmed: true,
+        },
+      ]);
+      getAnimal.mockReturnValue({ id: "animal-1", code: "001" });
+      getBirth.mockReturnValue({ gender: "female" });
+
       const result = getFertilityRate("property-1", {
-        startDate: "2025-01-01",
-        endDate: "2025-01-31",
+        startDate: "2024-01-01",
+        endDate: "2024-01-31",
       });
       expect(result).toBeDefined();
     });
 
-    it("should filter by bull", () => {
-      const result = getFertilityRate("property-1", undefined, {
+    it("should filter by bullId", () => {
+      const getBreedings = getBreedingsByPropertyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+      const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
+
+      getBreedings.mockReturnValue([
+        {
+          id: "breeding-1",
+          animalId: "animal-1",
+          date: "2024-01-15",
+          confirmed: true,
+          bullId: "bull-1",
+        },
+        {
+          id: "breeding-2",
+          animalId: "animal-2",
+          date: "2024-01-20",
+          confirmed: true,
+          bullId: "bull-2",
+        },
+      ]);
+      getAnimal.mockImplementation((id: string) => {
+        if (id === "animal-1" || id === "animal-2") {
+          return { id, code: `00${id.slice(-1)}` };
+        }
+        return undefined;
+      });
+      getBirth.mockReturnValue({ gender: "female" });
+
+      const result = getFertilityRate("property-1a", undefined, {
         bullId: "bull-1",
       });
+      expect(result.exposedCows).toBe(1);
+    });
+
+    it("should include breakdown byBull when not filtering by bullId", () => {
+      const getBreedings = getBreedingsByPropertyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+      const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
+
+      getBreedings.mockReturnValue([
+        {
+          id: "breeding-1",
+          animalId: "animal-1",
+          date: "2024-01-15",
+          confirmed: true,
+          bullId: "bull-1",
+        },
+        {
+          id: "breeding-2",
+          animalId: "animal-2",
+          date: "2024-01-20",
+          confirmed: true,
+          bullId: "bull-2",
+        },
+      ]);
+      getAnimal.mockImplementation((id: string) => {
+        if (id === "animal-1" || id === "animal-2" || id === "bull-1" || id === "bull-2") {
+          return {
+            id,
+            code: id === "bull-1" ? "BULL-1" : id === "bull-2" ? "BULL-2" : `00${id.slice(-1)}`,
+          };
+        }
+        return undefined;
+      });
+      getBirth.mockReturnValue({ gender: "female" });
+
+      const result = getFertilityRate("property-1b");
+      expect(result.breakdown?.byBull).toBeDefined();
+    });
+
+    it("should handle animals without birth record", () => {
+      const getBreedings = getBreedingsByPropertyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+      const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
+
+      getBreedings.mockReturnValue([
+        {
+          id: "breeding-1",
+          animalId: "animal-1",
+          date: "2024-01-15",
+          confirmed: true,
+        },
+      ]);
+      getAnimal.mockReturnValue({ id: "animal-1", code: "001" });
+      getBirth.mockReturnValue(null);
+
+      const result = getFertilityRate("property-1c");
+      expect(result.exposedCows).toBe(0);
+    });
+
+    it("should handle startDate only in period", () => {
+      const getBreedings = getBreedingsByPropertyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+      const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
+
+      getBreedings.mockReturnValue([
+        {
+          id: "breeding-1",
+          animalId: "animal-1",
+          date: "2024-01-15",
+          confirmed: true,
+        },
+        {
+          id: "breeding-2",
+          animalId: "animal-2",
+          date: "2024-03-15",
+          confirmed: true,
+        },
+      ]);
+      getAnimal.mockReturnValue({ id: "animal-1", code: "001" });
+      getBirth.mockReturnValue({ gender: "female" });
+
+      const result = getFertilityRate("property-1d", {
+        startDate: "2024-02-01",
+      });
       expect(result).toBeDefined();
     });
 
-    it("should include breakdown by bull when no filter", () => {
-      const result = getFertilityRate("property-1");
-      // Breakdown may or may not be present depending on data
+    it("should handle endDate only in period", () => {
+      const getBreedings = getBreedingsByPropertyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+      const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
+
+      getBreedings.mockReturnValue([
+        {
+          id: "breeding-1",
+          animalId: "animal-1",
+          date: "2024-01-15",
+          confirmed: true,
+        },
+        {
+          id: "breeding-2",
+          animalId: "animal-2",
+          date: "2024-03-15",
+          confirmed: true,
+        },
+      ]);
+      getAnimal.mockReturnValue({ id: "animal-1", code: "001" });
+      getBirth.mockReturnValue({ gender: "female" });
+
+      const result = getFertilityRate("property-1e", {
+        endDate: "2024-02-28",
+      });
       expect(result).toBeDefined();
     });
   });
 
   describe("getBirthRate", () => {
     it("should calculate birth rate", () => {
+      const getBreedings = getBreedingsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirths = getBirthsByPropertyId as ReturnType<typeof vi.fn>;
+      const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirthsByCompany = getBirthsByCompanyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+
+      getBreedings.mockReturnValue([
+        {
+          id: "breeding-1",
+          animalId: "animal-1",
+          date: "2024-01-15",
+          confirmed: true,
+        },
+      ]);
+      getBirths.mockReturnValue([
+        {
+          id: "birth-1",
+          animalId: "calf-1",
+          motherId: "animal-1",
+          birthDate: "2024-10-15",
+        },
+      ]);
+      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getBirthsByCompany.mockReturnValue([]);
+      getAnimal.mockReturnValue({ id: "animal-1" });
+
       const result = getBirthRate("property-1");
       expect(result.rate).toBeGreaterThanOrEqual(0);
       expect(result.calvesBorn).toBeGreaterThanOrEqual(0);
-      expect(result.pregnantFemales).toBeGreaterThanOrEqual(0);
-    });
-
-    it("should count calves born with period filter and matching birth", () => {
-      // Add breeding and birth within period
-      mockBreedings.push({
-        id: "breeding-1",
-        animalId: "animal-1",
-        date: "2025-01-01",
-        method: "natural",
-        confirmed: true,
-        bullId: "bull-1",
-        companyId: "company-1",
-        employeeIds: [],
-        serviceProviderIds: [],
-        createdAt: "2025-01-01",
-      });
-      mockBirths.push({
-        id: "birth-1",
-        animalId: "calf-1",
-        motherId: "animal-1",
-        birthDate: "2025-10-15",
-        companyId: "company-1",
-        propertyId: "property-1",
-        createdAt: "2025-10-15",
-      });
-      const result = getBirthRate("property-1", {
-        startDate: "2025-01-01",
-        endDate: "2025-12-31",
-      });
-      expect(result).toBeDefined();
-    });
-
-    it("should count calves born with period filter and birth within maxBirthDate", () => {
-      // Add breeding
-      mockBreedings.push({
-        id: "breeding-max-date",
-        animalId: "animal-1",
-        date: "2025-01-01",
-        method: "natural",
-        confirmed: true,
-        bullId: "bull-1",
-        companyId: "company-1",
-        employeeIds: [],
-        serviceProviderIds: [],
-        createdAt: "2025-01-01",
-      });
-      // Add birth that falls within maxBirthDate (periodEnd + 285 days)
-      mockBirths.push({
-        id: "birth-max-date",
-        animalId: "calf-max-date",
-        motherId: "animal-1",
-        birthDate: "2025-11-15", // Within 285 days of period end
-        companyId: "company-1",
-        propertyId: "property-1",
-        createdAt: "2025-11-15",
-      });
-      const result = getBirthRate("property-1", {
-        startDate: "2025-01-01",
-        endDate: "2025-10-31",
-      });
-      expect(result).toBeDefined();
-    });
-
-    it("should count calves born without period filter", () => {
-      mockBirths.push({
-        id: "birth-2",
-        animalId: "calf-2",
-        motherId: "animal-1",
-        birthDate: "2025-10-15",
-        companyId: "company-1",
-        propertyId: "property-1",
-        createdAt: "2025-10-15",
-      });
-      const result = getBirthRate("property-1");
-      expect(result).toBeDefined();
     });
 
     it("should filter by period", () => {
-      const result = getBirthRate("property-1", {
-        startDate: "2025-01-01",
-        endDate: "2025-12-31",
+      const getBreedings = getBreedingsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirths = getBirthsByPropertyId as ReturnType<typeof vi.fn>;
+      const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirthsByCompany = getBirthsByCompanyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+
+      getBreedings.mockReturnValue([
+        {
+          id: "breeding-1",
+          animalId: "animal-1",
+          date: "2024-01-15",
+          confirmed: true,
+        },
+        {
+          id: "breeding-2",
+          animalId: "animal-2",
+          date: "2024-03-15",
+          confirmed: true,
+        },
+      ]);
+      getBirths.mockReturnValue([
+        {
+          id: "birth-1",
+          animalId: "calf-1",
+          motherId: "animal-1",
+          birthDate: "2024-10-15",
+        },
+      ]);
+      getAnimals.mockReturnValue([
+        { id: "animal-1", code: "001", companyId: "company-1" },
+        { id: "animal-2", code: "002", companyId: "company-1" },
+      ]);
+      getBirthsByCompany.mockReturnValue([]);
+      getAnimal.mockReturnValue({ id: "animal-1" });
+
+      const result = getBirthRate("property-1a", {
+        startDate: "2024-01-01",
+        endDate: "2024-02-28",
       });
       expect(result).toBeDefined();
     });
 
-    it("should include monthly breakdown when available", () => {
-      const result = getBirthRate("property-1");
-      // Monthly may or may not be present
+    it("should calculate monthly breakdown", () => {
+      const getBreedings = getBreedingsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirths = getBirthsByPropertyId as ReturnType<typeof vi.fn>;
+      const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirthsByCompany = getBirthsByCompanyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+
+      getBreedings.mockReturnValue([
+        {
+          id: "breeding-1",
+          animalId: "animal-1",
+          date: "2024-01-15",
+          confirmed: true,
+        },
+        {
+          id: "breeding-2",
+          animalId: "animal-2",
+          date: "2024-02-15",
+          confirmed: true,
+        },
+      ]);
+      getBirths.mockReturnValue([
+        {
+          id: "birth-1",
+          animalId: "calf-1",
+          motherId: "animal-1",
+          birthDate: "2024-10-15",
+        },
+      ]);
+      getAnimals.mockReturnValue([
+        { id: "animal-1", code: "001", companyId: "company-1" },
+        { id: "animal-2", code: "002", companyId: "company-1" },
+      ]);
+      getBirthsByCompany.mockReturnValue([]);
+      getAnimal.mockReturnValue({ id: "animal-1" });
+
+      const result = getBirthRate("property-1b");
+      expect(result.monthly).toBeDefined();
+    });
+
+    it("should handle no matching births", () => {
+      const getBreedings = getBreedingsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirths = getBirthsByPropertyId as ReturnType<typeof vi.fn>;
+      const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirthsByCompany = getBirthsByCompanyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+
+      getBreedings.mockReturnValue([
+        {
+          id: "breeding-1",
+          animalId: "animal-1",
+          date: "2024-01-15",
+          confirmed: true,
+        },
+      ]);
+      getBirths.mockReturnValue([]);
+      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getBirthsByCompany.mockReturnValue([]);
+      getAnimal.mockReturnValue({ id: "animal-1" });
+
+      const result = getBirthRate("property-1c");
+      expect(result.calvesBorn).toBe(0);
+    });
+
+    it("should handle isFemaleAnimal with births as mother", () => {
+      const getBreedings = getBreedingsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirths = getBirthsByPropertyId as ReturnType<typeof vi.fn>;
+      const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirthsByCompany = getBirthsByCompanyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+      const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
+
+      getBreedings.mockReturnValue([
+        {
+          id: "breeding-1",
+          animalId: "animal-1",
+          date: "2024-01-15",
+          confirmed: true,
+        },
+      ]);
+      getBirths.mockReturnValue([
+        {
+          id: "birth-1",
+          animalId: "calf-1",
+          motherId: "animal-1",
+          birthDate: "2024-10-15",
+        },
+      ]);
+      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getBirthsByCompany.mockReturnValue([
+        {
+          id: "birth-2",
+          animalId: "calf-2",
+          motherId: "animal-1",
+          birthDate: "2023-10-15",
+        },
+      ]);
+      getAnimal.mockReturnValue({ id: "animal-1" });
+      getBirth.mockReturnValue(null); // No birth record for animal-1 itself
+
+      const result = getBirthRate("property-1d");
       expect(result).toBeDefined();
     });
   });
 
   describe("getCalvingInterval", () => {
     it("should calculate calving interval", () => {
+      const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
+      const getIntervals = getCalvingIntervalsByAnimalId as ReturnType<typeof vi.fn>;
+
+      getAnimals.mockReturnValue([{ id: "animal-1", code: "001" }]);
+      getBirth.mockReturnValue({ gender: "female" });
+      getIntervals.mockReturnValue([365, 380]);
+
       const result = getCalvingInterval("property-1");
-      expect(result.average).toBeGreaterThanOrEqual(0);
-      expect(result.min).toBeGreaterThanOrEqual(0);
-      expect(result.max).toBeGreaterThanOrEqual(0);
+      expect(result.average).toBeGreaterThan(0);
+      expect(result.intervals.length).toBeGreaterThan(0);
     });
 
-    it("should return 0 when no intervals", () => {
-      mockAnimals.length = 0;
-      const result = getCalvingInterval("property-1");
+    it("should return zero when no intervals", () => {
+      const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
+      const getIntervals = getCalvingIntervalsByAnimalId as ReturnType<typeof vi.fn>;
+
+      getAnimals.mockReturnValue([{ id: "animal-1", code: "001" }]);
+      getBirth.mockReturnValue({ gender: "female" });
+      getIntervals.mockReturnValue([]);
+
+      const result = getCalvingInterval("property-1a");
       expect(result.average).toBe(0);
+      expect(result.min).toBe(0);
+      expect(result.max).toBe(0);
+      expect(result.intervals).toEqual([]);
       expect(result.animalsWithIntervals).toBe(0);
+    });
+
+    it("should handle single interval", () => {
+      const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
+      const getIntervals = getCalvingIntervalsByAnimalId as ReturnType<typeof vi.fn>;
+
+      getAnimals.mockReturnValue([{ id: "animal-1", code: "001" }]);
+      getBirth.mockReturnValue({ gender: "female" });
+      getIntervals.mockReturnValue([365]);
+
+      const result = getCalvingInterval("property-1b");
+      expect(result.average).toBe(365);
+      expect(result.min).toBe(365);
+      expect(result.max).toBe(365);
+      expect(result.animalsWithIntervals).toBe(1);
+    });
+
+    it("should handle multiple animals with intervals", () => {
+      const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
+      const getIntervals = getCalvingIntervalsByAnimalId as ReturnType<typeof vi.fn>;
+
+      getAnimals.mockReturnValue([
+        { id: "animal-1", code: "001" },
+        { id: "animal-2", code: "002" },
+      ]);
+      getBirth.mockReturnValue({ gender: "female" });
+      getIntervals.mockImplementation((animalId: string) => {
+        if (animalId === "animal-1") return [365, 380];
+        if (animalId === "animal-2") return [370];
+        return [];
+      });
+
+      const result = getCalvingInterval("property-1c");
+      expect(result.animalsWithIntervals).toBe(2);
+      expect(result.intervals.length).toBe(3);
+    });
+
+    it("should handle animals without female gender", () => {
+      const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
+      const getIntervals = getCalvingIntervalsByAnimalId as ReturnType<typeof vi.fn>;
+
+      getAnimals.mockReturnValue([
+        { id: "animal-1", code: "001" },
+        { id: "animal-2", code: "002" },
+      ]);
+      getBirth.mockImplementation((id: string) => {
+        if (id === "animal-1") return { gender: "female" };
+        if (id === "animal-2") return { gender: "male" };
+        return null;
+      });
+      getIntervals.mockReturnValue([365]);
+
+      const result = getCalvingInterval("property-1d");
+      expect(result.animalsWithIntervals).toBe(1);
     });
   });
 
   describe("getCullingRate", () => {
     it("should calculate culling rate", () => {
-      mockAnimals[0]!.status = "inactive";
+      const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
+
+      getAnimals.mockReturnValue([
+        { id: "animal-1", code: "001", status: "active", createdAt: "2024-01-01" },
+        { id: "animal-2", code: "002", status: "inactive", createdAt: "2024-01-01" },
+      ]);
+      getBirth.mockReturnValue({ gender: "female" });
+
       const result = getCullingRate("property-1");
       expect(result.rate).toBeGreaterThanOrEqual(0);
-      expect(result.replacedFemales).toBeGreaterThanOrEqual(0);
-      expect(result.totalFemales).toBeGreaterThanOrEqual(0);
-    });
-
-    it("should filter breedings by period", () => {
-      mockBreedings.push({
-        id: "breeding-old",
-        animalId: "animal-1",
-        date: "2024-01-01",
-        method: "natural",
-        confirmed: true,
-        bullId: "bull-1",
-        companyId: "company-1",
-        employeeIds: [],
-        serviceProviderIds: [],
-        createdAt: "2024-01-01",
-      });
-      const result = getCullingRate("property-1", {
-        startDate: "2025-01-01",
-        endDate: "2025-12-31",
-      });
-      expect(result).toBeDefined();
-    });
-
-    it("should sort annual breakdown", () => {
-      const result = getCullingRate("property-1");
-      // Annual may or may not be present
-      expect(result).toBeDefined();
     });
 
     it("should filter by period", () => {
-      const result = getCullingRate("property-1", {
-        startDate: "2025-01-01",
-        endDate: "2025-12-31",
+      const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
+
+      getAnimals.mockReturnValue([
+        {
+          id: "animal-1",
+          code: "001",
+          status: "active",
+          createdAt: "2024-01-01",
+          acquisitionDate: "2024-01-01",
+        },
+        {
+          id: "animal-2",
+          code: "002",
+          status: "inactive",
+          createdAt: "2024-03-01",
+          acquisitionDate: "2024-03-01",
+        },
+      ]);
+      getBirth.mockReturnValue({ gender: "female" });
+
+      const result = getCullingRate("property-1a", {
+        startDate: "2024-01-01",
+        endDate: "2024-02-28",
       });
       expect(result).toBeDefined();
     });
 
-    it("should include annual breakdown", () => {
-      const result = getCullingRate("property-1");
-      // Annual may or may not be present
+    it("should calculate annual breakdown", () => {
+      const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
+
+      getAnimals.mockReturnValue([
+        {
+          id: "animal-1",
+          code: "001",
+          status: "active",
+          createdAt: "2024-01-01",
+          acquisitionDate: "2024-01-01",
+        },
+        {
+          id: "animal-2",
+          code: "002",
+          status: "inactive",
+          createdAt: "2024-01-01",
+          acquisitionDate: "2024-01-01",
+        },
+        {
+          id: "animal-3",
+          code: "003",
+          status: "active",
+          createdAt: "2023-01-01",
+          acquisitionDate: "2023-01-01",
+        },
+      ]);
+      getBirth.mockReturnValue({ gender: "female" });
+
+      const result = getCullingRate("property-1b");
+      expect(result.annual).toBeDefined();
+      expect(result.annual?.length).toBeGreaterThan(0);
+    });
+
+    it("should handle no females", () => {
+      const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
+
+      getAnimals.mockReturnValue([
+        { id: "animal-1", code: "001", status: "active", createdAt: "2024-01-01" },
+      ]);
+      getBirth.mockReturnValue({ gender: "male" });
+
+      const result = getCullingRate("property-1c");
+      expect(result.totalFemales).toBe(0);
+      expect(result.rate).toBe(0);
+    });
+
+    it("should use acquisitionDate when available", () => {
+      const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
+
+      getAnimals.mockReturnValue([
+        {
+          id: "animal-1",
+          code: "001",
+          status: "active",
+          createdAt: "2024-01-01",
+          acquisitionDate: "2023-06-01",
+        },
+      ]);
+      getBirth.mockReturnValue({ gender: "female" });
+
+      const result = getCullingRate("property-1d", {
+        startDate: "2023-01-01",
+        endDate: "2023-12-31",
+      });
       expect(result).toBeDefined();
     });
   });
 
   describe("getIntrauterineMortalityIndex", () => {
     it("should calculate intrauterine mortality", () => {
+      const getBreedings = getBreedingsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirths = getBirthsByPropertyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+      const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
+
+      getBreedings.mockReturnValue([
+        {
+          id: "breeding-1",
+          animalId: "animal-1",
+          date: "2024-01-15",
+          confirmed: true,
+        },
+      ]);
+      getBirths.mockReturnValue([]);
+      getAnimal.mockReturnValue({ id: "animal-1", propertyId: "property-1" });
+      getBirth.mockReturnValue({ gender: "female" });
+
       const result = getIntrauterineMortalityIndex("property-1");
       expect(result.rate).toBeGreaterThanOrEqual(0);
-      expect(result.pregnantCows).toBeGreaterThanOrEqual(0);
-      expect(result.cowsThatCalved).toBeGreaterThanOrEqual(0);
-      expect(result.losses).toBeGreaterThanOrEqual(0);
     });
 
     it("should filter by period", () => {
-      const result = getIntrauterineMortalityIndex("property-1", {
-        startDate: "2025-01-01",
-        endDate: "2025-12-31",
+      const getBreedings = getBreedingsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirths = getBirthsByPropertyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+      const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
+
+      getBreedings.mockReturnValue([
+        {
+          id: "breeding-1",
+          animalId: "animal-1",
+          date: "2024-01-15",
+          confirmed: true,
+        },
+        {
+          id: "breeding-2",
+          animalId: "animal-2",
+          date: "2024-03-15",
+          confirmed: true,
+        },
+      ]);
+      getBirths.mockReturnValue([
+        {
+          id: "birth-1",
+          animalId: "calf-1",
+          motherId: "animal-1",
+          birthDate: "2024-10-15",
+        },
+      ]);
+      getAnimal.mockReturnValue({ id: "animal-1", propertyId: "property-1a" });
+      getBirth.mockReturnValue({ gender: "female" });
+
+      const result = getIntrauterineMortalityIndex("property-1a", {
+        startDate: "2024-01-01",
+        endDate: "2024-02-28",
       });
       expect(result).toBeDefined();
+    });
+
+    it("should handle cows that calved", () => {
+      const getBreedings = getBreedingsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirths = getBirthsByPropertyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+      const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
+
+      getBreedings.mockReturnValue([
+        {
+          id: "breeding-1",
+          animalId: "animal-1",
+          date: "2024-01-15",
+          confirmed: true,
+        },
+      ]);
+      getBirths.mockReturnValue([
+        {
+          id: "birth-1",
+          animalId: "calf-1",
+          motherId: "animal-1",
+          birthDate: "2024-10-15",
+        },
+      ]);
+      getAnimal.mockReturnValue({ id: "animal-1", propertyId: "property-1b" });
+      getBirth.mockReturnValue({ gender: "female" });
+
+      const result = getIntrauterineMortalityIndex("property-1b");
+      expect(result.cowsThatCalved).toBeGreaterThan(0);
+      expect(result.losses).toBe(0);
     });
   });
 
   describe("getBullToCowRatio", () => {
     it("should calculate bull to cow ratio", () => {
+      const getBreedings = getBreedingsByPropertyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+      const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
+
+      getBreedings.mockReturnValue([
+        {
+          id: "breeding-1",
+          animalId: "animal-1",
+          bullId: "bull-1",
+          date: "2024-01-15",
+        },
+      ]);
+      getAnimal.mockImplementation((id: string) => {
+        if (id === "animal-1") return { id, code: "001" };
+        if (id === "bull-1") return { id, code: "BULL-1" };
+        return undefined;
+      });
+      getBirth.mockReturnValue({ gender: "female" });
+
       const result = getBullToCowRatio("property-1");
       expect(result.ratio).toBeDefined();
       expect(result.bullsUsed).toBeGreaterThanOrEqual(0);
-      expect(result.exposedCows).toBeGreaterThanOrEqual(0);
     });
 
-    it("should include details by bull", () => {
-      const result = getBullToCowRatio("property-1");
-      // Details may or may not be present
-      expect(result).toBeDefined();
+    it("should handle no bulls", () => {
+      const getBreedings = getBreedingsByPropertyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+      const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
+
+      getBreedings.mockReturnValue([
+        {
+          id: "breeding-1",
+          animalId: "animal-1",
+          date: "2024-01-15",
+        },
+      ]);
+      getAnimal.mockReturnValue({ id: "animal-1", code: "001" });
+      getBirth.mockReturnValue({ gender: "female" });
+
+      const result = getBullToCowRatio("property-1a");
+      expect(result.bullsUsed).toBe(0);
+      expect(result.ratio).toBe("N/A");
+    });
+
+    it("should handle multiple bulls with details", () => {
+      const getBreedings = getBreedingsByPropertyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+      const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
+
+      getBreedings.mockReturnValue([
+        {
+          id: "breeding-1",
+          animalId: "animal-1",
+          bullId: "bull-1",
+          date: "2024-01-15",
+        },
+        {
+          id: "breeding-2",
+          animalId: "animal-2",
+          bullId: "bull-2",
+          date: "2024-01-20",
+        },
+      ]);
+      getAnimal.mockImplementation((id: string) => {
+        if (id === "animal-1" || id === "animal-2") return { id, code: `00${id.slice(-1)}` };
+        if (id === "bull-1") return { id, code: "BULL-1" };
+        if (id === "bull-2") return { id, code: "BULL-2" };
+        return undefined;
+      });
+      getBirth.mockReturnValue({ gender: "female" });
+
+      const result = getBullToCowRatio("property-1b");
+      expect(result.bullsUsed).toBe(2);
+      expect(result.details).toBeDefined();
+      expect(result.details?.length).toBe(2);
+    });
+
+    it("should handle zero exposed cows", () => {
+      const getBreedings = getBreedingsByPropertyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+      const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
+
+      getBreedings.mockReturnValue([
+        {
+          id: "breeding-1",
+          animalId: "animal-1",
+          bullId: "bull-1",
+          date: "2024-01-15",
+        },
+      ]);
+      getAnimal.mockReturnValue(null);
+      getBirth.mockReturnValue(null);
+
+      const result = getBullToCowRatio("property-1c");
+      expect(result.exposedCows).toBe(0);
+      expect(result.ratio).toBe("N/A");
     });
   });
 
   describe("getExpectedBirthsForecast", () => {
-    it("should forecast expected births", () => {
-      const result = getExpectedBirthsForecast("company-1");
+    it("should calculate expected births forecast", () => {
+      const getBreedings = getBreedingsByPropertyId as ReturnType<typeof vi.fn>;
+
+      getBreedings.mockReturnValue([
+        {
+          id: "breeding-1",
+          animalId: "animal-1",
+          date: "2024-01-15",
+          confirmed: true,
+        },
+      ]);
+
+      const result = getExpectedBirthsForecast("property-1", { isPropertyId: true });
       expect(result.total).toBeGreaterThanOrEqual(0);
       expect(result.monthly).toBeDefined();
     });
 
-    it("should include births within future cutoff", () => {
-      // Add breeding that will result in expected birth in future
-      mockBreedings.push({
-        id: "breeding-future",
-        animalId: "animal-1",
-        date: new Date().toISOString().split("T")[0],
-        method: "natural",
-        confirmed: true,
-        bullId: "bull-1",
-        companyId: "company-1",
-        employeeIds: [],
-        serviceProviderIds: [],
-        createdAt: new Date().toISOString().split("T")[0],
-      });
-      const result = getExpectedBirthsForecast("company-1");
+    it("should use companyId when isPropertyId is false", () => {
+      const getBreedings = getBreedingsByCompanyId as ReturnType<typeof vi.fn>;
+
+      getBreedings.mockReturnValue([
+        {
+          id: "breeding-1",
+          animalId: "animal-1",
+          date: "2024-01-15",
+          confirmed: true,
+        },
+      ]);
+
+      const result = getExpectedBirthsForecast("company-1", { isPropertyId: false });
       expect(result.total).toBeGreaterThanOrEqual(0);
-      expect(result.monthly).toBeDefined();
     });
 
-    it("should sort monthly results", () => {
-      const result = getExpectedBirthsForecast("company-1");
-      if (result.monthly.length > 1) {
-        for (let i = 1; i < result.monthly.length; i++) {
-          expect(result.monthly[i]!.month >= result.monthly[i - 1]!.month).toBe(true);
-        }
-      }
-    });
+    it("should use monthsAhead parameter", () => {
+      const getBreedings = getBreedingsByPropertyId as ReturnType<typeof vi.fn>;
 
-    it("should work with property ID", () => {
-      const result = getExpectedBirthsForecast("property-1", {
+      getBreedings.mockReturnValue([
+        {
+          id: "breeding-1",
+          animalId: "animal-1",
+          date: "2024-01-15",
+          confirmed: true,
+        },
+      ]);
+
+      const result = getExpectedBirthsForecast("property-1a", {
         isPropertyId: true,
+        monthsAhead: 12,
       });
       expect(result).toBeDefined();
     });
 
-    it("should respect monthsAhead option", () => {
-      const result = getExpectedBirthsForecast("company-1", {
-        monthsAhead: 6,
-      });
+    it("should filter by future dates only", () => {
+      const getBreedings = getBreedingsByPropertyId as ReturnType<typeof vi.fn>;
+
+      const pastDate = new Date();
+      pastDate.setMonth(pastDate.getMonth() - 1);
+      const pastDateStr = pastDate.toISOString().split("T")[0];
+
+      getBreedings.mockReturnValue([
+        {
+          id: "breeding-1",
+          animalId: "animal-1",
+          date: pastDateStr,
+          confirmed: true,
+        },
+        {
+          id: "breeding-2",
+          animalId: "animal-2",
+          date: "2024-01-15",
+          confirmed: true,
+        },
+      ]);
+
+      const result = getExpectedBirthsForecast("property-1b", { isPropertyId: true });
       expect(result).toBeDefined();
     });
   });
 
   describe("getWeaningRate", () => {
-    it("should identify exposed females by birthsAsMother", () => {
-      // Add animal that is a mother but not marked as female in birth record
-      mockAnimals.push({
-        id: "animal-mother",
-        companyId: "company-1",
-        propertyId: "property-1",
-        code: "ANM003",
-        registrationNumber: "REG003",
-        status: "active",
-        createdAt: "2025-01-01",
-      });
-      mockBirths.push({
-        id: "birth-mother",
-        animalId: "calf-mother",
-        motherId: "animal-mother",
-        birthDate: "2025-01-01",
-        companyId: "company-1",
-        propertyId: "property-1",
-        createdAt: "2025-01-01",
-      });
-      mockBreedings.push({
-        id: "breeding-mother",
-        animalId: "animal-mother",
-        date: "2025-01-01",
-        method: "natural",
-        confirmed: true,
-        bullId: "bull-1",
-        companyId: "company-1",
-        employeeIds: [],
-        serviceProviderIds: [],
-        createdAt: "2025-01-01",
-      });
-      const result = getWeaningRate("property-1");
-      expect(result).toBeDefined();
-    });
+    it("should calculate weaning rate", () => {
+      const getBreedings = getBreedingsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirths = getBirthsByPropertyId as ReturnType<typeof vi.fn>;
+      const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirthsByCompany = getBirthsByCompanyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+      const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
 
-    it("should filter breedings by period", () => {
-      mockBreedings.push({
-        id: "breeding-period",
-        animalId: "animal-1",
-        date: "2025-06-01",
-        method: "natural",
-        confirmed: true,
-        bullId: "bull-1",
-        companyId: "company-1",
-        employeeIds: [],
-        serviceProviderIds: [],
-        createdAt: "2025-06-01",
-      });
-      const result = getWeaningRate("property-1", {
-        startDate: "2025-01-01",
-        endDate: "2025-12-31",
-      });
-      expect(result).toBeDefined();
-    });
-
-    it("should calculate weaning rate with isWeanedCalf", () => {
-      // Add birth old enough to be weaned
-      mockBirths.push({
-        id: "birth-weaned-rate",
-        animalId: "calf-weaned-rate",
-        motherId: "animal-1",
-        birthDate: "2024-06-01", // Old enough
-        companyId: "company-1",
-        propertyId: "property-1",
-        createdAt: "2024-06-01",
-      });
-      mockBreedings.push({
-        id: "breeding-weaned-rate",
-        animalId: "animal-1",
-        date: "2024-01-01",
-        method: "natural",
-        confirmed: true,
-        bullId: "bull-1",
-        companyId: "company-1",
-        employeeIds: [],
-        serviceProviderIds: [],
-        createdAt: "2024-01-01",
-      });
-      mockWeighings.push({
-        id: "weighing-1",
-        animalId: "calf-weaned-rate",
-        weight: 150,
-        date: "2025-12-01",
-        companyId: "company-1",
-        employeeIds: [],
-        serviceProviderIds: [],
-        createdAt: "2025-12-01",
-      });
+      getBreedings.mockReturnValue([
+        {
+          id: "breeding-1",
+          animalId: "animal-1",
+          date: "2023-07-15",
+          confirmed: true,
+        },
+      ]);
+      getBirths.mockReturnValue([
+        {
+          id: "birth-1",
+          animalId: "calf-1",
+          motherId: "animal-1",
+          birthDate: "2024-04-15",
+        },
+      ]);
+      getAnimals.mockReturnValue([
+        {
+          id: "animal-1",
+          code: "001",
+          companyId: "company-1",
+          propertyId: "property-1",
+          status: "active",
+        },
+      ]);
+      getBirthsByCompany.mockReturnValue([]);
+      getAnimal.mockReturnValue({ id: "animal-1", propertyId: "property-1", status: "active" });
+      getBirth.mockReturnValue({ gender: "female" });
 
       const result = getWeaningRate("property-1");
       expect(result.rate).toBeGreaterThanOrEqual(0);
-      expect(result.weanedCalves).toBeGreaterThanOrEqual(0);
-      expect(result.exposedFemales).toBeGreaterThanOrEqual(0);
     });
 
     it("should filter by period", () => {
-      const result = getWeaningRate("property-1", {
-        startDate: "2025-01-01",
-        endDate: "2025-12-31",
+      const getBreedings = getBreedingsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirths = getBirthsByPropertyId as ReturnType<typeof vi.fn>;
+      const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirthsByCompany = getBirthsByCompanyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+      const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
+
+      getBreedings.mockReturnValue([
+        {
+          id: "breeding-1",
+          animalId: "animal-1",
+          date: "2023-07-15",
+          confirmed: true,
+        },
+        {
+          id: "breeding-2",
+          animalId: "animal-2",
+          date: "2023-09-15",
+          confirmed: true,
+        },
+      ]);
+      getBirths.mockReturnValue([
+        {
+          id: "birth-1",
+          animalId: "calf-1",
+          motherId: "animal-1",
+          birthDate: "2024-04-15",
+        },
+      ]);
+      getAnimals.mockReturnValue([
+        {
+          id: "animal-1",
+          code: "001",
+          companyId: "company-1",
+          propertyId: "property-1a",
+          status: "active",
+        },
+      ]);
+      getBirthsByCompany.mockReturnValue([]);
+      getAnimal.mockReturnValue({ id: "animal-1", propertyId: "property-1a", status: "active" });
+      getBirth.mockReturnValue({ gender: "female" });
+
+      const result = getWeaningRate("property-1a", {
+        startDate: "2023-07-01",
+        endDate: "2023-08-31",
       });
+      expect(result).toBeDefined();
+    });
+
+    it("should handle isFemaleAnimal with births as mother", () => {
+      const getBreedings = getBreedingsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirths = getBirthsByPropertyId as ReturnType<typeof vi.fn>;
+      const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirthsByCompany = getBirthsByCompanyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+      const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
+
+      getBreedings.mockReturnValue([
+        {
+          id: "breeding-1",
+          animalId: "animal-1",
+          date: "2023-07-15",
+          confirmed: true,
+        },
+      ]);
+      getBirths.mockReturnValue([
+        {
+          id: "birth-1",
+          animalId: "calf-1",
+          motherId: "animal-1",
+          birthDate: "2024-04-15",
+        },
+      ]);
+      getAnimals.mockReturnValue([
+        {
+          id: "animal-1",
+          code: "001",
+          companyId: "company-1",
+          propertyId: "property-1b",
+          status: "active",
+        },
+      ]);
+      getBirthsByCompany.mockReturnValue([
+        {
+          id: "birth-2",
+          animalId: "calf-2",
+          motherId: "animal-1",
+          birthDate: "2023-04-15",
+        },
+      ]);
+      getAnimal.mockReturnValue({ id: "animal-1", propertyId: "property-1b", status: "active" });
+      getBirth.mockReturnValue(null); // No birth record for animal-1 itself
+
+      const result = getWeaningRate("property-1b");
       expect(result).toBeDefined();
     });
   });
 
   describe("getWeaningRatio", () => {
-    it("should calculate weaning ratio with calf and mother weights", () => {
-      // Add birth with mother
-      mockBirths.push({
-        id: "birth-ratio",
-        animalId: "calf-ratio",
-        motherId: "animal-1",
-        birthDate: "2024-06-01", // Old enough to be weaned
-        companyId: "company-1",
-        propertyId: "property-1",
-        createdAt: "2024-06-01",
-      });
-      mockBreedings.push({
-        id: "breeding-ratio",
-        animalId: "animal-1",
-        date: "2024-01-01",
-        method: "natural",
-        confirmed: true,
-        bullId: "bull-1",
-        companyId: "company-1",
-        employeeIds: [],
-        serviceProviderIds: [],
-        createdAt: "2024-01-01",
-      });
-      mockWeighings.push(
+    it("should calculate weaning ratio", () => {
+      const getBreedings = getBreedingsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirths = getBirthsByPropertyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+      const getWeighings = getWeighingsByAnimalId as ReturnType<typeof vi.fn>;
+
+      getBreedings.mockReturnValue([
         {
-          id: "weighing-calf",
-          animalId: "calf-ratio",
-          weight: 150,
-          date: "2025-12-01",
-          companyId: "company-1",
-          employeeIds: [],
-          serviceProviderIds: [],
-          createdAt: "2025-12-01",
-        },
-        {
-          id: "weighing-mother",
+          id: "breeding-1",
           animalId: "animal-1",
-          weight: 400,
-          date: "2025-12-01",
-          companyId: "company-1",
-          employeeIds: [],
-          serviceProviderIds: [],
-          createdAt: "2025-12-01",
-        }
-      );
+          date: "2023-07-15",
+        },
+      ]);
+      getBirths.mockReturnValue([
+        {
+          id: "birth-1",
+          animalId: "calf-1",
+          motherId: "animal-1",
+          birthDate: "2024-04-15",
+        },
+      ]);
+      getAnimal.mockReturnValue({ id: "animal-1", propertyId: "property-1", status: "active" });
+      getWeighings.mockReturnValue([
+        { id: "w1", animalId: "calf-1", date: "2024-10-15", weight: 200 },
+        { id: "w2", animalId: "animal-1", date: "2024-10-15", weight: 500 },
+      ]);
 
       const result = getWeaningRatio("property-1");
       expect(result.ratio).toBeGreaterThanOrEqual(0);
-      expect(result.weanedCalfWeight).toBeGreaterThanOrEqual(0);
-      expect(result.motherWeight).toBeGreaterThanOrEqual(0);
-      expect(result.pairs).toBeGreaterThanOrEqual(0);
     });
 
     it("should filter by period", () => {
-      const result = getWeaningRatio("property-1", {
-        startDate: "2025-01-01",
-        endDate: "2025-12-31",
+      const getBreedings = getBreedingsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirths = getBirthsByPropertyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+      const getWeighings = getWeighingsByAnimalId as ReturnType<typeof vi.fn>;
+
+      getBreedings.mockReturnValue([
+        {
+          id: "breeding-1",
+          animalId: "animal-1",
+          date: "2023-07-15",
+        },
+        {
+          id: "breeding-2",
+          animalId: "animal-2",
+          date: "2023-09-15",
+        },
+      ]);
+      getBirths.mockReturnValue([
+        {
+          id: "birth-1",
+          animalId: "calf-1",
+          motherId: "animal-1",
+          birthDate: "2024-04-15",
+        },
+      ]);
+      getAnimal.mockReturnValue({ id: "animal-1", propertyId: "property-1a", status: "active" });
+      getWeighings.mockReturnValue([
+        { id: "w1", animalId: "calf-1", date: "2024-10-15", weight: 200 },
+        { id: "w2", animalId: "animal-1", date: "2024-10-15", weight: 500 },
+      ]);
+
+      const result = getWeaningRatio("property-1a", {
+        startDate: "2023-07-01",
+        endDate: "2023-08-31",
       });
       expect(result).toBeDefined();
+    });
+
+    it("should handle no weights", () => {
+      const getBreedings = getBreedingsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirths = getBirthsByPropertyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+      const getWeighings = getWeighingsByAnimalId as ReturnType<typeof vi.fn>;
+
+      getBreedings.mockReturnValue([
+        {
+          id: "breeding-1",
+          animalId: "animal-1",
+          date: "2023-07-15",
+        },
+      ]);
+      getBirths.mockReturnValue([
+        {
+          id: "birth-1",
+          animalId: "calf-1",
+          motherId: "animal-1",
+          birthDate: "2024-04-15",
+        },
+      ]);
+      getAnimal.mockReturnValue({ id: "animal-1", propertyId: "property-1b", status: "active" });
+      getWeighings.mockReturnValue([]); // No weighings
+
+      const result = getWeaningRatio("property-1b");
+      expect(result.ratio).toBe(0);
+      expect(result.pairs).toBe(0);
     });
   });
 
   describe("getKgWeanedCalfPerExposedCow", () => {
-    it("should calculate kg weaned calf per exposed cow with sorted weighings", () => {
-      // Add birth with mother and multiple weighings
-      mockBirths.push({
-        id: "birth-weaned",
-        animalId: "calf-weaned",
-        motherId: "animal-1",
-        birthDate: "2024-06-01", // Old enough to be weaned
-        companyId: "company-1",
-        propertyId: "property-1",
-        createdAt: "2024-06-01",
-      });
-      mockBreedings.push({
-        id: "breeding-weaned",
-        animalId: "animal-1",
-        date: "2024-01-01",
-        method: "natural",
-        confirmed: true,
-        bullId: "bull-1",
-        companyId: "company-1",
-        employeeIds: [],
-        serviceProviderIds: [],
-        createdAt: "2024-01-01",
-      });
-      // Add multiple weighings to test sorting
-      mockWeighings.push(
+    it("should calculate kg weaned calf per exposed cow", () => {
+      const getBreedings = getBreedingsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirths = getBirthsByPropertyId as ReturnType<typeof vi.fn>;
+      const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirthsByCompany = getBirthsByCompanyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+      const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
+      const getWeighings = getWeighingsByAnimalId as ReturnType<typeof vi.fn>;
+
+      getBreedings.mockReturnValue([
         {
-          id: "weighing-old",
-          animalId: "calf-weaned",
-          weight: 100,
-          date: "2025-11-01",
-          companyId: "company-1",
-          employeeIds: [],
-          serviceProviderIds: [],
-          createdAt: "2025-11-01",
+          id: "breeding-1",
+          animalId: "animal-1",
+          date: "2023-07-15",
         },
+      ]);
+      getBirths.mockReturnValue([
         {
-          id: "weighing-new",
-          animalId: "calf-weaned",
-          weight: 150,
-          date: "2025-12-01",
+          id: "birth-1",
+          animalId: "calf-1",
+          motherId: "animal-1",
+          birthDate: "2024-04-15",
+        },
+      ]);
+      getAnimals.mockReturnValue([
+        {
+          id: "animal-1",
+          code: "001",
           companyId: "company-1",
-          employeeIds: [],
-          serviceProviderIds: [],
-          createdAt: "2025-12-01",
-        }
-      );
+          propertyId: "property-1",
+          status: "active",
+        },
+      ]);
+      getBirthsByCompany.mockReturnValue([]);
+      getAnimal.mockReturnValue({ id: "animal-1", propertyId: "property-1", status: "active" });
+      getBirth.mockReturnValue({ gender: "female" });
+      getWeighings.mockReturnValue([
+        { id: "w1", animalId: "calf-1", date: "2024-10-15", weight: 200 },
+      ]);
 
       const result = getKgWeanedCalfPerExposedCow("property-1");
       expect(result.kgPerExposedCow).toBeGreaterThanOrEqual(0);
-      expect(result.totalWeanedWeight).toBeGreaterThanOrEqual(0);
-      expect(result.weanedCalves).toBeGreaterThanOrEqual(0);
-      expect(result.exposedFemales).toBeGreaterThanOrEqual(0);
     });
 
     it("should filter by period", () => {
-      const result = getKgWeanedCalfPerExposedCow("property-1", {
-        startDate: "2025-01-01",
-        endDate: "2025-12-31",
+      const getBreedings = getBreedingsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirths = getBirthsByPropertyId as ReturnType<typeof vi.fn>;
+      const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
+      const getBirthsByCompany = getBirthsByCompanyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+      const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
+      const getWeighings = getWeighingsByAnimalId as ReturnType<typeof vi.fn>;
+
+      getBreedings.mockReturnValue([
+        {
+          id: "breeding-1",
+          animalId: "animal-1",
+          date: "2023-07-15",
+        },
+        {
+          id: "breeding-2",
+          animalId: "animal-2",
+          date: "2023-09-15",
+        },
+      ]);
+      getBirths.mockReturnValue([
+        {
+          id: "birth-1",
+          animalId: "calf-1",
+          motherId: "animal-1",
+          birthDate: "2024-04-15",
+        },
+      ]);
+      getAnimals.mockReturnValue([
+        {
+          id: "animal-1",
+          code: "001",
+          companyId: "company-1",
+          propertyId: "property-1a",
+          status: "active",
+        },
+      ]);
+      getBirthsByCompany.mockReturnValue([]);
+      getAnimal.mockReturnValue({ id: "animal-1", propertyId: "property-1a", status: "active" });
+      getBirth.mockReturnValue({ gender: "female" });
+      getWeighings.mockReturnValue([
+        { id: "w1", animalId: "calf-1", date: "2024-10-15", weight: 200 },
+      ]);
+
+      const result = getKgWeanedCalfPerExposedCow("property-1a", {
+        startDate: "2023-07-01",
+        endDate: "2023-08-31",
       });
       expect(result).toBeDefined();
     });
@@ -685,149 +1269,267 @@ describe("reproductive-indexes.service", () => {
 
   describe("getMortalityRate", () => {
     it("should calculate mortality rate", () => {
-      mockDeaths.push({
-        id: "death-1",
-        animalId: "animal-1",
-        date: "2025-06-01",
-        cause: "Disease",
-        companyId: "company-1",
-        createdAt: "2025-06-01",
-      });
+      const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
+      const getDeaths = getDeathsByCompanyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+
+      getAnimals.mockReturnValue([
+        { id: "animal-1", code: "001", companyId: "company-1", createdAt: "2024-01-01" },
+      ]);
+      getDeaths.mockReturnValue([
+        {
+          id: "death-1",
+          animalId: "animal-1",
+          date: "2024-06-15",
+        },
+      ]);
+      getAnimal.mockReturnValue({ id: "animal-1", propertyId: "property-1" });
 
       const result = getMortalityRate("property-1");
       expect(result.rate).toBeGreaterThanOrEqual(0);
-      expect(result.deadAnimals).toBeGreaterThanOrEqual(0);
-      expect(result.totalAnimals).toBeGreaterThanOrEqual(0);
-    });
-
-    it("should filter deaths by period with startDate", () => {
-      mockDeaths.push({
-        id: "death-before",
-        animalId: "animal-2",
-        date: "2024-12-01",
-        cause: "Disease",
-        companyId: "company-1",
-        createdAt: "2024-12-01",
-      });
-      const result = getMortalityRate("property-1", {
-        startDate: "2025-01-01",
-        endDate: "2025-12-31",
-      });
-      expect(result).toBeDefined();
-      expect(result.period).toBeDefined();
-    });
-
-    it("should filter deaths by period with endDate", () => {
-      mockDeaths.push({
-        id: "death-after",
-        animalId: "animal-2",
-        date: "2026-01-01",
-        cause: "Disease",
-        companyId: "company-1",
-        createdAt: "2026-01-01",
-      });
-      const result = getMortalityRate("property-1", {
-        startDate: "2025-01-01",
-        endDate: "2025-12-31",
-      });
-      expect(result).toBeDefined();
     });
 
     it("should filter by period", () => {
-      const result = getMortalityRate("property-1", {
-        startDate: "2025-01-01",
-        endDate: "2025-12-31",
+      const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
+      const getDeaths = getDeathsByCompanyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+
+      getAnimals.mockReturnValue([
+        { id: "animal-1", code: "001", companyId: "company-1", createdAt: "2024-01-01" },
+      ]);
+      getDeaths.mockReturnValue([
+        {
+          id: "death-1",
+          animalId: "animal-1",
+          date: "2024-06-15",
+        },
+        {
+          id: "death-2",
+          animalId: "animal-1",
+          date: "2024-08-15",
+        },
+      ]);
+      getAnimal.mockReturnValue({ id: "animal-1", propertyId: "property-1a" });
+
+      const result = getMortalityRate("property-1a", {
+        startDate: "2024-06-01",
+        endDate: "2024-07-31",
       });
-      expect(result).toBeDefined();
-      expect(result.period).toBeDefined();
+      expect(result.deadAnimals).toBe(1);
+    });
+
+    it("should handle no deaths", () => {
+      const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
+      const getDeaths = getDeathsByCompanyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+
+      getAnimals.mockReturnValue([
+        { id: "animal-1", code: "001", companyId: "company-1", createdAt: "2024-01-01" },
+      ]);
+      getDeaths.mockReturnValue([]);
+      getAnimal.mockReturnValue({ id: "animal-1", propertyId: "property-1b" });
+
+      const result = getMortalityRate("property-1b");
+      expect(result.deadAnimals).toBe(0);
+      expect(result.rate).toBe(0);
+    });
+
+    it("should handle no animals", () => {
+      const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
+      const getDeaths = getDeathsByCompanyId as ReturnType<typeof vi.fn>;
+
+      getAnimals.mockReturnValue([]);
+      getDeaths.mockReturnValue([]);
+
+      const result = getMortalityRate("property-1c");
+      expect(result.totalAnimals).toBe(0);
+      expect(result.rate).toBe(0);
+    });
+
+    it("should count animals in period correctly", () => {
+      const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
+      const getDeaths = getDeathsByCompanyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+
+      getAnimals.mockReturnValue([
+        {
+          id: "animal-1",
+          code: "001",
+          companyId: "company-1",
+          createdAt: "2024-01-01",
+          acquisitionDate: "2024-01-01",
+        },
+        {
+          id: "animal-2",
+          code: "002",
+          companyId: "company-1",
+          createdAt: "2024-03-01",
+          acquisitionDate: "2024-03-01",
+        },
+      ]);
+      getDeaths.mockReturnValue([]);
+      getAnimal.mockReturnValue({ id: "animal-1", propertyId: "property-1d" });
+
+      const result = getMortalityRate("property-1d", {
+        startDate: "2024-01-01",
+        endDate: "2024-02-28",
+      });
+      expect(result.totalAnimals).toBe(1);
     });
   });
 
   describe("getCalfMortalityRate", () => {
     it("should calculate calf mortality rate", () => {
-      mockDeaths.push({
-        id: "death-1",
-        animalId: "calf-1",
-        date: "2025-07-01",
-        cause: "Disease",
-        companyId: "company-1",
-        createdAt: "2025-07-01",
-      });
+      const getBirths = getBirthsByPropertyId as ReturnType<typeof vi.fn>;
+      const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
+      const getDeaths = getDeathsByCompanyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+      const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
+
+      getBirths.mockReturnValue([
+        {
+          id: "birth-1",
+          animalId: "calf-1",
+          birthDate: "2024-01-15",
+        },
+      ]);
+      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getDeaths.mockReturnValue([
+        {
+          id: "death-1",
+          animalId: "calf-1",
+          date: "2024-02-15",
+        },
+      ]);
+      getAnimal.mockReturnValue({ id: "calf-1", propertyId: "property-1" });
+      getBirth.mockReturnValue({ birthDate: "2024-01-15" });
 
       const result = getCalfMortalityRate("property-1");
       expect(result.rate).toBeGreaterThanOrEqual(0);
-      expect(result.deadCalves).toBeGreaterThanOrEqual(0);
-      expect(result.totalCalves).toBeGreaterThanOrEqual(0);
     });
 
     it("should filter by period", () => {
-      const result = getCalfMortalityRate("property-1", {
-        startDate: "2025-01-01",
-        endDate: "2025-12-31",
+      const getBirths = getBirthsByPropertyId as ReturnType<typeof vi.fn>;
+      const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
+      const getDeaths = getDeathsByCompanyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+      const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
+
+      getBirths.mockReturnValue([
+        {
+          id: "birth-1",
+          animalId: "calf-1",
+          birthDate: "2024-01-15",
+        },
+        {
+          id: "birth-2",
+          animalId: "calf-2",
+          birthDate: "2024-03-15",
+        },
+      ]);
+      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getDeaths.mockReturnValue([
+        {
+          id: "death-1",
+          animalId: "calf-1",
+          date: "2024-02-15",
+        },
+      ]);
+      getAnimal.mockReturnValue({ id: "calf-1", propertyId: "property-1a" });
+      getBirth.mockReturnValue({ birthDate: "2024-01-15" });
+
+      const result = getCalfMortalityRate("property-1a", {
+        startDate: "2024-01-01",
+        endDate: "2024-02-28",
       });
-      expect(result).toBeDefined();
+      expect(result.totalCalves).toBe(1);
     });
 
-    it("should filter calf deaths by property and age", () => {
-      // Add birth for calf
-      mockBirths.push({
-        id: "birth-calf-death",
-        animalId: "calf-death",
-        motherId: "animal-1",
-        birthDate: "2025-01-01",
-        companyId: "company-1",
-        propertyId: "property-1",
-        createdAt: "2025-01-01",
-      });
-      // Add death within calf age (12 months)
-      mockDeaths.push({
-        id: "death-calf-age",
-        animalId: "calf-death",
-        date: "2025-06-01", // 5 months old
-        cause: "Disease",
-        companyId: "company-1",
-        createdAt: "2025-06-01",
-      });
+    it("should calculate monthly breakdown", () => {
+      const getBirths = getBirthsByPropertyId as ReturnType<typeof vi.fn>;
+      const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
+      const getDeaths = getDeathsByCompanyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+      const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
 
-      const result = getCalfMortalityRate("property-1");
-      expect(result).toBeDefined();
+      getBirths.mockReturnValue([
+        {
+          id: "birth-1",
+          animalId: "calf-1",
+          birthDate: "2024-01-15",
+        },
+        {
+          id: "birth-2",
+          animalId: "calf-2",
+          birthDate: "2024-02-15",
+        },
+      ]);
+      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getDeaths.mockReturnValue([
+        {
+          id: "death-1",
+          animalId: "calf-1",
+          date: "2024-02-15",
+        },
+      ]);
+      getAnimal.mockReturnValue({ id: "calf-1", propertyId: "property-1b" });
+      getBirth.mockReturnValue({ birthDate: "2024-01-15" });
+
+      const result = getCalfMortalityRate("property-1b");
+      expect(result.monthly).toBeDefined();
+      expect(result.monthly?.length).toBeGreaterThan(0);
     });
 
-    it("should calculate monthly mortality with death data", () => {
-      // Add birth
-      mockBirths.push({
-        id: "birth-monthly",
-        animalId: "calf-monthly",
-        motherId: "animal-1",
-        birthDate: "2025-01-15",
-        companyId: "company-1",
-        propertyId: "property-1",
-        createdAt: "2025-01-15",
-      });
-      // Add death within calf age
-      mockDeaths.push({
-        id: "death-monthly",
-        animalId: "calf-monthly",
-        date: "2025-03-15", // 2 months old
-        cause: "Disease",
-        companyId: "company-1",
-        createdAt: "2025-03-15",
-      });
+    it("should handle no deaths", () => {
+      const getBirths = getBirthsByPropertyId as ReturnType<typeof vi.fn>;
+      const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
+      const getDeaths = getDeathsByCompanyId as ReturnType<typeof vi.fn>;
 
-      const result = getCalfMortalityRate("property-1");
-      expect(result).toBeDefined();
-      if (result.monthly && result.monthly.length > 0) {
-        // Verify monthly is sorted
-        for (let i = 1; i < result.monthly.length; i++) {
-          expect(result.monthly[i]!.month >= result.monthly[i - 1]!.month).toBe(true);
-        }
-      }
+      getBirths.mockReturnValue([
+        {
+          id: "birth-1",
+          animalId: "calf-1",
+          birthDate: "2024-01-15",
+        },
+      ]);
+      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getDeaths.mockReturnValue([]);
+
+      const result = getCalfMortalityRate("property-1c");
+      expect(result.deadCalves).toBe(0);
+      expect(result.rate).toBe(0);
     });
 
-    it("should include monthly breakdown", () => {
-      const result = getCalfMortalityRate("property-1");
-      // Monthly may or may not be present
-      expect(result).toBeDefined();
+    it("should filter calf deaths by age (12 months)", () => {
+      const getBirths = getBirthsByPropertyId as ReturnType<typeof vi.fn>;
+      const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
+      const getDeaths = getDeathsByCompanyId as ReturnType<typeof vi.fn>;
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+      const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
+
+      const oldDate = new Date();
+      oldDate.setMonth(oldDate.getMonth() - 13); // 13 months ago
+
+      getBirths.mockReturnValue([
+        {
+          id: "birth-1",
+          animalId: "calf-1",
+          birthDate: oldDate.toISOString().split("T")[0],
+        },
+      ]);
+      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getDeaths.mockReturnValue([
+        {
+          id: "death-1",
+          animalId: "calf-1",
+          date: new Date().toISOString().split("T")[0],
+        },
+      ]);
+      getAnimal.mockReturnValue({ id: "calf-1", propertyId: "property-1d" });
+      getBirth.mockReturnValue({ birthDate: oldDate.toISOString().split("T")[0] });
+
+      const result = getCalfMortalityRate("property-1d");
+      expect(result.deadCalves).toBe(0); // Should be filtered out (older than 12 months)
     });
   });
 });

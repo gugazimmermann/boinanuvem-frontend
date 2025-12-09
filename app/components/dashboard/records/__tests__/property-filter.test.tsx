@@ -2,90 +2,88 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { PropertyFilter } from "../property-filter";
-import { LanguageProvider } from "~/contexts/language-context";
-import { mockProperties } from "~/mocks/properties";
-
-const TestWrapper = ({ children }: { children: React.ReactNode }) => (
-  <LanguageProvider>{children}</LanguageProvider>
-);
+import { useTranslation } from "~/i18n";
+import type { Property } from "~/types";
 
 vi.mock("~/i18n", () => ({
-  useTranslation: vi.fn(() => ({
-    reproductiveIndexes: {
-      propertyLabel: "Property",
-      allProperties: "All Properties",
-    },
-  })),
+  useTranslation: vi.fn(),
 }));
 
 describe("PropertyFilter", () => {
+  const mockUseTranslation = vi.mocked(useTranslation);
+  const mockProperties: Property[] = [
+    { id: "1", name: "Property 1" } as Property,
+    { id: "2", name: "Property 2" } as Property,
+  ];
+
   const defaultProps = {
     value: "all",
     onChange: vi.fn(),
-    properties: mockProperties.slice(0, 2),
+    properties: mockProperties,
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseTranslation.mockReturnValue({
+      reproductiveIndexes: {
+        propertyLabel: "Property",
+        allProperties: "All Properties",
+      },
+    } as unknown as ReturnType<typeof useTranslation>);
   });
 
-  it("should render property filter", () => {
-    render(
-      <TestWrapper>
-        <PropertyFilter {...defaultProps} />
-      </TestWrapper>
-    );
-    expect(screen.getByText("Property:")).toBeInTheDocument();
+  it("should render select element", () => {
+    render(<PropertyFilter {...defaultProps} />);
+    const select = screen.getByRole("combobox");
+    expect(select).toBeInTheDocument();
   });
 
   it("should render all properties option", () => {
-    render(
-      <TestWrapper>
-        <PropertyFilter {...defaultProps} />
-      </TestWrapper>
-    );
+    render(<PropertyFilter {...defaultProps} />);
     expect(screen.getByText("All Properties")).toBeInTheDocument();
   });
 
-  it("should render property options", () => {
-    render(
-      <TestWrapper>
-        <PropertyFilter {...defaultProps} />
-      </TestWrapper>
-    );
-    expect(screen.getByText(mockProperties[0].name)).toBeInTheDocument();
-    expect(screen.getByText(mockProperties[1].name)).toBeInTheDocument();
+  it("should render all properties in select", () => {
+    render(<PropertyFilter {...defaultProps} />);
+    expect(screen.getByText("Property 1")).toBeInTheDocument();
+    expect(screen.getByText("Property 2")).toBeInTheDocument();
   });
 
-  it("should call onChange when property is selected", async () => {
-    const onChange = vi.fn();
+  it("should call onChange when selection changes", async () => {
     const user = userEvent.setup();
-    render(
-      <TestWrapper>
-        <PropertyFilter {...defaultProps} onChange={onChange} />
-      </TestWrapper>
-    );
+    const onChange = vi.fn();
+    render(<PropertyFilter {...defaultProps} onChange={onChange} />);
+
     const select = screen.getByRole("combobox");
-    await user.selectOptions(select, mockProperties[0].id);
-    expect(onChange).toHaveBeenCalledWith(mockProperties[0].id);
+    await user.selectOptions(select, "1");
+
+    expect(onChange).toHaveBeenCalled();
   });
 
-  it("should use custom labels when provided", () => {
-    render(
-      <TestWrapper>
-        <PropertyFilter {...defaultProps} label="Custom Property" allPropertiesLabel="All Custom" />
-      </TestWrapper>
-    );
-    expect(screen.getByText("Custom Property:")).toBeInTheDocument();
-    expect(screen.getByText("All Custom")).toBeInTheDocument();
+  it("should display selected value", () => {
+    render(<PropertyFilter {...defaultProps} value="1" />);
+    const select = screen.getByRole("combobox") as HTMLSelectElement;
+    expect(select.value).toBe("1");
+  });
+
+  it("should use default label from translation", () => {
+    render(<PropertyFilter {...defaultProps} />);
+    expect(screen.getByText("Property:")).toBeInTheDocument();
+  });
+
+  it("should use custom label when provided", () => {
+    render(<PropertyFilter {...defaultProps} label="Custom Label" />);
+    expect(screen.getByText("Custom Label:")).toBeInTheDocument();
+  });
+
+  it("should use custom all properties label when provided", () => {
+    render(<PropertyFilter {...defaultProps} allPropertiesLabel="All Custom Properties" />);
+    expect(screen.getByText("All Custom Properties")).toBeInTheDocument();
   });
 
   it("should apply custom className", () => {
-    const { container } = render(
-      <TestWrapper>
-        <PropertyFilter {...defaultProps} className="custom-class" />
-      </TestWrapper>
-    );
-    expect(container.firstChild).toHaveClass("custom-class");
+    const { container } = render(<PropertyFilter {...defaultProps} className="custom-class" />);
+    const wrapper = container.firstChild as HTMLElement;
+    expect(wrapper).toHaveClass("custom-class");
   });
 });

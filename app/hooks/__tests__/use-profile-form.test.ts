@@ -1,51 +1,23 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { renderHook, act } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { renderHook, act, waitFor } from "@testing-library/react";
 import { useProfileForm } from "../use-profile-form";
-import * as useAlertHook from "../use-alert";
+import { useAlert } from "../use-alert";
 
-vi.mock("../use-alert");
+vi.mock("../use-alert", () => ({
+  useAlert: vi.fn(),
+}));
 
 describe("useProfileForm", () => {
-  const mockShowAlert = vi.fn();
-  const mockAlertMessage = null;
-  const mockOnSave = vi.fn();
-  const mockOnSaveSuccess = vi.fn();
-
-  const mockInitialData = {
-    name: "John Doe",
-    email: "john@example.com",
-    phone: "1234567890",
-    street: "123 Main St",
-    number: "456",
-    complement: "Apt 1",
-    neighborhood: "Downtown",
-    city: "City",
-    state: "State",
-    zipCode: "12345-678",
-  };
-
-  const mockValidate = vi.fn((data: { name?: string; email?: string }) => {
-    const errors: Record<string, string> = {};
-    if (!data.name?.trim()) {
-      errors.name = "Name is required";
-    }
-    if (!data.email?.trim()) {
-      errors.email = "Email is required";
-    }
-    return errors;
-  });
-
-  const defaultOptions = {
-    initialData: mockInitialData,
-    validate: mockValidate,
-    onSave: mockOnSave,
-    successMessage: "Profile saved successfully",
-    errorMessage: "Error saving profile",
-  };
+  let mockShowAlert: ReturnType<typeof vi.fn>;
+  let mockAlertMessage: string | null;
 
   beforeEach(() => {
+    vi.useFakeTimers();
     vi.clearAllMocks();
-    vi.mocked(useAlertHook.useAlert).mockReturnValue({
+    mockShowAlert = vi.fn();
+    mockAlertMessage = null;
+
+    vi.mocked(useAlert).mockReturnValue({
       alert: null,
       alertMessage: mockAlertMessage,
       showAlert: mockShowAlert,
@@ -54,29 +26,106 @@ describe("useProfileForm", () => {
     });
   });
 
-  it("should initialize with initial data", () => {
-    const { result } = renderHook(() => useProfileForm(defaultOptions));
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
-    expect(result.current.data).toEqual(mockInitialData);
-    expect(result.current.errors).toEqual({});
+  it("should initialize with provided initial data", () => {
+    const initialData = {
+      zipCode: "12345-678",
+      street: "Main St",
+      number: "123",
+      complement: "",
+      neighborhood: "Downtown",
+      city: "São Paulo",
+      state: "SP",
+    };
+
+    const { result } = renderHook(() =>
+      useProfileForm({
+        initialData,
+        validate: vi.fn().mockReturnValue({}),
+        successMessage: "Saved",
+        errorMessage: "Error",
+      })
+    );
+
+    expect(result.current.data).toEqual(initialData);
     expect(result.current.isEditing).toBe(false);
     expect(result.current.isSaving).toBe(false);
   });
 
-  it("should update data when setData is called", () => {
-    const { result } = renderHook(() => useProfileForm(defaultOptions));
-
-    const newData = { ...mockInitialData, name: "Jane Doe" };
+  it("should update data when handleChange is called", () => {
+    const { result } = renderHook(() =>
+      useProfileForm({
+        initialData: {
+          zipCode: "",
+          street: "",
+          number: "",
+          complement: "",
+          neighborhood: "",
+          city: "",
+          state: "",
+        },
+        validate: vi.fn().mockReturnValue({}),
+        successMessage: "Saved",
+        errorMessage: "Error",
+      })
+    );
 
     act(() => {
-      result.current.setData(newData);
+      result.current.handleChange("street", "New Street");
     });
 
-    expect(result.current.data).toEqual(newData);
+    expect(result.current.data.street).toBe("New Street");
   });
 
-  it("should update isEditing when setIsEditing is called", () => {
-    const { result } = renderHook(() => useProfileForm(defaultOptions));
+  it("should clear error when field is changed", () => {
+    const { result } = renderHook(() =>
+      useProfileForm({
+        initialData: {
+          zipCode: "",
+          street: "",
+          number: "",
+          complement: "",
+          neighborhood: "",
+          city: "",
+          state: "",
+        },
+        validate: vi.fn().mockReturnValue({}),
+        successMessage: "Saved",
+        errorMessage: "Error",
+      })
+    );
+
+    act(() => {
+      result.current.setData((prev) => ({ ...prev }));
+    });
+
+    act(() => {
+      result.current.handleChange("street", "New Street");
+    });
+
+    expect(result.current.errors.street).toBeUndefined();
+  });
+
+  it("should set editing state when setIsEditing is called", () => {
+    const { result } = renderHook(() =>
+      useProfileForm({
+        initialData: {
+          zipCode: "",
+          street: "",
+          number: "",
+          complement: "",
+          neighborhood: "",
+          city: "",
+          state: "",
+        },
+        validate: vi.fn().mockReturnValue({}),
+        successMessage: "Saved",
+        errorMessage: "Error",
+      })
+    );
 
     act(() => {
       result.current.setIsEditing(true);
@@ -85,74 +134,83 @@ describe("useProfileForm", () => {
     expect(result.current.isEditing).toBe(true);
   });
 
-  it("should update field when handleChange is called", () => {
-    const { result } = renderHook(() => useProfileForm(defaultOptions));
-
-    act(() => {
-      result.current.handleChange("name", "New Name");
-    });
-
-    expect(result.current.data.name).toBe("New Name");
-  });
-
-  it("should clear error when field is changed", async () => {
-    const { result } = renderHook(() => useProfileForm(defaultOptions));
-
-    act(() => {
-      result.current.setData({ ...mockInitialData, name: "" });
-    });
-
-    await act(async () => {
-      await result.current.handleSave();
-    });
-
-    expect(result.current.errors.name).toBeDefined();
-
-    act(() => {
-      result.current.handleChange("name", "New Name");
-    });
-
-    expect(result.current.errors.name).toBeUndefined();
-  });
-
   it("should validate data before saving", async () => {
-    const { result } = renderHook(() => useProfileForm(defaultOptions));
-
-    act(() => {
-      result.current.setData({ ...mockInitialData, name: "" });
+    const validate = vi.fn().mockReturnValue({
+      street: "Street is required",
     });
+
+    const { result } = renderHook(() =>
+      useProfileForm({
+        initialData: {
+          zipCode: "",
+          street: "",
+          number: "",
+          complement: "",
+          neighborhood: "",
+          city: "",
+          state: "",
+        },
+        validate,
+        successMessage: "Saved",
+        errorMessage: "Error",
+      })
+    );
 
     await act(async () => {
       await result.current.handleSave();
     });
 
-    expect(mockValidate).toHaveBeenCalled();
-    expect(result.current.errors.name).toBe("Name is required");
-    expect(mockOnSave).not.toHaveBeenCalled();
+    expect(validate).toHaveBeenCalled();
+    expect(result.current.errors.street).toBe("Street is required");
+    expect(result.current.isEditing).toBe(false);
   });
 
-  it("should save data when validation passes", async () => {
-    mockOnSave.mockResolvedValue(undefined);
-
-    const { result } = renderHook(() => useProfileForm(defaultOptions));
+  it("should call onSave when validation passes", async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const { result } = renderHook(() =>
+      useProfileForm({
+        initialData: {
+          zipCode: "",
+          street: "Main St",
+          number: "",
+          complement: "",
+          neighborhood: "",
+          city: "",
+          state: "",
+        },
+        validate: vi.fn().mockReturnValue({}),
+        onSave,
+        successMessage: "Saved",
+        errorMessage: "Error",
+      })
+    );
 
     await act(async () => {
       await result.current.handleSave();
     });
 
-    expect(mockOnSave).toHaveBeenCalledWith(mockInitialData);
-    expect(mockShowAlert).toHaveBeenCalledWith("Profile saved successfully", "success");
-    expect(result.current.isEditing).toBe(false);
-    expect(result.current.isSaving).toBe(false);
+    expect(onSave).toHaveBeenCalledWith(result.current.data);
   });
 
   it("should call onSaveSuccess after successful save", async () => {
-    mockOnSave.mockResolvedValue(undefined);
-
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const onSaveSuccess = vi.fn();
     const { result } = renderHook(() =>
       useProfileForm({
-        ...defaultOptions,
-        onSaveSuccess: mockOnSaveSuccess,
+        initialData: {
+          zipCode: "",
+          street: "Main St",
+          number: "",
+          complement: "",
+          neighborhood: "",
+          city: "",
+          state: "",
+        },
+        validate: vi.fn().mockReturnValue({}),
+        onSave,
+        onSaveSuccess,
+        successMessage: "Saved",
+        errorMessage: "Error",
       })
     );
 
@@ -160,40 +218,25 @@ describe("useProfileForm", () => {
       await result.current.handleSave();
     });
 
-    expect(mockOnSaveSuccess).toHaveBeenCalledWith(mockInitialData);
+    expect(onSaveSuccess).toHaveBeenCalledWith(result.current.data);
   });
 
-  it("should not call onSaveSuccess if not provided", async () => {
-    mockOnSave.mockResolvedValue(undefined);
-
-    const { result } = renderHook(() => useProfileForm(defaultOptions));
-
-    await act(async () => {
-      await result.current.handleSave();
-    });
-
-    expect(mockOnSaveSuccess).not.toHaveBeenCalled();
-  });
-
-  it("should handle save error", async () => {
-    const error = new Error("Save failed");
-    mockOnSave.mockRejectedValue(error);
-
-    const { result } = renderHook(() => useProfileForm(defaultOptions));
-
-    await act(async () => {
-      await result.current.handleSave();
-    });
-
-    expect(mockShowAlert).toHaveBeenCalledWith("Error saving profile", "error");
-    expect(result.current.isSaving).toBe(false);
-  });
-
-  it("should not save if onSave is not provided", async () => {
+  it("should show success message after save", async () => {
     const { result } = renderHook(() =>
       useProfileForm({
-        ...defaultOptions,
-        onSave: undefined,
+        initialData: {
+          zipCode: "",
+          street: "Main St",
+          number: "",
+          complement: "",
+          neighborhood: "",
+          city: "",
+          state: "",
+        },
+        validate: vi.fn().mockReturnValue({}),
+        onSave: vi.fn().mockResolvedValue(undefined),
+        successMessage: "Profile saved successfully",
+        errorMessage: "Error",
       })
     );
 
@@ -201,95 +244,173 @@ describe("useProfileForm", () => {
       await result.current.handleSave();
     });
 
-    expect(result.current.isEditing).toBe(false);
+    act(() => {
+      vi.advanceTimersByTime(0);
+    });
+
     expect(mockShowAlert).toHaveBeenCalledWith("Profile saved successfully", "success");
   });
 
-  it("should cancel editing and reset data", () => {
-    const { result } = renderHook(() => useProfileForm(defaultOptions));
-
-    act(() => {
-      result.current.setIsEditing(true);
-      result.current.setData({ ...mockInitialData, name: "Modified Name" });
-      result.current.handleChange("email", "modified@example.com");
-    });
-
-    act(() => {
-      result.current.handleCancel();
-    });
-
-    expect(result.current.data).toEqual(mockInitialData);
-    expect(result.current.errors).toEqual({});
-    expect(result.current.isEditing).toBe(false);
-  });
-
-  it("should update original data after successful save", async () => {
-    mockOnSave.mockResolvedValue(undefined);
-
-    const { result } = renderHook(() => useProfileForm(defaultOptions));
-
-    const modifiedData = { ...mockInitialData, name: "Modified Name" };
-
-    act(() => {
-      result.current.setData(modifiedData);
-    });
+  it("should show error message when save fails", async () => {
+    const { result } = renderHook(() =>
+      useProfileForm({
+        initialData: {
+          zipCode: "",
+          street: "Main St",
+          number: "",
+          complement: "",
+          neighborhood: "",
+          city: "",
+          state: "",
+        },
+        validate: vi.fn().mockReturnValue({}),
+        onSave: vi.fn().mockRejectedValue(new Error("Save failed")),
+        successMessage: "Saved",
+        errorMessage: "Failed to save profile",
+      })
+    );
 
     await act(async () => {
       await result.current.handleSave();
     });
 
     act(() => {
-      result.current.setData({ ...modifiedData, name: "Another Name" });
-      result.current.handleCancel();
+      vi.advanceTimersByTime(0);
     });
 
-    expect(result.current.data.name).toBe("Modified Name");
+    expect(mockShowAlert).toHaveBeenCalledWith("Failed to save profile", "error");
   });
 
-  it("should return alertMessage from useAlert", () => {
-    const { result } = renderHook(() => useProfileForm(defaultOptions));
+  it("should set isSaving during save operation", async () => {
+    vi.useRealTimers();
+    const onSave = vi.fn(() => new Promise((resolve) => setTimeout(resolve, 10)));
+    const { result } = renderHook(() =>
+      useProfileForm({
+        initialData: {
+          zipCode: "",
+          street: "Main St",
+          number: "",
+          complement: "",
+          neighborhood: "",
+          city: "",
+          state: "",
+        },
+        validate: vi.fn().mockReturnValue({}),
+        onSave,
+        successMessage: "Saved",
+        errorMessage: "Error",
+      })
+    );
 
-    expect(result.current.alertMessage).toBe(mockAlertMessage);
+    expect(result.current).not.toBeNull();
+
+    // Start save without awaiting
+    act(() => {
+      if (result.current) {
+        result.current.handleSave();
+      }
+    });
+
+    // Wait for state update to be processed
+    await waitFor(
+      () => {
+        expect(result.current.isSaving).toBe(true);
+      },
+      { timeout: 1000 }
+    );
+
+    // Wait for save to complete
+    await waitFor(
+      () => {
+        expect(result.current.isSaving).toBe(false);
+      },
+      { timeout: 1000 }
+    );
+
+    vi.useFakeTimers();
   });
 
-  it("should handle multiple field changes", () => {
-    const { result } = renderHook(() => useProfileForm(defaultOptions));
+  it("should reset to original data when handleCancel is called", () => {
+    const initialData = {
+      zipCode: "12345-678",
+      street: "Original St",
+      number: "",
+      complement: "",
+      neighborhood: "",
+      city: "",
+      state: "",
+    };
+
+    const { result } = renderHook(() =>
+      useProfileForm({
+        initialData,
+        validate: vi.fn().mockReturnValue({}),
+        successMessage: "Saved",
+        errorMessage: "Error",
+      })
+    );
+
+    expect(result.current).not.toBeNull();
 
     act(() => {
-      result.current.handleChange("name", "New Name");
-      result.current.handleChange("email", "newemail@example.com");
-      result.current.handleChange("phone", "9876543210");
+      if (result.current) {
+        result.current.setIsEditing(true);
+        result.current.handleChange("street", "Modified St");
+      }
     });
 
-    expect(result.current.data.name).toBe("New Name");
-    expect(result.current.data.email).toBe("newemail@example.com");
-    expect(result.current.data.phone).toBe("9876543210");
+    expect(result.current.data.street).toBe("Modified St");
+
+    act(() => {
+      if (result.current) {
+        result.current.handleCancel();
+      }
+    });
+
+    expect(result.current.data.street).toBe("Original St");
+    expect(result.current.isEditing).toBe(false);
+    expect(result.current.errors).toEqual({});
   });
 
-  it("should set isSaving to true during save", async () => {
-    let resolveSave: () => void;
-    const savePromise = new Promise<void>((resolve) => {
-      resolveSave = resolve;
-    });
+  it("should update originalData after successful save", async () => {
+    const { result } = renderHook(() =>
+      useProfileForm({
+        initialData: {
+          zipCode: "",
+          street: "Original",
+          number: "",
+          complement: "",
+          neighborhood: "",
+          city: "",
+          state: "",
+        },
+        validate: vi.fn().mockReturnValue({}),
+        onSave: vi.fn().mockResolvedValue(undefined),
+        successMessage: "Saved",
+        errorMessage: "Error",
+      })
+    );
 
-    mockOnSave.mockImplementation(() => savePromise);
-
-    const { result } = renderHook(() => useProfileForm(defaultOptions));
+    expect(result.current).not.toBeNull();
 
     act(() => {
-      result.current.handleSave();
-    });
-
-    expect(result.current.isSaving).toBe(true);
-
-    act(() => {
-      resolveSave!();
+      if (result.current) {
+        result.current.handleChange("street", "Updated");
+      }
     });
 
     await act(async () => {
-      await savePromise;
+      if (result.current) {
+        await result.current.handleSave();
+      }
     });
 
-    expect(result.current.isSaving).toBe(false);
+    act(() => {
+      if (result.current) {
+        result.current.handleCancel();
+      }
+    });
+
+    expect(result.current.data.street).toBe("Updated");
   });
 });

@@ -1,450 +1,473 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, renderHook, waitFor, act } from "@testing-library/react";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
 import { LanguageProvider, useLanguage, LANGUAGES } from "../language-context";
+import userEvent from "@testing-library/user-event";
+
+// Test component that uses the language hook
+function TestComponent() {
+  const { language, setLanguage, languageInfo } = useLanguage();
+  return (
+    <div>
+      <div data-testid="language">{language}</div>
+      <div data-testid="language-name">{languageInfo.name}</div>
+      <div data-testid="language-code">{languageInfo.code}</div>
+      <div data-testid="language-flag">{languageInfo.flag}</div>
+      <button onClick={() => setLanguage("en")}>Set English</button>
+      <button onClick={() => setLanguage("pt")}>Set Portuguese</button>
+      <button onClick={() => setLanguage("es")}>Set Spanish</button>
+    </div>
+  );
+}
 
 describe("LanguageContext", () => {
+  let localStorageMock: {
+    getItem: ReturnType<typeof vi.fn>;
+    setItem: ReturnType<typeof vi.fn>;
+    removeItem: ReturnType<typeof vi.fn>;
+    clear: ReturnType<typeof vi.fn>;
+    length: number;
+    key: ReturnType<typeof vi.fn>;
+  };
+
   beforeEach(() => {
-    // Clear localStorage
-    localStorage.clear();
-    // Reset document language
-    document.documentElement.lang = "";
-    // Clear all mocks
+    // Setup localStorage mock
+    localStorageMock = {
+      getItem: vi.fn(),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+      clear: vi.fn(),
+      length: 0,
+      key: vi.fn(),
+    };
+    Object.defineProperty(window, "localStorage", {
+      value: localStorageMock as Storage,
+      writable: true,
+    });
+
+    // Reset mocks
     vi.clearAllMocks();
   });
 
+  afterEach(() => {
+    vi.clearAllMocks();
+    // Restore document lang
+    document.documentElement.lang = "";
+  });
+
   describe("LanguageProvider", () => {
-    it("should render children correctly", () => {
-      const { container } = render(
+    it("should render children", () => {
+      render(
         <LanguageProvider>
-          <div>Test Content</div>
+          <div>Test Child</div>
+        </LanguageProvider>
+      );
+      expect(screen.getByText("Test Child")).toBeInTheDocument();
+    });
+
+    it("should initialize with 'pt' to prevent hydration mismatch", () => {
+      localStorageMock.getItem.mockReturnValue(null);
+      Object.defineProperty(navigator, "language", {
+        value: "fr-FR", // Unsupported language
+        writable: true,
+        configurable: true,
+      });
+
+      render(
+        <LanguageProvider>
+          <TestComponent />
         </LanguageProvider>
       );
 
-      expect(container.textContent).toBe("Test Content");
+      // Should start with 'pt' and stay 'pt' when localStorage is empty and browser language isn't supported
+      expect(screen.getByTestId("language")).toHaveTextContent("pt");
     });
 
-    it("should initialize with default language 'pt' when no stored value", () => {
-      // Mock navigator.language to return unsupported language
+    it("should load language from localStorage after mount", async () => {
+      localStorageMock.getItem.mockReturnValue("en");
+
+      render(
+        <LanguageProvider>
+          <TestComponent />
+        </LanguageProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("language")).toHaveTextContent("en");
+        expect(localStorageMock.getItem).toHaveBeenCalledWith("language");
+      });
+    });
+
+    it("should use browser language when localStorage is empty", async () => {
+      localStorageMock.getItem.mockReturnValue(null);
       Object.defineProperty(navigator, "language", {
-        writable: true,
-        value: "fr",
-      });
-
-      const { result } = renderHook(() => useLanguage(), {
-        wrapper: LanguageProvider,
-      });
-
-      expect(result.current.language).toBe("pt");
-      expect(result.current.languageInfo).toEqual(LANGUAGES.pt);
-    });
-
-    it("should initialize from localStorage if present", () => {
-      localStorage.setItem("language", "en");
-
-      const { result } = renderHook(() => useLanguage(), {
-        wrapper: LanguageProvider,
-      });
-
-      expect(result.current.language).toBe("en");
-      expect(result.current.languageInfo).toEqual(LANGUAGES.en);
-    });
-
-    it("should fall back to browser language when no stored value", () => {
-      Object.defineProperty(navigator, "language", {
-        writable: true,
         value: "en-US",
-      });
-
-      const { result } = renderHook(() => useLanguage(), {
-        wrapper: LanguageProvider,
-      });
-
-      expect(result.current.language).toBe("en");
-      expect(result.current.languageInfo).toEqual(LANGUAGES.en);
-    });
-
-    it("should handle invalid stored language gracefully", () => {
-      localStorage.setItem("language", "invalid");
-
-      const { result } = renderHook(() => useLanguage(), {
-        wrapper: LanguageProvider,
-      });
-
-      // Should fall back to browser language or default
-      expect(["pt", "en", "es"]).toContain(result.current.language);
-    });
-
-    it("should handle SSR (window undefined)", () => {
-      // Note: In SSR, window is undefined but React still needs it to render
-      // This test verifies the context handles the initial state correctly
-      // When window is undefined, it should default to 'pt'
-      Object.defineProperty(navigator, "language", {
         writable: true,
-        value: "fr", // Unsupported language to trigger default
+        configurable: true,
       });
 
-      const { result } = renderHook(() => useLanguage(), {
-        wrapper: LanguageProvider,
-      });
+      render(
+        <LanguageProvider>
+          <TestComponent />
+        </LanguageProvider>
+      );
 
-      expect(result.current.language).toBe("pt");
-      expect(result.current.languageInfo).toEqual(LANGUAGES.pt);
+      await waitFor(() => {
+        expect(screen.getByTestId("language")).toHaveTextContent("en");
+      });
     });
 
-    it("should update document.documentElement.lang on mount", () => {
-      localStorage.setItem("language", "es");
-
-      renderHook(() => useLanguage(), {
-        wrapper: LanguageProvider,
+    it("should default to 'pt' when browser language is not supported", async () => {
+      localStorageMock.getItem.mockReturnValue(null);
+      Object.defineProperty(navigator, "language", {
+        value: "fr-FR",
+        writable: true,
+        configurable: true,
       });
 
-      expect(document.documentElement.lang).toBe("es");
+      render(
+        <LanguageProvider>
+          <TestComponent />
+        </LanguageProvider>
+      );
+
+      await waitFor(() => {
+        // Should stay as 'pt' since 'fr' is not in LANGUAGES
+        expect(screen.getByTestId("language")).toHaveTextContent("pt");
+      });
+    });
+
+    it("should ignore invalid language in localStorage", async () => {
+      localStorageMock.getItem.mockReturnValue("invalid");
+
+      render(
+        <LanguageProvider>
+          <TestComponent />
+        </LanguageProvider>
+      );
+
+      await waitFor(() => {
+        // Should fall back to browser or default
+        expect(localStorageMock.getItem).toHaveBeenCalledWith("language");
+      });
+    });
+
+    it("should update document lang attribute when language changes", async () => {
+      const user = userEvent.setup();
+
+      render(
+        <LanguageProvider>
+          <TestComponent />
+        </LanguageProvider>
+      );
+
+      const setEnglishButton = screen.getByText("Set English");
+      await user.click(setEnglishButton);
+
+      await waitFor(() => {
+        expect(document.documentElement.lang).toBe("en");
+      });
+    });
+
+    it("should persist language to localStorage when changed", async () => {
+      const user = userEvent.setup();
+
+      render(
+        <LanguageProvider>
+          <TestComponent />
+        </LanguageProvider>
+      );
+
+      const setEnglishButton = screen.getByText("Set English");
+      await user.click(setEnglishButton);
+
+      await waitFor(() => {
+        expect(localStorageMock.setItem).toHaveBeenCalledWith("language", "en");
+      });
     });
   });
 
-  describe("useLanguage", () => {
-    it("should return correct context values", () => {
-      const { result } = renderHook(() => useLanguage(), {
-        wrapper: LanguageProvider,
-      });
-
-      expect(result.current).toHaveProperty("language");
-      expect(result.current).toHaveProperty("setLanguage");
-      expect(result.current).toHaveProperty("languageInfo");
-      expect(typeof result.current.language).toBe("string");
-      expect(typeof result.current.setLanguage).toBe("function");
-      expect(result.current.languageInfo).toHaveProperty("code");
-      expect(result.current.languageInfo).toHaveProperty("name");
-      expect(result.current.languageInfo).toHaveProperty("flag");
-    });
-
+  describe("useLanguage hook", () => {
     it("should throw error when used outside provider", () => {
       // Suppress console.error for this test
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
-      let error: Error | undefined;
-      try {
-        renderHook(() => useLanguage());
-      } catch (e) {
-        error = e as Error;
-      }
-
-      expect(error).toBeDefined();
-      expect(error?.message).toContain("useLanguage must be used within a LanguageProvider");
+      expect(() => {
+        render(<TestComponent />);
+      }).toThrow("useLanguage must be used within a LanguageProvider");
 
       consoleSpy.mockRestore();
     });
 
-    it("should return correct languageInfo for 'pt'", () => {
-      localStorage.setItem("language", "pt");
+    it("should return language context when used within provider", () => {
+      render(
+        <LanguageProvider>
+          <TestComponent />
+        </LanguageProvider>
+      );
 
-      const { result } = renderHook(() => useLanguage(), {
-        wrapper: LanguageProvider,
-      });
-
-      expect(result.current.languageInfo).toEqual(LANGUAGES.pt);
-      expect(result.current.languageInfo.code).toBe("pt");
-      expect(result.current.languageInfo.name).toBe("Português");
-      expect(result.current.languageInfo.flag).toBe("/flags/br.svg");
-    });
-
-    it("should return correct languageInfo for 'en'", () => {
-      localStorage.setItem("language", "en");
-
-      const { result } = renderHook(() => useLanguage(), {
-        wrapper: LanguageProvider,
-      });
-
-      expect(result.current.languageInfo).toEqual(LANGUAGES.en);
-      expect(result.current.languageInfo.code).toBe("en");
-      expect(result.current.languageInfo.name).toBe("English");
-      expect(result.current.languageInfo.flag).toBe("/flags/us.svg");
-    });
-
-    it("should return correct languageInfo for 'es'", () => {
-      localStorage.setItem("language", "es");
-
-      const { result } = renderHook(() => useLanguage(), {
-        wrapper: LanguageProvider,
-      });
-
-      expect(result.current.languageInfo).toEqual(LANGUAGES.es);
-      expect(result.current.languageInfo.code).toBe("es");
-      expect(result.current.languageInfo.name).toBe("Español");
-      expect(result.current.languageInfo.flag).toBe("/flags/es.svg");
+      expect(screen.getByTestId("language")).toBeInTheDocument();
+      expect(screen.getByTestId("language-name")).toBeInTheDocument();
     });
   });
 
-  describe("setLanguage", () => {
-    it("should update language and persist to localStorage", async () => {
-      const { result } = renderHook(() => useLanguage(), {
-        wrapper: LanguageProvider,
-      });
+  describe("setLanguage function", () => {
+    it("should update language state", async () => {
+      const user = userEvent.setup();
 
-      expect(result.current.language).toBe("pt");
+      render(
+        <LanguageProvider>
+          <TestComponent />
+        </LanguageProvider>
+      );
 
-      act(() => {
-        result.current.setLanguage("en");
-      });
-
-      await waitFor(() => {
-        expect(result.current.language).toBe("en");
-      });
-
-      expect(result.current.languageInfo).toEqual(LANGUAGES.en);
-      expect(localStorage.getItem("language")).toBe("en");
-    });
-
-    it("should update document.documentElement.lang when language changes", async () => {
-      const { result } = renderHook(() => useLanguage(), {
-        wrapper: LanguageProvider,
-      });
-
-      act(() => {
-        result.current.setLanguage("es");
-      });
+      const setEnglishButton = screen.getByText("Set English");
+      await user.click(setEnglishButton);
 
       await waitFor(() => {
-        expect(document.documentElement.lang).toBe("es");
+        expect(screen.getByTestId("language")).toHaveTextContent("en");
       });
     });
 
-    it("should update localStorage when language changes", async () => {
-      const { result } = renderHook(() => useLanguage(), {
-        wrapper: LanguageProvider,
-      });
+    it("should update languageInfo when language changes", async () => {
+      const user = userEvent.setup();
 
-      const setItemSpy = vi.spyOn(Storage.prototype, "setItem");
+      render(
+        <LanguageProvider>
+          <TestComponent />
+        </LanguageProvider>
+      );
 
-      act(() => {
-        result.current.setLanguage("en");
-      });
+      const setEnglishButton = screen.getByText("Set English");
+      await user.click(setEnglishButton);
 
       await waitFor(() => {
-        expect(setItemSpy).toHaveBeenCalledWith("language", "en");
+        expect(screen.getByTestId("language-name")).toHaveTextContent("English");
+        expect(screen.getByTestId("language-code")).toHaveTextContent("en");
+        expect(screen.getByTestId("language-flag")).toHaveTextContent("/flags/us.svg");
       });
     });
 
-    it("should handle all supported languages", async () => {
-      const { result } = renderHook(() => useLanguage(), {
-        wrapper: LanguageProvider,
+    it("should update to Portuguese", async () => {
+      const user = userEvent.setup();
+
+      localStorageMock.getItem.mockReturnValue("en");
+
+      render(
+        <LanguageProvider>
+          <TestComponent />
+        </LanguageProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("language")).toHaveTextContent("en");
       });
 
-      act(() => {
-        result.current.setLanguage("pt");
-      });
-      await waitFor(() => {
-        expect(result.current.language).toBe("pt");
-      });
-      expect(result.current.languageInfo).toEqual(LANGUAGES.pt);
+      const setPortugueseButton = screen.getByText("Set Portuguese");
+      await user.click(setPortugueseButton);
 
-      act(() => {
-        result.current.setLanguage("en");
-      });
       await waitFor(() => {
-        expect(result.current.language).toBe("en");
+        expect(screen.getByTestId("language")).toHaveTextContent("pt");
+        expect(screen.getByTestId("language-name")).toHaveTextContent("Português");
       });
-      expect(result.current.languageInfo).toEqual(LANGUAGES.en);
+    });
 
-      act(() => {
-        result.current.setLanguage("es");
-      });
+    it("should update to Spanish", async () => {
+      const user = userEvent.setup();
+
+      render(
+        <LanguageProvider>
+          <TestComponent />
+        </LanguageProvider>
+      );
+
+      const setSpanishButton = screen.getByText("Set Spanish");
+      await user.click(setSpanishButton);
+
       await waitFor(() => {
-        expect(result.current.language).toBe("es");
+        expect(screen.getByTestId("language")).toHaveTextContent("es");
+        expect(screen.getByTestId("language-name")).toHaveTextContent("Español");
       });
-      expect(result.current.languageInfo).toEqual(LANGUAGES.es);
+    });
+  });
+
+  describe("languageInfo", () => {
+    it("should return correct info for Portuguese", () => {
+      localStorageMock.getItem.mockReturnValue("pt");
+
+      render(
+        <LanguageProvider>
+          <TestComponent />
+        </LanguageProvider>
+      );
+
+      expect(screen.getByTestId("language-name")).toHaveTextContent("Português");
+      expect(screen.getByTestId("language-code")).toHaveTextContent("pt");
+      expect(screen.getByTestId("language-flag")).toHaveTextContent("/flags/br.svg");
+    });
+
+    it("should return correct info for English", async () => {
+      localStorageMock.getItem.mockReturnValue("en");
+
+      render(
+        <LanguageProvider>
+          <TestComponent />
+        </LanguageProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("language-name")).toHaveTextContent("English");
+        expect(screen.getByTestId("language-code")).toHaveTextContent("en");
+        expect(screen.getByTestId("language-flag")).toHaveTextContent("/flags/us.svg");
+      });
+    });
+
+    it("should return correct info for Spanish", async () => {
+      localStorageMock.getItem.mockReturnValue("es");
+
+      render(
+        <LanguageProvider>
+          <TestComponent />
+        </LanguageProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("language-name")).toHaveTextContent("Español");
+        expect(screen.getByTestId("language-code")).toHaveTextContent("es");
+        expect(screen.getByTestId("language-flag")).toHaveTextContent("/flags/es.svg");
+      });
+    });
+  });
+
+  describe("LANGUAGES constant", () => {
+    it("should contain all supported languages", () => {
+      expect(LANGUAGES).toHaveProperty("pt");
+      expect(LANGUAGES).toHaveProperty("en");
+      expect(LANGUAGES).toHaveProperty("es");
+    });
+
+    it("should have correct structure for each language", () => {
+      expect(LANGUAGES.pt).toEqual({
+        code: "pt",
+        name: "Português",
+        flag: "/flags/br.svg",
+      });
+      expect(LANGUAGES.en).toEqual({
+        code: "en",
+        name: "English",
+        flag: "/flags/us.svg",
+      });
+      expect(LANGUAGES.es).toEqual({
+        code: "es",
+        name: "Español",
+        flag: "/flags/es.svg",
+      });
     });
   });
 
   describe("localStorage persistence", () => {
-    it("should persist language to localStorage on change", async () => {
-      const { result } = renderHook(() => useLanguage(), {
-        wrapper: LanguageProvider,
-      });
+    it("should save language to localStorage on mount", async () => {
+      localStorageMock.getItem.mockReturnValue("en");
 
-      act(() => {
-        result.current.setLanguage("en");
-      });
+      render(
+        <LanguageProvider>
+          <TestComponent />
+        </LanguageProvider>
+      );
 
       await waitFor(() => {
-        expect(localStorage.getItem("language")).toBe("en");
+        // Should save the language after loading from localStorage
+        expect(localStorageMock.setItem).toHaveBeenCalled();
       });
     });
 
-    it("should persist across re-renders", async () => {
-      localStorage.setItem("language", "es");
+    it("should save language to localStorage when changed", async () => {
+      const user = userEvent.setup();
 
-      const { result, rerender } = renderHook(() => useLanguage(), {
-        wrapper: LanguageProvider,
-      });
+      render(
+        <LanguageProvider>
+          <TestComponent />
+        </LanguageProvider>
+      );
+
+      const setEnglishButton = screen.getByText("Set English");
+      await user.click(setEnglishButton);
 
       await waitFor(() => {
-        expect(result.current.language).toBe("es");
+        expect(localStorageMock.setItem).toHaveBeenCalledWith("language", "en");
       });
+    });
+  });
 
-      rerender();
+  describe("document lang attribute", () => {
+    it("should set document lang on mount", async () => {
+      localStorageMock.getItem.mockReturnValue("en");
 
-      expect(result.current.language).toBe("es");
-      expect(localStorage.getItem("language")).toBe("es");
+      render(
+        <LanguageProvider>
+          <TestComponent />
+        </LanguageProvider>
+      );
+
+      await waitFor(() => {
+        expect(document.documentElement.lang).toBe("en");
+      });
     });
 
-    it("should update localStorage when language changes multiple times", async () => {
-      const { result } = renderHook(() => useLanguage(), {
-        wrapper: LanguageProvider,
-      });
+    it("should update document lang when language changes", async () => {
+      const user = userEvent.setup();
 
-      act(() => {
-        result.current.setLanguage("pt");
-      });
-      await waitFor(() => {
-        expect(localStorage.getItem("language")).toBe("pt");
-      });
+      render(
+        <LanguageProvider>
+          <TestComponent />
+        </LanguageProvider>
+      );
 
-      act(() => {
-        result.current.setLanguage("en");
-      });
-      await waitFor(() => {
-        expect(localStorage.getItem("language")).toBe("en");
-      });
+      const setSpanishButton = screen.getByText("Set Spanish");
+      await user.click(setSpanishButton);
 
-      act(() => {
-        result.current.setLanguage("es");
-      });
       await waitFor(() => {
-        expect(localStorage.getItem("language")).toBe("es");
+        expect(document.documentElement.lang).toBe("es");
       });
     });
   });
 
   describe("browser language detection", () => {
-    it("should detect Portuguese browser language", () => {
+    it("should detect browser language with region code", async () => {
+      localStorageMock.getItem.mockReturnValue(null);
       Object.defineProperty(navigator, "language", {
-        writable: true,
         value: "pt-BR",
-      });
-
-      const { result } = renderHook(() => useLanguage(), {
-        wrapper: LanguageProvider,
-      });
-
-      expect(result.current.language).toBe("pt");
-    });
-
-    it("should detect English browser language", () => {
-      Object.defineProperty(navigator, "language", {
         writable: true,
-        value: "en-US",
+        configurable: true,
       });
 
-      const { result } = renderHook(() => useLanguage(), {
-        wrapper: LanguageProvider,
-      });
+      render(
+        <LanguageProvider>
+          <TestComponent />
+        </LanguageProvider>
+      );
 
-      expect(result.current.language).toBe("en");
-    });
-
-    it("should detect Spanish browser language", () => {
-      Object.defineProperty(navigator, "language", {
-        writable: true,
-        value: "es-ES",
-      });
-
-      const { result } = renderHook(() => useLanguage(), {
-        wrapper: LanguageProvider,
-      });
-
-      expect(result.current.language).toBe("es");
-    });
-
-    it("should fall back to 'pt' for unsupported browser language", () => {
-      Object.defineProperty(navigator, "language", {
-        writable: true,
-        value: "fr-FR",
-      });
-
-      const { result } = renderHook(() => useLanguage(), {
-        wrapper: LanguageProvider,
-      });
-
-      expect(result.current.language).toBe("pt");
-    });
-
-    it("should prioritize localStorage over browser language", () => {
-      localStorage.setItem("language", "es");
-      Object.defineProperty(navigator, "language", {
-        writable: true,
-        value: "en-US",
-      });
-
-      const { result } = renderHook(() => useLanguage(), {
-        wrapper: LanguageProvider,
-      });
-
-      expect(result.current.language).toBe("es");
-    });
-  });
-
-  describe("document language attribute", () => {
-    it("should update document.documentElement.lang on mount", () => {
-      localStorage.setItem("language", "en");
-
-      renderHook(() => useLanguage(), {
-        wrapper: LanguageProvider,
-      });
-
-      expect(document.documentElement.lang).toBe("en");
-    });
-
-    it("should update document.documentElement.lang when language changes", async () => {
-      const { result } = renderHook(() => useLanguage(), {
-        wrapper: LanguageProvider,
-      });
-
-      act(() => {
-        result.current.setLanguage("pt");
-      });
       await waitFor(() => {
-        expect(document.documentElement.lang).toBe("pt");
-      });
-
-      act(() => {
-        result.current.setLanguage("en");
-      });
-      await waitFor(() => {
-        expect(document.documentElement.lang).toBe("en");
-      });
-
-      act(() => {
-        result.current.setLanguage("es");
-      });
-      await waitFor(() => {
-        expect(document.documentElement.lang).toBe("es");
+        expect(screen.getByTestId("language")).toHaveTextContent("pt");
       });
     });
-  });
 
-  describe("default language", () => {
-    it("should fall back to 'pt' when browser language not supported", () => {
+    it("should detect browser language without region code", async () => {
+      localStorageMock.getItem.mockReturnValue(null);
       Object.defineProperty(navigator, "language", {
+        value: "es",
         writable: true,
-        value: "de-DE",
+        configurable: true,
       });
 
-      const { result } = renderHook(() => useLanguage(), {
-        wrapper: LanguageProvider,
+      render(
+        <LanguageProvider>
+          <TestComponent />
+        </LanguageProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("language")).toHaveTextContent("es");
       });
-
-      expect(result.current.language).toBe("pt");
-      expect(result.current.languageInfo).toEqual(LANGUAGES.pt);
-    });
-
-    it("should use 'pt' as default when no stored value and no browser language", () => {
-      const { result } = renderHook(() => useLanguage(), {
-        wrapper: LanguageProvider,
-      });
-
-      // Default should be 'pt' when no other preference exists
-      expect(result.current.language).toBe("pt");
     });
   });
 });

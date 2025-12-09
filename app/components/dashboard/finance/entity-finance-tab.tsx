@@ -13,11 +13,7 @@ import {
   useEntityFinanceTransactions,
   type EntityFinanceTransactionType,
 } from "~/hooks/use-entity-finance-transactions";
-import { getPropertyById } from "~/services/properties.service";
-import { getSupplierById } from "~/services/suppliers.service";
-import { getBuyerById } from "~/services/buyers.service";
-import { getEmployeeById } from "~/services/employees.service";
-import { getServiceProviderById } from "~/services/service-providers.service";
+import { useEntityLoaders } from "~/hooks/use-entity-loaders";
 import { useAlert } from "~/hooks/use-alert";
 
 export interface EntityFinanceTabProps {
@@ -44,6 +40,14 @@ export function EntityFinanceTab({
   const [searchParams, setSearchParams] = useSearchParams();
   const { showAlert, AlertDisplay } = useAlert();
 
+  const {
+    getPropertyName: getPropertyNameFromHook,
+    getSupplierName,
+    getBuyerName,
+    getEmployeeName,
+    getServiceProviderName,
+  } = useEntityLoaders({ silentFail: true });
+
   const subTabParam = searchParams.get("subTab");
   const getInitialSubTab = (): "dashboard" | "transactions" => {
     if (subTabParam === "dashboard" || subTabParam === "transactions") {
@@ -52,16 +56,16 @@ export function EntityFinanceTab({
     return "dashboard";
   };
   const [financeSubTab, setFinanceSubTab] = useState<"dashboard" | "transactions">(
-    getInitialSubTab
+    getInitialSubTab()
   );
 
   useEffect(() => {
     const subTab = searchParams.get("subTab");
     if (subTab === "dashboard" || subTab === "transactions") {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- Syncing state with URL params is necessary
-      setFinanceSubTab((prev) => (prev === subTab ? prev : subTab));
+      setFinanceSubTab(subTab);
     } else if (subTab === null && showSubTabs) {
-      setFinanceSubTab((prev) => (prev === "dashboard" ? prev : "dashboard"));
+      setFinanceSubTab("dashboard");
     }
   }, [searchParams, showSubTabs]);
 
@@ -86,24 +90,24 @@ export function EntityFinanceTab({
     payableTransactions,
     receivableTransactions,
     getPropertyById: (id: string) => {
-      const prop = getPropertyById(id);
-      return prop ? { name: prop.name } : null;
+      const name = getPropertyNameFromHook(id);
+      return name ? { name } : null;
     },
     getSupplierById: (id: string) => {
-      const supplier = getSupplierById(id);
-      return supplier ? { name: supplier.name } : null;
+      const name = getSupplierName(id);
+      return name ? { name } : null;
     },
     getBuyerById: (id: string) => {
-      const buyer = getBuyerById(id);
-      return buyer ? { name: buyer.name } : null;
+      const name = getBuyerName(id);
+      return name ? { name } : null;
     },
     getEmployeeById: (id: string) => {
-      const employee = getEmployeeById(id);
-      return employee ? { name: employee.name } : null;
+      const name = getEmployeeName(id);
+      return name ? { name } : null;
     },
     getServiceProviderById: (id: string) => {
-      const serviceProvider = getServiceProviderById(id);
-      return serviceProvider ? { name: serviceProvider.name } : null;
+      const name = getServiceProviderName(id);
+      return name ? { name } : null;
     },
     onSuccess: (message) => {
       showAlert(message, "success");
@@ -113,14 +117,8 @@ export function EntityFinanceTab({
     },
   });
 
-  const getSubTabTranslationKeys = () => {
+  const getSubTabTranslationKeys = (): { dashboard: string; transactions: string } => {
     switch (entityType) {
-      case "employee":
-        // Employees don't have subtabs, but we provide fallback
-        return {
-          dashboard: "Dashboard",
-          transactions: "Transações",
-        };
       case "serviceProvider":
         return {
           dashboard: t.serviceProviders.details.finance.subTabs.dashboard,
@@ -135,6 +133,13 @@ export function EntityFinanceTab({
         return {
           dashboard: t.buyers.details.finance.subTabs.dashboard,
           transactions: t.buyers.details.finance.subTabs.transactions,
+        };
+      case "employee":
+      default:
+        // Employees don't have subtabs, but we provide fallback
+        return {
+          dashboard: "Dashboard",
+          transactions: "Transações",
         };
     }
   };
@@ -152,6 +157,8 @@ export function EntityFinanceTab({
     translationKeys,
   });
 
+  const getPropertyName = (propertyId: string) => getPropertyNameFromHook(propertyId);
+
   // If no subtabs, just show transactions table
   if (!showSubTabs) {
     return (
@@ -160,6 +167,7 @@ export function EntityFinanceTab({
         <FinanceTransactionsTable
           {...tableProps}
           filteredTransactions={financeTransactions.filteredTransactions}
+          getPropertyName={getPropertyName}
         />
       </>
     );
@@ -191,6 +199,7 @@ export function EntityFinanceTab({
         <FinanceTransactionsTable
           {...tableProps}
           filteredTransactions={financeTransactions.filteredTransactions}
+          getPropertyName={getPropertyName}
         />
       )}
     </div>

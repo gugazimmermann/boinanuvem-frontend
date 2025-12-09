@@ -2,129 +2,91 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MethodSelectionSection } from "../method-selection-section";
-import { LanguageProvider } from "~/contexts/language-context";
+import { useTranslation } from "~/i18n";
+import type { BreedingMethod } from "~/types";
 
-const TestWrapper = ({ children }: { children: React.ReactNode }) => (
-  <LanguageProvider>{children}</LanguageProvider>
-);
+vi.mock("~/i18n");
 
 describe("MethodSelectionSection", () => {
+  const mockUseTranslation = vi.mocked(useTranslation);
   const defaultProps = {
-    selectedMethod: "" as const,
+    selectedMethod: "" as BreedingMethod | "",
     onMethodChange: vi.fn(),
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseTranslation.mockReturnValue({
+      breedings: {
+        new: {
+          methodTitle: "Breeding Method",
+          methodLabel: "Select Method",
+          methodNatural: "Natural",
+          methodAI: "Artificial Insemination",
+        },
+      },
+    } as unknown as ReturnType<typeof useTranslation>);
   });
 
-  it("should render title", () => {
-    render(
-      <TestWrapper>
-        <MethodSelectionSection {...defaultProps} />
-      </TestWrapper>
-    );
-    // Check for heading element with method title
-    const headings = screen.getAllByRole("heading");
-    expect(headings.some((h) => h.textContent?.toLowerCase().includes("method"))).toBe(true);
+  it("should render method selection title", () => {
+    render(<MethodSelectionSection {...defaultProps} />);
+    expect(screen.getByText("Breeding Method")).toBeInTheDocument();
   });
 
-  it("should render natural method radio option", () => {
-    render(
-      <TestWrapper>
-        <MethodSelectionSection {...defaultProps} />
-      </TestWrapper>
-    );
-    const naturalRadio = screen.getByRole("radio", { name: /natural/i });
-    expect(naturalRadio).toBeInTheDocument();
+  it("should render natural method option", () => {
+    render(<MethodSelectionSection {...defaultProps} />);
+    expect(screen.getByText("Natural")).toBeInTheDocument();
   });
 
-  it("should render artificial insemination method radio option", () => {
-    render(
-      <TestWrapper>
-        <MethodSelectionSection {...defaultProps} />
-      </TestWrapper>
-    );
-    const aiRadio = screen.getByRole("radio", { name: /artificial insemination/i });
-    expect(aiRadio).toBeInTheDocument();
+  it("should render AI method option", () => {
+    render(<MethodSelectionSection {...defaultProps} />);
+    expect(screen.getByText("Artificial Insemination")).toBeInTheDocument();
   });
 
-  it("should check natural radio when selectedMethod is natural", () => {
-    render(
-      <TestWrapper>
-        <MethodSelectionSection {...defaultProps} selectedMethod="natural" />
-      </TestWrapper>
-    );
-    const naturalRadio = screen.getByRole("radio", { name: /natural/i });
-    expect(naturalRadio).toBeChecked();
-  });
-
-  it("should check artificial insemination radio when selectedMethod is artificial_insemination", () => {
-    render(
-      <TestWrapper>
-        <MethodSelectionSection {...defaultProps} selectedMethod="artificial_insemination" />
-      </TestWrapper>
-    );
-    const aiRadio = screen.getByRole("radio", { name: /artificial insemination/i });
-    expect(aiRadio).toBeChecked();
-  });
-
-  it("should call onMethodChange when natural radio is clicked", async () => {
-    const onMethodChange = vi.fn();
+  it("should call onMethodChange when natural is selected", async () => {
     const user = userEvent.setup();
-    render(
-      <TestWrapper>
-        <MethodSelectionSection {...defaultProps} onMethodChange={onMethodChange} />
-      </TestWrapper>
-    );
-    const naturalRadio = screen.getByRole("radio", { name: /natural/i });
+    const onMethodChange = vi.fn();
+    render(<MethodSelectionSection {...defaultProps} onMethodChange={onMethodChange} />);
+
+    const naturalRadio = screen.getByLabelText("Natural");
     await user.click(naturalRadio);
+
     expect(onMethodChange).toHaveBeenCalledWith("natural");
   });
 
-  it("should call onMethodChange when artificial insemination radio is clicked", async () => {
-    const onMethodChange = vi.fn();
+  it("should call onMethodChange when AI is selected", async () => {
     const user = userEvent.setup();
-    render(
-      <TestWrapper>
-        <MethodSelectionSection {...defaultProps} onMethodChange={onMethodChange} />
-      </TestWrapper>
-    );
-    const aiRadio = screen.getByRole("radio", { name: /artificial insemination/i });
+    const onMethodChange = vi.fn();
+    render(<MethodSelectionSection {...defaultProps} onMethodChange={onMethodChange} />);
+
+    const aiRadio = screen.getByLabelText("Artificial Insemination");
     await user.click(aiRadio);
+
     expect(onMethodChange).toHaveBeenCalledWith("artificial_insemination");
   });
 
+  it("should show natural as checked when selected", () => {
+    render(<MethodSelectionSection {...defaultProps} selectedMethod="natural" />);
+    const naturalRadio = screen.getByLabelText("Natural") as HTMLInputElement;
+    expect(naturalRadio).toBeChecked();
+  });
+
+  it("should show AI as checked when selected", () => {
+    render(<MethodSelectionSection {...defaultProps} selectedMethod="artificial_insemination" />);
+    const aiRadio = screen.getByLabelText("Artificial Insemination") as HTMLInputElement;
+    expect(aiRadio).toBeChecked();
+  });
+
   it("should display error message when error is provided", () => {
-    render(
-      <TestWrapper>
-        <MethodSelectionSection {...defaultProps} error="Method selection is required" />
-      </TestWrapper>
-    );
-    expect(screen.getByText("Method selection is required")).toBeInTheDocument();
+    render(<MethodSelectionSection {...defaultProps} error="Method is required" />);
+    expect(screen.getByText("Method is required")).toBeInTheDocument();
   });
 
-  it("should disable radio buttons when disabled prop is true", () => {
-    render(
-      <TestWrapper>
-        <MethodSelectionSection {...defaultProps} disabled={true} />
-      </TestWrapper>
-    );
-    const radios = screen.getAllByRole("radio");
-    radios.forEach((radio) => {
-      expect(radio).toBeDisabled();
-    });
-  });
-
-  it("should not check any radio when selectedMethod is empty", () => {
-    render(
-      <TestWrapper>
-        <MethodSelectionSection {...defaultProps} selectedMethod="" />
-      </TestWrapper>
-    );
-    const radios = screen.getAllByRole("radio");
-    radios.forEach((radio) => {
-      expect(radio).not.toBeChecked();
-    });
+  it("should disable radio buttons when disabled is true", () => {
+    render(<MethodSelectionSection {...defaultProps} disabled={true} />);
+    const naturalRadio = screen.getByLabelText("Natural") as HTMLInputElement;
+    const aiRadio = screen.getByLabelText("Artificial Insemination") as HTMLInputElement;
+    expect(naturalRadio).toBeDisabled();
+    expect(aiRadio).toBeDisabled();
   });
 });

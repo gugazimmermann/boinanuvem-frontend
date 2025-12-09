@@ -12,37 +12,44 @@ describe("AuthFooter", () => {
   });
 
   it("should render link with correct href", () => {
-    render(<AuthFooter question="Question?" linkText="Link" linkRoute="/test-route" />);
-    const link = screen.getByRole("link");
-    expect(link).toHaveAttribute("href", "/test-route");
+    render(<AuthFooter question="Have an account?" linkText="Sign in" linkRoute="/login" />);
+    const link = screen.getByText("Sign in").closest("a");
+    expect(link).toHaveAttribute("href", "/login");
   });
 
-  it("should apply correct classes to container", () => {
-    const { container } = render(<AuthFooter question="Q" linkText="L" linkRoute="/" />);
-    const footer = container.querySelector("div");
-    expect(footer).toHaveClass("flex");
-    expect(footer).toHaveClass("items-center");
-    expect(footer).toHaveClass("justify-center");
-    expect(footer).toHaveClass("py-4");
-    expect(footer).toHaveClass("text-center");
-  });
-
-  it("should apply correct classes to link", () => {
-    render(<AuthFooter question="Q" linkText="Link" linkRoute="/" />);
-    const link = screen.getByRole("link");
-    expect(link).toHaveClass("mx-2");
-    expect(link).toHaveClass("text-sm");
-    expect(link).toHaveClass("font-bold");
-    expect(link).toHaveClass("text-blue-500");
-    expect(link).toHaveClass("hover:underline");
-  });
-
-  it("should render question text with correct classes", () => {
-    const { container } = render(
-      <AuthFooter question="Test Question" linkText="Link" linkRoute="/" />
+  it("should apply correct styling classes", () => {
+    render(<AuthFooter question="Question?" linkText="Link" linkRoute="/route" />);
+    const container = screen.getByText("Question?").parentElement;
+    expect(container).toHaveClass(
+      "flex",
+      "items-center",
+      "justify-center",
+      "py-4",
+      "text-center",
+      "bg-gray-50",
+      "dark:bg-gray-900"
     );
-    const question = container.querySelector("span");
-    expect(question).toHaveClass("text-sm");
-    expect(question).toHaveClass("text-gray-600");
+
+    const link = screen.getByText("Link").closest("a");
+    expect(link).toHaveClass(
+      "mx-2",
+      "text-sm",
+      "font-bold",
+      "text-blue-500",
+      "dark:text-blue-400",
+      "hover:underline",
+      "transition-colors",
+      "cursor-pointer"
+    );
+  });
+
+  it("should render with different props", () => {
+    const { rerender } = render(<AuthFooter question="Q1?" linkText="Link1" linkRoute="/route1" />);
+    expect(screen.getByText("Q1?")).toBeInTheDocument();
+    expect(screen.getByText("Link1")).toBeInTheDocument();
+
+    rerender(<AuthFooter question="Q2?" linkText="Link2" linkRoute="/route2" />);
+    expect(screen.getByText("Q2?")).toBeInTheDocument();
+    expect(screen.getByText("Link2")).toBeInTheDocument();
   });
 });

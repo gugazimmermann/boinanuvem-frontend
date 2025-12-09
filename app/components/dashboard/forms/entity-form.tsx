@@ -226,12 +226,16 @@ export function EntityForm({
             />
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label
+                htmlFor="status-select"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >
                 {isEdit
                   ? translations.edit?.statusLabel || translations.new?.statusLabel
                   : translations.new?.statusLabel}
               </label>
               <select
+                id="status-select"
                 value={toSafeString(formData.status ?? "active")}
                 onChange={(e) => handleChange("status", e.target.value as "active" | "inactive")}
                 disabled={isSubmitting}

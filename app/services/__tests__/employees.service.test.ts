@@ -1,185 +1,114 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+
+// Create mock service using vi.hoisted to make it available in the mock factory
+const { mockService } = vi.hoisted(() => {
+  const mockService = {
+    getAll: vi.fn(),
+    getById: vi.fn(),
+    add: vi.fn(),
+    update: vi.fn(),
+    remove: vi.fn(),
+  };
+  return { mockService };
+});
+
+// Mock entity-service-factory before importing the service
+vi.mock("../entity-service-factory", () => {
+  return {
+    createEntityService: vi.fn(() => mockService),
+  };
+});
+
 import {
+  getEmployees,
   getEmployeeById,
-  getEmployeesByCompanyId,
-  getEmployeesByPropertyId,
   addEmployee,
   updateEmployee,
   deleteEmployee,
 } from "../employees.service";
-import { mockEmployees } from "~/mocks/employees";
-import type { EmployeeFormData } from "~/types";
 
 describe("employees.service", () => {
   beforeEach(() => {
-    mockEmployees.length = 0;
-    mockEmployees.push(
-      {
-        id: "employee-1",
-        companyId: "company-1",
-        propertyIds: ["property-1", "property-2"],
-        code: "EMP001",
-        name: "Employee 1",
-        email: "employee1@test.com",
-        phone: "1234567890",
-        status: "active",
-        createdAt: "2025-01-01",
-      },
-      {
-        id: "employee-2",
-        companyId: "company-1",
-        propertyIds: ["property-2"],
-        code: "EMP002",
-        name: "Employee 2",
-        email: "employee2@test.com",
-        phone: "0987654321",
-        status: "active",
-        createdAt: "2025-01-02",
-      },
-      {
-        id: "employee-3",
-        companyId: "company-2",
-        propertyIds: ["property-3"],
-        code: "EMP003",
-        name: "Employee 3",
-        email: "employee3@test.com",
-        phone: "5555555555",
-        status: "inactive",
-        createdAt: "2025-01-03",
-      }
-    );
+    vi.clearAllMocks();
+  });
+
+  describe("getEmployees", () => {
+    it("should fetch all employees", async () => {
+      const mockEmployees = [
+        { id: "1", code: "001", name: "Employee 1", status: "active", propertyIds: [] },
+      ];
+      mockService.getAll.mockResolvedValue(mockEmployees);
+
+      const result = await getEmployees();
+
+      expect(mockService.getAll).toHaveBeenCalled();
+      expect(result).toEqual(mockEmployees);
+    });
   });
 
   describe("getEmployeeById", () => {
-    it("should return employee when ID exists", () => {
-      const result = getEmployeeById("employee-1");
-      expect(result).toBeDefined();
-      expect(result?.id).toBe("employee-1");
-      expect(result?.name).toBe("Employee 1");
-    });
+    it("should fetch employee by id", async () => {
+      const mockEmployee = {
+        id: "1",
+        code: "001",
+        name: "Employee 1",
+        status: "active",
+        propertyIds: [],
+      };
+      mockService.getById.mockResolvedValue(mockEmployee);
 
-    it("should return undefined when ID does not exist", () => {
-      const result = getEmployeeById("employee-nonexistent");
-      expect(result).toBeUndefined();
-    });
+      const result = await getEmployeeById("1");
 
-    it("should return undefined when ID is undefined", () => {
-      const result = getEmployeeById(undefined);
-      expect(result).toBeUndefined();
-    });
-  });
-
-  describe("getEmployeesByCompanyId", () => {
-    it("should return all employees for a company", () => {
-      const result = getEmployeesByCompanyId("company-1");
-      expect(result).toHaveLength(2);
-      expect(result[0]?.id).toBe("employee-1");
-      expect(result[1]?.id).toBe("employee-2");
-    });
-
-    it("should return empty array when company has no employees", () => {
-      const result = getEmployeesByCompanyId("company-nonexistent");
-      expect(result).toHaveLength(0);
-    });
-  });
-
-  describe("getEmployeesByPropertyId", () => {
-    it("should return employees that have the property in propertyIds", () => {
-      const result = getEmployeesByPropertyId("property-1");
-      expect(result).toHaveLength(1);
-      expect(result[0]?.id).toBe("employee-1");
-    });
-
-    it("should return multiple employees when multiple have the property", () => {
-      const result = getEmployeesByPropertyId("property-2");
-      expect(result).toHaveLength(2);
-      expect(result.some((e) => e.id === "employee-1")).toBe(true);
-      expect(result.some((e) => e.id === "employee-2")).toBe(true);
-    });
-
-    it("should return empty array when property has no employees", () => {
-      const result = getEmployeesByPropertyId("property-nonexistent");
-      expect(result).toHaveLength(0);
+      expect(mockService.getById).toHaveBeenCalledWith("1");
+      expect(result).toEqual(mockEmployee);
     });
   });
 
   describe("addEmployee", () => {
-    it("should add a new employee with generated ID", () => {
-      const formData: EmployeeFormData = {
+    it("should create employee", async () => {
+      const formData = {
+        code: "001",
+        name: "New Employee",
+        status: "active" as const,
         companyId: "company-1",
-        propertyIds: ["property-1"],
-        code: "EMP004",
-        name: "Employee 4",
-        email: "employee4@test.com",
-        phone: "1111111111",
-        status: "active",
+        propertyIds: [],
       };
+      const mockEmployee = { id: "1", ...formData };
+      mockService.add.mockResolvedValue(mockEmployee);
 
-      const initialLength = mockEmployees.length;
-      const result = addEmployee(formData);
+      const result = await addEmployee(formData);
 
-      expect(mockEmployees).toHaveLength(initialLength + 1);
-      expect(result.id).toBeDefined();
-      expect(result.companyId).toBe("company-1");
-      expect(result.name).toBe("Employee 4");
-      expect(result.createdAt).toBeDefined();
-    });
-
-    it("should generate ID with correct prefix", () => {
-      const formData: EmployeeFormData = {
-        companyId: "company-1",
-        propertyIds: ["property-1"],
-        code: "EMP004",
-        name: "Employee 4",
-        status: "active",
-      };
-
-      const result = addEmployee(formData);
-      expect(result.id).toContain("770e8400-e29b-41d4-a716");
+      expect(mockService.add).toHaveBeenCalledWith(formData);
+      expect(result).toEqual(mockEmployee);
     });
   });
 
   describe("updateEmployee", () => {
-    it("should update employee when ID exists", () => {
-      const updateData: Partial<EmployeeFormData> = {
-        name: "Updated Employee 1",
-        email: "updated@test.com",
-      };
-
-      const result = updateEmployee("employee-1", updateData);
-      expect(result).toBe(true);
-
-      const updated = mockEmployees.find((e) => e.id === "employee-1");
-      expect(updated?.name).toBe("Updated Employee 1");
-      expect(updated?.email).toBe("updated@test.com");
-    });
-
-    it("should return false when ID does not exist", () => {
-      const updateData: Partial<EmployeeFormData> = {
+    it("should update employee", async () => {
+      const updateData = { name: "Updated Employee" };
+      const mockEmployee = {
+        id: "1",
+        code: "001",
         name: "Updated Employee",
+        status: "active",
+        propertyIds: [],
       };
+      mockService.update.mockResolvedValue(mockEmployee);
 
-      const result = updateEmployee("employee-nonexistent", updateData);
-      expect(result).toBe(false);
+      const result = await updateEmployee("1", updateData);
+
+      expect(mockService.update).toHaveBeenCalledWith("1", updateData);
+      expect(result).toEqual(mockEmployee);
     });
   });
 
   describe("deleteEmployee", () => {
-    it("should delete employee when ID exists", () => {
-      const initialLength = mockEmployees.length;
-      const result = deleteEmployee("employee-1");
+    it("should delete employee", async () => {
+      mockService.remove.mockResolvedValue(undefined);
 
-      expect(result).toBe(true);
-      expect(mockEmployees).toHaveLength(initialLength - 1);
-      expect(mockEmployees.find((e) => e.id === "employee-1")).toBeUndefined();
-    });
+      await deleteEmployee("1");
 
-    it("should return false when ID does not exist", () => {
-      const initialLength = mockEmployees.length;
-      const result = deleteEmployee("employee-nonexistent");
-
-      expect(result).toBe(false);
-      expect(mockEmployees).toHaveLength(initialLength);
+      expect(mockService.remove).toHaveBeenCalledWith("1");
     });
   });
 });

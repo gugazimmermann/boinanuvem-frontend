@@ -41,14 +41,11 @@ import {
   getAccountsPayableEditRoute,
 } from "~/routes.config";
 import { getPropertyById } from "~/services/properties.service";
-import { getLocationsByPropertyId, getLocationById } from "~/services/locations.service";
-import { getEmployeesByPropertyId, getEmployeeById } from "~/services/employees.service";
-import {
-  getServiceProvidersByPropertyId,
-  getServiceProviderById,
-} from "~/services/service-providers.service";
-import { getSuppliersByPropertyId, getSupplierById } from "~/services/suppliers.service";
-import { getBuyersByPropertyId, getBuyerById } from "~/services/buyers.service";
+import { getLocations } from "~/services/locations.service";
+import { getEmployees } from "~/services/employees.service";
+import { getServiceProviders } from "~/services/service-providers.service";
+import { getSuppliers } from "~/services/suppliers.service";
+import { getBuyers } from "~/services/buyers.service";
 import { getLocationMovementsByPropertyId } from "~/services/location-movements.service";
 import { getAnimalMovementsByPropertyId } from "~/services/animal-movements.service";
 import { getAnimalsByPropertyId, deleteAnimal, getAnimalById } from "~/services/animals.service";
@@ -141,19 +138,39 @@ function getFinanceCanDeletePermission(
   return canRemove("finances", "accountsPayable");
 }
 
-function matchesFinanceSearch(
-  transaction: UnifiedTransaction,
-  searchLower: string,
-  formatCurrency: (value: number) => string,
-  t: {
+interface MatchesFinanceSearchOptions {
+  readonly searchLower: string;
+  readonly formatCurrency: (value: number) => string;
+  readonly t: {
     cashFlow: {
       categories: Record<string, string>;
       paymentMethods: Record<string, string>;
     };
-  }
+  };
+  readonly getPropertyName: (id: string) => string | undefined;
+  readonly getSupplierName: (id: string) => string | undefined;
+  readonly getBuyerName: (id: string) => string | undefined;
+  readonly getEmployeeName: (id: string) => string | undefined;
+  readonly getServiceProviderName: (id: string) => string | undefined;
+}
+
+function matchesFinanceSearch(
+  transaction: UnifiedTransaction,
+  options: MatchesFinanceSearchOptions
 ): boolean {
-  const property = transaction.propertyId ? getPropertyById(transaction.propertyId) : null;
-  const propertyName = property?.name?.toLowerCase() || "";
+  const {
+    searchLower,
+    formatCurrency,
+    t,
+    getPropertyName,
+    getSupplierName,
+    getBuyerName,
+    getEmployeeName,
+    getServiceProviderName,
+  } = options;
+  const propertyName = transaction.propertyId
+    ? getPropertyName(transaction.propertyId)?.toLowerCase() || ""
+    : "";
   const category = transaction.category
     ? t.cashFlow.categories[transaction.category]?.toLowerCase() || ""
     : "";
@@ -163,16 +180,16 @@ function matchesFinanceSearch(
   const amount = formatCurrency(transaction.amount).toLowerCase();
 
   const supplierName = transaction.supplierId
-    ? getSupplierById(transaction.supplierId)?.name?.toLowerCase() || ""
+    ? getSupplierName(transaction.supplierId)?.toLowerCase() || ""
     : "";
   const buyerName = transaction.buyerId
-    ? getBuyerById(transaction.buyerId)?.name?.toLowerCase() || ""
+    ? getBuyerName(transaction.buyerId)?.toLowerCase() || ""
     : "";
   const employeeName = transaction.employeeId
-    ? getEmployeeById(transaction.employeeId)?.name?.toLowerCase() || ""
+    ? getEmployeeName(transaction.employeeId)?.toLowerCase() || ""
     : "";
   const serviceProviderName = transaction.serviceProviderId
-    ? getServiceProviderById(transaction.serviceProviderId)?.name?.toLowerCase() || ""
+    ? getServiceProviderName(transaction.serviceProviderId)?.toLowerCase() || ""
     : "";
 
   return (
@@ -219,7 +236,10 @@ function filterMovementsBySearch(
   movements: UnifiedMovement[],
   searchValue: string,
   formatDate: (dateString: string) => string,
-  movementTypes: Record<string, string>
+  movementTypes: Record<string, string>,
+  locations: Location[],
+  employees: Employee[],
+  serviceProviders: ServiceProvider[]
 ): UnifiedMovement[] {
   if (!searchValue) return movements;
 
@@ -246,7 +266,7 @@ function filterMovementsBySearch(
         : [(movement as AnimalMovement).locationId];
     const locationNames = locationIds
       .map((id) => {
-        const location = getLocationById(id);
+        const location = locations.find((l) => l.id === id);
         return location ? `${location.name} ${location.code}`.toLowerCase() : id.toLowerCase();
       })
       .join(" ");
@@ -265,7 +285,7 @@ function filterMovementsBySearch(
 
     const employeeNames = movement.employeeIds
       .map((id) => {
-        const employee = getEmployeeById(id);
+        const employee = employees.find((e) => e.id === id);
         return employee ? employee.name.toLowerCase() : "";
       })
       .filter((name) => name !== "")
@@ -274,7 +294,7 @@ function filterMovementsBySearch(
 
     const providerNames = movement.serviceProviderIds
       .map((id) => {
-        const provider = getServiceProviderById(id);
+        const provider = serviceProviders.find((sp) => sp.id === id);
         return provider ? provider.name.toLowerCase() : "";
       })
       .filter((name) => name !== "")
@@ -287,7 +307,11 @@ function filterMovementsBySearch(
 
 type MovementSortValue = string | number | undefined;
 
-function getMovementSortValue(item: UnifiedMovement, column: string): MovementSortValue {
+function getMovementSortValue(
+  item: UnifiedMovement,
+  column: string,
+  locations: Location[]
+): MovementSortValue {
   if (column === "date") {
     return new Date(item.date).getTime();
   } else if (column === "locations") {
@@ -297,7 +321,7 @@ function getMovementSortValue(item: UnifiedMovement, column: string): MovementSo
         : [(item as AnimalMovement).locationId];
     const locationNames = locationIds
       .map((id) => {
-        const location = getLocationById(id);
+        const location = locations.find((l) => l.id === id);
         return location ? `${location.name} (${location.code})` : id;
       })
       .toSorted((a, b) => a.localeCompare(b))
@@ -637,7 +661,7 @@ function sortAnimals(
 }
 
 type PropertyInformationTabProps = Readonly<{
-  property: NonNullable<ReturnType<typeof getPropertyById>>;
+  property: Property;
   locationsCount: number;
   animalsCount: number;
   animalUnits: number;
@@ -651,6 +675,10 @@ type PropertyInformationTabProps = Readonly<{
   formatDate: (dateString: string) => string;
   navigate: (path: string) => void;
   t: ReturnType<typeof useTranslation>;
+  employees: Employee[];
+  serviceProviders: ServiceProvider[];
+  suppliers: Supplier[];
+  buyers: Buyer[];
 }>;
 
 function PropertyInformationTab({
@@ -668,6 +696,10 @@ function PropertyInformationTab({
   formatDate: _formatDate,
   navigate,
   t,
+  employees,
+  serviceProviders,
+  suppliers,
+  buyers,
 }: PropertyInformationTabProps) {
   return (
     <div className="space-y-8">
@@ -854,10 +886,16 @@ function PropertyInformationTab({
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {(() => {
-            const employees = getEmployeesByPropertyId(property.id);
-            const serviceProviders = getServiceProvidersByPropertyId(property.id);
-            const suppliers = getSuppliersByPropertyId(property.id);
-            const buyers = getBuyersByPropertyId(property.id);
+            const propertyEmployees = employees.filter((emp) =>
+              emp.propertyIds?.includes(property.id)
+            );
+            const propertyServiceProviders = serviceProviders.filter((sp) =>
+              sp.propertyIds?.includes(property.id)
+            );
+            const propertySuppliers = suppliers.filter((sup) =>
+              sup.propertyIds?.includes(property.id)
+            );
+            const propertyBuyers = buyers.filter((buy) => buy.propertyIds?.includes(property.id));
 
             return (
               <>
@@ -868,7 +906,7 @@ function PropertyInformationTab({
                         {t.properties.details.tabs.employees}
                       </p>
                       <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                        {employees.length}
+                        {propertyEmployees.length}
                       </p>
                     </div>
                     <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
@@ -884,7 +922,7 @@ function PropertyInformationTab({
                         {t.properties.details.tabs.serviceProviders}
                       </p>
                       <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                        {serviceProviders.length}
+                        {propertyServiceProviders.length}
                       </p>
                     </div>
                     <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
@@ -900,7 +938,7 @@ function PropertyInformationTab({
                         {t.properties.details.tabs.suppliers}
                       </p>
                       <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                        {suppliers.length}
+                        {propertySuppliers.length}
                       </p>
                     </div>
                     <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
@@ -916,7 +954,7 @@ function PropertyInformationTab({
                         {t.properties.details.tabs.buyers}
                       </p>
                       <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                        {buyers.length}
+                        {propertyBuyers.length}
                       </p>
                     </div>
                     <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
@@ -1015,7 +1053,68 @@ export default function PropertyDetails() {
   const { language } = useLanguage();
   const { canEdit, canRemove, isMainUser } = usePermissions();
   const [searchParams, setSearchParams] = useSearchParams();
-  const property = getPropertyById(propertyId);
+  const [property, setProperty] = useState<Property | null>(null);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [serviceProviders, setServiceProviders] = useState<ServiceProvider[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [buyers, setBuyers] = useState<Buyer[]>([]);
+  const [isLoadingProperty, setIsLoadingProperty] = useState(true);
+  const { showAlert, AlertDisplay } = useAlert();
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!propertyId) {
+        setIsLoadingProperty(false);
+        return;
+      }
+
+      try {
+        setIsLoadingProperty(true);
+        const [
+          propertyData,
+          locationsData,
+          employeesData,
+          serviceProvidersData,
+          suppliersData,
+          buyersData,
+        ] = await Promise.all([
+          getPropertyById(propertyId),
+          getLocations(),
+          getEmployees(),
+          getServiceProviders(),
+          getSuppliers(),
+          getBuyers(),
+        ]);
+        setProperty(propertyData);
+        setLocations(locationsData);
+        setEmployees(employeesData);
+        setServiceProviders(serviceProvidersData);
+        setSuppliers(suppliersData);
+        setBuyers(buyersData);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : t.properties.errors.loadFailed;
+        showAlert(errorMessage, "error");
+        console.error("Failed to load data:", error);
+        setTimeout(() => {
+          navigate(ROUTES.PROPERTIES);
+        }, 2000);
+      } finally {
+        setIsLoadingProperty(false);
+      }
+    };
+
+    fetchData();
+  }, [propertyId, navigate, showAlert, t]);
+
+  const suppliersMap = useMemo(() => new Map(suppliers.map((s) => [s.id, s])), [suppliers]);
+  const buyersMap = useMemo(() => new Map(buyers.map((b) => [b.id, b])), [buyers]);
+  const employeesMap = useMemo(() => new Map(employees.map((e) => [e.id, e])), [employees]);
+  const serviceProvidersMap = useMemo(
+    () => new Map(serviceProviders.map((sp) => [sp.id, sp])),
+    [serviceProviders]
+  );
 
   const tabParam = searchParams.get("tab");
   const subTabParam = searchParams.get("subTab");
@@ -1061,7 +1160,6 @@ export default function PropertyDetails() {
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
   const [selectedAnimals, setSelectedAnimals] = useState<Set<string>>(new Set());
   const [isAnimalRegistrationModalOpen, setIsAnimalRegistrationModalOpen] = useState(false);
-  const { showAlert, AlertDisplay } = useAlert();
 
   // Finance transaction handlers - must be called at component level
   const cashFlowTransactions = property ? getCashFlowByPropertyId(property.id) : [];
@@ -1085,7 +1183,6 @@ export default function PropertyDetails() {
   const expectedBirthsForecast = useMemo(() => {
     if (!property) return { monthly: [], total: 0 };
     return getExpectedBirthsForecast(property.id, { isPropertyId: true, monthsAhead: 9 });
-    // eslint-disable-next-line react-hooks/preserve-manual-memoization -- property is from props and stable
   }, [property]);
 
   const nextMonthExpected = useMemo(() => {
@@ -1095,7 +1192,6 @@ export default function PropertyDetails() {
   const dateLocale = useDateLocale();
   const localeForDateTime = getLocaleForLanguage(language as string);
 
-  const locations = property ? getLocationsByPropertyId(property.id) : [];
   const locationsCount = locations.length;
   const allPropertyAnimals = property ? getAnimalsByPropertyId(property.id) : [];
   const propertyAnimals = allPropertyAnimals.filter((animal) => animal.status === "active");
@@ -1104,7 +1200,6 @@ export default function PropertyDetails() {
   const propertyStats = useMemo(() => {
     if (!property) return null;
     return calculatePropertyStats(propertyAnimals, property, animalsCount);
-    // eslint-disable-next-line react-hooks/preserve-manual-memoization -- property is from props and stable
   }, [propertyAnimals, property, animalsCount]);
 
   const handleDeleteAnimal = useMemo(
@@ -1118,6 +1213,16 @@ export default function PropertyDetails() {
       ),
     [selectedAnimal, setSelectedAnimal, setIsDeleteAnimalModalOpen, showAlert, t]
   );
+
+  if (isLoadingProperty) {
+    return (
+      <div className="space-y-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+          <p className="text-gray-600 dark:text-gray-400 mb-4">{t.common.loading}</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!property) {
     return (
@@ -1318,6 +1423,10 @@ export default function PropertyDetails() {
           formatDate={formatDate}
           navigate={navigate}
           t={t}
+          employees={employees}
+          serviceProviders={serviceProviders}
+          suppliers={suppliers}
+          buyers={buyers}
         />
       )}
 
@@ -1715,9 +1824,9 @@ export default function PropertyDetails() {
       {activeTab === "locations" &&
         property &&
         (() => {
-          const locations = getLocationsByPropertyId(property.id);
+          const propertyLocations = locations.filter((loc) => loc.propertyId === property.id);
 
-          const locationsArray = [...locations];
+          const locationsArray = [...propertyLocations];
           const sortedLocations = locationsArray.toSorted((a, b) => {
             if (!sortState.column || !sortState.direction) {
               return 0;
@@ -1880,9 +1989,11 @@ export default function PropertyDetails() {
 
           {registrationsSubTab === "employees" &&
             (() => {
-              const employees = getEmployeesByPropertyId(property.id);
+              const propertyEmployees = employees.filter((emp) =>
+                emp.propertyIds?.includes(property.id)
+              );
 
-              const employeesArray = [...employees];
+              const employeesArray = [...propertyEmployees];
               const sortedEmployees = employeesArray.toSorted((a, b) => {
                 if (!sortState.column || !sortState.direction) {
                   return 0;
@@ -2000,9 +2111,11 @@ export default function PropertyDetails() {
 
           {registrationsSubTab === "serviceProviders" &&
             (() => {
-              const serviceProviders = getServiceProvidersByPropertyId(property.id);
+              const propertyServiceProviders = serviceProviders.filter((sp) =>
+                sp.propertyIds?.includes(property.id)
+              );
 
-              const serviceProvidersArray = [...serviceProviders];
+              const serviceProvidersArray = [...propertyServiceProviders];
               const sortedServiceProviders = serviceProvidersArray.toSorted((a, b) => {
                 if (!sortState.column || !sortState.direction) {
                   return 0;
@@ -2122,9 +2235,11 @@ export default function PropertyDetails() {
 
           {registrationsSubTab === "suppliers" &&
             (() => {
-              const suppliers = getSuppliersByPropertyId(property.id);
+              const propertySuppliers = suppliers.filter((sup) =>
+                sup.propertyIds?.includes(property.id)
+              );
 
-              const suppliersArray = [...suppliers];
+              const suppliersArray = [...propertySuppliers];
               const sortedSuppliers = suppliersArray.toSorted((a, b) => {
                 if (!sortState.column || !sortState.direction) {
                   return 0;
@@ -2244,9 +2359,9 @@ export default function PropertyDetails() {
 
           {registrationsSubTab === "buyers" &&
             (() => {
-              const buyers = getBuyersByPropertyId(property.id);
+              const propertyBuyers = buyers.filter((buy) => buy.propertyIds?.includes(property.id));
 
-              const buyersArray = [...buyers];
+              const buyersArray = [...propertyBuyers];
               const sortedBuyers = buyersArray.toSorted((a, b) => {
                 if (!sortState.column || !sortState.direction) {
                   return 0;
@@ -2430,13 +2545,16 @@ export default function PropertyDetails() {
             movements,
             searchValue,
             formatDate,
-            t.properties.details.movements.types
+            t.properties.details.movements.types,
+            locations,
+            employees,
+            serviceProviders
           );
 
           const sortedMovements = sortItems({
             items: filteredMovements,
             sortState,
-            getValue: getMovementSortValue,
+            getValue: (item, column) => getMovementSortValue(item, column, locations),
             defaultSortColumn: "date",
             defaultSortDirection: "desc",
           });
@@ -2460,15 +2578,15 @@ export default function PropertyDetails() {
               types: t.properties.details.movements.types as Record<string, string>,
             },
             getLocationById: (id: string) => {
-              const location = getLocationById(id);
+              const location = locations.find((l) => l.id === id);
               return location ? { name: location.name, code: location.code } : null;
             },
             getEmployeeById: (id: string) => {
-              const employee = getEmployeeById(id);
+              const employee = employees.find((e) => e.id === id);
               return employee ? { name: employee.name } : null;
             },
             getServiceProviderById: (id: string) => {
-              const serviceProvider = getServiceProviderById(id);
+              const serviceProvider = serviceProviders.find((sp) => sp.id === id);
               return serviceProvider ? { name: serviceProvider.name } : null;
             },
             getAnimalById: (id: string) => {
@@ -2715,14 +2833,25 @@ export default function PropertyDetails() {
                     }).format(value);
                   };
 
+                  const getPropertyName = (id: string) =>
+                    property?.id === id ? property.name : undefined;
+                  const getSupplierName = (id: string) => suppliersMap.get(id)?.name;
+                  const getBuyerName = (id: string) => buyersMap.get(id)?.name;
+                  const getEmployeeName = (id: string) => employeesMap.get(id)?.name;
+                  const getServiceProviderName = (id: string) => serviceProvidersMap.get(id)?.name;
+
                   const filteredFinanceData = allTransactions.filter((transaction) => {
                     const matchesSearch = financeSearchValue
-                      ? matchesFinanceSearch(
-                          transaction,
-                          financeSearchValue.toLowerCase(),
+                      ? matchesFinanceSearch(transaction, {
+                          searchLower: financeSearchValue.toLowerCase(),
                           formatCurrency,
-                          t
-                        )
+                          t,
+                          getPropertyName,
+                          getSupplierName,
+                          getBuyerName,
+                          getEmployeeName,
+                          getServiceProviderName,
+                        })
                       : true;
 
                     const matchesFilter = matchesFinanceFilters(

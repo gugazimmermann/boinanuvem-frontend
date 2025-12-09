@@ -16,8 +16,6 @@ import { ResponsibleSelectionSection } from "~/components/dashboard/shared";
 import { ROUTES } from "~/routes.config";
 import { addWeighing, getWeighingsByAnimalId } from "~/services/weighings.service";
 import { getAnimalsByCompanyId, getAnimalById } from "~/services/animals.service";
-import { getEmployeeById } from "~/services/employees.service";
-import { getServiceProviderById } from "~/services/service-providers.service";
 import {
   getInventoryItemsByCategory,
   getInventoryItemById,
@@ -28,10 +26,9 @@ import { getAnimalMovementsByAnimalId } from "~/services/animal-movements.servic
 import type { WeighingFormData, Weighing, InventoryItem } from "~/types";
 import { InventoryItemCategory, InventoryMovementType } from "~/types";
 import { mockCompanies } from "~/mocks/companies";
-import { mockEmployees } from "~/mocks/employees";
-import { mockServiceProviders } from "~/mocks/service-providers";
 import { useAlert } from "~/hooks/use-alert";
 import { getUnitLabel } from "~/utils/inventory-utils";
+import { useResponsibleEntities } from "~/hooks/use-responsible-entities";
 
 export async function loader({ request }: { request: Request }) {
   const { createRouteGuard } = await import("~/utils/route-guard");
@@ -59,14 +56,7 @@ export default function NewWeighing() {
   const [animalSearch, setAnimalSearch] = useState("");
 
   const animals = useMemo(() => getAnimalsByCompanyId(companyId), [companyId]);
-  const employees = useMemo(
-    () => mockEmployees.filter((e) => e.companyId === companyId),
-    [companyId]
-  );
-  const serviceProviders = useMemo(
-    () => mockServiceProviders.filter((sp) => sp.companyId === companyId),
-    [companyId]
-  );
+  const { employees, serviceProviders } = useResponsibleEntities({ companyId });
 
   const filteredAnimals = useMemo(() => {
     if (!animalSearch.trim()) return animals;
@@ -112,19 +102,26 @@ export default function NewWeighing() {
   const [selectedMedicineId, setSelectedMedicineId] = useState<string>("");
   const itemsPerPage = 20;
 
+  const formatResponsibleNames = useCallback(
+    (employeeIds: string[], serviceProviderIds: string[]) => {
+      const getEmployeeName = (id: string) => employees.find((e) => e.id === id)?.name;
+      const getServiceProviderName = (id: string) =>
+        serviceProviders.find((sp) => sp.id === id)?.name;
+      const employeeNames = employeeIds.map(getEmployeeName).filter(Boolean).join(", ");
+      const serviceProviderNames = serviceProviderIds
+        .map(getServiceProviderName)
+        .filter(Boolean)
+        .join(", ");
+      return [employeeNames, serviceProviderNames].filter(Boolean).join(", ");
+    },
+    [employees, serviceProviders]
+  );
+
   const filteredWeighings = useMemo(() => {
     if (!sessionSearch.trim()) return sessionWeighings;
     const searchLower = sessionSearch.toLowerCase();
     return sessionWeighings.filter((w) => {
-      const employeeNames = w.employeeIds
-        .map((id) => getEmployeeById(id)?.name)
-        .filter(Boolean)
-        .join(", ");
-      const serviceProviderNames = w.serviceProviderIds
-        .map((id) => getServiceProviderById(id)?.name)
-        .filter(Boolean)
-        .join(", ");
-      const responsible = [employeeNames, serviceProviderNames].filter(Boolean).join(", ");
+      const responsible = formatResponsibleNames(w.employeeIds, w.serviceProviderIds);
 
       return (
         w.animalCode.toLowerCase().includes(searchLower) ||
@@ -134,7 +131,7 @@ export default function NewWeighing() {
         (w.observation?.toLowerCase().includes(searchLower) ?? false)
       );
     });
-  }, [sessionWeighings, sessionSearch]);
+  }, [sessionWeighings, sessionSearch, formatResponsibleNames]);
 
   const getPreviousWeighing = useCallback((weighing: WeighingSessionItem): Weighing | null => {
     const allWeighings = getWeighingsByAnimalId(weighing.animalId);
@@ -159,15 +156,11 @@ export default function NewWeighing() {
     [getPreviousWeighing]
   );
 
-  const getResponsibleNames = useCallback((weighing: WeighingSessionItem): string => {
-    const employeeNames = weighing.employeeIds
-      .map((id) => getEmployeeById(id)?.name || "")
-      .join(", ");
-    const serviceProviderNames = weighing.serviceProviderIds
-      .map((id) => getServiceProviderById(id)?.name || "")
-      .join(", ");
-    return [employeeNames, serviceProviderNames].filter(Boolean).join(", ");
-  }, []);
+  const getResponsibleNames = useCallback(
+    (weighing: WeighingSessionItem): string =>
+      formatResponsibleNames(weighing.employeeIds, weighing.serviceProviderIds),
+    [formatResponsibleNames]
+  );
 
   const getSortValue = useCallback(
     (weighing: WeighingSessionItem, column: string): string | number => {
@@ -343,15 +336,7 @@ export default function NewWeighing() {
         label: t.weighings.new.responsible,
         sortable: true,
         render: (_value, weighing) => {
-          const employeeNames = weighing.employeeIds
-            .map((id) => getEmployeeById(id)?.name)
-            .filter(Boolean)
-            .join(", ");
-          const serviceProviderNames = weighing.serviceProviderIds
-            .map((id) => getServiceProviderById(id)?.name)
-            .filter(Boolean)
-            .join(", ");
-          const responsible = [employeeNames, serviceProviderNames].filter(Boolean).join(", ");
+          const responsible = getResponsibleNames(weighing);
           return <span className="text-gray-700 dark:text-gray-300">{responsible || "-"}</span>;
         },
       },
@@ -366,7 +351,7 @@ export default function NewWeighing() {
         ),
       },
     ],
-    [t]
+    [t, getResponsibleNames]
   );
 
   const availableMedicines = useMemo(() => {

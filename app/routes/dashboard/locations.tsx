@@ -1,12 +1,12 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { TableActionButtons, type TableColumn } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
-import { mockLocations } from "~/mocks/locations";
-import { deleteLocation } from "~/services/locations.service";
-import type { Location } from "~/types";
-import { getPropertyById } from "~/services/properties.service";
+import { getLocations, deleteLocation } from "~/services/locations.service";
+import { useAlert } from "~/hooks/use-alert";
+import type { Location, Property } from "~/types";
+import { getProperties } from "~/services/properties.service";
 import { ROUTES, getLocationEditRoute, getLocationViewRoute } from "~/routes.config";
 import { LocationTypeBadge } from "~/components/dashboard/utils/location-type-badge";
 import { getLocationMovementsByLocationId } from "~/services/location-movements.service";
@@ -35,7 +35,32 @@ export default function Locations() {
   const { language } = useLanguage();
   const navigate = useNavigate();
   const { canEdit, canRemove } = usePermissions();
-  const [locations, setLocations] = useState<Location[]>([...mockLocations]);
+  const { showAlert } = useAlert();
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const [locationsData, propertiesData] = await Promise.all([
+          getLocations(),
+          getProperties(),
+        ]);
+        setLocations(locationsData);
+        setProperties(propertiesData);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : t.locations.errors.loadFailed;
+        showAlert(errorMessage, "error");
+        console.error("Failed to load data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [showAlert, t]);
 
   const columns: TableColumn<Location>[] = useMemo(
     () => [
@@ -45,7 +70,7 @@ export default function Locations() {
         label: t.locations.table.property,
         sortable: true,
         render: (_, row) => {
-          const property = getPropertyById(row.propertyId);
+          const property = properties.find((p) => p.id === row.propertyId);
           return <span className="text-gray-700 dark:text-gray-300">{property?.name || "-"}</span>;
         },
       },
@@ -95,7 +120,7 @@ export default function Locations() {
         ),
       },
     ],
-    [t, language, navigate, canEdit, canRemove]
+    [t, language, navigate, canEdit, canRemove, properties]
   );
 
   const filterOptions = useMemo(
@@ -123,13 +148,19 @@ export default function Locations() {
       addButtonLabel={t.locations.addLocation}
       newRoute={ROUTES.LOCATIONS_NEW}
       viewRoute={getLocationViewRoute}
-      deleteService={(location) => {
-        const success = deleteLocation(location.id);
-        if (success) {
+      deleteService={async (location) => {
+        try {
+          await deleteLocation(location.id);
           setLocations(locations.filter((l) => l.id !== location.id));
+          return true;
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : t.locations.errors.deleteFailed;
+          showAlert(errorMessage, "error");
+          return false;
         }
-        return success;
       }}
+      isLoading={isLoading}
       deleteSuccessMessage={t.locations.success.deleted}
       deleteErrorMessage={t.locations.errors.deleteFailed}
       deleteModalTitle={t.locations.deleteModal.title}
@@ -143,7 +174,10 @@ export default function Locations() {
       permissionResource="location"
       language={language}
       initialSortColumn="name"
-      searchFields={["name", (location) => getPropertyById(location.propertyId)?.name || ""]}
+      searchFields={[
+        "name",
+        (location) => properties.find((p) => p.id === location.propertyId)?.name || "",
+      ]}
       filterOptions={filterOptions}
     />
   );

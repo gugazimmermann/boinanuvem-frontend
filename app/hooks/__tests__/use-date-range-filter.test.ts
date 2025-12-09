@@ -1,13 +1,9 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useDateRangeFilter } from "../use-date-range-filter";
 
 describe("useDateRangeFilter", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it("should initialize with empty dates", () => {
+  it("should initialize with empty dates by default", () => {
     const { result } = renderHook(() => useDateRangeFilter());
 
     expect(result.current.startDate).toBe("");
@@ -30,7 +26,7 @@ describe("useDateRangeFilter", () => {
     expect(result.current.endDate).toBe("2024-01-31");
   });
 
-  it("should update start date", () => {
+  it("should update start date when setStartDate is called", () => {
     const { result } = renderHook(() => useDateRangeFilter());
 
     act(() => {
@@ -41,7 +37,7 @@ describe("useDateRangeFilter", () => {
     expect(result.current.dateRange.startDate).toBe("2024-01-15");
   });
 
-  it("should update end date", () => {
+  it("should update end date when setEndDate is called", () => {
     const { result } = renderHook(() => useDateRangeFilter());
 
     act(() => {
@@ -52,51 +48,12 @@ describe("useDateRangeFilter", () => {
     expect(result.current.dateRange.endDate).toBe("2024-01-31");
   });
 
-  it("should call onDateRangeChange when start date changes", () => {
-    const mockOnDateRangeChange = vi.fn();
-
+  it("should call onDateRangeChange callback when start date changes", () => {
+    const onDateRangeChange = vi.fn();
     const { result } = renderHook(() =>
       useDateRangeFilter({
-        onDateRangeChange: mockOnDateRangeChange,
-      })
-    );
-
-    act(() => {
-      result.current.setStartDate("2024-01-15");
-    });
-
-    expect(mockOnDateRangeChange).toHaveBeenCalledWith({
-      startDate: "2024-01-15",
-      endDate: "",
-    });
-  });
-
-  it("should call onDateRangeChange when end date changes", () => {
-    const mockOnDateRangeChange = vi.fn();
-
-    const { result } = renderHook(() =>
-      useDateRangeFilter({
-        onDateRangeChange: mockOnDateRangeChange,
-      })
-    );
-
-    act(() => {
-      result.current.setEndDate("2024-01-31");
-    });
-
-    expect(mockOnDateRangeChange).toHaveBeenCalledWith({
-      startDate: "",
-      endDate: "2024-01-31",
-    });
-  });
-
-  it("should include existing end date when start date changes", () => {
-    const mockOnDateRangeChange = vi.fn();
-
-    const { result } = renderHook(() =>
-      useDateRangeFilter({
+        onDateRangeChange,
         initialEndDate: "2024-01-31",
-        onDateRangeChange: mockOnDateRangeChange,
       })
     );
 
@@ -104,19 +61,18 @@ describe("useDateRangeFilter", () => {
       result.current.setStartDate("2024-01-15");
     });
 
-    expect(mockOnDateRangeChange).toHaveBeenCalledWith({
+    expect(onDateRangeChange).toHaveBeenCalledWith({
       startDate: "2024-01-15",
       endDate: "2024-01-31",
     });
   });
 
-  it("should include existing start date when end date changes", () => {
-    const mockOnDateRangeChange = vi.fn();
-
+  it("should call onDateRangeChange callback when end date changes", () => {
+    const onDateRangeChange = vi.fn();
     const { result } = renderHook(() =>
       useDateRangeFilter({
+        onDateRangeChange,
         initialStartDate: "2024-01-01",
-        onDateRangeChange: mockOnDateRangeChange,
       })
     );
 
@@ -124,20 +80,17 @@ describe("useDateRangeFilter", () => {
       result.current.setEndDate("2024-01-31");
     });
 
-    expect(mockOnDateRangeChange).toHaveBeenCalledWith({
+    expect(onDateRangeChange).toHaveBeenCalledWith({
       startDate: "2024-01-01",
       endDate: "2024-01-31",
     });
   });
 
-  it("should clear date range", () => {
-    const mockOnDateRangeChange = vi.fn();
-
+  it("should clear both dates when clearDateRange is called", () => {
     const { result } = renderHook(() =>
       useDateRangeFilter({
         initialStartDate: "2024-01-01",
         initialEndDate: "2024-01-31",
-        onDateRangeChange: mockOnDateRangeChange,
       })
     );
 
@@ -147,119 +100,126 @@ describe("useDateRangeFilter", () => {
 
     expect(result.current.startDate).toBe("");
     expect(result.current.endDate).toBe("");
-    expect(mockOnDateRangeChange).toHaveBeenCalledWith({
-      startDate: "",
-      endDate: "",
-    });
   });
 
-  it("should not call onDateRangeChange when not provided", () => {
-    const { result } = renderHook(() => useDateRangeFilter());
-
-    act(() => {
-      result.current.setStartDate("2024-01-15");
-    });
-
-    expect(result.current.startDate).toBe("2024-01-15");
-  });
-
-  it("should match date range when both dates are empty", () => {
-    const { result } = renderHook(() => useDateRangeFilter());
-
-    expect(result.current.matchesDateRange("2024-01-15")).toBe(true);
-  });
-
-  it("should match date range when date is within range", () => {
+  it("should call onDateRangeChange when clearDateRange is called", () => {
+    const onDateRangeChange = vi.fn();
     const { result } = renderHook(() =>
       useDateRangeFilter({
+        onDateRangeChange,
         initialStartDate: "2024-01-01",
         initialEndDate: "2024-01-31",
       })
     );
 
-    expect(result.current.matchesDateRange("2024-01-15")).toBe(true);
-    expect(result.current.matchesDateRange("2024-01-01")).toBe(true);
-    expect(result.current.matchesDateRange("2024-01-31")).toBe(true);
-  });
-
-  it("should not match date range when date is before start date", () => {
-    const { result } = renderHook(() =>
-      useDateRangeFilter({
-        initialStartDate: "2024-01-15",
-      })
-    );
-
-    expect(result.current.matchesDateRange("2024-01-14")).toBe(false);
-    expect(result.current.matchesDateRange("2024-01-01")).toBe(false);
-  });
-
-  it("should not match date range when date is after end date", () => {
-    const { result } = renderHook(() =>
-      useDateRangeFilter({
-        initialEndDate: "2024-01-31",
-      })
-    );
-
-    expect(result.current.matchesDateRange("2024-02-01")).toBe(false);
-    expect(result.current.matchesDateRange("2024-12-31")).toBe(false);
-  });
-
-  it("should match date range when only start date is set", () => {
-    const { result } = renderHook(() =>
-      useDateRangeFilter({
-        initialStartDate: "2024-01-15",
-      })
-    );
-
-    expect(result.current.matchesDateRange("2024-01-15")).toBe(true);
-    expect(result.current.matchesDateRange("2024-01-20")).toBe(true);
-    expect(result.current.matchesDateRange("2024-12-31")).toBe(true);
-  });
-
-  it("should match date range when only end date is set", () => {
-    const { result } = renderHook(() =>
-      useDateRangeFilter({
-        initialEndDate: "2024-01-31",
-      })
-    );
-
-    expect(result.current.matchesDateRange("2024-01-01")).toBe(true);
-    expect(result.current.matchesDateRange("2024-01-31")).toBe(true);
-    expect(result.current.matchesDateRange("2024-01-15")).toBe(true);
-  });
-
-  it("should handle date with time correctly", () => {
-    const { result } = renderHook(() =>
-      useDateRangeFilter({
-        initialStartDate: "2024-01-15",
-        initialEndDate: "2024-01-31",
-      })
-    );
-
-    expect(result.current.matchesDateRange("2024-01-20T10:30:00Z")).toBe(true);
-    expect(result.current.matchesDateRange("2024-01-15T23:59:59Z")).toBe(true);
-    expect(result.current.matchesDateRange("2024-01-31T00:00:00Z")).toBe(true);
-  });
-
-  it("should update dateRange memo when dates change", () => {
-    const { result } = renderHook(() => useDateRangeFilter());
-
     act(() => {
-      result.current.setStartDate("2024-01-01");
+      result.current.clearDateRange();
     });
 
-    expect(result.current.dateRange).toEqual({
-      startDate: "2024-01-01",
+    expect(onDateRangeChange).toHaveBeenCalledWith({
+      startDate: "",
       endDate: "",
     });
+  });
 
-    act(() => {
-      result.current.setEndDate("2024-01-31");
+  describe("matchesDateRange", () => {
+    it("should return true when no dates are set", () => {
+      const { result } = renderHook(() => useDateRangeFilter());
+
+      expect(result.current.matchesDateRange("2024-01-15")).toBe(true);
     });
 
-    expect(result.current.dateRange).toEqual({
-      startDate: "2024-01-01",
-      endDate: "2024-01-31",
+    it("should return true when date is within range", () => {
+      const { result } = renderHook(() =>
+        useDateRangeFilter({
+          initialStartDate: "2024-01-01",
+          initialEndDate: "2024-01-31",
+        })
+      );
+
+      expect(result.current.matchesDateRange("2024-01-15")).toBe(true);
+    });
+
+    it("should return true when date equals start date", () => {
+      const { result } = renderHook(() =>
+        useDateRangeFilter({
+          initialStartDate: "2024-01-15",
+          initialEndDate: "2024-01-31",
+        })
+      );
+
+      expect(result.current.matchesDateRange("2024-01-15")).toBe(true);
+    });
+
+    it("should return true when date equals end date", () => {
+      const { result } = renderHook(() =>
+        useDateRangeFilter({
+          initialStartDate: "2024-01-01",
+          initialEndDate: "2024-01-31",
+        })
+      );
+
+      expect(result.current.matchesDateRange("2024-01-31")).toBe(true);
+    });
+
+    it("should return false when date is before start date", () => {
+      const { result } = renderHook(() =>
+        useDateRangeFilter({
+          initialStartDate: "2024-01-15",
+          initialEndDate: "2024-01-31",
+        })
+      );
+
+      expect(result.current.matchesDateRange("2024-01-10")).toBe(false);
+    });
+
+    it("should return false when date is after end date", () => {
+      const { result } = renderHook(() =>
+        useDateRangeFilter({
+          initialStartDate: "2024-01-01",
+          initialEndDate: "2024-01-31",
+        })
+      );
+
+      expect(result.current.matchesDateRange("2024-02-01")).toBe(false);
+    });
+
+    it("should return true when only start date is set and date is after", () => {
+      const { result } = renderHook(() =>
+        useDateRangeFilter({
+          initialStartDate: "2024-01-15",
+        })
+      );
+
+      expect(result.current.matchesDateRange("2024-01-20")).toBe(true);
+      expect(result.current.matchesDateRange("2024-01-10")).toBe(false);
+    });
+
+    it("should return true when only end date is set and date is before", () => {
+      const { result } = renderHook(() =>
+        useDateRangeFilter({
+          initialEndDate: "2024-01-31",
+        })
+      );
+
+      expect(result.current.matchesDateRange("2024-01-15")).toBe(true);
+      expect(result.current.matchesDateRange("2024-02-01")).toBe(false);
+    });
+
+    it("should handle time correctly by setting hours to start/end of day", () => {
+      const { result } = renderHook(() =>
+        useDateRangeFilter({
+          initialStartDate: "2024-01-15",
+          initialEndDate: "2024-01-15",
+        })
+      );
+
+      // Test with ISO date string that includes time
+      const dateWithTime = new Date("2024-01-15T12:00:00").toISOString();
+      expect(result.current.matchesDateRange(dateWithTime)).toBe(true);
+
+      // Also test with simple date string
+      expect(result.current.matchesDateRange("2024-01-15")).toBe(true);
     });
   });
 });

@@ -1,4 +1,5 @@
 export function maskCNPJ(value: string): string {
+  if (!value || typeof value !== "string") return "";
   const numbers = value.replaceAll(/\D/g, "");
 
   if (numbers.length <= 2) return numbers;
@@ -16,6 +17,7 @@ export function unmaskCNPJ(value: string): string {
 }
 
 export function maskPhone(value: string): string {
+  if (!value || typeof value !== "string") return "";
   const numbers = value.replaceAll(/\D/g, "");
 
   if (numbers.length === 0) return "";
@@ -32,6 +34,7 @@ export function unmaskPhone(value: string): string {
 }
 
 export function maskCEP(value: string): string {
+  if (!value || typeof value !== "string") return "";
   const numbers = value.replaceAll(/\D/g, "");
 
   if (numbers.length === 0) return "";

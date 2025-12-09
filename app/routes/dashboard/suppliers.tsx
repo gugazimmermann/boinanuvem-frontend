@@ -1,12 +1,11 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router";
 import { TableActionButtons, type TableColumn } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
-import { mockSuppliers } from "~/mocks/suppliers";
-import { deleteSupplier } from "~/services/suppliers.service";
+import { getSuppliers, deleteSupplier } from "~/services/suppliers.service";
+import { useAlert } from "~/hooks/use-alert";
 import type { Supplier } from "~/types";
-import { getPropertyById } from "~/services/properties.service";
 import { ROUTES, getSupplierEditRoute, getSupplierViewRoute } from "~/routes.config";
 import { getSupplierObservationsBySupplierId } from "~/services/supplier-observations.service";
 import { usePermissions } from "~/utils/permissions";
@@ -19,6 +18,7 @@ import {
   createPropertiesColumn,
 } from "~/components/dashboard/registrations/table-columns";
 import { createRegistrationMeta, createRegistrationLoader } from "~/utils/route-helpers";
+import { useRegistrationList } from "~/hooks/use-registration-list";
 
 export function meta() {
   return createRegistrationMeta("Fornecedores", "Gerenciamento de fornecedores do Boi na Nuvem");
@@ -33,7 +33,17 @@ export default function Suppliers() {
   const { language } = useLanguage();
   const navigate = useNavigate();
   const { canEdit, canRemove } = usePermissions();
-  const [suppliers, setSuppliers] = useState<Supplier[]>([...mockSuppliers]);
+  const { showAlert } = useAlert();
+
+  const {
+    entities: suppliers,
+    isLoading,
+    setEntities: setSuppliers,
+    getPropertyById,
+  } = useRegistrationList<Supplier>({
+    fetchEntities: getSuppliers,
+    loadErrorMessage: t.suppliers.errors.loadFailed,
+  });
 
   const columns: TableColumn<Supplier>[] = useMemo(
     () => [
@@ -82,7 +92,7 @@ export default function Suppliers() {
         ),
       },
     ],
-    [t, language, navigate, canEdit, canRemove]
+    [t, language, navigate, canEdit, canRemove, getPropertyById]
   );
 
   const filterOptions = useMemo(
@@ -110,13 +120,19 @@ export default function Suppliers() {
       addButtonLabel={t.suppliers.addSupplier}
       newRoute={ROUTES.SUPPLIERS_NEW}
       viewRoute={getSupplierViewRoute}
-      deleteService={(supplier) => {
-        const success = deleteSupplier(supplier.id);
-        if (success) {
+      deleteService={async (supplier) => {
+        try {
+          await deleteSupplier(supplier.id);
           setSuppliers(suppliers.filter((s) => s.id !== supplier.id));
+          return true;
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : t.suppliers.errors.deleteFailed;
+          showAlert(errorMessage, "error");
+          return false;
         }
-        return success;
       }}
+      isLoading={isLoading}
       deleteSuccessMessage={t.suppliers.success.deleted}
       deleteErrorMessage={t.suppliers.errors.deleteFailed}
       deleteModalTitle={t.suppliers.deleteModal.title}

@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
 import { Input, Select, Button, FixedAlert, FileUpload } from "~/components/ui";
 import { useTranslation } from "~/i18n";
@@ -11,9 +12,16 @@ import { getLocationById } from "~/services/locations.service";
 import { getPropertyById } from "~/services/properties.service";
 import { getInventoryItemsByPropertyId } from "~/services/inventory.service";
 import { addInventoryMovement } from "~/services/inventory-movements.service";
-import { getEmployeesByPropertyId } from "~/services/employees.service";
-import { getServiceProvidersByPropertyId } from "~/services/service-providers.service";
-import type { InventoryMovementFormData, InventoryItem } from "~/types";
+import { getEmployees } from "~/services/employees.service";
+import { getServiceProviders } from "~/services/service-providers.service";
+import type {
+  InventoryMovementFormData,
+  InventoryItem,
+  Location,
+  Property,
+  Employee,
+  ServiceProvider,
+} from "~/types";
 import { InventoryMovementType } from "~/types";
 import { mockCompanies } from "~/mocks/companies";
 import { getUnitLabel } from "~/utils/inventory-utils";
@@ -38,15 +46,62 @@ export default function NewLocationInventoryMovement() {
   const t = useTranslation();
   const navigate = useNavigate();
   const { locationId } = useParams<{ locationId: string }>();
-  const location = getLocationById(locationId);
-  const property = location ? getPropertyById(location.propertyId) : undefined;
+  const [location, setLocation] = useState<Location | null>(null);
+  const [property, setProperty] = useState<Property | null>(null);
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [serviceProviders, setServiceProviders] = useState<ServiceProvider[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const company = mockCompanies[0];
   const companyId = company?.id || "";
 
-  const inventoryItems = property ? getInventoryItemsByPropertyId(property.id) : [];
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!locationId) {
+        setIsLoading(false);
+        return;
+      }
 
-  const employees = property ? getEmployeesByPropertyId(property.id) : [];
-  const serviceProviders = property ? getServiceProvidersByPropertyId(property.id) : [];
+      try {
+        setIsLoading(true);
+        const locationData = await getLocationById(locationId);
+        setLocation(locationData);
+
+        if (locationData) {
+          const propertyData = await getPropertyById(locationData.propertyId);
+          setProperty(propertyData);
+
+          if (propertyData) {
+            const items = getInventoryItemsByPropertyId(propertyData.id);
+            setInventoryItems(items);
+
+            // Fetch employees and service providers and filter by property
+            const [employeesData, serviceProvidersData] = await Promise.all([
+              getEmployees(),
+              getServiceProviders(),
+            ]);
+
+            // Filter by propertyIds array
+            const propertyEmployees = employeesData.filter((emp) =>
+              emp.propertyIds?.includes(propertyData.id)
+            );
+            setEmployees(propertyEmployees);
+
+            const propertyServiceProviders = serviceProvidersData.filter((sp) =>
+              sp.propertyIds?.includes(propertyData.id)
+            );
+            setServiceProviders(propertyServiceProviders);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [locationId]);
 
   const {
     formData,
@@ -125,6 +180,16 @@ export default function NewLocationInventoryMovement() {
     if (!location || !property || !selectedItem) return;
     await baseHandleSubmit(e);
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+          <p className="text-gray-600 dark:text-gray-400">{t.common.loading}</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!location || !property) {
     return (

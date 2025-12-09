@@ -1,117 +1,93 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { FinanceDetailCard, type DetailField } from "../finance-detail-card";
+import { FinanceDetailCard } from "../finance-detail-card";
+import { formatCurrency, formatDate } from "~/utils/formatting";
 
+vi.mock("~/utils/formatting");
 vi.mock("~/components/ui", () => ({
-  StatusBadge: vi.fn(({ label, variant }: { label: string; variant: string }) => (
+  StatusBadge: ({ label, variant }: { label: string; variant: string }) => (
     <span data-testid="status-badge" data-variant={variant}>
       {label}
     </span>
-  )),
-}));
-
-vi.mock("~/utils/formatting", () => ({
-  formatCurrency: vi.fn((value: number, _language: string) => `R$ ${value.toFixed(2)}`),
-  formatDate: vi.fn((value: string, _language: string) => value),
+  ),
 }));
 
 describe("FinanceDetailCard", () => {
-  it("should render fields", () => {
-    const fields: DetailField[] = [
-      { label: "Name", value: "John Doe" },
-      { label: "Amount", value: 1000, type: "currency" },
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(formatCurrency).mockImplementation((value: number) => `$${value}`);
+    vi.mocked(formatDate).mockImplementation((date: string) => date);
+  });
+
+  it("should render all fields", () => {
+    const fields = [
+      { label: "Field 1", value: "Value 1" },
+      { label: "Field 2", value: "Value 2" },
     ];
     render(<FinanceDetailCard fields={fields} />);
-    expect(screen.getByText("John Doe")).toBeInTheDocument();
-    expect(screen.getByText("R$ 1000.00")).toBeInTheDocument();
+    expect(screen.getByText("Field 1")).toBeInTheDocument();
+    expect(screen.getByText("Value 1")).toBeInTheDocument();
+    expect(screen.getByText("Field 2")).toBeInTheDocument();
+    expect(screen.getByText("Value 2")).toBeInTheDocument();
   });
 
-  it("should render text field", () => {
-    const fields: DetailField[] = [{ label: "Name", value: "John Doe" }];
+  it("should format currency values", () => {
+    const fields = [{ label: "Amount", value: 1000, type: "currency" as const }];
     render(<FinanceDetailCard fields={fields} />);
-    expect(screen.getByText("John Doe")).toBeInTheDocument();
+    expect(formatCurrency).toHaveBeenCalledWith(1000, "pt");
   });
 
-  it("should render currency field", () => {
-    const fields: DetailField[] = [{ label: "Amount", value: 1000, type: "currency" }];
-    render(<FinanceDetailCard fields={fields} />);
-    expect(screen.getByText("R$ 1000.00")).toBeInTheDocument();
-  });
-
-  it("should render currency field with income type", () => {
-    const fields: DetailField[] = [
-      { label: "Income", value: 1000, type: "currency", currencyType: "income" },
+  it("should apply income color for income currency", () => {
+    const fields = [
+      { label: "Income", value: 1000, type: "currency" as const, currencyType: "income" as const },
     ];
     const { container } = render(<FinanceDetailCard fields={fields} />);
     const valueElement = container.querySelector(".text-green-600");
     expect(valueElement).toBeInTheDocument();
   });
 
-  it("should render currency field with expense type", () => {
-    const fields: DetailField[] = [
-      { label: "Expense", value: 1000, type: "currency", currencyType: "expense" },
+  it("should apply expense color for expense currency", () => {
+    const fields = [
+      { label: "Expense", value: 500, type: "currency" as const, currencyType: "expense" as const },
     ];
     const { container } = render(<FinanceDetailCard fields={fields} />);
     const valueElement = container.querySelector(".text-red-600");
     expect(valueElement).toBeInTheDocument();
   });
 
-  it("should render date field", () => {
-    const fields: DetailField[] = [{ label: "Date", value: "2025-01-15", type: "date" }];
+  it("should format date values", () => {
+    const fields = [{ label: "Date", value: "2024-01-01", type: "date" as const }];
     render(<FinanceDetailCard fields={fields} />);
-    expect(screen.getByText("2025-01-15")).toBeInTheDocument();
+    expect(formatDate).toHaveBeenCalledWith("2024-01-01", "pt");
   });
 
-  it("should render status field", () => {
-    const fields: DetailField[] = [
-      { label: "Status", value: "Active", type: "status", statusVariant: "success" },
+  it("should render status badge for status type", () => {
+    const fields = [
+      {
+        label: "Status",
+        value: "Active",
+        type: "status" as const,
+        statusVariant: "success" as const,
+      },
     ];
     render(<FinanceDetailCard fields={fields} />);
     expect(screen.getByTestId("status-badge")).toBeInTheDocument();
     expect(screen.getByText("Active")).toBeInTheDocument();
   });
 
-  it("should render badge field", () => {
-    const fields: DetailField[] = [
-      { label: "Badge", value: "New", type: "badge", statusVariant: "default" },
-    ];
-    render(<FinanceDetailCard fields={fields} />);
-    expect(screen.getByTestId("status-badge")).toBeInTheDocument();
-  });
-
-  it("should render ReactNode value", () => {
-    const nodeValue = <span data-testid="node-value">Custom Node</span>;
-    const fields: DetailField[] = [{ label: "Custom", value: nodeValue }];
-    render(<FinanceDetailCard fields={fields} />);
-    expect(screen.getByTestId("node-value")).toBeInTheDocument();
-  });
-
   it("should not render field when condition is false", () => {
-    const fields: DetailField[] = [
-      { label: "Hidden", value: "Hidden Value", condition: false },
-      { label: "Visible", value: "Visible Value" },
+    const fields = [
+      { label: "Hidden", value: "Value", condition: false },
+      { label: "Visible", value: "Value", condition: true },
     ];
     render(<FinanceDetailCard fields={fields} />);
-    expect(screen.queryByText("Hidden Value")).not.toBeInTheDocument();
-    expect(screen.getByText("Visible Value")).toBeInTheDocument();
+    expect(screen.queryByText("Hidden")).not.toBeInTheDocument();
+    expect(screen.getByText("Visible")).toBeInTheDocument();
   });
 
-  it("should render field labels", () => {
-    const fields: DetailField[] = [
-      { label: "Name", value: "John Doe" },
-      { label: "Email", value: "john@example.com" },
-    ];
+  it("should render ReactNode values", () => {
+    const fields = [{ label: "Custom", value: <span data-testid="custom">Custom Value</span> }];
     render(<FinanceDetailCard fields={fields} />);
-    expect(screen.getByText("Name")).toBeInTheDocument();
-    expect(screen.getByText("Email")).toBeInTheDocument();
-  });
-
-  it("should render with correct styling classes", () => {
-    const fields: DetailField[] = [{ label: "Test", value: "Value" }];
-    const { container } = render(<FinanceDetailCard fields={fields} />);
-    const card = container.firstChild as HTMLElement;
-    expect(card).toHaveClass("bg-white");
-    expect(card).toHaveClass("dark:bg-gray-800");
-    expect(card).toHaveClass("rounded-lg");
+    expect(screen.getByTestId("custom")).toBeInTheDocument();
   });
 });

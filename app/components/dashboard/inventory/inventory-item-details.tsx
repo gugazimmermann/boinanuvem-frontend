@@ -1,7 +1,5 @@
 import type { InventoryItem, Language } from "~/types";
 import { InventoryItemCategory } from "~/types";
-import { getSupplierById } from "~/services/suppliers.service";
-import { getPropertyById } from "~/services/properties.service";
 import { getUnitLabel, formatInventoryDate } from "~/utils/inventory-utils";
 
 export interface InventoryItemDetailsProps {
@@ -42,6 +40,8 @@ export interface InventoryItemDetailsProps {
   };
   readonly language: Language;
   readonly onSupplierClick?: (supplierId: string) => void;
+  readonly getSupplierName?: (supplierId: string) => string | undefined;
+  readonly getPropertyName?: (propertyId: string) => string | undefined;
 }
 
 export function InventoryItemDetails({
@@ -52,8 +52,12 @@ export function InventoryItemDetails({
   translations: t,
   language,
   onSupplierClick,
+  getSupplierName,
+  getPropertyName,
 }: InventoryItemDetailsProps) {
-  const supplier = item.supplierId ? getSupplierById(item.supplierId) : null;
+  const supplierName =
+    item.supplierId && getSupplierName ? getSupplierName(item.supplierId) : undefined;
+  const supplierId = item.supplierId;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -127,20 +131,20 @@ export function InventoryItemDetails({
                 </p>
               </div>
             )}
-          {supplier && (
+          {supplierName && supplierId && (
             <div>
               <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
                 {t.inventory.table.supplier}
               </p>
               {onSupplierClick ? (
                 <button
-                  onClick={() => onSupplierClick(supplier.id)}
+                  onClick={() => onSupplierClick(supplierId)}
                   className="text-sm text-blue-600 dark:text-blue-400 hover:underline mt-1"
                 >
-                  {supplier.name}
+                  {supplierName}
                 </button>
               ) : (
-                <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">{supplier.name}</p>
+                <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">{supplierName}</p>
               )}
             </div>
           )}
@@ -151,13 +155,13 @@ export function InventoryItemDetails({
             <div className="mt-1 flex flex-wrap gap-2">
               {item.propertyIds && item.propertyIds.length > 0 ? (
                 item.propertyIds.map((propertyId: string) => {
-                  const property = getPropertyById(propertyId);
-                  return property ? (
+                  const propertyName = getPropertyName ? getPropertyName(propertyId) : undefined;
+                  return propertyName ? (
                     <span
                       key={propertyId}
                       className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
                     >
-                      {property.name}
+                      {propertyName}
                     </span>
                   ) : null;
                 })

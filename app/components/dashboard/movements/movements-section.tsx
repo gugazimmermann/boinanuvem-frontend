@@ -61,7 +61,7 @@ export function MovementsSection({
   translationKeys,
 }: MovementsSectionProps) {
   return (
-    <div className="space-y-8">
+    <div data-testid="movements-section" className="space-y-8">
       <Table<UnifiedMovement>
         columns={columns}
         data={paginatedMovements}

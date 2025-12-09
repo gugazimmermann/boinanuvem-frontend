@@ -177,7 +177,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              {t.reproductiveIndexes.fertilityRate.title}
+              {t.reproductiveIndexes?.fertilityRate?.title || "Fertility Rate"}
             </h3>
             <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
               <span className="text-lg">📊</span>
@@ -185,7 +185,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
           </div>
           <div className="mb-4">
             <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-              {fertilityRate.rate.toFixed(2)}%
+              {fertilityRate?.rate?.toFixed(2) ?? "0.00"}%
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {t.reproductiveIndexes.fertilityRate.description}

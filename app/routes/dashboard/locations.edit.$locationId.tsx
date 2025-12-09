@@ -1,14 +1,14 @@
-import { useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router";
 import { Button, FixedAlert } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { ROUTES, getLocationViewRoute } from "~/routes.config";
 import { getLocationById, updateLocation } from "~/services/locations.service";
-import { getPropertyById } from "~/services/properties.service";
-import type { LocationFormData } from "~/types";
-import { mockProperties } from "~/mocks/properties";
+import { getProperties } from "~/services/properties.service";
+import type { Location, LocationFormData, Property } from "~/types";
 import { useLocationForm } from "~/hooks/use-location-form";
 import { LocationForm } from "~/components/dashboard/locations/location-form";
+import { useAlert } from "~/hooks/use-alert";
 
 export function meta() {
   return [
@@ -29,7 +29,55 @@ export default function EditLocation() {
   const t = useTranslation();
   const navigate = useNavigate();
   const { locationId } = useParams<{ locationId: string }>();
-  const location = getLocationById(locationId);
+  const { showAlert } = useAlert();
+  const [location, setLocation] = useState<Location | null>(null);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingProperties, setIsLoadingProperties] = useState(true);
+
+  useEffect(() => {
+    const fetchLocation = async () => {
+      if (!locationId) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const data = await getLocationById(locationId);
+        setLocation(data);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : t.locations.errors.loadFailed;
+        showAlert(errorMessage, "error");
+        console.error("Failed to load location:", error);
+        setTimeout(() => {
+          navigate(ROUTES.LOCATIONS);
+        }, 2000);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchLocation();
+  }, [locationId, navigate, showAlert, t]);
+
+  useEffect(() => {
+    const fetchProperties = async () => {
+      try {
+        setIsLoadingProperties(true);
+        const data = await getProperties();
+        setProperties(data);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : t.locations.errors.loadFailed;
+        showAlert(errorMessage, "error");
+        console.error("Failed to load properties:", error);
+      } finally {
+        setIsLoadingProperties(false);
+      }
+    };
+
+    fetchProperties();
+  }, [showAlert, t]);
 
   const initialData = useMemo(() => {
     if (!location) return undefined;
@@ -51,7 +99,7 @@ export default function EditLocation() {
     alertMessage,
     handleChange,
     handleSubmit: baseHandleSubmit,
-    showAlert,
+    showAlert: _showFormAlert,
   } = useLocationForm({
     initialData,
     translationKeys: {
@@ -64,26 +112,33 @@ export default function EditLocation() {
     },
     translation: t,
     onSubmit: (data: LocationFormData) => {
-      if (!locationId) return;
+      void (async () => {
+        if (!locationId) return;
 
-      const property = getPropertyById(formData.propertyId);
-      if (!property) {
-        throw new Error(t.locations.edit.propertyNotFound);
-      }
+        const property = properties.find((p) => p.id === formData.propertyId);
+        if (!property) {
+          throw new Error(t.locations.edit.propertyNotFound);
+        }
 
-      const locationData: Partial<LocationFormData> = {
-        code: data.code,
-        name: data.name,
-        locationType: data.locationType,
-        area: data.area,
-        status: data.status,
-        companyId: property.companyId,
-        propertyId: data.propertyId,
-      };
-      const success = updateLocation(locationId, locationData);
-      if (!success) {
-        throw new Error(t.locations.errors.updateFailed);
-      }
+        const locationData: Partial<LocationFormData> = {
+          code: data.code,
+          name: data.name,
+          locationType: data.locationType,
+          area: data.area,
+          status: data.status,
+          companyId: property.companyId,
+          propertyId: data.propertyId,
+        };
+
+        try {
+          await updateLocation(locationId, locationData);
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : t.locations.errors.updateFailed;
+          showAlert(errorMessage, "error");
+          throw error;
+        }
+      })();
     },
     onSuccess: () => {
       setTimeout(() => {
@@ -104,6 +159,16 @@ export default function EditLocation() {
       }
     }
   };
+
+  if (isLoading || isLoadingProperties) {
+    return (
+      <div className="space-y-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+          <p className="text-gray-600 dark:text-gray-400">{t.common.loading}</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!location) {
     return (
@@ -149,7 +214,7 @@ export default function EditLocation() {
               isSubmitting={isSubmitting}
               onFieldChange={handleChange}
               translation={t}
-              properties={mockProperties}
+              properties={properties}
               isEdit={true}
             />
           </div>

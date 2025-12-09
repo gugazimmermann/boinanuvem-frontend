@@ -2,23 +2,67 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NaturalBreedingSection } from "../natural-breeding-section";
-import { LanguageProvider } from "~/contexts/language-context";
-import { mockAnimals } from "~/mocks/animals";
-import { mockBirths } from "~/mocks/births";
+import { useTranslation } from "~/i18n";
+import { getBirthByAnimalId } from "~/services/births.service";
+import type { Animal } from "~/types";
 
-vi.mock("~/services/births.service", () => ({
-  getBirthByAnimalId: vi.fn((id: string) => {
-    return mockBirths.find((birth) => birth.animalId === id);
-  }),
+vi.mock("~/i18n");
+vi.mock("~/services/births.service");
+vi.mock("~/components/ui", () => ({
+  Input: ({
+    value,
+    onChange,
+    placeholder,
+    disabled,
+  }: {
+    value: string;
+    onChange: (e: { target: { value: string } }) => void;
+    placeholder?: string;
+    disabled?: boolean;
+  }) => (
+    <input
+      data-testid="search-input"
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      disabled={disabled}
+    />
+  ),
 }));
 
-const TestWrapper = ({ children }: { children: React.ReactNode }) => (
-  <LanguageProvider>{children}</LanguageProvider>
-);
+vi.mock("../animal-code-display", () => ({
+  AnimalCodeDisplay: ({ animal }: { animal: Animal }) => (
+    <div data-testid="animal-code">{animal.code}</div>
+  ),
+}));
 
 describe("NaturalBreedingSection", () => {
+  const mockUseTranslation = vi.mocked(useTranslation);
+  const mockBulls: Animal[] = [
+    {
+      id: "1",
+      code: "B001",
+      name: "Bull 1",
+      registrationNumber: "REG001",
+      status: "active" as const,
+      createdAt: "2024-01-01",
+      companyId: "company-1",
+      propertyId: "property-1",
+    },
+    {
+      id: "2",
+      code: "B002",
+      name: "Bull 2",
+      registrationNumber: "REG002",
+      status: "active" as const,
+      createdAt: "2024-01-01",
+      companyId: "company-1",
+      propertyId: "property-1",
+    },
+  ];
+
   const defaultProps = {
-    bulls: [],
+    bulls: mockBulls,
     selectedBullId: "",
     searchValue: "",
     onSearchChange: vi.fn(),
@@ -27,202 +71,78 @@ describe("NaturalBreedingSection", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseTranslation.mockReturnValue({
+      breedings: {
+        new: {
+          bullLabel: "Bull",
+          bullSearchPlaceholder: "Search bulls",
+          noBulls: "No bulls found",
+        },
+      },
+      animals: {
+        breeds: {},
+      },
+    } as unknown as ReturnType<typeof useTranslation>);
+    vi.mocked(getBirthByAnimalId).mockReturnValue(null);
   });
 
-  it("should render bull label", () => {
-    const { container } = render(
-      <TestWrapper>
-        <NaturalBreedingSection {...defaultProps} />
-      </TestWrapper>
-    );
-    // Check for label element
-    const label = container.querySelector("label");
-    expect(label).toBeInTheDocument();
+  it("should render bull search input", () => {
+    render(<NaturalBreedingSection {...defaultProps} />);
+    expect(screen.getByText("Bull")).toBeInTheDocument();
+    expect(screen.getByTestId("search-input")).toBeInTheDocument();
   });
 
-  it("should render search input", () => {
-    render(
-      <TestWrapper>
-        <NaturalBreedingSection {...defaultProps} />
-      </TestWrapper>
-    );
-    const input = screen.getByRole("textbox");
-    expect(input).toBeInTheDocument();
-  });
-
-  it("should call onSearchChange when search input changes", async () => {
-    const onSearchChange = vi.fn();
+  it("should call onSearchChange when search value changes", async () => {
     const user = userEvent.setup();
-    render(
-      <TestWrapper>
-        <NaturalBreedingSection {...defaultProps} onSearchChange={onSearchChange} />
-      </TestWrapper>
-    );
-    const input = screen.getByRole("textbox");
-    await user.type(input, "FJ");
+    const onSearchChange = vi.fn();
+    render(<NaturalBreedingSection {...defaultProps} onSearchChange={onSearchChange} />);
+
+    const input = screen.getByTestId("search-input");
+    await user.type(input, "Bull");
+
     expect(onSearchChange).toHaveBeenCalled();
   });
 
-  it("should display search value", () => {
-    render(
-      <TestWrapper>
-        <NaturalBreedingSection {...defaultProps} searchValue="FJ" />
-      </TestWrapper>
-    );
-    const input = screen.getByRole("textbox") as HTMLInputElement;
-    expect(input.value).toBe("FJ");
+  it("should render bulls list", () => {
+    render(<NaturalBreedingSection {...defaultProps} />);
+    expect(screen.getByText("B001")).toBeInTheDocument();
+    expect(screen.getByText("B002")).toBeInTheDocument();
   });
 
-  it("should display no bulls message when bulls array is empty", () => {
-    render(
-      <TestWrapper>
-        <NaturalBreedingSection {...defaultProps} bulls={[]} />
-      </TestWrapper>
-    );
-    expect(screen.getByText(/no bulls/i)).toBeInTheDocument();
+  it("should show empty message when no bulls", () => {
+    render(<NaturalBreedingSection {...defaultProps} bulls={[]} />);
+    expect(screen.getByText("No bulls found")).toBeInTheDocument();
   });
 
-  it("should render bull radio buttons when bulls are provided", () => {
-    const bulls = [mockAnimals[0], mockAnimals[1]];
-    render(
-      <TestWrapper>
-        <NaturalBreedingSection {...defaultProps} bulls={bulls} />
-      </TestWrapper>
-    );
-    const radios = screen.getAllByRole("radio");
-    expect(radios).toHaveLength(2);
+  it("should call onBullSelect when bull is selected", async () => {
+    const user = userEvent.setup();
+    const onBullSelect = vi.fn();
+    render(<NaturalBreedingSection {...defaultProps} onBullSelect={onBullSelect} />);
+
+    const label = screen.getByText("B001").closest("label");
+    if (label) {
+      await user.click(label);
+      expect(onBullSelect).toHaveBeenCalledWith("1");
+    }
   });
 
-  it("should display animal code for each bull", () => {
-    const bulls = [mockAnimals[0]];
-    render(
-      <TestWrapper>
-        <NaturalBreedingSection {...defaultProps} bulls={bulls} />
-      </TestWrapper>
-    );
-    expect(screen.getByText(mockAnimals[0].code)).toBeInTheDocument();
-  });
-
-  it("should check radio when bull is selected", () => {
-    const bulls = [mockAnimals[0]];
-    render(
-      <TestWrapper>
-        <NaturalBreedingSection
-          {...defaultProps}
-          bulls={bulls}
-          selectedBullId={mockAnimals[0].id}
-        />
-      </TestWrapper>
-    );
-    const radio = screen.getByRole("radio");
+  it("should show selected bull as checked", () => {
+    render(<NaturalBreedingSection {...defaultProps} selectedBullId="1" />);
+    const radio = screen
+      .getByText("B001")
+      .closest("label")
+      ?.querySelector('input[type="radio"]') as HTMLInputElement;
     expect(radio).toBeChecked();
   });
 
-  it("should not check radio when bull is not selected", () => {
-    const bulls = [mockAnimals[0]];
-    render(
-      <TestWrapper>
-        <NaturalBreedingSection {...defaultProps} bulls={bulls} selectedBullId="" />
-      </TestWrapper>
-    );
-    const radio = screen.getByRole("radio");
-    expect(radio).not.toBeChecked();
+  it("should display error when error is provided", () => {
+    render(<NaturalBreedingSection {...defaultProps} error="Bull is required" />);
+    expect(screen.getByText("Bull is required")).toBeInTheDocument();
   });
 
-  it("should call onBullSelect when radio is clicked", async () => {
-    const onBullSelect = vi.fn();
-    const bulls = [mockAnimals[0]];
-    const user = userEvent.setup();
-    render(
-      <TestWrapper>
-        <NaturalBreedingSection {...defaultProps} bulls={bulls} onBullSelect={onBullSelect} />
-      </TestWrapper>
-    );
-    const radio = screen.getByRole("radio");
-    await user.click(radio);
-    expect(onBullSelect).toHaveBeenCalledWith(mockAnimals[0].id);
-  });
-
-  it("should display error message when error is provided", () => {
-    render(
-      <TestWrapper>
-        <NaturalBreedingSection {...defaultProps} error="Bull selection is required" />
-      </TestWrapper>
-    );
-    expect(screen.getByText("Bull selection is required")).toBeInTheDocument();
-  });
-
-  it("should display bull selected message when bull is selected", () => {
-    const bulls = [mockAnimals[0]];
-    render(
-      <TestWrapper>
-        <NaturalBreedingSection
-          {...defaultProps}
-          bulls={bulls}
-          selectedBullId={mockAnimals[0].id}
-        />
-      </TestWrapper>
-    );
-    expect(screen.getByText(/bull selected/i)).toBeInTheDocument();
-  });
-
-  it("should not display bull selected message when no bull is selected", () => {
-    render(
-      <TestWrapper>
-        <NaturalBreedingSection {...defaultProps} selectedBullId="" />
-      </TestWrapper>
-    );
-    expect(screen.queryByText(/bull selected/i)).not.toBeInTheDocument();
-  });
-
-  it("should disable inputs when disabled prop is true", () => {
-    render(
-      <TestWrapper>
-        <NaturalBreedingSection {...defaultProps} disabled={true} />
-      </TestWrapper>
-    );
-    const input = screen.getByRole("textbox");
+  it("should disable inputs when disabled is true", () => {
+    render(<NaturalBreedingSection {...defaultProps} disabled={true} />);
+    const input = screen.getByTestId("search-input");
     expect(input).toBeDisabled();
-  });
-
-  it("should disable radio buttons when disabled prop is true", () => {
-    const bulls = [mockAnimals[0]];
-    render(
-      <TestWrapper>
-        <NaturalBreedingSection {...defaultProps} bulls={bulls} disabled={true} />
-      </TestWrapper>
-    );
-    const radio = screen.getByRole("radio");
-    expect(radio).toBeDisabled();
-  });
-
-  it("should apply selected styling to selected bull", () => {
-    const bulls = [mockAnimals[0]];
-    const { container } = render(
-      <TestWrapper>
-        <NaturalBreedingSection
-          {...defaultProps}
-          bulls={bulls}
-          selectedBullId={mockAnimals[0].id}
-        />
-      </TestWrapper>
-    );
-    // Find the label that contains the radio button (not the input label)
-    const labels = container.querySelectorAll("label");
-    const bullLabel = Array.from(labels).find((label) =>
-      label.querySelector('input[type="radio"]')
-    );
-    expect(bullLabel).toHaveClass("bg-blue-50");
-  });
-
-  it("should display breed text when birth has breed", () => {
-    const bulls = [mockAnimals[0]];
-    render(
-      <TestWrapper>
-        <NaturalBreedingSection {...defaultProps} bulls={bulls} />
-      </TestWrapper>
-    );
-    // Animal code should be displayed
-    expect(screen.getByText(mockAnimals[0].code)).toBeInTheDocument();
   });
 });

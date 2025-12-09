@@ -83,3 +83,13 @@ a[aria-disabled="true"],
 .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: oklch(50% 0.158 241.966);
 }
+
+/* Dialog backdrop styles */
+dialog::backdrop {
+  background-color: rgba(0, 0, 0, 0.05);
+  backdrop-filter: blur(4px);
+}
+
+.dark dialog::backdrop {
+  background-color: rgba(0, 0, 0, 0.1);
+}

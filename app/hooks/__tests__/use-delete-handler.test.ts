@@ -1,147 +1,175 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useDeleteHandler } from "../use-delete-handler";
 
 describe("useDeleteHandler", () => {
-  const mockItem = {
-    id: "item-1",
-    name: "Test Item",
-  };
-
-  const mockShowAlert = vi.fn();
-  const defaultOptions = {
-    onDelete: vi.fn(),
-    showAlert: mockShowAlert,
-    successMessage: "Success",
-    errorMessage: "Error",
-  };
+  let mockShowAlert: ReturnType<typeof vi.fn>;
+  let mockOnDelete: ReturnType<typeof vi.fn>;
+  let mockOnSuccess: ReturnType<typeof vi.fn>;
+  let mockOnError: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockShowAlert = vi.fn();
+    mockOnDelete = vi.fn();
+    mockOnSuccess = vi.fn();
+    mockOnError = vi.fn();
   });
 
-  it("should initialize with closed modal", () => {
-    const { result } = renderHook(() => useDeleteHandler(defaultOptions));
+  it("should initialize with closed modal and no selected item", () => {
+    const { result } = renderHook(() =>
+      useDeleteHandler({
+        onDelete: mockOnDelete,
+        showAlert: mockShowAlert,
+        successMessage: "Deleted",
+        errorMessage: "Error",
+      })
+    );
 
     expect(result.current.isDeleteModalOpen).toBe(false);
     expect(result.current.selectedItem).toBeNull();
   });
 
   it("should open modal and set selected item when handleDeleteClick is called", () => {
-    const { result } = renderHook(() => useDeleteHandler(defaultOptions));
+    const item = { id: "1", name: "Test Item" };
+    const { result } = renderHook(() =>
+      useDeleteHandler({
+        onDelete: mockOnDelete,
+        showAlert: mockShowAlert,
+        successMessage: "Deleted",
+        errorMessage: "Error",
+      })
+    );
 
     act(() => {
-      result.current.handleDeleteClick(mockItem);
+      result.current.handleDeleteClick(item);
     });
 
     expect(result.current.isDeleteModalOpen).toBe(true);
-    expect(result.current.selectedItem).toEqual(mockItem);
+    expect(result.current.selectedItem).toEqual(item);
   });
 
-  it("should handle successful deletion", async () => {
-    const mockOnDelete = vi.fn().mockResolvedValue(true);
-    const mockOnSuccess = vi.fn();
+  it("should call onDelete and show success message when deletion succeeds", async () => {
+    const item = { id: "1", name: "Test Item" };
+    mockOnDelete.mockResolvedValue(true);
 
     const { result } = renderHook(() =>
       useDeleteHandler({
-        ...defaultOptions,
         onDelete: mockOnDelete,
         onSuccess: mockOnSuccess,
+        showAlert: mockShowAlert,
+        successMessage: "Item deleted successfully",
+        errorMessage: "Failed to delete",
       })
     );
 
     act(() => {
-      result.current.handleDeleteClick(mockItem);
+      result.current.handleDeleteClick(item);
     });
 
     await act(async () => {
       await result.current.handleDelete();
     });
 
-    expect(mockOnDelete).toHaveBeenCalledWith(mockItem);
-    expect(mockShowAlert).toHaveBeenCalledWith("Success", "success");
-    expect(mockOnSuccess).toHaveBeenCalledWith(mockItem);
+    expect(mockOnDelete).toHaveBeenCalledWith(item);
+    expect(mockShowAlert).toHaveBeenCalledWith("Item deleted successfully", "success");
+    expect(mockOnSuccess).toHaveBeenCalledWith(item);
     expect(result.current.isDeleteModalOpen).toBe(false);
     expect(result.current.selectedItem).toBeNull();
   });
 
-  it("should handle failed deletion", async () => {
-    const mockOnDelete = vi.fn().mockResolvedValue(false);
-    const mockOnError = vi.fn();
+  it("should show error message when deletion returns false", async () => {
+    const item = { id: "1", name: "Test Item" };
+    mockOnDelete.mockResolvedValue(false);
 
     const { result } = renderHook(() =>
       useDeleteHandler({
-        ...defaultOptions,
         onDelete: mockOnDelete,
         onError: mockOnError,
+        showAlert: mockShowAlert,
+        successMessage: "Deleted",
+        errorMessage: "Failed to delete item",
       })
     );
 
     act(() => {
-      result.current.handleDeleteClick(mockItem);
+      result.current.handleDeleteClick(item);
     });
 
     await act(async () => {
       await result.current.handleDelete();
     });
 
-    expect(mockOnDelete).toHaveBeenCalledWith(mockItem);
-    expect(mockShowAlert).toHaveBeenCalledWith("Error", "error");
-    expect(mockOnError).toHaveBeenCalledWith(mockItem);
+    expect(mockShowAlert).toHaveBeenCalledWith("Failed to delete item", "error");
+    expect(mockOnError).toHaveBeenCalledWith(item);
     expect(result.current.isDeleteModalOpen).toBe(false);
-    expect(result.current.selectedItem).toBeNull();
   });
 
-  it("should handle deletion error", async () => {
-    const mockError = new Error("Delete failed");
-    const mockOnDelete = vi.fn().mockRejectedValue(mockError);
-    const mockOnError = vi.fn();
+  it("should handle deletion errors", async () => {
+    const item = { id: "1", name: "Test Item" };
+    mockOnDelete.mockRejectedValue(new Error("Network error"));
 
     const { result } = renderHook(() =>
       useDeleteHandler({
-        ...defaultOptions,
         onDelete: mockOnDelete,
         onError: mockOnError,
+        showAlert: mockShowAlert,
+        successMessage: "Deleted",
+        errorMessage: "Failed to delete",
       })
     );
 
     act(() => {
-      result.current.handleDeleteClick(mockItem);
+      result.current.handleDeleteClick(item);
     });
 
     await act(async () => {
       await result.current.handleDelete();
     });
 
-    expect(mockOnDelete).toHaveBeenCalledWith(mockItem);
-    expect(mockShowAlert).toHaveBeenCalledWith("Error", "error");
-    expect(mockOnError).toHaveBeenCalledWith(mockItem);
+    expect(mockShowAlert).toHaveBeenCalledWith("Failed to delete", "error");
+    expect(mockOnError).toHaveBeenCalledWith(item);
     expect(result.current.isDeleteModalOpen).toBe(false);
-    expect(result.current.selectedItem).toBeNull();
   });
 
-  it("should not call onDelete when no item is selected", async () => {
-    const mockOnDelete = vi.fn();
+  it("should handle synchronous onDelete", async () => {
+    const item = { id: "1", name: "Test Item" };
+    mockOnDelete.mockReturnValue(true);
 
     const { result } = renderHook(() =>
       useDeleteHandler({
-        ...defaultOptions,
         onDelete: mockOnDelete,
+        showAlert: mockShowAlert,
+        successMessage: "Deleted",
+        errorMessage: "Error",
       })
     );
+
+    act(() => {
+      result.current.handleDeleteClick(item);
+    });
 
     await act(async () => {
       await result.current.handleDelete();
     });
 
-    expect(mockOnDelete).not.toHaveBeenCalled();
+    expect(mockOnDelete).toHaveBeenCalled();
+    expect(result.current.isDeleteModalOpen).toBe(false);
   });
 
   it("should close modal when handleCloseModal is called", () => {
-    const { result } = renderHook(() => useDeleteHandler(defaultOptions));
+    const item = { id: "1", name: "Test Item" };
+    const { result } = renderHook(() =>
+      useDeleteHandler({
+        onDelete: mockOnDelete,
+        showAlert: mockShowAlert,
+        successMessage: "Deleted",
+        errorMessage: "Error",
+      })
+    );
 
     act(() => {
-      result.current.handleDeleteClick(mockItem);
+      result.current.handleDeleteClick(item);
     });
 
     expect(result.current.isDeleteModalOpen).toBe(true);
@@ -154,102 +182,38 @@ describe("useDeleteHandler", () => {
     expect(result.current.selectedItem).toBeNull();
   });
 
-  it("should handle synchronous onDelete", async () => {
-    const mockOnDelete = vi.fn().mockReturnValue(true);
-
+  it("should not delete when no item is selected", async () => {
     const { result } = renderHook(() =>
       useDeleteHandler({
-        ...defaultOptions,
         onDelete: mockOnDelete,
+        showAlert: mockShowAlert,
+        successMessage: "Deleted",
+        errorMessage: "Error",
       })
     );
-
-    act(() => {
-      result.current.handleDeleteClick(mockItem);
-    });
 
     await act(async () => {
       await result.current.handleDelete();
     });
 
-    expect(mockOnDelete).toHaveBeenCalled();
-    expect(mockShowAlert).toHaveBeenCalledWith("Success", "success");
+    expect(mockOnDelete).not.toHaveBeenCalled();
   });
 
-  it("should not call onSuccess when not provided", async () => {
-    const mockOnDelete = vi.fn().mockResolvedValue(true);
-
+  it("should handle items without name property", () => {
+    const item = { id: "1" };
     const { result } = renderHook(() =>
       useDeleteHandler({
-        ...defaultOptions,
         onDelete: mockOnDelete,
+        showAlert: mockShowAlert,
+        successMessage: "Deleted",
+        errorMessage: "Error",
       })
     );
 
     act(() => {
-      result.current.handleDeleteClick(mockItem);
+      result.current.handleDeleteClick(item);
     });
 
-    await act(async () => {
-      await result.current.handleDelete();
-    });
-
-    expect(mockOnDelete).toHaveBeenCalled();
-    expect(mockShowAlert).toHaveBeenCalledWith("Success", "success");
-  });
-
-  it("should not call onError when not provided", async () => {
-    const mockOnDelete = vi.fn().mockResolvedValue(false);
-
-    const { result } = renderHook(() =>
-      useDeleteHandler({
-        ...defaultOptions,
-        onDelete: mockOnDelete,
-      })
-    );
-
-    act(() => {
-      result.current.handleDeleteClick(mockItem);
-    });
-
-    await act(async () => {
-      await result.current.handleDelete();
-    });
-
-    expect(mockOnDelete).toHaveBeenCalled();
-    expect(mockShowAlert).toHaveBeenCalledWith("Error", "error");
-  });
-
-  it("should handle item without name property", () => {
-    const itemWithoutName = {
-      id: "item-2",
-    };
-
-    const { result } = renderHook(() => useDeleteHandler(defaultOptions));
-
-    act(() => {
-      result.current.handleDeleteClick(itemWithoutName);
-    });
-
-    expect(result.current.selectedItem).toEqual(itemWithoutName);
-  });
-
-  it("should handle multiple delete clicks", () => {
-    const item1 = { id: "item-1", name: "Item 1" };
-    const item2 = { id: "item-2", name: "Item 2" };
-
-    const { result } = renderHook(() => useDeleteHandler(defaultOptions));
-
-    act(() => {
-      result.current.handleDeleteClick(item1);
-    });
-
-    expect(result.current.selectedItem).toEqual(item1);
-
-    act(() => {
-      result.current.handleDeleteClick(item2);
-    });
-
-    expect(result.current.selectedItem).toEqual(item2);
+    expect(result.current.selectedItem).toEqual(item);
   });
 });

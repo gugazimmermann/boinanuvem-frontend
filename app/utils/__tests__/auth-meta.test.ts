@@ -1,39 +1,26 @@
 import { describe, it, expect } from "vitest";
 import { createAuthMeta } from "../auth-meta";
 
-describe("auth-meta", () => {
-  describe("createAuthMeta", () => {
-    it("should create SEO meta with noindex flag", () => {
-      const meta = createAuthMeta("Login", "Login page description");
+describe("createAuthMeta", () => {
+  it("should create SEO meta with title and description", () => {
+    const meta = createAuthMeta("Login", "Login to your account");
+    const titleTag = meta.find((tag): tag is { title: string } => "title" in tag);
+    expect(titleTag?.title).toBe("Login - Boi na Nuvem");
 
-      // createSEOMeta returns multiple meta tags (title, description, robots, og tags, twitter tags)
-      expect(meta.length).toBeGreaterThan(2);
+    const descriptionTag = meta.find((tag) => "name" in tag && tag.name === "description");
+    expect((descriptionTag as { name: string; content: string }).content).toBe(
+      "Login to your account"
+    );
+  });
 
-      // Check for title
-      const titleTag = meta.find((tag) => "title" in tag);
-      expect(titleTag).toBeDefined();
-      if (titleTag && "title" in titleTag) {
-        expect(titleTag.title).toBe("Login - Boi na Nuvem");
-      }
+  it("should set noindex to true", () => {
+    const meta = createAuthMeta("Login", "Login page");
+    const robotsTag = meta.find((tag) => "name" in tag && tag.name === "robots");
+    expect((robotsTag as { name: string; content: string }).content).toBe("noindex, nofollow");
+  });
 
-      // Check for description
-      const descriptionTag = meta.find((tag) => "name" in tag && tag.name === "description");
-      expect(descriptionTag).toBeDefined();
-      if (descriptionTag && "content" in descriptionTag) {
-        expect(descriptionTag.content).toBe("Login page description");
-      }
-    });
-
-    it("should include noindex in robots meta", () => {
-      const meta = createAuthMeta("Register", "Register page");
-
-      // The createSEOMeta function should add robots meta with noindex
-      // Since createAuthMeta calls createSEOMeta with noindex: true
-      const robotsTag = meta.find((tag) => "name" in tag && tag.name === "robots");
-      expect(robotsTag).toBeDefined();
-      if (robotsTag && "content" in robotsTag) {
-        expect(robotsTag.content).toBe("noindex, nofollow");
-      }
-    });
+  it("should include all standard SEO tags", () => {
+    const meta = createAuthMeta("Login", "Login page");
+    expect(meta.length).toBeGreaterThan(5); // Should include title, description, robots, og tags, twitter tags
   });
 });

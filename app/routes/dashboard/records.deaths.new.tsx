@@ -151,6 +151,8 @@ export default function NewDeath() {
     }
   };
 
+  const formId = "death-form";
+
   return (
     <FormPageLayout
       title={t.deaths.new.title}
@@ -178,8 +180,9 @@ export default function NewDeath() {
           isLoading: isSubmitting,
         },
       }}
+      formId={formId}
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form id={formId} onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-4">
           <div className="border-b border-gray-200 dark:border-gray-700 pb-4">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">

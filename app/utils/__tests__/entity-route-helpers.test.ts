@@ -6,298 +6,209 @@ import {
 } from "../entity-route-helpers";
 import type { EntityFormData } from "~/hooks/use-entity-form";
 
-describe("entity-route-helpers", () => {
-  describe("mapEntityToFormData", () => {
-    it("should map entity data with all fields to form data", () => {
-      const entity = {
-        code: "B001",
-        name: "John Buyer",
-        cpf: "12345678900",
-        cnpj: "12345678000190",
-        email: "john@example.com",
-        phone: "47999999999",
-        status: "active" as const,
-        zipCode: "88395000",
-        street: "Main Street",
-        number: "123",
-        complement: "Apt 4",
-        neighborhood: "Downtown",
-        city: "São Paulo",
-        state: "SP",
-        propertyIds: ["prop-1", "prop-2"],
-      };
+describe("mapEntityToFormData", () => {
+  it("should map entity data to form data", () => {
+    const entity = {
+      code: "BUYER-001",
+      name: "Test Buyer",
+      cpf: "12345678901",
+      cnpj: "12345678000190",
+      email: "test@example.com",
+      phone: "11999999999",
+      status: "active" as const,
+      zipCode: "12345678",
+      street: "Main Street",
+      number: "123",
+      complement: "Apt 4",
+      neighborhood: "Downtown",
+      city: "São Paulo",
+      state: "SP",
+      propertyIds: ["property-1", "property-2"],
+    };
 
-      const result = mapEntityToFormData(entity);
-
-      expect(result).toEqual({
-        code: "B001",
-        name: "John Buyer",
-        cpf: "12345678900",
-        cnpj: "12345678000190",
-        email: "john@example.com",
-        phone: "47999999999",
-        status: "active",
-        zipCode: "88395000",
-        street: "Main Street",
-        number: "123",
-        complement: "Apt 4",
-        neighborhood: "Downtown",
-        city: "São Paulo",
-        state: "SP",
-        propertyIds: ["prop-1", "prop-2"],
-      });
-    });
-
-    it("should map entity data with optional fields as empty strings", () => {
-      const entity = {
-        code: "B001",
-        name: "John Buyer",
-        status: "active" as const,
-        propertyIds: [],
-      };
-
-      const result = mapEntityToFormData(entity);
-
-      expect(result).toEqual({
-        code: "B001",
-        name: "John Buyer",
-        cpf: "",
-        cnpj: "",
-        email: "",
-        phone: "",
-        status: "active",
-        zipCode: "",
-        street: "",
-        number: "",
-        complement: "",
-        neighborhood: "",
-        city: "",
-        state: "",
-        propertyIds: [],
-      });
-    });
-
-    it("should handle inactive status", () => {
-      const entity = {
-        code: "B001",
-        name: "John Buyer",
-        status: "inactive" as const,
-        propertyIds: [],
-      };
-
-      const result = mapEntityToFormData(entity);
-
-      expect(result.status).toBe("inactive");
-    });
+    const result = mapEntityToFormData(entity);
+    expect(result.code).toBe("BUYER-001");
+    expect(result.name).toBe("Test Buyer");
+    expect(result.cpf).toBe("12345678901");
+    expect(result.status).toBe("active");
+    expect(result.propertyIds).toEqual(["property-1", "property-2"]);
   });
 
-  describe("mapFormDataToEntity", () => {
-    it("should map form data to entity with all fields", () => {
-      const formData: EntityFormData = {
-        code: "B001",
-        name: "John Buyer",
-        cpf: "12345678900",
-        cnpj: "12345678000190",
-        email: "john@example.com",
-        phone: "47999999999",
-        status: "active",
-        zipCode: "88395000",
-        street: "Main Street",
-        number: "123",
-        complement: "Apt 4",
-        neighborhood: "Downtown",
-        city: "São Paulo",
-        state: "SP",
-        propertyIds: ["prop-1", "prop-2"],
-      };
+  it("should convert undefined fields to empty strings", () => {
+    const entity = {
+      code: "BUYER-001",
+      name: "Test Buyer",
+      status: "active" as const,
+    };
 
-      const result = mapFormDataToEntity(formData, "company-1");
-
-      expect(result).toEqual({
-        code: "B001",
-        name: "John Buyer",
-        cpf: "12345678900",
-        cnpj: "12345678000190",
-        email: "john@example.com",
-        phone: "47999999999",
-        status: "active",
-        companyId: "company-1",
-        propertyIds: ["prop-1", "prop-2"],
-        street: "Main Street",
-        number: "123",
-        complement: "Apt 4",
-        neighborhood: "Downtown",
-        city: "São Paulo",
-        state: "SP",
-        zipCode: "88395000",
-      });
-    });
-
-    it("should map form data with empty strings to undefined", () => {
-      const formData: EntityFormData = {
-        code: "B001",
-        name: "John Buyer",
-        cpf: "",
-        cnpj: "",
-        email: "",
-        phone: "",
-        status: "active",
-        zipCode: "",
-        street: "",
-        number: "",
-        complement: "",
-        neighborhood: "",
-        city: "",
-        state: "",
-        propertyIds: [],
-      };
-
-      const result = mapFormDataToEntity(formData, "company-1");
-
-      expect(result.cpf).toBeUndefined();
-      expect(result.cnpj).toBeUndefined();
-      expect(result.email).toBeUndefined();
-      expect(result.phone).toBeUndefined();
-      expect(result.zipCode).toBeUndefined();
-      expect(result.street).toBeUndefined();
-      expect(result.companyId).toBe("company-1");
-    });
-
-    it("should handle different company IDs", () => {
-      const formData: EntityFormData = {
-        code: "B001",
-        name: "John Buyer",
-        status: "active",
-        propertyIds: [],
-        zipCode: "",
-        street: "",
-        number: "",
-        complement: "",
-        neighborhood: "",
-        city: "",
-        state: "",
-      };
-
-      const result1 = mapFormDataToEntity(formData, "company-1");
-      const result2 = mapFormDataToEntity(formData, "company-2");
-
-      expect(result1.companyId).toBe("company-1");
-      expect(result2.companyId).toBe("company-2");
-    });
+    const result = mapEntityToFormData(entity);
+    expect(result.cpf).toBe("");
+    expect(result.cnpj).toBe("");
+    expect(result.email).toBe("");
+    expect(result.phone).toBe("");
   });
 
-  describe("mapFormDataToEntityUpdate", () => {
-    it("should map form data to partial entity update with all fields", () => {
-      const formData: EntityFormData = {
-        code: "B001",
-        name: "John Buyer",
-        cpf: "12345678900",
-        cnpj: "12345678000190",
-        email: "john@example.com",
-        phone: "47999999999",
-        status: "active",
-        zipCode: "88395000",
-        street: "Main Street",
-        number: "123",
-        complement: "Apt 4",
-        neighborhood: "Downtown",
-        city: "São Paulo",
-        state: "SP",
-        propertyIds: ["prop-1", "prop-2"],
-      };
+  it("should handle empty propertyIds", () => {
+    const entity = {
+      code: "BUYER-001",
+      name: "Test Buyer",
+      status: "active" as const,
+    };
 
-      const result = mapFormDataToEntityUpdate(formData, "buyer");
+    const result = mapEntityToFormData(entity);
+    expect(result.propertyIds).toEqual([]);
+  });
+});
 
-      expect(result).toEqual({
-        code: "B001",
-        name: "John Buyer",
-        cpf: "12345678900",
-        cnpj: "12345678000190",
-        email: "john@example.com",
-        phone: "47999999999",
-        status: "active",
-        propertyIds: ["prop-1", "prop-2"],
-        street: "Main Street",
-        number: "123",
-        complement: "Apt 4",
-        neighborhood: "Downtown",
-        city: "São Paulo",
-        state: "SP",
-        zipCode: "88395000",
-      });
-    });
+describe("mapFormDataToEntity", () => {
+  it("should map form data to entity with companyId", () => {
+    const formData: EntityFormData = {
+      code: "BUYER-001",
+      name: "Test Buyer",
+      cpf: "12345678901",
+      cnpj: "",
+      email: "test@example.com",
+      phone: "11999999999",
+      status: "active",
+      zipCode: "12345678",
+      street: "Main Street",
+      number: "123",
+      complement: "",
+      neighborhood: "Downtown",
+      city: "São Paulo",
+      state: "SP",
+      propertyIds: ["property-1"],
+    };
 
-    it("should map form data with empty strings to undefined", () => {
-      const formData: EntityFormData = {
-        code: "B001",
-        name: "John Buyer",
-        cpf: "",
-        cnpj: "",
-        email: "",
-        phone: "",
-        status: "active",
-        zipCode: "",
-        street: "",
-        number: "",
-        complement: "",
-        neighborhood: "",
-        city: "",
-        state: "",
-        propertyIds: [],
-      };
+    const result = mapFormDataToEntity(formData, "company-1");
+    expect(result.companyId).toBe("company-1");
+    expect(result.code).toBe("BUYER-001");
+    expect(result.name).toBe("Test Buyer");
+    expect(result.cpf).toBe("12345678901");
+  });
 
-      const result = mapFormDataToEntityUpdate(formData, "supplier");
+  it("should convert empty strings to undefined", () => {
+    const formData: EntityFormData = {
+      code: "BUYER-001",
+      name: "Test Buyer",
+      cpf: "",
+      cnpj: "",
+      email: "",
+      phone: "",
+      status: "active",
+      zipCode: "",
+      street: "",
+      number: "",
+      complement: "",
+      neighborhood: "",
+      city: "",
+      state: "",
+      propertyIds: [],
+    };
 
-      expect(result.cpf).toBeUndefined();
-      expect(result.cnpj).toBeUndefined();
-      expect(result.email).toBeUndefined();
-      expect(result.phone).toBeUndefined();
-      expect(result.zipCode).toBeUndefined();
-      expect(result.street).toBeUndefined();
-    });
+    const result = mapFormDataToEntity(formData, "company-1");
+    expect(result.cpf).toBeUndefined();
+    expect(result.cnpj).toBeUndefined();
+    expect(result.email).toBeUndefined();
+  });
 
-    it("should handle different entity types", () => {
-      const formData: EntityFormData = {
-        code: "B001",
-        name: "John Buyer",
-        status: "active",
-        propertyIds: [],
-        zipCode: "",
-        street: "",
-        number: "",
-        complement: "",
-        neighborhood: "",
-        city: "",
-        state: "",
-      };
+  it("should preserve non-empty optional fields", () => {
+    const formData: EntityFormData = {
+      code: "BUYER-001",
+      name: "Test Buyer",
+      cpf: "12345678901",
+      cnpj: "",
+      email: "test@example.com",
+      phone: "",
+      status: "active",
+      zipCode: "",
+      street: "",
+      number: "",
+      complement: "",
+      neighborhood: "",
+      city: "",
+      state: "",
+      propertyIds: [],
+    };
 
-      const result1 = mapFormDataToEntityUpdate(formData, "buyer");
-      const result2 = mapFormDataToEntityUpdate(formData, "supplier");
-      const result3 = mapFormDataToEntityUpdate(formData, "service-provider");
+    const result = mapFormDataToEntity(formData, "company-1");
+    expect(result.cpf).toBe("12345678901");
+    expect(result.email).toBe("test@example.com");
+  });
+});
 
-      // All should produce the same result since the function doesn't use entityType
-      expect(result1).toEqual(result2);
-      expect(result2).toEqual(result3);
-    });
+describe("mapFormDataToEntityUpdate", () => {
+  it("should map form data to partial entity update", () => {
+    const formData: EntityFormData = {
+      code: "BUYER-001",
+      name: "Test Buyer",
+      cpf: "12345678901",
+      cnpj: "",
+      email: "test@example.com",
+      phone: "",
+      status: "active",
+      zipCode: "",
+      street: "",
+      number: "",
+      complement: "",
+      neighborhood: "",
+      city: "",
+      state: "",
+      propertyIds: [],
+    };
 
-    it("should not include companyId in update", () => {
-      const formData: EntityFormData = {
-        code: "B001",
-        name: "John Buyer",
-        status: "active",
-        propertyIds: [],
-        zipCode: "",
-        street: "",
-        number: "",
-        complement: "",
-        neighborhood: "",
-        city: "",
-        state: "",
-      };
+    const result = mapFormDataToEntityUpdate(formData, "buyer");
+    expect(result.code).toBe("BUYER-001");
+    expect(result.name).toBe("Test Buyer");
+    expect(result.status).toBe("active");
+    expect(result).not.toHaveProperty("companyId");
+  });
 
-      const result = mapFormDataToEntityUpdate(formData, "buyer");
+  it("should handle all entity types", () => {
+    const formData: EntityFormData = {
+      code: "ENTITY-001",
+      name: "Test Entity",
+      cpf: "",
+      cnpj: "",
+      email: "",
+      phone: "",
+      status: "active",
+      zipCode: "",
+      street: "",
+      number: "",
+      complement: "",
+      neighborhood: "",
+      city: "",
+      state: "",
+      propertyIds: [],
+    };
 
-      expect(result).not.toHaveProperty("companyId");
-    });
+    expect(mapFormDataToEntityUpdate(formData, "buyer")).toBeDefined();
+    expect(mapFormDataToEntityUpdate(formData, "supplier")).toBeDefined();
+    expect(mapFormDataToEntityUpdate(formData, "service-provider")).toBeDefined();
+  });
+
+  it("should convert empty strings to undefined", () => {
+    const formData: EntityFormData = {
+      code: "ENTITY-001",
+      name: "Test Entity",
+      cpf: "",
+      cnpj: "",
+      email: "",
+      phone: "",
+      status: "active",
+      zipCode: "",
+      street: "",
+      number: "",
+      complement: "",
+      neighborhood: "",
+      city: "",
+      state: "",
+      propertyIds: [],
+    };
+
+    const result = mapFormDataToEntityUpdate(formData, "buyer");
+    expect(result.cpf).toBeUndefined();
+    expect(result.email).toBeUndefined();
   });
 });

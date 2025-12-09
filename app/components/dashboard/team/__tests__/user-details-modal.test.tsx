@@ -2,227 +2,218 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { UserDetailsModal } from "../user-details-modal";
-import { LanguageProvider } from "~/contexts/language-context";
+import { useTranslation } from "~/i18n";
+import { useLanguage } from "~/contexts/language-context";
 
-const TestWrapper = ({ children }: { children: React.ReactNode }) => (
-  <LanguageProvider>{children}</LanguageProvider>
-);
-
+vi.mock("~/i18n");
+vi.mock("~/contexts/language-context");
 vi.mock("~/components/ui", () => ({
-  Button: vi.fn(
-    ({
-      children,
-      onClick,
-      variant,
-      className,
-    }: {
-      children: React.ReactNode;
-      onClick?: () => void;
-      variant?: string;
-      className?: string;
-    }) => (
-      <button onClick={onClick} data-variant={variant} className={className}>
-        {children}
-      </button>
-    )
+  Button: ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) => (
+    <button onClick={onClick}>{children}</button>
   ),
 }));
 
-vi.mock("~/components/site/utils/masks", () => ({
-  maskPhone: vi.fn((phone: string) => phone),
-}));
-
 describe("UserDetailsModal", () => {
-  const defaultUser = {
+  const mockUseTranslation = vi.mocked(useTranslation);
+  const mockUseLanguage = vi.mocked(useLanguage);
+
+  const mockUser = {
     id: "1",
     name: "John Doe",
     email: "john@example.com",
     phone: "1234567890",
     status: "active" as const,
-    lastAccess: "2024-01-01T00:00:00Z",
   };
 
   const defaultProps = {
     isOpen: true,
     onClose: vi.fn(),
-    user: defaultUser,
+    user: mockUser,
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseTranslation.mockReturnValue({
+      team: {
+        userDetails: {
+          title: "User Details",
+          personalInfo: "Personal Information",
+          accountInfo: "Account Information",
+          close: "Close",
+        },
+        table: {
+          name: "Name",
+          email: "Email",
+          status: "Status",
+          lastAccess: "Last Access",
+        },
+        addModal: {
+          fields: {
+            phone: "Phone",
+          },
+        },
+        status: {
+          active: "Active",
+          inactive: "Inactive",
+        },
+      },
+    } as unknown as ReturnType<typeof useTranslation>);
+    mockUseLanguage.mockReturnValue({ language: "pt" });
   });
 
-  it("should not render when isOpen is false", () => {
-    render(
-      <TestWrapper>
-        <UserDetailsModal {...defaultProps} isOpen={false} />
-      </TestWrapper>
-    );
-
-    expect(screen.queryByText(/user details/i)).not.toBeInTheDocument();
-  });
-
-  it("should render modal when isOpen is true", () => {
-    render(
-      <TestWrapper>
-        <UserDetailsModal {...defaultProps} />
-      </TestWrapper>
-    );
-
-    expect(screen.getByText(/user details/i)).toBeInTheDocument();
-  });
-
-  it("should display user name", () => {
-    render(
-      <TestWrapper>
-        <UserDetailsModal {...defaultProps} />
-      </TestWrapper>
-    );
-
+  it("should render modal when open", () => {
+    render(<UserDetailsModal {...defaultProps} />);
     expect(screen.getByText("John Doe")).toBeInTheDocument();
   });
 
-  it("should display user email", () => {
-    render(
-      <TestWrapper>
-        <UserDetailsModal {...defaultProps} />
-      </TestWrapper>
-    );
+  it("should not render modal when closed", () => {
+    const { container } = render(<UserDetailsModal {...defaultProps} isOpen={false} />);
+    expect(container.firstChild).toBeNull();
+  });
 
+  it("should display user information", () => {
+    render(<UserDetailsModal {...defaultProps} />);
+    expect(screen.getByText("John Doe")).toBeInTheDocument();
     expect(screen.getByText("john@example.com")).toBeInTheDocument();
   });
 
-  it("should display user phone", () => {
-    render(
-      <TestWrapper>
-        <UserDetailsModal {...defaultProps} />
-      </TestWrapper>
-    );
-
-    expect(screen.getByText("1234567890")).toBeInTheDocument();
-  });
-
-  it("should display user status", () => {
-    render(
-      <TestWrapper>
-        <UserDetailsModal {...defaultProps} />
-      </TestWrapper>
-    );
-
-    expect(screen.getByText(/active/i)).toBeInTheDocument();
-  });
-
-  it("should display formatted last access date", () => {
-    render(
-      <TestWrapper>
-        <UserDetailsModal {...defaultProps} />
-      </TestWrapper>
-    );
-
-    // Date should be formatted - check for date pattern (contains digits and date separators)
-    const lastAccessLabel = screen.getByText(/last access/i);
-    expect(lastAccessLabel).toBeInTheDocument();
-    // The formatted date should be in the same parent as the label
-    const dateText = lastAccessLabel.parentElement?.querySelector("p");
-    expect(dateText).toBeInTheDocument();
-    expect(dateText?.textContent).toMatch(/\d/); // Should contain at least one digit
-  });
-
-  it("should display '-' when lastAccess is undefined", () => {
-    const userWithoutAccess = {
-      ...defaultUser,
-      lastAccess: undefined,
-    };
-
-    render(
-      <TestWrapper>
-        <UserDetailsModal {...defaultProps} user={userWithoutAccess} />
-      </TestWrapper>
-    );
-
-    expect(screen.getByText("-")).toBeInTheDocument();
-  });
-
   it("should call onClose when close button is clicked", async () => {
-    const onClose = vi.fn();
     const user = userEvent.setup();
-    render(
-      <TestWrapper>
-        <UserDetailsModal {...defaultProps} onClose={onClose} />
-      </TestWrapper>
-    );
+    const onClose = vi.fn();
+    render(<UserDetailsModal {...defaultProps} onClose={onClose} />);
 
-    // Get all buttons and find the one that's not the backdrop (which has aria-label)
-    const buttons = screen.getAllByRole("button");
-    const closeButton = buttons.find((btn) => btn.getAttribute("aria-label") !== "Close modal");
-    expect(closeButton).toBeDefined();
-    if (closeButton) {
-      await user.click(closeButton);
-      expect(onClose).toHaveBeenCalledTimes(1);
-    }
+    const closeButton = screen.getByText("Close");
+    await user.click(closeButton);
+
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it("should call onClose when backdrop is clicked", async () => {
-    const onClose = vi.fn();
     const user = userEvent.setup();
-    render(
-      <TestWrapper>
-        <UserDetailsModal {...defaultProps} onClose={onClose} />
-      </TestWrapper>
-    );
+    const onClose = vi.fn();
+    render(<UserDetailsModal {...defaultProps} onClose={onClose} />);
 
+    // Find the backdrop button by its aria-label
     const backdrop = screen.getByLabelText("Close modal");
     await user.click(backdrop);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it("should display personal info section", () => {
-    render(
-      <TestWrapper>
-        <UserDetailsModal {...defaultProps} />
-      </TestWrapper>
-    );
-
-    expect(screen.getByText(/personal info/i)).toBeInTheDocument();
+  it("should format date when lastAccess is provided", () => {
+    const userWithLastAccess = {
+      ...mockUser,
+      lastAccess: "2024-01-15T10:30:00Z",
+    };
+    render(<UserDetailsModal {...defaultProps} user={userWithLastAccess} />);
+    // The formatted date should be displayed
+    expect(screen.getByText(/15/)).toBeInTheDocument();
   });
 
-  it("should display account info section", () => {
-    render(
-      <TestWrapper>
-        <UserDetailsModal {...defaultProps} />
-      </TestWrapper>
-    );
-
-    expect(screen.getByText(/account info/i)).toBeInTheDocument();
+  it("should display '-' when lastAccess is not provided", () => {
+    const userWithoutLastAccess = {
+      ...mockUser,
+      lastAccess: undefined,
+    };
+    render(<UserDetailsModal {...defaultProps} user={userWithoutLastAccess} />);
+    expect(screen.getByText("-")).toBeInTheDocument();
   });
 
-  it("should handle different status values", () => {
+  it("should display inactive status", () => {
     const inactiveUser = {
-      ...defaultUser,
+      ...mockUser,
       status: "inactive" as const,
     };
-
-    render(
-      <TestWrapper>
-        <UserDetailsModal {...defaultProps} user={inactiveUser} />
-      </TestWrapper>
-    );
-
-    expect(screen.getByText(/inactive/i)).toBeInTheDocument();
+    mockUseTranslation.mockReturnValue({
+      team: {
+        userDetails: {
+          title: "User Details",
+          personalInfo: "Personal Information",
+          accountInfo: "Account Information",
+          close: "Close",
+        },
+        table: {
+          name: "Name",
+          email: "Email",
+          status: "Status",
+          lastAccess: "Last Access",
+        },
+        addModal: {
+          fields: {
+            phone: "Phone",
+          },
+        },
+        status: {
+          active: "Active",
+          inactive: "Inactive",
+          pending: "Pending",
+        },
+      },
+    } as unknown as ReturnType<typeof useTranslation>);
+    render(<UserDetailsModal {...defaultProps} user={inactiveUser} />);
+    expect(screen.getByText("Inactive")).toBeInTheDocument();
   });
 
-  it("should handle pending status", () => {
+  it("should display pending status", () => {
     const pendingUser = {
-      ...defaultUser,
+      ...mockUser,
       status: "pending" as const,
     };
+    mockUseTranslation.mockReturnValue({
+      team: {
+        userDetails: {
+          title: "User Details",
+          personalInfo: "Personal Information",
+          accountInfo: "Account Information",
+          close: "Close",
+        },
+        table: {
+          name: "Name",
+          email: "Email",
+          status: "Status",
+          lastAccess: "Last Access",
+        },
+        addModal: {
+          fields: {
+            phone: "Phone",
+          },
+        },
+        status: {
+          active: "Active",
+          inactive: "Inactive",
+          pending: "Pending",
+        },
+      },
+    } as unknown as ReturnType<typeof useTranslation>);
+    render(<UserDetailsModal {...defaultProps} user={pendingUser} />);
+    expect(screen.getByText("Pending")).toBeInTheDocument();
+  });
 
-    render(
-      <TestWrapper>
-        <UserDetailsModal {...defaultProps} user={pendingUser} />
-      </TestWrapper>
-    );
+  it("should use English locale for date formatting", () => {
+    mockUseLanguage.mockReturnValue({ language: "en" });
+    const userWithLastAccess = {
+      ...mockUser,
+      lastAccess: "2024-01-15T10:30:00Z",
+    };
+    render(<UserDetailsModal {...defaultProps} user={userWithLastAccess} />);
+    // Date should be formatted
+    expect(screen.getByText(/15/)).toBeInTheDocument();
+  });
 
-    expect(screen.getByText(/pending/i)).toBeInTheDocument();
+  it("should use Spanish locale for date formatting", () => {
+    mockUseLanguage.mockReturnValue({ language: "es" });
+    const userWithLastAccess = {
+      ...mockUser,
+      lastAccess: "2024-01-15T10:30:00Z",
+    };
+    render(<UserDetailsModal {...defaultProps} user={userWithLastAccess} />);
+    // Date should be formatted
+    expect(screen.getByText(/15/)).toBeInTheDocument();
+  });
+
+  it("should display masked phone number", () => {
+    render(<UserDetailsModal {...defaultProps} />);
+    // Phone should be masked (maskPhone function should format it)
+    // maskPhone formats "1234567890" as "(12) 3456-7890"
+    expect(screen.getByText("(12) 3456-7890")).toBeInTheDocument();
   });
 });

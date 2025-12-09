@@ -1,4 +1,13 @@
-import { useState, useId, useRef, useCallback, useEffect } from "react";
+/* eslint-disable react-hooks/refs -- cloneElement may receive refs but we don't access them */
+import {
+  useState,
+  useId,
+  useRef,
+  useCallback,
+  useEffect,
+  isValidElement,
+  cloneElement,
+} from "react";
 
 interface TooltipProps {
   readonly content: string;
@@ -6,11 +15,28 @@ interface TooltipProps {
   readonly position?: "top" | "bottom";
 }
 
+// Check if a React element is an interactive element (button, input, etc.)
+function isInteractiveElement(element: React.ReactElement): boolean {
+  const interactiveTags = ["button", "input", "select", "textarea", "a"];
+  const interactiveRoles = ["button", "link", "menuitem", "option", "tab"];
+
+  if (typeof element.type === "string") {
+    return interactiveTags.includes(element.type.toLowerCase());
+  }
+
+  const props = element.props as { role?: string };
+  const role = props?.role;
+  return role ? interactiveRoles.includes(role) : false;
+}
+
 export function Tooltip({ content, children, position = "top" }: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
   const tooltipId = useId();
   const isKeyboardToggledRef = useRef(false);
   const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Check if child is a single interactive element
+  const childIsInteractive = isValidElement(children) && isInteractiveElement(children);
 
   const positionClasses =
     position === "top" ? "bottom-full left-1/2 mb-2" : "top-full left-1/2 mt-2";
@@ -100,6 +126,65 @@ export function Tooltip({ content, children, position = "top" }: TooltipProps) {
     [clearBlurTimeout]
   );
 
+  // When child is interactive, clone it to add tooltip handlers and wrap in a div
+  if (childIsInteractive && isValidElement(children)) {
+    const childProps = children.props as {
+      onMouseEnter?: (e: React.MouseEvent) => void;
+      onMouseLeave?: (e: React.MouseEvent) => void;
+      onFocus?: (e: React.FocusEvent) => void;
+      onBlur?: (e: React.FocusEvent) => void;
+      onKeyDown?: (e: React.KeyboardEvent) => void;
+      [key: string]: unknown;
+    };
+    const enhancedChild = cloneElement(children, {
+      "aria-describedby": isVisible ? tooltipId : undefined,
+      onMouseEnter: (e: React.MouseEvent) => {
+        handleMouseEnter();
+        childProps.onMouseEnter?.(e);
+      },
+      onMouseLeave: (e: React.MouseEvent) => {
+        handleMouseLeave();
+        childProps.onMouseLeave?.(e);
+      },
+      onFocus: (e: React.FocusEvent) => {
+        handleFocus();
+        childProps.onFocus?.(e);
+      },
+      onBlur: (e: React.FocusEvent) => {
+        handleBlur();
+        childProps.onBlur?.(e);
+      },
+      onKeyDown: (e: React.KeyboardEvent) => {
+        handleKeyDown(e);
+        childProps.onKeyDown?.(e);
+      },
+    } as React.HTMLAttributes<HTMLElement> & { "aria-describedby"?: string });
+
+    return (
+      <div className="relative inline-block">
+        {enhancedChild}
+        {isVisible && (
+          <div
+            id={tooltipId}
+            role="tooltip"
+            className={`absolute z-50 w-64 max-w-xs p-3 text-sm text-gray-600 bg-white rounded-lg shadow-lg dark:shadow-none shadow-gray-200 dark:bg-gray-800 dark:text-white -translate-x-1/2 ${positionClasses} pointer-events-none`}
+          >
+            <span className="block wrap-break-word">{content}</span>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className={`w-6 h-6 absolute -translate-x-1/2 left-1/2 ${arrowClasses} text-white dark:text-gray-800 fill-current`}
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path d="M20 3H4a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1z"></path>
+            </svg>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // When child is not interactive, use a proper button element for accessibility
   return (
     <button
       type="button"

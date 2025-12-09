@@ -14,14 +14,17 @@ import {
   getServiceProviderViewRoute,
 } from "~/routes.config";
 import { getPropertyById } from "~/services/properties.service";
-import { getLocationsByPropertyId, getLocationById } from "~/services/locations.service";
-import { getEmployeesByPropertyId, getEmployeeById } from "~/services/employees.service";
-import {
-  getServiceProvidersByPropertyId,
-  getServiceProviderById,
-} from "~/services/service-providers.service";
+import { getLocations } from "~/services/locations.service";
+import { getEmployees } from "~/services/employees.service";
+import { getServiceProviders } from "~/services/service-providers.service";
 import { addLocationMovement } from "~/services/location-movements.service";
-import { LocationMovementType } from "~/types";
+import {
+  LocationMovementType,
+  type Property,
+  type Location,
+  type Employee,
+  type ServiceProvider,
+} from "~/types";
 import { useAlert } from "~/hooks/use-alert";
 
 export function meta() {
@@ -44,7 +47,11 @@ export default function NewMovement() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const t = useTranslation();
-  const property = getPropertyById(propertyId);
+  const [property, setProperty] = useState<Property | null>(null);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [serviceProviders, setServiceProviders] = useState<ServiceProvider[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const locationIdParam = searchParams.get("locationId");
   const employeeIdParam = searchParams.get("employeeId");
   const serviceProviderIdParam = searchParams.get("serviceProviderId");
@@ -72,30 +79,77 @@ export default function NewMovement() {
   const { alertMessage, showAlert } = useAlert();
 
   useEffect(() => {
-    if (property) {
-      const allLocations = getLocationsByPropertyId(property.id);
-      const allEmployees = getEmployeesByPropertyId(property.id);
-      const allServiceProviders = getServiceProvidersByPropertyId(property.id);
+    const fetchData = async () => {
+      if (!propertyId) {
+        setIsLoading(false);
+        return;
+      }
 
-      const locationExists =
-        locationIdParam && allLocations.some((loc) => loc.id === locationIdParam);
-      const employeeExists =
-        employeeIdParam && allEmployees.some((emp) => emp.id === employeeIdParam);
-      const serviceProviderExists =
-        serviceProviderIdParam &&
-        allServiceProviders.some((prov) => prov.id === serviceProviderIdParam);
+      try {
+        setIsLoading(true);
+        const [propertyData, locationsData, employeesData, serviceProvidersData] =
+          await Promise.all([
+            getPropertyById(propertyId),
+            getLocations(),
+            getEmployees(),
+            getServiceProviders(),
+          ]);
 
-      setFormData((prev) => ({
-        ...prev,
-        locationIds: locationExists && locationIdParam ? [locationIdParam] : prev.locationIds,
-        employeeIds: employeeExists && employeeIdParam ? [employeeIdParam] : prev.employeeIds,
-        serviceProviderIds:
-          serviceProviderExists && serviceProviderIdParam
-            ? [serviceProviderIdParam]
-            : prev.serviceProviderIds,
-      }));
-    }
-  }, [property, locationIdParam, employeeIdParam, serviceProviderIdParam]);
+        setProperty(propertyData);
+        // Filter by propertyId
+        const propertyLocations = locationsData.filter((loc) => loc.propertyId === propertyId);
+        setLocations(propertyLocations);
+        // Filter employees by propertyIds array
+        const propertyEmployees = employeesData.filter((emp) =>
+          emp.propertyIds?.includes(propertyId)
+        );
+        setEmployees(propertyEmployees);
+        // Filter service providers by propertyIds array
+        const propertyServiceProviders = serviceProvidersData.filter((sp) =>
+          sp.propertyIds?.includes(propertyId)
+        );
+        setServiceProviders(propertyServiceProviders);
+
+        // Set initial form data based on URL params
+        const locationExists =
+          locationIdParam && propertyLocations.some((loc) => loc.id === locationIdParam);
+        const employeeExists =
+          employeeIdParam && propertyEmployees.some((emp) => emp.id === employeeIdParam);
+        const serviceProviderExists =
+          serviceProviderIdParam &&
+          propertyServiceProviders.some((prov) => prov.id === serviceProviderIdParam);
+
+        setFormData((prev) => ({
+          ...prev,
+          locationIds: locationExists && locationIdParam ? [locationIdParam] : prev.locationIds,
+          employeeIds: employeeExists && employeeIdParam ? [employeeIdParam] : prev.employeeIds,
+          serviceProviderIds:
+            serviceProviderExists && serviceProviderIdParam
+              ? [serviceProviderIdParam]
+              : prev.serviceProviderIds,
+        }));
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : t.properties.errors.loadFailed;
+        showAlert(errorMessage, "error");
+        console.error("Failed to load data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [propertyId, locationIdParam, employeeIdParam, serviceProviderIdParam, showAlert, t]);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+          <p className="text-gray-600 dark:text-gray-400">{t.common.loading}</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!property) {
     return (
@@ -110,39 +164,33 @@ export default function NewMovement() {
     );
   }
 
-  const allLocations = getLocationsByPropertyId(property.id);
-
-  const locationExists = locationIdParam && allLocations.some((loc) => loc.id === locationIdParam);
+  const locationExists = locationIdParam && locations.some((loc) => loc.id === locationIdParam);
   const sortedLocations =
     locationExists && locationIdParam
       ? [
-          ...allLocations.filter((loc) => loc.id === locationIdParam),
-          ...allLocations.filter((loc) => loc.id !== locationIdParam),
+          ...locations.filter((loc) => loc.id === locationIdParam),
+          ...locations.filter((loc) => loc.id !== locationIdParam),
         ]
-      : allLocations;
+      : locations;
 
-  const allEmployees = getEmployeesByPropertyId(property.id);
-  const allServiceProviders = getServiceProvidersByPropertyId(property.id);
-
-  const employeeExists = employeeIdParam && allEmployees.some((emp) => emp.id === employeeIdParam);
+  const employeeExists = employeeIdParam && employees.some((emp) => emp.id === employeeIdParam);
   const sortedEmployees =
     employeeExists && employeeIdParam
       ? [
-          ...allEmployees.filter((emp) => emp.id === employeeIdParam),
-          ...allEmployees.filter((emp) => emp.id !== employeeIdParam),
+          ...employees.filter((emp) => emp.id === employeeIdParam),
+          ...employees.filter((emp) => emp.id !== employeeIdParam),
         ]
-      : allEmployees;
+      : employees;
 
   const serviceProviderExists =
-    serviceProviderIdParam &&
-    allServiceProviders.some((prov) => prov.id === serviceProviderIdParam);
+    serviceProviderIdParam && serviceProviders.some((prov) => prov.id === serviceProviderIdParam);
   const sortedServiceProviders =
     serviceProviderExists && serviceProviderIdParam
       ? [
-          ...allServiceProviders.filter((prov) => prov.id === serviceProviderIdParam),
-          ...allServiceProviders.filter((prov) => prov.id !== serviceProviderIdParam),
+          ...serviceProviders.filter((prov) => prov.id === serviceProviderIdParam),
+          ...serviceProviders.filter((prov) => prov.id !== serviceProviderIdParam),
         ]
-      : allServiceProviders;
+      : serviceProviders;
 
   const handleChange = (field: keyof typeof formData, value: string | string[]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -256,14 +304,19 @@ export default function NewMovement() {
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             {(() => {
-              if (locationIdParam && getLocationById(locationIdParam)) {
-                return `${getLocationById(locationIdParam)?.name} • ${property.name}`;
+              if (locationIdParam) {
+                const location = locations.find((loc) => loc.id === locationIdParam);
+                if (location) return `${location.name} • ${property.name}`;
               }
-              if (employeeIdParam && getEmployeeById(employeeIdParam)) {
-                return `${getEmployeeById(employeeIdParam)?.name} • ${property.name}`;
+              if (employeeIdParam) {
+                const employee = employees.find((emp) => emp.id === employeeIdParam);
+                if (employee) return `${employee.name} • ${property.name}`;
               }
-              if (serviceProviderIdParam && getServiceProviderById(serviceProviderIdParam)) {
-                return `${getServiceProviderById(serviceProviderIdParam)?.name} • ${property.name}`;
+              if (serviceProviderIdParam) {
+                const serviceProvider = serviceProviders.find(
+                  (sp) => sp.id === serviceProviderIdParam
+                );
+                if (serviceProvider) return `${serviceProvider.name} • ${property.name}`;
               }
               return property.name;
             })()}

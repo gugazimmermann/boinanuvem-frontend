@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { ApiError } from "../api-client";
 import {
   getCurrentUser,
   getTeamMembers,
@@ -6,173 +7,182 @@ import {
   updateTeamMember,
   createTeamMember,
   updateTeamMemberPermissions,
-  type FullUserProfile,
+  deleteTeamMember,
 } from "../users.service";
-import { apiClient, ApiError } from "../api-client";
-import type { UserFormData } from "~/types";
-import type { UserPermissions } from "~/types/permissions";
 
-// Mock the API client
-vi.mock("../api-client", () => ({
-  apiClient: {
-    get: vi.fn(),
-    put: vi.fn(),
-    post: vi.fn(),
-  },
-  ApiError: class extends Error {
-    constructor(
-      message: string,
-      public status: number
-    ) {
-      super(message);
-      this.name = "ApiError";
-    }
-  },
-}));
+// Mock apiClient
+vi.mock("../api-client", async () => {
+  const actual = await vi.importActual("../api-client");
+  return {
+    ...actual,
+    apiClient: {
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
+    },
+  };
+});
+
+import { apiClient } from "../api-client";
 
 describe("users.service", () => {
-  const mockUserProfile: FullUserProfile = {
-    id: "user-1",
-    name: "User 1",
-    cpf: "123.456.789-00",
-    email: "user1@test.com",
-    phone: "(11) 99999-9999",
-    street: "Street 1",
-    number: "123",
-    complement: null,
-    neighborhood: "Neighborhood 1",
-    city: "City 1",
-    state: "State 1",
-    zipCode: "12345-678",
-    mainUser: false,
-    status: "active",
-    companyId: "company-1",
-    permissions: {
-      registration: {
-        property: { view: false, add: false, edit: false, remove: false },
-        location: { view: false, add: false, edit: false, remove: false },
-        employee: { view: false, add: false, edit: false, remove: false },
-        serviceProvider: { view: false, add: false, edit: false, remove: false },
-        supplier: { view: false, add: false, edit: false, remove: false },
-        buyer: { view: false, add: false, edit: false, remove: false },
-        inventory: { view: false, add: false, edit: false, remove: false },
-        animals: { view: false, add: false, edit: false, remove: false },
-      },
-      records: {
-        births: { view: false, add: false, edit: false, remove: false },
-        acquisitions: { view: false, add: false, edit: false, remove: false },
-        weighings: { view: false, add: false, edit: false, remove: false },
-        sales: { view: false, add: false, edit: false, remove: false },
-        deaths: { view: false, add: false, edit: false, remove: false },
-        sanitaryControls: { view: false, add: false, edit: false, remove: false },
-        locationMovements: { view: false, add: false, edit: false, remove: false },
-        animalMovements: { view: false, add: false, edit: false, remove: false },
-        inventoryMovements: { view: false, add: false, edit: false, remove: false },
-      },
-      breedings: {
-        breedings: { view: false, add: false, edit: false, remove: false },
-        unconfirmedBreedings: { view: false, add: false, edit: false, remove: false },
-        pregnantCows: { view: false, add: false, edit: false, remove: false },
-        reproductiveIndexes: { view: false, add: false, edit: false, remove: false },
-        birthForecast: { view: false, add: false, edit: false, remove: false },
-      },
-      finances: {
-        cashFlow: { view: false, add: false, edit: false, remove: false },
-        accountsPayable: { view: false, add: false, edit: false, remove: false },
-        accountsReceivable: { view: false, add: false, edit: false, remove: false },
-        bankAccounts: { view: false, add: false, edit: false, remove: false },
-      },
-      reports: {
-        analytics: { view: false, add: false, edit: false, remove: false },
-        financialReports: { view: false, add: false, edit: false, remove: false },
-        animalReports: { view: false, add: false, edit: false, remove: false },
-        productionReports: { view: false, add: false, edit: false, remove: false },
-        inventoryReports: { view: false, add: false, edit: false, remove: false },
-      },
-    },
-    createdAt: "2025-01-01T00:00:00.000Z",
-    updatedAt: "2025-01-01T00:00:00.000Z",
-    emailVerifiedAt: null,
-    company: {},
-  };
+  const mockGet = apiClient.get as ReturnType<typeof vi.fn>;
+  const mockPost = apiClient.post as ReturnType<typeof vi.fn>;
+  const mockPut = apiClient.put as ReturnType<typeof vi.fn>;
+  const mockDelete = apiClient.delete as ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   describe("getCurrentUser", () => {
-    it("should return current user profile", async () => {
-      vi.mocked(apiClient.get).mockResolvedValue(mockUserProfile);
+    it("should fetch current user successfully", async () => {
+      const mockUser = {
+        id: "1",
+        name: "John Doe",
+        email: "john@test.com",
+        mainUser: true,
+        companyId: "company-1",
+        permissions: {},
+        status: "active",
+        createdAt: "2024-01-01",
+        updatedAt: "2024-01-01",
+        emailVerifiedAt: "2024-01-01",
+        company: {},
+      };
+      mockGet.mockResolvedValue(mockUser);
 
       const result = await getCurrentUser();
 
-      expect(result).toEqual(mockUserProfile);
-      expect(apiClient.get).toHaveBeenCalledWith("/users/me");
+      expect(mockGet).toHaveBeenCalledWith("/users/me");
+      expect(result).toEqual(mockUser);
     });
 
-    it("should throw error on 401", async () => {
-      vi.mocked(apiClient.get).mockRejectedValue(new ApiError("Unauthorized", 401));
+    it("should throw error on 401 unauthorized", async () => {
+      mockGet.mockRejectedValue(new ApiError("Unauthorized", 401));
 
       await expect(getCurrentUser()).rejects.toThrow("Authentication required");
     });
 
-    it("should throw error on 404", async () => {
-      vi.mocked(apiClient.get).mockRejectedValue(new ApiError("Not found", 404));
+    it("should throw error on 404 not found", async () => {
+      mockGet.mockRejectedValue(new ApiError("Not Found", 404));
 
       await expect(getCurrentUser()).rejects.toThrow("User not found");
     });
 
-    it("should throw original error for other status codes", async () => {
-      const error = new ApiError("Server error", 500);
-      vi.mocked(apiClient.get).mockRejectedValue(error);
+    it("should re-throw non-ApiError errors", async () => {
+      const error = new Error("Network error");
+      mockGet.mockRejectedValue(error);
 
-      await expect(getCurrentUser()).rejects.toThrow("Server error");
+      await expect(getCurrentUser()).rejects.toThrow("Network error");
     });
   });
 
   describe("getTeamMembers", () => {
-    it("should return team members list", async () => {
-      const mockMembers = [mockUserProfile];
-      vi.mocked(apiClient.get).mockResolvedValue(mockMembers);
+    it("should fetch team members successfully", async () => {
+      const mockMembers = [
+        {
+          id: "1",
+          name: "John Doe",
+          email: "john@test.com",
+          mainUser: true,
+          companyId: "company-1",
+          permissions: {},
+          status: "active",
+          createdAt: "2024-01-01",
+          updatedAt: "2024-01-01",
+          emailVerifiedAt: "2024-01-01",
+          company: {},
+        },
+      ];
+      mockGet.mockResolvedValue(mockMembers);
 
       const result = await getTeamMembers();
 
+      expect(mockGet).toHaveBeenCalledWith("/users");
       expect(result).toEqual(mockMembers);
-      expect(apiClient.get).toHaveBeenCalledWith("/users");
     });
 
-    it("should throw error on 403", async () => {
-      vi.mocked(apiClient.get).mockRejectedValue(new ApiError("Forbidden", 403));
+    it("should throw error on 403 forbidden", async () => {
+      mockGet.mockRejectedValue(new ApiError("Forbidden", 403));
 
       await expect(getTeamMembers()).rejects.toThrow("Only main users can view team members");
     });
 
-    it("should throw error on 401", async () => {
-      vi.mocked(apiClient.get).mockRejectedValue(new ApiError("Unauthorized", 401));
+    it("should throw error on 401 unauthorized", async () => {
+      mockGet.mockRejectedValue(new ApiError("Unauthorized", 401));
 
       await expect(getTeamMembers()).rejects.toThrow("Authentication required");
     });
   });
 
   describe("updateCurrentUser", () => {
-    it("should update current user profile", async () => {
-      const updateData: UserFormData = {
-        name: "Updated User",
-        email: "updated@test.com",
-        phone: "(11) 88888-8888",
+    const mockFormData = {
+      name: "John Doe",
+      email: "john@test.com",
+      cpf: "12345678900",
+      phone: "11987654321",
+      street: "Main St",
+      number: "123",
+      complement: "Apt 4",
+      neighborhood: "Downtown",
+      city: "São Paulo",
+      state: "SP",
+      zipCode: "01234567",
+      status: "active" as const,
+      propertyIds: [],
+    };
+
+    it("should update current user successfully", async () => {
+      const mockUser = {
+        id: "1",
+        ...mockFormData,
+        mainUser: true,
+        companyId: "company-1",
+        permissions: {},
+        createdAt: "2024-01-01",
+        updatedAt: "2024-01-01",
+        emailVerifiedAt: "2024-01-01",
+        company: {},
       };
+      mockPut.mockResolvedValue(mockUser);
 
-      const updatedProfile = { ...mockUserProfile, ...updateData };
-      vi.mocked(apiClient.put).mockResolvedValue(updatedProfile);
+      const result = await updateCurrentUser(mockFormData);
 
-      const result = await updateCurrentUser(updateData);
+      expect(mockPut).toHaveBeenCalledWith("/users/me", {
+        name: "John Doe",
+        cpf: "12345678900",
+        email: "john@test.com",
+        phone: "11987654321",
+        street: "Main St",
+        number: "123",
+        complement: "Apt 4",
+        neighborhood: "Downtown",
+        city: "São Paulo",
+        state: "SP",
+        zipCode: "01234567",
+      });
+      expect(result).toEqual(mockUser);
+    });
 
-      expect(result).toEqual(updatedProfile);
-      expect(apiClient.put).toHaveBeenCalledWith("/users/me", {
-        name: "Updated User",
-        email: "updated@test.com",
-        phone: "(11) 88888-8888",
+    it("should handle optional fields", async () => {
+      const formDataWithoutOptional = {
+        name: "John Doe",
+        email: "john@test.com",
+        status: "active" as const,
+        phone: "",
+        propertyIds: [],
+      };
+      mockPut.mockResolvedValue({ id: "1", ...formDataWithoutOptional });
+
+      await updateCurrentUser(formDataWithoutOptional);
+
+      expect(mockPut).toHaveBeenCalledWith("/users/me", {
+        name: "John Doe",
         cpf: undefined,
+        email: "john@test.com",
+        phone: undefined,
         street: undefined,
         number: undefined,
         complement: undefined,
@@ -183,333 +193,305 @@ describe("users.service", () => {
       });
     });
 
-    it("should throw error on 401", async () => {
-      const updateData: UserFormData = {
-        name: "Updated User",
-        email: "updated@test.com",
+    it("should convert empty strings to undefined", async () => {
+      const formDataWithEmpty = {
+        name: "John Doe",
+        email: "john@test.com",
+        cpf: "",
         phone: "",
+        status: "active" as const,
+        propertyIds: [],
       };
-      vi.mocked(apiClient.put).mockRejectedValue(new ApiError("Unauthorized", 401));
+      mockPut.mockResolvedValue({ id: "1" });
 
-      await expect(updateCurrentUser(updateData)).rejects.toThrow("Authentication required");
+      await updateCurrentUser(formDataWithEmpty);
+
+      expect(mockPut).toHaveBeenCalledWith(
+        "/users/me",
+        expect.objectContaining({
+          cpf: undefined,
+          phone: undefined,
+        })
+      );
     });
 
-    it("should throw error on 409", async () => {
-      const updateData: UserFormData = {
-        name: "Updated User",
-        email: "updated@test.com",
-        phone: "",
-      };
-      vi.mocked(apiClient.put).mockRejectedValue(new ApiError("Conflict", 409));
+    it("should throw error on 401 unauthorized", async () => {
+      mockPut.mockRejectedValue(new ApiError("Unauthorized", 401));
 
-      await expect(updateCurrentUser(updateData)).rejects.toThrow("Email already exists");
+      await expect(updateCurrentUser(mockFormData)).rejects.toThrow("Authentication required");
+    });
+
+    it("should throw error on 409 conflict", async () => {
+      mockPut.mockRejectedValue(new ApiError("Conflict", 409));
+
+      await expect(updateCurrentUser(mockFormData)).rejects.toThrow("Email already exists");
+    });
+
+    it("should throw error on 400 bad request", async () => {
+      mockPut.mockRejectedValue(new ApiError("Bad Request", 400));
+
+      await expect(updateCurrentUser(mockFormData)).rejects.toThrow("Invalid user data");
     });
   });
 
   describe("updateTeamMember", () => {
-    it("should update team member profile", async () => {
-      const updateData: UserFormData = {
-        name: "Updated User",
-        email: "updated@test.com",
-        phone: "(11) 88888-8888",
+    const mockFormData = {
+      name: "Jane Doe",
+      email: "jane@test.com",
+      phone: "1234567890",
+      status: "active" as const,
+      propertyIds: [],
+    };
+
+    it("should update team member successfully", async () => {
+      const mockUser = {
+        id: "2",
+        ...mockFormData,
+        mainUser: false,
+        companyId: "company-1",
+        permissions: {},
+        createdAt: "2024-01-01",
+        updatedAt: "2024-01-01",
+        emailVerifiedAt: "2024-01-01",
+        company: {},
       };
+      mockPut.mockResolvedValue(mockUser);
 
-      const updatedProfile = { ...mockUserProfile, ...updateData };
-      vi.mocked(apiClient.put).mockResolvedValue(updatedProfile);
+      const result = await updateTeamMember("2", mockFormData);
 
-      const result = await updateTeamMember("user-1", updateData);
-
-      expect(result).toEqual(updatedProfile);
-      expect(apiClient.put).toHaveBeenCalledWith("/users/user-1", {
-        name: "Updated User",
-        email: "updated@test.com",
-        phone: "(11) 88888-8888",
-        cpf: undefined,
-        street: undefined,
-        number: undefined,
-        complement: undefined,
-        neighborhood: undefined,
-        city: undefined,
-        state: undefined,
-        zipCode: undefined,
-      });
+      expect(mockPut).toHaveBeenCalledWith(
+        "/users/2",
+        expect.objectContaining({
+          name: "Jane Doe",
+          email: "jane@test.com",
+        })
+      );
+      expect(result).toEqual(mockUser);
     });
 
-    it("should throw error on 403", async () => {
-      const updateData: UserFormData = {
-        name: "Updated User",
-        email: "updated@test.com",
-        phone: "",
-      };
-      vi.mocked(apiClient.put).mockRejectedValue(new ApiError("Forbidden", 403));
+    it("should throw error on 403 forbidden", async () => {
+      mockPut.mockRejectedValue(new ApiError("Forbidden", 403));
 
-      await expect(updateTeamMember("user-1", updateData)).rejects.toThrow(
+      await expect(updateTeamMember("2", mockFormData)).rejects.toThrow(
         "Only main users can update team members"
       );
     });
 
-    it("should throw error on 404", async () => {
-      const updateData: UserFormData = {
-        name: "Updated User",
-        email: "updated@test.com",
-        phone: "",
-      };
-      vi.mocked(apiClient.put).mockRejectedValue(new ApiError("Not found", 404));
+    it("should throw error on 404 not found", async () => {
+      mockPut.mockRejectedValue(new ApiError("Not Found", 404));
 
-      await expect(updateTeamMember("user-1", updateData)).rejects.toThrow("User not found");
+      await expect(updateTeamMember("2", mockFormData)).rejects.toThrow("User not found");
+    });
+
+    it("should throw error on 409 conflict", async () => {
+      mockPut.mockRejectedValue(new ApiError("Conflict", 409));
+
+      await expect(updateTeamMember("2", mockFormData)).rejects.toThrow("Email already exists");
     });
   });
 
   describe("createTeamMember", () => {
-    it("should create team member", async () => {
-      const createData: UserFormData & { password: string } = {
+    const mockFormData = {
+      name: "New User",
+      email: "new@test.com",
+      phone: "1234567890",
+      password: "password123",
+      status: "active" as const,
+      propertyIds: [],
+    };
+
+    it("should create team member successfully", async () => {
+      const mockUser = {
+        id: "3",
         name: "New User",
-        email: "newuser@test.com",
-        phone: "(11) 77777-7777",
-        password: "password123",
+        email: "new@test.com",
+        mainUser: false,
+        companyId: "company-1",
+        permissions: {},
+        status: "active",
+        createdAt: "2024-01-01",
+        updatedAt: "2024-01-01",
+        emailVerifiedAt: null,
+        company: {},
       };
+      mockPost.mockResolvedValue(mockUser);
 
-      const newProfile = { ...mockUserProfile, ...createData, id: "user-new" };
-      vi.mocked(apiClient.post).mockResolvedValue(newProfile);
+      const result = await createTeamMember(mockFormData);
 
-      const result = await createTeamMember(createData);
-
-      expect(result).toEqual(newProfile);
-      expect(apiClient.post).toHaveBeenCalledWith("/users", {
-        name: "New User",
-        email: "newuser@test.com",
-        phone: "(11) 77777-7777",
-        password: "password123",
-        cpf: undefined,
-        street: undefined,
-        number: undefined,
-        complement: undefined,
-        neighborhood: undefined,
-        city: undefined,
-        state: undefined,
-        zipCode: undefined,
-      });
+      expect(mockPost).toHaveBeenCalledWith(
+        "/users",
+        expect.objectContaining({
+          name: "New User",
+          email: "new@test.com",
+          password: "password123",
+        })
+      );
+      expect(result).toEqual(mockUser);
     });
 
-    it("should throw error on 403", async () => {
-      const createData: UserFormData & { password: string } = {
+    it("should create team member without password", async () => {
+      const formDataWithoutPassword = {
         name: "New User",
-        email: "newuser@test.com",
-        phone: "",
-        password: "password123",
+        email: "new@test.com",
+        status: "active" as const,
+        phone: "1234567890",
+        propertyIds: [],
       };
-      vi.mocked(apiClient.post).mockRejectedValue(new ApiError("Forbidden", 403));
+      mockPost.mockResolvedValue({ id: "3", ...formDataWithoutPassword });
 
-      await expect(createTeamMember(createData)).rejects.toThrow(
+      await createTeamMember(formDataWithoutPassword);
+
+      expect(mockPost).toHaveBeenCalledWith(
+        "/users",
+        expect.objectContaining({
+          password: undefined,
+        })
+      );
+    });
+
+    it("should throw error on 403 forbidden", async () => {
+      mockPost.mockRejectedValue(new ApiError("Forbidden", 403));
+
+      await expect(createTeamMember(mockFormData)).rejects.toThrow(
         "Only main users can create team members"
       );
     });
 
-    it("should throw error on 409", async () => {
-      const createData: UserFormData & { password: string } = {
-        name: "New User",
-        email: "newuser@test.com",
-        phone: "",
-        password: "password123",
-      };
-      vi.mocked(apiClient.post).mockRejectedValue(new ApiError("Conflict", 409));
+    it("should throw error on 409 conflict", async () => {
+      mockPost.mockRejectedValue(new ApiError("Conflict", 409));
 
-      await expect(createTeamMember(createData)).rejects.toThrow(
+      await expect(createTeamMember(mockFormData)).rejects.toThrow(
         "Um usuário com este email já existe. Por favor, use outro email."
       );
+    });
+
+    it("should throw error on 400 bad request", async () => {
+      mockPost.mockRejectedValue(new ApiError("Bad Request", 400));
+
+      await expect(createTeamMember(mockFormData)).rejects.toThrow("Invalid user data");
     });
   });
 
   describe("updateTeamMemberPermissions", () => {
-    it("should update team member permissions", async () => {
-      const permissions: UserPermissions = {
-        registration: {
-          animals: { view: true, add: true, edit: false, remove: false },
-          property: { view: false, add: false, edit: false, remove: false },
-          location: { view: false, add: false, edit: false, remove: false },
-          employee: { view: false, add: false, edit: false, remove: false },
-          serviceProvider: { view: false, add: false, edit: false, remove: false },
-          supplier: { view: false, add: false, edit: false, remove: false },
-          buyer: { view: false, add: false, edit: false, remove: false },
-          inventory: { view: false, add: false, edit: false, remove: false },
-        },
-        records: {
-          births: { view: false, add: false, edit: false, remove: false },
-          acquisitions: { view: false, add: false, edit: false, remove: false },
-          weighings: { view: false, add: false, edit: false, remove: false },
-          sales: { view: true, add: true, edit: true, remove: false },
-          deaths: { view: false, add: false, edit: false, remove: false },
-          sanitaryControls: { view: false, add: false, edit: false, remove: false },
-          locationMovements: { view: false, add: false, edit: false, remove: false },
-          animalMovements: { view: false, add: false, edit: false, remove: false },
-          inventoryMovements: { view: false, add: false, edit: false, remove: false },
-        },
-        breedings: {
-          breedings: { view: false, add: false, edit: false, remove: false },
-          unconfirmedBreedings: { view: false, add: false, edit: false, remove: false },
-          pregnantCows: { view: false, add: false, edit: false, remove: false },
-          reproductiveIndexes: { view: false, add: false, edit: false, remove: false },
-          birthForecast: { view: false, add: false, edit: false, remove: false },
-        },
-        finances: {
-          cashFlow: { view: false, add: false, edit: false, remove: false },
-          accountsPayable: { view: false, add: false, edit: false, remove: false },
-          accountsReceivable: { view: false, add: false, edit: false, remove: false },
-          bankAccounts: { view: false, add: false, edit: false, remove: false },
-        },
-        reports: {
-          analytics: { view: false, add: false, edit: false, remove: false },
-          financialReports: { view: false, add: false, edit: false, remove: false },
-          animalReports: { view: false, add: false, edit: false, remove: false },
-          productionReports: { view: false, add: false, edit: false, remove: false },
-          inventoryReports: { view: false, add: false, edit: false, remove: false },
-        },
+    const mockPermissions = {
+      registration: {
+        property: { view: true, add: true, edit: true, remove: false },
+        location: { view: true, add: false, edit: false, remove: false },
+        employee: { view: true, add: true, edit: true, remove: true },
+        serviceProvider: { view: true, add: false, edit: false, remove: false },
+        supplier: { view: true, add: true, edit: true, remove: false },
+        buyer: { view: true, add: false, edit: false, remove: false },
+        inventory: { view: true, add: true, edit: true, remove: true },
+        animals: { view: true, add: true, edit: true, remove: false },
+      },
+      records: {
+        births: { view: true, add: true, edit: true, remove: false },
+        acquisitions: { view: true, add: true, edit: true, remove: false },
+        weighings: { view: true, add: true, edit: true, remove: false },
+        sales: { view: true, add: true, edit: true, remove: false },
+        deaths: { view: true, add: true, edit: true, remove: false },
+        sanitaryControls: { view: true, add: true, edit: true, remove: false },
+        locationMovements: { view: true, add: true, edit: true, remove: false },
+        animalMovements: { view: true, add: true, edit: true, remove: false },
+        inventoryMovements: { view: true, add: true, edit: true, remove: false },
+      },
+      breedings: {
+        breedings: { view: true, add: true, edit: true, remove: false },
+        unconfirmedBreedings: { view: true, add: false, edit: false, remove: false },
+        pregnantCows: { view: true, add: false, edit: false, remove: false },
+        reproductiveIndexes: { view: true, add: false, edit: false, remove: false },
+        birthForecast: { view: true, add: false, edit: false, remove: false },
+      },
+      finances: {
+        cashFlow: { view: true, add: true, edit: true, remove: false },
+        accountsPayable: { view: true, add: true, edit: true, remove: false },
+        accountsReceivable: { view: true, add: true, edit: true, remove: false },
+        bankAccounts: { view: true, add: false, edit: false, remove: false },
+      },
+      reports: {
+        analytics: { view: true, add: false, edit: false, remove: false },
+        financialReports: { view: true, add: false, edit: false, remove: false },
+        animalReports: { view: true, add: false, edit: false, remove: false },
+        productionReports: { view: true, add: false, edit: false, remove: false },
+        inventoryReports: { view: true, add: false, edit: false, remove: false },
+      },
+    };
+
+    it("should update permissions successfully", async () => {
+      const mockUser = {
+        id: "2",
+        name: "Jane Doe",
+        email: "jane@test.com",
+        permissions: mockPermissions,
+        mainUser: false,
+        companyId: "company-1",
+        status: "active",
+        createdAt: "2024-01-01",
+        updatedAt: "2024-01-01",
+        emailVerifiedAt: "2024-01-01",
+        company: {},
       };
+      mockPut.mockResolvedValue(mockUser);
 
-      const updatedProfile = { ...mockUserProfile, permissions };
-      vi.mocked(apiClient.put).mockResolvedValue(updatedProfile);
+      const result = await updateTeamMemberPermissions("2", mockPermissions);
 
-      const result = await updateTeamMemberPermissions("user-1", permissions);
-
-      expect(result).toEqual(updatedProfile);
-      expect(apiClient.put).toHaveBeenCalledWith("/users/user-1/permissions", {
-        registration: {
-          property: permissions.registration.property,
-          location: permissions.registration.location,
-          employee: permissions.registration.employee,
-          serviceProvider: permissions.registration.serviceProvider,
-          supplier: permissions.registration.supplier,
-          buyer: permissions.registration.buyer,
-          inventory: permissions.registration.inventory,
-          animals: permissions.registration.animals,
-        },
-        records: {
-          births: permissions.records.births,
-          acquisitions: permissions.records.acquisitions,
-          weighings: permissions.records.weighings,
-          sales: permissions.records.sales,
-          deaths: permissions.records.deaths,
-          sanitaryControls: permissions.records.sanitaryControls,
-          locationMovements: permissions.records.locationMovements,
-          animalMovements: permissions.records.animalMovements,
-          inventoryMovements: permissions.records.inventoryMovements,
-        },
-        breedings: {
-          breedings: permissions.breedings.breedings,
-          unconfirmedBreedings: permissions.breedings.unconfirmedBreedings,
-          pregnantCows: permissions.breedings.pregnantCows,
-          reproductiveIndexes: permissions.breedings.reproductiveIndexes,
-          birthForecast: permissions.breedings.birthForecast,
-        },
-        finances: {
-          cashFlow: permissions.finances.cashFlow,
-          accountsPayable: permissions.finances.accountsPayable,
-          accountsReceivable: permissions.finances.accountsReceivable,
-          bankAccounts: permissions.finances.bankAccounts,
-        },
-      });
+      expect(mockPut).toHaveBeenCalledWith(
+        "/users/2/permissions",
+        expect.objectContaining({
+          registration: expect.objectContaining({
+            property: mockPermissions.registration.property,
+          }),
+        })
+      );
+      expect(result).toEqual(mockUser);
     });
 
-    it("should throw error on 403", async () => {
-      const permissions: UserPermissions = {
-        registration: {
-          animals: { view: true, add: false, edit: false, remove: false },
-          property: { view: false, add: false, edit: false, remove: false },
-          location: { view: false, add: false, edit: false, remove: false },
-          employee: { view: false, add: false, edit: false, remove: false },
-          serviceProvider: { view: false, add: false, edit: false, remove: false },
-          supplier: { view: false, add: false, edit: false, remove: false },
-          buyer: { view: false, add: false, edit: false, remove: false },
-          inventory: { view: false, add: false, edit: false, remove: false },
-        },
-        records: {
-          births: { view: false, add: false, edit: false, remove: false },
-          acquisitions: { view: false, add: false, edit: false, remove: false },
-          weighings: { view: false, add: false, edit: false, remove: false },
-          sales: { view: false, add: false, edit: false, remove: false },
-          deaths: { view: false, add: false, edit: false, remove: false },
-          sanitaryControls: { view: false, add: false, edit: false, remove: false },
-          locationMovements: { view: false, add: false, edit: false, remove: false },
-          animalMovements: { view: false, add: false, edit: false, remove: false },
-          inventoryMovements: { view: false, add: false, edit: false, remove: false },
-        },
-        breedings: {
-          breedings: { view: false, add: false, edit: false, remove: false },
-          unconfirmedBreedings: { view: false, add: false, edit: false, remove: false },
-          pregnantCows: { view: false, add: false, edit: false, remove: false },
-          reproductiveIndexes: { view: false, add: false, edit: false, remove: false },
-          birthForecast: { view: false, add: false, edit: false, remove: false },
-        },
-        finances: {
-          cashFlow: { view: false, add: false, edit: false, remove: false },
-          accountsPayable: { view: false, add: false, edit: false, remove: false },
-          accountsReceivable: { view: false, add: false, edit: false, remove: false },
-          bankAccounts: { view: false, add: false, edit: false, remove: false },
-        },
-        reports: {
-          analytics: { view: false, add: false, edit: false, remove: false },
-          financialReports: { view: false, add: false, edit: false, remove: false },
-          animalReports: { view: false, add: false, edit: false, remove: false },
-          productionReports: { view: false, add: false, edit: false, remove: false },
-          inventoryReports: { view: false, add: false, edit: false, remove: false },
-        },
-      };
-      vi.mocked(apiClient.put).mockRejectedValue(new ApiError("Forbidden", 403));
+    it("should throw error on 403 forbidden", async () => {
+      mockPut.mockRejectedValue(new ApiError("Forbidden", 403));
 
-      await expect(updateTeamMemberPermissions("user-1", permissions)).rejects.toThrow(
+      await expect(updateTeamMemberPermissions("2", mockPermissions)).rejects.toThrow(
         "Only main users can update permissions"
       );
     });
 
-    it("should throw error on 404", async () => {
-      const permissions: UserPermissions = {
-        registration: {
-          animals: { view: true, add: false, edit: false, remove: false },
-          property: { view: false, add: false, edit: false, remove: false },
-          location: { view: false, add: false, edit: false, remove: false },
-          employee: { view: false, add: false, edit: false, remove: false },
-          serviceProvider: { view: false, add: false, edit: false, remove: false },
-          supplier: { view: false, add: false, edit: false, remove: false },
-          buyer: { view: false, add: false, edit: false, remove: false },
-          inventory: { view: false, add: false, edit: false, remove: false },
-        },
-        records: {
-          births: { view: false, add: false, edit: false, remove: false },
-          acquisitions: { view: false, add: false, edit: false, remove: false },
-          weighings: { view: false, add: false, edit: false, remove: false },
-          sales: { view: false, add: false, edit: false, remove: false },
-          deaths: { view: false, add: false, edit: false, remove: false },
-          sanitaryControls: { view: false, add: false, edit: false, remove: false },
-          locationMovements: { view: false, add: false, edit: false, remove: false },
-          animalMovements: { view: false, add: false, edit: false, remove: false },
-          inventoryMovements: { view: false, add: false, edit: false, remove: false },
-        },
-        breedings: {
-          breedings: { view: false, add: false, edit: false, remove: false },
-          unconfirmedBreedings: { view: false, add: false, edit: false, remove: false },
-          pregnantCows: { view: false, add: false, edit: false, remove: false },
-          reproductiveIndexes: { view: false, add: false, edit: false, remove: false },
-          birthForecast: { view: false, add: false, edit: false, remove: false },
-        },
-        finances: {
-          cashFlow: { view: false, add: false, edit: false, remove: false },
-          accountsPayable: { view: false, add: false, edit: false, remove: false },
-          accountsReceivable: { view: false, add: false, edit: false, remove: false },
-          bankAccounts: { view: false, add: false, edit: false, remove: false },
-        },
-        reports: {
-          analytics: { view: false, add: false, edit: false, remove: false },
-          financialReports: { view: false, add: false, edit: false, remove: false },
-          animalReports: { view: false, add: false, edit: false, remove: false },
-          productionReports: { view: false, add: false, edit: false, remove: false },
-          inventoryReports: { view: false, add: false, edit: false, remove: false },
-        },
-      };
-      vi.mocked(apiClient.put).mockRejectedValue(new ApiError("Not found", 404));
+    it("should throw error on 404 not found", async () => {
+      mockPut.mockRejectedValue(new ApiError("Not Found", 404));
 
-      await expect(updateTeamMemberPermissions("user-1", permissions)).rejects.toThrow(
+      await expect(updateTeamMemberPermissions("2", mockPermissions)).rejects.toThrow(
         "User not found"
       );
+    });
+
+    it("should throw error on 400 bad request", async () => {
+      mockPut.mockRejectedValue(new ApiError("Bad Request", 400));
+
+      await expect(updateTeamMemberPermissions("2", mockPermissions)).rejects.toThrow(
+        "Invalid permissions data"
+      );
+    });
+  });
+
+  describe("deleteTeamMember", () => {
+    it("should delete team member successfully", async () => {
+      mockDelete.mockResolvedValue(undefined);
+
+      await deleteTeamMember("2");
+
+      expect(mockDelete).toHaveBeenCalledWith("/users/2");
+    });
+
+    it("should throw error on 403 forbidden", async () => {
+      mockDelete.mockRejectedValue(new ApiError("Forbidden", 403));
+
+      await expect(deleteTeamMember("2")).rejects.toThrow(
+        "Only main users can delete team members"
+      );
+    });
+
+    it("should throw error on 404 not found", async () => {
+      mockDelete.mockRejectedValue(new ApiError("Not Found", 404));
+
+      await expect(deleteTeamMember("2")).rejects.toThrow("User not found");
     });
   });
 });

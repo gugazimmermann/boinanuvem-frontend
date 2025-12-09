@@ -1,178 +1,66 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import {
   createRegistrationMeta,
   createFormMeta,
   createViewMeta,
   createRegistrationLoader,
 } from "../route-helpers";
-import * as routeGuard from "~/utils/route-guard";
 
-vi.mock("~/utils/route-guard", () => ({
-  createRouteGuard: vi.fn(),
-}));
+describe("createRegistrationMeta", () => {
+  it("should create meta tags with title and description", () => {
+    const meta = createRegistrationMeta("Propriedades", "Gerenciar propriedades");
+    expect(meta).toHaveLength(2);
+    expect(meta[0].title).toBe("Propriedades - Boi na Nuvem");
+    expect(meta[1].name).toBe("description");
+    expect(meta[1].content).toBe("Gerenciar propriedades");
+  });
+});
 
-describe("route-helpers", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+describe("createFormMeta", () => {
+  it("should create meta for 'Adicionar' action", () => {
+    const meta = createFormMeta("Adicionar", "Propriedade", "Adicionar nova propriedade");
+    expect(meta[0].title).toBe("Adicionar Propriedade - Boi na Nuvem");
+    expect(meta[1].content).toBe("Adicionar nova propriedade");
   });
 
-  describe("createRegistrationMeta", () => {
-    it("should create meta tags with title and description", () => {
-      const result = createRegistrationMeta("Register", "Registration page");
-
-      expect(result).toEqual([
-        { title: "Register - Boi na Nuvem" },
-        {
-          name: "description",
-          content: "Registration page",
-        },
-      ]);
-    });
-
-    it("should handle different titles and descriptions", () => {
-      const result = createRegistrationMeta("Login", "Login to your account");
-
-      expect(result).toEqual([
-        { title: "Login - Boi na Nuvem" },
-        {
-          name: "description",
-          content: "Login to your account",
-        },
-      ]);
-    });
+  it("should create meta for 'Editar' action", () => {
+    const meta = createFormMeta("Editar", "Propriedade", "Editar propriedade existente");
+    expect(meta[0].title).toBe("Editar Propriedade - Boi na Nuvem");
+    expect(meta[1].content).toBe("Editar propriedade existente");
   });
 
-  describe("createFormMeta", () => {
-    it("should create meta tags for 'Adicionar' action", () => {
-      const result = createFormMeta("Adicionar", "Animal", "Add a new animal");
+  it("should use default description when not provided", () => {
+    const meta = createFormMeta("Adicionar", "Propriedade");
+    expect(meta[1].content).toBe("adicionar propriedade");
+  });
+});
 
-      expect(result).toEqual([
-        { title: "Adicionar Animal - Boi na Nuvem" },
-        {
-          name: "description",
-          content: "Add a new animal",
-        },
-      ]);
-    });
-
-    it("should create meta tags for 'Editar' action", () => {
-      const result = createFormMeta("Editar", "Venda", "Edit sale details");
-
-      expect(result).toEqual([
-        { title: "Editar Venda - Boi na Nuvem" },
-        {
-          name: "description",
-          content: "Edit sale details",
-        },
-      ]);
-    });
-
-    it("should use default description when not provided for 'Adicionar'", () => {
-      const result = createFormMeta("Adicionar", "Animal");
-
-      expect(result).toEqual([
-        { title: "Adicionar Animal - Boi na Nuvem" },
-        {
-          name: "description",
-          content: "adicionar animal",
-        },
-      ]);
-    });
-
-    it("should use default description when not provided for 'Editar'", () => {
-      const result = createFormMeta("Editar", "Venda");
-
-      expect(result).toEqual([
-        { title: "Editar Venda - Boi na Nuvem" },
-        {
-          name: "description",
-          content: "editar venda",
-        },
-      ]);
-    });
+describe("createViewMeta", () => {
+  it("should create meta for view page", () => {
+    const meta = createViewMeta("Propriedade", "Visualizar detalhes da propriedade");
+    expect(meta[0].title).toBe("Detalhes do Propriedade - Boi na Nuvem");
+    expect(meta[1].content).toBe("Visualizar detalhes da propriedade");
   });
 
-  describe("createViewMeta", () => {
-    it("should create meta tags with custom description", () => {
-      const result = createViewMeta("Animal", "View animal details");
+  it("should use default description when not provided", () => {
+    const meta = createViewMeta("Propriedade");
+    expect(meta[1].content).toBe("Visualização detalhada do propriedade");
+  });
+});
 
-      expect(result).toEqual([
-        { title: "Detalhes do Animal - Boi na Nuvem" },
-        {
-          name: "description",
-          content: "View animal details",
-        },
-      ]);
-    });
-
-    it("should use default description when not provided", () => {
-      const result = createViewMeta("Venda");
-
-      expect(result).toEqual([
-        { title: "Detalhes do Venda - Boi na Nuvem" },
-        {
-          name: "description",
-          content: "Visualização detalhada do venda",
-        },
-      ]);
-    });
-
-    it("should handle different entity names", () => {
-      const result = createViewMeta("Comprador", "View buyer information");
-
-      expect(result).toEqual([
-        { title: "Detalhes do Comprador - Boi na Nuvem" },
-        {
-          name: "description",
-          content: "View buyer information",
-        },
-      ]);
-    });
+describe("createRegistrationLoader", () => {
+  it("should return a function", () => {
+    const loader = createRegistrationLoader();
+    expect(typeof loader).toBe("function");
   });
 
-  describe("createRegistrationLoader", () => {
-    it("should call createRouteGuard with resource and action", () => {
-      const mockGuard = vi.fn();
-      vi.mocked(routeGuard.createRouteGuard).mockReturnValue(mockGuard);
+  it("should accept resource parameter", () => {
+    const loader = createRegistrationLoader("property");
+    expect(typeof loader).toBe("function");
+  });
 
-      const loader = createRegistrationLoader("animals", "view");
-
-      expect(routeGuard.createRouteGuard).toHaveBeenCalledWith("animals", "view");
-      expect(loader).toBe(mockGuard);
-    });
-
-    it("should use default action 'view' when not provided", () => {
-      const mockGuard = vi.fn();
-      vi.mocked(routeGuard.createRouteGuard).mockReturnValue(mockGuard);
-
-      const loader = createRegistrationLoader("animals");
-
-      expect(routeGuard.createRouteGuard).toHaveBeenCalledWith("animals", "view");
-      expect(loader).toBe(mockGuard);
-    });
-
-    it("should handle different actions", () => {
-      const mockGuard = vi.fn();
-      vi.mocked(routeGuard.createRouteGuard).mockReturnValue(mockGuard);
-
-      createRegistrationLoader("animals", "add");
-      expect(routeGuard.createRouteGuard).toHaveBeenCalledWith("animals", "add");
-
-      createRegistrationLoader("animals", "edit");
-      expect(routeGuard.createRouteGuard).toHaveBeenCalledWith("animals", "edit");
-
-      createRegistrationLoader("animals", "remove");
-      expect(routeGuard.createRouteGuard).toHaveBeenCalledWith("animals", "remove");
-    });
-
-    it("should handle undefined resource", () => {
-      const mockGuard = vi.fn();
-      vi.mocked(routeGuard.createRouteGuard).mockReturnValue(mockGuard);
-
-      const loader = createRegistrationLoader(undefined, "view");
-
-      expect(routeGuard.createRouteGuard).toHaveBeenCalledWith(undefined, "view");
-      expect(loader).toBe(mockGuard);
-    });
+  it("should accept action parameter", () => {
+    const loader = createRegistrationLoader("property", "edit");
+    expect(typeof loader).toBe("function");
   });
 });

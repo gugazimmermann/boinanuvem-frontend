@@ -13,7 +13,7 @@ interface EntityDetailHeaderProps {
 
 export function EntityDetailHeader({ title, subtitle, status, actions }: EntityDetailHeaderProps) {
   return (
-    <div className="flex items-center justify-between">
+    <div data-testid="header" className="flex items-center justify-between">
       <div>
         <div className="flex items-center gap-3">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{title}</h1>

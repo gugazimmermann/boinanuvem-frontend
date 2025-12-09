@@ -3,15 +3,12 @@ import { useNavigate, useParams } from "react-router";
 import { useTranslation } from "~/i18n";
 import { ROUTES, getSaleViewRoute } from "~/routes.config";
 import { getSaleById, updateSale } from "~/services/sales.service";
-import { getAnimalsByCompanyId } from "~/services/animals.service";
-import { getBuyersByCompanyId } from "~/services/buyers.service";
-import { getPropertiesByCompanyId } from "~/services/properties.service";
-import { mockCompanies } from "~/mocks/companies";
 import {
   SaleForm,
   type SaleFormData as SaleFormDataType,
 } from "~/components/dashboard/records/sale-form";
 import { transformSaleFormDataForUpdate } from "~/utils/sale-form-helpers";
+import { useSaleFormData } from "~/hooks/use-sale-form-data";
 
 export function meta() {
   return [
@@ -33,14 +30,14 @@ export default function EditSale() {
   const navigate = useNavigate();
   const { saleId } = useParams<{ saleId: string }>();
   const sale = getSaleById(saleId);
-  const company = mockCompanies[0];
-  const companyId = company?.id || "";
 
-  const allAnimals = getAnimalsByCompanyId(companyId).filter(
-    (a) => a.status === "active" || a.status === "sold"
-  );
-  const buyers = getBuyersByCompanyId(companyId);
-  const properties = getPropertiesByCompanyId(companyId);
+  const {
+    animals: allAnimals,
+    buyers,
+    properties,
+  } = useSaleFormData({
+    includeSoldAnimals: true,
+  });
 
   const handleSubmit = async (data: SaleFormDataType) => {
     if (!sale) return;

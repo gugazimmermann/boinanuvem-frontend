@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ReactNode, MouseEvent } from "react";
 
 export type SortDirection = "asc" | "desc" | null;
 
@@ -13,7 +13,7 @@ export interface TableColumn<T = unknown> {
 
 export interface TableAction {
   label: string;
-  onClick: () => void;
+  onClick?: (e?: MouseEvent) => void;
   variant?: "primary" | "secondary" | "outline" | "ghost";
   icon?: ReactNode;
   leftIcon?: ReactNode;

@@ -2,8 +2,10 @@ import { useNavigate } from "react-router";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
 import { formatDate } from "~/utils/formatting";
-import { getPropertyById } from "~/services/properties.service";
+import { getProperties } from "~/services/properties.service";
 import { getPropertyViewRoute } from "~/routes.config";
+import { useState, useEffect } from "react";
+import type { Property } from "~/types";
 
 export type EntityType = "employee" | "serviceProvider" | "supplier" | "buyer";
 
@@ -32,6 +34,19 @@ export function useEntityDetailsConfig({ entityType, entity }: UseEntityDetailsC
   const navigate = useNavigate();
   const t = useTranslation();
   const { language } = useLanguage();
+  const [properties, setProperties] = useState<Map<string, Property>>(new Map());
+
+  useEffect(() => {
+    const loadProperties = async () => {
+      try {
+        const propertiesData = await getProperties();
+        setProperties(new Map(propertiesData.map((p) => [p.id, p])));
+      } catch (error) {
+        console.error("Failed to load properties:", error);
+      }
+    };
+    loadProperties();
+  }, []);
 
   const getTranslationKeys = () => {
     switch (entityType) {
@@ -143,7 +158,7 @@ export function useEntityDetailsConfig({ entityType, entity }: UseEntityDetailsC
           entity.propertyIds && entity.propertyIds.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {entity.propertyIds.map((propertyId: string) => {
-                const property = getPropertyById(propertyId);
+                const property = properties.get(propertyId);
                 return property ? (
                   <button
                     type="button"

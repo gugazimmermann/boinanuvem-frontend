@@ -53,20 +53,21 @@ export function useDateRangeFilter(options: UseDateRangeFilterOptions = {}) {
     (dateString: string): boolean => {
       if (!startDate && !endDate) return true;
 
-      const itemDate = new Date(dateString);
+      // Extract date part (YYYY-MM-DD) from the input string to avoid timezone issues
+      // Handle both ISO strings with time and simple date strings
+      const itemDateObj = new Date(dateString);
+      const itemDateOnly = itemDateObj.toISOString().split("T")[0];
 
       if (startDate) {
-        const start = new Date(startDate);
-        start.setHours(0, 0, 0, 0);
-        if (itemDate < start) {
+        // Compare date strings directly (YYYY-MM-DD format)
+        if (itemDateOnly < startDate) {
           return false;
         }
       }
 
       if (endDate) {
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-        if (itemDate > end) {
+        // Compare date strings directly (YYYY-MM-DD format)
+        if (itemDateOnly > endDate) {
           return false;
         }
       }

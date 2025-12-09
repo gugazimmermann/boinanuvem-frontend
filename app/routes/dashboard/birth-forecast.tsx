@@ -1,8 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "~/i18n";
 import { translations } from "~/i18n/translations";
 import { mockCompanies } from "~/mocks/companies";
-import { getPropertiesByCompanyId } from "~/services/properties.service";
+import { getProperties } from "~/services/properties.service";
+import type { Property } from "~/types";
 import { getExpectedBirthsForecast } from "~/services/reproductive-indexes.service";
 import { format } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
@@ -35,10 +36,26 @@ export default function BirthForecastPage() {
   const chartColors = getChartColors(isDark);
   const tooltipStyle = getTooltipStyle(isDark);
   const company = mockCompanies[0];
-  const properties = company ? getPropertiesByCompanyId(company.id) : [];
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>(
-    properties.length > 0 ? ALL_PROPERTIES_ID : ""
-  );
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string>(ALL_PROPERTIES_ID);
+
+  useEffect(() => {
+    const fetchProperties = async () => {
+      if (company) {
+        try {
+          const propertiesData = await getProperties();
+          const filteredProperties = propertiesData.filter((prop) => prop.companyId === company.id);
+          setProperties(filteredProperties);
+          if (filteredProperties.length > 0 && selectedPropertyId === ALL_PROPERTIES_ID) {
+            setSelectedPropertyId(ALL_PROPERTIES_ID);
+          }
+        } catch (error) {
+          console.error("Failed to load properties:", error);
+        }
+      }
+    };
+    fetchProperties();
+  }, [company, selectedPropertyId]);
 
   const dateLocale = useDateLocale();
 

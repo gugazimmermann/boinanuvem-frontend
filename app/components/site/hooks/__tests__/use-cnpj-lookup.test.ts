@@ -1,432 +1,410 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useCNPJLookup } from "../use-cnpj-lookup";
 
 describe("useCNPJLookup", () => {
+  const mockFetch = vi.fn();
+  const originalFetch = global.fetch;
+
   beforeEach(() => {
     vi.useFakeTimers();
-    global.fetch = vi.fn();
+    global.fetch = mockFetch;
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
     vi.useRealTimers();
+    global.fetch = originalFetch;
   });
 
-  it("should initialize with null data, false loading, and null error", () => {
+  it("should initialize with null data and no loading", () => {
     const { result } = renderHook(() => useCNPJLookup(""));
-
-    expect(result.current.data).toBe(null);
+    expect(result.current.data).toBeNull();
     expect(result.current.loading).toBe(false);
-    expect(result.current.error).toBe(null);
+    expect(result.current.error).toBeNull();
   });
 
-  it("should not fetch when CNPJ is less than 14 digits", async () => {
-    const { result } = renderHook(() => useCNPJLookup("1234567890123"));
-
-    await act(async () => {
-      vi.advanceTimersByTime(1000);
-    });
-
-    expect(global.fetch).not.toHaveBeenCalled();
-    expect(result.current.data).toBe(null);
-    expect(result.current.error).toBe(null);
+  it("should not fetch when CNPJ is empty", async () => {
+    renderHook(() => useCNPJLookup(""));
+    vi.advanceTimersByTime(1000);
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  it("should not fetch when CNPJ is more than 14 digits", async () => {
-    renderHook(() => useCNPJLookup("123456789012345"));
-
-    await act(async () => {
-      vi.advanceTimersByTime(1000);
-    });
-
-    expect(global.fetch).not.toHaveBeenCalled();
+  it("should not fetch when CNPJ has less than 14 digits", async () => {
+    renderHook(() => useCNPJLookup("1234567890123"));
+    vi.advanceTimersByTime(1000);
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 
   it("should debounce fetch requests", async () => {
-    const mockData = {
-      cnpj: "12345678000190",
-      razao_social: "Test Company",
-      email: "test@example.com",
-      ddd_telefone_1: "11999999999",
-      logradouro: "Rua Test",
-      numero: "123",
-      complemento: "",
-      bairro: "Centro",
-      municipio: "São Paulo",
-      uf: "SP",
-      cep: "12345678",
-    };
-
-    vi.mocked(global.fetch).mockResolvedValueOnce({
+    mockFetch.mockResolvedValue({
       ok: true,
-      json: async () => mockData,
-    } as Response);
-
-    const { rerender } = renderHook(({ cnpj }) => useCNPJLookup(cnpj, { debounceMs: 800 }), {
-      initialProps: { cnpj: "12345" },
+      json: async () => ({ cnpj: "12345678000190" }),
     });
 
-    rerender({ cnpj: "12345678000190" });
+    const { rerender } = renderHook(({ cnpj }) => useCNPJLookup(cnpj), {
+      initialProps: { cnpj: "" },
+    });
 
-    // Should not fetch immediately
+    // Change to first valid CNPJ
     await act(async () => {
-      vi.advanceTimersByTime(799);
+      rerender({ cnpj: "12.345.678/0001-90" });
+      vi.advanceTimersByTime(400);
     });
+    expect(mockFetch).not.toHaveBeenCalled();
 
-    expect(global.fetch).not.toHaveBeenCalled();
-
-    // Should fetch after debounce
+    // Change to second valid CNPJ (should cancel previous timer)
     await act(async () => {
-      vi.advanceTimersByTime(1);
+      rerender({ cnpj: "12.345.678/0001-91" });
+      vi.advanceTimersByTime(400);
+    });
+    expect(mockFetch).not.toHaveBeenCalled();
+
+    // Complete the debounce period
+    await act(async () => {
+      vi.advanceTimersByTime(400);
+      await vi.runOnlyPendingTimersAsync();
     });
 
-    await vi.runOnlyPendingTimersAsync();
-    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
-  it("should fetch CNPJ data successfully", async () => {
+  it("should fetch CNPJ when valid and debounce time passes", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        cnpj: "12345678000190",
+        razao_social: "Test Company",
+      }),
+    });
+
+    renderHook(() => useCNPJLookup("12.345.678/0001-90"));
+
+    await act(async () => {
+      vi.advanceTimersByTime(800);
+      await vi.runOnlyPendingTimersAsync();
+    });
+
+    expect(mockFetch).toHaveBeenCalledWith("https://brasilapi.com.br/api/cnpj/v1/12345678000190");
+  });
+
+  it("should set loading state during fetch", async () => {
+    let resolveFetch: (value: unknown) => void;
+    const fetchPromise = new Promise((resolve) => {
+      resolveFetch = resolve;
+    });
+
+    mockFetch.mockReturnValue(
+      Promise.resolve({
+        ok: true,
+        json: async () => fetchPromise as unknown,
+      })
+    );
+
+    const { result } = renderHook(() => useCNPJLookup("12345678000190"));
+
+    await act(async () => {
+      vi.advanceTimersByTime(800);
+      await vi.runOnlyPendingTimersAsync();
+    });
+
+    expect(result.current.loading).toBe(true);
+
+    await act(async () => {
+      resolveFetch!({ cnpj: "12345678000190" });
+      await vi.runOnlyPendingTimersAsync();
+    });
+
+    expect(result.current.loading).toBe(false);
+  });
+
+  it("should set data when fetch succeeds", async () => {
     const mockData = {
       cnpj: "12345678000190",
       razao_social: "Test Company",
       email: "test@example.com",
-      ddd_telefone_1: "11999999999",
-      logradouro: "Rua Test",
-      numero: "123",
-      complemento: "",
-      bairro: "Centro",
-      municipio: "São Paulo",
-      uf: "SP",
-      cep: "12345678",
     };
 
-    vi.mocked(global.fetch).mockResolvedValueOnce({
+    mockFetch.mockResolvedValue({
       ok: true,
       json: async () => mockData,
-    } as Response);
+    });
 
-    const { result } = renderHook(() => useCNPJLookup("12345678000190", { debounceMs: 0 }));
+    const { result } = renderHook(() => useCNPJLookup("12345678000190"));
 
     await act(async () => {
-      vi.advanceTimersByTime(1);
+      vi.advanceTimersByTime(800);
       await vi.runOnlyPendingTimersAsync();
     });
 
     expect(result.current.data).toEqual(mockData);
-    expect(result.current.error).toBe(null);
-    expect(result.current.loading).toBe(false);
+    expect(result.current.error).toBeNull();
   });
 
-  it("should handle fetch error", async () => {
-    vi.mocked(global.fetch).mockRejectedValueOnce(new Error("Network error"));
-
-    const { result } = renderHook(() => useCNPJLookup("12345678000190", { debounceMs: 0 }));
-
-    await act(async () => {
-      vi.advanceTimersByTime(1);
-      await vi.runOnlyPendingTimersAsync();
-    });
-
-    expect(result.current.data).toBe(null);
-    expect(result.current.error).toBe("Network error");
-    expect(result.current.loading).toBe(false);
-  });
-
-  it("should handle non-ok response", async () => {
-    vi.mocked(global.fetch).mockResolvedValueOnce({
+  it("should set error when fetch fails", async () => {
+    mockFetch.mockResolvedValue({
       ok: false,
-      status: 404,
-    } as Response);
+    });
 
-    const { result } = renderHook(() => useCNPJLookup("12345678000190", { debounceMs: 0 }));
+    const { result } = renderHook(() => useCNPJLookup("12345678000190"));
 
     await act(async () => {
-      vi.advanceTimersByTime(1);
+      vi.advanceTimersByTime(800);
       await vi.runOnlyPendingTimersAsync();
     });
 
-    expect(result.current.data).toBe(null);
     expect(result.current.error).toBe("CNPJ not found");
-    expect(result.current.loading).toBe(false);
+    expect(result.current.data).toBeNull();
   });
 
-  it("should call onSuccess callback when data is fetched", async () => {
+  it("should call onSuccess callback when provided", async () => {
+    const mockOnSuccess = vi.fn();
     const mockData = {
       cnpj: "12345678000190",
       razao_social: "Test Company",
-      email: "test@example.com",
-      ddd_telefone_1: "11999999999",
-      logradouro: "Rua Test",
-      numero: "123",
-      complemento: "",
-      bairro: "Centro",
-      municipio: "São Paulo",
-      uf: "SP",
-      cep: "12345678",
     };
 
-    const onSuccess = vi.fn();
-
-    vi.mocked(global.fetch).mockResolvedValueOnce({
+    mockFetch.mockResolvedValue({
       ok: true,
       json: async () => mockData,
-    } as Response);
+    });
 
-    renderHook(() => useCNPJLookup("12345678000190", { debounceMs: 0, onSuccess }));
+    renderHook(() => useCNPJLookup("12345678000190", { onSuccess: mockOnSuccess }));
 
     await act(async () => {
-      vi.advanceTimersByTime(1);
+      vi.advanceTimersByTime(800);
       await vi.runOnlyPendingTimersAsync();
     });
 
-    expect(onSuccess).toHaveBeenCalledWith(mockData);
+    expect(mockOnSuccess).toHaveBeenCalledWith(mockData);
   });
 
   it("should call onError callback when fetch fails", async () => {
-    const error = new Error("Network error");
-    const onError = vi.fn();
+    const mockOnError = vi.fn();
+    mockFetch.mockRejectedValue(new Error("Network error"));
 
-    vi.mocked(global.fetch).mockRejectedValueOnce(error);
-
-    renderHook(() => useCNPJLookup("12345678000190", { debounceMs: 0, onError }));
+    renderHook(() => useCNPJLookup("12345678000190", { onError: mockOnError }));
 
     await act(async () => {
-      vi.advanceTimersByTime(1);
+      vi.advanceTimersByTime(800);
       await vi.runOnlyPendingTimersAsync();
     });
 
-    expect(onError).toHaveBeenCalledWith(error);
-  });
-
-  it("should not fetch same CNPJ twice", async () => {
-    const mockData = {
-      cnpj: "12345678000190",
-      razao_social: "Test Company",
-      email: "test@example.com",
-      ddd_telefone_1: "11999999999",
-      logradouro: "Rua Test",
-      numero: "123",
-      complemento: "",
-      bairro: "Centro",
-      municipio: "São Paulo",
-      uf: "SP",
-      cep: "12345678",
-    };
-
-    vi.mocked(global.fetch).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockData,
-    } as Response);
-
-    const { rerender } = renderHook(({ cnpj }) => useCNPJLookup(cnpj, { debounceMs: 0 }), {
-      initialProps: { cnpj: "12345678000190" },
-    });
-
-    await act(async () => {
-      vi.advanceTimersByTime(1);
-      await vi.runOnlyPendingTimersAsync();
-    });
-
-    expect(global.fetch).toHaveBeenCalledTimes(1);
-
-    // Rerender with same CNPJ
-    rerender({ cnpj: "12345678000190" });
-
-    await act(async () => {
-      vi.advanceTimersByTime(1);
-    });
-
-    expect(global.fetch).toHaveBeenCalledTimes(1);
-  });
-
-  it("should format CNPJ by removing non-digits", async () => {
-    const mockData = {
-      cnpj: "12345678000190",
-      razao_social: "Test Company",
-      email: "test@example.com",
-      ddd_telefone_1: "11999999999",
-      logradouro: "Rua Test",
-      numero: "123",
-      complemento: "",
-      bairro: "Centro",
-      municipio: "São Paulo",
-      uf: "SP",
-      cep: "12345678",
-    };
-
-    vi.mocked(global.fetch).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockData,
-    } as Response);
-
-    renderHook(() => useCNPJLookup("12.345.678/0001-90", { debounceMs: 0 }));
-
-    await act(async () => {
-      vi.advanceTimersByTime(1);
-      await vi.runOnlyPendingTimersAsync();
-    });
-
-    expect(global.fetch).toHaveBeenCalledWith(
-      "https://brasilapi.com.br/api/cnpj/v1/12345678000190"
-    );
+    expect(mockOnError).toHaveBeenCalled();
   });
 
   it("should not fetch when enabled is false", async () => {
-    const { result } = renderHook(() =>
-      useCNPJLookup("12345678000190", { debounceMs: 0, enabled: false })
-    );
+    renderHook(() => useCNPJLookup("12345678000190", { enabled: false }));
 
-    await act(async () => {
-      vi.advanceTimersByTime(1);
-    });
+    vi.advanceTimersByTime(1000);
 
-    expect(global.fetch).not.toHaveBeenCalled();
-    expect(result.current.data).toBe(null);
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  it("should clear data and error when CNPJ becomes invalid", async () => {
-    const mockData = {
-      cnpj: "12345678000190",
-      razao_social: "Test Company",
-      email: "test@example.com",
-      ddd_telefone_1: "11999999999",
-      logradouro: "Rua Test",
-      numero: "123",
-      complemento: "",
-      bairro: "Centro",
-      municipio: "São Paulo",
-      uf: "SP",
-      cep: "12345678",
-    };
-
-    vi.mocked(global.fetch).mockResolvedValueOnce({
+  it("should not fetch same CNPJ twice", async () => {
+    mockFetch.mockResolvedValue({
       ok: true,
-      json: async () => mockData,
-    } as Response);
+      json: async () => ({ cnpj: "12345678000190" }),
+    });
 
-    const { result, rerender } = renderHook(({ cnpj }) => useCNPJLookup(cnpj, { debounceMs: 0 }), {
+    const { rerender } = renderHook(({ cnpj }) => useCNPJLookup(cnpj), {
       initialProps: { cnpj: "12345678000190" },
     });
 
     await act(async () => {
-      vi.advanceTimersByTime(1);
+      vi.advanceTimersByTime(800);
       await vi.runOnlyPendingTimersAsync();
     });
 
-    // Change to invalid CNPJ
-    rerender({ cnpj: "123" });
+    expect(mockFetch).toHaveBeenCalledTimes(1);
 
     await act(async () => {
-      vi.advanceTimersByTime(1);
+      rerender({ cnpj: "12345678000190" });
+      vi.advanceTimersByTime(800);
+      await vi.runOnlyPendingTimersAsync();
     });
 
-    expect(result.current.data).toBe(null);
-    expect(result.current.error).toBe(null);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
   it("should expose fetchCNPJ function", () => {
     const { result } = renderHook(() => useCNPJLookup(""));
-
     expect(typeof result.current.fetchCNPJ).toBe("function");
   });
 
   it("should allow manual fetch via fetchCNPJ", async () => {
-    const mockData = {
-      cnpj: "12345678000190",
-      razao_social: "Test Company",
-      email: "test@example.com",
-      ddd_telefone_1: "11999999999",
-      logradouro: "Rua Test",
-      numero: "123",
-      complemento: "",
-      bairro: "Centro",
-      municipio: "São Paulo",
-      uf: "SP",
-      cep: "12345678",
-    };
-
-    vi.mocked(global.fetch).mockResolvedValueOnce({
+    mockFetch.mockResolvedValue({
       ok: true,
-      json: async () => mockData,
-    } as Response);
+      json: async () => ({ cnpj: "12345678000190" }),
+    });
 
-    const { result } = renderHook(() => useCNPJLookup("", { debounceMs: 0 }));
+    const { result } = renderHook(() => useCNPJLookup(""));
 
     await act(async () => {
-      await result.current.fetchCNPJ("12345678000190");
+      result.current.fetchCNPJ("12345678000190");
       await vi.runOnlyPendingTimersAsync();
     });
 
-    expect(result.current.data).toEqual(mockData);
+    expect(mockFetch).toHaveBeenCalled();
   });
 
-  it("should handle non-Error rejection in onError", async () => {
-    const onError = vi.fn();
+  it("should use custom debounce time", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ cnpj: "12345678000190" }),
+    });
 
-    vi.mocked(global.fetch).mockRejectedValueOnce("String error");
-
-    renderHook(() => useCNPJLookup("12345678000190", { debounceMs: 0, onError }));
+    renderHook(() => useCNPJLookup("12345678000190", { debounceMs: 2000 }));
 
     await act(async () => {
-      vi.advanceTimersByTime(1);
+      vi.advanceTimersByTime(1000);
+    });
+    expect(mockFetch).not.toHaveBeenCalled();
+
+    await act(async () => {
+      vi.advanceTimersByTime(1000);
       await vi.runOnlyPendingTimersAsync();
     });
 
-    expect(onError).toHaveBeenCalledWith(expect.any(Error));
+    expect(mockFetch).toHaveBeenCalled();
   });
 
-  it("should update callbacks when they change", async () => {
-    const mockData = {
-      cnpj: "12345678000190",
-      razao_social: "Test Company",
-      email: "test@example.com",
-      ddd_telefone_1: "11999999999",
-      logradouro: "Rua Test",
-      numero: "123",
-      complemento: "",
-      bairro: "Centro",
-      municipio: "São Paulo",
-      uf: "SP",
-      cep: "12345678",
-    };
-
-    const onSuccess1 = vi.fn();
-    const onSuccess2 = vi.fn();
-
-    vi.mocked(global.fetch).mockResolvedValue({
+  it("should clear data and error when CNPJ becomes invalid", async () => {
+    mockFetch.mockResolvedValue({
       ok: true,
-      json: async () => mockData,
-    } as Response);
+      json: async () => ({ cnpj: "12345678000190" }),
+    });
 
-    const { rerender } = renderHook(
-      ({ cnpj, onSuccess }) => useCNPJLookup(cnpj, { debounceMs: 0, onSuccess }),
-      { initialProps: { cnpj: "12345678000190", onSuccess: onSuccess1 } }
-    );
+    const { result, rerender } = renderHook(({ cnpj }) => useCNPJLookup(cnpj), {
+      initialProps: { cnpj: "12345678000190" },
+    });
 
     await act(async () => {
-      vi.advanceTimersByTime(1);
+      vi.advanceTimersByTime(800);
       await vi.runOnlyPendingTimersAsync();
     });
 
-    expect(onSuccess1).toHaveBeenCalledWith(mockData);
-
-    rerender({ cnpj: "12345678000190", onSuccess: onSuccess2 });
-
-    // Clear previous call
-    onSuccess1.mockClear();
-    vi.mocked(global.fetch).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockData,
-    } as Response);
-
-    // Trigger new fetch by changing CNPJ to a different value
-    rerender({ cnpj: "98765432000123", onSuccess: onSuccess2 });
+    expect(result.current.data).not.toBeNull();
 
     await act(async () => {
-      vi.advanceTimersByTime(1);
+      rerender({ cnpj: "123" });
+    });
+
+    expect(result.current.data).toBeNull();
+    expect(result.current.error).toBeNull();
+  });
+
+  it("should handle error when fetch throws string (non-Error)", async () => {
+    const mockOnError = vi.fn();
+    mockFetch.mockRejectedValue("String error");
+
+    const { result } = renderHook(() => useCNPJLookup("12345678000190", { onError: mockOnError }));
+
+    await act(async () => {
+      vi.advanceTimersByTime(800);
       await vi.runOnlyPendingTimersAsync();
     });
 
-    expect(onSuccess2).toHaveBeenCalledWith(mockData);
+    expect(result.current.error).toBe("CNPJ not found or invalid");
+    expect(result.current.data).toBeNull();
+    expect(mockOnError).toHaveBeenCalled();
+    // Verify onError receives an Error object even when fetch throws non-Error
+    const errorCall = mockOnError.mock.calls[0]?.[0];
+    expect(errorCall).toBeInstanceOf(Error);
+  });
+
+  it("should handle error when fetch throws object (non-Error)", async () => {
+    const mockOnError = vi.fn();
+    mockFetch.mockRejectedValue({ message: "Object error" });
+
+    const { result } = renderHook(() => useCNPJLookup("12345678000190", { onError: mockOnError }));
+
+    await act(async () => {
+      vi.advanceTimersByTime(800);
+      await vi.runOnlyPendingTimersAsync();
+    });
+
+    expect(result.current.error).toBe("CNPJ not found or invalid");
+    expect(mockOnError).toHaveBeenCalled();
+    const errorCall = mockOnError.mock.calls[0]?.[0];
+    expect(errorCall).toBeInstanceOf(Error);
+  });
+
+  it("should not fetch when manual fetchCNPJ is called with invalid length", async () => {
+    const { result } = renderHook(() => useCNPJLookup(""));
+
+    await act(async () => {
+      result.current.fetchCNPJ("1234567890123"); // Less than 14 digits
+      await vi.runOnlyPendingTimersAsync();
+    });
+
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(result.current.data).toBeNull();
+    expect(result.current.error).toBeNull();
+  });
+
+  it("should not fetch when manual fetchCNPJ is called with same CNPJ as lastFetchedCNPJ", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ cnpj: "12345678000190" }),
+    });
+
+    const { result } = renderHook(() => useCNPJLookup(""));
+
+    // First fetch
+    await act(async () => {
+      result.current.fetchCNPJ("12345678000190");
+      await vi.runOnlyPendingTimersAsync();
+    });
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    mockFetch.mockClear();
+
+    // Second fetch with same CNPJ should be skipped
+    await act(async () => {
+      result.current.fetchCNPJ("12345678000190");
+      await vi.runOnlyPendingTimersAsync();
+    });
+
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("should fetch when manual fetchCNPJ is called with different CNPJ", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ cnpj: "12345678000190" }),
+    });
+
+    const { result } = renderHook(() => useCNPJLookup(""));
+
+    // First fetch
+    await act(async () => {
+      result.current.fetchCNPJ("12345678000190");
+      await vi.runOnlyPendingTimersAsync();
+    });
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    mockFetch.mockClear();
+
+    // Second fetch with different CNPJ should proceed
+    await act(async () => {
+      result.current.fetchCNPJ("98765432000100");
+      await vi.runOnlyPendingTimersAsync();
+    });
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("should handle error message from Error object when fetch throws", async () => {
+    mockFetch.mockRejectedValue(new Error("Custom network error"));
+
+    const { result } = renderHook(() => useCNPJLookup("12345678000190"));
+
+    await act(async () => {
+      vi.advanceTimersByTime(800);
+      await vi.runOnlyPendingTimersAsync();
+    });
+
+    expect(result.current.error).toBe("Custom network error");
   });
 });

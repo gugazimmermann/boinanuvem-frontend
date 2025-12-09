@@ -26,14 +26,15 @@ import {
 } from "~/routes.config";
 import { getInventoryItemById } from "~/services/inventory.service";
 import { getMovementsByItemId } from "~/services/inventory-movements.service";
-import { getSupplierById } from "~/services/suppliers.service";
+import { getSuppliers } from "~/services/suppliers.service";
+import { getProperties } from "~/services/properties.service";
 import { getCashFlowById } from "~/services/cash-flow.service";
+import type { Supplier, Property, InventoryMovement, InventoryObservation } from "~/types";
+import { InventoryMovementType } from "~/types";
 import {
   getInventoryObservationsByItemId,
   addInventoryObservation,
 } from "~/services/inventory-observations.service";
-import type { InventoryMovement, InventoryObservation } from "~/types";
-import { InventoryMovementType } from "~/types";
 import { useInventoryStock } from "~/hooks/use-inventory-stock";
 import { InventoryItemDetails as InventoryItemDetailsComponent } from "~/components/dashboard/inventory/inventory-item-details";
 import { getUnitLabel, formatInventoryDate } from "~/utils/inventory-utils";
@@ -107,6 +108,8 @@ export default function InventoryItemDetailsPage() {
     column: string | null;
     direction: SortDirection;
   }>({ column: "date", direction: "desc" });
+  const [suppliers, setSuppliers] = useState<Map<string, Supplier>>(new Map());
+  const [properties, setProperties] = useState<Map<string, Property>>(new Map());
 
   const movements = useMemo(() => {
     if (!item) return [];
@@ -118,6 +121,25 @@ export default function InventoryItemDetailsPage() {
       setObservations(getInventoryObservationsByItemId(item.id));
     }
   }, [item]);
+
+  useEffect(() => {
+    const loadEntities = async () => {
+      try {
+        const [suppliersData, propertiesData] = await Promise.all([
+          getSuppliers(),
+          getProperties(),
+        ]);
+        setSuppliers(new Map(suppliersData.map((s) => [s.id, s])));
+        setProperties(new Map(propertiesData.map((p) => [p.id, p])));
+      } catch (error) {
+        console.error("Failed to load entities:", error);
+      }
+    };
+    loadEntities();
+  }, []);
+
+  const getSupplierName = (supplierId: string) => suppliers.get(supplierId)?.name;
+  const getPropertyName = (propertyId: string) => properties.get(propertyId)?.name;
 
   const handleSubmitObservation = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -296,8 +318,8 @@ export default function InventoryItemDetailsPage() {
       sortable: false,
       render: (_, row) => {
         if (!row.supplierId) return <span className="text-gray-400 dark:text-gray-500">-</span>;
-        const supplier = getSupplierById(row.supplierId);
-        return <span className="text-gray-700 dark:text-gray-300">{supplier?.name || "-"}</span>;
+        const supplierName = getSupplierName(row.supplierId);
+        return <span className="text-gray-700 dark:text-gray-300">{supplierName || "-"}</span>;
       },
     },
     {
@@ -394,6 +416,8 @@ export default function InventoryItemDetailsPage() {
         translations={t}
         language={language}
         onSupplierClick={(supplierId) => navigate(getSupplierViewRoute(supplierId))}
+        getSupplierName={getSupplierName}
+        getPropertyName={getPropertyName}
       />
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">

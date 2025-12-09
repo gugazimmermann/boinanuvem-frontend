@@ -1,12 +1,12 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router";
 import { TableActionButtons, type TableColumn } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
-import { mockEmployees } from "~/mocks/employees";
-import { deleteEmployee } from "~/services/employees.service";
-import type { Employee } from "~/types";
-import { getPropertyById } from "~/services/properties.service";
+import { getEmployees, deleteEmployee } from "~/services/employees.service";
+import { useAlert } from "~/hooks/use-alert";
+import type { Employee, Property } from "~/types";
+import { getProperties } from "~/services/properties.service";
 import { ROUTES, getEmployeeEditRoute, getEmployeeViewRoute } from "~/routes.config";
 import { getLocationMovementsByEmployeeId } from "~/services/location-movements.service";
 import { getEmployeeObservationsByEmployeeId } from "~/services/employee-observations.service";
@@ -35,7 +35,40 @@ export default function Employees() {
   const { language } = useLanguage();
   const navigate = useNavigate();
   const { canEdit, canRemove } = usePermissions();
-  const [employees, setEmployees] = useState<Employee[]>([...mockEmployees]);
+  const { showAlert } = useAlert();
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [properties, setProperties] = useState<Map<string, Property>>(new Map());
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const [employeesData, propertiesData] = await Promise.all([
+          getEmployees(),
+          getProperties(),
+        ]);
+        setEmployees(employeesData);
+        setProperties(new Map(propertiesData.map((p) => [p.id, p])));
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : t.employees.errors.loadFailed;
+        showAlert(errorMessage, "error");
+        console.error("Failed to load data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [showAlert, t]);
+
+  const getPropertyById = useCallback(
+    (id: string) => {
+      const property = properties.get(id);
+      return property ? { name: property.name } : undefined;
+    },
+    [properties]
+  );
 
   const columns: TableColumn<Employee>[] = useMemo(
     () => [
@@ -85,7 +118,7 @@ export default function Employees() {
         ),
       },
     ],
-    [t, language, navigate, canEdit, canRemove]
+    [t, language, navigate, canEdit, canRemove, getPropertyById]
   );
 
   const filterOptions = useMemo(
@@ -113,13 +146,18 @@ export default function Employees() {
       addButtonLabel={t.employees.addEmployee}
       newRoute={ROUTES.EMPLOYEES_NEW}
       viewRoute={getEmployeeViewRoute}
-      deleteService={(employee) => {
-        const success = deleteEmployee(employee.id);
-        if (success) {
-          setEmployees(employees.filter((e) => e.id !== employee.id));
+      deleteService={async (employee) => {
+        try {
+          await deleteEmployee(employee.id);
+          return true;
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : t.employees.errors.deleteFailed;
+          showAlert(errorMessage, "error");
+          return false;
         }
-        return success;
       }}
+      isLoading={isLoading}
       deleteSuccessMessage={t.employees.success.deleted}
       deleteErrorMessage={t.employees.errors.deleteFailed}
       deleteModalTitle={t.employees.deleteModal.title}

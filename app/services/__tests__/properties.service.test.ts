@@ -1,192 +1,168 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { ApiError } from "../api-client";
 import {
+  getProperties,
   getPropertyById,
-  getPropertiesByCompanyId,
   addProperty,
   updateProperty,
   deleteProperty,
 } from "../properties.service";
-import { mockProperties } from "~/mocks/properties";
-import type { PropertyFormData } from "~/types";
 import { AreaType } from "~/types";
 
+vi.mock("../api-client", async () => {
+  const actual = await vi.importActual("../api-client");
+  return {
+    ...actual,
+    apiClient: {
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
+    },
+  };
+});
+
+vi.mock("~/components/site/utils/masks", () => ({
+  unmaskCEP: vi.fn((val: string | undefined) => val?.replace(/\D/g, "") || ""),
+}));
+
+import { apiClient } from "../api-client";
+
 describe("properties.service", () => {
+  const mockGet = apiClient.get as ReturnType<typeof vi.fn>;
+  const mockPost = apiClient.post as ReturnType<typeof vi.fn>;
+  const mockPut = apiClient.put as ReturnType<typeof vi.fn>;
+  const mockDelete = apiClient.delete as ReturnType<typeof vi.fn>;
+
   beforeEach(() => {
-    mockProperties.length = 0;
-    mockProperties.push(
-      {
-        id: "property-1",
-        companyId: "company-1",
-        code: "PROP001",
-        name: "Property 1",
-        area: { value: 100, type: AreaType.HECTARES },
-        status: "active",
-        street: "Street 1",
-        number: "123",
-        complement: "",
-        neighborhood: "Neighborhood 1",
-        city: "City 1",
-        state: "State 1",
-        zipCode: "12345-678",
-        createdAt: "2025-01-01",
-      },
-      {
-        id: "property-2",
-        companyId: "company-1",
-        code: "PROP002",
-        name: "Property 2",
-        area: { value: 200, type: AreaType.HECTARES },
-        status: "active",
-        street: "Street 2",
-        number: "456",
-        complement: "",
-        neighborhood: "Neighborhood 2",
-        city: "City 2",
-        state: "State 2",
-        zipCode: "12345-679",
-        createdAt: "2025-01-02",
-      },
-      {
-        id: "property-3",
-        companyId: "company-2",
-        code: "PROP003",
-        name: "Property 3",
-        area: { value: 150, type: AreaType.HECTARES },
-        status: "active",
-        street: "Street 3",
-        number: "789",
-        complement: "",
-        neighborhood: "Neighborhood 3",
-        city: "City 3",
-        state: "State 3",
-        zipCode: "12345-680",
-        createdAt: "2025-01-03",
-      }
-    );
+    vi.clearAllMocks();
+  });
+
+  describe("getProperties", () => {
+    it("should fetch all properties", async () => {
+      const mockProperties = [{ id: "1", code: "001", name: "Property 1", status: "active" }];
+      mockGet.mockResolvedValue(mockProperties);
+
+      const result = await getProperties();
+
+      expect(mockGet).toHaveBeenCalledWith("/properties");
+      expect(result).toEqual(mockProperties);
+    });
+
+    it("should handle 403 error", async () => {
+      mockGet.mockRejectedValue(new ApiError("Forbidden", 403));
+
+      await expect(getProperties()).rejects.toThrow(
+        "Você não tem permissão para visualizar propriedades"
+      );
+    });
   });
 
   describe("getPropertyById", () => {
-    it("should return property when ID exists", () => {
-      const result = getPropertyById("property-1");
-      expect(result).toBeDefined();
-      expect(result?.id).toBe("property-1");
-      expect(result?.name).toBe("Property 1");
+    it("should fetch property by id", async () => {
+      const mockProperty = { id: "1", code: "001", name: "Property 1", status: "active" };
+      mockGet.mockResolvedValue(mockProperty);
+
+      const result = await getPropertyById("1");
+
+      expect(mockGet).toHaveBeenCalledWith("/properties/1");
+      expect(result).toEqual(mockProperty);
     });
 
-    it("should return undefined when ID does not exist", () => {
-      const result = getPropertyById("property-nonexistent");
-      expect(result).toBeUndefined();
-    });
+    it("should handle 403 error", async () => {
+      mockGet.mockRejectedValue(new ApiError("Forbidden", 403));
 
-    it("should return undefined when ID is undefined", () => {
-      const result = getPropertyById(undefined);
-      expect(result).toBeUndefined();
-    });
-  });
-
-  describe("getPropertiesByCompanyId", () => {
-    it("should return all properties for a company", () => {
-      const result = getPropertiesByCompanyId("company-1");
-      expect(result).toHaveLength(2);
-      expect(result[0]?.id).toBe("property-1");
-      expect(result[1]?.id).toBe("property-2");
-    });
-
-    it("should return empty array when company has no properties", () => {
-      const result = getPropertiesByCompanyId("company-nonexistent");
-      expect(result).toHaveLength(0);
+      await expect(getPropertyById("1")).rejects.toThrow(
+        "Você não tem permissão para visualizar esta propriedade"
+      );
     });
   });
 
   describe("addProperty", () => {
-    it("should add a new property with generated ID", () => {
-      const formData: PropertyFormData = {
-        companyId: "company-1",
-        code: "PROP004",
-        name: "Property 4",
-        area: { value: 300, type: AreaType.HECTARES },
-        status: "active",
-        street: "Street 4",
-        number: "101",
-        complement: "",
-        neighborhood: "Neighborhood 4",
-        city: "City 4",
-        state: "State 4",
-        zipCode: "12345-681",
-      };
+    const formData = {
+      code: "001",
+      name: "New Property",
+      area: { value: 100, type: AreaType.HECTARES },
+      status: "active" as const,
+      street: "Main St",
+      number: "123",
+      neighborhood: "Downtown",
+      city: "São Paulo",
+      state: "sp",
+      zipCode: "01234-567",
+      pasturePlanning: [],
+      breedingMonths: [],
+      pasturePlanningModifiedByUser: false,
+      breedingSeasonModifiedByUser: false,
+      companyId: "company-1",
+      complement: "",
+    };
 
-      const initialLength = mockProperties.length;
-      const result = addProperty(formData);
+    it("should create property successfully", async () => {
+      const mockProperty = { id: "1", ...formData };
+      mockPost.mockResolvedValue(mockProperty);
 
-      expect(mockProperties).toHaveLength(initialLength + 1);
-      expect(result.id).toBeDefined();
-      expect(result.companyId).toBe("company-1");
-      expect(result.name).toBe("Property 4");
-      expect(result.createdAt).toBeDefined();
+      const result = await addProperty(formData);
+
+      expect(mockPost).toHaveBeenCalledWith(
+        "/properties",
+        expect.objectContaining({
+          code: "001",
+          name: "New Property",
+          state: "SP",
+          zipCode: "01234567",
+        })
+      );
+      expect(result).toEqual(mockProperty);
     });
 
-    it("should generate ID with correct prefix", () => {
-      const formData: PropertyFormData = {
-        companyId: "company-1",
-        code: "PROP004",
-        name: "Property 4",
-        area: { value: 300, type: AreaType.HECTARES },
-        status: "active",
-        street: "Street 4",
-        number: "101",
-        complement: "",
-        neighborhood: "Neighborhood 4",
-        city: "City 4",
-        state: "State 4",
-        zipCode: "12345-681",
-      };
+    it("should handle 409 error", async () => {
+      mockPost.mockRejectedValue(new ApiError("Conflict", 409));
 
-      const result = addProperty(formData);
-      expect(result.id).toContain("550e8400-e29b-41d4-a716");
+      await expect(addProperty(formData)).rejects.toThrow(
+        "Já existe uma propriedade com este código"
+      );
     });
   });
 
   describe("updateProperty", () => {
-    it("should update property when ID exists", () => {
-      const updateData: Partial<PropertyFormData> = {
-        name: "Updated Property 1",
-        area: { value: 120, type: AreaType.HECTARES },
-      };
+    const updateData = {
+      name: "Updated Property",
+      state: "rj",
+    };
 
-      const result = updateProperty("property-1", updateData);
-      expect(result).toBe(true);
+    it("should update property successfully", async () => {
+      const mockProperty = { id: "1", code: "001", name: "Updated Property", status: "active" };
+      mockPut.mockResolvedValue(mockProperty);
 
-      const updated = mockProperties.find((p) => p.id === "property-1");
-      expect(updated?.name).toBe("Updated Property 1");
-      expect(updated?.area.value).toBe(120);
-    });
+      const result = await updateProperty("1", updateData);
 
-    it("should return false when ID does not exist", () => {
-      const updateData: Partial<PropertyFormData> = {
-        name: "Updated Property",
-      };
-
-      const result = updateProperty("property-nonexistent", updateData);
-      expect(result).toBe(false);
+      expect(mockPut).toHaveBeenCalledWith(
+        "/properties/1",
+        expect.objectContaining({
+          name: "Updated Property",
+          state: "RJ",
+        })
+      );
+      expect(result).toEqual(mockProperty);
     });
   });
 
   describe("deleteProperty", () => {
-    it("should delete property when ID exists", () => {
-      const initialLength = mockProperties.length;
-      const result = deleteProperty("property-1");
+    it("should delete property successfully", async () => {
+      mockDelete.mockResolvedValue(undefined);
 
-      expect(result).toBe(true);
-      expect(mockProperties).toHaveLength(initialLength - 1);
-      expect(mockProperties.find((p) => p.id === "property-1")).toBeUndefined();
+      await deleteProperty("1");
+
+      expect(mockDelete).toHaveBeenCalledWith("/properties/1");
     });
 
-    it("should return false when ID does not exist", () => {
-      const initialLength = mockProperties.length;
-      const result = deleteProperty("property-nonexistent");
+    it("should handle 403 error", async () => {
+      mockDelete.mockRejectedValue(new ApiError("Forbidden", 403));
 
-      expect(result).toBe(false);
-      expect(mockProperties).toHaveLength(initialLength);
+      await expect(deleteProperty("1")).rejects.toThrow(
+        "Você não tem permissão para excluir propriedades"
+      );
     });
   });
 });

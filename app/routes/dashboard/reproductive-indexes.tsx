@@ -1,8 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "~/i18n";
 import { translations } from "~/i18n/translations";
 import { mockCompanies } from "~/mocks/companies";
-import { getPropertiesByCompanyId } from "~/services/properties.service";
+import { getProperties } from "~/services/properties.service";
+import type { Property } from "~/types";
 import { ReproductiveIndexes } from "~/components/dashboard/reproductive-indexes/reproductive-indexes";
 import { Tooltip } from "~/components/ui/tooltip";
 import {
@@ -219,10 +220,21 @@ export default function ReproductiveIndexesPage() {
   const chartColors = getChartColors(isDark);
   const tooltipStyle = getTooltipStyle(isDark);
   const company = mockCompanies[0];
-  const properties = useMemo(
-    () => (company ? getPropertiesByCompanyId(company.id) : []),
-    [company]
-  );
+  const [properties, setProperties] = useState<Property[]>([]);
+
+  useEffect(() => {
+    const fetchProperties = async () => {
+      if (company) {
+        try {
+          const propertiesData = await getProperties();
+          setProperties(propertiesData.filter((prop) => prop.companyId === company.id));
+        } catch (error) {
+          console.error("Failed to load properties:", error);
+        }
+      }
+    };
+    fetchProperties();
+  }, [company]);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>(
     properties.length > 0 ? ALL_PROPERTIES_ID : ""
   );

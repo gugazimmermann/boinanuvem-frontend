@@ -1,67 +1,79 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { FooterCopyright } from "../footer-copyright";
 
 vi.mock("~/routes.config", () => ({
   ROUTES: {
-    TERMS: "/terms",
-    PRIVACY: "/privacy",
+    TERMS: "/termos",
+    PRIVACY: "/privacidade",
   },
 }));
 
 describe("FooterCopyright", () => {
-  it("should render copyright text with current year", () => {
-    const currentYear = new Date().getFullYear();
+  it("should render current year", () => {
     render(<FooterCopyright />);
+    const currentYear = new Date().getFullYear();
     expect(screen.getByText(new RegExp(`Copyrights © ${currentYear}`))).toBeInTheDocument();
   });
 
-  it("should render terms link", () => {
+  it("should render copyright text", () => {
     render(<FooterCopyright />);
-    const termsLink = screen.getByRole("link", { name: "Termos" });
-    expect(termsLink).toBeInTheDocument();
-    expect(termsLink).toHaveAttribute("href", "/terms");
+    expect(screen.getByText(/All Rights Reserved by Boi na Nuvem/)).toBeInTheDocument();
   });
 
-  it("should render privacy link", () => {
+  it("should render Terms link", () => {
     render(<FooterCopyright />);
-    const privacyLink = screen.getByRole("link", { name: "Privacidade" });
+    const termsLink = screen.getByText("Termos");
+    expect(termsLink).toBeInTheDocument();
+    expect(termsLink.closest("a")).toHaveAttribute("href", "/termos");
+  });
+
+  it("should render Privacy link", () => {
+    render(<FooterCopyright />);
+    const privacyLink = screen.getByText("Privacidade");
     expect(privacyLink).toBeInTheDocument();
-    expect(privacyLink).toHaveAttribute("href", "/privacy");
+    expect(privacyLink.closest("a")).toHaveAttribute("href", "/privacidade");
   });
 
   it("should apply default variant classes", () => {
     const { container } = render(<FooterCopyright />);
-    const footer = container.querySelector("div");
-    expect(footer).toHaveClass("border-t");
-    expect(footer).toHaveClass("border-gray-200");
-    expect(footer).toHaveClass("pt-4");
+    const copyrightContainer = container.querySelector(".border-t.border-gray-200");
+    expect(copyrightContainer).toBeInTheDocument();
+    expect(copyrightContainer).toHaveClass(
+      "border-t",
+      "border-gray-200",
+      "dark:border-gray-800",
+      "pt-4"
+    );
   });
 
   it("should apply transparent variant classes", () => {
     const { container } = render(<FooterCopyright variant="transparent" />);
-    const footer = container.querySelector("div");
-    expect(footer).toHaveClass("border-t");
-    expect(footer).toHaveClass("border-gray-200/50");
-    expect(footer).toHaveClass("pt-4");
+    const copyrightContainer = container.querySelector(".border-t.border-gray-200\\/50");
+    expect(copyrightContainer).toBeInTheDocument();
+    expect(copyrightContainer).toHaveClass(
+      "border-t",
+      "border-gray-200/50",
+      "dark:border-gray-800/50",
+      "pt-4"
+    );
   });
 
   it("should apply custom className", () => {
     const { container } = render(<FooterCopyright className="custom-class" />);
-    const footer = container.querySelector("div");
-    expect(footer).toHaveClass("custom-class");
+    const copyrightContainer = container.querySelector(".custom-class");
+    expect(copyrightContainer).toBeInTheDocument();
+    expect(copyrightContainer).toHaveClass("custom-class");
   });
 
-  it("should render separator between links", () => {
-    const { container } = render(<FooterCopyright />);
-    const separator = container.querySelector("span.text-gray-300");
-    expect(separator).toBeInTheDocument();
-    expect(separator).toHaveTextContent("|");
-  });
-
-  it("should apply responsive classes", () => {
-    const { container } = render(<FooterCopyright />);
-    const wrapper = container.querySelector("div.flex.flex-col.md\\:flex-row");
-    expect(wrapper).toBeInTheDocument();
+  it("should render links with correct styling", () => {
+    render(<FooterCopyright />);
+    const termsLink = screen.getByText("Termos").closest("a");
+    expect(termsLink).toHaveClass(
+      "hover:text-gray-900",
+      "dark:hover:text-gray-200",
+      "transition-colors",
+      "cursor-pointer"
+    );
   });
 });

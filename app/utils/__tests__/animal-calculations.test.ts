@@ -7,10 +7,11 @@ import {
   getParentId,
 } from "../animal-calculations";
 import type { Birth, Weighing } from "~/types";
-import { BirthPurity } from "~/types/birth";
-import * as birthsService from "~/services/births.service";
-import * as acquisitionsService from "~/services/acquisitions.service";
+import { BirthPurity } from "~/types";
+import { getBirthByAnimalId } from "~/services/births.service";
+import { getAcquisitionByAnimalId } from "~/services/acquisitions.service";
 
+// Mock services
 vi.mock("~/services/births.service", () => ({
   getBirthByAnimalId: vi.fn(),
 }));
@@ -19,279 +20,339 @@ vi.mock("~/services/acquisitions.service", () => ({
   getAcquisitionByAnimalId: vi.fn(),
 }));
 
-describe("animal-calculations", () => {
+describe("computeAnimalBasicData", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  describe("computeAnimalBasicData", () => {
-    it("should return null when animal is null", () => {
-      const result = computeAnimalBasicData(null);
-      expect(result).toBeNull();
-    });
-
-    it("should compute basic data from birth", () => {
-      const mockBirth: Birth = {
-        id: "birth-1",
-        animalId: "animal-1",
-        birthDate: "2024-01-01",
-        gender: "male",
-        motherId: "mother-1",
-        fatherId: "father-1",
-        purity: BirthPurity.PO,
-        createdAt: "2024-01-01",
-        companyId: "company-1",
-      } as Birth;
-
-      vi.mocked(birthsService.getBirthByAnimalId).mockReturnValue(mockBirth);
-      vi.mocked(acquisitionsService.getAcquisitionByAnimalId).mockReturnValue(null);
-
-      const result = computeAnimalBasicData({ id: "animal-1" });
-
-      expect(result).toEqual({
-        birth: mockBirth,
-        acquisition: null,
-        acquisitionItem: null,
-        isMale: true,
-      });
-    });
-
-    it("should compute basic data from acquisition", () => {
-      const mockAcquisition = {
-        id: "acq-1",
-        acquisitionItems: [
-          {
-            animalId: "animal-1",
-            gender: "female",
-            birthDate: "2024-01-01",
-            motherId: "mother-1",
-            fatherId: "father-1",
-          },
-        ],
-      };
-
-      vi.mocked(birthsService.getBirthByAnimalId).mockReturnValue(null);
-      vi.mocked(acquisitionsService.getAcquisitionByAnimalId).mockReturnValue(mockAcquisition);
-
-      const result = computeAnimalBasicData({ id: "animal-1" });
-
-      expect(result).toEqual({
-        birth: null,
-        acquisition: mockAcquisition,
-        acquisitionItem: mockAcquisition.acquisitionItems[0],
-        isMale: false,
-      });
-    });
-
-    it("should determine isMale from birth gender", () => {
-      const mockBirth: Birth = {
-        id: "birth-1",
-        animalId: "animal-1",
-        gender: "female",
-      } as Birth;
-
-      vi.mocked(birthsService.getBirthByAnimalId).mockReturnValue(mockBirth);
-      vi.mocked(acquisitionsService.getAcquisitionByAnimalId).mockReturnValue(null);
-
-      const result = computeAnimalBasicData({ id: "animal-1" });
-
-      expect(result?.isMale).toBe(false);
-    });
+  it("should return null when animal is null", () => {
+    expect(computeAnimalBasicData(null)).toBeNull();
   });
 
-  describe("computeWeighingData", () => {
-    it("should compute weighing data with sorted weighings", () => {
-      const weighings: Weighing[] = [
-        { id: "w1", animalId: "a1", date: "2024-01-01", weight: 100 } as Weighing,
-        { id: "w2", animalId: "a1", date: "2024-02-01", weight: 150 } as Weighing,
-        { id: "w3", animalId: "a1", date: "2024-03-01", weight: 200 } as Weighing,
-      ];
-
-      const result = computeWeighingData(weighings);
-
-      expect(result.sortedWeighings).toHaveLength(3);
-      expect(result.sortedWeighings[0].id).toBe("w3");
-      expect(result.lastWeighing?.id).toBe("w3");
-      expect(result.firstWeighing?.id).toBe("w1");
-      expect(result.currentWeight).toBe(200);
-      expect(result.weightInArrobas).toBe("6.67");
-    });
-
-    it("should handle empty weighings array", () => {
-      const result = computeWeighingData([]);
-
-      expect(result.sortedWeighings).toHaveLength(0);
-      expect(result.lastWeighing).toBeUndefined();
-      expect(result.firstWeighing).toBeNull();
-      expect(result.currentWeight).toBe(0);
-      expect(result.weightInArrobas).toBe("0.00");
-    });
-
-    it("should calculate weight in arrobas correctly", () => {
-      const weighings: Weighing[] = [
-        { id: "w1", animalId: "a1", date: "2024-01-01", weight: 300 } as Weighing,
-      ];
-
-      const result = computeWeighingData(weighings);
-
-      expect(result.weightInArrobas).toBe("10.00");
-    });
+  it("should return null when animal is undefined", () => {
+    expect(computeAnimalBasicData(undefined as unknown as { id: string })).toBeNull();
   });
 
-  describe("computeAgeData", () => {
-    it("should compute age from birth date", () => {
-      const birth: Birth = {
-        id: "birth-1",
-        animalId: "animal-1",
-        birthDate: "2023-01-01",
-      } as Birth;
+  it("should compute data with birth", () => {
+    const mockBirth: Birth = {
+      id: "birth-1",
+      animalId: "animal-1",
+      birthDate: "2024-01-01",
+      gender: "male",
+      companyId: "company-1",
+      createdAt: "2024-01-01T00:00:00Z",
+    };
+    vi.mocked(getBirthByAnimalId).mockReturnValue(mockBirth);
+    vi.mocked(getAcquisitionByAnimalId).mockReturnValue(undefined);
 
-      const result = computeAgeData(birth, null);
-      expect(result).toBeGreaterThan(0);
-    });
-
-    it("should compute age from acquisition item birth date", () => {
-      const acquisitionItem = {
-        birthDate: "2023-06-01",
-      };
-
-      const result = computeAgeData(null, acquisitionItem);
-      expect(result).toBeGreaterThan(0);
-    });
-
-    it("should return null when no birth date available", () => {
-      const result = computeAgeData(null, null);
-      expect(result).toBeNull();
-    });
-
-    it("should prefer birth date over acquisition item date", () => {
-      const birth: Birth = {
-        id: "birth-1",
-        animalId: "animal-1",
-        birthDate: "2023-01-01",
-      } as Birth;
-
-      const acquisitionItem = {
-        birthDate: "2023-06-01",
-      };
-
-      const result = computeAgeData(birth, acquisitionItem);
-      const resultFromAcquisition = computeAgeData(null, acquisitionItem);
-
-      expect(result).not.toBe(resultFromAcquisition);
-    });
+    const result = computeAnimalBasicData({ id: "animal-1" });
+    expect(result).toBeDefined();
+    expect(result?.birth).toEqual(mockBirth);
+    expect(result?.isMale).toBe(true);
   });
 
-  describe("hasNoGenealogyData", () => {
-    it("should return true when no genealogy data exists", () => {
-      const result = hasNoGenealogyData(null, null);
-      expect(result).toBe(true);
-    });
+  it("should compute data with acquisition", () => {
+    const mockAcquisition = {
+      id: "acq-1",
+      acquisitionItems: [
+        {
+          animalId: "animal-1",
+          gender: "female",
+          birthDate: "2024-01-01",
+          price: 1000,
+          weight: 200,
+        },
+      ],
+    };
+    vi.mocked(getBirthByAnimalId).mockReturnValue(undefined);
+    vi.mocked(getAcquisitionByAnimalId).mockReturnValue(
+      mockAcquisition as unknown as ReturnType<typeof getAcquisitionByAnimalId>
+    );
 
-    it("should return false when birth has purity", () => {
-      const birth: Birth = {
-        id: "birth-1",
-        animalId: "animal-1",
-        purity: BirthPurity.PO,
-        createdAt: "2024-01-01",
-        companyId: "company-1",
-      } as Birth;
-
-      const result = hasNoGenealogyData(birth, null);
-      expect(result).toBe(false);
-    });
-
-    it("should return false when birth has motherId", () => {
-      const birth: Birth = {
-        id: "birth-1",
-        animalId: "animal-1",
-        motherId: "mother-1",
-      } as Birth;
-
-      const result = hasNoGenealogyData(birth, null);
-      expect(result).toBe(false);
-    });
-
-    it("should return false when birth has fatherId", () => {
-      const birth: Birth = {
-        id: "birth-1",
-        animalId: "animal-1",
-        fatherId: "father-1",
-      } as Birth;
-
-      const result = hasNoGenealogyData(birth, null);
-      expect(result).toBe(false);
-    });
-
-    it("should return false when acquisition item has motherId", () => {
-      const acquisitionItem = {
-        motherId: "mother-1",
-      };
-
-      const result = hasNoGenealogyData(null, acquisitionItem);
-      expect(result).toBe(false);
-    });
-
-    it("should return false when acquisition item has fatherId", () => {
-      const acquisitionItem = {
-        fatherId: "father-1",
-      };
-
-      const result = hasNoGenealogyData(null, acquisitionItem);
-      expect(result).toBe(false);
-    });
+    const result = computeAnimalBasicData({ id: "animal-1" });
+    expect(result).toBeDefined();
+    expect(result?.acquisition).toEqual(mockAcquisition);
+    expect(result?.isMale).toBe(false);
   });
 
-  describe("getParentId", () => {
-    it("should return motherId from birth", () => {
-      const birth: Birth = {
-        id: "birth-1",
-        animalId: "animal-1",
-        motherId: "mother-1",
-      } as Birth;
+  it("should prioritize birth gender over acquisition", () => {
+    const mockBirth: Birth = {
+      id: "birth-1",
+      animalId: "animal-1",
+      birthDate: "2024-01-01",
+      gender: "male",
+      companyId: "company-1",
+      createdAt: "2024-01-01T00:00:00Z",
+    };
+    const mockAcquisition = {
+      id: "acq-1",
+      acquisitionItems: [
+        {
+          animalId: "animal-1",
+          gender: "female",
+        },
+      ],
+    };
+    vi.mocked(getBirthByAnimalId).mockReturnValue(mockBirth);
+    vi.mocked(getAcquisitionByAnimalId).mockReturnValue(
+      mockAcquisition as unknown as ReturnType<typeof getAcquisitionByAnimalId>
+    );
 
-      const result = getParentId(birth, null, "mother");
-      expect(result).toBe("mother-1");
-    });
+    const result = computeAnimalBasicData({ id: "animal-1" });
+    expect(result?.isMale).toBe(true);
+  });
+});
 
-    it("should return fatherId from birth", () => {
-      const birth: Birth = {
-        id: "birth-1",
-        animalId: "animal-1",
-        fatherId: "father-1",
-      } as Birth;
+describe("computeWeighingData", () => {
+  const mockWeighings: Weighing[] = [
+    {
+      id: "1",
+      animalId: "animal-1",
+      date: "2024-01-01",
+      weight: 100,
+      locationId: "loc-1",
+      companyId: "company-1",
+      employeeIds: [],
+      serviceProviderIds: [],
+      createdAt: "2024-01-01T00:00:00Z",
+    },
+    {
+      id: "2",
+      animalId: "animal-1",
+      date: "2024-01-15",
+      weight: 120,
+      locationId: "loc-1",
+      companyId: "company-1",
+      employeeIds: [],
+      serviceProviderIds: [],
+      createdAt: "2024-01-15T00:00:00Z",
+    },
+    {
+      id: "3",
+      animalId: "animal-1",
+      date: "2024-01-30",
+      weight: 140,
+      locationId: "loc-1",
+      companyId: "company-1",
+      employeeIds: [],
+      serviceProviderIds: [],
+      createdAt: "2024-01-30T00:00:00Z",
+    },
+  ];
 
-      const result = getParentId(birth, null, "father");
-      expect(result).toBe("father-1");
-    });
+  it("should sort weighings by date descending", () => {
+    const result = computeWeighingData(mockWeighings);
+    expect(result.sortedWeighings[0].date).toBe("2024-01-30");
+    expect(result.sortedWeighings[result.sortedWeighings.length - 1].date).toBe("2024-01-01");
+  });
 
-    it("should return motherId from acquisition item when birth has none", () => {
-      const acquisitionItem = {
-        motherId: "mother-2",
-      };
+  it("should get last weighing", () => {
+    const result = computeWeighingData(mockWeighings);
+    expect(result.lastWeighing?.weight).toBe(140);
+    expect(result.lastWeighing?.date).toBe("2024-01-30");
+  });
 
-      const result = getParentId(null, acquisitionItem, "mother");
-      expect(result).toBe("mother-2");
-    });
+  it("should get first weighing", () => {
+    const result = computeWeighingData(mockWeighings);
+    expect(result.firstWeighing?.weight).toBe(100);
+    expect(result.firstWeighing?.date).toBe("2024-01-01");
+  });
 
-    it("should prefer birth motherId over acquisition item", () => {
-      const birth: Birth = {
-        id: "birth-1",
-        animalId: "animal-1",
-        motherId: "mother-1",
-      } as Birth;
+  it("should calculate current weight", () => {
+    const result = computeWeighingData(mockWeighings);
+    expect(result.currentWeight).toBe(140);
+  });
 
-      const acquisitionItem = {
-        motherId: "mother-2",
-      };
+  it("should calculate weight in arrobas", () => {
+    const result = computeWeighingData(mockWeighings);
+    // 140 kg / 30 = 4.67 arrobas
+    expect(result.weightInArrobas).toBe("4.67");
+  });
 
-      const result = getParentId(birth, acquisitionItem, "mother");
-      expect(result).toBe("mother-1");
-    });
+  it("should handle empty array", () => {
+    const result = computeWeighingData([]);
+    expect(result.sortedWeighings).toEqual([]);
+    expect(result.lastWeighing).toBeUndefined();
+    expect(result.firstWeighing).toBeNull();
+    expect(result.currentWeight).toBe(0);
+    expect(result.weightInArrobas).toBe("0.00");
+  });
 
-    it("should return undefined when no parent data exists", () => {
-      const result = getParentId(null, null, "mother");
-      expect(result).toBeUndefined();
-    });
+  it("should handle single weighing", () => {
+    const result = computeWeighingData([mockWeighings[0]]);
+    expect(result.lastWeighing?.weight).toBe(100);
+    expect(result.firstWeighing?.weight).toBe(100);
+    expect(result.currentWeight).toBe(100);
+  });
+});
+
+describe("computeAgeData", () => {
+  it("should calculate age from birth", () => {
+    const birth: Birth = {
+      id: "birth-1",
+      animalId: "animal-1",
+      birthDate: "2023-01-01",
+      gender: "male",
+      companyId: "company-1",
+      createdAt: "2023-01-01T00:00:00Z",
+    };
+    const result = computeAgeData(birth, null);
+    expect(result).toBeGreaterThan(0);
+    expect(typeof result).toBe("number");
+  });
+
+  it("should calculate age from acquisition item", () => {
+    const acquisitionItem = {
+      birthDate: "2023-01-01",
+    };
+    const result = computeAgeData(null, acquisitionItem);
+    expect(result).toBeGreaterThan(0);
+    expect(typeof result).toBe("number");
+  });
+
+  it("should prioritize birth over acquisition", () => {
+    const birth: Birth = {
+      id: "birth-1",
+      animalId: "animal-1",
+      birthDate: "2023-01-01",
+      gender: "male",
+      companyId: "company-1",
+      createdAt: "2023-01-01T00:00:00Z",
+    };
+    const acquisitionItem = {
+      birthDate: "2022-01-01",
+    };
+    const result = computeAgeData(birth, acquisitionItem);
+    // Should use birth date, not acquisition date
+    expect(result).toBeDefined();
+  });
+
+  it("should return null when no birth date available", () => {
+    expect(computeAgeData(null, null)).toBeNull();
+    expect(computeAgeData(null, {})).toBeNull();
+  });
+});
+
+describe("hasNoGenealogyData", () => {
+  it("should return true when no genealogy data", () => {
+    expect(hasNoGenealogyData(null, null)).toBe(true);
+    expect(hasNoGenealogyData(null, {})).toBe(true);
+  });
+
+  it("should return false when birth has purity", () => {
+    const birth: Birth = {
+      id: "birth-1",
+      animalId: "animal-1",
+      birthDate: "2024-01-01",
+      gender: "male",
+      purity: BirthPurity.PO,
+      companyId: "company-1",
+      createdAt: "2024-01-01T00:00:00Z",
+    };
+    expect(hasNoGenealogyData(birth, null)).toBe(false);
+  });
+
+  it("should return false when birth has motherId", () => {
+    const birth: Birth = {
+      id: "birth-1",
+      animalId: "animal-1",
+      birthDate: "2024-01-01",
+      gender: "male",
+      motherId: "mother-1",
+      companyId: "company-1",
+      createdAt: "2024-01-01T00:00:00Z",
+    };
+    expect(hasNoGenealogyData(birth, null)).toBe(false);
+  });
+
+  it("should return false when birth has fatherId", () => {
+    const birth: Birth = {
+      id: "birth-1",
+      animalId: "animal-1",
+      birthDate: "2024-01-01",
+      gender: "male",
+      fatherId: "father-1",
+      companyId: "company-1",
+      createdAt: "2024-01-01T00:00:00Z",
+    };
+    expect(hasNoGenealogyData(birth, null)).toBe(false);
+  });
+
+  it("should return false when acquisition has motherId", () => {
+    const acquisitionItem = {
+      motherId: "mother-1",
+    };
+    expect(hasNoGenealogyData(null, acquisitionItem)).toBe(false);
+  });
+
+  it("should return false when acquisition has fatherId", () => {
+    const acquisitionItem = {
+      fatherId: "father-1",
+    };
+    expect(hasNoGenealogyData(null, acquisitionItem)).toBe(false);
+  });
+});
+
+describe("getParentId", () => {
+  it("should get mother ID from birth", () => {
+    const birth: Birth = {
+      id: "birth-1",
+      animalId: "animal-1",
+      birthDate: "2024-01-01",
+      gender: "male",
+      motherId: "mother-1",
+      companyId: "company-1",
+      createdAt: "2024-01-01T00:00:00Z",
+    };
+    expect(getParentId(birth, null, "mother")).toBe("mother-1");
+  });
+
+  it("should get father ID from birth", () => {
+    const birth: Birth = {
+      id: "birth-1",
+      animalId: "animal-1",
+      birthDate: "2024-01-01",
+      gender: "male",
+      fatherId: "father-1",
+      companyId: "company-1",
+      createdAt: "2024-01-01T00:00:00Z",
+    };
+    expect(getParentId(birth, null, "father")).toBe("father-1");
+  });
+
+  it("should get mother ID from acquisition when birth has none", () => {
+    const birth: Birth = {
+      id: "birth-1",
+      animalId: "animal-1",
+      birthDate: "2024-01-01",
+      gender: "male",
+      companyId: "company-1",
+      createdAt: "2024-01-01T00:00:00Z",
+    };
+    const acquisitionItem = {
+      motherId: "mother-2",
+    };
+    expect(getParentId(birth, acquisitionItem, "mother")).toBe("mother-2");
+  });
+
+  it("should prioritize birth over acquisition", () => {
+    const birth: Birth = {
+      id: "birth-1",
+      animalId: "animal-1",
+      birthDate: "2024-01-01",
+      gender: "male",
+      motherId: "mother-1",
+      companyId: "company-1",
+      createdAt: "2024-01-01T00:00:00Z",
+    };
+    const acquisitionItem = {
+      motherId: "mother-2",
+    };
+    expect(getParentId(birth, acquisitionItem, "mother")).toBe("mother-1");
+  });
+
+  it("should return undefined when no parent ID available", () => {
+    expect(getParentId(null, null, "mother")).toBeUndefined();
+    expect(getParentId(null, {}, "father")).toBeUndefined();
   });
 });

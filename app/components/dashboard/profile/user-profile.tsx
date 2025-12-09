@@ -715,9 +715,13 @@ export function UserProfile({ userId, readOnly = false, onEdit, onSave }: UserPr
         activeTab={activeSubTab}
         onTabChange={setActiveSubTab}
         tabs={[
-          { id: "data", label: t.profile.user.subTabs.data },
-          { id: "permissions", label: t.profile.user.subTabs.permissions, visible: !!userId },
-          { id: "logs", label: t.profile.user.subTabs.logs, visible: isMainUser() },
+          { id: "data", label: t.profile?.user?.subTabs?.data || "Data" },
+          {
+            id: "permissions",
+            label: t.profile?.user?.subTabs?.permissions || "Permissions",
+            visible: !!userId,
+          },
+          { id: "logs", label: t.profile?.user?.subTabs?.logs || "Logs", visible: isMainUser() },
         ]}
       />
 

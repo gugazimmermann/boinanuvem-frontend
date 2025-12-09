@@ -26,6 +26,7 @@ export interface FormPageLayoutProps {
     };
   };
   readonly formWrapperClassName?: string;
+  readonly formId?: string;
 }
 
 export function FormPageLayout({
@@ -37,6 +38,7 @@ export function FormPageLayout({
   children,
   footer,
   formWrapperClassName = "",
+  formId,
 }: FormPageLayoutProps) {
   return (
     <div className="space-y-6">
@@ -79,6 +81,7 @@ export function FormPageLayout({
               type="submit"
               variant="primary"
               disabled={footer.submitButton.disabled || footer.submitButton.isLoading}
+              form={formId}
             >
               {(() => {
                 if (footer.submitButton.isLoading) {

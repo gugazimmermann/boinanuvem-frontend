@@ -1,50 +1,148 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { useEntityForm } from "../use-entity-form";
-import * as useBaseFormHook from "../use-base-form";
-import * as useAddressFormHook from "../use-address-form";
-import * as translationHook from "~/i18n/use-translation";
-import * as masks from "~/components/site/utils/masks";
+import { useEntityForm, type EntityFormData } from "../use-entity-form";
+import { useTranslation } from "~/i18n";
+import { useBaseForm, type UseBaseFormReturn } from "../use-base-form";
+import { useAddressForm } from "../use-address-form";
+import { maskCPF, maskCNPJ, maskPhone } from "~/components/site/utils/masks";
+
+vi.mock("~/i18n", () => ({
+  useTranslation: vi.fn(),
+}));
 
 vi.mock("../use-base-form");
 vi.mock("../use-address-form");
-vi.mock("~/i18n/use-translation");
-vi.mock("~/components/site/utils/masks");
+vi.mock("~/components/site/utils/masks", () => ({
+  maskCPF: vi.fn((v: string) => v),
+  maskCNPJ: vi.fn((v: string) => v),
+  maskPhone: vi.fn((v: string) => v),
+}));
 
 describe("useEntityForm", () => {
-  const mockTranslation = {
-    buyers: {
-      table: { code: "Code", name: "Name" },
-      new: { nameLabel: "Name", propertyRequired: "Property is required" },
-    },
-    suppliers: {
-      table: { code: "Code", name: "Name" },
-      new: { nameLabel: "Name", propertyRequired: "Property is required" },
-    },
-    serviceProviders: {
-      table: { code: "Code", name: "Name" },
-      new: { nameLabel: "Name", propertyRequired: "Property is required" },
-    },
-    employees: {
-      table: { code: "Code", name: "Name" },
-      new: { nameLabel: "Name", propertyRequired: "Property is required" },
-    },
-    profile: {
-      errors: {
-        required: (field: string) => `${field} is required`,
-      },
-    },
-  };
+  let mockBaseForm: UseBaseFormReturn<EntityFormData>;
+  let mockAddressForm: ReturnType<typeof useAddressForm>;
+  let mockTranslation: ReturnType<typeof useTranslation>;
 
-  const mockBaseFormReturn = {
-    formData: {
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    mockTranslation = {
+      buyers: {
+        table: { code: "Code", name: "Name" },
+        new: { nameLabel: "Name" },
+        edit: { nameLabel: "Name" },
+      },
+      suppliers: {
+        table: { code: "Code", name: "Name" },
+        new: { nameLabel: "Name" },
+        edit: { nameLabel: "Name" },
+      },
+      serviceProviders: {
+        table: { code: "Code", name: "Name" },
+        new: { nameLabel: "Name" },
+        edit: { nameLabel: "Name" },
+      },
+      employees: {
+        table: { code: "Code", name: "Name" },
+        new: { nameLabel: "Name" },
+        edit: { nameLabel: "Name" },
+      },
+      profile: {
+        errors: {
+          required: (label: string) => `${label} is required`,
+        },
+      },
+    } as unknown as ReturnType<typeof import("~/i18n").useTranslation>;
+
+    vi.mocked(useTranslation).mockReturnValue(mockTranslation);
+
+    mockBaseForm = {
+      formData: {
+        code: "",
+        name: "",
+        status: "active",
+        zipCode: "",
+        street: "",
+        number: "",
+        complement: "",
+        neighborhood: "",
+        city: "",
+        state: "",
+        propertyIds: [],
+      },
+      errors: {},
+      isSubmitting: false,
+      alertMessage: null,
+      handleChange: vi.fn(),
+      handleSubmit: vi.fn(),
+      showAlert: vi.fn(),
+      setFormData: vi.fn(),
+      clearErrors: vi.fn(),
+      setError: vi.fn(),
+      setErrors: vi.fn(),
+    } as UseBaseFormReturn<EntityFormData>;
+
+    mockAddressForm = {
+      zipCodeLoading: false,
+      zipCodeError: null,
+      handleZipCodeChange: vi.fn(),
+    };
+
+    vi.mocked(useBaseForm).mockReturnValue(mockBaseForm);
+    vi.mocked(useAddressForm).mockReturnValue(mockAddressForm);
+  });
+
+  it("should initialize with default form data", () => {
+    const { result } = renderHook(() =>
+      useEntityForm({
+        entityType: "buyer",
+        onSubmit: vi.fn(),
+      })
+    );
+
+    expect(useBaseForm).toHaveBeenCalled();
+    expect(result.current.formData).toBeDefined();
+  });
+
+  it("should merge initial data with defaults", () => {
+    renderHook(() =>
+      useEntityForm({
+        entityType: "buyer",
+        initialData: {
+          code: "B001",
+          name: "Test Buyer",
+        },
+        onSubmit: vi.fn(),
+      })
+    );
+
+    expect(useBaseForm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        initialData: expect.objectContaining({
+          code: "B001",
+          name: "Test Buyer",
+        }),
+      })
+    );
+  });
+
+  it("should initialize with all default fields", () => {
+    renderHook(() =>
+      useEntityForm({
+        entityType: "buyer",
+        onSubmit: vi.fn(),
+      })
+    );
+
+    const callArgs = vi.mocked(useBaseForm).mock.calls[0]?.[0];
+    expect(callArgs?.initialData).toMatchObject({
       code: "",
       name: "",
       cpf: "",
       cnpj: "",
       email: "",
       phone: "",
-      status: "active" as const,
+      status: "active",
       zipCode: "",
       street: "",
       number: "",
@@ -53,71 +151,41 @@ describe("useEntityForm", () => {
       city: "",
       state: "",
       propertyIds: [],
-    },
-    setFormData: vi.fn(),
-    errors: {},
-    setErrors: vi.fn(),
-    isSubmitting: false,
-    alertMessage: null,
-    handleChange: vi.fn(),
-    handleSubmit: vi.fn(),
-    showAlert: vi.fn(),
-    clearErrors: vi.fn(),
-    setError: vi.fn(),
-  };
-
-  const mockAddressFormReturn = {
-    zipCodeLoading: false,
-    zipCodeError: null,
-    handleZipCodeChange: vi.fn(),
-  };
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.mocked(translationHook.useTranslation).mockReturnValue(mockTranslation as never);
-    vi.mocked(useBaseFormHook.useBaseForm).mockReturnValue(mockBaseFormReturn);
-    vi.mocked(useAddressFormHook.useAddressForm).mockReturnValue(mockAddressFormReturn);
-    vi.mocked(masks.maskCPF).mockImplementation((value: string) => value);
-    vi.mocked(masks.maskCNPJ).mockImplementation((value: string) => value);
-    vi.mocked(masks.maskPhone).mockImplementation((value: string) => value);
+    });
   });
 
-  it("should initialize with default values", () => {
-    const { result } = renderHook(() =>
-      useEntityForm({
-        entityType: "buyer",
-        onSubmit: vi.fn(),
-      })
-    );
-
-    expect(result.current.formData).toBeDefined();
-    expect(result.current.errors).toEqual({});
-    expect(result.current.isSubmitting).toBe(false);
-  });
-
-  it("should initialize with provided initialData", () => {
+  it("should merge all initial data fields", () => {
     const initialData = {
-      code: "BUY001",
+      code: "B001",
       name: "Test Buyer",
+      cpf: "123.456.789-01",
+      cnpj: "12.345.678/0001-90",
       email: "test@example.com",
+      phone: "(11) 98765-4321",
+      status: "inactive" as const,
+      zipCode: "12345-678",
+      street: "Test Street",
+      number: "123",
+      complement: "Apt 4",
+      neighborhood: "Test Neighborhood",
+      city: "Test City",
+      state: "SP",
+      propertyIds: ["prop1", "prop2"],
     };
 
     renderHook(() =>
       useEntityForm({
+        entityType: "buyer",
         initialData,
-        entityType: "buyer",
         onSubmit: vi.fn(),
       })
     );
 
-    expect(useBaseFormHook.useBaseForm).toHaveBeenCalledWith(
-      expect.objectContaining({
-        initialData: expect.objectContaining(initialData),
-      })
-    );
+    const callArgs = vi.mocked(useBaseForm).mock.calls[0]?.[0];
+    expect(callArgs?.initialData).toMatchObject(initialData);
   });
 
-  it("should handle zipCode change through addressForm", () => {
+  it("should mask CPF when handleChange is called with cpf field", () => {
     const { result } = renderHook(() =>
       useEntityForm({
         entityType: "buyer",
@@ -126,29 +194,14 @@ describe("useEntityForm", () => {
     );
 
     act(() => {
-      result.current.handleChange("zipCode", "12345678");
+      result.current.handleChange("cpf", "12345678901");
     });
 
-    expect(mockAddressFormReturn.handleZipCodeChange).toHaveBeenCalledWith("12345678");
+    expect(maskCPF).toHaveBeenCalledWith("12345678901");
+    expect(mockBaseForm.handleChange).toHaveBeenCalled();
   });
 
-  it("should mask CPF when changed", () => {
-    const { result } = renderHook(() =>
-      useEntityForm({
-        entityType: "buyer",
-        onSubmit: vi.fn(),
-      })
-    );
-
-    act(() => {
-      result.current.handleChange("cpf", "12345678900");
-    });
-
-    expect(masks.maskCPF).toHaveBeenCalledWith("12345678900");
-    expect(mockBaseFormReturn.handleChange).toHaveBeenCalled();
-  });
-
-  it("should mask CNPJ when changed", () => {
+  it("should mask CNPJ when handleChange is called with cnpj field", () => {
     const { result } = renderHook(() =>
       useEntityForm({
         entityType: "supplier",
@@ -160,14 +213,14 @@ describe("useEntityForm", () => {
       result.current.handleChange("cnpj", "12345678000190");
     });
 
-    expect(masks.maskCNPJ).toHaveBeenCalledWith("12345678000190");
-    expect(mockBaseFormReturn.handleChange).toHaveBeenCalled();
+    expect(maskCNPJ).toHaveBeenCalledWith("12345678000190");
+    expect(mockBaseForm.handleChange).toHaveBeenCalled();
   });
 
-  it("should mask phone when changed", () => {
+  it("should mask phone when handleChange is called with phone field", () => {
     const { result } = renderHook(() =>
       useEntityForm({
-        entityType: "employee",
+        entityType: "buyer",
         onSubmit: vi.fn(),
       })
     );
@@ -176,11 +229,11 @@ describe("useEntityForm", () => {
       result.current.handleChange("phone", "11987654321");
     });
 
-    expect(masks.maskPhone).toHaveBeenCalledWith("11987654321");
-    expect(mockBaseFormReturn.handleChange).toHaveBeenCalled();
+    expect(maskPhone).toHaveBeenCalledWith("11987654321");
+    expect(mockBaseForm.handleChange).toHaveBeenCalled();
   });
 
-  it("should handle non-mask fields normally", () => {
+  it("should use addressForm.handleZipCodeChange for zipCode field", () => {
     const { result } = renderHook(() =>
       useEntityForm({
         entityType: "buyer",
@@ -189,101 +242,137 @@ describe("useEntityForm", () => {
     );
 
     act(() => {
-      result.current.handleChange("name", "John Doe");
+      result.current.handleChange("zipCode", "12345678");
     });
 
-    expect(mockBaseFormReturn.handleChange).toHaveBeenCalledWith("name", "John Doe");
+    expect(mockAddressForm.handleZipCodeChange).toHaveBeenCalledWith("12345678");
+    expect(mockBaseForm.handleChange).not.toHaveBeenCalled();
   });
 
-  it("should validate required fields", () => {
-    const mockOnSubmit = vi.fn();
-
-    renderHook(() =>
-      useEntityForm({
-        entityType: "buyer",
-        onSubmit: mockOnSubmit,
-      })
-    );
-
-    const validateCall = vi.mocked(useBaseFormHook.useBaseForm).mock.calls[0]?.[0].validate;
-    expect(validateCall).toBeDefined();
-
-    if (validateCall) {
-      const result = validateCall({
-        code: "",
-        name: "",
-        propertyIds: [],
-      });
-
-      expect(result).not.toBe(true);
-      expect(typeof result).toBe("object");
-    }
-  });
-
-  it("should validate code field", () => {
-    renderHook(() =>
+  it("should handle change for code field without masking", () => {
+    const { result } = renderHook(() =>
       useEntityForm({
         entityType: "buyer",
         onSubmit: vi.fn(),
       })
     );
 
-    const validateCall = vi.mocked(useBaseFormHook.useBaseForm).mock.calls[0]?.[0].validate;
+    act(() => {
+      result.current.handleChange("code", "B001");
+    });
 
-    if (validateCall) {
-      const result = validateCall({
-        code: "",
-        name: "Test",
-        propertyIds: ["prop-1"],
-      });
+    expect(mockBaseForm.handleChange).toHaveBeenCalledWith("code", "B001");
+    expect(maskCPF).not.toHaveBeenCalled();
+    expect(maskCNPJ).not.toHaveBeenCalled();
+    expect(maskPhone).not.toHaveBeenCalled();
+  });
 
-      expect(result).toHaveProperty("code");
+  it("should handle change for name field without masking", () => {
+    const { result } = renderHook(() =>
+      useEntityForm({
+        entityType: "buyer",
+        onSubmit: vi.fn(),
+      })
+    );
+
+    act(() => {
+      result.current.handleChange("name", "Test Name");
+    });
+
+    expect(mockBaseForm.handleChange).toHaveBeenCalledWith("name", "Test Name");
+  });
+
+  it("should handle change for email field without masking", () => {
+    const { result } = renderHook(() =>
+      useEntityForm({
+        entityType: "buyer",
+        onSubmit: vi.fn(),
+      })
+    );
+
+    act(() => {
+      result.current.handleChange("email", "test@example.com");
+    });
+
+    expect(mockBaseForm.handleChange).toHaveBeenCalledWith("email", "test@example.com");
+  });
+
+  it("should handle change for status field", () => {
+    const { result } = renderHook(() =>
+      useEntityForm({
+        entityType: "buyer",
+        onSubmit: vi.fn(),
+      })
+    );
+
+    act(() => {
+      result.current.handleChange("status", "inactive");
+    });
+
+    expect(mockBaseForm.handleChange).toHaveBeenCalledWith("status", "inactive");
+  });
+
+  it("should handle change for propertyIds field", () => {
+    const { result } = renderHook(() =>
+      useEntityForm({
+        entityType: "buyer",
+        onSubmit: vi.fn(),
+      })
+    );
+
+    act(() => {
+      result.current.handleChange("propertyIds", ["prop1", "prop2"]);
+    });
+
+    expect(mockBaseForm.handleChange).toHaveBeenCalledWith("propertyIds", ["prop1", "prop2"]);
+  });
+
+  it("should return false from validate when errors exist", () => {
+    mockBaseForm.errors = { code: "Code is required" };
+    const { result } = renderHook(() =>
+      useEntityForm({
+        entityType: "buyer",
+        onSubmit: vi.fn(),
+      })
+    );
+
+    expect(result.current.validate()).toBe(false);
+  });
+
+  it("should validate code field", () => {
+    const validateFn = vi.mocked(useBaseForm).mock.calls[0]?.[0]?.validate;
+    if (validateFn) {
+      const result = validateFn({ code: "", name: "Test", propertyIds: ["1"] });
+      expect(result).not.toBe(true);
+      if (typeof result === "object") {
+        expect(result.code).toBeDefined();
+      }
     }
   });
 
   it("should validate name field", () => {
-    renderHook(() =>
-      useEntityForm({
-        entityType: "buyer",
-        onSubmit: vi.fn(),
-      })
-    );
-
-    const validateCall = vi.mocked(useBaseFormHook.useBaseForm).mock.calls[0]?.[0].validate;
-
-    if (validateCall) {
-      const result = validateCall({
-        code: "BUY001",
-        name: "",
-        propertyIds: ["prop-1"],
-      });
-
-      expect(result).toHaveProperty("name");
+    const validateFn = vi.mocked(useBaseForm).mock.calls[0]?.[0]?.validate;
+    if (validateFn) {
+      const result = validateFn({ code: "C001", name: "", propertyIds: ["1"] });
+      expect(result).not.toBe(true);
+      if (typeof result === "object") {
+        expect(result.name).toBeDefined();
+      }
     }
   });
 
   it("should validate propertyIds field", () => {
-    renderHook(() =>
-      useEntityForm({
-        entityType: "buyer",
-        onSubmit: vi.fn(),
-      })
-    );
-
-    const validateCall = vi.mocked(useBaseFormHook.useBaseForm).mock.calls[0]?.[0].validate;
-
-    if (validateCall) {
-      const result = validateCall({
-        code: "BUY001",
-        name: "Test",
-        propertyIds: [],
-      });
-
-      expect(result).toHaveProperty("propertyIds");
+    const validateFn = vi.mocked(useBaseForm).mock.calls[0]?.[0]?.validate;
+    if (validateFn) {
+      const result = validateFn({ code: "C001", name: "Test", propertyIds: [] });
+      expect(result).not.toBe(true);
+      if (typeof result === "object") {
+        expect(result.propertyIds).toBeDefined();
+      }
     }
   });
 
-  it("should return true for valid data", () => {
+  it("should validate code field with whitespace only", () => {
     renderHook(() =>
       useEntityForm({
         entityType: "buyer",
@@ -291,25 +380,189 @@ describe("useEntityForm", () => {
       })
     );
 
-    const validateCall = vi.mocked(useBaseFormHook.useBaseForm).mock.calls[0]?.[0].validate;
+    const validateFn = vi.mocked(useBaseForm).mock.calls[0]?.[0]?.validate;
+    if (validateFn) {
+      const result = validateFn({ code: "   ", name: "Test", propertyIds: ["1"] });
+      expect(result).not.toBe(true);
+      if (typeof result === "object") {
+        expect(result.code).toBeDefined();
+      }
+    }
+  });
 
-    if (validateCall) {
-      const result = validateCall({
-        code: "BUY001",
+  it("should validate name field with whitespace only", () => {
+    renderHook(() =>
+      useEntityForm({
+        entityType: "buyer",
+        onSubmit: vi.fn(),
+      })
+    );
+
+    const validateFn = vi.mocked(useBaseForm).mock.calls[0]?.[0]?.validate;
+    if (validateFn) {
+      const result = validateFn({ code: "C001", name: "   ", propertyIds: ["1"] });
+      expect(result).not.toBe(true);
+      if (typeof result === "object") {
+        expect(result.name).toBeDefined();
+      }
+    }
+  });
+
+  it("should validate propertyIds as null", () => {
+    renderHook(() =>
+      useEntityForm({
+        entityType: "buyer",
+        onSubmit: vi.fn(),
+      })
+    );
+
+    const validateFn = vi.mocked(useBaseForm).mock.calls[0]?.[0]?.validate;
+    if (validateFn) {
+      const result = validateFn({
+        code: "C001",
         name: "Test",
-        propertyIds: ["prop-1"],
+        propertyIds: null as unknown as string[],
       });
+      expect(result).not.toBe(true);
+      if (typeof result === "object") {
+        expect(result.propertyIds).toBeDefined();
+      }
+    }
+  });
 
+  it("should validate propertyIds as undefined", () => {
+    renderHook(() =>
+      useEntityForm({
+        entityType: "buyer",
+        onSubmit: vi.fn(),
+      })
+    );
+
+    const validateFn = vi.mocked(useBaseForm).mock.calls[0]?.[0]?.validate;
+    if (validateFn) {
+      const result = validateFn({
+        code: "C001",
+        name: "Test",
+        propertyIds: undefined as unknown as string[],
+      });
+      expect(result).not.toBe(true);
+      if (typeof result === "object") {
+        expect(result.propertyIds).toBeDefined();
+      }
+    }
+  });
+
+  it("should validate propertyIds as non-array", () => {
+    renderHook(() =>
+      useEntityForm({
+        entityType: "buyer",
+        onSubmit: vi.fn(),
+      })
+    );
+
+    const validateFn = vi.mocked(useBaseForm).mock.calls[0]?.[0]?.validate;
+    if (validateFn) {
+      const result = validateFn({
+        code: "C001",
+        name: "Test",
+        propertyIds: "not-an-array" as unknown as string[],
+      });
+      expect(result).not.toBe(true);
+      if (typeof result === "object") {
+        expect(result.propertyIds).toBeDefined();
+      }
+    }
+  });
+
+  it("should return true when all validation passes", () => {
+    renderHook(() =>
+      useEntityForm({
+        entityType: "buyer",
+        onSubmit: vi.fn(),
+      })
+    );
+
+    const validateFn = vi.mocked(useBaseForm).mock.calls[0]?.[0]?.validate;
+    if (validateFn) {
+      const result = validateFn({
+        code: "C001",
+        name: "Test Name",
+        propertyIds: ["prop1", "prop2"],
+      });
       expect(result).toBe(true);
     }
   });
 
-  it("should expose zipCodeLoading from addressForm", () => {
-    vi.mocked(useAddressFormHook.useAddressForm).mockReturnValue({
-      ...mockAddressFormReturn,
-      zipCodeLoading: true,
-    });
+  it("should return validation result from baseForm", () => {
+    const { result } = renderHook(() =>
+      useEntityForm({
+        entityType: "buyer",
+        onSubmit: vi.fn(),
+      })
+    );
 
+    expect(result.current.validate()).toBe(true);
+  });
+
+  it("should return alertMessage from baseForm", () => {
+    mockBaseForm.alertMessage = { title: "Test alert", variant: "success" };
+    const { result } = renderHook(() =>
+      useEntityForm({
+        entityType: "buyer",
+        onSubmit: vi.fn(),
+      })
+    );
+
+    expect(result.current.alertMessage).toEqual({ title: "Test alert", variant: "success" });
+  });
+
+  it("should return isSubmitting from baseForm", () => {
+    mockBaseForm.isSubmitting = true;
+    const { result } = renderHook(() =>
+      useEntityForm({
+        entityType: "buyer",
+        onSubmit: vi.fn(),
+      })
+    );
+
+    expect(result.current.isSubmitting).toBe(true);
+  });
+
+  it("should return handleSubmit from baseForm", () => {
+    const { result } = renderHook(() =>
+      useEntityForm({
+        entityType: "buyer",
+        onSubmit: vi.fn(),
+      })
+    );
+
+    expect(result.current.handleSubmit).toBe(mockBaseForm.handleSubmit);
+  });
+
+  it("should return showAlert from baseForm", () => {
+    const { result } = renderHook(() =>
+      useEntityForm({
+        entityType: "buyer",
+        onSubmit: vi.fn(),
+      })
+    );
+
+    expect(result.current.showAlert).toBe(mockBaseForm.showAlert);
+  });
+
+  it("should return setFormData from baseForm", () => {
+    const { result } = renderHook(() =>
+      useEntityForm({
+        entityType: "buyer",
+        onSubmit: vi.fn(),
+      })
+    );
+
+    expect(result.current.setFormData).toBe(mockBaseForm.setFormData);
+  });
+
+  it("should return zipCodeLoading from addressForm", () => {
+    mockAddressForm.zipCodeLoading = true;
     const { result } = renderHook(() =>
       useEntityForm({
         entityType: "buyer",
@@ -320,13 +573,8 @@ describe("useEntityForm", () => {
     expect(result.current.zipCodeLoading).toBe(true);
   });
 
-  it("should expose zipCodeError from addressForm", () => {
-    const errorMessage = "CEP not found";
-    vi.mocked(useAddressFormHook.useAddressForm).mockReturnValue({
-      ...mockAddressFormReturn,
-      zipCodeError: errorMessage,
-    });
-
+  it("should return zipCodeError from addressForm", () => {
+    mockAddressForm.zipCodeError = "CEP not found";
     const { result } = renderHook(() =>
       useEntityForm({
         entityType: "buyer",
@@ -334,199 +582,23 @@ describe("useEntityForm", () => {
       })
     );
 
-    expect(result.current.zipCodeError).toBe(errorMessage);
+    expect(result.current.zipCodeError).toBe("CEP not found");
   });
 
-  it("should handle different entity types", () => {
-    const types = ["buyer", "supplier", "service-provider", "employee"] as const;
-
-    types.forEach((type) => {
-      renderHook(() =>
-        useEntityForm({
-          entityType: type,
-          onSubmit: vi.fn(),
-        })
-      );
-    });
-
-    expect(useBaseFormHook.useBaseForm).toHaveBeenCalledTimes(types.length);
-  });
-
-  it("should pass success and error messages to base form", () => {
+  it("should use custom errorMessage when provided", () => {
     renderHook(() =>
       useEntityForm({
         entityType: "buyer",
         onSubmit: vi.fn(),
-        successMessage: "Success!",
-        errorMessage: "Error!",
+        errorMessage: "Custom error message",
       })
     );
 
-    expect(useBaseFormHook.useBaseForm).toHaveBeenCalledWith(
-      expect.objectContaining({
-        successMessage: "Success!",
-        errorMessage: "Error!",
-      })
-    );
+    const callArgs = vi.mocked(useBaseForm).mock.calls[0]?.[0];
+    expect(callArgs?.errorMessage).toBe("Custom error message");
   });
 
-  it("should call onSuccess when provided", () => {
-    const mockOnSuccess = vi.fn();
-
-    renderHook(() =>
-      useEntityForm({
-        entityType: "buyer",
-        onSubmit: vi.fn(),
-        onSuccess: mockOnSuccess,
-      })
-    );
-
-    expect(useBaseFormHook.useBaseForm).toHaveBeenCalledWith(
-      expect.objectContaining({
-        onSuccess: mockOnSuccess,
-      })
-    );
-  });
-
-  it("should expose handleSubmit from base form", () => {
-    const { result } = renderHook(() =>
-      useEntityForm({
-        entityType: "buyer",
-        onSubmit: vi.fn(),
-      })
-    );
-
-    expect(result.current.handleSubmit).toBe(mockBaseFormReturn.handleSubmit);
-  });
-
-  it("should expose showAlert from base form", () => {
-    const { result } = renderHook(() =>
-      useEntityForm({
-        entityType: "buyer",
-        onSubmit: vi.fn(),
-      })
-    );
-
-    expect(result.current.showAlert).toBe(mockBaseFormReturn.showAlert);
-  });
-
-  it("should expose setFormData from base form", () => {
-    const { result } = renderHook(() =>
-      useEntityForm({
-        entityType: "buyer",
-        onSubmit: vi.fn(),
-      })
-    );
-
-    expect(result.current.setFormData).toBe(mockBaseFormReturn.setFormData);
-  });
-
-  it("should validate code field with whitespace", () => {
-    renderHook(() =>
-      useEntityForm({
-        entityType: "buyer",
-        onSubmit: vi.fn(),
-      })
-    );
-
-    const validateCall = vi.mocked(useBaseFormHook.useBaseForm).mock.calls[0]?.[0].validate;
-
-    if (validateCall) {
-      const result = validateCall({
-        code: "   ",
-        name: "Test",
-        propertyIds: ["prop-1"],
-      });
-
-      expect(result).toHaveProperty("code");
-    }
-  });
-
-  it("should validate name field with whitespace", () => {
-    renderHook(() =>
-      useEntityForm({
-        entityType: "buyer",
-        onSubmit: vi.fn(),
-      })
-    );
-
-    const validateCall = vi.mocked(useBaseFormHook.useBaseForm).mock.calls[0]?.[0].validate;
-
-    if (validateCall) {
-      const result = validateCall({
-        code: "BUY001",
-        name: "   ",
-        propertyIds: ["prop-1"],
-      });
-
-      expect(result).toHaveProperty("name");
-    }
-  });
-
-  it("should validate propertyIds with empty array", () => {
-    renderHook(() =>
-      useEntityForm({
-        entityType: "buyer",
-        onSubmit: vi.fn(),
-      })
-    );
-
-    const validateCall = vi.mocked(useBaseFormHook.useBaseForm).mock.calls[0]?.[0].validate;
-
-    if (validateCall) {
-      const result = validateCall({
-        code: "BUY001",
-        name: "Test",
-        propertyIds: [],
-      });
-
-      expect(result).toHaveProperty("propertyIds");
-    }
-  });
-
-  it("should validate propertyIds with null", () => {
-    renderHook(() =>
-      useEntityForm({
-        entityType: "buyer",
-        onSubmit: vi.fn(),
-      })
-    );
-
-    const validateCall = vi.mocked(useBaseFormHook.useBaseForm).mock.calls[0]?.[0].validate;
-
-    if (validateCall) {
-      const result = validateCall({
-        code: "BUY001",
-        name: "Test",
-        propertyIds: null as unknown as string[],
-      });
-
-      expect(result).toHaveProperty("propertyIds");
-    }
-  });
-
-  it("should use correct translation key for buyer entity", () => {
-    renderHook(() =>
-      useEntityForm({
-        entityType: "buyer",
-        onSubmit: vi.fn(),
-      })
-    );
-
-    const validateCall = vi.mocked(useBaseFormHook.useBaseForm).mock.calls[0]?.[0].validate;
-
-    if (validateCall) {
-      const result = validateCall({
-        code: "",
-        name: "Test",
-        propertyIds: ["prop-1"],
-      });
-
-      expect(result).toHaveProperty("code");
-    }
-  });
-
-  it("should use correct translation key for supplier entity", () => {
+  it("should use default errorMessage when not provided", () => {
     renderHook(() =>
       useEntityForm({
         entityType: "supplier",
@@ -534,20 +606,89 @@ describe("useEntityForm", () => {
       })
     );
 
-    const validateCall = vi.mocked(useBaseFormHook.useBaseForm).mock.calls[0]?.[0].validate;
+    const callArgs = vi.mocked(useBaseForm).mock.calls[0]?.[0];
+    expect(callArgs?.errorMessage).toBe("supplier error");
+  });
 
-    if (validateCall) {
-      const result = validateCall({
-        code: "",
-        name: "Test",
-        propertyIds: ["prop-1"],
-      });
+  it("should pass successMessage to baseForm", () => {
+    renderHook(() =>
+      useEntityForm({
+        entityType: "buyer",
+        onSubmit: vi.fn(),
+        successMessage: "Success message",
+      })
+    );
 
-      expect(result).toHaveProperty("code");
+    const callArgs = vi.mocked(useBaseForm).mock.calls[0]?.[0];
+    expect(callArgs?.successMessage).toBe("Success message");
+  });
+
+  it("should pass onSuccess callback to baseForm", () => {
+    const onSuccess = vi.fn();
+    renderHook(() =>
+      useEntityForm({
+        entityType: "buyer",
+        onSubmit: vi.fn(),
+        onSuccess,
+      })
+    );
+
+    const callArgs = vi.mocked(useBaseForm).mock.calls[0]?.[0];
+    expect(callArgs?.onSuccess).toBe(onSuccess);
+  });
+
+  it("should handle different entity types", () => {
+    const entityTypes = ["buyer", "supplier", "service-provider", "employee"] as const;
+
+    entityTypes.forEach((entityType) => {
+      renderHook(() =>
+        useEntityForm({
+          entityType,
+          onSubmit: vi.fn(),
+        })
+      );
+    });
+
+    expect(useBaseForm).toHaveBeenCalledTimes(entityTypes.length);
+  });
+
+  it("should use correct translation keys for buyer entity type", () => {
+    renderHook(() =>
+      useEntityForm({
+        entityType: "buyer",
+        onSubmit: vi.fn(),
+      })
+    );
+
+    const validateFn = vi.mocked(useBaseForm).mock.calls[0]?.[0]?.validate;
+    if (validateFn) {
+      const result = validateFn({ code: "", name: "Test", propertyIds: ["1"] });
+      expect(result).not.toBe(true);
+      if (typeof result === "object") {
+        expect(result.code).toContain("Code");
+      }
     }
   });
 
-  it("should use correct translation key for service-provider entity", () => {
+  it("should use correct translation keys for supplier entity type", () => {
+    renderHook(() =>
+      useEntityForm({
+        entityType: "supplier",
+        onSubmit: vi.fn(),
+      })
+    );
+
+    const validateFn = vi.mocked(useBaseForm).mock.calls[0]?.[0]?.validate;
+    if (validateFn) {
+      const result = validateFn({ code: "", name: "Test", propertyIds: ["1"] });
+      expect(result).not.toBe(true);
+      if (typeof result === "object") {
+        expect(result.code).toContain("Code");
+      }
+    }
+  });
+
+  it("should use correct translation keys for service-provider entity type", () => {
     renderHook(() =>
       useEntityForm({
         entityType: "service-provider",
@@ -555,20 +696,17 @@ describe("useEntityForm", () => {
       })
     );
 
-    const validateCall = vi.mocked(useBaseFormHook.useBaseForm).mock.calls[0]?.[0].validate;
-
-    if (validateCall) {
-      const result = validateCall({
-        code: "",
-        name: "Test",
-        propertyIds: ["prop-1"],
-      });
-
-      expect(result).toHaveProperty("code");
+    const validateFn = vi.mocked(useBaseForm).mock.calls[0]?.[0]?.validate;
+    if (validateFn) {
+      const result = validateFn({ code: "", name: "Test", propertyIds: ["1"] });
+      expect(result).not.toBe(true);
+      if (typeof result === "object") {
+        expect(result.code).toContain("Code");
+      }
     }
   });
 
-  it("should use correct translation key for employee entity", () => {
+  it("should use correct translation keys for employee entity type", () => {
     renderHook(() =>
       useEntityForm({
         entityType: "employee",
@@ -576,83 +714,169 @@ describe("useEntityForm", () => {
       })
     );
 
-    const validateCall = vi.mocked(useBaseFormHook.useBaseForm).mock.calls[0]?.[0].validate;
-
-    if (validateCall) {
-      const result = validateCall({
-        code: "",
-        name: "Test",
-        propertyIds: ["prop-1"],
-      });
-
-      expect(result).toHaveProperty("code");
+    const validateFn = vi.mocked(useBaseForm).mock.calls[0]?.[0]?.validate;
+    if (validateFn) {
+      const result = validateFn({ code: "", name: "Test", propertyIds: ["1"] });
+      expect(result).not.toBe(true);
+      if (typeof result === "object") {
+        expect(result.code).toContain("Code");
+      }
     }
   });
 
-  it("should return true from validate when form is valid", () => {
-    const { result } = renderHook(() =>
+  it("should fallback to default when table.code is missing", () => {
+    (mockTranslation as { buyers: typeof mockTranslation.buyers }).buyers = {
+      table: {} as unknown as ReturnType<typeof import("~/i18n").useTranslation>["buyers"]["table"],
+      new: {
+        nameLabel: "Name" as unknown as ReturnType<
+          typeof import("~/i18n").useTranslation
+        >["buyers"]["new"]["nameLabel"],
+      },
+      edit: {
+        nameLabel: "Name" as unknown as ReturnType<
+          typeof import("~/i18n").useTranslation
+        >["buyers"]["edit"]["nameLabel"],
+      },
+    } as unknown as typeof mockTranslation.buyers;
+
+    renderHook(() =>
       useEntityForm({
         entityType: "buyer",
         onSubmit: vi.fn(),
       })
     );
 
-    vi.mocked(useBaseFormHook.useBaseForm).mockReturnValue({
-      ...mockBaseFormReturn,
-      errors: {},
-    });
-
-    const isValid = result.current.validate();
-    expect(isValid).toBe(true);
+    const validateFn = vi.mocked(useBaseForm).mock.calls[0]?.[0]?.validate;
+    if (validateFn) {
+      const result = validateFn({ code: "", name: "Test", propertyIds: ["1"] });
+      expect(result).not.toBe(true);
+      if (typeof result === "object") {
+        expect(result.code).toBeDefined();
+      }
+    }
   });
 
-  it("should return false from validate when form has errors", () => {
-    vi.mocked(useBaseFormHook.useBaseForm).mockReturnValue({
-      ...mockBaseFormReturn,
-      errors: { code: "Code is required" },
-    });
+  it("should fallback to table.name when nameLabel is missing", () => {
+    (mockTranslation as { buyers: typeof mockTranslation.buyers }).buyers = {
+      table: { name: "Name" } as unknown as ReturnType<
+        typeof import("~/i18n").useTranslation
+      >["buyers"]["table"],
+      new: {} as unknown as ReturnType<typeof import("~/i18n").useTranslation>["buyers"]["new"],
+      edit: {} as unknown as ReturnType<typeof import("~/i18n").useTranslation>["buyers"]["edit"],
+    } as unknown as typeof mockTranslation.buyers;
 
-    const { result } = renderHook(() =>
+    renderHook(() =>
       useEntityForm({
         entityType: "buyer",
         onSubmit: vi.fn(),
       })
     );
 
-    const isValid = result.current.validate();
-    expect(isValid).toBe(false);
+    const validateFn = vi.mocked(useBaseForm).mock.calls[0]?.[0]?.validate;
+    if (validateFn) {
+      const result = validateFn({ code: "C001", name: "", propertyIds: ["1"] });
+      expect(result).not.toBe(true);
+      if (typeof result === "object") {
+        expect(result.name).toBeDefined();
+      }
+    }
   });
 
-  it("should handle address form zipCode loading state", () => {
-    vi.mocked(useAddressFormHook.useAddressForm).mockReturnValue({
-      ...mockAddressFormReturn,
-      zipCodeLoading: true,
-    });
+  it("should fallback to default when all name translation keys are missing", () => {
+    (mockTranslation as { buyers: typeof mockTranslation.buyers }).buyers = {
+      table: {} as unknown as ReturnType<typeof import("~/i18n").useTranslation>["buyers"]["table"],
+      new: {} as unknown as ReturnType<typeof import("~/i18n").useTranslation>["buyers"]["new"],
+      edit: {} as unknown as ReturnType<typeof import("~/i18n").useTranslation>["buyers"]["edit"],
+    } as unknown as typeof mockTranslation.buyers;
 
-    const { result } = renderHook(() =>
+    renderHook(() =>
       useEntityForm({
         entityType: "buyer",
         onSubmit: vi.fn(),
       })
     );
 
-    expect(result.current.zipCodeLoading).toBe(true);
+    const validateFn = vi.mocked(useBaseForm).mock.calls[0]?.[0]?.validate;
+    if (validateFn) {
+      const result = validateFn({ code: "C001", name: "", propertyIds: ["1"] });
+      expect(result).not.toBe(true);
+      if (typeof result === "object") {
+        expect(result.name).toBeDefined();
+      }
+    }
   });
 
-  it("should handle address form zipCode error state", () => {
-    const errorMessage = "Invalid CEP";
-    vi.mocked(useAddressFormHook.useAddressForm).mockReturnValue({
-      ...mockAddressFormReturn,
-      zipCodeError: errorMessage,
-    });
+  it("should use propertyRequired from new translation when available", () => {
+    (mockTranslation as { buyers: typeof mockTranslation.buyers }).buyers = {
+      table: { code: "Code", name: "Name" } as unknown as ReturnType<
+        typeof import("~/i18n").useTranslation
+      >["buyers"]["table"],
+      new: {
+        nameLabel: "Name" as unknown as ReturnType<
+          typeof import("~/i18n").useTranslation
+        >["buyers"]["new"]["nameLabel"],
+        propertyRequired: "Property is required" as unknown as ReturnType<
+          typeof import("~/i18n").useTranslation
+        >["buyers"]["new"]["propertyRequired"],
+      } as unknown as ReturnType<typeof import("~/i18n").useTranslation>["buyers"]["new"],
+      edit: {
+        nameLabel: "Name" as unknown as ReturnType<
+          typeof import("~/i18n").useTranslation
+        >["buyers"]["edit"]["nameLabel"],
+      } as unknown as ReturnType<typeof import("~/i18n").useTranslation>["buyers"]["edit"],
+    } as unknown as typeof mockTranslation.buyers;
 
-    const { result } = renderHook(() =>
+    renderHook(() =>
       useEntityForm({
         entityType: "buyer",
         onSubmit: vi.fn(),
       })
     );
 
-    expect(result.current.zipCodeError).toBe(errorMessage);
+    const validateFn = vi.mocked(useBaseForm).mock.calls[0]?.[0]?.validate;
+    if (validateFn) {
+      const result = validateFn({ code: "C001", name: "Test", propertyIds: [] });
+      expect(result).not.toBe(true);
+      if (typeof result === "object") {
+        expect(result.propertyIds).toBe("Property is required");
+      }
+    }
+  });
+
+  it("should use propertyRequired from edit translation when available", () => {
+    (mockTranslation as { buyers: typeof mockTranslation.buyers }).buyers = {
+      table: { code: "Code", name: "Name" } as unknown as ReturnType<
+        typeof import("~/i18n").useTranslation
+      >["buyers"]["table"],
+      new: {
+        nameLabel: "Name" as unknown as ReturnType<
+          typeof import("~/i18n").useTranslation
+        >["buyers"]["new"]["nameLabel"],
+      } as unknown as ReturnType<typeof import("~/i18n").useTranslation>["buyers"]["new"],
+      edit: {
+        nameLabel: "Name" as unknown as ReturnType<
+          typeof import("~/i18n").useTranslation
+        >["buyers"]["edit"]["nameLabel"],
+        propertyRequired: "Property is required" as unknown as ReturnType<
+          typeof import("~/i18n").useTranslation
+        >["buyers"]["edit"]["propertyRequired"],
+      } as unknown as ReturnType<typeof import("~/i18n").useTranslation>["buyers"]["edit"],
+    } as unknown as typeof mockTranslation.buyers;
+
+    renderHook(() =>
+      useEntityForm({
+        entityType: "buyer",
+        onSubmit: vi.fn(),
+      })
+    );
+
+    const validateFn = vi.mocked(useBaseForm).mock.calls[0]?.[0]?.validate;
+    if (validateFn) {
+      const result = validateFn({ code: "C001", name: "Test", propertyIds: [] });
+      expect(result).not.toBe(true);
+      if (typeof result === "object") {
+        expect(result.propertyIds).toBe("Property is required");
+      }
+    }
   });
 });

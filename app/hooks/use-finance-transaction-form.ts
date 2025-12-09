@@ -1,17 +1,22 @@
-import { useMemo, useCallback } from "react";
-import { getEmployeesByCompanyId } from "~/services/employees.service";
-import { getServiceProvidersByCompanyId } from "~/services/service-providers.service";
-import { getPropertiesByCompanyId } from "~/services/properties.service";
-import { mockSuppliers } from "~/mocks/suppliers";
-import { mockBuyers } from "~/mocks/buyers";
-import { CashFlowCategory, PaymentMethod } from "~/types";
+import { useMemo, useCallback, useState, useEffect } from "react";
+import { getEmployees } from "~/services/employees.service";
+import { getServiceProviders } from "~/services/service-providers.service";
+import { getProperties } from "~/services/properties.service";
+import { getSuppliers } from "~/services/suppliers.service";
+import { getBuyers } from "~/services/buyers.service";
 import type {
+  Employee,
+  ServiceProvider,
+  Property,
+  Supplier,
+  Buyer,
   CashFlowFormData,
   AccountsPayableFormData,
   AccountsReceivableFormData,
   AccountsPayableStatus,
   AccountsReceivableStatus,
 } from "~/types";
+import { CashFlowCategory, PaymentMethod } from "~/types";
 import { useBaseForm } from "./use-base-form";
 
 export type FinanceTransactionType = "cash-flow" | "accounts-payable" | "accounts-receivable";
@@ -332,15 +337,37 @@ export function useFinanceTransactionForm<T extends FinanceFormState>({
     },
   });
 
-  const allEmployees = useMemo(
-    () => (companyId ? getEmployeesByCompanyId(companyId) : []),
-    [companyId]
-  );
+  const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
+  const [allServiceProviders, setAllServiceProviders] = useState<ServiceProvider[]>([]);
+  const [allSuppliers, setAllSuppliers] = useState<Supplier[]>([]);
+  const [allBuyers, setAllBuyers] = useState<Buyer[]>([]);
+  const [properties, setProperties] = useState<Property[]>([]);
 
-  const allServiceProviders = useMemo(
-    () => (companyId ? getServiceProvidersByCompanyId(companyId) : []),
-    [companyId]
-  );
+  useEffect(() => {
+    const fetchData = async () => {
+      if (companyId) {
+        try {
+          const [employeesData, serviceProvidersData, suppliersData, buyersData, propertiesData] =
+            await Promise.all([
+              getEmployees(),
+              getServiceProviders(),
+              getSuppliers(),
+              getBuyers(),
+              getProperties(),
+            ]);
+          // Filter by companyId
+          setAllEmployees(employeesData.filter((emp) => emp.companyId === companyId));
+          setAllServiceProviders(serviceProvidersData.filter((sp) => sp.companyId === companyId));
+          setAllSuppliers(suppliersData.filter((sup) => sup.companyId === companyId));
+          setAllBuyers(buyersData.filter((buy) => buy.companyId === companyId));
+          setProperties(propertiesData.filter((prop) => prop.companyId === companyId));
+        } catch (error) {
+          console.error("Failed to load data:", error);
+        }
+      }
+    };
+    fetchData();
+  }, [companyId]);
 
   const handleChange = useCallback(
     (field: keyof T, value: string) => {
@@ -413,20 +440,17 @@ export function useFinanceTransactionForm<T extends FinanceFormState>({
 
   const suppliers = useMemo(() => {
     const propertyId = baseForm.formData.propertyId as string | undefined;
-    if (!propertyId) return mockSuppliers;
-    return mockSuppliers.filter((sup) => sup.propertyIds?.includes(propertyId));
-  }, [baseForm.formData.propertyId]);
+    if (!propertyId) return allSuppliers;
+    return allSuppliers.filter((sup) => sup.propertyIds?.includes(propertyId));
+  }, [allSuppliers, baseForm.formData.propertyId]);
 
   const buyers = useMemo(() => {
     const propertyId = baseForm.formData.propertyId as string | undefined;
-    if (!propertyId) return mockBuyers;
-    return mockBuyers.filter((buy) => buy.propertyIds?.includes(propertyId));
-  }, [baseForm.formData.propertyId]);
+    if (!propertyId) return allBuyers;
+    return allBuyers.filter((buy) => buy.propertyIds?.includes(propertyId));
+  }, [allBuyers, baseForm.formData.propertyId]);
 
-  const properties = useMemo(
-    () => (companyId ? getPropertiesByCompanyId(companyId) : []),
-    [companyId]
-  );
+  // properties are now loaded via useEffect above
 
   const validate = useCallback((): boolean => {
     const result = baseForm.errors;

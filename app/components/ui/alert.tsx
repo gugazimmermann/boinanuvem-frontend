@@ -76,10 +76,21 @@ export function Alert({ title, message, variant = "success", icon, className = "
   const styles = variantStyles[variant];
   const displayIcon = icon || defaultIcons[variant];
 
+  const normalizedClassName = [
+    "flex",
+    "w-full",
+    "max-w-sm",
+    "overflow-hidden",
+    "rounded-lg",
+    "shadow-md",
+    styles.bg,
+    className?.trim(),
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <div
-      className={`flex w-full max-w-sm overflow-hidden rounded-lg shadow-md ${styles.bg} ${className}`.trim()}
-    >
+    <div className={normalizedClassName}>
       <div className={`flex items-center justify-center w-12 ${styles.iconBg}`}>{displayIcon}</div>
 
       <div className="px-4 py-2 -mx-3">

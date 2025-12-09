@@ -1,58 +1,45 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { useDateLocale } from "../use-date-locale";
-import * as languageContext from "~/contexts/language-context";
+import { useLanguage } from "~/contexts/language-context";
 import { ptBR, enUS, es } from "date-fns/locale";
 
-vi.mock("~/contexts/language-context");
+vi.mock("~/contexts/language-context", () => ({
+  useLanguage: vi.fn(),
+}));
 
 describe("useDateLocale", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("should return ptBR locale for Portuguese", () => {
-    vi.mocked(languageContext.useLanguage).mockReturnValue({
+  it("should return ptBR locale for Portuguese language", () => {
+    vi.mocked(useLanguage).mockReturnValue({
       language: "pt",
       setLanguage: vi.fn(),
-      languageInfo: {
-        code: "pt",
-        name: "Português",
-        flag: "/flags/br.svg",
-      },
-    });
+    } as ReturnType<typeof useLanguage>);
 
     const { result } = renderHook(() => useDateLocale());
 
     expect(result.current).toBe(ptBR);
   });
 
-  it("should return enUS locale for English", () => {
-    vi.mocked(languageContext.useLanguage).mockReturnValue({
+  it("should return enUS locale for English language", () => {
+    vi.mocked(useLanguage).mockReturnValue({
       language: "en",
       setLanguage: vi.fn(),
-      languageInfo: {
-        code: "en",
-        name: "English",
-        flag: "/flags/us.svg",
-      },
-    });
+    } as ReturnType<typeof useLanguage>);
 
     const { result } = renderHook(() => useDateLocale());
 
     expect(result.current).toBe(enUS);
   });
 
-  it("should return es locale for Spanish", () => {
-    vi.mocked(languageContext.useLanguage).mockReturnValue({
+  it("should return es locale for Spanish language", () => {
+    vi.mocked(useLanguage).mockReturnValue({
       language: "es",
       setLanguage: vi.fn(),
-      languageInfo: {
-        code: "es",
-        name: "Español",
-        flag: "/flags/es.svg",
-      },
-    });
+    } as ReturnType<typeof useLanguage>);
 
     const { result } = renderHook(() => useDateLocale());
 
@@ -60,15 +47,10 @@ describe("useDateLocale", () => {
   });
 
   it("should default to ptBR for unknown language", () => {
-    vi.mocked(languageContext.useLanguage).mockReturnValue({
-      language: "fr" as never,
+    vi.mocked(useLanguage).mockReturnValue({
+      language: "fr" as unknown as "pt" | "en" | "es",
       setLanguage: vi.fn(),
-      languageInfo: {
-        code: "fr",
-        name: "Français",
-        flag: "/flags/fr.svg",
-      },
-    });
+    } as ReturnType<typeof useLanguage>);
 
     const { result } = renderHook(() => useDateLocale());
 
@@ -76,31 +58,19 @@ describe("useDateLocale", () => {
   });
 
   it("should update locale when language changes", () => {
-    const { result, rerender } = renderHook(() => useDateLocale());
-
-    vi.mocked(languageContext.useLanguage).mockReturnValue({
+    vi.mocked(useLanguage).mockReturnValue({
       language: "pt",
       setLanguage: vi.fn(),
-      languageInfo: {
-        code: "pt",
-        name: "Português",
-        flag: "/flags/br.svg",
-      },
-    });
+    } as ReturnType<typeof useLanguage>);
 
-    rerender();
+    const { result, rerender } = renderHook(() => useDateLocale());
 
     expect(result.current).toBe(ptBR);
 
-    vi.mocked(languageContext.useLanguage).mockReturnValue({
+    vi.mocked(useLanguage).mockReturnValue({
       language: "en",
       setLanguage: vi.fn(),
-      languageInfo: {
-        code: "en",
-        name: "English",
-        flag: "/flags/us.svg",
-      },
-    });
+    } as ReturnType<typeof useLanguage>);
 
     rerender();
 

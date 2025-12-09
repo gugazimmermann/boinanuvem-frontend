@@ -4,7 +4,7 @@ import { getSalesByCompanyId, getSalesByAnimalId } from "./sales.service";
 import type { Sale, AnimalMovement } from "~/types";
 import { getBirthByAnimalId } from "./births.service";
 import { getPropertyById } from "./properties.service";
-import { getLocationsByPropertyId } from "./locations.service";
+import { getLocations } from "./locations.service";
 import { getAnimalMovementsByAnimalId } from "./animal-movements.service";
 import { LocationType, AreaType, InventoryMovementType } from "~/types";
 import { getMovementsByPropertyId } from "./inventory-movements.service";
@@ -273,8 +273,9 @@ function filterMovementsByPeriod(
   return filterByPeriod(movements, period);
 }
 
-function getConfinementLocationIds(propertyId: string): Set<string> {
-  const locations = getLocationsByPropertyId(propertyId);
+async function getConfinementLocationIds(propertyId: string): Promise<Set<string>> {
+  const allLocations = await getLocations();
+  const locations = allLocations.filter((loc) => loc.propertyId === propertyId);
   const confinementTypes = new Set([
     LocationType.FEEDLOT,
     LocationType.SEMI_FEEDLOT,
@@ -359,10 +360,10 @@ function calculateDaysOnFeed(
   };
 }
 
-export function getDaysOnFeed(
+export async function getDaysOnFeed(
   propertyId: string,
   period?: { startDate?: string; endDate?: string }
-): DaysOnFeedResult[] {
+): Promise<DaysOnFeedResult[]> {
   const cacheKey = getCacheKey("getDaysOnFeed", propertyId, period);
   const cached = getCachedResult<DaysOnFeedResult[]>(cacheKey);
   if (cached !== null) {
@@ -370,7 +371,7 @@ export function getDaysOnFeed(
   }
 
   const animals = getAnimalsByPropertyId(propertyId);
-  const confinementLocationIds = getConfinementLocationIds(propertyId);
+  const confinementLocationIds = await getConfinementLocationIds(propertyId);
   const results: DaysOnFeedResult[] = [];
 
   for (const animal of animals) {
@@ -493,17 +494,17 @@ export function getSlaughterAge(
   return result;
 }
 
-export function getArrobaProductionPerHectare(
+export async function getArrobaProductionPerHectare(
   propertyId: string,
   period?: { startDate?: string; endDate?: string }
-): ArrobaProductionPerHectareResult {
+): Promise<ArrobaProductionPerHectareResult> {
   const cacheKey = getCacheKey("getArrobaProductionPerHectare", propertyId, period);
   const cached = getCachedResult<ArrobaProductionPerHectareResult>(cacheKey);
   if (cached !== null) {
     return cached;
   }
 
-  const property = getPropertyById(propertyId);
+  const property = await getPropertyById(propertyId);
   if (!property) {
     const result: ArrobaProductionPerHectareResult = {
       arrobasPerHectare: 0,
@@ -545,17 +546,17 @@ export function getArrobaProductionPerHectare(
   return result;
 }
 
-export function getKgNitrogenPerAU(
+export async function getKgNitrogenPerAU(
   propertyId: string,
   period?: { startDate?: string; endDate?: string }
-): KgNitrogenPerAUResult {
+): Promise<KgNitrogenPerAUResult> {
   const cacheKey = getCacheKey("getKgNitrogenPerAU", propertyId, period);
   const cached = getCachedResult<KgNitrogenPerAUResult>(cacheKey);
   if (cached !== null) {
     return cached;
   }
 
-  const property = getPropertyById(propertyId);
+  const property = await getPropertyById(propertyId);
   if (!property) {
     const result: KgNitrogenPerAUResult = {
       kgNitrogenPerAU: 0,
