@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   getFertilityRate,
   getBirthRate,
@@ -66,57 +66,104 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
     }
   }, [language]);
 
-  const fertilityRate = useMemo(
-    () => getFertilityRate(propertyId, selectedPeriod),
-    [propertyId, selectedPeriod]
+  const [fertilityRate, setFertilityRate] = useState<Awaited<
+    ReturnType<typeof getFertilityRate>
+  > | null>(null);
+  const [birthRate, setBirthRate] = useState<Awaited<ReturnType<typeof getBirthRate>> | null>(null);
+  const [calvingInterval, setCalvingInterval] = useState<Awaited<
+    ReturnType<typeof getCalvingInterval>
+  > | null>(null);
+  const [cullingRate, setCullingRate] = useState<Awaited<ReturnType<typeof getCullingRate>> | null>(
+    null
   );
-
-  const birthRate = useMemo(
-    () => getBirthRate(propertyId, selectedPeriod),
-    [propertyId, selectedPeriod]
+  const [intrauterineMortality, setIntrauterineMortality] = useState<Awaited<
+    ReturnType<typeof getIntrauterineMortalityIndex>
+  > | null>(null);
+  const [bullToCowRatio, setBullToCowRatio] = useState<Awaited<
+    ReturnType<typeof getBullToCowRatio>
+  > | null>(null);
+  const [weaningRate, setWeaningRate] = useState<Awaited<ReturnType<typeof getWeaningRate>> | null>(
+    null
   );
+  const [weaningRatio, setWeaningRatio] = useState<Awaited<
+    ReturnType<typeof getWeaningRatio>
+  > | null>(null);
+  const [kgWeanedCalfPerExposedCow, setKgWeanedCalfPerExposedCow] = useState<Awaited<
+    ReturnType<typeof getKgWeanedCalfPerExposedCow>
+  > | null>(null);
+  const [mortalityRate, setMortalityRate] = useState<Awaited<
+    ReturnType<typeof getMortalityRate>
+  > | null>(null);
+  const [calfMortalityRate, setCalfMortalityRate] = useState<Awaited<
+    ReturnType<typeof getCalfMortalityRate>
+  > | null>(null);
+  const [expectedBirthsForecast, setExpectedBirthsForecast] = useState<Awaited<
+    ReturnType<typeof getExpectedBirthsForecast>
+  > | null>(null);
 
-  const calvingInterval = useMemo(() => getCalvingInterval(propertyId), [propertyId]);
-
-  const cullingRate = useMemo(
-    () => getCullingRate(propertyId, selectedPeriod),
-    [propertyId, selectedPeriod]
-  );
-
-  const intrauterineMortality = useMemo(
-    () => getIntrauterineMortalityIndex(propertyId, selectedPeriod),
-    [propertyId, selectedPeriod]
-  );
-
-  const bullToCowRatio = useMemo(() => getBullToCowRatio(propertyId), [propertyId]);
-
-  const weaningRate = useMemo(
-    () => getWeaningRate(propertyId, selectedPeriod),
-    [propertyId, selectedPeriod]
-  );
-
-  const weaningRatio = useMemo(
-    () => getWeaningRatio(propertyId, selectedPeriod),
-    [propertyId, selectedPeriod]
-  );
-
-  const kgWeanedCalfPerExposedCow = useMemo(
-    () => getKgWeanedCalfPerExposedCow(propertyId, selectedPeriod),
-    [propertyId, selectedPeriod]
-  );
-
-  const mortalityRate = useMemo(
-    () => getMortalityRate(propertyId, selectedPeriod),
-    [propertyId, selectedPeriod]
-  );
-
-  const calfMortalityRate = useMemo(
-    () => getCalfMortalityRate(propertyId, selectedPeriod),
-    [propertyId, selectedPeriod]
-  );
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [
+          fertilityRateData,
+          birthRateData,
+          calvingIntervalData,
+          cullingRateData,
+          intrauterineMortalityData,
+          bullToCowRatioData,
+          weaningRateData,
+          weaningRatioData,
+          kgWeanedCalfPerExposedCowData,
+          mortalityRateData,
+          calfMortalityRateData,
+          expectedBirthsForecastData,
+        ] = await Promise.all([
+          getFertilityRate(propertyId, selectedPeriod),
+          getBirthRate(propertyId, selectedPeriod),
+          getCalvingInterval(propertyId),
+          getCullingRate(propertyId, selectedPeriod),
+          getIntrauterineMortalityIndex(propertyId, selectedPeriod),
+          getBullToCowRatio(propertyId),
+          getWeaningRate(propertyId, selectedPeriod),
+          getWeaningRatio(propertyId, selectedPeriod),
+          getKgWeanedCalfPerExposedCow(propertyId, selectedPeriod),
+          getMortalityRate(propertyId, selectedPeriod),
+          getCalfMortalityRate(propertyId, selectedPeriod),
+          getExpectedBirthsForecast(propertyId, { isPropertyId: true, monthsAhead: 9 }),
+        ]);
+        setFertilityRate(fertilityRateData);
+        setBirthRate(birthRateData);
+        setCalvingInterval(calvingIntervalData);
+        setCullingRate(cullingRateData);
+        setIntrauterineMortality(intrauterineMortalityData);
+        setBullToCowRatio(bullToCowRatioData);
+        setWeaningRate(weaningRateData);
+        setWeaningRatio(weaningRatioData);
+        setKgWeanedCalfPerExposedCow(kgWeanedCalfPerExposedCowData);
+        setMortalityRate(mortalityRateData);
+        setCalfMortalityRate(calfMortalityRateData);
+        setExpectedBirthsForecast(expectedBirthsForecastData);
+      } catch (error) {
+        console.error("Failed to load reproductive indexes:", error);
+        setFertilityRate(null);
+        setBirthRate(null);
+        setCalvingInterval(null);
+        setCullingRate(null);
+        setIntrauterineMortality(null);
+        setBullToCowRatio(null);
+        setWeaningRate(null);
+        setWeaningRatio(null);
+        setKgWeanedCalfPerExposedCow(null);
+        setMortalityRate(null);
+        setCalfMortalityRate(null);
+        setExpectedBirthsForecast(null);
+      }
+    };
+    loadData();
+  }, [propertyId, selectedPeriod]);
 
   const monthlyBirthRateData = useMemo(() => {
-    if (!birthRate.monthly) return [];
+    if (!birthRate?.monthly) return [];
     return birthRate.monthly.map((item) => {
       const [year, month] = item.month.split("-");
       const monthDate = new Date(Number.parseInt(year), Number.parseInt(month) - 1, 1);
@@ -127,24 +174,19 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
         calves: item.calvesBorn,
       };
     });
-  }, [birthRate.monthly, dateLocale]);
+  }, [birthRate, dateLocale]);
 
   const annualCullingRateData = useMemo(() => {
-    if (!cullingRate.annual) return [];
+    if (!cullingRate?.annual) return [];
     return cullingRate.annual.map((item) => ({
       year: item.year,
       rate: Math.round(item.rate * 100) / 100,
       replaced: item.replacedFemales,
     }));
-  }, [cullingRate.annual]);
-
-  const expectedBirthsForecast = useMemo(
-    () => getExpectedBirthsForecast(propertyId, { isPropertyId: true, monthsAhead: 9 }),
-    [propertyId]
-  );
+  }, [cullingRate]);
 
   const expectedBirthsData = useMemo(() => {
-    if (!expectedBirthsForecast.monthly || expectedBirthsForecast.monthly.length === 0) return [];
+    if (!expectedBirthsForecast?.monthly || expectedBirthsForecast.monthly.length === 0) return [];
     return expectedBirthsForecast.monthly.map((item) => {
       const [year, month] = item.month.split("-");
       const monthDate = new Date(Number.parseInt(year), Number.parseInt(month) - 1, 1);
@@ -154,10 +196,10 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
         expectedBirths: item.expectedBirths,
       };
     });
-  }, [expectedBirthsForecast.monthly, dateLocale]);
+  }, [expectedBirthsForecast, dateLocale]);
 
   const monthlyCalfMortalityData = useMemo(() => {
-    if (!calfMortalityRate.monthly) return [];
+    if (!calfMortalityRate?.monthly) return [];
     return calfMortalityRate.monthly.map((item) => {
       const [year, month] = item.month.split("-");
       const monthDate = new Date(Number.parseInt(year), Number.parseInt(month) - 1, 1);
@@ -169,7 +211,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
         total: item.totalCalves,
       };
     });
-  }, [calfMortalityRate.monthly, dateLocale]);
+  }, [calfMortalityRate, dateLocale]);
 
   return (
     <div className="space-y-6">
@@ -197,7 +239,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
                 {t.reproductiveIndexes.fertilityRate.pregnantCows}:
               </span>
               <span className="font-medium text-gray-900 dark:text-gray-100">
-                {fertilityRate.pregnantCows}
+                {fertilityRate?.pregnantCows ?? 0}
               </span>
             </div>
             <div className="flex justify-between">
@@ -205,7 +247,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
                 {t.reproductiveIndexes.fertilityRate.exposedCows}:
               </span>
               <span className="font-medium text-gray-900 dark:text-gray-100">
-                {fertilityRate.exposedCows}
+                {fertilityRate?.exposedCows ?? 0}
               </span>
             </div>
           </div>
@@ -222,7 +264,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
           </div>
           <div className="mb-4">
             <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-              {birthRate.rate.toFixed(2)}%
+              {birthRate?.rate.toFixed(2) ?? "0.00"}%
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {t.reproductiveIndexes.birthRate.description}
@@ -234,7 +276,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
                 {t.reproductiveIndexes.birthRate.calvesBorn}:
               </span>
               <span className="font-medium text-gray-900 dark:text-gray-100">
-                {birthRate.calvesBorn}
+                {birthRate?.calvesBorn ?? 0}
               </span>
             </div>
             <div className="flex justify-between">
@@ -242,7 +284,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
                 {t.reproductiveIndexes.birthRate.pregnantFemales}:
               </span>
               <span className="font-medium text-gray-900 dark:text-gray-100">
-                {birthRate.pregnantFemales}
+                {birthRate?.pregnantFemales ?? 0}
               </span>
             </div>
           </div>
@@ -259,7 +301,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
           </div>
           <div className="mb-4">
             <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-              {calvingInterval.average > 0
+              {calvingInterval && calvingInterval.average > 0
                 ? `${Math.round(calvingInterval.average / 30)} ${t.reproductiveIndexes.calvingInterval.months}`
                 : "-"}
             </p>
@@ -267,7 +309,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
               {t.reproductiveIndexes.calvingInterval.description}
             </p>
           </div>
-          {calvingInterval.average > 0 && (
+          {calvingInterval && calvingInterval.average > 0 && (
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-600 dark:text-gray-400">
@@ -310,7 +352,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
           </div>
           <div className="mb-4">
             <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-              {cullingRate.rate.toFixed(2)}%
+              {cullingRate?.rate.toFixed(2) ?? "0.00"}%
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {t.reproductiveIndexes.cullingRate.description}
@@ -322,7 +364,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
                 {t.reproductiveIndexes.cullingRate.replacedFemales}:
               </span>
               <span className="font-medium text-gray-900 dark:text-gray-100">
-                {cullingRate.replacedFemales}
+                {cullingRate?.replacedFemales ?? 0}
               </span>
             </div>
             <div className="flex justify-between">
@@ -330,7 +372,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
                 {t.reproductiveIndexes.cullingRate.totalFemales}:
               </span>
               <span className="font-medium text-gray-900 dark:text-gray-100">
-                {cullingRate.totalFemales}
+                {cullingRate?.totalFemales ?? 0}
               </span>
             </div>
           </div>
@@ -347,7 +389,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
           </div>
           <div className="mb-4">
             <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-              {intrauterineMortality.rate.toFixed(2)}%
+              {intrauterineMortality?.rate.toFixed(2) ?? "0.00"}%
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {t.reproductiveIndexes.intrauterineMortality.description}
@@ -359,7 +401,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
                 {t.reproductiveIndexes.intrauterineMortality.pregnantCows}:
               </span>
               <span className="font-medium text-gray-900 dark:text-gray-100">
-                {intrauterineMortality.pregnantCows}
+                {intrauterineMortality?.pregnantCows ?? 0}
               </span>
             </div>
             <div className="flex justify-between">
@@ -367,7 +409,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
                 {t.reproductiveIndexes.intrauterineMortality.cowsThatCalved}:
               </span>
               <span className="font-medium text-gray-900 dark:text-gray-100">
-                {intrauterineMortality.cowsThatCalved}
+                {intrauterineMortality?.cowsThatCalved ?? 0}
               </span>
             </div>
             <div className="flex justify-between">
@@ -375,7 +417,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
                 {t.reproductiveIndexes.intrauterineMortality.losses}:
               </span>
               <span className="font-medium text-red-600 dark:text-red-400">
-                {intrauterineMortality.losses}
+                {intrauterineMortality?.losses ?? 0}
               </span>
             </div>
           </div>
@@ -392,7 +434,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
           </div>
           <div className="mb-4">
             <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-              {bullToCowRatio.ratio}
+              {bullToCowRatio?.ratio ?? "0:0"}
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {t.reproductiveIndexes.bullToCowRatio.description}
@@ -404,7 +446,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
                 {t.reproductiveIndexes.bullToCowRatio.bullsUsed}:
               </span>
               <span className="font-medium text-gray-900 dark:text-gray-100">
-                {bullToCowRatio.bullsUsed}
+                {bullToCowRatio?.bullsUsed ?? 0}
               </span>
             </div>
             <div className="flex justify-between">
@@ -412,7 +454,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
                 {t.reproductiveIndexes.bullToCowRatio.exposedCows}:
               </span>
               <span className="font-medium text-gray-900 dark:text-gray-100">
-                {bullToCowRatio.exposedCows}
+                {bullToCowRatio?.exposedCows ?? 0}
               </span>
             </div>
           </div>
@@ -429,7 +471,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
           </div>
           <div className="mb-4">
             <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-              {weaningRate.rate.toFixed(2)}%
+              {weaningRate?.rate.toFixed(2) ?? "0.00"}%
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {t.reproductiveIndexes.weaningRate.description}
@@ -441,7 +483,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
                 {t.reproductiveIndexes.weaningRate.weanedCalves}:
               </span>
               <span className="font-medium text-gray-900 dark:text-gray-100">
-                {weaningRate.weanedCalves}
+                {weaningRate?.weanedCalves ?? 0}
               </span>
             </div>
             <div className="flex justify-between">
@@ -449,7 +491,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
                 {t.reproductiveIndexes.weaningRate.exposedFemales}:
               </span>
               <span className="font-medium text-gray-900 dark:text-gray-100">
-                {weaningRate.exposedFemales}
+                {weaningRate?.exposedFemales ?? 0}
               </span>
             </div>
           </div>
@@ -466,7 +508,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
           </div>
           <div className="mb-4">
             <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-              {weaningRatio.ratio.toFixed(2)}%
+              {weaningRatio?.ratio.toFixed(2) ?? "0.00"}%
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {t.reproductiveIndexes.weaningRatio.description}
@@ -478,7 +520,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
                 {t.reproductiveIndexes.weaningRatio.weanedCalfWeight}:
               </span>
               <span className="font-medium text-gray-900 dark:text-gray-100">
-                {weaningRatio.weanedCalfWeight.toFixed(2)} kg
+                {weaningRatio?.weanedCalfWeight.toFixed(2) ?? "0.00"} kg
               </span>
             </div>
             <div className="flex justify-between">
@@ -486,7 +528,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
                 {t.reproductiveIndexes.weaningRatio.motherWeight}:
               </span>
               <span className="font-medium text-gray-900 dark:text-gray-100">
-                {weaningRatio.motherWeight.toFixed(2)} kg
+                {weaningRatio?.motherWeight.toFixed(2) ?? "0.00"} kg
               </span>
             </div>
             <div className="flex justify-between">
@@ -494,7 +536,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
                 {t.reproductiveIndexes.weaningRatio.pairs}:
               </span>
               <span className="font-medium text-gray-900 dark:text-gray-100">
-                {weaningRatio.pairs}
+                {weaningRatio?.pairs ?? 0}
               </span>
             </div>
           </div>
@@ -511,7 +553,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
           </div>
           <div className="mb-4">
             <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-              {kgWeanedCalfPerExposedCow.kgPerExposedCow.toFixed(2)} kg
+              {kgWeanedCalfPerExposedCow?.kgPerExposedCow.toFixed(2) ?? "0.00"} kg
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {t.reproductiveIndexes.kgWeanedCalfPerExposedCow.description}
@@ -523,7 +565,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
                 {t.reproductiveIndexes.kgWeanedCalfPerExposedCow.totalWeanedWeight}:
               </span>
               <span className="font-medium text-gray-900 dark:text-gray-100">
-                {kgWeanedCalfPerExposedCow.totalWeanedWeight.toFixed(2)} kg
+                {kgWeanedCalfPerExposedCow?.totalWeanedWeight.toFixed(2) ?? "0.00"} kg
               </span>
             </div>
             <div className="flex justify-between">
@@ -531,7 +573,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
                 {t.reproductiveIndexes.kgWeanedCalfPerExposedCow.weanedCalves}:
               </span>
               <span className="font-medium text-gray-900 dark:text-gray-100">
-                {kgWeanedCalfPerExposedCow.weanedCalves}
+                {kgWeanedCalfPerExposedCow?.weanedCalves ?? 0}
               </span>
             </div>
             <div className="flex justify-between">
@@ -539,7 +581,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
                 {t.reproductiveIndexes.kgWeanedCalfPerExposedCow.exposedFemales}:
               </span>
               <span className="font-medium text-gray-900 dark:text-gray-100">
-                {kgWeanedCalfPerExposedCow.exposedFemales}
+                {kgWeanedCalfPerExposedCow?.exposedFemales ?? 0}
               </span>
             </div>
           </div>
@@ -556,7 +598,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
           </div>
           <div className="mb-4">
             <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-              {mortalityRate.rate.toFixed(2)}%
+              {mortalityRate?.rate.toFixed(2) ?? "0.00"}%
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {t.reproductiveIndexes.mortalityRate.description}
@@ -568,7 +610,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
                 {t.reproductiveIndexes.mortalityRate.deadAnimals}:
               </span>
               <span className="font-medium text-gray-900 dark:text-gray-100">
-                {mortalityRate.deadAnimals}
+                {mortalityRate?.deadAnimals ?? 0}
               </span>
             </div>
             <div className="flex justify-between">
@@ -576,7 +618,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
                 {t.reproductiveIndexes.mortalityRate.totalAnimals}:
               </span>
               <span className="font-medium text-gray-900 dark:text-gray-100">
-                {mortalityRate.totalAnimals}
+                {mortalityRate?.totalAnimals ?? 0}
               </span>
             </div>
           </div>
@@ -593,7 +635,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
           </div>
           <div className="mb-4">
             <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-              {calfMortalityRate.rate.toFixed(2)}%
+              {calfMortalityRate?.rate.toFixed(2) ?? "0.00"}%
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {t.reproductiveIndexes.calfMortalityRate.description}
@@ -605,7 +647,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
                 {t.reproductiveIndexes.calfMortalityRate.deadCalves}:
               </span>
               <span className="font-medium text-gray-900 dark:text-gray-100">
-                {calfMortalityRate.deadCalves}
+                {calfMortalityRate?.deadCalves ?? 0}
               </span>
             </div>
             <div className="flex justify-between">
@@ -613,7 +655,7 @@ export function ReproductiveIndexes({ propertyId, period }: ReproductiveIndexesP
                 {t.reproductiveIndexes.calfMortalityRate.totalCalves}:
               </span>
               <span className="font-medium text-gray-900 dark:text-gray-100">
-                {calfMortalityRate.totalCalves}
+                {calfMortalityRate?.totalCalves ?? 0}
               </span>
             </div>
           </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router";
 import {
   differenceInMonths,
@@ -31,11 +31,10 @@ import {
   getLocationViewRoute,
 } from "~/routes.config";
 import { createViewMeta } from "~/utils/route-helpers";
-import { getAnimalById } from "~/services/animals.service";
+import { getAnimalById, getAnimalsByCompanyId } from "~/services/animals.service";
 import { getPropertyById, getProperties } from "~/services/properties.service";
 import {
   getBirthByAnimalId,
-  getBirthsByFatherId,
   getCalvingIntervalsByAnimalId,
   getBirthsByCompanyId,
 } from "~/services/births.service";
@@ -89,7 +88,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useTheme } from "~/contexts/theme-context";
-import { mockCompanies } from "~/mocks/companies";
+import { useAuth } from "~/contexts/auth-context";
 
 type GenealogyNodeType = {
   animal: { id: string; code: string; registrationNumber: string };
@@ -208,15 +207,17 @@ export async function loader({ request }: { request: Request }) {
 
 function buildGenealogyTree(
   animalId: string,
+  animalsMap: Map<string, { id: string; code: string; registrationNumber: string }>,
+  birthsMap: Map<string, Birth>,
   level: number = 0,
   maxLevel: number = 4
 ): GenealogyNodeType | null {
   if (level > maxLevel) return null;
 
-  const currentAnimal = getAnimalById(animalId);
+  const currentAnimal = animalsMap.get(animalId);
   if (!currentAnimal) return null;
 
-  const currentBirth = getBirthByAnimalId(animalId);
+  const currentBirth = birthsMap.get(animalId);
   const node: GenealogyNodeType = {
     animal: {
       id: currentAnimal.id,
@@ -235,11 +236,23 @@ function buildGenealogyTree(
   };
 
   if (currentBirth?.motherId) {
-    node.mother = buildGenealogyTree(currentBirth.motherId, level + 1, maxLevel);
+    node.mother = buildGenealogyTree(
+      currentBirth.motherId,
+      animalsMap,
+      birthsMap,
+      level + 1,
+      maxLevel
+    );
   }
 
   if (currentBirth?.fatherId) {
-    node.father = buildGenealogyTree(currentBirth.fatherId, level + 1, maxLevel);
+    node.father = buildGenealogyTree(
+      currentBirth.fatherId,
+      animalsMap,
+      birthsMap,
+      level + 1,
+      maxLevel
+    );
   }
 
   return node;
@@ -249,7 +262,7 @@ type WeighingWithCalculations = ReturnType<typeof calculateWeighingsWithCalculat
 
 type SonWithAnimal = {
   birth: Birth;
-  animal: NonNullable<ReturnType<typeof getAnimalById>>;
+  animal: { id: string; code: string; registrationNumber: string };
 };
 
 function sortSonsWithAnimals(
@@ -361,6 +374,8 @@ function renderTabButton(
 
 function renderParentGenealogy(
   parentId: string | undefined,
+  animalsMap: Map<string, { id: string; code: string; registrationNumber: string }>,
+  birthsMap: Map<string, Birth>,
   t: ReturnType<typeof useTranslation>,
   navigate: (path: string) => void,
   getAnimalViewRoute: (id: string) => string,
@@ -368,8 +383,8 @@ function renderParentGenealogy(
 ): React.JSX.Element | null {
   if (!parentId) return null;
 
-  const parent = getAnimalById(parentId);
-  const parentBirth = getBirthByAnimalId(parentId);
+  const parent = animalsMap.get(parentId);
+  const parentBirth = birthsMap.get(parentId);
 
   if (!parent) {
     return <span className="text-sm text-gray-500 dark:text-gray-400">-</span>;
@@ -402,14 +417,14 @@ function renderParentGenealogy(
 }
 
 function renderAcquisitionItemDetails(
-  acquisition: ReturnType<typeof getAcquisitionByAnimalId> | null,
+  acquisition: Awaited<ReturnType<typeof getAcquisitionByAnimalId>> | null,
   animalId: string,
   localeForNumber: string,
   t: ReturnType<typeof useTranslation>
 ): React.JSX.Element | null {
   if (!acquisition) return null;
 
-  const acquisitionItem = acquisition.acquisitionItems.find((item) => item.animalId === animalId);
+  const acquisitionItem = acquisition.acquisitionItems?.find((item) => item.animalId === animalId);
 
   if (!acquisitionItem) return null;
 
@@ -595,7 +610,7 @@ function renderReproductiveStats(
 }
 
 type AnimalDashboardTabProps = Readonly<{
-  animal: NonNullable<ReturnType<typeof getAnimalById>>;
+  animal: NonNullable<Awaited<ReturnType<typeof getAnimalById>>>;
   currentWeight: number;
   weightInArrobas: string;
   gmd: number | null;
@@ -634,9 +649,8 @@ type AnimalDashboardTabProps = Readonly<{
   t: ReturnType<typeof useTranslation>;
 }>;
 
-function AnimalDashboardTab(props: AnimalDashboardTabProps) {
+function AnimalDashboardTab({ animal, ...props }: AnimalDashboardTabProps) {
   const {
-    animal,
     currentWeight,
     weightInArrobas,
     gmd,
@@ -1263,20 +1277,122 @@ export default function AnimalDetails() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const { canEdit, isMainUser } = usePermissions();
-  const animal = getAnimalById(animalId);
+  const { currentUser } = useAuth();
+  const [animal, setAnimal] = useState<Awaited<ReturnType<typeof getAnimalById>> | undefined>(
+    undefined
+  );
+  const [birth, setBirth] = useState<Birth | undefined>(undefined);
+  const [allAnimals, setAllAnimals] = useState<
+    Array<{ id: string; code: string; registrationNumber: string }>
+  >([]);
+  const [allBirths, setAllBirths] = useState<Birth[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      if (!animalId || !currentUser?.companyId) return;
+      setIsLoading(true);
+      try {
+        const [animalData, birthData, animalsData, birthsData] = await Promise.all([
+          getAnimalById(animalId),
+          getBirthByAnimalId(animalId),
+          getAnimalsByCompanyId(currentUser.companyId),
+          getBirthsByCompanyId(currentUser.companyId),
+        ]);
+        setAnimal(animalData);
+        setBirth(birthData);
+        setAllAnimals(animalsData || []);
+        setAllBirths(birthsData || []);
+      } catch (error) {
+        console.error("Failed to load animal data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadData();
+  }, [animalId, currentUser?.companyId]);
+
+  const animalsMap = useMemo(() => {
+    const map = new Map<string, { id: string; code: string; registrationNumber: string }>();
+    for (const a of allAnimals) {
+      map.set(a.id, { id: a.id, code: a.code, registrationNumber: a.registrationNumber });
+    }
+    if (animal) {
+      map.set(animal.id, {
+        id: animal.id,
+        code: animal.code,
+        registrationNumber: animal.registrationNumber,
+      });
+    }
+    return map;
+  }, [allAnimals, animal]);
+
+  const birthsMap = useMemo(() => {
+    const map = new Map<string, Birth>();
+    for (const b of allBirths) {
+      map.set(b.animalId, b);
+    }
+    if (birth) {
+      map.set(birth.animalId, birth);
+    }
+    return map;
+  }, [allBirths, birth]);
+
+  const getAnimalByIdLocal = useCallback(
+    (id: string | undefined) => {
+      if (!id) return undefined;
+      return animalsMap.get(id) || animal;
+    },
+    [animalsMap, animal]
+  );
+
+  const _getBirthByAnimalIdLocal = (id: string | undefined) => {
+    if (!id) return undefined;
+    return birthsMap.get(id) || (id === animalId ? birth : undefined);
+  };
+
+  const getBirthsByFatherIdLocal = useCallback(
+    (fatherId: string | undefined) => {
+      if (!fatherId) return [];
+      return allBirths.filter((b) => b.fatherId === fatherId);
+    },
+    [allBirths]
+  );
 
   const dateLocale = useDateLocale();
   const localeForDateTime = useMemo(() => getLocaleForDateTime(language), [language]);
   const localeForNumber = localeForDateTime;
   const formatCurrency = useMemo(() => createCurrencyFormatter(localeForNumber), [localeForNumber]);
 
-  const animalBasicData = useMemo(() => computeAnimalBasicData(animal ?? null), [animal]);
-  const { birth, acquisition, acquisitionItem, isMale } = animalBasicData || {
+  const [animalBasicData, setAnimalBasicData] = useState<Awaited<
+    ReturnType<typeof computeAnimalBasicData>
+  > | null>(null);
+
+  useEffect(() => {
+    const loadAnimalBasicData = async () => {
+      if (animal || birth) {
+        const data = await computeAnimalBasicData(animal ?? null, birth);
+        setAnimalBasicData(data);
+      } else {
+        setAnimalBasicData(null);
+      }
+    };
+    loadAnimalBasicData();
+  }, [animal, birth]);
+
+  const {
+    birth: computedBirth,
+    acquisition,
+    acquisitionItem,
+    isMale,
+  } = animalBasicData || {
     birth: null,
     acquisition: null,
     acquisitionItem: null,
     isMale: false,
   };
+  // Use loaded birth if available, otherwise use computed birth
+  const birthData = birth || computedBirth;
   const canAccessActivities = isMainUser();
   const [activeTab, setActiveTab] = useState<AnimalTab>(() => {
     // Initialize tab - avoid activities if user doesn't have permission
@@ -1447,27 +1563,33 @@ export default function AnimalDetails() {
 
   const sonsBirths = useMemo(() => {
     if (!animal) return [];
-    return getBirthsByFatherId(animal.id);
-  }, [animal]);
+    return getBirthsByFatherIdLocal(animal.id);
+  }, [animal, getBirthsByFatherIdLocal]);
 
   const sonsWithAnimals: SonWithAnimal[] = useMemo(() => {
+    if (!sonsBirths || sonsBirths.length === 0) return [];
     const mapped = sonsBirths
-      .map((birth) => {
-        const sonAnimal = getAnimalById(birth.animalId);
+      .map((birth): SonWithAnimal | null => {
+        const sonAnimal = getAnimalByIdLocal(birth.animalId);
         if (!sonAnimal) return null;
-        return { birth, animal: sonAnimal };
+        // Normalize to simplified type - both types have these properties
+        const animalData: { id: string; code: string; registrationNumber: string } = {
+          id: sonAnimal.id,
+          code: sonAnimal.code,
+          registrationNumber: sonAnimal.registrationNumber,
+        };
+        return { birth, animal: animalData };
       })
       .filter((item): item is SonWithAnimal => item !== null);
 
     return sortSonsWithAnimals(mapped, sonsSortState, localeForDateTime);
-  }, [sonsBirths, sonsSortState, localeForDateTime]);
+  }, [sonsBirths, sonsSortState, localeForDateTime, getAnimalByIdLocal]);
 
-  const company = mockCompanies[0];
-  const companyId = company?.id || "";
-  const allCompanyBirths = useMemo(() => getBirthsByCompanyId(companyId), [companyId]);
+  const _companyId = currentUser?.companyId || "";
+  const _allCompanyBirths = allBirths;
   const birthsAsMother = useMemo(
-    () => (animal ? allCompanyBirths.filter((b) => b.motherId === animal.id) : []),
-    [animal, allCompanyBirths]
+    () => (animal ? allBirths.filter((b) => b.motherId === animal.id) : []),
+    [animal, allBirths]
   );
   const confirmedBreedings = useMemo(
     () => breedings.filter((b) => b.confirmed === true),
@@ -1477,10 +1599,25 @@ export default function AnimalDetails() {
     () => breedings.filter((b) => b.confirmed === false),
     [breedings]
   );
-  const calvingIntervals = useMemo(
-    () => (animal ? getCalvingIntervalsByAnimalId(animal.id) : []),
-    [animal]
-  );
+  const [calvingIntervals, setCalvingIntervals] = useState<number[]>([]);
+
+  useEffect(() => {
+    const loadCalvingIntervals = async () => {
+      if (!animal) {
+        setCalvingIntervals([]);
+        return;
+      }
+      try {
+        const intervals = await getCalvingIntervalsByAnimalId(animal.id);
+        setCalvingIntervals(intervals || []);
+      } catch (error) {
+        console.error("Failed to load calving intervals:", error);
+        setCalvingIntervals([]);
+      }
+    };
+    loadCalvingIntervals();
+  }, [animal]);
+
   const averageCalvingInterval =
     calvingIntervals.length > 0
       ? Math.round(calvingIntervals.reduce((a, b) => a + b, 0) / calvingIntervals.length)
@@ -1597,8 +1734,8 @@ export default function AnimalDetails() {
 
   const genealogyTree = useMemo(() => {
     if (!animal) return null;
-    return buildGenealogyTree(animal.id);
-  }, [animal]);
+    return buildGenealogyTree(animal.id, animalsMap, birthsMap);
+  }, [animal, animalsMap, birthsMap]);
 
   const formatRelativeTime = useMemo(() => {
     return (dateString: string) => {
@@ -1629,6 +1766,17 @@ export default function AnimalDetails() {
       return format(date, "dd/MM/yyyy", { locale: dateLocale });
     };
   }, [t, dateLocale]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">{t.common.loading || "Carregando..."}</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!animal) {
     return (
@@ -1921,7 +2069,9 @@ export default function AnimalDetails() {
                     </p>
                     <div className="mt-1 space-y-1">
                       {renderParentGenealogy(
-                        getParentId(birth ?? null, acquisitionItem, "mother"),
+                        getParentId(birthData ?? null, acquisitionItem, "mother"),
+                        animalsMap,
+                        birthsMap,
                         t,
                         navigate,
                         getAnimalViewRoute,
@@ -1930,14 +2080,16 @@ export default function AnimalDetails() {
                     </div>
                   </div>
                 )}
-                {getParentId(birth ?? null, acquisitionItem, "father") && (
+                {getParentId(birthData ?? null, acquisitionItem, "father") && (
                   <div>
                     <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                       {t.animals.details.father}
                     </p>
                     <div className="mt-1 space-y-1">
                       {renderParentGenealogy(
-                        getParentId(birth ?? null, acquisitionItem, "father"),
+                        getParentId(birthData ?? null, acquisitionItem, "father"),
+                        animalsMap,
+                        birthsMap,
                         t,
                         navigate,
                         getAnimalViewRoute,
@@ -1946,18 +2098,18 @@ export default function AnimalDetails() {
                     </div>
                   </div>
                 )}
-                {hasNoGenealogyData(birth ?? null, acquisitionItem) && (
+                {hasNoGenealogyData(birthData ?? null, acquisitionItem) && (
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     {t.animals.details.noGenealogy}
                   </p>
                 )}
-                {birth?.observation && (
+                {birthData?.observation && (
                   <div>
                     <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
                       {t.animals.details.observation}
                     </p>
                     <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
-                      {birth.observation}
+                      {birthData.observation}
                     </p>
                   </div>
                 )}

@@ -1,6 +1,4 @@
 import type { Breeding, BreedingFormData } from "~/types";
-import { mockAnimals } from "./animals";
-import { mockBirths } from "./births";
 
 export type { Breeding, BreedingFormData };
 
@@ -26,26 +24,28 @@ const FAZENDA_DO_JUCA_ID = "550e8400-e29b-41d4-a716-446655440010";
 const SITIO_LIMOEIRO_ID = "550e8400-e29b-41d4-a716-446655440011";
 const CHACARA_DO_JUCA_ID = "550e8400-e29b-41d4-a716-446655440012";
 
-const allAnimals = mockAnimals;
-
 const allBreedings: Breeding[] = [];
 
 const TODAY = new Date("2025-11-21");
 
 function generateBreedingsForProperty(propertyId: string, startBreedingIndex: number): number {
-  if (!mockBirths || !Array.isArray(mockBirths)) {
-    return startBreedingIndex;
+  // Simplified mock breedings generation without dependencies on removed mocks
+  // Generate minimal mock data for testing
+  const mockFemaleAnimalIds: string[] = [];
+  const mockMaleAnimalIds: string[] = [];
+
+  // Generate some mock animal IDs
+  for (let i = 0; i < 10; i++) {
+    mockFemaleAnimalIds.push(
+      `bb0e8400-e29b-41d4-a716-${(446655440100 + i).toString().padStart(12, "0")}`
+    );
+    mockMaleAnimalIds.push(
+      `bb0e8400-e29b-41d4-a716-${(446655440200 + i).toString().padStart(12, "0")}`
+    );
   }
 
-  const propertyAnimals = allAnimals.filter((animal) => animal.propertyId === propertyId);
-  const femaleAnimals = propertyAnimals.filter((animal) => {
-    const birth = mockBirths.find((b) => b.animalId === animal.id);
-    return birth?.gender === "female";
-  });
-  const maleAnimals = propertyAnimals.filter((animal) => {
-    const birth = mockBirths.find((b) => b.animalId === animal.id);
-    return birth?.gender === "male";
-  });
+  const femaleAnimals = mockFemaleAnimalIds.map((id) => ({ id, propertyId, status: "active" }));
+  const maleAnimals = mockMaleAnimalIds.map((id) => ({ id, propertyId, status: "active" }));
   let breedingIndex = startBreedingIndex;
   const actualToday = new Date();
   const actualTwoYearsAgo = new Date(actualToday);
@@ -55,10 +55,6 @@ function generateBreedingsForProperty(propertyId: string, startBreedingIndex: nu
 
   femaleAnimals.forEach((animal, cowIndex) => {
     if (animal.status !== "active") return;
-
-    const animalBirth = mockBirths.find((b) => b.animalId === animal.id);
-    const isFemale = animalBirth?.gender === "female";
-    if (!isFemale) return;
 
     let numBreedings = 1;
     const rand = cowIndex % 10;
@@ -298,10 +294,6 @@ let breedingsInitialized = false;
 function initializeBreedings() {
   if (breedingsInitialized) return;
 
-  if (!mockBirths || !Array.isArray(mockBirths) || mockBirths.length === 0) {
-    return;
-  }
-
   breedingsInitialized = true;
 
   let breedingIndex = 0;
@@ -332,45 +324,4 @@ const _breedingsProxy = new Proxy(allBreedings, {
   },
 });
 
-let birthsInitialized = false;
-function initializeBirthsFromBreedings() {
-  if (birthsInitialized) return;
-  birthsInitialized = true;
-
-  void (async () => {
-    try {
-      void allBreedings.length;
-
-      const { addBirthsFromBreedings } = await import("./births");
-      if (typeof addBirthsFromBreedings === "function") {
-        await addBirthsFromBreedings();
-      }
-    } catch {
-      birthsInitialized = false;
-    }
-  })();
-}
-
-const enhancedProxy = new Proxy(allBreedings, {
-  get(target, prop) {
-    initializeBreedings();
-    if (prop === "length" || typeof prop === "number") {
-      initializeBirthsFromBreedings();
-    }
-    return Reflect.get(target, prop);
-  },
-  has(target, prop) {
-    initializeBreedings();
-    return Reflect.has(target, prop);
-  },
-  ownKeys(target) {
-    initializeBreedings();
-    return Reflect.ownKeys(target);
-  },
-  getOwnPropertyDescriptor(target, prop) {
-    initializeBreedings();
-    return Reflect.getOwnPropertyDescriptor(target, prop);
-  },
-});
-
-export const mockBreedings: Breeding[] = enhancedProxy as Breeding[];
+export const mockBreedings: Breeding[] = _breedingsProxy as Breeding[];

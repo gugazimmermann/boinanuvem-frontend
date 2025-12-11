@@ -73,15 +73,25 @@ export default function UnconfirmedBreedings() {
 
   const unconfirmedBreedings = getUnconfirmedBreedings(companyId);
   const propertiesMap = useMemo(() => new Map(properties.map((p) => [p.id, p])), [properties]);
-  const enrichedBreedings = useMemo(() => {
-    return unconfirmedBreedings.map((breeding) => {
-      const enriched = enrichBreedingWithAnimalData(breeding);
-      // Add property from map if available
-      if (enriched.animal?.propertyId) {
-        enriched.property = propertiesMap.get(enriched.animal.propertyId);
-      }
-      return enriched;
-    });
+  const [enrichedBreedings, setEnrichedBreedings] = useState<
+    Awaited<ReturnType<typeof enrichBreedingWithAnimalData>>[]
+  >([]);
+
+  useEffect(() => {
+    const loadEnrichedBreedings = async () => {
+      const enriched = await Promise.all(
+        unconfirmedBreedings.map(async (breeding) => {
+          const enriched = await enrichBreedingWithAnimalData(breeding);
+          // Add property from map if available
+          if (enriched.animal?.propertyId) {
+            enriched.property = propertiesMap.get(enriched.animal.propertyId);
+          }
+          return enriched;
+        })
+      );
+      setEnrichedBreedings(enriched);
+    };
+    loadEnrichedBreedings();
   }, [unconfirmedBreedings, propertiesMap]);
 
   type EnrichedBreeding = (typeof enrichedBreedings)[0];

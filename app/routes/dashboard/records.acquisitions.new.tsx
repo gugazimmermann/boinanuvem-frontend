@@ -6,18 +6,9 @@ import { useLanguage } from "~/contexts/language-context";
 import { ROUTES } from "~/routes.config";
 import { formatCurrency } from "~/utils/currency";
 import { addAcquisition, calculateAcquisitionCostPerArroba } from "~/services/acquisitions.service";
-import { addAnimal } from "~/services/animals.service";
-import { addWeighing } from "~/services/weighings.service";
 import { getSuppliers } from "~/services/suppliers.service";
 import { getProperties } from "~/services/properties.service";
-import type {
-  Supplier,
-  Property,
-  AcquisitionFormData,
-  AcquisitionItem,
-  AnimalFormData,
-  WeighingFormData,
-} from "~/types";
+import type { Supplier, Property, AcquisitionFormData, AcquisitionItem } from "~/types";
 import { getBirthByAnimalId, calculatePurity } from "~/services/births.service";
 import {
   PricingMode,
@@ -26,7 +17,7 @@ import {
   PricingMode as PricingModeEnum,
   AcquisitionPaymentMethod as AcquisitionPaymentMethodEnum,
 } from "~/types";
-import { mockCompanies } from "~/mocks/companies";
+import { useAuth } from "~/contexts/auth-context";
 
 type AcquisitionItemFormData = {
   animalId: string;
@@ -68,8 +59,8 @@ export default function NewAcquisition() {
   const t = useTranslation();
   const { language } = useLanguage();
   const navigate = useNavigate();
-  const company = mockCompanies[0];
-  const companyId = company?.id || "";
+  const { currentUser } = useAuth();
+  const companyId = currentUser?.companyId || "";
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -365,7 +356,7 @@ export default function NewAcquisition() {
     return Number.parseFloat(item.price.replaceAll(/[^\d,.-]/g, "").replaceAll(",", ".")) || 0;
   };
 
-  const calculateItemPurity = (item: (typeof formData.acquisitionItems)[0]) => {
+  const calculateItemPurity = async (item: (typeof formData.acquisitionItems)[0]) => {
     const hasParentInfo =
       item.motherId ||
       item.fatherId ||
@@ -376,41 +367,25 @@ export default function NewAcquisition() {
       return undefined;
     }
 
-    const motherBirth = item.motherId ? getBirthByAnimalId(item.motherId) : undefined;
-    const fatherBirth = item.fatherId ? getBirthByAnimalId(item.fatherId) : undefined;
+    const motherBirth = item.motherId ? await getBirthByAnimalId(item.motherId) : undefined;
+    const fatherBirth = item.fatherId ? await getBirthByAnimalId(item.fatherId) : undefined;
     const motherBreed = motherBirth?.breed;
     const fatherBreed = fatherBirth?.breed;
     return calculatePurity(motherBirth, fatherBirth, motherBreed, fatherBreed);
   };
 
-  const processAcquisitionItem = (item: (typeof formData.acquisitionItems)[0]): AcquisitionItem => {
-    const animalData: AnimalFormData = {
-      code: item.code,
-      registrationNumber: item.registrationNumber,
-      acquisitionDate: formData.acquisitionDate,
-      status: "active",
-      companyId,
-      propertyId: formData.propertyId,
-    };
-    const newAnimal = addAnimal(animalData);
-    const purity = calculateItemPurity(item);
+  const processAcquisitionItem = async (
+    item: (typeof formData.acquisitionItems)[0]
+  ): Promise<AcquisitionItem & { code?: string; registrationNumber?: string }> => {
+    const purity = await calculateItemPurity(item);
     const price = calculateItemPrice(item);
     const weight = Number.parseFloat(item.weight) || 0;
 
-    if (weight > 0) {
-      const weighingData: WeighingFormData = {
-        animalId: newAnimal.id,
-        date: formData.acquisitionDate,
-        weight,
-        employeeIds: [],
-        serviceProviderIds: [],
-        companyId,
-      };
-      addWeighing(weighingData);
-    }
-
+    // Backend will create the animal automatically, so we pass code/registrationNumber instead of animalId
     return {
-      animalId: newAnimal.id,
+      animalId: "", // Empty string since backend creates the animal
+      code: item.code,
+      registrationNumber: item.registrationNumber,
       price,
       weight,
       costPerArroba: calculateAcquisitionCostPerArroba(weight, price),
@@ -421,7 +396,7 @@ export default function NewAcquisition() {
       fatherId: item.fatherId || undefined,
       motherRegistrationNumber: item.motherRegistrationNumber || undefined,
       fatherRegistrationNumber: item.fatherRegistrationNumber || undefined,
-      purity,
+      purity: purity || undefined,
       birthObservation: item.birthObservation || undefined,
     };
   };
@@ -451,13 +426,15 @@ export default function NewAcquisition() {
     setIsSubmitting(true);
 
     try {
-      const acquisitionItems = formData.acquisitionItems.map((item) =>
-        processAcquisitionItem(item)
+      const acquisitionItems = await Promise.all(
+        formData.acquisitionItems.map((item) => processAcquisitionItem(item))
       );
       const totalPrice = acquisitionItems.reduce((sum, item) => sum + item.price, 0);
       const fees = processFees();
 
-      const acquisitionData: AcquisitionFormData = {
+      const acquisitionData: AcquisitionFormData & {
+        acquisitionItems: Array<AcquisitionItem & { code?: string; registrationNumber?: string }>;
+      } = {
         companyId,
         propertyId: formData.propertyId,
         supplierId: formData.supplierId,
@@ -470,7 +447,7 @@ export default function NewAcquisition() {
         observation: formData.observation || undefined,
       };
 
-      addAcquisition(acquisitionData);
+      await addAcquisition(acquisitionData);
       showAlert(
         (((t.acquisitions as Record<string, unknown>)?.success as Record<string, unknown>)
           ?.created as string) || "Aquisição registrada com sucesso",
@@ -479,7 +456,8 @@ export default function NewAcquisition() {
       setTimeout(() => {
         navigate(ROUTES.ACQUISITIONS);
       }, 1500);
-    } catch {
+    } catch (error) {
+      console.error("Error adding acquisition:", error);
       showAlert(
         (((t.acquisitions as Record<string, unknown>)?.errors as Record<string, unknown>)
           ?.createFailed as string) || "Erro ao registrar aquisição",

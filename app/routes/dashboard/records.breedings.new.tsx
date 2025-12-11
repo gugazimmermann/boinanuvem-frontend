@@ -5,7 +5,7 @@ import { useTranslation } from "~/i18n";
 import { translations } from "~/i18n/translations";
 import { ROUTES } from "~/routes.config";
 import { addBreeding } from "~/services/breedings.service";
-import type { BreedingFormData, BreedingMethod } from "~/types";
+import type { BreedingFormData, BreedingMethod, Animal } from "~/types";
 import { mockCompanies } from "~/mocks/companies";
 import { useBreedingForm } from "~/hooks/use-breeding-form";
 import { useAnimalSearch } from "~/hooks/use-animal-search";
@@ -60,6 +60,7 @@ export default function NewBreeding() {
   } = useBreedingForm({
     initialAnimalIds: preSelectedAnimalIds,
     initialDate: today,
+    companyId,
     t,
   });
 
@@ -74,6 +75,15 @@ export default function NewBreeding() {
     gender: "male",
     t,
   });
+
+  // Create animals map for AIBreedingSection
+  const animalsMap = useMemo(() => {
+    const map = new Map<string, Animal>();
+    for (const animal of femaleAnimalSearch.allAnimals) {
+      map.set(animal.id, animal);
+    }
+    return map;
+  }, [femaleAnimalSearch.allAnimals]);
 
   const { employees, serviceProviders } = useResponsibleEntities({ companyId });
 
@@ -174,6 +184,7 @@ export default function NewBreeding() {
             {formData.method === "natural" && (
               <NaturalBreedingSection
                 bulls={bullSearch.filteredAnimals}
+                birthsMap={bullSearch.birthsMap}
                 selectedBullId={formData.bullId}
                 searchValue={bullSearch.searchValue}
                 onSearchChange={bullSearch.setSearchValue}
@@ -186,6 +197,7 @@ export default function NewBreeding() {
             {formData.method === "artificial_insemination" && (
               <AIBreedingSection
                 selectedAnimalIds={formData.animalIds}
+                animalsMap={animalsMap}
                 attemptNumbers={formData.attemptNumbers}
                 semenCode={formData.semenCode}
                 onSemenCodeChange={(value) => handleChange("semenCode", value)}

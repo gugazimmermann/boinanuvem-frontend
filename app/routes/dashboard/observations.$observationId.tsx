@@ -177,12 +177,11 @@ export default function ObservationDetails() {
         if (animalObservation) {
           const animalId = animalObservation.animalId;
           if (animalId) {
-            const animal = getAnimalById(animalId);
-            if (animal) {
-              setAnimal(animal);
-            } else {
-              setAnimal(null);
-            }
+            promises.push(
+              getAnimalById(animalId)
+                .then(setAnimal)
+                .catch(() => setAnimal(null))
+            );
           }
         }
 
@@ -239,8 +238,10 @@ export default function ObservationDetails() {
     );
   };
 
-  const formatDateTime = (dateString: string) => {
+  const formatDateTime = (dateString: string | undefined) => {
+    if (!dateString) return "";
     const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return "";
     return new Intl.DateTimeFormat("pt-BR", {
       day: "2-digit",
       month: "2-digit",

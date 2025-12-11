@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render } from "@testing-library/react";
 import React from "react";
 import { createAnimalTableColumns } from "../animal-table-columns";
-import type { Property, Animal, Birth, Weighing, Breeding } from "~/types";
+import type { Property, Animal, Birth, Weighing, Breeding, AnimalBreed } from "~/types";
 import { AreaType, BirthPurity } from "~/types";
 import type { Locale } from "date-fns";
 import { getBirthByAnimalId } from "~/services/births.service";
@@ -61,15 +61,19 @@ describe("createAnimalTableColumns", () => {
     },
   };
 
+  const mockBirthsMap = new Map<string, Awaited<ReturnType<typeof getBirthByAnimalId>>>();
+
   const baseOptions = {
     language: "en" as const,
     dateLocale: {} as Locale,
     translations: mockTranslations,
     StatusBadgeComponent: mockStatusBadge,
+    birthsMap: mockBirthsMap,
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockBirthsMap.clear();
   });
 
   it("should create columns array", () => {
@@ -171,15 +175,16 @@ describe("createAnimalTableColumns", () => {
   });
 
   describe("breed column rendering", () => {
-    it("should render breed when birth data exists", () => {
-      vi.mocked(getBirthByAnimalId).mockReturnValue({
+    it("should render breed when birth data exists in birthsMap", () => {
+      const mockBirth: Birth = {
         id: "birth-1",
         animalId: "animal-1",
         birthDate: "2024-01-01",
-        breed: "nelore",
+        breed: "nelore" as AnimalBreed,
         companyId: "company-1",
         createdAt: "2024-01-01T00:00:00Z",
-      } as Birth);
+      };
+      mockBirthsMap.set("animal-1", mockBirth);
       const columns = createAnimalTableColumns(baseOptions);
       const breedColumn = columns.find((col) => col.key === "breed");
       const mockAnimal: Animal = {
@@ -194,10 +199,10 @@ describe("createAnimalTableColumns", () => {
       const result = breedColumn?.render?.(undefined, mockAnimal, 0);
       const { container } = render(result!);
       expect(container.textContent).toContain("Nelore");
+      expect(getBirthByAnimalId).not.toHaveBeenCalled();
     });
 
-    it("should render dash when birth data is missing", () => {
-      vi.mocked(getBirthByAnimalId).mockReturnValue(undefined);
+    it("should render dash when birth data is missing from birthsMap", () => {
       const columns = createAnimalTableColumns(baseOptions);
       const breedColumn = columns.find((col) => col.key === "breed");
       const mockAnimal: Animal = {
@@ -212,17 +217,19 @@ describe("createAnimalTableColumns", () => {
       const result = breedColumn?.render?.(undefined, mockAnimal, 0);
       const { container } = render(result!);
       expect(container.textContent).toBe("-");
+      expect(getBirthByAnimalId).not.toHaveBeenCalled();
     });
 
     it("should render dash when breed is missing", () => {
-      vi.mocked(getBirthByAnimalId).mockReturnValue({
+      const mockBirth: Birth = {
         id: "birth-1",
         animalId: "animal-1",
         birthDate: "2024-01-01",
         breed: undefined,
         companyId: "company-1",
         createdAt: "2024-01-01T00:00:00Z",
-      } as Birth);
+      };
+      mockBirthsMap.set("animal-1", mockBirth);
       const columns = createAnimalTableColumns(baseOptions);
       const breedColumn = columns.find((col) => col.key === "breed");
       const mockAnimal: Animal = {
@@ -241,15 +248,16 @@ describe("createAnimalTableColumns", () => {
   });
 
   describe("purity column rendering", () => {
-    it("should render purity when birth data exists", () => {
-      vi.mocked(getBirthByAnimalId).mockReturnValue({
+    it("should render purity when birth data exists in birthsMap", () => {
+      const mockBirth: Birth = {
         id: "birth-1",
         animalId: "animal-1",
         birthDate: "2024-01-01",
         purity: BirthPurity.PO,
         companyId: "company-1",
         createdAt: "2024-01-01T00:00:00Z",
-      } as Birth);
+      };
+      mockBirthsMap.set("animal-1", mockBirth);
       const columns = createAnimalTableColumns(baseOptions);
       const purityColumn = columns.find((col) => col.key === "purity");
       const mockAnimal: Animal = {
@@ -264,16 +272,18 @@ describe("createAnimalTableColumns", () => {
       const result = purityColumn?.render?.(undefined, mockAnimal, 0);
       const { container } = render(result!);
       expect(container.textContent).toContain("Pure");
+      expect(getBirthByAnimalId).not.toHaveBeenCalled();
     });
 
     it("should render dash when purity is missing", () => {
-      vi.mocked(getBirthByAnimalId).mockReturnValue({
+      const mockBirth: Birth = {
         id: "birth-1",
         animalId: "animal-1",
         birthDate: "2024-01-01",
         companyId: "company-1",
         createdAt: "2024-01-01T00:00:00Z",
-      } as Birth);
+      };
+      mockBirthsMap.set("animal-1", mockBirth);
       const columns = createAnimalTableColumns(baseOptions);
       const purityColumn = columns.find((col) => col.key === "purity");
       const mockAnimal: Animal = {
@@ -293,14 +303,15 @@ describe("createAnimalTableColumns", () => {
 
   describe("gender column rendering", () => {
     it("should render male gender", () => {
-      vi.mocked(getBirthByAnimalId).mockReturnValue({
+      const mockBirth: Birth = {
         id: "birth-1",
         animalId: "animal-1",
         birthDate: "2024-01-01",
         gender: "male",
         companyId: "company-1",
         createdAt: "2024-01-01T00:00:00Z",
-      } as Birth);
+      };
+      mockBirthsMap.set("animal-1", mockBirth);
       const columns = createAnimalTableColumns(baseOptions);
       const genderColumn = columns.find((col) => col.key === "gender");
       const mockAnimal: Animal = {
@@ -315,17 +326,19 @@ describe("createAnimalTableColumns", () => {
       const result = genderColumn?.render?.(undefined, mockAnimal, 0);
       const { container } = render(result!);
       expect(container.textContent).toContain("Male");
+      expect(getBirthByAnimalId).not.toHaveBeenCalled();
     });
 
     it("should render female gender", () => {
-      vi.mocked(getBirthByAnimalId).mockReturnValue({
+      const mockBirth: Birth = {
         id: "birth-1",
         animalId: "animal-1",
         birthDate: "2024-01-01",
         gender: "female",
         companyId: "company-1",
         createdAt: "2024-01-01T00:00:00Z",
-      } as Birth);
+      };
+      mockBirthsMap.set("animal-1", mockBirth);
       const columns = createAnimalTableColumns(baseOptions);
       const genderColumn = columns.find((col) => col.key === "gender");
       const mockAnimal: Animal = {
@@ -343,13 +356,14 @@ describe("createAnimalTableColumns", () => {
     });
 
     it("should render dash when gender is missing", () => {
-      vi.mocked(getBirthByAnimalId).mockReturnValue({
+      const mockBirth: Birth = {
         id: "birth-1",
         animalId: "animal-1",
         birthDate: "2024-01-01",
         companyId: "company-1",
         createdAt: "2024-01-01T00:00:00Z",
-      } as Birth);
+      };
+      mockBirthsMap.set("animal-1", mockBirth);
       const columns = createAnimalTableColumns(baseOptions);
       const genderColumn = columns.find((col) => col.key === "gender");
       const mockAnimal: Animal = {
@@ -367,14 +381,15 @@ describe("createAnimalTableColumns", () => {
     });
 
     it("should render dash when gender is falsy", () => {
-      vi.mocked(getBirthByAnimalId).mockReturnValue({
+      const mockBirth: Birth = {
         id: "birth-1",
         animalId: "animal-1",
         birthDate: "2024-01-01",
         gender: undefined,
         companyId: "company-1",
         createdAt: "2024-01-01T00:00:00Z",
-      } as Birth);
+      };
+      mockBirthsMap.set("animal-1", mockBirth);
       const columns = createAnimalTableColumns(baseOptions);
       const genderColumn = columns.find((col) => col.key === "gender");
       const mockAnimal: Animal = {
@@ -393,16 +408,17 @@ describe("createAnimalTableColumns", () => {
   });
 
   describe("birthDate column rendering", () => {
-    it("should render months with tooltip when birth date exists", () => {
+    it("should render months with tooltip when birth date exists in birthsMap", () => {
       const birthDate = new Date();
       birthDate.setMonth(birthDate.getMonth() - 5);
-      vi.mocked(getBirthByAnimalId).mockReturnValue({
+      const mockBirth: Birth = {
         id: "birth-1",
         animalId: "animal-1",
         birthDate: birthDate.toISOString(),
         companyId: "company-1",
         createdAt: "2024-01-01T00:00:00Z",
-      } as Birth);
+      };
+      mockBirthsMap.set("animal-1", mockBirth);
       const mockTooltip = vi.fn(
         ({ children, content }: { children: React.ReactNode; content: string }) => (
           <div data-testid="tooltip" data-content={content}>
@@ -429,18 +445,20 @@ describe("createAnimalTableColumns", () => {
       expect(container.textContent).toContain("5");
       expect(container.textContent).toContain("months");
       expect(getByTestId("tooltip")).toBeDefined();
+      expect(getBirthByAnimalId).not.toHaveBeenCalled();
     });
 
     it("should render singular month when months is 1", () => {
       const birthDate = new Date();
       birthDate.setMonth(birthDate.getMonth() - 1);
-      vi.mocked(getBirthByAnimalId).mockReturnValue({
+      const mockBirth: Birth = {
         id: "birth-1",
         animalId: "animal-1",
         birthDate: birthDate.toISOString(),
         companyId: "company-1",
         createdAt: "2024-01-01T00:00:00Z",
-      } as Birth);
+      };
+      mockBirthsMap.set("animal-1", mockBirth);
       const columns = createAnimalTableColumns(baseOptions);
       const birthDateColumn = columns.find((col) => col.key === "birthDate");
       const mockAnimal: Animal = {
@@ -460,13 +478,14 @@ describe("createAnimalTableColumns", () => {
     });
 
     it("should render dash when birth date is missing", () => {
-      vi.mocked(getBirthByAnimalId).mockReturnValue({
+      const mockBirth: Birth = {
         id: "birth-1",
         animalId: "animal-1",
         birthDate: "",
         companyId: "company-1",
         createdAt: "2024-01-01T00:00:00Z",
-      } as Birth);
+      };
+      mockBirthsMap.set("animal-1", mockBirth);
       const columns = createAnimalTableColumns(baseOptions);
       const birthDateColumn = columns.find((col) => col.key === "birthDate");
       const mockAnimal: Animal = {
@@ -486,13 +505,14 @@ describe("createAnimalTableColumns", () => {
     it("should use custom formatDateFn when provided", async () => {
       const birthDate = new Date();
       birthDate.setMonth(birthDate.getMonth() - 2);
-      vi.mocked(getBirthByAnimalId).mockReturnValue({
+      const mockBirth: Birth = {
         id: "birth-1",
         animalId: "animal-1",
         birthDate: birthDate.toISOString(),
         companyId: "company-1",
         createdAt: "2024-01-01T00:00:00Z",
-      } as Birth);
+      };
+      mockBirthsMap.set("animal-1", mockBirth);
       // When formatDateFn === formatDate, it uses formatDateFn
       // When formatDateFn !== formatDate, it uses date-fns format with locale
       // We test the case where formatDateFn === formatDate by using the mocked formatDate
@@ -862,14 +882,15 @@ describe("createAnimalTableColumns", () => {
 
   describe("breedingStatus column rendering", () => {
     it("should render dash for male animals", () => {
-      vi.mocked(getBirthByAnimalId).mockReturnValue({
+      const mockBirth: Birth = {
         id: "birth-1",
         animalId: "animal-1",
         birthDate: "2024-01-01",
         gender: "male",
         companyId: "company-1",
         createdAt: "2024-01-01T00:00:00Z",
-      } as Birth);
+      };
+      mockBirthsMap.set("animal-1", mockBirth);
       const columns = createAnimalTableColumns(baseOptions);
       const breedingStatusColumn = columns.find((col) => col.key === "breedingStatus");
       const mockAnimal: Animal = {
@@ -884,17 +905,19 @@ describe("createAnimalTableColumns", () => {
       const result = breedingStatusColumn?.render?.(undefined, mockAnimal, 0);
       const { container } = render(result!);
       expect(container.textContent).toBe("-");
+      expect(getBirthByAnimalId).not.toHaveBeenCalled();
     });
 
     it("should render dash when no breedings exist", () => {
-      vi.mocked(getBirthByAnimalId).mockReturnValue({
+      const mockBirth: Birth = {
         id: "birth-1",
         animalId: "animal-1",
         birthDate: "2024-01-01",
         gender: "female",
         companyId: "company-1",
         createdAt: "2024-01-01T00:00:00Z",
-      } as Birth);
+      };
+      mockBirthsMap.set("animal-1", mockBirth);
       vi.mocked(getBreedingsByAnimalId).mockReturnValue([]);
       const columns = createAnimalTableColumns(baseOptions);
       const breedingStatusColumn = columns.find((col) => col.key === "breedingStatus");
@@ -913,14 +936,15 @@ describe("createAnimalTableColumns", () => {
     });
 
     it("should render success badge when confirmed breeding exists", () => {
-      vi.mocked(getBirthByAnimalId).mockReturnValue({
+      const mockBirth: Birth = {
         id: "birth-1",
         animalId: "animal-1",
         birthDate: "2024-01-01",
         gender: "female",
         companyId: "company-1",
         createdAt: "2024-01-01T00:00:00Z",
-      } as Birth);
+      };
+      mockBirthsMap.set("animal-1", mockBirth);
       vi.mocked(getBreedingsByAnimalId).mockReturnValue([
         { id: "b1", animalId: "animal-1", confirmed: true, companyId: "comp-1" },
       ] as Breeding[]);
@@ -945,14 +969,15 @@ describe("createAnimalTableColumns", () => {
     });
 
     it("should render warning badge when no confirmed breeding exists", () => {
-      vi.mocked(getBirthByAnimalId).mockReturnValue({
+      const mockBirth: Birth = {
         id: "birth-1",
         animalId: "animal-1",
         birthDate: "2024-01-01",
         gender: "female",
         companyId: "company-1",
         createdAt: "2024-01-01T00:00:00Z",
-      } as Birth);
+      };
+      mockBirthsMap.set("animal-1", mockBirth);
       vi.mocked(getBreedingsByAnimalId).mockReturnValue([
         { id: "b1", animalId: "animal-1", confirmed: false, companyId: "comp-1" },
       ] as Breeding[]);
@@ -1157,13 +1182,14 @@ describe("createAnimalTableColumns", () => {
     it("should use English date format for en language", () => {
       const birthDate = new Date();
       birthDate.setMonth(birthDate.getMonth() - 2);
-      vi.mocked(getBirthByAnimalId).mockReturnValue({
+      const mockBirth: Birth = {
         id: "birth-1",
         animalId: "animal-1",
         birthDate: birthDate.toISOString(),
         companyId: "company-1",
         createdAt: "2024-01-01T00:00:00Z",
-      } as Birth);
+      };
+      mockBirthsMap.set("animal-1", mockBirth);
       const columns = createAnimalTableColumns({
         ...baseOptions,
         language: "en",
@@ -1180,18 +1206,20 @@ describe("createAnimalTableColumns", () => {
       };
       birthDateColumn?.render?.(undefined, mockAnimal, 0);
       // The formatDateFn should be called with the date and language
+      expect(getBirthByAnimalId).not.toHaveBeenCalled();
     });
 
     it("should use Portuguese date format for pt language", () => {
       const birthDate = new Date();
       birthDate.setMonth(birthDate.getMonth() - 2);
-      vi.mocked(getBirthByAnimalId).mockReturnValue({
+      const mockBirth: Birth = {
         id: "birth-1",
         animalId: "animal-1",
         birthDate: birthDate.toISOString(),
         companyId: "company-1",
         createdAt: "2024-01-01T00:00:00Z",
-      } as Birth);
+      };
+      mockBirthsMap.set("animal-1", mockBirth);
       const columns = createAnimalTableColumns({
         ...baseOptions,
         language: "pt",
@@ -1207,6 +1235,7 @@ describe("createAnimalTableColumns", () => {
         companyId: "company-1",
       };
       birthDateColumn?.render?.(undefined, mockAnimal, 0);
+      expect(getBirthByAnimalId).not.toHaveBeenCalled();
     });
   });
 });

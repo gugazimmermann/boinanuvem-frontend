@@ -5,9 +5,9 @@ import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
 import { getProperties, deleteProperty } from "~/services/properties.service";
 import { useAlert } from "~/hooks/use-alert";
-import type { Property, Location } from "~/types";
+import type { Property, Location, Animal } from "~/types";
 import { getLocations } from "~/services/locations.service";
-import { getAnimalsByPropertyId } from "~/services/animals.service";
+import { getAnimalsByCompanyId } from "~/services/animals.service";
 import { ROUTES, getPropertyEditRoute, getPropertyViewRoute } from "~/routes.config";
 import { usePermissions } from "~/utils/permissions";
 import { RegistrationListPage } from "~/components/dashboard/registrations/registration-list-page";
@@ -33,6 +33,7 @@ export default function Properties() {
   const { canEdit, canRemove } = usePermissions();
   const { showAlert } = useAlert();
   const [properties, setProperties] = useState<Property[]>([]);
+  const [animals, setAnimals] = useState<Animal[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -46,6 +47,16 @@ export default function Properties() {
         ]);
         setProperties(propertiesData);
         setLocations(locationsData);
+
+        // Load animals for all properties' companies
+        if (propertiesData.length > 0) {
+          const companyIds = new Set(propertiesData.map((p) => p.companyId));
+          const animalsPromises = Array.from(companyIds).map((companyId) =>
+            getAnimalsByCompanyId(companyId)
+          );
+          const animalsArrays = await Promise.all(animalsPromises);
+          setAnimals(animalsArrays.flat());
+        }
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : t.properties.errors.loadFailed;
@@ -58,6 +69,17 @@ export default function Properties() {
 
     fetchData();
   }, [showAlert, t]);
+
+  const animalsByPropertyId = useMemo(() => {
+    const map = new Map<string, Animal[]>();
+    for (const animal of animals) {
+      if (animal.propertyId) {
+        const existing = map.get(animal.propertyId) || [];
+        map.set(animal.propertyId, [...existing, animal]);
+      }
+    }
+    return map;
+  }, [animals]);
 
   const columns: TableColumn<Property>[] = useMemo(
     () => [
@@ -89,8 +111,8 @@ export default function Properties() {
         label: t.properties.table.animals,
         sortable: true,
         render: (_, row) => {
-          const animals = getAnimalsByPropertyId(row.id);
-          return <span className="text-gray-700 dark:text-gray-300">{animals.length}</span>;
+          const propertyAnimals = animalsByPropertyId.get(row.id) || [];
+          return <span className="text-gray-700 dark:text-gray-300">{propertyAnimals.length}</span>;
         },
       },
       createStatusColumn<Property>(
@@ -113,7 +135,7 @@ export default function Properties() {
         ),
       },
     ],
-    [t, language, navigate, canEdit, canRemove, locations]
+    [t, language, navigate, canEdit, canRemove, locations, animalsByPropertyId]
   );
 
   const filterOptions = useMemo(

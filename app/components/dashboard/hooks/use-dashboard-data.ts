@@ -2,7 +2,16 @@ import { useMemo, useState, useEffect } from "react";
 import { startOfMonth, endOfMonth, parseISO } from "date-fns";
 import { getProperties } from "~/services/properties.service";
 import { getLocations } from "~/services/locations.service";
-import type { Property, Location, Employee, Supplier, Buyer } from "~/types";
+import type {
+  Property,
+  Location,
+  Employee,
+  Supplier,
+  Buyer,
+  Animal,
+  Birth,
+  Breeding,
+} from "~/types";
 import { AccountsPayableStatus, AccountsReceivableStatus } from "~/types";
 import { getAnimalsByCompanyId, getAnimalsByPropertyId } from "~/services/animals.service";
 import { getWeighingsByCompanyId } from "~/services/weighings.service";
@@ -57,12 +66,25 @@ export function useDashboardData(companyId: string, filters?: DashboardFilters) 
     fetchData();
   }, [companyId]);
 
-  const allAnimals = useMemo(() => {
-    if (filters?.propertyId) {
-      return getAnimalsByPropertyId(filters.propertyId);
-    }
-    return getAnimalsByCompanyId(companyId);
-  }, [companyId, filters]);
+  const [allAnimals, setAllAnimals] = useState<Animal[]>([]);
+
+  useEffect(() => {
+    const loadAnimals = async () => {
+      try {
+        if (filters?.propertyId) {
+          const animalsData = await getAnimalsByPropertyId(filters.propertyId);
+          setAllAnimals(animalsData || []);
+        } else {
+          const animalsData = await getAnimalsByCompanyId(companyId);
+          setAllAnimals(animalsData || []);
+        }
+      } catch (error) {
+        console.error("Failed to load animals:", error);
+        setAllAnimals([]);
+      }
+    };
+    loadAnimals();
+  }, [companyId, filters?.propertyId]);
 
   const animals = useMemo(
     () => allAnimals.filter((animal) => animal.status === "active"),
@@ -123,20 +145,35 @@ export function useDashboardData(companyId: string, filters?: DashboardFilters) 
     [totalAreaInHectares, animalUnits]
   );
 
-  const expectedBirthsForecast = useMemo(
-    () => getExpectedBirthsForecast(companyId, { isPropertyId: false, monthsAhead: 9 }),
-    [companyId]
-  );
+  const [expectedBirthsForecast, setExpectedBirthsForecast] = useState<Awaited<
+    ReturnType<typeof getExpectedBirthsForecast>
+  > | null>(null);
+
+  useEffect(() => {
+    const loadExpectedBirthsForecast = async () => {
+      try {
+        const forecast = await getExpectedBirthsForecast(companyId, {
+          isPropertyId: false,
+          monthsAhead: 9,
+        });
+        setExpectedBirthsForecast(forecast);
+      } catch (error) {
+        console.error("Failed to load expected births forecast:", error);
+        setExpectedBirthsForecast(null);
+      }
+    };
+    loadExpectedBirthsForecast();
+  }, [companyId]);
 
   const nextMonthExpected = useMemo(() => {
-    if (!expectedBirthsForecast.monthly || expectedBirthsForecast.monthly.length === 0) return 0;
+    if (!expectedBirthsForecast?.monthly || expectedBirthsForecast.monthly.length === 0) return 0;
     const today = new Date();
     const nextMonthKey = `${today.getFullYear()}-${String(today.getMonth() + 2).padStart(2, "0")}`;
     const nextMonth = expectedBirthsForecast.monthly.find((item) => item.month === nextMonthKey);
     return nextMonth?.expectedBirths || 0;
-  }, [expectedBirthsForecast.monthly]);
+  }, [expectedBirthsForecast]);
 
-  const nextThreeMonthsTotal = expectedBirthsForecast.total;
+  const nextThreeMonthsTotal = expectedBirthsForecast?.total || 0;
 
   const cashFlowData = useMemo(() => {
     const allCashFlow = getCashFlowByCompanyId(companyId);
@@ -215,55 +252,88 @@ export function useDashboardData(companyId: string, filters?: DashboardFilters) 
 
   // employees, suppliers, and buyers are now loaded via useEffect above
 
-  const births = useMemo(() => {
-    const allBirths = filters?.propertyId
-      ? getBirthsByPropertyId(filters.propertyId)
-      : getBirthsByCompanyId(companyId);
+  const [births, setBirths] = useState<Birth[]>([]);
 
-    if (!filters?.startDate && !filters?.endDate) {
-      return allBirths;
-    }
+  useEffect(() => {
+    const loadBirths = async () => {
+      try {
+        const allBirthsData = filters?.propertyId
+          ? await getBirthsByPropertyId(filters.propertyId)
+          : await getBirthsByCompanyId(companyId);
 
-    return allBirths.filter((birth) => {
-      const birthDate = parseISO(birth.birthDate);
-      if (filters.startDate) {
-        const start = new Date(filters.startDate);
-        start.setHours(0, 0, 0, 0);
-        if (birthDate < start) return false;
+        const allBirths = allBirthsData || [];
+
+        if (!filters?.startDate && !filters?.endDate) {
+          setBirths(allBirths);
+          return;
+        }
+
+        const filtered = allBirths.filter((birth) => {
+          const birthDate = parseISO(birth.birthDate);
+          if (filters.startDate) {
+            const start = new Date(filters.startDate);
+            start.setHours(0, 0, 0, 0);
+            if (birthDate < start) return false;
+          }
+          if (filters.endDate) {
+            const end = new Date(filters.endDate);
+            end.setHours(23, 59, 59, 999);
+            if (birthDate > end) return false;
+          }
+          return true;
+        });
+
+        setBirths(filtered);
+      } catch (error) {
+        console.error("Failed to load births:", error);
+        setBirths([]);
       }
-      if (filters.endDate) {
-        const end = new Date(filters.endDate);
-        end.setHours(23, 59, 59, 999);
-        if (birthDate > end) return false;
-      }
-      return true;
-    });
-  }, [companyId, filters]);
+    };
+    loadBirths();
+  }, [companyId, filters?.propertyId, filters?.startDate, filters?.endDate]);
 
-  const breedings = useMemo(() => {
-    const allBreedings = filters?.propertyId
-      ? getBreedingsByPropertyId(filters.propertyId)
-      : getBreedingsByCompanyId(companyId);
+  const [breedings, setBreedings] = useState<Breeding[]>([]);
 
-    if (!filters?.startDate && !filters?.endDate) {
-      return allBreedings;
-    }
+  useEffect(() => {
+    const loadBreedings = async () => {
+      try {
+        let allBreedings: Breeding[];
 
-    return allBreedings.filter((breeding) => {
-      const breedingDate = parseISO(breeding.date);
-      if (filters.startDate) {
-        const start = new Date(filters.startDate);
-        start.setHours(0, 0, 0, 0);
-        if (breedingDate < start) return false;
+        if (filters?.propertyId) {
+          const breedingsData = await getBreedingsByPropertyId(filters.propertyId);
+          allBreedings = breedingsData || [];
+        } else {
+          allBreedings = getBreedingsByCompanyId(companyId);
+        }
+
+        if (!filters?.startDate && !filters?.endDate) {
+          setBreedings(allBreedings);
+          return;
+        }
+
+        const filtered = allBreedings.filter((breeding) => {
+          const breedingDate = parseISO(breeding.date);
+          if (filters.startDate) {
+            const start = new Date(filters.startDate);
+            start.setHours(0, 0, 0, 0);
+            if (breedingDate < start) return false;
+          }
+          if (filters.endDate) {
+            const end = new Date(filters.endDate);
+            end.setHours(23, 59, 59, 999);
+            if (breedingDate > end) return false;
+          }
+          return true;
+        });
+
+        setBreedings(filtered);
+      } catch (error) {
+        console.error("Failed to load breedings:", error);
+        setBreedings([]);
       }
-      if (filters.endDate) {
-        const end = new Date(filters.endDate);
-        end.setHours(23, 59, 59, 999);
-        if (breedingDate > end) return false;
-      }
-      return true;
-    });
-  }, [companyId, filters]);
+    };
+    loadBreedings();
+  }, [companyId, filters?.propertyId, filters?.startDate, filters?.endDate]);
 
   const sales = useMemo(() => {
     const allSales = getSalesByCompanyId(companyId);
@@ -358,9 +428,7 @@ export function useDashboardData(companyId: string, filters?: DashboardFilters) 
 
     let filtered = allWeighingsData;
     if (filters?.propertyId) {
-      const propertyAnimalIds = new Set(
-        getAnimalsByPropertyId(filters.propertyId).map((a) => a.id)
-      );
+      const propertyAnimalIds = new Set(allAnimals.map((a) => a.id));
       filtered = filtered.filter((weighing) => propertyAnimalIds.has(weighing.animalId));
     }
 
@@ -382,7 +450,7 @@ export function useDashboardData(companyId: string, filters?: DashboardFilters) 
     }
 
     return filtered;
-  }, [companyId, filters]);
+  }, [companyId, filters, allAnimals]);
 
   return {
     animals,

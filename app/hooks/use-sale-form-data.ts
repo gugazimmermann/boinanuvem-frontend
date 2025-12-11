@@ -4,7 +4,6 @@ import { getBuyers } from "~/services/buyers.service";
 import { getProperties } from "~/services/properties.service";
 import { getAnimalsByCompanyId } from "~/services/animals.service";
 import type { Buyer, Property, Animal } from "~/types";
-import { mockCompanies } from "~/mocks/companies";
 
 export interface UseSaleFormDataOptions {
   /** Company ID - if not provided, uses mockCompanies[0] */
@@ -39,19 +38,35 @@ export function useSaleFormData({
   preSelectedAnimalIds: providedPreSelectedAnimalIds,
 }: UseSaleFormDataOptions = {}): UseSaleFormDataReturn {
   const location = useLocation();
-  const company = mockCompanies[0];
-  const companyId = providedCompanyId || company?.id || "";
+  // Use providedCompanyId if given, otherwise use empty string
+  // Routes should explicitly provide companyId (e.g., from mockCompanies[0]?.id)
+  // This allows tests to verify behavior when no companyId is provided
+  const companyId = providedCompanyId ?? "";
 
   const [buyers, setBuyers] = useState<Buyer[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const allAnimals = useMemo(() => {
-    const animals = getAnimalsByCompanyId(companyId);
-    if (includeSoldAnimals) {
-      return animals.filter((a) => a.status === "active" || a.status === "sold");
-    }
-    return animals.filter((a) => a.status === "active");
+  const [allAnimals, setAllAnimals] = useState<Animal[]>([]);
+
+  useEffect(() => {
+    const loadAnimals = async () => {
+      if (!companyId) {
+        setAllAnimals([]);
+        return;
+      }
+      try {
+        const animalsData = await getAnimalsByCompanyId(companyId);
+        const filtered = includeSoldAnimals
+          ? animalsData.filter((a) => a.status === "active" || a.status === "sold")
+          : animalsData.filter((a) => a.status === "active");
+        setAllAnimals(filtered || []);
+      } catch (error) {
+        console.error("Failed to load animals:", error);
+        setAllAnimals([]);
+      }
+    };
+    loadAnimals();
   }, [companyId, includeSoldAnimals]);
 
   const preSelectedAnimalIds = useMemo(() => {
@@ -64,6 +79,12 @@ export function useSaleFormData({
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!companyId) {
+        setBuyers([]);
+        setProperties([]);
+        setIsLoading(false);
+        return;
+      }
       try {
         setIsLoading(true);
         const [buyersData, propertiesData] = await Promise.all([getBuyers(), getProperties()]);

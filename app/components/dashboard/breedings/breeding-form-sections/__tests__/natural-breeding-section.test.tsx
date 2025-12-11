@@ -3,11 +3,9 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NaturalBreedingSection } from "../natural-breeding-section";
 import { useTranslation } from "~/i18n";
-import { getBirthByAnimalId } from "~/services/births.service";
-import type { Animal } from "~/types";
+import type { Animal, Birth, AnimalBreed } from "~/types";
 
 vi.mock("~/i18n");
-vi.mock("~/services/births.service");
 vi.mock("~/components/ui", () => ({
   Input: ({
     value,
@@ -61,8 +59,11 @@ describe("NaturalBreedingSection", () => {
     },
   ];
 
+  const mockBirthsMap = new Map<string, Birth>();
+
   const defaultProps = {
     bulls: mockBulls,
+    birthsMap: mockBirthsMap,
     selectedBullId: "",
     searchValue: "",
     onSearchChange: vi.fn(),
@@ -71,19 +72,22 @@ describe("NaturalBreedingSection", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockBirthsMap.clear();
     mockUseTranslation.mockReturnValue({
       breedings: {
         new: {
           bullLabel: "Bull",
           bullSearchPlaceholder: "Search bulls",
           noBulls: "No bulls found",
+          bullSelected: "Bull selected",
         },
       },
       animals: {
-        breeds: {},
+        breeds: {
+          nelore: "Nelore",
+        },
       },
     } as unknown as ReturnType<typeof useTranslation>);
-    vi.mocked(getBirthByAnimalId).mockReturnValue(null);
   });
 
   it("should render bull search input", () => {
@@ -107,6 +111,26 @@ describe("NaturalBreedingSection", () => {
     render(<NaturalBreedingSection {...defaultProps} />);
     expect(screen.getByText("B001")).toBeInTheDocument();
     expect(screen.getByText("B002")).toBeInTheDocument();
+  });
+
+  it("should display breed from birthsMap when available", () => {
+    const mockBirth: Birth = {
+      id: "birth-1",
+      animalId: "1",
+      birthDate: "2024-01-01",
+      breed: "nelore" as AnimalBreed,
+      companyId: "company-1",
+      createdAt: "2024-01-01T00:00:00Z",
+    };
+    mockBirthsMap.set("1", mockBirth);
+    render(<NaturalBreedingSection {...defaultProps} />);
+    expect(screen.getByText("(Nelore)")).toBeInTheDocument();
+  });
+
+  it("should not display breed when not in birthsMap", () => {
+    render(<NaturalBreedingSection {...defaultProps} />);
+    // Should not show breed text when birth is not in map
+    expect(screen.queryByText(/\(Nelore\)/)).not.toBeInTheDocument();
   });
 
   it("should show empty message when no bulls", () => {

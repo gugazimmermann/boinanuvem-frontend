@@ -3,10 +3,9 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AIBreedingSection } from "../ai-breeding-section";
 import { useTranslation } from "~/i18n";
-import { getAnimalById } from "~/services/animals.service";
+import type { Animal } from "~/types";
 
 vi.mock("~/i18n");
-vi.mock("~/services/animals.service");
 vi.mock("~/components/ui", () => ({
   Input: ({
     value,
@@ -42,8 +41,11 @@ vi.mock("../animal-code-display", () => ({
 
 describe("AIBreedingSection", () => {
   const mockUseTranslation = vi.mocked(useTranslation);
+  const mockAnimalsMap = new Map<string, Animal>();
+
   const defaultProps = {
     selectedAnimalIds: [],
+    animalsMap: mockAnimalsMap,
     attemptNumbers: {},
     semenCode: "",
     onSemenCodeChange: vi.fn(),
@@ -53,6 +55,7 @@ describe("AIBreedingSection", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAnimalsMap.clear();
     mockUseTranslation.mockReturnValue({
       breedings: {
         new: {
@@ -62,7 +65,6 @@ describe("AIBreedingSection", () => {
         },
       },
     } as unknown as ReturnType<typeof useTranslation>);
-    vi.mocked(getAnimalById).mockReturnValue({ id: "1", code: "A001" } as never);
   });
 
   it("should render semen code input", () => {
@@ -88,6 +90,16 @@ describe("AIBreedingSection", () => {
   });
 
   it("should render attempt number section when animals are selected", () => {
+    const animal: Animal = {
+      id: "1",
+      code: "A001",
+      registrationNumber: "REG001",
+      status: "active",
+      createdAt: "2024-01-01T00:00:00Z",
+      companyId: "company-1",
+      propertyId: "prop-1",
+    };
+    mockAnimalsMap.set("1", animal);
     render(
       <AIBreedingSection {...defaultProps} selectedAnimalIds={["1"]} attemptNumbers={{ "1": 1 }} />
     );
@@ -105,8 +117,7 @@ describe("AIBreedingSection", () => {
     expect(input).toBeDisabled();
   });
 
-  it("should not render animal when getAnimalById returns null", () => {
-    vi.mocked(getAnimalById).mockReturnValue(null as never);
+  it("should not render animal when animal is not in animalsMap", () => {
     render(
       <AIBreedingSection {...defaultProps} selectedAnimalIds={["1"]} attemptNumbers={{ "1": 1 }} />
     );
@@ -114,9 +125,26 @@ describe("AIBreedingSection", () => {
   });
 
   it("should render multiple animals with attempt numbers", () => {
-    vi.mocked(getAnimalById)
-      .mockReturnValueOnce({ id: "1", code: "A001" } as never)
-      .mockReturnValueOnce({ id: "2", code: "A002" } as never);
+    const animal1: Animal = {
+      id: "1",
+      code: "A001",
+      registrationNumber: "REG001",
+      status: "active",
+      createdAt: "2024-01-01T00:00:00Z",
+      companyId: "company-1",
+      propertyId: "prop-1",
+    };
+    const animal2: Animal = {
+      id: "2",
+      code: "A002",
+      registrationNumber: "REG002",
+      status: "active",
+      createdAt: "2024-01-01T00:00:00Z",
+      companyId: "company-1",
+      propertyId: "prop-1",
+    };
+    mockAnimalsMap.set("1", animal1);
+    mockAnimalsMap.set("2", animal2);
     render(
       <AIBreedingSection
         {...defaultProps}
@@ -131,6 +159,16 @@ describe("AIBreedingSection", () => {
   it("should call onAttemptNumberChange when attempt number changes", async () => {
     const user = userEvent.setup();
     const onAttemptNumberChange = vi.fn();
+    const animal: Animal = {
+      id: "1",
+      code: "A001",
+      registrationNumber: "REG001",
+      status: "active",
+      createdAt: "2024-01-01T00:00:00Z",
+      companyId: "company-1",
+      propertyId: "prop-1",
+    };
+    mockAnimalsMap.set("1", animal);
     render(
       <AIBreedingSection
         {...defaultProps}
@@ -162,6 +200,16 @@ describe("AIBreedingSection", () => {
   });
 
   it("should display error for attempt number field", () => {
+    const animal: Animal = {
+      id: "1",
+      code: "A001",
+      registrationNumber: "REG001",
+      status: "active",
+      createdAt: "2024-01-01T00:00:00Z",
+      companyId: "company-1",
+      propertyId: "prop-1",
+    };
+    mockAnimalsMap.set("1", animal);
     render(
       <AIBreedingSection
         {...defaultProps}
@@ -182,6 +230,16 @@ describe("AIBreedingSection", () => {
   });
 
   it("should handle empty attempt number value", () => {
+    const animal: Animal = {
+      id: "1",
+      code: "A001",
+      registrationNumber: "REG001",
+      status: "active",
+      createdAt: "2024-01-01T00:00:00Z",
+      companyId: "company-1",
+      propertyId: "prop-1",
+    };
+    mockAnimalsMap.set("1", animal);
     render(
       <AIBreedingSection {...defaultProps} selectedAnimalIds={["1"]} attemptNumbers={{ "1": 0 }} />
     );

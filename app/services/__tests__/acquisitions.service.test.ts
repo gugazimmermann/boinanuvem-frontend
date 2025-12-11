@@ -25,6 +25,7 @@ const { mockAcquisitionsData } = vi.hoisted(() => {
       transportationFee: 100,
       acquisitionItems: [{ animalId: "animal-1", weight: 500, price: 5000, costPerArroba: 300 }],
       linkedCashFlowId: "cf-1",
+      createdAt: "2024-01-15T00:00:00Z",
     },
   ];
   return { mockAcquisitionsData };
@@ -69,14 +70,45 @@ vi.mock("~/utils/fees", () => ({
   ),
 }));
 
-import { mockAcquisitions } from "~/mocks/acquisitions";
+const { mockApiClient, mockGet, mockPost, mockPut, mockDelete } = vi.hoisted(() => {
+  const mockGet = vi.fn();
+  const mockPost = vi.fn();
+  const mockPut = vi.fn();
+  const mockDelete = vi.fn();
+  return {
+    mockApiClient: {
+      get: mockGet,
+      post: mockPost,
+      put: mockPut,
+      delete: mockDelete,
+    },
+    mockGet,
+    mockPost,
+    mockPut,
+    mockDelete,
+  };
+});
+
+vi.mock("../api-client", async (importOriginal: () => Promise<typeof import("../api-client")>) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    apiClient: mockApiClient,
+  };
+});
+
 import { getAnimalById } from "../animals.service";
-import { addCashFlow, updateCashFlow, deleteCashFlow } from "../cash-flow.service";
+import { addCashFlow } from "../cash-flow.service";
 import { addAccountsPayable } from "../accounts-payable.service";
 
 describe("acquisitions.service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Setup default API client mocks
+    mockGet.mockResolvedValue(mockAcquisitionsData);
+    mockPost.mockResolvedValue(mockAcquisitionsData[0]);
+    mockPut.mockResolvedValue(mockAcquisitionsData[0]);
+    mockDelete.mockResolvedValue(undefined);
   });
 
   describe("calculateAcquisitionCostPerArroba", () => {
@@ -98,33 +130,36 @@ describe("acquisitions.service", () => {
   });
 
   describe("getAcquisitionById", () => {
-    it("should find acquisition by id", () => {
-      const result = getAcquisitionById("acq-1");
-      expect(result).toEqual(mockAcquisitions[0]);
+    it("should find acquisition by id", async () => {
+      mockGet.mockResolvedValue(mockAcquisitionsData[0]);
+      const result = await getAcquisitionById("acq-1");
+      expect(result).toEqual(mockAcquisitionsData[0]);
     });
   });
 
   describe("getAcquisitionByAnimalId", () => {
-    it("should find acquisition by animal id", () => {
-      const result = getAcquisitionByAnimalId("animal-1");
-      expect(result).toEqual(mockAcquisitions[0]);
+    it("should find acquisition by animal id", async () => {
+      mockGet.mockResolvedValue(mockAcquisitionsData);
+      const result = await getAcquisitionByAnimalId("animal-1");
+      expect(result).toEqual(mockAcquisitionsData[0]);
     });
 
-    it("should return undefined when animal id is empty", () => {
-      const result = getAcquisitionByAnimalId("");
+    it("should return undefined when animal id is empty", async () => {
+      const result = await getAcquisitionByAnimalId("");
       expect(result).toBeUndefined();
     });
   });
 
   describe("getAcquisitionsByDateRange", () => {
-    it("should find acquisitions within date range", () => {
-      const result = getAcquisitionsByDateRange("company-1", "2024-01-01", "2024-01-31");
+    it("should find acquisitions within date range", async () => {
+      mockGet.mockResolvedValue(mockAcquisitionsData);
+      const result = await getAcquisitionsByDateRange("company-1", "2024-01-01", "2024-01-31");
       expect(result).toHaveLength(1);
     });
   });
 
   describe("addAcquisition", () => {
-    it("should create acquisition with cash flow payment", () => {
+    it("should create acquisition with cash flow payment", async () => {
       const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
       const addCash = addCashFlow as ReturnType<typeof vi.fn>;
       getAnimal.mockReturnValue({ id: "animal-2", code: "002" });
@@ -144,14 +179,20 @@ describe("acquisitions.service", () => {
         propertyIds: [],
       };
 
-      const result = addAcquisition(formData);
+      const createdAcquisition = {
+        ...mockAcquisitionsData[0],
+        id: "acq-new",
+        linkedCashFlowId: "cf-new",
+      };
+      mockPost.mockResolvedValue(createdAcquisition);
+
+      const result = await addAcquisition(formData);
 
       expect(result.id).toBeDefined();
-      expect(result.linkedCashFlowId).toBe("cf-new");
-      expect(addCash).toHaveBeenCalled();
+      expect(mockPost).toHaveBeenCalled();
     });
 
-    it("should calculate cost per animal and cost per arroba", () => {
+    it("should calculate cost per animal and cost per arroba", async () => {
       const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
       const addCash = addCashFlow as ReturnType<typeof vi.fn>;
       getAnimal.mockReturnValue({ id: "animal-2", code: "002" });
@@ -173,7 +214,18 @@ describe("acquisitions.service", () => {
         ],
       };
 
-      const result = addAcquisition(formData);
+      const createdAcquisition = {
+        ...mockAcquisitionsData[0],
+        id: "acq-new",
+        totalPrice: 6000,
+        acquisitionItems: [
+          { animalId: "animal-2", weight: 300, price: 3000, costPerArroba: 300 },
+          { animalId: "animal-3", weight: 300, price: 3000, costPerArroba: 300 },
+        ],
+      };
+      mockPost.mockResolvedValue(createdAcquisition);
+
+      const result = await addAcquisition(formData);
 
       // The calculation should be: totalPrice (6000) / animalCount (2) = 3000
       // The service code correctly calculates costPerAnimal = totalCost / animalCount
@@ -186,49 +238,51 @@ describe("acquisitions.service", () => {
   });
 
   describe("updateAcquisition", () => {
-    it("should update acquisition and recalculate costs", () => {
-      // getAcquisitionById uses findById which works with mock data
+    it("should update acquisition and recalculate costs", async () => {
+      const updatedAcquisition = {
+        ...mockAcquisitionsData[0],
+        totalPrice: 12000,
+      };
+      mockPut.mockResolvedValue(updatedAcquisition);
       const updateData = { totalPrice: 12000 };
-      const result = updateAcquisition("acq-1", updateData);
+      const result = await updateAcquisition("acq-1", updateData);
 
-      expect(result).toBe(true);
-      expect(updateCashFlow).toHaveBeenCalled();
+      expect(result).toBeDefined();
+      expect(result.totalPrice).toBe(12000);
+      expect(mockPut).toHaveBeenCalled();
     });
 
-    it("should handle payment method change", () => {
+    it("should handle payment method change", async () => {
       const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
       const addAR = addAccountsPayable as ReturnType<typeof vi.fn>;
       getAnimal.mockReturnValue({ id: "animal-1", code: "001" });
       addAR.mockReturnValue({ id: "ap-new" });
 
-      const updateData = { paymentMethod: AcquisitionPaymentMethod.ACCOUNTS_PAYABLE };
-      const result = updateAcquisition("acq-1", updateData);
+      const updatedAcquisition = {
+        ...mockAcquisitionsData[0],
+        paymentMethod: AcquisitionPaymentMethod.ACCOUNTS_PAYABLE,
+      };
+      mockPut.mockResolvedValue(updatedAcquisition);
 
-      expect(result).toBe(true);
-      expect(deleteCashFlow).toHaveBeenCalledWith("cf-1");
-      expect(addAR).toHaveBeenCalled();
+      const updateData = { paymentMethod: AcquisitionPaymentMethod.ACCOUNTS_PAYABLE };
+      const result = await updateAcquisition("acq-1", updateData);
+
+      expect(result).toBeDefined();
+      expect(mockPut).toHaveBeenCalled();
     });
   });
 
   describe("deleteAcquisition", () => {
-    it("should delete acquisition and linked financial records", () => {
-      // Ensure the acquisition has linkedCashFlowId by adding it if it doesn't exist
-      const acquisition = getAcquisitionById("acq-1");
-      if (acquisition && !acquisition.linkedCashFlowId) {
-        acquisition.linkedCashFlowId = "cf-1";
-      }
+    it("should delete acquisition and linked financial records", async () => {
+      mockGet.mockResolvedValue(mockAcquisitionsData[0]);
+      mockDelete.mockResolvedValue(undefined);
 
-      const initialLength = mockAcquisitions.length;
       // Clear any previous calls
       mockDeleteCashFlow.mockClear();
 
-      const result = deleteAcquisition("acq-1");
+      await deleteAcquisition("acq-1");
 
-      expect(result).toBe(true);
-      // The imported deleteCashFlow should be the same as our mock
-      expect(deleteCashFlow).toBe(mockDeleteCashFlow);
-      expect(mockDeleteCashFlow).toHaveBeenCalledWith("cf-1");
-      expect(mockAcquisitions).toHaveLength(initialLength - 1);
+      expect(mockDelete).toHaveBeenCalledWith("/acquisitions/acq-1");
     });
   });
 

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router";
 import {
   Table,
@@ -17,11 +17,11 @@ import { formatDate } from "~/utils/formatting";
 import { deleteAcquisition, getAcquisitionsByCompanyId } from "~/services/acquisitions.service";
 import { getSuppliers } from "~/services/suppliers.service";
 import { getProperties } from "~/services/properties.service";
-import type { Property, Supplier, Acquisition } from "~/types";
+import type { Property, Supplier, Acquisition, Animal } from "~/types";
 import { AcquisitionPaymentMethod } from "~/types";
-import { getAnimalById } from "~/services/animals.service";
+import { getAnimalsByCompanyId } from "~/services/animals.service";
 import { getTotalFees } from "~/utils/fees";
-import { mockCompanies } from "~/mocks/companies";
+import { useAuth } from "~/contexts/auth-context";
 import { ROUTES, getAcquisitionEditRoute, getAcquisitionViewRoute } from "~/routes.config";
 import { usePermissions } from "~/utils/permissions";
 import { useRecordList } from "~/hooks/use-record-list";
@@ -50,34 +50,49 @@ export default function Acquisitions() {
   const { language } = useLanguage();
   const navigate = useNavigate();
   const { canAdd, canEdit, canRemove } = usePermissions();
-  const company = mockCompanies[0];
-  const companyId = company?.id || "";
-  const [acquisitions, setAcquisitions] = useState<Acquisition[]>(() =>
-    getAcquisitionsByCompanyId(companyId)
-  );
+  const { currentUser } = useAuth();
+  const companyId = currentUser?.companyId || "";
+  const [acquisitions, setAcquisitions] = useState<Acquisition[]>([]);
+  const [animals, setAnimals] = useState<Animal[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
-      if (company) {
+      if (companyId) {
+        setIsLoading(true);
         try {
-          const [propertiesData, suppliersData] = await Promise.all([
+          const [acquisitionsData, animalsData, propertiesData, suppliersData] = await Promise.all([
+            getAcquisitionsByCompanyId(companyId),
+            getAnimalsByCompanyId(companyId),
             getProperties(),
             getSuppliers(),
           ]);
-          setProperties(propertiesData.filter((prop) => prop.companyId === company.id));
-          setSuppliers(suppliersData.filter((sup) => sup.companyId === company.id));
+          setAcquisitions(acquisitionsData || []);
+          setAnimals(animalsData || []);
+          setProperties(propertiesData.filter((prop) => prop.companyId === companyId));
+          setSuppliers(suppliersData.filter((sup) => sup.companyId === companyId));
         } catch (error) {
           console.error("Failed to load data:", error);
+        } finally {
+          setIsLoading(false);
         }
       }
     };
     fetchData();
-  }, [company]);
+  }, [companyId]);
 
   const propertiesMap = useMemo(() => new Map(properties.map((p) => [p.id, p])), [properties]);
   const suppliersMap = useMemo(() => new Map(suppliers.map((s) => [s.id, s])), [suppliers]);
+  const animalsMap = useMemo(() => new Map(animals.map((a) => [a.id, a])), [animals]);
+
+  const getAnimalById = useCallback(
+    (animalId: string): Animal | undefined => {
+      return animalsMap.get(animalId);
+    },
+    [animalsMap]
+  );
 
   const [supplierFilter, setSupplierFilter] = useState<string>("all");
 
@@ -85,13 +100,15 @@ export default function Acquisitions() {
 
   const { handleDeleteClick, handleDelete, isDeleteModalOpen, handleCloseModal } = useDeleteHandler(
     {
-      onDelete: (acquisition: Acquisition) => {
-        const success = deleteAcquisition(acquisition.id);
-        if (success) {
+      onDelete: async (acquisition: Acquisition) => {
+        try {
+          await deleteAcquisition(acquisition.id);
           setAcquisitions((prev) => prev.filter((a) => a.id !== acquisition.id));
           return true;
+        } catch (error) {
+          console.error("Error deleting acquisition:", error);
+          return false;
         }
-        return false;
       },
       onSuccess: () => {
         showAlert(
@@ -301,7 +318,7 @@ export default function Acquisitions() {
         canDelete: canRemove("records", "acquisitions"),
       }),
     ],
-    [t, language, navigate, handleDeleteClick, canEdit, canRemove, suppliersMap]
+    [t, language, navigate, handleDeleteClick, canEdit, canRemove, suppliersMap, getAnimalById]
   );
 
   const headerActions: TableAction[] = useMemo(
@@ -332,6 +349,17 @@ export default function Acquisitions() {
     recordList.clearAllFilters();
     setSupplierFilter("all");
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">{t.common.loading || "Carregando..."}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>

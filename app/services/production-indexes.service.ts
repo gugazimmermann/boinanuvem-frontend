@@ -9,6 +9,7 @@ import { getAnimalMovementsByAnimalId } from "./animal-movements.service";
 import { LocationType, AreaType, InventoryMovementType } from "~/types";
 import { getMovementsByPropertyId } from "./inventory-movements.service";
 import { hasNitrogenContent, getNitrogenContent } from "./nitrogen-content.service";
+import { filterByPeriod } from "~/utils/period-filters";
 
 const indexCache = new Map<
   string,
@@ -130,17 +131,17 @@ function calculateAnimalUnits(animals: Array<{ weight: number }>): number {
   return totalWeight > 0 ? totalWeight / 450 : 0;
 }
 
-export function getAverageDailyGain(
+export async function getAverageDailyGain(
   propertyId: string,
   period?: { startDate?: string; endDate?: string }
-): AverageDailyGainResult[] {
+): Promise<AverageDailyGainResult[]> {
   const cacheKey = getCacheKey("getAverageDailyGain", propertyId, period);
   const cached = getCachedResult<AverageDailyGainResult[]>(cacheKey);
   if (cached !== null) {
     return cached;
   }
 
-  const animals = getAnimalsByPropertyId(propertyId);
+  const animals = await getAnimalsByPropertyId(propertyId);
   const results: AverageDailyGainResult[] = [];
 
   for (const animal of animals) {
@@ -186,23 +187,23 @@ export function getAverageDailyGain(
   return results;
 }
 
-export function getAverageDailyCarcassGain(
+export async function getAverageDailyCarcassGain(
   propertyId: string,
   period?: { startDate?: string; endDate?: string },
   averageCarcassYield?: number
-): AverageDailyCarcassGainResult[] {
+): Promise<AverageDailyCarcassGainResult[]> {
   const cacheKey = getCacheKey("getAverageDailyCarcassGain", propertyId, period);
   const cached = getCachedResult<AverageDailyCarcassGainResult[]>(cacheKey);
   if (cached !== null) {
     return cached;
   }
 
-  const adgResults = getAverageDailyGain(propertyId, period);
+  const adgResults = await getAverageDailyGain(propertyId, period);
   const results: AverageDailyCarcassGainResult[] = [];
 
   let carcassYield = averageCarcassYield;
   if (!carcassYield) {
-    const yieldResult = getCarcassYield(propertyId, period);
+    const yieldResult = await getCarcassYield(propertyId, period);
     carcassYield = yieldResult.yield;
   }
 
@@ -220,28 +221,6 @@ export function getAverageDailyCarcassGain(
 
   setCachedResult(cacheKey, results);
   return results;
-}
-
-// Generic date filtering utility
-function filterByPeriod<T extends { date: string }>(
-  items: T[],
-  period?: { startDate?: string; endDate?: string }
-): T[] {
-  if (!period?.startDate && !period?.endDate) {
-    return items;
-  }
-  return items.filter((item) => {
-    const itemDate = new Date(item.date).getTime();
-    if (period.startDate) {
-      const start = new Date(period.startDate).getTime();
-      if (itemDate < start) return false;
-    }
-    if (period.endDate) {
-      const end = new Date(period.endDate).getTime();
-      if (itemDate > end) return false;
-    }
-    return true;
-  });
 }
 
 // Helper for filtering sales by period (uses saleDate instead of date)
@@ -313,14 +292,14 @@ function getExitDateFromSales(animalId: string, _entryDate: Date): Date {
     return new Date();
   }
 
-  const sortedSales = sales.toSorted(
+  const sortedSales = [...sales].sort(
     (a, b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime()
   );
   return new Date(sortedSales[0].saleDate);
 }
 
 function calculateDaysOnFeed(
-  animal: ReturnType<typeof getAnimalsByPropertyId>[0],
+  animal: Awaited<ReturnType<typeof getAnimalsByPropertyId>>[0],
   movements: ReturnType<typeof getAnimalMovementsByAnimalId>,
   confinementLocationIds: Set<string>,
   period?: { startDate?: string; endDate?: string }
@@ -330,7 +309,7 @@ function calculateDaysOnFeed(
   }
 
   const filteredMovements = filterMovementsByPeriod(movements, period);
-  const sortedMovements = filteredMovements.toSorted(
+  const sortedMovements = [...filteredMovements].sort(
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
   );
 
@@ -370,7 +349,7 @@ export async function getDaysOnFeed(
     return cached;
   }
 
-  const animals = getAnimalsByPropertyId(propertyId);
+  const animals = await getAnimalsByPropertyId(propertyId);
   const confinementLocationIds = await getConfinementLocationIds(propertyId);
   const results: DaysOnFeedResult[] = [];
 
@@ -386,17 +365,17 @@ export async function getDaysOnFeed(
   return results;
 }
 
-export function getCarcassYield(
+export async function getCarcassYield(
   propertyId: string,
   period?: { startDate?: string; endDate?: string }
-): CarcassYieldResult {
+): Promise<CarcassYieldResult> {
   const cacheKey = getCacheKey("getCarcassYield", propertyId, period);
   const cached = getCachedResult<CarcassYieldResult>(cacheKey);
   if (cached !== null) {
     return cached;
   }
 
-  const animals = getAnimalsByPropertyId(propertyId);
+  const animals = await getAnimalsByPropertyId(propertyId);
   const animal = animals[0];
   const companyId = animal?.companyId || "550e8400-e29b-41d4-a716-446655440000";
   const allSales = getSalesByCompanyId(companyId);
@@ -431,17 +410,17 @@ export function getCarcassYield(
   return result;
 }
 
-export function getSlaughterAge(
+export async function getSlaughterAge(
   propertyId: string,
   period?: { startDate?: string; endDate?: string }
-): SlaughterAgeResult {
+): Promise<SlaughterAgeResult> {
   const cacheKey = getCacheKey("getSlaughterAge", propertyId, period);
   const cached = getCachedResult<SlaughterAgeResult>(cacheKey);
   if (cached !== null) {
     return cached;
   }
 
-  const animals = getAnimalsByPropertyId(propertyId);
+  const animals = await getAnimalsByPropertyId(propertyId);
   const animal = animals[0];
   const companyId = animal?.companyId || "550e8400-e29b-41d4-a716-446655440000";
   const allSales = getSalesByCompanyId(companyId);
@@ -453,10 +432,10 @@ export function getSlaughterAge(
 
   for (const sale of filteredSales) {
     for (const item of sale.saleItems) {
-      const animal = getAnimalById(item.animalId);
+      const animal = await getAnimalById(item.animalId);
       if (!animal) continue;
 
-      const birth = getBirthByAnimalId(animal.id);
+      const birth = await getBirthByAnimalId(animal.id);
       if (birth) {
         const birthDate = new Date(birth.birthDate);
         const saleDate = new Date(sale.saleDate);
@@ -518,7 +497,7 @@ export async function getArrobaProductionPerHectare(
 
   const areaInHectares = convertToHectares(property.area.value, property.area.type);
 
-  const animals = getAnimalsByPropertyId(propertyId);
+  const animals = await getAnimalsByPropertyId(propertyId);
   const animal = animals[0];
   const companyId = animal?.companyId || "550e8400-e29b-41d4-a716-446655440000";
   const allSales = getSalesByCompanyId(companyId);
@@ -570,7 +549,7 @@ export async function getKgNitrogenPerAU(
 
   const areaInHectares = convertToHectares(property.area.value, property.area.type);
 
-  const animals = getAnimalsByPropertyId(propertyId);
+  const animals = await getAnimalsByPropertyId(propertyId);
   const animalsWithWeights = animals
     .map((animal) => {
       const weighings = getWeighingsByAnimalId(animal.id);
@@ -580,8 +559,8 @@ export async function getKgNitrogenPerAU(
 
       if (filteredWeighings.length === 0) return null;
 
-      const latestWeighing = filteredWeighings
-        .toSorted((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      const latestWeighing = [...filteredWeighings]
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
         .at(0);
 
       if (!latestWeighing) return null;
@@ -620,17 +599,17 @@ export async function getKgNitrogenPerAU(
   return result;
 }
 
-export function getKgMeatPerKgNitrogen(
+export async function getKgMeatPerKgNitrogen(
   propertyId: string,
   period?: { startDate?: string; endDate?: string }
-): KgMeatPerKgNitrogenResult {
+): Promise<KgMeatPerKgNitrogenResult> {
   const cacheKey = getCacheKey("getKgMeatPerKgNitrogen", propertyId, period);
   const cached = getCachedResult<KgMeatPerKgNitrogenResult>(cacheKey);
   if (cached !== null) {
     return cached;
   }
 
-  const adgResults = getAverageDailyGain(propertyId, period);
+  const adgResults = await getAverageDailyGain(propertyId, period);
   let totalWeightGain = 0;
 
   for (const result of adgResults) {

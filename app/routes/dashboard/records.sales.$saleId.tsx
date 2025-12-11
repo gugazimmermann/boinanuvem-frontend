@@ -47,7 +47,10 @@ export default function SaleDetails() {
   const t = useTranslation();
   const { language } = useLanguage();
   const { canEdit, canRemove } = usePermissions();
-  const sale = getSaleById(saleId);
+  const [sale, setSale] = useState<Awaited<ReturnType<typeof getSaleById>>>(undefined);
+  const [animals, setAnimals] = useState<Map<string, Awaited<ReturnType<typeof getAnimalById>>>>(
+    new Map()
+  );
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [buyer, setBuyer] = useState<Buyer | null>(null);
   const [property, setProperty] = useState<Property | null>(null);
@@ -55,6 +58,32 @@ export default function SaleDetails() {
     new Map()
   );
   const { alertMessage, showAlert } = useAlert();
+
+  useEffect(() => {
+    const loadSale = async () => {
+      if (!saleId) return;
+      const saleData = await Promise.resolve(getSaleById(saleId));
+      setSale(saleData);
+      if (saleData?.saleItems) {
+        // Load animals for sale items
+        const animalsPromises = saleData.saleItems.map(async (item) => {
+          const animal = await getAnimalById(item.animalId);
+          return { animalId: item.animalId, animal };
+        });
+        const animalsResults = await Promise.all(animalsPromises);
+        const animalsMap = new Map(
+          animalsResults
+            .filter(
+              (r): r is { animalId: string; animal: NonNullable<typeof r.animal> } =>
+                r.animal !== undefined
+            )
+            .map((r) => [r.animalId, r.animal])
+        );
+        setAnimals(animalsMap);
+      }
+    };
+    loadSale();
+  }, [saleId]);
 
   useEffect(() => {
     const loadEntities = async () => {
@@ -68,7 +97,7 @@ export default function SaleDetails() {
           setProperty(propertyData);
 
           // Load profitability for each sale item
-          const profitabilityPromises = sale.saleItems.map(async (item) => {
+          const profitabilityPromises = (sale?.saleItems || []).map(async (item) => {
             try {
               const profitability = await calculateAnimalProfitability(
                 item.animalId,
@@ -107,7 +136,9 @@ export default function SaleDetails() {
   }
 
   const formatDate = (dateString: string) => {
+    if (!dateString) return "-";
     const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return dateString; // Return original string if invalid
     const dateFormat = language === "en" ? "MM/dd/yyyy" : "dd/MM/yyyy";
     return format(date, dateFormat, { locale: dateLocale });
   };
@@ -118,7 +149,7 @@ export default function SaleDetails() {
 
   const handleDeleteSale = async () => {
     if (!sale) return;
-    const success = deleteSale(sale.id);
+    const success = await deleteSale(sale.id);
     if (success) {
       showAlert(t.sales?.success?.deleted || "Venda excluída com sucesso", "success");
       setTimeout(() => {
@@ -292,8 +323,8 @@ export default function SaleDetails() {
             {t.sales?.details?.saleItems || "Itens da Venda"}
           </h2>
           <div className="space-y-3">
-            {sale.saleItems.map((item) => {
-              const animal = getAnimalById(item.animalId);
+            {(sale?.saleItems || []).map((item) => {
+              const animal = animals.get(item.animalId);
               const profitability = profitabilities.get(item.animalId);
               if (!profitability) return null;
               return (

@@ -58,18 +58,38 @@ export default function BirthForecastPage() {
   }, [company, selectedPropertyId]);
 
   const dateLocale = useDateLocale();
+  const [expectedBirthsForecast, setExpectedBirthsForecast] = useState<Awaited<
+    ReturnType<typeof getExpectedBirthsForecast>
+  > | null>(null);
 
-  const expectedBirthsForecast = useMemo(() => {
-    if (selectedPropertyId === ALL_PROPERTIES_ID && company) {
-      return getExpectedBirthsForecast(company.id, { isPropertyId: false, monthsAhead: 9 });
-    } else if (selectedPropertyId && selectedPropertyId !== ALL_PROPERTIES_ID) {
-      return getExpectedBirthsForecast(selectedPropertyId, { isPropertyId: true, monthsAhead: 9 });
-    }
-    return { monthly: [], total: 0 };
+  useEffect(() => {
+    const loadExpectedBirthsForecast = async () => {
+      try {
+        let forecast: Awaited<ReturnType<typeof getExpectedBirthsForecast>>;
+        if (selectedPropertyId === ALL_PROPERTIES_ID && company) {
+          forecast = await getExpectedBirthsForecast(company.id, {
+            isPropertyId: false,
+            monthsAhead: 9,
+          });
+        } else if (selectedPropertyId && selectedPropertyId !== ALL_PROPERTIES_ID) {
+          forecast = await getExpectedBirthsForecast(selectedPropertyId, {
+            isPropertyId: true,
+            monthsAhead: 9,
+          });
+        } else {
+          forecast = { monthly: [], total: 0 };
+        }
+        setExpectedBirthsForecast(forecast);
+      } catch (error) {
+        console.error("Failed to load expected births forecast:", error);
+        setExpectedBirthsForecast({ monthly: [], total: 0 });
+      }
+    };
+    loadExpectedBirthsForecast();
   }, [selectedPropertyId, company]);
 
   const expectedBirthsData = useMemo(() => {
-    if (!expectedBirthsForecast.monthly || expectedBirthsForecast.monthly.length === 0) return [];
+    if (!expectedBirthsForecast?.monthly || expectedBirthsForecast.monthly.length === 0) return [];
     return expectedBirthsForecast.monthly.map((item) => {
       const [year, month] = item.month.split("-");
       const monthDate = new Date(Number.parseInt(year), Number.parseInt(month) - 1, 1);
@@ -80,7 +100,7 @@ export default function BirthForecastPage() {
         expectedBirths: item.expectedBirths,
       };
     });
-  }, [expectedBirthsForecast.monthly, dateLocale]);
+  }, [expectedBirthsForecast, dateLocale]);
 
   const summaryStats = useMemo(() => {
     if (expectedBirthsData.length === 0) {
@@ -92,7 +112,7 @@ export default function BirthForecastPage() {
       };
     }
 
-    const total = expectedBirthsForecast.total;
+    const total = expectedBirthsForecast?.total || 0;
     const average = total / expectedBirthsData.length;
     const peakMonth = expectedBirthsData.reduce(
       (max, item) => (item.expectedBirths > max.expectedBirths ? item : max),
@@ -112,7 +132,7 @@ export default function BirthForecastPage() {
       },
       nextMonth: nextMonth?.expectedBirths || 0,
     };
-  }, [expectedBirthsData, expectedBirthsForecast.total]);
+  }, [expectedBirthsData, expectedBirthsForecast]);
 
   if (properties.length === 0) {
     return (

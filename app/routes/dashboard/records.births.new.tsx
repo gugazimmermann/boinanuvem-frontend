@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { Input, Select, Button, FixedAlert } from "~/components/ui";
 import { useTranslation } from "~/i18n";
@@ -8,19 +8,17 @@ import {
   FormActions,
 } from "~/components/dashboard/shared";
 import { ROUTES } from "~/routes.config";
-import { addBirth, calculatePurity, getBirthByAnimalId } from "~/services/births.service";
+import {
+  addBirth,
+  calculatePurity,
+  getBirthByAnimalId,
+  getBirthsByCompanyId,
+} from "~/services/births.service";
 import { unconfirmMostRecentBreedingForAnimal } from "~/services/breedings.service";
-import { addAnimal, getAnimalsByCompanyId, getAnimalById } from "~/services/animals.service";
+import { getAnimalsByCompanyId } from "~/services/animals.service";
 import { addWeighing } from "~/services/weighings.service";
-import type {
-  BirthFormData,
-  AnimalFormData,
-  WeighingFormData,
-  Property,
-  Employee,
-  ServiceProvider,
-} from "~/types";
-import { mockCompanies } from "~/mocks/companies";
+import type { WeighingFormData, Property, Employee, ServiceProvider } from "~/types";
+import { useAuth } from "~/contexts/auth-context";
 import { getProperties } from "~/services/properties.service";
 import { getEmployees } from "~/services/employees.service";
 import { getServiceProviders } from "~/services/service-providers.service";
@@ -36,12 +34,17 @@ export function meta() {
   ];
 }
 
+export async function loader({ request }: { request: Request }) {
+  const { createRouteGuard } = await import("~/utils/route-guard");
+  return createRouteGuard(undefined, "add")({ request });
+}
+
 export default function NewBirth() {
   const t = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const company = mockCompanies[0];
-  const companyId = company?.id || "";
+  const { currentUser } = useAuth();
+  const companyId = currentUser?.companyId || "";
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -55,20 +58,57 @@ export default function NewBirth() {
 
   const [motherSearch, setMotherSearch] = useState("");
   const [fatherSearch, setFatherSearch] = useState("");
+  const [animals, setAnimals] = useState<
+    Array<{ id: string; code: string; registrationNumber: string }>
+  >([]);
+  const [births, setBirths] = useState<Array<{ animalId: string; gender?: string }>>([]);
 
-  const animals = useMemo(() => getAnimalsByCompanyId(companyId), [companyId]);
+  // Load animals and births from API
+  useEffect(() => {
+    const loadData = async () => {
+      if (!companyId) return;
+      try {
+        const [animalsData, birthsData] = await Promise.all([
+          getAnimalsByCompanyId(companyId),
+          getBirthsByCompanyId(companyId),
+        ]);
+        setAnimals(animalsData || []);
+        setBirths(birthsData || []);
+      } catch (error) {
+        console.error("Failed to load data:", error);
+      }
+    };
+    loadData();
+  }, [companyId]);
+
+  // Create a map of births by animal ID
+  const birthsByAnimalId = useMemo(() => {
+    const map = new Map<string, { animalId: string; gender?: string }>();
+    for (const birth of births) {
+      map.set(birth.animalId, birth);
+    }
+    return map;
+  }, [births]);
+
+  const getBirthByAnimalIdLocal = useCallback(
+    (animalId: string) => {
+      return birthsByAnimalId.get(animalId);
+    },
+    [birthsByAnimalId]
+  );
+
   const femaleAnimals = useMemo(() => {
     return animals.filter((animal) => {
-      const birth = getBirthByAnimalId(animal.id);
+      const birth = getBirthByAnimalIdLocal(animal.id);
       return birth?.gender === "female";
     });
-  }, [animals]);
+  }, [animals, getBirthByAnimalIdLocal]);
   const maleAnimals = useMemo(() => {
     return animals.filter((animal) => {
-      const birth = getBirthByAnimalId(animal.id);
+      const birth = getBirthByAnimalIdLocal(animal.id);
       return birth?.gender === "male";
     });
-  }, [animals]);
+  }, [animals, getBirthByAnimalIdLocal]);
 
   const filteredFemaleAnimals = useMemo(() => {
     if (!motherSearch.trim()) return femaleAnimals;
@@ -127,7 +167,7 @@ export default function NewBirth() {
   useEffect(() => {
     if (animals.length > 0) {
       if (preSelectedData.motherId) {
-        const mother = getAnimalById(preSelectedData.motherId);
+        const mother = animals.find((a) => a.id === preSelectedData.motherId);
         if (mother && femaleAnimals.some((a) => a.id === preSelectedData.motherId)) {
           setFormData((prev) => {
             if (prev.motherId !== preSelectedData.motherId) {
@@ -138,7 +178,7 @@ export default function NewBirth() {
         }
       }
       if (preSelectedData.fatherId) {
-        const father = getAnimalById(preSelectedData.fatherId);
+        const father = animals.find((a) => a.id === preSelectedData.fatherId);
         if (father && maleAnimals.some((a) => a.id === preSelectedData.fatherId)) {
           setFormData((prev) => {
             if (prev.fatherId !== preSelectedData.fatherId) {
@@ -230,17 +270,13 @@ export default function NewBirth() {
 
     setIsSubmitting(true);
     try {
-      const animalData: AnimalFormData = {
-        code: formData.code,
-        registrationNumber: formData.registrationNumber,
-        status: "active",
-        companyId,
-        propertyId: formData.propertyId,
-      };
-      const newAnimal = addAnimal(animalData);
-
-      const motherBirth = formData.motherId ? getBirthByAnimalId(formData.motherId) : undefined;
-      const fatherBirth = formData.fatherId ? getBirthByAnimalId(formData.fatherId) : undefined;
+      // Get mother and father birth records for purity calculation
+      const motherBirth = formData.motherId
+        ? await getBirthByAnimalId(formData.motherId)
+        : undefined;
+      const fatherBirth = formData.fatherId
+        ? await getBirthByAnimalId(formData.fatherId)
+        : undefined;
 
       const motherBreed = motherBirth?.breed;
       const fatherBreed = fatherBirth?.breed;
@@ -249,26 +285,29 @@ export default function NewBirth() {
 
       const purity = calculatePurity(motherBirth, fatherBirth, motherBreed, fatherBreed);
 
-      const birthData: BirthFormData = {
-        animalId: newAnimal.id,
+      // Backend creates the animal automatically, so we pass code, registrationNumber, and propertyId
+      const newBirth = await addBirth({
+        animalId: "", // Empty string since backend creates the animal
+        code: formData.code,
+        registrationNumber: formData.registrationNumber,
+        propertyId: formData.propertyId,
         birthDate: formData.birthDate,
-        breed: calculatedBreed,
+        breed: calculatedBreed || undefined,
         gender: formData.gender || undefined,
         motherId: formData.motherId || undefined,
         fatherId: formData.fatherId || undefined,
-        purity,
+        purity: purity || undefined,
         observation: formData.observation || undefined,
         companyId,
-      };
-      addBirth(birthData);
+      });
 
       if (formData.motherId) {
         unconfirmMostRecentBreedingForAnimal(formData.motherId);
       }
 
-      if (formData.weight && formData.weighingDate) {
+      if (formData.weight && formData.weighingDate && newBirth?.animalId) {
         const weighingData: WeighingFormData = {
-          animalId: newAnimal.id,
+          animalId: newBirth.animalId,
           date: formData.weighingDate,
           weight: Number.parseFloat(formData.weight),
           employeeIds: formData.employeeIds,

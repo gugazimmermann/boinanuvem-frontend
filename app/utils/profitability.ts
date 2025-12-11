@@ -28,8 +28,8 @@ export function calculateAnimalProfitability(
     const costData = await getAnimalTotalCost(animalId, undefined, saleDate);
     const totalCost = costData?.totalCost || 0;
 
-    const acquisition = getAcquisitionByAnimalId(animalId);
-    const acquisitionItem = acquisition?.acquisitionItems.find(
+    const acquisition = await getAcquisitionByAnimalId(animalId);
+    const acquisitionItem = acquisition?.acquisitionItems?.find(
       (item) => item.animalId === animalId
     );
     const acquisitionCost = acquisitionItem?.price || 0;
@@ -49,7 +49,7 @@ export function calculateAnimalProfitability(
       const saleArrobas = saleWeight / ARROBA_KG;
       saleArrobaValue = saleArrobas > 0 ? salePrice / saleArrobas : 0;
 
-      spreadPerArroba = saleArrobaValue - acquisitionArrobaValue;
+      spreadPerArroba = saleArrobaValue - (acquisitionArrobaValue || 0);
 
       totalSpread = spreadPerArroba * saleArrobas;
     }

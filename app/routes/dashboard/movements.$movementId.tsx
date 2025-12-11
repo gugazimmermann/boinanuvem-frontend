@@ -1,6 +1,6 @@
 import { useParams, useNavigate, useSearchParams } from "react-router";
 import { format } from "date-fns";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Button, Table, Tooltip, StatusBadge, type TableColumn } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
@@ -22,10 +22,12 @@ import { getAnimalMovementById } from "~/services/animal-movements.service";
 import { getPropertyById } from "~/services/properties.service";
 import { getLocationById } from "~/services/locations.service";
 import { getAnimalById } from "~/services/animals.service";
+import { getBirthsByCompanyId, getBirthByAnimalId } from "~/services/births.service";
 import type { LocationMovement } from "~/types/location-movement";
 import type { AnimalMovement } from "~/types/animal-movement";
 import type { Animal, Location } from "~/types";
 import { createAnimalTableColumns } from "~/utils/animal-table-columns";
+import { buildAnimalTableTranslations } from "~/utils/animal-table-config";
 import { DetailPageEmptyState } from "~/utils/detail-page-helpers";
 
 export function meta() {
@@ -71,6 +73,7 @@ export default function MovementDetails() {
     Awaited<ReturnType<typeof getServiceProviderById>>[]
   >([]);
   const [animals, setAnimals] = useState<Animal[]>([]);
+  const [births, setBirths] = useState<Awaited<ReturnType<typeof getBirthsByCompanyId>>>([]);
 
   useEffect(() => {
     const loadEntities = async () => {
@@ -102,9 +105,10 @@ export default function MovementDetails() {
         const serviceProvidersData = await Promise.all(
           movement.serviceProviderIds.map((id) => getServiceProviderById(id))
         );
-        const animalsData = isAnimalMovement
+        const animalsDataPromises = isAnimalMovement
           ? (movement as AnimalMovement).animalIds.map((id) => getAnimalById(id))
           : [];
+        const animalsData = await Promise.all(animalsDataPromises);
 
         setProperty(propertyData);
         setLocations(
@@ -118,9 +122,20 @@ export default function MovementDetails() {
             (prov): prov is NonNullable<typeof prov> => prov !== undefined
           )
         );
-        setAnimals(
-          animalsData.filter((animal): animal is NonNullable<typeof animal> => animal !== undefined)
+        const animalsResult = animalsData.filter(
+          (animal): animal is NonNullable<typeof animal> => animal !== undefined
         );
+        setAnimals(animalsResult);
+
+        // Load births for animals in the movement
+        if (animalsResult.length > 0 && propertyData?.companyId) {
+          try {
+            const birthsData = await getBirthsByCompanyId(propertyData.companyId);
+            setBirths(birthsData || []);
+          } catch (error) {
+            console.error("Failed to load births:", error);
+          }
+        }
       } catch (error) {
         console.error("Failed to load entities:", error);
       }
@@ -128,6 +143,16 @@ export default function MovementDetails() {
 
     loadEntities();
   }, [movement, isLocationMovement, isAnimalMovement]);
+
+  const birthsMap = useMemo(() => {
+    const map = new Map<string, Awaited<ReturnType<typeof getBirthByAnimalId>>>();
+    if (births) {
+      for (const birth of births) {
+        map.set(birth.animalId, birth);
+      }
+    }
+    return map;
+  }, [births]);
 
   if (!movement) {
     return (
@@ -349,34 +374,8 @@ export default function MovementDetails() {
             const columns: TableColumn<Animal>[] = createAnimalTableColumns({
               language,
               dateLocale,
-              translations: {
-                table: {
-                  registration: t.animals.table.registration,
-                  breed: t.animals.table.breed,
-                  purity: t.animals.table.purity,
-                  gender: t.animals.table.gender,
-                  birthDate: t.animals.table.birthDate,
-                  acquisitionDate: t.animals.table.acquisitionDate,
-                  weight: t.animals.table.weight,
-                  weightInArrobas: t.animals.table.weightInArrobas,
-                  lastWeighingDate: t.animals.table.lastWeighingDate,
-                  gmd: t.animals.table.gmd,
-                  breedingStatus: t.animals.table.breedingStatus,
-                  breedingStatusPregnant: t.animals.table.breedingStatusPregnant,
-                  status: t.animals.table.status,
-                  active: t.animals.table.active,
-                  inactive: t.animals.table.inactive,
-                },
-                breeds: t.animals.breeds,
-                purity: t.animals.purity,
-                gender: t.animals.gender,
-                common: {
-                  month: t.common.month,
-                  months: t.common.months,
-                  daysAgo: t.common.daysAgo,
-                  dailyAverageGain: t.common.dailyAverageGain,
-                },
-              },
+              birthsMap,
+              translations: buildAnimalTableTranslations(t),
               formatDateFn: (date, lang) => {
                 const dateFormat = lang === "en" ? "MM/dd/yyyy" : "dd/MM/yyyy";
                 return format(date instanceof Date ? date : new Date(date), dateFormat, {
@@ -385,7 +384,7 @@ export default function MovementDetails() {
               },
               TooltipComponent: Tooltip as React.ComponentType<{
                 content: string;
-                position?: string;
+                position?: "top" | "bottom";
                 children: React.ReactNode;
               }>,
               StatusBadgeComponent: StatusBadge,

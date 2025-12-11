@@ -1,26 +1,24 @@
 import type { Acquisition, AcquisitionFormData, AcquisitionItem } from "~/types";
-import {
-  AcquisitionPaymentMethod,
-  CashFlowCategory,
-  PaymentMethod,
-  AccountsPayableStatus,
-} from "~/types";
-import { mockAcquisitions } from "~/mocks/acquisitions";
-import { findById, findByField, createEntity, updateEntity, deleteEntity } from "./base-service";
-import { getAnimalById } from "./animals.service";
-import { addCashFlow, deleteCashFlow, updateCashFlow } from "./cash-flow.service";
-import {
-  addAccountsPayable,
-  deleteAccountsPayable,
-  updateAccountsPayable,
-} from "./accounts-payable.service";
+import { apiClient } from "./api-client";
+import { handleApiError, createResourceErrorMessages } from "./error-handlers";
 import { getTotalFees } from "~/utils/fees";
 
-const ID_PREFIX = "ac0e8400-e29b-41d4-a716";
-const DEFAULT_ID = "ac0e8400-e29b-41d4-a716-446655440009";
+const acquisitionErrors = createResourceErrorMessages("aquisições");
 
 const ARROBA_KG = 30;
+const ID_PREFIX = "ac0e8400-e29b-41d4-a716";
 
+/**
+ * Generate acquisition ID based on index
+ */
+export function generateAcquisitionId(index: number): string {
+  const base = 446655440100 + index;
+  return `${ID_PREFIX}-${base.toString().padStart(12, "0")}`;
+}
+
+/**
+ * Calculate cost per arroba
+ */
 export function calculateAcquisitionCostPerArroba(
   weightInKg: number,
   costPerAnimal: number
@@ -30,274 +28,265 @@ export function calculateAcquisitionCostPerArroba(
   return arrobas > 0 ? costPerAnimal / arrobas : 0;
 }
 
-export function getAcquisitionById(acquisitionId: string | undefined): Acquisition | undefined {
-  return findById(mockAcquisitions, acquisitionId);
+/**
+ * Convert backend Date to frontend string format
+ */
+function transformAcquisition(backendAcquisition: Acquisition): Acquisition {
+  const result: Acquisition = {
+    ...backendAcquisition,
+    acquisitionDate:
+      typeof backendAcquisition.acquisitionDate === "string"
+        ? backendAcquisition.acquisitionDate
+        : new Date(backendAcquisition.acquisitionDate).toISOString().split("T")[0],
+  };
+
+  // Handle createdAt - it might be missing or invalid
+  if (backendAcquisition.createdAt) {
+    if (typeof backendAcquisition.createdAt === "string") {
+      result.createdAt = backendAcquisition.createdAt;
+    } else {
+      const date = new Date(backendAcquisition.createdAt);
+      if (!Number.isNaN(date.getTime())) {
+        result.createdAt = date.toISOString();
+      }
+    }
+  }
+
+  return result;
 }
 
-export function getAcquisitionByAnimalId(animalId: string): Acquisition | undefined {
+/**
+ * Get all acquisitions for the current user's company via API
+ */
+export async function getAcquisitionsByCompanyId(_companyId: string): Promise<Acquisition[]> {
+  try {
+    const acquisitions = await apiClient.get<Acquisition[]>("/acquisitions");
+    return acquisitions.map(transformAcquisition);
+  } catch (error) {
+    handleApiError(error, acquisitionErrors.list);
+  }
+}
+
+/**
+ * Get a single acquisition by ID via API
+ */
+export async function getAcquisitionById(
+  acquisitionId: string | undefined
+): Promise<Acquisition | undefined> {
+  if (!acquisitionId) return undefined;
+  try {
+    const acquisition = await apiClient.get<Acquisition>(`/acquisitions/${acquisitionId}`);
+    return transformAcquisition(acquisition);
+  } catch (error) {
+    handleApiError(error, {
+      ...acquisitionErrors.view,
+      403: "Você não tem permissão para visualizar esta aquisição",
+    });
+  }
+}
+
+/**
+ * Get acquisition by animal ID via API
+ */
+export async function getAcquisitionByAnimalId(animalId: string): Promise<Acquisition | undefined> {
   if (!animalId) return undefined;
-  return mockAcquisitions.find((acquisition) =>
-    acquisition.acquisitionItems.some((item) => item.animalId === animalId)
-  );
+  try {
+    const acquisitions = await apiClient.get<Acquisition[]>("/acquisitions");
+    const acquisition = acquisitions.find((acq) =>
+      acq.acquisitionItems.some((item) => item.animalId === animalId)
+    );
+    return acquisition ? transformAcquisition(acquisition) : undefined;
+  } catch (error) {
+    handleApiError(error, acquisitionErrors.list);
+  }
 }
 
-export function getAcquisitionsByCompanyId(companyId: string): Acquisition[] {
-  return findByField(mockAcquisitions, "companyId", companyId);
+/**
+ * Get acquisitions by supplier ID via API
+ */
+export async function getAcquisitionsBySupplierId(supplierId: string): Promise<Acquisition[]> {
+  try {
+    const acquisitions = await apiClient.get<Acquisition[]>("/acquisitions");
+    return acquisitions.filter((acq) => acq.supplierId === supplierId).map(transformAcquisition);
+  } catch (error) {
+    handleApiError(error, acquisitionErrors.list);
+  }
 }
 
-export function getAcquisitionsBySupplierId(supplierId: string): Acquisition[] {
-  return findByField(mockAcquisitions, "supplierId", supplierId);
-}
-
-export function getAcquisitionsByDateRange(
+/**
+ * Get acquisitions by date range via API
+ */
+export async function getAcquisitionsByDateRange(
   companyId: string,
   startDate: string,
   endDate: string
-): Acquisition[] {
-  return getAcquisitionsByCompanyId(companyId).filter((acquisition) => {
-    const acquisitionDate = new Date(acquisition.acquisitionDate);
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    return acquisitionDate >= start && acquisitionDate <= end;
-  });
+): Promise<Acquisition[]> {
+  try {
+    const acquisitions = await getAcquisitionsByCompanyId(companyId);
+    return acquisitions.filter((acquisition) => {
+      const acquisitionDate = new Date(acquisition.acquisitionDate);
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      return acquisitionDate >= start && acquisitionDate <= end;
+    });
+  } catch (error) {
+    handleApiError(error, acquisitionErrors.list);
+  }
 }
 
-export function addAcquisition(data: AcquisitionFormData): Acquisition {
-  const totalFees = getTotalFees(data.fees, data.transportationFee, undefined, data.handlingFee);
-  const totalCost = data.totalPrice + totalFees;
-  const animalCount = data.acquisitionItems.length;
+/**
+ * Create a new acquisition via API (backend creates animals automatically for items with code/registrationNumber)
+ */
+export async function addAcquisition(
+  data: AcquisitionFormData & {
+    acquisitionItems: Array<AcquisitionItem & { code?: string; registrationNumber?: string }>;
+  }
+): Promise<Acquisition> {
+  try {
+    const _totalFees = getTotalFees(data.fees, data.transportationFee, undefined, data.handlingFee);
 
-  const costPerAnimal = animalCount > 0 ? totalCost / animalCount : 0;
+    // Map acquisition items to backend DTO format
+    const acquisitionItems = data.acquisitionItems.map((item) => {
+      const itemDto: Record<string, unknown> = {
+        price: item.price,
+        weight: item.weight,
+      };
 
-  const updatedItems = data.acquisitionItems.map((item) => {
-    const costPerArroba = calculateAcquisitionCostPerArroba(item.weight, costPerAnimal);
-    // Explicitly construct the item without spreading to avoid any price conflicts
-    return {
-      animalId: item.animalId,
-      weight: item.weight,
-      price: costPerAnimal,
-      costPerArroba,
-      // Include other optional fields if they exist
-      ...(item.breed && { breed: item.breed }),
-      ...(item.gender && { gender: item.gender }),
-      ...(item.birthDate && { birthDate: item.birthDate }),
-      ...(item.motherId && { motherId: item.motherId }),
-      ...(item.fatherId && { fatherId: item.fatherId }),
-      ...(item.motherRegistrationNumber && {
-        motherRegistrationNumber: item.motherRegistrationNumber,
-      }),
-      ...(item.fatherRegistrationNumber && {
-        fatherRegistrationNumber: item.fatherRegistrationNumber,
-      }),
-      ...(item.purity && { purity: item.purity }),
-      ...(item.birthObservation && { birthObservation: item.birthObservation }),
-    };
-  });
+      // If animalId exists, use it; otherwise use code/registrationNumber (backend will create animal)
+      if (item.animalId && item.animalId !== "") {
+        itemDto.animalId = item.animalId;
+      } else if (
+        "code" in item &&
+        "registrationNumber" in item &&
+        item.code &&
+        item.registrationNumber
+      ) {
+        itemDto.code = item.code;
+        itemDto.registrationNumber = item.registrationNumber;
+      }
 
-  const acquisitionData: AcquisitionFormData = {
-    ...data,
-    acquisitionItems: updatedItems,
-  };
+      // Add optional fields
+      if (item.breed) itemDto.breed = item.breed;
+      if (item.gender) itemDto.gender = item.gender;
+      if (item.birthDate) itemDto.birthDate = item.birthDate;
+      if (item.motherId) itemDto.motherId = item.motherId;
+      if (item.fatherId) itemDto.fatherId = item.fatherId;
+      if (item.motherRegistrationNumber)
+        itemDto.motherRegistrationNumber = item.motherRegistrationNumber;
+      if (item.fatherRegistrationNumber)
+        itemDto.fatherRegistrationNumber = item.fatherRegistrationNumber;
+      if (item.purity) itemDto.purity = item.purity;
+      if (item.birthObservation) itemDto.birthObservation = item.birthObservation;
 
-  const acquisition = createEntity(mockAcquisitions, acquisitionData, ID_PREFIX, DEFAULT_ID);
+      return itemDto;
+    });
 
-  const animalCodes = data.acquisitionItems
-    .map((item) => {
-      const animal = getAnimalById(item.animalId);
-      return animal?.code || item.animalId;
-    })
-    .join(", ");
-
-  if (data.paymentMethod === AcquisitionPaymentMethod.CASH_FLOW) {
-    const cashFlow = addCashFlow({
-      companyId: data.companyId,
-      type: "expense",
-      amount: totalCost,
-      date: data.acquisitionDate,
-      description: `Aquisição de animais: ${animalCodes}`,
-      category: CashFlowCategory.ANIMAL_ACQUISITION,
-      paymentMethod: PaymentMethod.CASH,
-      status: "completed",
-      supplierId: data.supplierId,
+    const createDto = {
       propertyId: data.propertyId,
-    });
-    acquisition.linkedCashFlowId = cashFlow.id;
-  } else {
-    const accountsPayable = addAccountsPayable({
-      companyId: data.companyId,
       supplierId: data.supplierId,
-      amount: totalCost,
-      dueDate: data.acquisitionDate,
-      description: `Aquisição de animais: ${animalCodes}`,
-      category: CashFlowCategory.ANIMAL_ACQUISITION,
-      paymentMethod: PaymentMethod.CASH,
-      status: AccountsPayableStatus.UNPAID,
-      propertyId: data.propertyId,
-    });
-    acquisition.linkedAccountsReceivableId = accountsPayable.id;
-  }
-
-  // Update the acquisition in the array to ensure all fields are properly set
-  updateEntity(mockAcquisitions, acquisition.id, {
-    ...acquisition,
-    acquisitionItems: updatedItems, // Ensure we use the updated items with correct prices
-  });
-
-  // Return the updated acquisition from the array to ensure we have the latest data
-  const updatedAcquisition = getAcquisitionById(acquisition.id);
-  return updatedAcquisition || acquisition;
-}
-
-function updateAcquisitionItems(items: AcquisitionItem[], totalCost: number): AcquisitionItem[] {
-  const animalCount = items.length;
-  const costPerAnimal = animalCount > 0 ? totalCost / animalCount : 0;
-  return items.map((item) => {
-    const costPerArroba = calculateAcquisitionCostPerArroba(item.weight, costPerAnimal);
-    return {
-      ...item,
-      price: costPerAnimal,
-      costPerArroba,
+      acquisitionDate: data.acquisitionDate,
+      pricingMode: data.pricingMode,
+      paymentMethod: data.paymentMethod,
+      totalPrice: data.totalPrice,
+      fees: data.fees && data.fees.length > 0 ? data.fees : undefined,
+      transportationFee: data.transportationFee || undefined,
+      handlingFee: data.handlingFee || undefined,
+      acquisitionItems,
+      observation: data.observation || undefined,
     };
-  });
-}
 
-function handlePaymentMethodChange(
-  existingAcquisition: Acquisition,
-  updatedItems: AcquisitionItem[],
-  totalCost: number,
-  data: Partial<AcquisitionFormData>
-): { linkedCashFlowId?: string; linkedAccountsPayableId?: string } {
-  const animalCodes = updatedItems
-    .map((item) => {
-      const animal = getAnimalById(item.animalId);
-      return animal?.code || item.animalId;
-    })
-    .join(", ");
-
-  if (existingAcquisition.linkedCashFlowId) {
-    deleteCashFlow(existingAcquisition.linkedCashFlowId);
-  }
-  if (existingAcquisition.linkedAccountsPayableId) {
-    deleteAccountsPayable(existingAcquisition.linkedAccountsPayableId);
-  }
-
-  if (data.paymentMethod === AcquisitionPaymentMethod.CASH_FLOW) {
-    const cashFlow = addCashFlow({
-      companyId: existingAcquisition.companyId,
-      type: "expense",
-      amount: totalCost,
-      date: data.acquisitionDate || existingAcquisition.acquisitionDate,
-      description: `Aquisição de animais: ${animalCodes}`,
-      category: CashFlowCategory.ANIMAL_ACQUISITION,
-      paymentMethod: PaymentMethod.CASH,
-      status: "completed",
-      supplierId: data.supplierId || existingAcquisition.supplierId,
-      propertyId: data.propertyId || existingAcquisition.propertyId,
+    const response = await apiClient.post<Acquisition>("/acquisitions", createDto);
+    return transformAcquisition(response);
+  } catch (error) {
+    handleApiError(error, {
+      ...acquisitionErrors.create,
+      409: "Já existe uma aquisição com este identificador",
     });
-    return { linkedCashFlowId: cashFlow.id, linkedAccountsPayableId: undefined };
   }
-
-  const accountsPayable = addAccountsPayable({
-    companyId: existingAcquisition.companyId,
-    supplierId: data.supplierId || existingAcquisition.supplierId,
-    amount: totalCost,
-    dueDate: data.acquisitionDate || existingAcquisition.acquisitionDate,
-    description: `Aquisição de animais: ${animalCodes}`,
-    category: CashFlowCategory.ANIMAL_ACQUISITION,
-    paymentMethod: PaymentMethod.CASH,
-    status: AccountsPayableStatus.UNPAID,
-    propertyId: data.propertyId || existingAcquisition.propertyId,
-  });
-  return { linkedCashFlowId: undefined, linkedAccountsPayableId: accountsPayable.id };
 }
 
-export function updateAcquisition(
+/**
+ * Update an acquisition via API
+ */
+export async function updateAcquisition(
   acquisitionId: string,
-  data: Partial<AcquisitionFormData>
-): boolean {
-  const existingAcquisition = getAcquisitionById(acquisitionId);
-  if (!existingAcquisition) return false;
+  data: Partial<
+    AcquisitionFormData & {
+      acquisitionItems?: Array<AcquisitionItem & { code?: string; registrationNumber?: string }>;
+    }
+  >
+): Promise<Acquisition> {
+  try {
+    const updateDto: Record<string, unknown> = {};
 
-  const items = data.acquisitionItems || existingAcquisition.acquisitionItems;
-  const totalFees = getTotalFees(
-    data.fees ?? existingAcquisition.fees,
-    data.transportationFee ?? existingAcquisition.transportationFee,
-    undefined,
-    data.handlingFee ?? existingAcquisition.handlingFee
-  );
-  const totalCost = (data.totalPrice ?? existingAcquisition.totalPrice) + totalFees;
+    if (data.propertyId !== undefined) updateDto.propertyId = data.propertyId;
+    if (data.supplierId !== undefined) updateDto.supplierId = data.supplierId;
+    if (data.acquisitionDate !== undefined) updateDto.acquisitionDate = data.acquisitionDate;
+    if (data.pricingMode !== undefined) updateDto.pricingMode = data.pricingMode;
+    if (data.paymentMethod !== undefined) updateDto.paymentMethod = data.paymentMethod;
+    if (data.totalPrice !== undefined) updateDto.totalPrice = data.totalPrice;
+    if (data.fees !== undefined)
+      updateDto.fees = data.fees && data.fees.length > 0 ? data.fees : undefined;
+    if (data.transportationFee !== undefined)
+      updateDto.transportationFee = data.transportationFee || undefined;
+    if (data.handlingFee !== undefined) updateDto.handlingFee = data.handlingFee || undefined;
+    if (data.observation !== undefined) updateDto.observation = data.observation || undefined;
 
-  const updatedItems = updateAcquisitionItems(items, totalCost);
+    // Map acquisition items if provided
+    if (data.acquisitionItems !== undefined) {
+      updateDto.acquisitionItems = data.acquisitionItems.map((item) => {
+        const itemDto: Record<string, unknown> = {
+          price: item.price,
+          weight: item.weight,
+        };
 
-  if (data.paymentMethod && data.paymentMethod !== existingAcquisition.paymentMethod) {
-    const { linkedCashFlowId, linkedAccountsPayableId } = handlePaymentMethodChange(
-      existingAcquisition,
-      updatedItems,
-      totalCost,
-      data
-    );
+        // If animalId exists, use it; otherwise use code/registrationNumber
+        if (item.animalId && item.animalId !== "") {
+          itemDto.animalId = item.animalId;
+        } else if (
+          "code" in item &&
+          "registrationNumber" in item &&
+          item.code &&
+          item.registrationNumber
+        ) {
+          itemDto.code = item.code;
+          itemDto.registrationNumber = item.registrationNumber;
+        }
 
-    const updateData: Partial<AcquisitionFormData> & {
-      linkedCashFlowId?: string;
-      linkedAccountsPayableId?: string;
-      acquisitionItems?: typeof updatedItems;
-    } = {
-      ...data,
-      linkedCashFlowId,
-      linkedAccountsPayableId,
-      acquisitionItems: updatedItems,
-    };
-    return updateEntity(mockAcquisitions, acquisitionId, updateData);
-  } else {
-    if (
-      data.totalPrice !== undefined ||
-      data.fees !== undefined ||
-      data.transportationFee !== undefined ||
-      data.handlingFee !== undefined
-    ) {
-      const totalFeesAmount = getTotalFees(
-        data.fees ?? existingAcquisition.fees,
-        data.transportationFee ?? existingAcquisition.transportationFee,
-        undefined,
-        data.handlingFee ?? existingAcquisition.handlingFee
-      );
-      const totalAmount = (data.totalPrice ?? existingAcquisition.totalPrice) + totalFeesAmount;
+        // Add optional fields
+        if (item.breed) itemDto.breed = item.breed;
+        if (item.gender) itemDto.gender = item.gender;
+        if (item.birthDate) itemDto.birthDate = item.birthDate;
+        if (item.motherId) itemDto.motherId = item.motherId;
+        if (item.fatherId) itemDto.fatherId = item.fatherId;
+        if (item.motherRegistrationNumber)
+          itemDto.motherRegistrationNumber = item.motherRegistrationNumber;
+        if (item.fatherRegistrationNumber)
+          itemDto.fatherRegistrationNumber = item.fatherRegistrationNumber;
+        if (item.purity) itemDto.purity = item.purity;
+        if (item.birthObservation) itemDto.birthObservation = item.birthObservation;
 
-      if (existingAcquisition.linkedCashFlowId) {
-        updateCashFlow(existingAcquisition.linkedCashFlowId, { amount: totalAmount });
-      }
-      if (existingAcquisition.linkedAccountsPayableId) {
-        updateAccountsPayable(existingAcquisition.linkedAccountsPayableId, {
-          amount: totalAmount,
-        });
-      }
+        return itemDto;
+      });
     }
 
-    const updateData: Partial<AcquisitionFormData> & {
-      acquisitionItems?: typeof updatedItems;
-    } = {
-      ...data,
-      acquisitionItems: updatedItems,
-    };
-    return updateEntity(mockAcquisitions, acquisitionId, updateData);
+    const response = await apiClient.put<Acquisition>(`/acquisitions/${acquisitionId}`, updateDto);
+    return transformAcquisition(response);
+  } catch (error) {
+    handleApiError(error, {
+      ...acquisitionErrors.update,
+      409: "Já existe uma aquisição com este identificador",
+    });
   }
 }
 
-export function deleteAcquisition(acquisitionId: string): boolean {
-  const acquisition = getAcquisitionById(acquisitionId);
-  if (!acquisition) return false;
-
-  if (acquisition.linkedCashFlowId) {
-    deleteCashFlow(acquisition.linkedCashFlowId);
+/**
+ * Delete an acquisition via API
+ */
+export async function deleteAcquisition(acquisitionId: string): Promise<void> {
+  try {
+    await apiClient.delete(`/acquisitions/${acquisitionId}`);
+  } catch (error) {
+    handleApiError(error, acquisitionErrors.delete);
   }
-  if (acquisition.linkedAccountsPayableId) {
-    deleteAccountsPayable(acquisition.linkedAccountsPayableId);
-  }
-
-  return deleteEntity(mockAcquisitions, acquisitionId);
-}
-
-export function generateAcquisitionId(index: number): string {
-  const base = 446655440100 + index;
-  return `ac0e8400-e29b-41d4-a716-${base.toString().padStart(12, "0")}`;
 }

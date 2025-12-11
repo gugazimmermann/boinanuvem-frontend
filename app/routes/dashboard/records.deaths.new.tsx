@@ -4,10 +4,10 @@ import { Input, Select, FormPageLayout } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { ROUTES } from "~/routes.config";
 import { addDeath, getDeathByAnimalId } from "~/services/deaths.service";
-import { updateAnimal, getAnimalsByCompanyId, getAnimalById } from "~/services/animals.service";
+import { updateAnimal, getAnimalsByCompanyId } from "~/services/animals.service";
 import type { DeathFormData } from "~/types";
 import { mockCompanies } from "~/mocks/companies";
-import { getBirthByAnimalId } from "~/services/births.service";
+import { getBirthByAnimalId, getBirthsByCompanyId } from "~/services/births.service";
 import { useAlert } from "~/hooks/use-alert";
 
 export function meta() {
@@ -42,10 +42,40 @@ export default function NewDeath() {
   }, [location.state]);
 
   const [animalSearch, setAnimalSearch] = useState("");
+  const [animals, setAnimals] = useState<Awaited<ReturnType<typeof getAnimalsByCompanyId>>>([]);
+  const [births, setBirths] = useState<Awaited<ReturnType<typeof getBirthsByCompanyId>>>([]);
 
-  const animals = useMemo(() => {
-    return getAnimalsByCompanyId(companyId).filter((animal) => animal.status === "active");
+  useEffect(() => {
+    const loadData = async () => {
+      if (!companyId) return;
+      try {
+        const [animalsData, birthsData] = await Promise.all([
+          getAnimalsByCompanyId(companyId),
+          getBirthsByCompanyId(companyId),
+        ]);
+        const activeAnimals = (animalsData || []).filter((animal) => animal.status === "active");
+        setAnimals(activeAnimals);
+        setBirths(birthsData || []);
+      } catch (error) {
+        console.error("Failed to load data:", error);
+      }
+    };
+    loadData();
   }, [companyId]);
+
+  const birthsMap = useMemo(() => {
+    const map = new Map<string, Awaited<ReturnType<typeof getBirthByAnimalId>>>();
+    if (births) {
+      for (const birth of births) {
+        map.set(birth.animalId, birth);
+      }
+    }
+    return map;
+  }, [births]);
+
+  const getBirthByAnimalIdLocal = (animalId: string) => {
+    return birthsMap.get(animalId);
+  };
 
   const filteredAnimals = useMemo(() => {
     if (!animalSearch.trim()) return animals;
@@ -75,8 +105,8 @@ export default function NewDeath() {
 
   useEffect(() => {
     if (animals.length > 0 && preSelectedData.animalId) {
-      const animal = getAnimalById(preSelectedData.animalId);
-      if (animal && animals.some((a) => a.id === preSelectedData.animalId)) {
+      const animal = animals.find((a) => a.id === preSelectedData.animalId);
+      if (animal) {
         setFormData((prev) => {
           if (prev.animalId !== preSelectedData.animalId) {
             return { ...prev, animalId: preSelectedData.animalId };
@@ -137,7 +167,7 @@ export default function NewDeath() {
       };
       addDeath(deathData);
 
-      updateAnimal(formData.animalId, { status: "inactive" });
+      await updateAnimal(formData.animalId, { status: "inactive" });
 
       showAlert(t.deaths.new.success, "success");
       setTimeout(() => {
@@ -207,7 +237,7 @@ export default function NewDeath() {
                   options={[
                     { value: "", label: "-" },
                     ...filteredAnimals.map((animal) => {
-                      const birth = getBirthByAnimalId(animal.id);
+                      const birth = getBirthByAnimalIdLocal(animal.id);
                       const gender = (() => {
                         if (!birth?.gender) return "";
                         return birth.gender === "male"

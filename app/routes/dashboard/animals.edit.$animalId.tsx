@@ -22,8 +22,11 @@ export default function EditAnimal() {
   const t = useTranslation();
   const navigate = useNavigate();
   const { animalId } = useParams<{ animalId: string }>();
-  const animal = getAnimalById(animalId);
+  const [animal, setAnimal] = useState<Awaited<ReturnType<typeof getAnimalById>> | undefined>(
+    undefined
+  );
   const [properties, setProperties] = useState<Property[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [formData, setFormData] = useState<{
     code: string;
@@ -40,28 +43,33 @@ export default function EditAnimal() {
   });
 
   useEffect(() => {
-    const fetchProperties = async () => {
+    const fetchData = async () => {
+      if (!animalId) return;
+      setIsLoading(true);
       try {
-        const propertiesData = await getProperties();
+        const [animalData, propertiesData] = await Promise.all([
+          getAnimalById(animalId),
+          getProperties(),
+        ]);
+        setAnimal(animalData);
         setProperties(propertiesData);
+        if (animalData) {
+          setFormData({
+            code: animalData.code,
+            registrationNumber: animalData.registrationNumber,
+            acquisitionDate: animalData.acquisitionDate || "",
+            status: animalData.status,
+            propertyId: animalData.propertyId || "",
+          });
+        }
       } catch (error) {
-        console.error("Failed to load properties:", error);
+        console.error("Failed to load data:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
-    fetchProperties();
-  }, []);
-
-  useEffect(() => {
-    if (animal) {
-      setFormData({
-        code: animal.code,
-        registrationNumber: animal.registrationNumber,
-        acquisitionDate: animal.acquisitionDate || "",
-        status: animal.status,
-        propertyId: animal.propertyId || "",
-      });
-    }
-  }, [animal]);
+    fetchData();
+  }, [animalId]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -110,15 +118,11 @@ export default function EditAnimal() {
         status: formData.status,
         propertyId: formData.propertyId,
       };
-      const success = updateAnimal(animalId, animalData);
-      if (success) {
-        showAlert(t.animals.success.updated, "success");
-        setTimeout(() => {
-          navigate(ROUTES.ANIMALS);
-        }, 1500);
-      } else {
-        showAlert(t.animals.errors.updateFailed, "error");
-      }
+      await updateAnimal(animalId, animalData);
+      showAlert(t.animals.success.updated, "success");
+      setTimeout(() => {
+        navigate(ROUTES.ANIMALS);
+      }, 1500);
     } catch (error) {
       console.error("Error updating animal:", error);
       showAlert(t.animals.errors.updateFailed, "error");
@@ -126,6 +130,17 @@ export default function EditAnimal() {
       setIsSubmitting(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">{t.common.loading || "Carregando..."}</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!animal) {
     return (

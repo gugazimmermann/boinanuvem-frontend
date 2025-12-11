@@ -1,10 +1,11 @@
 import { Input } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { AnimalCodeDisplay } from "../animal-code-display";
-import { getAnimalById } from "~/services/animals.service";
+import type { Animal } from "~/types";
 
 export interface AIBreedingSectionProps {
   readonly selectedAnimalIds: string[];
+  readonly animalsMap: Map<string, Animal>;
   readonly attemptNumbers: Record<string, number>;
   readonly semenCode: string;
   readonly onSemenCodeChange: (value: string) => void;
@@ -15,6 +16,7 @@ export interface AIBreedingSectionProps {
 
 export function AIBreedingSection({
   selectedAnimalIds,
+  animalsMap,
   attemptNumbers,
   semenCode,
   onSemenCodeChange,
@@ -48,7 +50,7 @@ export function AIBreedingSection({
           </label>
           <div className="space-y-2 border border-gray-300 dark:border-gray-600 rounded-md p-4 max-h-48 overflow-y-auto">
             {selectedAnimalIds.map((animalId) => {
-              const animal = getAnimalById(animalId);
+              const animal = animalsMap.get(animalId);
               if (!animal) return null;
               return (
                 <div key={animalId} className="flex items-center space-x-3">

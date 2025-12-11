@@ -4,7 +4,7 @@ import {
   Button,
   StatusBadge,
   Table,
-  TableActionButtons,
+  Input,
   type TableColumn,
   type TableAction,
   type TableFilter,
@@ -24,7 +24,6 @@ import {
   getMovementNewRoute,
   getObservationViewRoute,
   getAnimalViewRoute,
-  getAnimalEditRoute,
   getAnimalMovementNewRoute,
   getInventoryViewRoute,
   getLocationInventoryMovementNewRoute,
@@ -47,17 +46,25 @@ import { getLocationMovementsByLocationId } from "~/services/location-movements.
 import { getEmployees } from "~/services/employees.service";
 import { getServiceProviders } from "~/services/service-providers.service";
 import { useAlert } from "~/hooks/use-alert";
-import { format, differenceInDays } from "date-fns";
+import { format } from "date-fns";
+import type { Locale } from "date-fns";
 import {
   getAnimalsByLastMovementLocation,
   getAnimalMovementsByLocationId,
 } from "~/services/animal-movements.service";
-import { getAnimalById, deleteAnimal } from "~/services/animals.service";
-import { getBirthByAnimalId } from "~/services/births.service";
+import { getAnimalsByCompanyId, deleteAnimal } from "~/services/animals.service";
+import { getBirthsByCompanyId } from "~/services/births.service";
 import { getWeighingsByAnimalId } from "~/services/weighings.service";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
 import { useDateLocale } from "~/hooks/use-date-locale";
-import { createAnimalTableColumns } from "~/utils/animal-table-columns";
+import { createAnimalTableColumnsWithConfig } from "~/utils/animal-table-config";
+import { createBirthsMap } from "~/utils/births-map";
+import { getAnimalSortValue, compareAnimalSortValues } from "~/utils/animal-sorting";
+import {
+  getLocationConsumptionCosts,
+  getTotalLocationCost,
+  getAnimalCostBreakdown,
+} from "~/services/location-costs.service";
 
 type LocationTab =
   | "information"
@@ -69,98 +76,10 @@ type LocationTab =
   | "costs";
 import { LocationTypeBadge } from "~/components/dashboard/utils/location-type-badge";
 
-type AnimalSortValue = string | number | undefined;
 type MovementUnion =
   | (LocationMovement & { movementType: "location" })
   | (AnimalMovement & { movementType: "animal" })
   | (InventoryMovement & { movementType: "inventory" });
-
-function getBirthFieldValue(animal: Animal, column: string): AnimalSortValue {
-  const birth = getBirthByAnimalId(animal.id);
-  if (column === "breed") return birth?.breed || "";
-  if (column === "purity") return birth?.purity || "";
-  if (column === "gender") return birth?.gender || "";
-  return "";
-}
-
-function getWeighingFieldValue(animal: Animal, column: string): AnimalSortValue {
-  const weighings = getWeighingsByAnimalId(animal.id);
-  if (weighings.length === 0) return 0;
-
-  const sorted = weighings.toSorted(
-    (x, y) => new Date(y.date).getTime() - new Date(x.date).getTime()
-  );
-  const lastWeighing = sorted[0];
-
-  if (column === "weight") return lastWeighing?.weight || 0;
-  if (column === "weightInArrobas") return lastWeighing ? lastWeighing.weight / 30 : 0;
-  if (column === "lastWeighingDate")
-    return lastWeighing ? new Date(lastWeighing.date).getTime() : 0;
-  return 0;
-}
-
-function getGmdValue(animal: Animal): AnimalSortValue {
-  const weighings = getWeighingsByAnimalId(animal.id);
-  const sorted = weighings.toSorted(
-    (x, y) => new Date(y.date).getTime() - new Date(x.date).getTime()
-  );
-  if (sorted.length >= 2) {
-    const weightDiff = sorted[0].weight - sorted[1].weight;
-    const daysDiff = differenceInDays(new Date(sorted[0].date), new Date(sorted[1].date));
-    return daysDiff > 0 ? weightDiff / daysDiff : 0;
-  }
-  return 0;
-}
-
-function getAnimalSortValue(
-  animal: Animal,
-  column: string,
-  _localeForDateTime: string
-): AnimalSortValue {
-  if (column === "code") return animal.code;
-  if (column === "registrationNumber") return animal.registrationNumber;
-
-  if (column === "breed" || column === "purity" || column === "gender") {
-    return getBirthFieldValue(animal, column);
-  }
-
-  if (column === "birthDate") {
-    const birth = getBirthByAnimalId(animal.id);
-    return birth?.birthDate ? new Date(birth.birthDate).getTime() : 0;
-  }
-
-  if (column === "acquisitionDate") {
-    return animal.acquisitionDate ? new Date(animal.acquisitionDate).getTime() : 0;
-  }
-
-  if (column === "weight" || column === "weightInArrobas" || column === "lastWeighingDate") {
-    return getWeighingFieldValue(animal, column);
-  }
-
-  if (column === "gmd") {
-    return getGmdValue(animal);
-  }
-
-  return animal[column as keyof Animal] as AnimalSortValue;
-}
-
-function compareAnimalSortValues(
-  aValue: AnimalSortValue,
-  bValue: AnimalSortValue,
-  localeForDateTime: string
-): number {
-  if (aValue == null && bValue == null) return 0;
-  if (aValue == null) return 1;
-  if (bValue == null) return -1;
-
-  if (typeof aValue === "string" && typeof bValue === "string") {
-    return aValue.localeCompare(bValue, localeForDateTime, { sensitivity: "base" });
-  }
-  if (typeof aValue === "number" && typeof bValue === "number") {
-    return aValue - bValue;
-  }
-  return String(aValue).localeCompare(String(bValue), "pt-BR");
-}
 
 function matchesLocationMovementSearch(
   movement: LocationMovement,
@@ -216,10 +135,14 @@ function matchesLocationNames(
   return locationNames.includes(searchLower);
 }
 
-function matchesAnimalNames(movement: AnimalMovement, searchLower: string): boolean {
+function matchesAnimalNames(
+  movement: AnimalMovement,
+  searchLower: string,
+  animalsMap: Map<string, Animal>
+): boolean {
   const animalNames = movement.animalIds
     .map((id) => {
-      const animal = getAnimalById(id);
+      const animal = animalsMap.get(id);
       return animal ? `${animal.code} ${animal.registrationNumber}`.toLowerCase() : "";
     })
     .filter((name) => name !== "")
@@ -279,10 +202,14 @@ function matchesMovementSearch(
       };
     };
   },
-  locations: Location[],
-  employees: Employee[],
-  serviceProviders: ServiceProvider[]
+  searchContext: {
+    locations: Location[];
+    employees: Employee[];
+    serviceProviders: ServiceProvider[];
+    animalsMap: Map<string, Animal>;
+  }
 ): boolean {
+  const { locations, employees, serviceProviders, animalsMap } = searchContext;
   if (checkMovementTypeSpecificSearch(movement, searchLower, t)) {
     return true;
   }
@@ -299,7 +226,7 @@ function matchesMovementSearch(
 
   if (
     movement.movementType === "animal" &&
-    matchesAnimalNames(movement as AnimalMovement, searchLower)
+    matchesAnimalNames(movement as AnimalMovement, searchLower, animalsMap)
   ) {
     return true;
   }
@@ -389,12 +316,6 @@ import {
 } from "~/services/location-observations.service";
 import type { LocationObservation } from "~/types/location-observation";
 import { usePermissions } from "~/utils/permissions";
-import {
-  getLocationConsumptionCosts,
-  getTotalLocationCost,
-  getAnimalCostBreakdown,
-} from "~/services/location-costs.service";
-import { Input } from "~/components/ui";
 import { getMovementsByLocationId } from "~/services/inventory-movements.service";
 import { getInventoryItemById } from "~/services/inventory.service";
 import { getUnitLabel } from "~/utils/inventory-utils";
@@ -704,6 +625,295 @@ function createObservationSubmitHandler(options: ObservationSubmitHandlerOptions
   };
 }
 
+function LocationCostsContent({
+  locationId,
+  costsStartDate,
+  costsEndDate,
+  onStartDateChange,
+  onEndDateChange,
+  t,
+  language: _language,
+  dateLocale,
+  localeForNumber,
+}: Readonly<{
+  locationId: string;
+  costsStartDate: string;
+  costsEndDate: string;
+  onStartDateChange: (value: string) => void;
+  onEndDateChange: (value: string) => void;
+  t: ReturnType<typeof useTranslation>;
+  language: string;
+  dateLocale: Locale;
+  localeForNumber: string;
+}>) {
+  const [consumptionCosts, setConsumptionCosts] = useState<
+    Awaited<ReturnType<typeof getLocationConsumptionCosts>>
+  >([]);
+  const [totalCost, setTotalCost] = useState<number>(0);
+  const [animalBreakdown, setAnimalBreakdown] = useState<
+    Awaited<ReturnType<typeof getAnimalCostBreakdown>>
+  >([]);
+  const [isLoadingCosts, setIsLoadingCosts] = useState(true);
+
+  useEffect(() => {
+    const loadCosts = async () => {
+      setIsLoadingCosts(true);
+      try {
+        const [costsData, totalCostData, breakdownData] = await Promise.all([
+          getLocationConsumptionCosts(
+            locationId,
+            costsStartDate || undefined,
+            costsEndDate || undefined
+          ),
+          getTotalLocationCost(locationId, costsStartDate || undefined, costsEndDate || undefined),
+          getAnimalCostBreakdown(
+            locationId,
+            costsStartDate || undefined,
+            costsEndDate || undefined
+          ),
+        ]);
+        setConsumptionCosts(costsData);
+        setTotalCost(totalCostData);
+        setAnimalBreakdown(breakdownData);
+      } catch (error) {
+        console.error("Failed to load costs:", error);
+      } finally {
+        setIsLoadingCosts(false);
+      }
+    };
+    loadCosts();
+  }, [locationId, costsStartDate, costsEndDate]);
+
+  const averageCostPerAnimal = animalBreakdown.length > 0 ? totalCost / animalBreakdown.length : 0;
+
+  if (isLoadingCosts) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">{t.common.loading || "Carregando..."}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="h-1 w-12 bg-blue-500 rounded-full"></div>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+            {t.locations.costs.title}
+          </h2>
+        </div>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+          {t.locations.costs.description}
+        </p>
+
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <Input
+              label={t.locations.costs.startDate}
+              type="date"
+              value={costsStartDate}
+              onChange={(e) => onStartDateChange(e.target.value)}
+            />
+          </div>
+          <div>
+            <Input
+              label={t.locations.costs.endDate}
+              type="date"
+              value={costsEndDate}
+              onChange={(e) => onEndDateChange(e.target.value)}
+            />
+          </div>
+          <div className="flex items-end">
+            <Button
+              variant="outline"
+              onClick={() => {
+                onStartDateChange("");
+                onEndDateChange("");
+              }}
+              disabled={!costsStartDate && !costsEndDate}
+            >
+              {t.locations.costs.clearFilter}
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+            <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
+              {t.locations.costs.totalCost}
+            </p>
+            <p className="text-2xl font-bold text-blue-900 dark:text-blue-100 mt-1">
+              {totalCost.toLocaleString(localeForNumber, {
+                style: "currency",
+                currency: "BRL",
+              })}
+            </p>
+          </div>
+          <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
+            <p className="text-sm font-medium text-green-600 dark:text-green-400">
+              {t.locations.costs.averageCostPerAnimal}
+            </p>
+            <p className="text-2xl font-bold text-green-900 dark:text-green-100 mt-1">
+              {averageCostPerAnimal.toLocaleString(localeForNumber, {
+                style: "currency",
+                currency: "BRL",
+              })}
+            </p>
+          </div>
+          <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
+            <p className="text-sm font-medium text-purple-600 dark:text-purple-400">
+              {t.locations.costs.consumptionRecords}
+            </p>
+            <p className="text-2xl font-bold text-purple-900 dark:text-purple-100 mt-1">
+              {consumptionCosts.length}
+            </p>
+          </div>
+        </div>
+
+        <div className="mb-6">
+          <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            {t.locations.costs.consumptionHistory}
+          </h3>
+          {consumptionCosts.length === 0 ? (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              <p className="font-medium">{t.locations.costs.noConsumption}</p>
+              <p className="text-sm mt-2">
+                {costsStartDate || costsEndDate
+                  ? t.locations.costs.noConsumptionWithFilter
+                  : t.locations.costs.noConsumptionDescription}
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-900">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      {t.locations.costs.itemName}
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      {t.locations.costs.quantity}
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      {t.locations.costs.unitPrice}
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      {t.locations.costs.totalCost}
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      {t.locations.costs.date}
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      {t.locations.costs.animalsPresent}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  {consumptionCosts.map((cost) => (
+                    <tr key={cost.movement.id}>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                        {cost.item.name}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                        {cost.movement.quantity.toLocaleString(localeForNumber)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                        {(cost.movement.unitPrice ?? cost.item.unitPrice ?? 0).toLocaleString(
+                          localeForNumber,
+                          {
+                            style: "currency",
+                            currency: "BRL",
+                          }
+                        )}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {cost.totalCost.toLocaleString(localeForNumber, {
+                          style: "currency",
+                          currency: "BRL",
+                        })}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                        {format(new Date(cost.movement.date), "PP", {
+                          locale: dateLocale,
+                        })}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                        {cost.animalsPresent.length}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {animalBreakdown.length > 0 && (
+          <div>
+            <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              {t.locations.costs.perAnimalBreakdown}
+            </h3>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-900">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      {t.locations.costs.animalCode}
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      {t.locations.costs.animalRegistration}
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      {t.locations.costs.totalAllocatedCost}
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      {t.locations.costs.consumptionPeriods}
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      {t.locations.costs.averageCostPerPeriod}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  {animalBreakdown.map((breakdown) => (
+                    <tr key={breakdown.animal.id}>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                        {breakdown.animal.code}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                        {breakdown.animal.registrationNumber}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {breakdown.totalCost.toLocaleString(localeForNumber, {
+                          style: "currency",
+                          currency: "BRL",
+                        })}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                        {breakdown.consumptionPeriods}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                        {breakdown.averageCostPerPeriod.toLocaleString(localeForNumber, {
+                          style: "currency",
+                          currency: "BRL",
+                        })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function LocationDetails() {
   const { locationId } = useParams<{ locationId: string }>();
   const navigate = useNavigate();
@@ -714,6 +924,8 @@ export default function LocationDetails() {
   const { showAlert } = useAlert();
   const [location, setLocation] = useState<Location | null>(null);
   const [property, setProperty] = useState<Property | null>(null);
+  const [animals, setAnimals] = useState<Animal[]>([]);
+  const [births, setBirths] = useState<Awaited<ReturnType<typeof getBirthsByCompanyId>>>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [serviceProviders, setServiceProviders] = useState<ServiceProvider[]>([]);
@@ -743,6 +955,17 @@ export default function LocationDetails() {
         const propertyData = propertiesData.find((p) => p.id === locationData.propertyId);
         if (propertyData) {
           setProperty(propertyData);
+          // Load animals and births for this property's company
+          try {
+            const [animalsData, birthsData] = await Promise.all([
+              getAnimalsByCompanyId(propertyData.companyId),
+              getBirthsByCompanyId(propertyData.companyId),
+            ]);
+            setAnimals(animalsData || []);
+            setBirths(birthsData || []);
+          } catch (error) {
+            console.error("Failed to load animals:", error);
+          }
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : t.locations.errors.loadFailed;
@@ -761,6 +984,16 @@ export default function LocationDetails() {
 
   const locationsMap = useMemo(() => new Map(locations.map((l) => [l.id, l])), [locations]);
   const getLocationByIdSync = (id: string) => locationsMap.get(id);
+  const animalsMap = useMemo(() => new Map(animals.map((a) => [a.id, a])), [animals]);
+  const birthsMap = useMemo(() => createBirthsMap(births), [births]);
+
+  const getAnimalByIdLocal = (id: string) => {
+    return animalsMap.get(id);
+  };
+
+  const getBirthByAnimalIdLocal = (id: string) => {
+    return birthsMap.get(id);
+  };
 
   const tabParam = searchParams.get("tab");
   const [activeTab, setActiveTab] = useState<LocationTab>(getActiveTabFromParam(tabParam));
@@ -815,7 +1048,7 @@ export default function LocationDetails() {
 
   const animalIdsInLocation = location ? getAnimalsByLastMovementLocation(location.id) : [];
   const allAnimalsInLocation = animalIdsInLocation
-    .map((id) => getAnimalById(id))
+    .map((id) => getAnimalByIdLocal(id))
     .filter((animal): animal is Animal => animal !== null);
   const animalsInLocation = allAnimalsInLocation.filter((animal) => animal.status === "active");
 
@@ -1241,7 +1474,7 @@ export default function LocationDetails() {
         (() => {
           const animalIdsInLocation = getAnimalsByLastMovementLocation(location.id);
           const allAnimals = animalIdsInLocation
-            .map((id) => getAnimalById(id))
+            .map((id) => getAnimalByIdLocal(id))
             .filter((animal): animal is Animal => animal !== null);
 
           const handleDeleteAnimalClick = (animal: Animal) => {
@@ -1251,20 +1484,23 @@ export default function LocationDetails() {
 
           const handleDeleteAnimal = async () => {
             if (!selectedAnimal) return;
-            const success = deleteAnimal(selectedAnimal.id);
-            if (success) {
+            try {
+              await deleteAnimal(selectedAnimal.id);
               setSelectedAnimals((prev) => {
                 const newSet = new Set(prev);
                 newSet.delete(selectedAnimal.id);
                 return newSet;
               });
+            } catch (error) {
+              console.error("Failed to delete animal:", error);
+            } finally {
+              setIsDeleteAnimalModalOpen(false);
+              setSelectedAnimal(null);
             }
-            setIsDeleteAnimalModalOpen(false);
-            setSelectedAnimal(null);
           };
 
           const filteredAnimals = allAnimals.filter((animal) => {
-            const birth = getBirthByAnimalId(animal.id);
+            const birth = getBirthByAnimalIdLocal(animal.id);
             const breedMatch = birth?.breed
               ? birth.breed.toLowerCase().includes(animalsSearchValue.toLowerCase())
               : false;
@@ -1286,8 +1522,18 @@ export default function LocationDetails() {
               return 0;
             }
 
-            const aValue = getAnimalSortValue(a, animalsSortState.column, localeForDateTime);
-            const bValue = getAnimalSortValue(b, animalsSortState.column, localeForDateTime);
+            const aValue = getAnimalSortValue(
+              a,
+              animalsSortState.column,
+              localeForDateTime,
+              birthsMap
+            );
+            const bValue = getAnimalSortValue(
+              b,
+              animalsSortState.column,
+              localeForDateTime,
+              birthsMap
+            );
             const comparison = compareAnimalSortValues(aValue, bValue, localeForDateTime);
 
             return animalsSortState.direction === "asc" ? comparison : -comparison;
@@ -1299,64 +1545,20 @@ export default function LocationDetails() {
             animalsCurrentPage * itemsPerPage
           );
 
-          const columns: TableColumn<Animal>[] = createAnimalTableColumns({
+          const columns: TableColumn<Animal>[] = createAnimalTableColumnsWithConfig({
+            t,
             language,
             dateLocale,
-            translations: {
-              table: {
-                registration: t.animals.table.registration,
-                breed: t.animals.table.breed,
-                purity: t.animals.table.purity,
-                gender: t.animals.table.gender,
-                birthDate: t.animals.table.birthDate,
-                acquisitionDate: t.animals.table.acquisitionDate,
-                weight: t.animals.table.weight,
-                weightInArrobas: t.animals.table.weightInArrobas,
-                lastWeighingDate: t.animals.table.lastWeighingDate,
-                gmd: t.animals.table.gmd,
-                breedingStatus: t.animals.table.breedingStatus,
-                breedingStatusPregnant: t.animals.table.breedingStatusPregnant,
-                status: t.animals.table.status,
-                active: t.animals.table.active,
-                inactive: t.animals.table.inactive,
-              },
-              breeds: t.animals.breeds,
-              purity: t.animals.purity,
-              gender: t.animals.gender,
-              common: {
-                month: t.common.month,
-                months: t.common.months,
-                daysAgo: t.common.daysAgo,
-                dailyAverageGain: t.common.dailyAverageGain,
-              },
-            },
-            formatDateFn: (date, lang) => {
-              const dateFormat = lang === "en" ? "MM/dd/yyyy" : "dd/MM/yyyy";
-              return format(date instanceof Date ? date : new Date(date), dateFormat, {
-                locale: dateLocale,
-              });
-            },
-            TooltipComponent: Tooltip as React.ComponentType<{
-              content: string;
-              position?: string;
-              children: React.ReactNode;
-            }>,
+            birthsMap,
+            TooltipComponent: Tooltip,
             StatusBadgeComponent: StatusBadge,
-            includeProperties: false,
-            includeActions: true,
-            actionsColumn: {
-              key: "actions",
-              label: "",
-              headerClassName: "relative",
-              render: (_, row) => (
-                <TableActionButtons
-                  onEdit={() => navigate(getAnimalEditRoute(row.id))}
-                  onDelete={() => handleDeleteAnimalClick(row)}
-                  canEdit={canEdit("registration", "animals")}
-                  canDelete={canRemove("registration", "animals")}
-                />
-              ),
+            navigate: (path: string) => {
+              navigate(path);
             },
+            handleDeleteAnimalClick,
+            canEdit,
+            canRemove,
+            includeProperties: false,
           });
 
           const headerActions: TableAction[] = [
@@ -1870,15 +2072,12 @@ export default function LocationDetails() {
 
           const filteredMovements = movements.filter((movement) => {
             if (!searchValue) return true;
-            return matchesMovementSearch(
-              movement,
-              searchValue.toLowerCase(),
-              formatDate,
-              t,
+            return matchesMovementSearch(movement, searchValue.toLowerCase(), formatDate, t, {
               locations,
               employees,
-              serviceProviders
-            );
+              serviceProviders,
+              animalsMap,
+            });
           });
 
           const sortedMovements = filteredMovements.toSorted((a, b) => {
@@ -2215,242 +2414,17 @@ export default function LocationDetails() {
         })()}
 
       {activeTab === "costs" && location && (
-        <div className="space-y-8">
-          {(() => {
-            const consumptionCosts = getLocationConsumptionCosts(
-              location.id,
-              costsStartDate || undefined,
-              costsEndDate || undefined
-            );
-            const totalCost = getTotalLocationCost(
-              location.id,
-              costsStartDate || undefined,
-              costsEndDate || undefined
-            );
-            const animalBreakdown = getAnimalCostBreakdown(
-              location.id,
-              costsStartDate || undefined,
-              costsEndDate || undefined
-            );
-            const averageCostPerAnimal =
-              animalBreakdown.length > 0 ? totalCost / animalBreakdown.length : 0;
-
-            return (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="h-1 w-12 bg-blue-500 rounded-full"></div>
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                    {t.locations.costs.title}
-                  </h2>
-                </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-                  {t.locations.costs.description}
-                </p>
-
-                <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <Input
-                      label={t.locations.costs.startDate}
-                      type="date"
-                      value={costsStartDate}
-                      onChange={(e) => setCostsStartDate(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <Input
-                      label={t.locations.costs.endDate}
-                      type="date"
-                      value={costsEndDate}
-                      onChange={(e) => setCostsEndDate(e.target.value)}
-                    />
-                  </div>
-                  <div className="flex items-end">
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setCostsStartDate("");
-                        setCostsEndDate("");
-                      }}
-                      disabled={!costsStartDate && !costsEndDate}
-                    >
-                      {t.locations.costs.clearFilter}
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-                    <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                      {t.locations.costs.totalCost}
-                    </p>
-                    <p className="text-2xl font-bold text-blue-900 dark:text-blue-100 mt-1">
-                      {totalCost.toLocaleString(localeForNumber, {
-                        style: "currency",
-                        currency: "BRL",
-                      })}
-                    </p>
-                  </div>
-                  <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
-                    <p className="text-sm font-medium text-green-600 dark:text-green-400">
-                      {t.locations.costs.averageCostPerAnimal}
-                    </p>
-                    <p className="text-2xl font-bold text-green-900 dark:text-green-100 mt-1">
-                      {averageCostPerAnimal.toLocaleString(localeForNumber, {
-                        style: "currency",
-                        currency: "BRL",
-                      })}
-                    </p>
-                  </div>
-                  <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
-                    <p className="text-sm font-medium text-purple-600 dark:text-purple-400">
-                      {t.locations.costs.consumptionRecords}
-                    </p>
-                    <p className="text-2xl font-bold text-purple-900 dark:text-purple-100 mt-1">
-                      {consumptionCosts.length}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mb-6">
-                  <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                    {t.locations.costs.consumptionHistory}
-                  </h3>
-                  {consumptionCosts.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                      <p className="font-medium">{t.locations.costs.noConsumption}</p>
-                      <p className="text-sm mt-2">
-                        {costsStartDate || costsEndDate
-                          ? t.locations.costs.noConsumptionWithFilter
-                          : t.locations.costs.noConsumptionDescription}
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                        <thead className="bg-gray-50 dark:bg-gray-900">
-                          <tr>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              {t.locations.costs.itemName}
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              {t.locations.costs.quantity}
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              {t.locations.costs.unitPrice}
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              {t.locations.costs.totalCost}
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              {t.locations.costs.date}
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              {t.locations.costs.animalsPresent}
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                          {consumptionCosts.map((cost) => (
-                            <tr key={cost.movement.id}>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                {cost.item.name}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                {cost.movement.quantity.toLocaleString(localeForNumber)}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                {(
-                                  cost.movement.unitPrice ??
-                                  cost.item.unitPrice ??
-                                  0
-                                ).toLocaleString(localeForNumber, {
-                                  style: "currency",
-                                  currency: "BRL",
-                                })}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
-                                {cost.totalCost.toLocaleString(localeForNumber, {
-                                  style: "currency",
-                                  currency: "BRL",
-                                })}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                {format(new Date(cost.movement.date), "PP", {
-                                  locale: dateLocale,
-                                })}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                {cost.animalsPresent.length}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-
-                {animalBreakdown.length > 0 && (
-                  <div>
-                    <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                      {t.locations.costs.perAnimalBreakdown}
-                    </h3>
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                        <thead className="bg-gray-50 dark:bg-gray-900">
-                          <tr>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              {t.locations.costs.animalCode}
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              {t.locations.costs.animalRegistration}
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              {t.locations.costs.totalAllocatedCost}
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              {t.locations.costs.consumptionPeriods}
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              {t.locations.costs.averageCostPerPeriod}
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                          {animalBreakdown.map((breakdown) => (
-                            <tr key={breakdown.animal.id}>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                {breakdown.animal.code}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                {breakdown.animal.registrationNumber}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
-                                {breakdown.totalCost.toLocaleString(localeForNumber, {
-                                  style: "currency",
-                                  currency: "BRL",
-                                })}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                {breakdown.consumptionPeriods}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                {breakdown.averageCostPerPeriod.toLocaleString(localeForNumber, {
-                                  style: "currency",
-                                  currency: "BRL",
-                                })}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-        </div>
+        <LocationCostsContent
+          locationId={location.id}
+          costsStartDate={costsStartDate}
+          costsEndDate={costsEndDate}
+          onStartDateChange={setCostsStartDate}
+          onEndDateChange={setCostsEndDate}
+          t={t}
+          language={language}
+          dateLocale={dateLocale}
+          localeForNumber={localeForNumber}
+        />
       )}
     </div>
   );

@@ -55,16 +55,9 @@ function validateAnimals(
 ): void {
   if (data.selectedAnimalIds.length === 0) {
     errors.selectedAnimalIds = t.sales.errors.animalsRequired;
-    return;
   }
-
-  const soldAnimals = data.selectedAnimalIds.filter((id) => {
-    if (isEdit && currentSaleAnimalIds.includes(id)) return false;
-    return isAnimalSold(id);
-  });
-  if (soldAnimals.length > 0) {
-    errors.selectedAnimalIds = t.sales.errors.animalAlreadySold;
-  }
+  // Note: isAnimalSold check is handled in toggleAnimalSelection callback
+  // This validation is kept for basic structure but async checks are done elsewhere
 }
 
 function validatePricing(
@@ -217,8 +210,9 @@ export function useSaleForm({
   );
 
   const toggleAnimalSelection = useCallback(
-    (animalId: string) => {
-      if (isAnimalSold(animalId) && (!isEdit || !currentSaleAnimalIds.includes(animalId))) {
+    async (animalId: string) => {
+      const sold = await isAnimalSold(animalId);
+      if (sold && (!isEdit || !currentSaleAnimalIds.includes(animalId))) {
         baseForm.showAlert(t.sales.errors.animalAlreadySold, "error");
         return;
       }

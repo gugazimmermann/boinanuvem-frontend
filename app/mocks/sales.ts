@@ -1,6 +1,5 @@
 import type { Sale, SaleFormData } from "~/types";
 import { SaleType, PricingMode, SalePaymentMethod } from "~/types";
-import { mockAnimals } from "./animals";
 import { mockBuyers } from "./buyers";
 import { getWeighingsByAnimalId } from "~/services/weighings.service";
 
@@ -18,11 +17,16 @@ const COMPANY_ID = "550e8400-e29b-41d4-a716-446655440000";
 const sales: Sale[] = [];
 
 function initializeSales(): void {
-  const availableAnimals = mockAnimals.filter(
-    (animal) => animal.status === "active" && animal.companyId === COMPANY_ID
-  );
+  // Simplified mock sales generation without dependencies on removed mocks
+  // Generate mock animal IDs for sales
+  const mockAnimalIds: string[] = [];
+  for (let i = 0; i < 20; i++) {
+    mockAnimalIds.push(
+      `bb0e8400-e29b-41d4-a716-${(446655440100 + i).toString().padStart(12, "0")}`
+    );
+  }
 
-  const animalsToSell = availableAnimals.filter((_, index) => index % 7 === 0).slice(0, 20);
+  const animalsToSell = mockAnimalIds;
 
   let saleIndex = 0;
 
@@ -41,8 +45,8 @@ function initializeSales(): void {
 
     if (animalsInSale.length === 0) continue;
 
-    const firstAnimal = animalsInSale[0];
-    const propertyId = firstAnimal.propertyId;
+    // Use a default property ID since we don't have animal data
+    const propertyId = "550e8400-e29b-41d4-a716-446655440010";
 
     const buyer = mockBuyers.find((b) => b.propertyIds.includes(propertyId)) || mockBuyers[0];
 
@@ -59,8 +63,8 @@ function initializeSales(): void {
     saleDate.setMonth(saleDate.getMonth() - Math.floor(Math.random() * 12));
     const saleDateStr = saleDate.toISOString().split("T")[0];
 
-    const saleItems = animalsInSale.map((animal) => {
-      const weighings = getWeighingsByAnimalId(animal.id);
+    const saleItems = animalsInSale.map((animalId) => {
+      const weighings = getWeighingsByAnimalId(animalId);
       let weight = 400;
       if (weighings && weighings.length > 0) {
         const sortedWeighings = weighings.sort(
@@ -81,7 +85,7 @@ function initializeSales(): void {
       const price = weight * pricePerKg;
 
       return {
-        animalId: animal.id,
+        animalId,
         price,
         weight,
         carcassWeight: saleType === SaleType.SLAUGHTERHOUSE ? weight * 0.55 : undefined,

@@ -1,34 +1,138 @@
 import type { Birth, BirthFormData } from "~/types";
 import { BirthPurity } from "~/types";
-import { mockBirths } from "~/mocks/births";
-import { findById, findByField, createEntity, updateEntity, deleteEntity } from "./base-service";
+import { apiClient, ApiError } from "./api-client";
+import { handleApiError, createResourceErrorMessages } from "./error-handlers";
 import { getAnimalsByPropertyId } from "./animals.service";
 
-const ID_PREFIX = "bi0e8400-e29b-41d4-a716";
-const DEFAULT_ID = "bi0e8400-e29b-41d4-a716-446655440009";
+const birthErrors = createResourceErrorMessages("nascimentos");
 
-export function getBirthById(birthId: string | undefined): Birth | undefined {
-  return findById(mockBirths, birthId);
+/**
+ * Convert backend Date to frontend string format
+ */
+function transformBirth(backendBirth: Birth): Birth {
+  return {
+    ...backendBirth,
+    birthDate:
+      typeof backendBirth.birthDate === "string"
+        ? backendBirth.birthDate
+        : new Date(backendBirth.birthDate).toISOString().split("T")[0],
+    createdAt:
+      typeof backendBirth.createdAt === "string"
+        ? backendBirth.createdAt
+        : new Date(backendBirth.createdAt).toISOString(),
+  };
 }
 
-export function getBirthByAnimalId(animalId: string): Birth | undefined {
-  return mockBirths.find((birth) => birth.animalId === animalId);
+/**
+ * Get all births for the current user's company via API
+ */
+export async function getBirthsByCompanyId(_companyId: string): Promise<Birth[] | undefined> {
+  try {
+    const births = await apiClient.get<Birth[]>("/births");
+    return births.map(transformBirth);
+  } catch (error) {
+    if (error instanceof ApiError && (error.status === 404 || error.status === 403)) {
+      return undefined;
+    }
+    handleApiError(error, birthErrors.list);
+  }
 }
 
-export function getBirthsByCompanyId(companyId: string): Birth[] {
-  return findByField(mockBirths, "companyId", companyId);
+/**
+ * Get a single birth by ID via API
+ */
+export async function getBirthById(birthId: string | undefined): Promise<Birth | undefined> {
+  if (!birthId) return undefined;
+  try {
+    const birth = await apiClient.get<Birth>(`/births/${birthId}`);
+    return transformBirth(birth);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      return undefined;
+    }
+    handleApiError(error, {
+      ...birthErrors.view,
+      403: "Você não tem permissão para visualizar este nascimento",
+    });
+  }
 }
 
-export function addBirth(data: BirthFormData): Birth {
-  return createEntity(mockBirths, data, ID_PREFIX, DEFAULT_ID);
+/**
+ * Get birth by animal ID via API
+ */
+export async function getBirthByAnimalId(animalId: string): Promise<Birth | undefined> {
+  try {
+    const births = await apiClient.get<Birth[]>("/births");
+    const birth = births.find((b) => b.animalId === animalId);
+    return birth ? transformBirth(birth) : undefined;
+  } catch (error) {
+    handleApiError(error, birthErrors.list);
+  }
 }
 
-export function updateBirth(birthId: string, data: Partial<BirthFormData>): boolean {
-  return updateEntity(mockBirths, birthId, data);
+/**
+ * Create a new birth via API (backend creates the animal automatically)
+ */
+export async function addBirth(
+  data: BirthFormData & { code: string; registrationNumber: string; propertyId: string }
+): Promise<Birth> {
+  try {
+    const createDto = {
+      code: data.code,
+      registrationNumber: data.registrationNumber,
+      propertyId: data.propertyId,
+      birthDate: data.birthDate,
+      breed: data.breed || undefined,
+      gender: data.gender || undefined,
+      motherId: data.motherId || undefined,
+      fatherId: data.fatherId || undefined,
+      purity: data.purity || undefined,
+      observation: data.observation || undefined,
+    };
+
+    const response = await apiClient.post<Birth>("/births", createDto);
+    return transformBirth(response);
+  } catch (error) {
+    handleApiError(error, {
+      ...birthErrors.create,
+      409: "Já existe um animal com este código ou número de registro",
+    });
+  }
 }
 
-export function deleteBirth(birthId: string): boolean {
-  return deleteEntity(mockBirths, birthId);
+/**
+ * Update a birth via API
+ */
+export async function updateBirth(birthId: string, data: Partial<BirthFormData>): Promise<Birth> {
+  try {
+    const updateDto: Record<string, unknown> = {};
+    if (data.birthDate !== undefined) updateDto.birthDate = data.birthDate;
+    if (data.breed !== undefined) updateDto.breed = data.breed || undefined;
+    if (data.gender !== undefined) updateDto.gender = data.gender || undefined;
+    if (data.motherId !== undefined) updateDto.motherId = data.motherId || undefined;
+    if (data.fatherId !== undefined) updateDto.fatherId = data.fatherId || undefined;
+    if (data.purity !== undefined) updateDto.purity = data.purity || undefined;
+    if (data.observation !== undefined) updateDto.observation = data.observation || undefined;
+
+    const response = await apiClient.put<Birth>(`/births/${birthId}`, updateDto);
+    return transformBirth(response);
+  } catch (error) {
+    handleApiError(error, {
+      ...birthErrors.update,
+      404: "Nascimento não encontrado",
+    });
+  }
+}
+
+/**
+ * Delete a birth via API
+ */
+export async function deleteBirth(birthId: string): Promise<void> {
+  try {
+    await apiClient.delete(`/births/${birthId}`);
+  } catch (error) {
+    handleApiError(error, birthErrors.delete);
+  }
 }
 
 const PURITY_SEQUENCE: BirthPurity[] = [
@@ -212,35 +316,65 @@ export function calculatePurity(
   return BirthPurity.F1;
 }
 
-export function getBirthsByPropertyId(propertyId: string): Birth[] {
-  const animals = getAnimalsByPropertyId(propertyId);
-  const animalIds = new Set(animals.map((a) => a.id));
-  return mockBirths.filter((birth) => animalIds.has(birth.animalId));
+/**
+ * Get births by property ID via API
+ */
+export async function getBirthsByPropertyId(propertyId: string): Promise<Birth[] | undefined> {
+  try {
+    const animals = await getAnimalsByPropertyId(propertyId);
+    const animalIds = new Set(animals.map((a) => a.id));
+    const births = await apiClient.get<Birth[]>("/births");
+    return births.filter((birth) => animalIds.has(birth.animalId)).map(transformBirth);
+  } catch (error) {
+    if (error instanceof ApiError && (error.status === 404 || error.status === 403)) {
+      return undefined;
+    }
+    if (error instanceof Error) {
+      return undefined;
+    }
+    handleApiError(error, birthErrors.list);
+  }
 }
 
-export function getCalvingIntervalsByAnimalId(animalId: string): number[] {
-  const birthsAsMother = mockBirths.filter((birth) => birth.motherId === animalId);
+/**
+ * Get calving intervals by animal ID via API
+ */
+export async function getCalvingIntervalsByAnimalId(animalId: string): Promise<number[]> {
+  try {
+    const births = await apiClient.get<Birth[]>("/births");
+    const birthsAsMother = births.filter((birth) => birth.motherId === animalId);
 
-  if (birthsAsMother.length < 2) {
-    return [];
+    if (birthsAsMother.length < 2) {
+      return [];
+    }
+
+    const birthsArray = [...birthsAsMother];
+    const sortedBirths = birthsArray.toSorted(
+      (a, b) => new Date(a.birthDate).getTime() - new Date(b.birthDate).getTime()
+    );
+
+    const intervals: number[] = [];
+    for (let i = 1; i < sortedBirths.length; i++) {
+      const prevDate = new Date(sortedBirths[i - 1].birthDate).getTime();
+      const currDate = new Date(sortedBirths[i].birthDate).getTime();
+      const intervalDays = Math.floor((currDate - prevDate) / (1000 * 60 * 60 * 24));
+      intervals.push(intervalDays);
+    }
+
+    return intervals;
+  } catch (error) {
+    handleApiError(error, birthErrors.list);
   }
-
-  const birthsArray = [...birthsAsMother];
-  const sortedBirths = birthsArray.toSorted(
-    (a, b) => new Date(a.birthDate).getTime() - new Date(b.birthDate).getTime()
-  );
-
-  const intervals: number[] = [];
-  for (let i = 1; i < sortedBirths.length; i++) {
-    const prevDate = new Date(sortedBirths[i - 1].birthDate).getTime();
-    const currDate = new Date(sortedBirths[i].birthDate).getTime();
-    const intervalDays = Math.floor((currDate - prevDate) / (1000 * 60 * 60 * 24));
-    intervals.push(intervalDays);
-  }
-
-  return intervals;
 }
 
-export function getBirthsByFatherId(fatherId: string): Birth[] {
-  return mockBirths.filter((birth) => birth.fatherId === fatherId);
+/**
+ * Get births by father ID via API
+ */
+export async function getBirthsByFatherId(fatherId: string): Promise<Birth[]> {
+  try {
+    const births = await apiClient.get<Birth[]>("/births");
+    return births.filter((birth) => birth.fatherId === fatherId).map(transformBirth);
+  } catch (error) {
+    handleApiError(error, birthErrors.list);
+  }
 }

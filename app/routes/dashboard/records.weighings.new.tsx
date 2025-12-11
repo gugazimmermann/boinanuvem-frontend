@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
@@ -54,9 +54,21 @@ export default function NewWeighing() {
   const today = new Date().toISOString().split("T")[0];
 
   const [animalSearch, setAnimalSearch] = useState("");
-
-  const animals = useMemo(() => getAnimalsByCompanyId(companyId), [companyId]);
+  const [animals, setAnimals] = useState<Awaited<ReturnType<typeof getAnimalsByCompanyId>>>([]);
   const { employees, serviceProviders } = useResponsibleEntities({ companyId });
+
+  useEffect(() => {
+    const loadAnimals = async () => {
+      if (!companyId) return;
+      try {
+        const animalsData = await getAnimalsByCompanyId(companyId);
+        setAnimals(animalsData || []);
+      } catch (error) {
+        console.error("Failed to load animals:", error);
+      }
+    };
+    loadAnimals();
+  }, [companyId]);
 
   const filteredAnimals = useMemo(() => {
     if (!animalSearch.trim()) return animals;
@@ -366,24 +378,42 @@ export default function NewWeighing() {
     return [...availableMedicines, ...availableVaccines];
   }, [availableMedicines, availableVaccines]);
 
-  const animalLocationInfo = useMemo(() => {
-    if (!formData.animalId) return { locationId: undefined, propertyId: undefined };
-    const animal = getAnimalById(formData.animalId);
-    if (!animal) return { locationId: undefined, propertyId: undefined };
+  const [animalLocationInfo, setAnimalLocationInfo] = useState<{
+    locationId?: string;
+    propertyId?: string;
+  }>({
+    locationId: undefined,
+    propertyId: undefined,
+  });
 
-    const movements = getAnimalMovementsByAnimalId(animal.id);
-    if (movements.length === 0) {
-      return { locationId: undefined, propertyId: animal.propertyId };
-    }
+  useEffect(() => {
+    const loadAnimalLocationInfo = async () => {
+      if (!formData.animalId) {
+        setAnimalLocationInfo({ locationId: undefined, propertyId: undefined });
+        return;
+      }
+      const animal = await getAnimalById(formData.animalId);
+      if (!animal) {
+        setAnimalLocationInfo({ locationId: undefined, propertyId: undefined });
+        return;
+      }
 
-    const sortedMovements = movements.toSorted(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-    const latestMovement = sortedMovements[0];
-    return {
-      locationId: latestMovement.locationId,
-      propertyId: latestMovement.propertyId || animal.propertyId,
+      const movements = getAnimalMovementsByAnimalId(animal.id);
+      if (movements.length === 0) {
+        setAnimalLocationInfo({ locationId: undefined, propertyId: animal.propertyId });
+        return;
+      }
+
+      const sortedMovements = movements.toSorted(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+      const latestMovement = sortedMovements[0];
+      setAnimalLocationInfo({
+        locationId: latestMovement.locationId,
+        propertyId: latestMovement.propertyId || animal.propertyId,
+      });
     };
+    loadAnimalLocationInfo();
   }, [formData.animalId]);
 
   const calculateDosage = (item: InventoryItem, weight: number): number => {
@@ -559,7 +589,7 @@ export default function NewWeighing() {
         }
       }
 
-      const animal = getAnimalById(formData.animalId);
+      const animal = await getAnimalById(formData.animalId);
       if (animal) {
         setSessionWeighings((prev) => [
           ...prev,

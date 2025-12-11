@@ -1,10 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
-import { renderHook, act } from "@testing-library/react";
+import { renderHook, act, waitFor } from "@testing-library/react";
 import { useBreedingForm } from "../use-breeding-form";
 import { getNextAttemptNumber } from "~/services/breedings.service";
 
 vi.mock("~/services/breedings.service", () => ({
-  getNextAttemptNumber: vi.fn((_animalId: string) => 1),
+  getNextAttemptNumber: vi.fn((_animalId: string, _companyId: string) => Promise.resolve(1)),
 }));
 
 describe("useBreedingForm", () => {
@@ -24,9 +24,12 @@ describe("useBreedingForm", () => {
     },
   } as unknown as import("~/i18n").TranslationKey;
 
+  const mockCompanyId = "550e8400-e29b-41d4-a716-446655440000";
+
   it("should initialize with default form data", () => {
     const { result } = renderHook(() =>
       useBreedingForm({
+        companyId: mockCompanyId,
         t: mockTranslation,
       })
     );
@@ -43,6 +46,7 @@ describe("useBreedingForm", () => {
   it("should initialize with provided initialAnimalIds", () => {
     const { result } = renderHook(() =>
       useBreedingForm({
+        companyId: mockCompanyId,
         initialAnimalIds: ["A001", "A002"],
         t: mockTranslation,
       })
@@ -54,6 +58,7 @@ describe("useBreedingForm", () => {
   it("should initialize with provided initialDate", () => {
     const { result } = renderHook(() =>
       useBreedingForm({
+        companyId: mockCompanyId,
         initialDate: "2024-01-15",
         t: mockTranslation,
       })
@@ -65,6 +70,7 @@ describe("useBreedingForm", () => {
   it("should update form data when handleChange is called", () => {
     const { result } = renderHook(() =>
       useBreedingForm({
+        companyId: mockCompanyId,
         t: mockTranslation,
       })
     );
@@ -79,6 +85,7 @@ describe("useBreedingForm", () => {
   it("should clear error when field is changed", () => {
     const { result } = renderHook(() =>
       useBreedingForm({
+        companyId: mockCompanyId,
         t: mockTranslation,
       })
     );
@@ -99,6 +106,7 @@ describe("useBreedingForm", () => {
   it("should toggle animal selection", () => {
     const { result } = renderHook(() =>
       useBreedingForm({
+        companyId: mockCompanyId,
         t: mockTranslation,
       })
     );
@@ -116,9 +124,10 @@ describe("useBreedingForm", () => {
     expect(result.current.formData.animalIds).not.toContain("A001");
   });
 
-  it("should set attempt number when animal is selected for artificial insemination", () => {
+  it("should set attempt number when animal is selected for artificial insemination", async () => {
     const { result } = renderHook(() =>
       useBreedingForm({
+        companyId: mockCompanyId,
         t: mockTranslation,
       })
     );
@@ -131,13 +140,17 @@ describe("useBreedingForm", () => {
       result.current.toggleAnimalSelection("A001");
     });
 
-    expect(result.current.formData.attemptNumbers["A001"]).toBe(1);
-    expect(getNextAttemptNumber).toHaveBeenCalledWith("A001");
+    expect(getNextAttemptNumber).toHaveBeenCalledWith("A001", mockCompanyId);
+
+    await waitFor(() => {
+      expect(result.current.formData.attemptNumbers["A001"]).toBe(1);
+    });
   });
 
-  it("should clear attempt numbers when method changes from artificial_insemination", () => {
+  it("should clear attempt numbers when method changes from artificial_insemination", async () => {
     const { result } = renderHook(() =>
       useBreedingForm({
+        companyId: mockCompanyId,
         initialAnimalIds: ["A001"],
         t: mockTranslation,
       })
@@ -147,7 +160,9 @@ describe("useBreedingForm", () => {
       result.current.handleMethodChange("artificial_insemination");
     });
 
-    expect(result.current.formData.attemptNumbers["A001"]).toBe(1);
+    await waitFor(() => {
+      expect(result.current.formData.attemptNumbers["A001"]).toBe(1);
+    });
 
     act(() => {
       result.current.handleMethodChange("natural");
@@ -159,6 +174,7 @@ describe("useBreedingForm", () => {
   it("should clear bullId when method changes from natural", () => {
     const { result } = renderHook(() =>
       useBreedingForm({
+        companyId: mockCompanyId,
         t: mockTranslation,
       })
     );
@@ -180,6 +196,7 @@ describe("useBreedingForm", () => {
   it("should clear semenCode when method changes from artificial_insemination", () => {
     const { result } = renderHook(() =>
       useBreedingForm({
+        companyId: mockCompanyId,
         t: mockTranslation,
       })
     );
@@ -201,6 +218,7 @@ describe("useBreedingForm", () => {
   it("should toggle employee selection", () => {
     const { result } = renderHook(() =>
       useBreedingForm({
+        companyId: mockCompanyId,
         t: mockTranslation,
       })
     );
@@ -221,6 +239,7 @@ describe("useBreedingForm", () => {
   it("should toggle serviceProvider selection", () => {
     const { result } = renderHook(() =>
       useBreedingForm({
+        companyId: mockCompanyId,
         t: mockTranslation,
       })
     );
@@ -238,9 +257,10 @@ describe("useBreedingForm", () => {
     expect(result.current.formData.serviceProviderIds).not.toContain("SP001");
   });
 
-  it("should update attempt number", () => {
+  it("should update attempt number", async () => {
     const { result } = renderHook(() =>
       useBreedingForm({
+        companyId: mockCompanyId,
         initialAnimalIds: ["A001"],
         t: mockTranslation,
       })
@@ -248,6 +268,13 @@ describe("useBreedingForm", () => {
 
     act(() => {
       result.current.handleMethodChange("artificial_insemination");
+    });
+
+    await waitFor(() => {
+      expect(result.current.formData.attemptNumbers["A001"]).toBeDefined();
+    });
+
+    act(() => {
       result.current.handleAttemptNumberChange("A001", "3");
     });
 
@@ -257,6 +284,7 @@ describe("useBreedingForm", () => {
   it("should validate animalIds", () => {
     const { result } = renderHook(() =>
       useBreedingForm({
+        companyId: mockCompanyId,
         t: mockTranslation,
       })
     );
@@ -271,6 +299,7 @@ describe("useBreedingForm", () => {
   it("should validate date", () => {
     const { result } = renderHook(() =>
       useBreedingForm({
+        companyId: mockCompanyId,
         initialAnimalIds: ["A001"],
         t: mockTranslation,
       })
@@ -287,6 +316,7 @@ describe("useBreedingForm", () => {
   it("should validate method", () => {
     const { result } = renderHook(() =>
       useBreedingForm({
+        companyId: mockCompanyId,
         initialAnimalIds: ["A001"],
         t: mockTranslation,
       })
@@ -302,6 +332,7 @@ describe("useBreedingForm", () => {
   it("should validate bullId for natural method", () => {
     const { result } = renderHook(() =>
       useBreedingForm({
+        companyId: mockCompanyId,
         initialAnimalIds: ["A001"],
         t: mockTranslation,
       })
@@ -315,9 +346,10 @@ describe("useBreedingForm", () => {
     expect(result.current.errors.bullId).toBeDefined();
   });
 
-  it("should validate semenCode for artificial_insemination", () => {
+  it("should validate semenCode for artificial_insemination", async () => {
     const { result } = renderHook(() =>
       useBreedingForm({
+        companyId: mockCompanyId,
         initialAnimalIds: ["A001"],
         t: mockTranslation,
       })
@@ -325,15 +357,23 @@ describe("useBreedingForm", () => {
 
     act(() => {
       result.current.handleMethodChange("artificial_insemination");
+    });
+
+    await waitFor(() => {
+      expect(result.current.formData.attemptNumbers["A001"]).toBeDefined();
+    });
+
+    act(() => {
       result.current.validate();
     });
 
     expect(result.current.errors.semenCode).toBeDefined();
   });
 
-  it("should validate attempt numbers for artificial_insemination", () => {
+  it("should validate attempt numbers for artificial_insemination", async () => {
     const { result } = renderHook(() =>
       useBreedingForm({
+        companyId: mockCompanyId,
         initialAnimalIds: ["A001"],
         t: mockTranslation,
       })
@@ -341,6 +381,10 @@ describe("useBreedingForm", () => {
 
     act(() => {
       result.current.handleMethodChange("artificial_insemination");
+    });
+
+    await waitFor(() => {
+      expect(result.current.formData.attemptNumbers["A001"]).toBeDefined();
     });
 
     act(() => {
@@ -358,6 +402,7 @@ describe("useBreedingForm", () => {
   it("should validate responsible", () => {
     const { result } = renderHook(() =>
       useBreedingForm({
+        companyId: mockCompanyId,
         initialAnimalIds: ["A001"],
         t: mockTranslation,
       })

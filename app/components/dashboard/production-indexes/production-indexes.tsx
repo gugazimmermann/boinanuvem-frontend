@@ -35,33 +35,13 @@ export function ProductionIndexes({ propertyId, period }: ProductionIndexesProps
 
   const selectedPeriod = period || getDefaultPeriod;
 
-  const adgResults = useMemo(
-    () => getAverageDailyGain(propertyId, selectedPeriod),
-    [propertyId, selectedPeriod]
-  );
-
-  const averageAdg = useMemo(() => {
-    if (adgResults.length === 0) return 0;
-    const sum = adgResults.reduce((acc, result) => acc + result.adg, 0);
-    return sum / adgResults.length;
-  }, [adgResults]);
-
-  const carcassYield = useMemo(
-    () => getCarcassYield(propertyId, selectedPeriod),
-    [propertyId, selectedPeriod]
-  );
-
-  const adcResults = useMemo(
-    () => getAverageDailyCarcassGain(propertyId, selectedPeriod, carcassYield.yield),
-    [propertyId, selectedPeriod, carcassYield.yield]
-  );
-
-  const averageAdc = useMemo(() => {
-    if (!adcResults || adcResults.length === 0) return 0;
-    const sum = adcResults.reduce((acc, result) => acc + result.adc, 0);
-    return sum / adcResults.length;
-  }, [adcResults]);
-
+  const [adgResults, setAdgResults] = useState<Awaited<ReturnType<typeof getAverageDailyGain>>>([]);
+  const [carcassYield, setCarcassYield] = useState<Awaited<
+    ReturnType<typeof getCarcassYield>
+  > | null>(null);
+  const [adcResults, setAdcResults] = useState<
+    Awaited<ReturnType<typeof getAverageDailyCarcassGain>>
+  >([]);
   const [daysOnFeed, setDaysOnFeed] = useState<Awaited<ReturnType<typeof getDaysOnFeed>>>([]);
   const [arrobaProduction, setArrobaProduction] = useState<Awaited<
     ReturnType<typeof getArrobaProductionPerHectare>
@@ -69,45 +49,92 @@ export function ProductionIndexes({ propertyId, period }: ProductionIndexesProps
   const [kgNitrogenPerAU, setKgNitrogenPerAU] = useState<Awaited<
     ReturnType<typeof getKgNitrogenPerAU>
   > | null>(null);
+  const [slaughterAge, setSlaughterAge] = useState<Awaited<
+    ReturnType<typeof getSlaughterAge>
+  > | null>(null);
+  const [kgMeatPerKgNitrogen, setKgMeatPerKgNitrogen] = useState<Awaited<
+    ReturnType<typeof getKgMeatPerKgNitrogen>
+  > | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [daysOnFeedResult, arrobaProductionResult, kgNitrogenPerAUResult] = await Promise.all(
-          [
-            getDaysOnFeed(propertyId, selectedPeriod),
-            getArrobaProductionPerHectare(propertyId, selectedPeriod),
-            getKgNitrogenPerAU(propertyId, selectedPeriod),
-          ]
-        );
+        const [
+          adgResultsData,
+          carcassYieldData,
+          daysOnFeedResult,
+          arrobaProductionResult,
+          kgNitrogenPerAUResult,
+          slaughterAgeResult,
+          kgMeatPerKgNitrogenResult,
+        ] = await Promise.all([
+          getAverageDailyGain(propertyId, selectedPeriod),
+          getCarcassYield(propertyId, selectedPeriod),
+          getDaysOnFeed(propertyId, selectedPeriod),
+          getArrobaProductionPerHectare(propertyId, selectedPeriod),
+          getKgNitrogenPerAU(propertyId, selectedPeriod),
+          getSlaughterAge(propertyId, selectedPeriod),
+          getKgMeatPerKgNitrogen(propertyId, selectedPeriod),
+        ]);
+        setAdgResults(adgResultsData);
+        setCarcassYield(carcassYieldData);
         setDaysOnFeed(daysOnFeedResult);
         setArrobaProduction(arrobaProductionResult);
         setKgNitrogenPerAU(kgNitrogenPerAUResult);
+        setSlaughterAge(slaughterAgeResult);
+        setKgMeatPerKgNitrogen(kgMeatPerKgNitrogenResult);
       } catch (error) {
         console.error("Failed to load production indexes:", error);
+        setAdgResults([]);
+        setCarcassYield(null);
         setDaysOnFeed([]);
         setArrobaProduction(null);
         setKgNitrogenPerAU(null);
+        setSlaughterAge(null);
+        setKgMeatPerKgNitrogen(null);
       }
     };
     loadData();
   }, [propertyId, selectedPeriod]);
+
+  useEffect(() => {
+    const loadAdcResults = async () => {
+      if (!carcassYield) {
+        setAdcResults([]);
+        return;
+      }
+      try {
+        const adcResultsData = await getAverageDailyCarcassGain(
+          propertyId,
+          selectedPeriod,
+          carcassYield.yield
+        );
+        setAdcResults(adcResultsData);
+      } catch (error) {
+        console.error("Failed to load ADC results:", error);
+        setAdcResults([]);
+      }
+    };
+    loadAdcResults();
+  }, [propertyId, selectedPeriod, carcassYield]);
+
+  const averageAdg = useMemo(() => {
+    if (adgResults.length === 0) return 0;
+    const sum = adgResults.reduce((acc, result) => acc + result.adg, 0);
+    return sum / adgResults.length;
+  }, [adgResults]);
+
+  const averageAdc = useMemo(() => {
+    if (!adcResults || adcResults.length === 0) return 0;
+    const sum = adcResults.reduce((acc, result) => acc + result.adc, 0);
+    return sum / adcResults.length;
+  }, [adcResults]);
 
   const averageDaysOnFeed = useMemo(() => {
     if (daysOnFeed.length === 0) return 0;
     const sum = daysOnFeed.reduce((acc, result) => acc + result.days, 0);
     return sum / daysOnFeed.length;
   }, [daysOnFeed]);
-
-  const slaughterAge = useMemo(
-    () => getSlaughterAge(propertyId, selectedPeriod),
-    [propertyId, selectedPeriod]
-  );
-
-  const kgMeatPerKgNitrogen = useMemo(
-    () => getKgMeatPerKgNitrogen(propertyId, selectedPeriod),
-    [propertyId, selectedPeriod]
-  );
 
   return (
     <div className="space-y-6">
@@ -191,7 +218,7 @@ export function ProductionIndexes({ propertyId, period }: ProductionIndexesProps
                 {t.productionIndexes.averageDailyCarcassGain.carcassYield}:
               </span>
               <span className="font-semibold text-gray-900 dark:text-gray-100">
-                {carcassYield.yield.toFixed(2)}%
+                {carcassYield?.yield.toFixed(2) ?? "0.00"}%
               </span>
             </div>
           </div>
@@ -263,7 +290,7 @@ export function ProductionIndexes({ propertyId, period }: ProductionIndexesProps
           </div>
           <div className="mb-3">
             <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {carcassYield.yield.toFixed(2)}
+              {carcassYield?.yield.toFixed(2) ?? "0.00"}
               <span className="text-sm font-normal text-gray-500 dark:text-gray-400">%</span>
             </p>
           </div>
@@ -273,7 +300,7 @@ export function ProductionIndexes({ propertyId, period }: ProductionIndexesProps
                 {t.productionIndexes.carcassYield.count}:
               </span>
               <span className="font-semibold text-gray-900 dark:text-gray-100">
-                {carcassYield.count}
+                {carcassYield?.count ?? 0}
               </span>
             </div>
             <div className="flex justify-between text-xs">
@@ -281,7 +308,7 @@ export function ProductionIndexes({ propertyId, period }: ProductionIndexesProps
                 {t.productionIndexes.carcassYield.carcassWeight}:
               </span>
               <span className="font-semibold text-gray-900 dark:text-gray-100">
-                {carcassYield.carcassWeight.toFixed(2)} kg
+                {carcassYield?.carcassWeight.toFixed(2) ?? "0.00"} kg
               </span>
             </div>
             <div className="flex justify-between text-xs">
@@ -289,7 +316,7 @@ export function ProductionIndexes({ propertyId, period }: ProductionIndexesProps
                 {t.productionIndexes.carcassYield.liveWeight}:
               </span>
               <span className="font-semibold text-gray-900 dark:text-gray-100">
-                {carcassYield.liveWeight.toFixed(2)} kg
+                {carcassYield?.liveWeight.toFixed(2) ?? "0.00"} kg
               </span>
             </div>
           </div>
@@ -320,7 +347,7 @@ export function ProductionIndexes({ propertyId, period }: ProductionIndexesProps
           </div>
           <div className="mb-3">
             <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {Math.round(slaughterAge.averageAge / 30)}{" "}
+              {slaughterAge ? Math.round(slaughterAge.averageAge / 30) : 0}{" "}
               <span className="text-sm font-normal text-gray-500 dark:text-gray-400">meses</span>
             </p>
           </div>
@@ -330,7 +357,7 @@ export function ProductionIndexes({ propertyId, period }: ProductionIndexesProps
                 {t.productionIndexes.slaughterAge.min}:
               </span>
               <span className="font-semibold text-gray-900 dark:text-gray-100">
-                {Math.round(slaughterAge.minAge / 30)} meses
+                {slaughterAge ? Math.round(slaughterAge.minAge / 30) : 0} meses
               </span>
             </div>
             <div className="flex justify-between text-xs">
@@ -338,7 +365,7 @@ export function ProductionIndexes({ propertyId, period }: ProductionIndexesProps
                 {t.productionIndexes.slaughterAge.max}:
               </span>
               <span className="font-semibold text-gray-900 dark:text-gray-100">
-                {Math.round(slaughterAge.maxAge / 30)} meses
+                {slaughterAge ? Math.round(slaughterAge.maxAge / 30) : 0} meses
               </span>
             </div>
             <div className="flex justify-between text-xs">
@@ -346,7 +373,7 @@ export function ProductionIndexes({ propertyId, period }: ProductionIndexesProps
                 {t.productionIndexes.slaughterAge.count}:
               </span>
               <span className="font-semibold text-gray-900 dark:text-gray-100">
-                {slaughterAge.count}
+                {slaughterAge?.count ?? 0}
               </span>
             </div>
           </div>
@@ -478,7 +505,7 @@ export function ProductionIndexes({ propertyId, period }: ProductionIndexesProps
           </div>
           <div className="mb-3">
             <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {kgMeatPerKgNitrogen.kgMeatPerKgNitrogen.toFixed(2)}{" "}
+              {kgMeatPerKgNitrogen?.kgMeatPerKgNitrogen.toFixed(2) ?? "0.00"}{" "}
               <span className="text-sm font-normal text-gray-500 dark:text-gray-400">kg/kg N</span>
             </p>
           </div>
@@ -488,7 +515,7 @@ export function ProductionIndexes({ propertyId, period }: ProductionIndexesProps
                 {t.productionIndexes.kgMeatPerKgNitrogen.totalWeightGain}:
               </span>
               <span className="font-semibold text-gray-900 dark:text-gray-100">
-                {kgMeatPerKgNitrogen.totalWeightGain.toFixed(2)} kg
+                {kgMeatPerKgNitrogen?.totalWeightGain.toFixed(2) ?? "0.00"} kg
               </span>
             </div>
             <div className="flex justify-between text-xs">
@@ -496,7 +523,7 @@ export function ProductionIndexes({ propertyId, period }: ProductionIndexesProps
                 {t.productionIndexes.kgMeatPerKgNitrogen.totalNitrogen}:
               </span>
               <span className="font-semibold text-gray-900 dark:text-gray-100">
-                {kgMeatPerKgNitrogen.totalNitrogen.toFixed(2)} kg
+                {kgMeatPerKgNitrogen?.totalNitrogen.toFixed(2) ?? "0.00"} kg
               </span>
             </div>
           </div>

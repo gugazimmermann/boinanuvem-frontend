@@ -1,10 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Input, Button, Alert, Select, FormFieldGroup } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
 import { formatCurrency } from "~/utils/currency";
 import { isAnimalSold } from "~/services/sales.service";
-import { getAnimalById } from "~/services/animals.service";
 import { useSaleForm, type SaleFormData } from "~/hooks/use-sale-form";
 import type { PricingMode, Property, Buyer, Animal } from "~/types";
 
@@ -53,6 +52,37 @@ export function SaleForm({
 }: SaleFormProps) {
   const t = useTranslation();
   const { language } = useLanguage();
+  const [soldAnimalIds, setSoldAnimalIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const loadSoldAnimals = async () => {
+      const soldIds = new Set<string>();
+      await Promise.all(
+        animals.map(async (animal) => {
+          const sold = await isAnimalSold(animal.id);
+          if (sold) {
+            soldIds.add(animal.id);
+          }
+        })
+      );
+      setSoldAnimalIds(soldIds);
+    };
+    if (animals.length > 0) {
+      loadSoldAnimals();
+    }
+  }, [animals]);
+
+  const animalsMap = useMemo(() => {
+    const map = new Map<string, Animal>();
+    for (const animal of animals) {
+      map.set(animal.id, animal);
+    }
+    return map;
+  }, [animals]);
+
+  const getAnimalByIdLocal = (animalId: string) => {
+    return animalsMap.get(animalId);
+  };
 
   const {
     formData,
@@ -325,7 +355,7 @@ export function SaleForm({
                 <div className="space-y-1 p-2">
                   {filteredAnimals.map((animal) => {
                     const isSold =
-                      isAnimalSold(animal.id) &&
+                      soldAnimalIds.has(animal.id) &&
                       (!isEdit || !currentSaleAnimalIds.includes(animal.id));
                     return (
                       <label
@@ -394,7 +424,7 @@ export function SaleForm({
                       weight: string;
                       carcassWeight?: string;
                     }) => {
-                      const animal = getAnimalById(item.animalId);
+                      const animal = getAnimalByIdLocal(item.animalId);
                       return (
                         <div
                           key={item.animalId}

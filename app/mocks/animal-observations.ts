@@ -1,6 +1,5 @@
 import type { AnimalObservation, AnimalObservationFormData } from "~/types/animal-observation";
 import { generateUUID } from "~/utils/uuid";
-import { mockAnimals } from "./animals";
 import { mockWeighings } from "./weighings";
 import { mockAnimalMovements } from "./animal-movements";
 
@@ -153,22 +152,32 @@ const baseObservations: AnimalObservation[] = [
 const additionalObservations: AnimalObservation[] = [];
 const userIds = ["user-001", "user-002", "user-003"];
 
+// Generate mock animal IDs for observations
+const generateMockAnimalIds = (count: number): string[] => {
+  return Array.from(
+    { length: count },
+    (_, i) => `bb0e8400-e29b-41d4-a716-${(446655440100 + i).toString().padStart(12, "0")}`
+  );
+};
+
+const mockAnimalIds = generateMockAnimalIds(50);
+
 for (let i = 0; i < 50; i++) {
-  const animal = mockAnimals[Math.floor(Math.random() * mockAnimals.length)];
-  if (!animal) continue;
+  const animalId = mockAnimalIds[i % mockAnimalIds.length];
+  if (!animalId) continue;
 
   let observationDate: string;
   const alignWithEvent = Math.random() < 0.3;
 
   if (alignWithEvent) {
-    const animalWeighings = mockWeighings.filter((w) => w.animalId === animal.id);
+    const animalWeighings = mockWeighings.filter((w) => w.animalId === animalId);
     if (animalWeighings.length > 0) {
       const weighing = animalWeighings[Math.floor(Math.random() * animalWeighings.length)];
       const weighingDate = new Date(weighing.date);
       weighingDate.setHours(weighingDate.getHours() + Math.floor(Math.random() * 8));
       observationDate = weighingDate.toISOString();
     } else {
-      const animalMovements = mockAnimalMovements.filter((m) => m.animalIds.includes(animal.id));
+      const animalMovements = mockAnimalMovements.filter((m) => m.animalIds.includes(animalId));
       if (animalMovements.length > 0) {
         const movement = animalMovements[Math.floor(Math.random() * animalMovements.length)];
         const movementDate = new Date(movement.date);
@@ -195,13 +204,13 @@ for (let i = 0; i < 50; i++) {
   const fileIds = hasFiles
     ? Array.from(
         { length: Math.floor(Math.random() * 3) + 1 },
-        (_, idx) => `file-animal-obs-${animal.id}-${i}-${idx + 1}`
+        (_, idx) => `file-animal-obs-${animalId}-${i}-${idx + 1}`
       )
     : [];
 
   additionalObservations.push({
     id: generateUUID(),
-    animalId: animal.id,
+    animalId: animalId,
     observation: observationTemplates[i % observationTemplates.length],
     fileIds: fileIds.length > 0 ? fileIds : undefined,
     createdAt: observationDate,

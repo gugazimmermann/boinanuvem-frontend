@@ -98,18 +98,22 @@ async function collectPropertyIndexes(
   const allKgMeatPerKgNitrogen: KgMeatPerKgNitrogenResult[] = [];
 
   for (const property of properties) {
-    allAdgResults.push(...getAverageDailyGain(property.id, period));
-    const carcassYield = getCarcassYield(property.id, period);
+    const adgResults = await getAverageDailyGain(property.id, period);
+    allAdgResults.push(...adgResults);
+    const carcassYield = await getCarcassYield(property.id, period);
     allCarcassYields.push(carcassYield);
-    allAdcResults.push(...getAverageDailyCarcassGain(property.id, period, carcassYield.yield));
+    const adcResults = await getAverageDailyCarcassGain(property.id, period, carcassYield.yield);
+    allAdcResults.push(...adcResults);
     const daysOnFeed = await getDaysOnFeed(property.id, period);
     allDaysOnFeed.push(...daysOnFeed);
-    allSlaughterAges.push(getSlaughterAge(property.id, period));
+    const slaughterAge = await getSlaughterAge(property.id, period);
+    allSlaughterAges.push(slaughterAge);
     const arrobaProduction = await getArrobaProductionPerHectare(property.id, period);
     allArrobaProductions.push(arrobaProduction);
     const kgNitrogenPerAU = await getKgNitrogenPerAU(property.id, period);
     allKgNitrogenPerAU.push(kgNitrogenPerAU);
-    allKgMeatPerKgNitrogen.push(getKgMeatPerKgNitrogen(property.id, period));
+    const kgMeatPerKgNitrogen = await getKgMeatPerKgNitrogen(property.id, period);
+    allKgMeatPerKgNitrogen.push(kgMeatPerKgNitrogen);
   }
 
   return {

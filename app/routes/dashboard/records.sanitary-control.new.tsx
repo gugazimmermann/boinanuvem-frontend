@@ -56,26 +56,39 @@ export default function NewSanitaryControl() {
   const [animalSearch, setAnimalSearch] = useState("");
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [serviceProviders, setServiceProviders] = useState<ServiceProvider[]>([]);
-
-  const animals = useMemo(() => getAnimalsByCompanyId(companyId), [companyId]);
+  const [animals, setAnimals] = useState<Awaited<ReturnType<typeof getAnimalsByCompanyId>>>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       if (companyId) {
         try {
-          const [employeesData, serviceProvidersData] = await Promise.all([
+          const [animalsData, employeesData, serviceProvidersData] = await Promise.all([
+            getAnimalsByCompanyId(companyId),
             getEmployees(),
             getServiceProviders(),
           ]);
+          setAnimals(animalsData || []);
           setEmployees(employeesData.filter((e) => e.companyId === companyId));
           setServiceProviders(serviceProvidersData.filter((sp) => sp.companyId === companyId));
         } catch (error) {
-          console.error("Failed to load employees or service providers:", error);
+          console.error("Failed to load data:", error);
         }
       }
     };
     fetchData();
   }, [companyId]);
+
+  const animalsMap = useMemo(() => {
+    const map = new Map<string, Awaited<ReturnType<typeof getAnimalById>>>();
+    for (const animal of animals) {
+      map.set(animal.id, animal);
+    }
+    return map;
+  }, [animals]);
+
+  const getAnimalByIdLocal = (animalId: string) => {
+    return animalsMap.get(animalId);
+  };
 
   const filteredAnimals = useMemo(() => {
     let filtered = animals;
@@ -131,7 +144,7 @@ export default function NewSanitaryControl() {
   }, [companyId]);
 
   const getAnimalLocationInfo = (animalId: string): { locationId: string; propertyId: string } => {
-    const animal = getAnimalById(animalId);
+    const animal = getAnimalByIdLocal(animalId);
     if (!animal) return { locationId: "", propertyId: "" };
 
     const movements = getAnimalMovementsByAnimalId(animalId);
@@ -476,7 +489,7 @@ export default function NewSanitaryControl() {
               {formData.animalIds.length > 0 && (
                 <div className="mt-2 space-y-1">
                   {formData.animalIds.map((animalId) => {
-                    const animal = getAnimalById(animalId);
+                    const animal = getAnimalByIdLocal(animalId);
                     const weight = getAnimalLatestWeight(animalId);
                     if (!animal) return null;
                     return (

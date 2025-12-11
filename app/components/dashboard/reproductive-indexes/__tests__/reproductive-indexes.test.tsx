@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { ReproductiveIndexes } from "../reproductive-indexes";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
@@ -115,68 +115,68 @@ describe("ReproductiveIndexes", () => {
     } as unknown as ReturnType<typeof useTranslation>);
     mockUseLanguage.mockReturnValue({ language: "pt" });
 
-    vi.mocked(reproductiveIndexesService.getFertilityRate).mockReturnValue({
+    vi.mocked(reproductiveIndexesService.getFertilityRate).mockResolvedValue({
       rate: 0,
       pregnantCows: 0,
       exposedCows: 0,
     });
-    vi.mocked(reproductiveIndexesService.getBirthRate).mockReturnValue({
+    vi.mocked(reproductiveIndexesService.getBirthRate).mockResolvedValue({
       rate: 0,
       calvesBorn: 0,
       pregnantFemales: 0,
       monthly: undefined,
     });
-    vi.mocked(reproductiveIndexesService.getCalvingInterval).mockReturnValue({
+    vi.mocked(reproductiveIndexesService.getCalvingInterval).mockResolvedValue({
       average: 0,
       min: 0,
       max: 0,
       intervals: [],
       animalsWithIntervals: 0,
     });
-    vi.mocked(reproductiveIndexesService.getCullingRate).mockReturnValue({
+    vi.mocked(reproductiveIndexesService.getCullingRate).mockResolvedValue({
       rate: 0,
       replacedFemales: 0,
       totalFemales: 0,
       annual: undefined,
     });
-    vi.mocked(reproductiveIndexesService.getIntrauterineMortalityIndex).mockReturnValue({
+    vi.mocked(reproductiveIndexesService.getIntrauterineMortalityIndex).mockResolvedValue({
       rate: 0,
       pregnantCows: 0,
       cowsThatCalved: 0,
       losses: 0,
     });
-    vi.mocked(reproductiveIndexesService.getBullToCowRatio).mockReturnValue({
+    vi.mocked(reproductiveIndexesService.getBullToCowRatio).mockResolvedValue({
       ratio: "0:0",
       bullsUsed: 0,
       exposedCows: 0,
     });
-    vi.mocked(reproductiveIndexesService.getExpectedBirthsForecast).mockReturnValue({
+    vi.mocked(reproductiveIndexesService.getExpectedBirthsForecast).mockResolvedValue({
       monthly: [],
       total: 0,
     });
-    vi.mocked(reproductiveIndexesService.getWeaningRate).mockReturnValue({
+    vi.mocked(reproductiveIndexesService.getWeaningRate).mockResolvedValue({
       rate: 0,
       weanedCalves: 0,
       exposedFemales: 0,
     });
-    vi.mocked(reproductiveIndexesService.getWeaningRatio).mockReturnValue({
+    vi.mocked(reproductiveIndexesService.getWeaningRatio).mockResolvedValue({
       ratio: 0,
       weanedCalfWeight: 0,
       motherWeight: 0,
       pairs: 0,
     });
-    vi.mocked(reproductiveIndexesService.getKgWeanedCalfPerExposedCow).mockReturnValue({
+    vi.mocked(reproductiveIndexesService.getKgWeanedCalfPerExposedCow).mockResolvedValue({
       kgPerExposedCow: 0,
       totalWeanedWeight: 0,
       weanedCalves: 0,
       exposedFemales: 0,
     });
-    vi.mocked(reproductiveIndexesService.getMortalityRate).mockReturnValue({
+    vi.mocked(reproductiveIndexesService.getMortalityRate).mockResolvedValue({
       rate: 0,
       deadAnimals: 0,
       totalAnimals: 0,
     });
-    vi.mocked(reproductiveIndexesService.getCalfMortalityRate).mockReturnValue({
+    vi.mocked(reproductiveIndexesService.getCalfMortalityRate).mockResolvedValue({
       rate: 0,
       deadCalves: 0,
       totalCalves: 0,
@@ -184,24 +184,33 @@ describe("ReproductiveIndexes", () => {
     });
   });
 
-  it("should render reproductive indexes component", () => {
+  it("should render reproductive indexes component", async () => {
     render(<ReproductiveIndexes propertyId="property-1" />);
-    expect(screen.getByText("Fertility Rate")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Fertility Rate")).toBeInTheDocument();
+    });
   });
 
-  it("should call service functions with propertyId", () => {
+  it("should call service functions with propertyId", async () => {
     render(<ReproductiveIndexes propertyId="property-1" />);
-    expect(reproductiveIndexesService.getFertilityRate).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(reproductiveIndexesService.getFertilityRate).toHaveBeenCalled();
+    });
   });
 
-  it("should use custom period when provided", () => {
+  it("should use custom period when provided", async () => {
     const period = { startDate: "2024-01-01", endDate: "2024-12-31" };
     render(<ReproductiveIndexes propertyId="property-1" period={period} />);
-    expect(reproductiveIndexesService.getFertilityRate).toHaveBeenCalledWith("property-1", period);
+    await waitFor(() => {
+      expect(reproductiveIndexesService.getFertilityRate).toHaveBeenCalledWith(
+        "property-1",
+        period
+      );
+    });
   });
 
-  it("should render monthly birth rate chart when data exists", () => {
-    vi.mocked(reproductiveIndexesService.getBirthRate).mockReturnValue({
+  it("should render monthly birth rate chart when data exists", async () => {
+    vi.mocked(reproductiveIndexesService.getBirthRate).mockResolvedValue({
       rate: 50,
       calvesBorn: 10,
       pregnantFemales: 20,
@@ -211,12 +220,14 @@ describe("ReproductiveIndexes", () => {
       ],
     });
     render(<ReproductiveIndexes propertyId="property-1" />);
-    expect(screen.getByTestId("line-chart")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId("line-chart")).toBeInTheDocument();
+    });
     expect(screen.getByText("Monthly Birth Rate")).toBeInTheDocument();
   });
 
-  it("should render annual culling rate chart when data exists", () => {
-    vi.mocked(reproductiveIndexesService.getCullingRate).mockReturnValue({
+  it("should render annual culling rate chart when data exists", async () => {
+    vi.mocked(reproductiveIndexesService.getCullingRate).mockResolvedValue({
       rate: 10,
       replacedFemales: 5,
       totalFemales: 50,
@@ -226,12 +237,14 @@ describe("ReproductiveIndexes", () => {
       ],
     });
     render(<ReproductiveIndexes propertyId="property-1" />);
-    expect(screen.getByTestId("bar-chart")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId("bar-chart")).toBeInTheDocument();
+    });
     expect(screen.getByText("Annual Culling Rate")).toBeInTheDocument();
   });
 
-  it("should render expected births forecast chart when data exists", () => {
-    vi.mocked(reproductiveIndexesService.getExpectedBirthsForecast).mockReturnValue({
+  it("should render expected births forecast chart when data exists", async () => {
+    vi.mocked(reproductiveIndexesService.getExpectedBirthsForecast).mockResolvedValue({
       monthly: [
         { month: "2024-06", expectedBirths: 5 },
         { month: "2024-07", expectedBirths: 6 },
@@ -239,11 +252,13 @@ describe("ReproductiveIndexes", () => {
       total: 11,
     });
     render(<ReproductiveIndexes propertyId="property-1" />);
-    expect(screen.getByText("Expected Future Births")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Expected Future Births")).toBeInTheDocument();
+    });
   });
 
-  it("should render monthly calf mortality chart when data exists", () => {
-    vi.mocked(reproductiveIndexesService.getCalfMortalityRate).mockReturnValue({
+  it("should render monthly calf mortality chart when data exists", async () => {
+    vi.mocked(reproductiveIndexesService.getCalfMortalityRate).mockResolvedValue({
       rate: 5,
       deadCalves: 2,
       totalCalves: 40,
@@ -253,11 +268,13 @@ describe("ReproductiveIndexes", () => {
       ],
     });
     render(<ReproductiveIndexes propertyId="property-1" />);
-    expect(screen.getByText("Monthly Calf Mortality")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Monthly Calf Mortality")).toBeInTheDocument();
+    });
   });
 
-  it("should display calving interval details when average > 0", () => {
-    vi.mocked(reproductiveIndexesService.getCalvingInterval).mockReturnValue({
+  it("should display calving interval details when average > 0", async () => {
+    vi.mocked(reproductiveIndexesService.getCalvingInterval).mockResolvedValue({
       average: 450,
       min: 400,
       max: 500,
@@ -265,13 +282,15 @@ describe("ReproductiveIndexes", () => {
       animalsWithIntervals: 1,
     });
     render(<ReproductiveIndexes propertyId="property-1" />);
-    expect(screen.getByText("15 months")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("15 months")).toBeInTheDocument();
+    });
     expect(screen.getByText("Min:")).toBeInTheDocument();
     expect(screen.getByText("Max:")).toBeInTheDocument();
   });
 
-  it("should display '-' when calving interval average is 0", () => {
-    vi.mocked(reproductiveIndexesService.getCalvingInterval).mockReturnValue({
+  it("should display '-' when calving interval average is 0", async () => {
+    vi.mocked(reproductiveIndexesService.getCalvingInterval).mockResolvedValue({
       average: 0,
       min: 0,
       max: 0,
@@ -279,69 +298,81 @@ describe("ReproductiveIndexes", () => {
       animalsWithIntervals: 0,
     });
     render(<ReproductiveIndexes propertyId="property-1" />);
-    expect(screen.getByText("-")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("-")).toBeInTheDocument();
+    });
   });
 
-  it("should handle null fertilityRate.rate", () => {
-    vi.mocked(reproductiveIndexesService.getFertilityRate).mockReturnValue({
+  it("should handle null fertilityRate.rate", async () => {
+    vi.mocked(reproductiveIndexesService.getFertilityRate).mockResolvedValue({
       rate: null as never,
       pregnantCows: 0,
       exposedCows: 0,
     });
     render(<ReproductiveIndexes propertyId="property-1" />);
     // Find the Fertility Rate heading and scope the query to its parent card container
-    const fertilityRateHeading = screen.getByRole("heading", { name: /Fertility Rate/i });
-    const fertilityRateCard =
-      fertilityRateHeading.closest("div.bg-white") ||
-      fertilityRateHeading.closest("div.dark\\:bg-gray-800");
-    expect(fertilityRateCard).toBeInTheDocument();
-    // The text "0.00%" might be split across elements, so check if the card contains the text
-    const cardText = fertilityRateCard?.textContent || "";
-    // Check that the card contains "0.00" followed by "%" (they might be in the same or adjacent elements)
-    expect(cardText).toMatch(/0\.00\s*%/);
+    await waitFor(() => {
+      const fertilityRateHeading = screen.getByRole("heading", { name: /Fertility Rate/i });
+      const fertilityRateCard =
+        fertilityRateHeading.closest("div.bg-white") ||
+        fertilityRateHeading.closest("div.dark\\:bg-gray-800");
+      expect(fertilityRateCard).toBeInTheDocument();
+      // The text "0.00%" might be split across elements, so check if the card contains the text
+      const cardText = fertilityRateCard?.textContent || "";
+      // Check that the card contains "0.00" followed by "%" (they might be in the same or adjacent elements)
+      expect(cardText).toMatch(/0\.00\s*%/);
+    });
   });
 
-  it("should use English locale when language is 'en'", () => {
+  it("should use English locale when language is 'en'", async () => {
     mockUseLanguage.mockReturnValue({ language: "en" });
-    vi.mocked(reproductiveIndexesService.getBirthRate).mockReturnValue({
+    vi.mocked(reproductiveIndexesService.getBirthRate).mockResolvedValue({
       rate: 50,
       calvesBorn: 10,
       pregnantFemales: 20,
       monthly: [{ month: "2024-01", rate: 0.5, calvesBorn: 5 }],
     });
     render(<ReproductiveIndexes propertyId="property-1" />);
-    expect(screen.getByTestId("line-chart")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId("line-chart")).toBeInTheDocument();
+    });
   });
 
-  it("should use Spanish locale when language is 'es'", () => {
+  it("should use Spanish locale when language is 'es'", async () => {
     mockUseLanguage.mockReturnValue({ language: "es" });
-    vi.mocked(reproductiveIndexesService.getBirthRate).mockReturnValue({
+    vi.mocked(reproductiveIndexesService.getBirthRate).mockResolvedValue({
       rate: 50,
       calvesBorn: 10,
       pregnantFemales: 20,
       monthly: [{ month: "2024-01", rate: 0.5, calvesBorn: 5 }],
     });
     render(<ReproductiveIndexes propertyId="property-1" />);
-    expect(screen.getByTestId("line-chart")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId("line-chart")).toBeInTheDocument();
+    });
   });
 
-  it("should not render charts when monthly data is empty", () => {
-    vi.mocked(reproductiveIndexesService.getBirthRate).mockReturnValue({
+  it("should not render charts when monthly data is empty", async () => {
+    vi.mocked(reproductiveIndexesService.getBirthRate).mockResolvedValue({
       rate: 50,
       calvesBorn: 10,
       pregnantFemales: 20,
       monthly: undefined,
     });
     render(<ReproductiveIndexes propertyId="property-1" />);
-    expect(screen.queryByText("Monthly Birth Rate")).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText("Monthly Birth Rate")).not.toBeInTheDocument();
+    });
   });
 
-  it("should not render expected births chart when monthly data is empty", () => {
-    vi.mocked(reproductiveIndexesService.getExpectedBirthsForecast).mockReturnValue({
+  it("should not render expected births chart when monthly data is empty", async () => {
+    vi.mocked(reproductiveIndexesService.getExpectedBirthsForecast).mockResolvedValue({
       monthly: [],
       total: 0,
     });
     render(<ReproductiveIndexes propertyId="property-1" />);
-    expect(screen.queryByText("Expected Future Births")).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText("Expected Future Births")).not.toBeInTheDocument();
+    });
   });
 });

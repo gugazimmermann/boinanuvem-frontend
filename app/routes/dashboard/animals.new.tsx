@@ -7,11 +7,15 @@ import { addAnimal } from "~/services/animals.service";
 import type { AnimalFormData, Property } from "~/types";
 import { mockCompanies } from "~/mocks/companies";
 import { getProperties } from "~/services/properties.service";
-import { createFormMeta } from "~/utils/route-helpers";
+import { createFormMeta, createRegistrationLoader } from "~/utils/route-helpers";
 import { useAlert } from "~/hooks/use-alert";
 
 export function meta() {
   return createFormMeta("Adicionar", "Animal", "Adicionar novo animal");
+}
+
+export async function loader({ request }: { request: Request }) {
+  return createRegistrationLoader(undefined, "add")({ request });
 }
 
 export default function NewAnimal() {

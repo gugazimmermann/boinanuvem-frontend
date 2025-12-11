@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router";
 import {
   Table,
@@ -17,9 +17,9 @@ import { formatDate } from "~/utils/formatting";
 import { deleteSale, getSalesByCompanyId } from "~/services/sales.service";
 import { getBuyers } from "~/services/buyers.service";
 import { getProperties } from "~/services/properties.service";
-import type { Property, Buyer, Sale } from "~/types";
+import type { Property, Buyer, Sale, Animal } from "~/types";
 import { SaleType as SaleTypeEnum } from "~/types";
-import { getAnimalById } from "~/services/animals.service";
+import { getAnimalsByCompanyId } from "~/services/animals.service";
 import { mockCompanies } from "~/mocks/companies";
 import { ROUTES, getSaleEditRoute, getSaleViewRoute } from "~/routes.config";
 import { usePermissions } from "~/utils/permissions";
@@ -51,7 +51,8 @@ export default function Sales() {
   const { canAdd, canEdit, canRemove } = usePermissions();
   const company = mockCompanies[0];
   const companyId = company?.id || "";
-  const [sales, setSales] = useState<Sale[]>(() => getSalesByCompanyId(companyId));
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [animals, setAnimals] = useState<Animal[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [buyers, setBuyers] = useState<Buyer[]>([]);
 
@@ -59,7 +60,14 @@ export default function Sales() {
     const fetchData = async () => {
       if (company) {
         try {
-          const [propertiesData, buyersData] = await Promise.all([getProperties(), getBuyers()]);
+          const [salesData, animalsData, propertiesData, buyersData] = await Promise.all([
+            Promise.resolve(getSalesByCompanyId(companyId)),
+            getAnimalsByCompanyId(companyId),
+            getProperties(),
+            getBuyers(),
+          ]);
+          setSales(salesData || []);
+          setAnimals(animalsData || []);
           setProperties(propertiesData.filter((prop) => prop.companyId === company.id));
           setBuyers(buyersData.filter((buy) => buy.companyId === company.id));
         } catch (error) {
@@ -68,22 +76,32 @@ export default function Sales() {
       }
     };
     fetchData();
-  }, [company]);
+  }, [company, companyId]);
 
   const propertiesMap = useMemo(() => new Map(properties.map((p) => [p.id, p])), [properties]);
   const buyersMap = useMemo(() => new Map(buyers.map((b) => [b.id, b])), [buyers]);
+  const animalsMap = useMemo(() => new Map(animals.map((a) => [a.id, a])), [animals]);
+
+  const getAnimalById = useCallback(
+    (animalId: string): Animal | undefined => {
+      return animalsMap.get(animalId);
+    },
+    [animalsMap]
+  );
 
   const { alertMessage, showAlert } = useAlert();
 
   const { handleDeleteClick, handleDelete, isDeleteModalOpen, handleCloseModal } = useDeleteHandler(
     {
-      onDelete: (sale: Sale) => {
-        const success = deleteSale(sale.id);
-        if (success) {
+      onDelete: async (sale: Sale) => {
+        try {
+          await deleteSale(sale.id);
           setSales((prev) => prev.filter((s) => s.id !== sale.id));
           return true;
+        } catch (error) {
+          console.error("Error deleting sale:", error);
+          return false;
         }
-        return false;
       },
       onSuccess: () => {
         showAlert(t.sales?.success?.deleted || "Venda excluída com sucesso", "success");
@@ -257,7 +275,7 @@ export default function Sales() {
         canDelete: canRemove("records", "sales"),
       }),
     ],
-    [t, language, navigate, handleDeleteClick, canEdit, canRemove, buyersMap]
+    [t, language, navigate, handleDeleteClick, canEdit, canRemove, buyersMap, getAnimalById]
   );
 
   const headerActions: TableAction[] = useMemo(

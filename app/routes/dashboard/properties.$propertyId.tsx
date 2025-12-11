@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams, Link } from "react-router";
-import { differenceInDays, format } from "date-fns";
+import { format } from "date-fns";
 import {
   Button,
   StatusBadge,
@@ -31,7 +31,6 @@ import {
   getMovementViewRoute,
   getMovementNewRoute,
   getAnimalViewRoute,
-  getAnimalEditRoute,
   getAnimalMovementNewRoute,
   getCashFlowViewRoute,
   getCashFlowEditRoute,
@@ -48,8 +47,8 @@ import { getSuppliers } from "~/services/suppliers.service";
 import { getBuyers } from "~/services/buyers.service";
 import { getLocationMovementsByPropertyId } from "~/services/location-movements.service";
 import { getAnimalMovementsByPropertyId } from "~/services/animal-movements.service";
-import { getAnimalsByPropertyId, deleteAnimal, getAnimalById } from "~/services/animals.service";
-import { getBirthByAnimalId } from "~/services/births.service";
+import { getAnimalsByPropertyId, deleteAnimal } from "~/services/animals.service";
+import { getBirthByAnimalId, getBirthsByCompanyId } from "~/services/births.service";
 import { getWeighingsByAnimalId } from "~/services/weighings.service";
 import { getExpectedBirthsForecast } from "~/services/reproductive-indexes.service";
 import { getCashFlowByPropertyId } from "~/services/cash-flow.service";
@@ -61,6 +60,7 @@ import type { UnifiedTransaction } from "~/hooks/use-finance-transactions";
 import { createMovementsTableColumns } from "~/utils/movements-table-columns";
 import { sortItems } from "~/utils/sorting";
 import { toSafeString } from "~/utils/table-helpers";
+import { getAnimalSortValue, compareAnimalSortValues } from "~/utils/animal-sorting";
 import { renderEntityName } from "~/utils/entity-name-renderer";
 import type {
   Location,
@@ -85,7 +85,8 @@ import { FinanceDashboard } from "~/components/dashboard/finance/finance-dashboa
 import { useAlert } from "~/hooks/use-alert";
 import { useDateLocale } from "~/hooks/use-date-locale";
 import { formatAreaType, formatNumber } from "~/utils/formatting";
-import { createAnimalTableColumns } from "~/utils/animal-table-columns";
+import { createAnimalTableColumnsWithConfig } from "~/utils/animal-table-config";
+import { createBirthsMap } from "~/utils/births-map";
 
 export function meta() {
   return [
@@ -237,10 +238,14 @@ function filterMovementsBySearch(
   searchValue: string,
   formatDate: (dateString: string) => string,
   movementTypes: Record<string, string>,
-  locations: Location[],
-  employees: Employee[],
-  serviceProviders: ServiceProvider[]
+  searchContext: {
+    animalsMap: Map<string, Animal>;
+    locations: Location[];
+    employees: Employee[];
+    serviceProviders: ServiceProvider[];
+  }
 ): UnifiedMovement[] {
+  const { animalsMap, locations, employees, serviceProviders } = searchContext;
   if (!searchValue) return movements;
 
   const searchLower = searchValue.toLowerCase();
@@ -275,7 +280,7 @@ function filterMovementsBySearch(
     if (movement.movementType === "animal") {
       const animalNames = (movement as AnimalMovement).animalIds
         .map((id) => {
-          const animal = getAnimalById(id);
+          const animal = animalsMap.get(id);
           return animal ? `${animal.code} ${animal.registrationNumber}`.toLowerCase() : "";
         })
         .filter((name) => name !== "")
@@ -341,77 +346,6 @@ function getMovementSortValue(
       | undefined;
   }
   return (item as AnimalMovement)[column as keyof AnimalMovement] as string | number | undefined;
-}
-
-type AnimalSortValue = string | number | undefined;
-
-function getLastWeighing(animalId: string) {
-  const weighings = getWeighingsByAnimalId(animalId);
-  const sorted = weighings.toSorted(
-    (x, y) => new Date(y.date).getTime() - new Date(x.date).getTime()
-  );
-  return sorted[0];
-}
-
-function calculateGMD(animalId: string): number {
-  const weighings = getWeighingsByAnimalId(animalId);
-  const sorted = weighings.toSorted(
-    (x, y) => new Date(y.date).getTime() - new Date(x.date).getTime()
-  );
-  if (sorted.length < 2) {
-    return 0;
-  }
-  const weightDiff = sorted[0].weight - sorted[1].weight;
-  const daysDiff = differenceInDays(new Date(sorted[0].date), new Date(sorted[1].date));
-  return daysDiff > 0 ? weightDiff / daysDiff : 0;
-}
-
-function getBirthFieldValue(animalId: string, field: "breed" | "purity" | "gender"): string {
-  const birth = getBirthByAnimalId(animalId);
-  if (field === "breed") return birth?.breed || "";
-  if (field === "purity") return birth?.purity || "";
-  return birth?.gender || "";
-}
-
-function getAnimalSortValue(
-  animal: Animal,
-  column: string,
-  _localeForDateTime: string
-): AnimalSortValue {
-  const columnHandlers: Record<string, () => AnimalSortValue> = {
-    code: () => animal.code,
-    registrationNumber: () => animal.registrationNumber,
-    breed: () => getBirthFieldValue(animal.id, "breed"),
-    purity: () => getBirthFieldValue(animal.id, "purity"),
-    gender: () => getBirthFieldValue(animal.id, "gender"),
-    birthDate: () => {
-      const birth = getBirthByAnimalId(animal.id);
-      return birth?.birthDate ? new Date(birth.birthDate).getTime() : 0;
-    },
-    acquisitionDate: () => {
-      return animal.acquisitionDate ? new Date(animal.acquisitionDate).getTime() : 0;
-    },
-    weight: () => {
-      const lastWeighing = getLastWeighing(animal.id);
-      return lastWeighing?.weight || 0;
-    },
-    weightInArrobas: () => {
-      const lastWeighing = getLastWeighing(animal.id);
-      return lastWeighing ? lastWeighing.weight / 30 : 0;
-    },
-    lastWeighingDate: () => {
-      const lastWeighing = getLastWeighing(animal.id);
-      return lastWeighing ? new Date(lastWeighing.date).getTime() : 0;
-    },
-    gmd: () => calculateGMD(animal.id),
-  };
-
-  const handler = columnHandlers[column];
-  if (handler) {
-    return handler();
-  }
-
-  return animal[column as keyof Animal] as AnimalSortValue;
 }
 
 function getActiveTab(tabParam: string | null): string {
@@ -519,10 +453,11 @@ function createDeleteAnimalHandler(
 ) {
   return async () => {
     if (!selectedAnimal) return;
-    const success = deleteAnimal(selectedAnimal.id);
-    if (success) {
+    try {
+      await deleteAnimal(selectedAnimal.id);
       showAlert(t.animals.success.deleted, "success");
-    } else {
+    } catch (error) {
+      console.error("Error deleting animal:", error);
       showAlert(t.animals.errors.deleteFailed, "error");
     }
     setIsDeleteAnimalModalOpen(false);
@@ -605,10 +540,11 @@ function renderSubTabButton(
 function filterAnimalsBySearchAndStatus(
   animals: Animal[],
   searchValue: string,
-  activeFilter: string
+  activeFilter: string,
+  birthsMap: Map<string, Awaited<ReturnType<typeof getBirthByAnimalId>>>
 ): Animal[] {
   return animals.filter((animal) => {
-    const birth = getBirthByAnimalId(animal.id);
+    const birth = birthsMap.get(animal.id);
     const breedMatch = birth?.breed
       ? birth.breed.toLowerCase().includes(searchValue.toLowerCase())
       : false;
@@ -631,30 +567,17 @@ function filterAnimalsBySearchAndStatus(
 function sortAnimals(
   animals: Animal[],
   sortState: { column: string | null; direction: SortDirection },
-  localeForDateTime: string
+  localeForDateTime: string,
+  birthsMap: Map<string, Awaited<ReturnType<typeof getBirthByAnimalId>>>
 ): Animal[] {
   return animals.toSorted((a, b) => {
     if (!sortState.column || !sortState.direction) {
       return 0;
     }
 
-    const aValue = getAnimalSortValue(a, sortState.column, localeForDateTime);
-    const bValue = getAnimalSortValue(b, sortState.column, localeForDateTime);
-
-    if (aValue == null && bValue == null) return 0;
-    if (aValue == null) return 1;
-    if (bValue == null) return -1;
-
-    let comparison = 0;
-    if (typeof aValue === "string" && typeof bValue === "string") {
-      comparison = aValue.localeCompare(bValue, localeForDateTime, {
-        sensitivity: "base",
-      });
-    } else if (typeof aValue === "number" && typeof bValue === "number") {
-      comparison = aValue - bValue;
-    } else {
-      comparison = toSafeString(aValue).localeCompare(toSafeString(bValue), localeForDateTime);
-    }
+    const aValue = getAnimalSortValue(a, sortState.column, localeForDateTime, birthsMap);
+    const bValue = getAnimalSortValue(b, sortState.column, localeForDateTime, birthsMap);
+    const comparison = compareAnimalSortValues(aValue, bValue, localeForDateTime);
 
     return sortState.direction === "asc" ? comparison : -comparison;
   });
@@ -668,7 +591,7 @@ type PropertyInformationTabProps = Readonly<{
   stockingRate: number;
   density: number;
   averageWeight: number;
-  expectedBirthsForecast: ReturnType<typeof getExpectedBirthsForecast>;
+  expectedBirthsForecast: Awaited<ReturnType<typeof getExpectedBirthsForecast>> | null;
   nextMonthExpected: number;
   localeForDateTime: string;
   language: string;
@@ -859,7 +782,8 @@ function PropertyInformationTab({
                   {nextMonthExpected}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {t.dashboard.stats.nextMonth} • {expectedBirthsForecast.total}{" "}
+                  {t.dashboard.stats.nextMonth} •{" "}
+                  {expectedBirthsForecast ? expectedBirthsForecast.total : 0}{" "}
                   {t.dashboard.stats.nextThreeMonths}
                 </p>
                 <Link
@@ -1054,6 +978,8 @@ export default function PropertyDetails() {
   const { canEdit, canRemove, isMainUser } = usePermissions();
   const [searchParams, setSearchParams] = useSearchParams();
   const [property, setProperty] = useState<Property | null>(null);
+  const [animals, setAnimals] = useState<Animal[]>([]);
+  const [births, setBirths] = useState<Awaited<ReturnType<typeof getBirthsByCompanyId>>>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [serviceProviders, setServiceProviders] = useState<ServiceProvider[]>([]);
@@ -1073,6 +999,7 @@ export default function PropertyDetails() {
         setIsLoadingProperty(true);
         const [
           propertyData,
+          animalsData,
           locationsData,
           employeesData,
           serviceProvidersData,
@@ -1080,6 +1007,7 @@ export default function PropertyDetails() {
           buyersData,
         ] = await Promise.all([
           getPropertyById(propertyId),
+          getAnimalsByPropertyId(propertyId),
           getLocations(),
           getEmployees(),
           getServiceProviders(),
@@ -1087,11 +1015,22 @@ export default function PropertyDetails() {
           getBuyers(),
         ]);
         setProperty(propertyData);
+        setAnimals(animalsData || []);
         setLocations(locationsData);
         setEmployees(employeesData);
         setServiceProviders(serviceProvidersData);
         setSuppliers(suppliersData);
         setBuyers(buyersData);
+
+        // Load births for the property's company
+        if (propertyData?.companyId) {
+          try {
+            const birthsData = await getBirthsByCompanyId(propertyData.companyId);
+            setBirths(birthsData || []);
+          } catch (error) {
+            console.error("Failed to load births:", error);
+          }
+        }
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : t.properties.errors.loadFailed;
@@ -1108,6 +1047,11 @@ export default function PropertyDetails() {
     fetchData();
   }, [propertyId, navigate, showAlert, t]);
 
+  const animalsMap = useMemo(() => new Map(animals.map((a) => [a.id, a])), [animals]);
+  const birthsMap = useMemo(() => createBirthsMap(births), [births]);
+  const getAnimalByIdLocal = (id: string) => {
+    return animalsMap.get(id);
+  };
   const suppliersMap = useMemo(() => new Map(suppliers.map((s) => [s.id, s])), [suppliers]);
   const buyersMap = useMemo(() => new Map(buyers.map((b) => [b.id, b])), [buyers]);
   const employeesMap = useMemo(() => new Map(employees.map((e) => [e.id, e])), [employees]);
@@ -1180,12 +1124,32 @@ export default function PropertyDetails() {
     errorMessage: t.cashFlow.errors.deleteFailed,
   });
 
-  const expectedBirthsForecast = useMemo(() => {
-    if (!property) return { monthly: [], total: 0 };
-    return getExpectedBirthsForecast(property.id, { isPropertyId: true, monthsAhead: 9 });
+  const [expectedBirthsForecast, setExpectedBirthsForecast] = useState<Awaited<
+    ReturnType<typeof getExpectedBirthsForecast>
+  > | null>(null);
+
+  useEffect(() => {
+    const loadExpectedBirthsForecast = async () => {
+      if (!property) {
+        setExpectedBirthsForecast({ monthly: [], total: 0 });
+        return;
+      }
+      try {
+        const forecast = await getExpectedBirthsForecast(property.id, {
+          isPropertyId: true,
+          monthsAhead: 9,
+        });
+        setExpectedBirthsForecast(forecast);
+      } catch (error) {
+        console.error("Failed to load expected births forecast:", error);
+        setExpectedBirthsForecast({ monthly: [], total: 0 });
+      }
+    };
+    loadExpectedBirthsForecast();
   }, [property]);
 
   const nextMonthExpected = useMemo(() => {
+    if (!expectedBirthsForecast) return 0;
     return calculateNextMonthExpected(expectedBirthsForecast);
   }, [expectedBirthsForecast]);
 
@@ -1193,7 +1157,7 @@ export default function PropertyDetails() {
   const localeForDateTime = getLocaleForLanguage(language as string);
 
   const locationsCount = locations.length;
-  const allPropertyAnimals = property ? getAnimalsByPropertyId(property.id) : [];
+  const allPropertyAnimals = animals;
   const propertyAnimals = allPropertyAnimals.filter((animal) => animal.status === "active");
   const animalsCount = propertyAnimals.length;
 
@@ -1562,13 +1526,19 @@ export default function PropertyDetails() {
       {activeTab === "animals" &&
         property &&
         (() => {
-          const allAnimals = getAnimalsByPropertyId(property.id);
+          const allAnimals = animals;
           const filteredAnimals = filterAnimalsBySearchAndStatus(
             allAnimals,
             animalsSearchValue,
-            animalsActiveFilter
+            animalsActiveFilter,
+            birthsMap
           );
-          const sortedAnimals = sortAnimals(filteredAnimals, animalsSortState, localeForDateTime);
+          const sortedAnimals = sortAnimals(
+            filteredAnimals,
+            animalsSortState,
+            localeForDateTime,
+            birthsMap
+          );
 
           const totalPages = Math.ceil(sortedAnimals.length / itemsPerPage);
           const paginatedAnimals = sortedAnimals.slice(
@@ -1576,64 +1546,20 @@ export default function PropertyDetails() {
             animalsCurrentPage * itemsPerPage
           );
 
-          const columns: TableColumn<Animal>[] = createAnimalTableColumns({
+          const columns: TableColumn<Animal>[] = createAnimalTableColumnsWithConfig({
+            t,
             language,
             dateLocale,
-            translations: {
-              table: {
-                registration: t.animals.table.registration,
-                breed: t.animals.table.breed,
-                purity: t.animals.table.purity,
-                gender: t.animals.table.gender,
-                birthDate: t.animals.table.birthDate,
-                acquisitionDate: t.animals.table.acquisitionDate,
-                weight: t.animals.table.weight,
-                weightInArrobas: t.animals.table.weightInArrobas,
-                lastWeighingDate: t.animals.table.lastWeighingDate,
-                gmd: t.animals.table.gmd,
-                breedingStatus: t.animals.table.breedingStatus,
-                breedingStatusPregnant: t.animals.table.breedingStatusPregnant,
-                status: t.animals.table.status,
-                active: t.animals.table.active,
-                inactive: t.animals.table.inactive,
-              },
-              breeds: t.animals.breeds,
-              purity: t.animals.purity,
-              gender: t.animals.gender,
-              common: {
-                month: t.common.month,
-                months: t.common.months,
-                daysAgo: t.common.daysAgo,
-                dailyAverageGain: t.common.dailyAverageGain,
-              },
-            },
-            formatDateFn: (date, lang) => {
-              const dateFormat = lang === "en" ? "MM/dd/yyyy" : "dd/MM/yyyy";
-              return format(date instanceof Date ? date : new Date(date), dateFormat, {
-                locale: dateLocale,
-              });
-            },
-            TooltipComponent: UITooltip as React.ComponentType<{
-              content: string;
-              position?: string;
-              children: React.ReactNode;
-            }>,
+            birthsMap,
+            TooltipComponent: UITooltip,
             StatusBadgeComponent: StatusBadge,
-            includeProperties: false,
-            includeActions: true,
-            actionsColumn: {
-              key: "actions",
-              label: "",
-              headerClassName: "relative",
-              render: (_, row) => (
-                <TableActionButtons
-                  onEdit={() => navigate(getAnimalEditRoute(row.id))}
-                  onDelete={() => handleDeleteAnimalClick(row)}
-                  canEdit={canEdit("registration", "animals")}
-                  canDelete={canRemove("registration", "animals")}
-                />
-              ),
+            navigate: (path: string) => {
+              navigate(path);
             },
+            handleDeleteAnimalClick,
+            canEdit,
+            canRemove,
+            includeProperties: false,
           });
 
           const headerActions: TableAction[] = [
@@ -2546,9 +2472,7 @@ export default function PropertyDetails() {
             searchValue,
             formatDate,
             t.properties.details.movements.types,
-            locations,
-            employees,
-            serviceProviders
+            { animalsMap, locations, employees, serviceProviders }
           );
 
           const sortedMovements = sortItems({
@@ -2590,7 +2514,7 @@ export default function PropertyDetails() {
               return serviceProvider ? { name: serviceProvider.name } : null;
             },
             getAnimalById: (id: string) => {
-              const animal = getAnimalById(id);
+              const animal = getAnimalByIdLocal(id);
               return animal
                 ? { code: animal.code, registrationNumber: animal.registrationNumber }
                 : null;

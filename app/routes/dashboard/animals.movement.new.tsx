@@ -57,11 +57,24 @@ export default function NewAnimalMovement() {
     [location.state?.animalIds]
   );
 
-  const animals = useMemo(() => {
-    if (animalIds.length === 0) return [];
-    return animalIds
-      .map((id) => getAnimalById(id))
-      .filter((animal): animal is Animal => animal !== null);
+  const [animals, setAnimals] = useState<Animal[]>([]);
+
+  useEffect(() => {
+    const loadAnimals = async () => {
+      if (animalIds.length === 0) {
+        setAnimals([]);
+        return;
+      }
+      try {
+        const animalsPromises = animalIds.map((id) => getAnimalById(id));
+        const animalsData = await Promise.all(animalsPromises);
+        setAnimals(animalsData.filter((animal): animal is Animal => animal !== null));
+      } catch (error) {
+        console.error("Failed to load animals:", error);
+        setAnimals([]);
+      }
+    };
+    loadAnimals();
   }, [animalIds]);
 
   const company = mockCompanies[0];

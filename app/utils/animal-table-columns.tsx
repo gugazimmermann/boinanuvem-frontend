@@ -13,6 +13,7 @@ export interface AnimalTableColumnsOptions {
   language: Language;
   dateLocale: Locale;
   propertiesMap?: Map<string, Property>;
+  birthsMap?: Map<string, Awaited<ReturnType<typeof getBirthByAnimalId>>>;
   translations: {
     table: {
       registration: string;
@@ -46,7 +47,7 @@ export interface AnimalTableColumnsOptions {
   formatDateFn?: (date: Date | string, language?: Language) => string;
   TooltipComponent?: React.ComponentType<{
     content: string;
-    position?: string;
+    position?: "top" | "bottom";
     children: ReactNode;
   }>;
   StatusBadgeComponent: React.ComponentType<{
@@ -67,6 +68,7 @@ export function createAnimalTableColumns(
 ): TableColumn<Animal>[] {
   const {
     propertiesMap,
+    birthsMap,
     language,
     dateLocale,
     translations,
@@ -80,6 +82,10 @@ export function createAnimalTableColumns(
   } = options;
 
   const Tooltip = TooltipComponent || (({ children }: { children: ReactNode }) => <>{children}</>);
+
+  const getBirthByAnimalIdLocal = (animalId: string) => {
+    return birthsMap?.get(animalId);
+  };
 
   const columns: TableColumn<Animal>[] = [
     {
@@ -100,7 +106,7 @@ export function createAnimalTableColumns(
       label: translations.table.breed,
       sortable: true,
       render: (_, row) => {
-        const birth = getBirthByAnimalId(row.id);
+        const birth = getBirthByAnimalIdLocal(row.id);
         if (!birth?.breed) {
           return <span className="text-gray-700 dark:text-gray-300">-</span>;
         }
@@ -116,7 +122,7 @@ export function createAnimalTableColumns(
       label: translations.table.purity,
       sortable: true,
       render: (_, row) => {
-        const birth = getBirthByAnimalId(row.id);
+        const birth = getBirthByAnimalIdLocal(row.id);
         if (!birth?.purity) {
           return <span className="text-gray-700 dark:text-gray-300">-</span>;
         }
@@ -132,7 +138,7 @@ export function createAnimalTableColumns(
       label: translations.table.gender,
       sortable: true,
       render: (_, row) => {
-        const birth = getBirthByAnimalId(row.id);
+        const birth = getBirthByAnimalIdLocal(row.id);
         if (!birth?.gender) {
           return <span className="text-gray-700 dark:text-gray-300">-</span>;
         }
@@ -148,7 +154,7 @@ export function createAnimalTableColumns(
       label: translations.table.birthDate,
       sortable: true,
       render: (_, row) => {
-        const birth = getBirthByAnimalId(row.id);
+        const birth = getBirthByAnimalIdLocal(row.id);
         if (!birth?.birthDate) {
           return <span className="text-gray-700 dark:text-gray-300">-</span>;
         }
@@ -267,11 +273,12 @@ export function createAnimalTableColumns(
     {
       key: "gmd",
       label: (
-        <Tooltip content={translations.common.dailyAverageGain} position="bottom">
-          <span className="border-b border-dotted border-gray-400 dark:border-gray-500 hover:border-blue-500 dark:hover:border-blue-400 transition-colors cursor-help">
-            {translations.table.gmd}
-          </span>
-        </Tooltip>
+        <span
+          title={translations.common.dailyAverageGain}
+          className="border-b border-dotted border-gray-400 dark:border-gray-500 hover:border-blue-500 dark:hover:border-blue-400 transition-colors cursor-help"
+        >
+          {translations.table.gmd}
+        </span>
       ),
       sortable: true,
       render: (_, row) => {
@@ -326,7 +333,7 @@ export function createAnimalTableColumns(
       label: translations.table.breedingStatus,
       sortable: false,
       render: (_, row) => {
-        const birth = getBirthByAnimalId(row.id);
+        const birth = getBirthByAnimalIdLocal(row.id);
         if (!birth?.gender || birth.gender !== "female") {
           return <span className="text-gray-700 dark:text-gray-300">-</span>;
         }

@@ -8,6 +8,7 @@ import {
 } from "~/components/dashboard/records/sale-form";
 import { transformSaleFormData } from "~/utils/sale-form-helpers";
 import { useSaleFormData } from "~/hooks/use-sale-form-data";
+import { mockCompanies } from "~/mocks/companies";
 
 export function meta() {
   return [
@@ -27,17 +28,18 @@ export async function loader({ request }: { request: Request }) {
 export default function NewSale() {
   const t = useTranslation();
   const navigate = useNavigate();
+  const companyId = mockCompanies[0]?.id || "";
 
   const {
     animals: allAnimals,
     buyers,
     properties,
-    companyId,
+    companyId: hookCompanyId,
     preSelectedAnimalIds,
-  } = useSaleFormData();
+  } = useSaleFormData({ companyId });
 
   const handleSubmit = async (data: SaleFormDataType) => {
-    const saleData = transformSaleFormData(data, companyId);
+    const saleData = transformSaleFormData(data, hookCompanyId || companyId);
     addSale(saleData);
   };
 

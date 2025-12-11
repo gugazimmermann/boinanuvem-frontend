@@ -36,28 +36,30 @@ function isAnimalInLocationOnDate(animalId: string, locationId: string, targetDa
   return mostRecentMovement.locationId === locationId;
 }
 
-export function getAnimalsInLocationOnDate(locationId: string, date: string): Animal[] {
-  const animals: Animal[] = [];
+export async function getAnimalsInLocationOnDate(
+  locationId: string,
+  date: string
+): Promise<Animal[]> {
+  const _animals: Animal[] = [];
   const targetDate = new Date(date);
   const animalIdsInLocation = getAnimalIdsInLocation(locationId);
 
-  for (const animalId of animalIdsInLocation) {
-    if (isAnimalInLocationOnDate(animalId, locationId, targetDate)) {
-      const animal = getAnimalById(animalId);
-      if (animal) {
-        animals.push(animal);
-      }
-    }
-  }
+  const animalPromises = Array.from(animalIdsInLocation)
+    .filter((animalId) => isAnimalInLocationOnDate(animalId, locationId, targetDate))
+    .map(async (animalId) => {
+      const animal = await getAnimalById(animalId);
+      return animal;
+    });
 
-  return animals;
+  const animalsData = await Promise.all(animalPromises);
+  return animalsData.filter((animal): animal is Animal => animal !== null);
 }
 
-export function getLocationConsumptionCosts(
+export async function getLocationConsumptionCosts(
   locationId: string,
   startDate?: string,
   endDate?: string
-): LocationConsumptionCost[] {
+): Promise<LocationConsumptionCost[]> {
   const movements = getConsumptionMovementsByLocationId(locationId);
 
   let filteredMovements = movements;
@@ -74,41 +76,42 @@ export function getLocationConsumptionCosts(
     });
   }
 
-  return filteredMovements
-    .map((movement) => {
-      const item = getInventoryItemById(movement.itemId);
-      if (!item) return null;
+  const costPromises = filteredMovements.map(async (movement) => {
+    const item = getInventoryItemById(movement.itemId);
+    if (!item) return null;
 
-      const unitPrice = movement.unitPrice ?? item.unitPrice ?? 0;
-      const totalCost = movement.quantity * unitPrice;
+    const unitPrice = movement.unitPrice ?? item.unitPrice ?? 0;
+    const totalCost = movement.quantity * unitPrice;
 
-      const animalsPresent = getAnimalsInLocationOnDate(locationId, movement.date);
+    const animalsPresent = await getAnimalsInLocationOnDate(locationId, movement.date);
 
-      return {
-        movement,
-        item,
-        totalCost,
-        animalsPresent,
-      };
-    })
-    .filter((cost): cost is LocationConsumptionCost => cost !== null);
+    return {
+      movement,
+      item,
+      totalCost,
+      animalsPresent,
+    };
+  });
+
+  const costs = await Promise.all(costPromises);
+  return costs.filter((cost): cost is LocationConsumptionCost => cost !== null);
 }
 
-export function getTotalLocationCost(
+export async function getTotalLocationCost(
   locationId: string,
   startDate?: string,
   endDate?: string
-): number {
-  const costs = getLocationConsumptionCosts(locationId, startDate, endDate);
+): Promise<number> {
+  const costs = await getLocationConsumptionCosts(locationId, startDate, endDate);
   return costs.reduce((total, cost) => total + cost.totalCost, 0);
 }
 
-export function getAnimalCostBreakdown(
+export async function getAnimalCostBreakdown(
   locationId: string,
   startDate?: string,
   endDate?: string
-): AnimalCostBreakdown[] {
-  const consumptionCosts = getLocationConsumptionCosts(locationId, startDate, endDate);
+): Promise<AnimalCostBreakdown[]> {
+  const consumptionCosts = await getLocationConsumptionCosts(locationId, startDate, endDate);
 
   const animalCosts = new Map<string, { animal: Animal; totalCost: number; periods: number }>();
 
@@ -139,13 +142,13 @@ export function getAnimalCostBreakdown(
   }));
 }
 
-export function getAnimalCostByLocation(
+export async function getAnimalCostByLocation(
   animalId: string,
   locationId: string,
   startDate?: string,
   endDate?: string
-): number {
-  const consumptionCosts = getLocationConsumptionCosts(locationId, startDate, endDate);
+): Promise<number> {
+  const consumptionCosts = await getLocationConsumptionCosts(locationId, startDate, endDate);
   let totalCost = 0;
 
   for (const cost of consumptionCosts) {
@@ -172,13 +175,17 @@ function isMovementInDateRange(
   return true;
 }
 
-function getRelevantCostsForAnimal(
+async function getRelevantCostsForAnimal(
   locationId: string,
   animalId: string,
   startDate?: string,
   endDate?: string
-): LocationConsumptionCost[] {
-  const locationConsumptionCosts = getLocationConsumptionCosts(locationId, startDate, endDate);
+): Promise<LocationConsumptionCost[]> {
+  const locationConsumptionCosts = await getLocationConsumptionCosts(
+    locationId,
+    startDate,
+    endDate
+  );
   return locationConsumptionCosts.filter((cost) =>
     cost.animalsPresent.some((animal) => animal.id === animalId)
   );
@@ -193,14 +200,23 @@ export async function getAnimalCostBreakdownByLocation(
     (m) => m.type === "consumption" && m.locationId && m.locationId.trim() !== ""
   );
 
+  const locationCostsPromises = consumptionMovements
+    .filter((movement) => isMovementInDateRange(movement, startDate, endDate))
+    .map(async (movement) => {
+      const locationId = movement.locationId!;
+      const relevantCosts = await getRelevantCostsForAnimal(
+        locationId,
+        animalId,
+        startDate,
+        endDate
+      );
+      return { locationId, relevantCosts };
+    });
+
+  const locationCostsResults = await Promise.all(locationCostsPromises);
   const locationCosts = new Map<string, LocationConsumptionCost[]>();
 
-  for (const movement of consumptionMovements) {
-    if (!isMovementInDateRange(movement, startDate, endDate)) continue;
-
-    const locationId = movement.locationId!;
-    const relevantCosts = getRelevantCostsForAnimal(locationId, animalId, startDate, endDate);
-
+  for (const { locationId, relevantCosts } of locationCostsResults) {
     if (relevantCosts.length > 0) {
       const existing = locationCosts.get(locationId);
       if (existing) {

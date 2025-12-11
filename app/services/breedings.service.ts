@@ -1,9 +1,8 @@
 import type { Breeding, BreedingFormData, Animal, Property } from "~/types";
 import { mockBreedings } from "~/mocks/breedings";
 import { findById, findByField, createEntity, updateEntity, deleteEntity } from "./base-service";
-import { mockBirths } from "~/mocks/births";
 import { getAnimalsByPropertyId, getAnimalById } from "./animals.service";
-import { getBirthByAnimalId } from "./births.service";
+import { getBirthByAnimalId, getBirthsByCompanyId } from "./births.service";
 
 const ID_PREFIX = "pp0e8400-e29b-41d4-a716";
 const DEFAULT_ID = "pp0e8400-e29b-41d4-a716-446655440009";
@@ -20,8 +19,10 @@ export function getBreedingsByCompanyId(companyId: string): Breeding[] {
   return findByField(mockBreedings, "companyId", companyId);
 }
 
-export function getNextAttemptNumber(animalId: string): number {
-  const birthsAsMother = mockBirths.filter((birth) => birth.motherId === animalId);
+export async function getNextAttemptNumber(animalId: string, companyId: string): Promise<number> {
+  // Get all births for the company to find births where this animal is the mother
+  const allBirths = await getBirthsByCompanyId(companyId);
+  const birthsAsMother = allBirths?.filter((birth) => birth.motherId === animalId) || [];
 
   let mostRecentBirthDate: string | null = null;
   if (birthsAsMother.length > 0) {
@@ -110,20 +111,20 @@ export function deleteBreeding(breedingId: string): boolean {
   return deleteEntity(mockBreedings, breedingId);
 }
 
-export function getBreedingsByPropertyId(propertyId: string): Breeding[] {
-  const animals = getAnimalsByPropertyId(propertyId);
+export async function getBreedingsByPropertyId(propertyId: string): Promise<Breeding[]> {
+  const animals = await getAnimalsByPropertyId(propertyId);
   const animalIds = new Set(animals.map((a) => a.id));
   return mockBreedings.filter((breeding) => animalIds.has(breeding.animalId));
 }
 
-export function getExposedCows(propertyId: string): string[] {
-  const breedings = getBreedingsByPropertyId(propertyId);
+export async function getExposedCows(propertyId: string): Promise<string[]> {
+  const breedings = await getBreedingsByPropertyId(propertyId);
   const uniqueAnimalIds = new Set(breedings.map((b) => b.animalId));
   return Array.from(uniqueAnimalIds);
 }
 
-export function getPregnantCowsByPropertyId(propertyId: string): string[] {
-  const breedings = getBreedingsByPropertyId(propertyId);
+export async function getPregnantCowsByPropertyId(propertyId: string): Promise<string[]> {
+  const breedings = await getBreedingsByPropertyId(propertyId);
   const uniqueAnimalIds = new Set<string>();
 
   for (const breeding of breedings) {
@@ -135,17 +136,19 @@ export function getPregnantCowsByPropertyId(propertyId: string): string[] {
   return Array.from(uniqueAnimalIds);
 }
 
-export function enrichBreedingWithAnimalData(breeding: Breeding): Breeding & {
-  animal?: Animal;
-  property?: Property;
-  bull?: Animal;
-  breed?: string;
-} {
-  const animal = getAnimalById(breeding.animalId);
+export async function enrichBreedingWithAnimalData(breeding: Breeding): Promise<
+  Breeding & {
+    animal?: Animal;
+    property?: Property;
+    bull?: Animal;
+    breed?: string;
+  }
+> {
+  const animal = await getAnimalById(breeding.animalId);
   // Note: property is set to undefined here since getPropertyById is async
   // The property should be loaded separately if needed
-  const bull = breeding.bullId ? getAnimalById(breeding.bullId) : null;
-  const birth = animal ? getBirthByAnimalId(animal.id) : null;
+  const bull = breeding.bullId ? await getAnimalById(breeding.bullId) : null;
+  const birth = animal ? await getBirthByAnimalId(animal.id) : null;
 
   return {
     ...breeding,

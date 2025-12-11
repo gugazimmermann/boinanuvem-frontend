@@ -55,7 +55,7 @@ export function meta() {
   ];
 }
 
-function aggregateIndexes(
+async function aggregateIndexes(
   properties: Array<{ id: string }>,
   period?: { startDate?: string; endDate?: string }
 ) {
@@ -67,12 +67,18 @@ function aggregateIndexes(
   const allBullToCowRatios: BullToCowRatioResult[] = [];
 
   for (const property of properties) {
-    allFertilityRates.push(getFertilityRate(property.id, period));
-    allBirthRates.push(getBirthRate(property.id, period));
-    allCalvingIntervals.push(getCalvingInterval(property.id));
-    allCullingRates.push(getCullingRate(property.id, period));
-    allIntrauterineMortality.push(getIntrauterineMortalityIndex(property.id, period));
-    allBullToCowRatios.push(getBullToCowRatio(property.id));
+    const fertilityRate = await getFertilityRate(property.id, period);
+    allFertilityRates.push(fertilityRate);
+    const birthRate = await getBirthRate(property.id, period);
+    allBirthRates.push(birthRate);
+    const calvingInterval = await getCalvingInterval(property.id);
+    allCalvingIntervals.push(calvingInterval);
+    const cullingRate = await getCullingRate(property.id, period);
+    allCullingRates.push(cullingRate);
+    const intrauterineMortality = await getIntrauterineMortalityIndex(property.id, period);
+    allIntrauterineMortality.push(intrauterineMortality);
+    const bullToCowRatio = await getBullToCowRatio(property.id);
+    allBullToCowRatios.push(bullToCowRatio);
   }
 
   const totalPregnantCows = allFertilityRates.reduce((sum, r) => sum + r.pregnantCows, 0);
@@ -255,11 +261,25 @@ export default function ReproductiveIndexesPage() {
 
   const dateLocale = useDateLocale();
 
-  const aggregatedIndexes = useMemo(() => {
-    if (selectedPropertyId !== ALL_PROPERTIES_ID || properties.length === 0) {
-      return null;
-    }
-    return aggregateIndexes(properties, selectedPeriod);
+  const [aggregatedIndexes, setAggregatedIndexes] = useState<Awaited<
+    ReturnType<typeof aggregateIndexes>
+  > | null>(null);
+
+  useEffect(() => {
+    const loadAggregatedIndexes = async () => {
+      if (selectedPropertyId !== ALL_PROPERTIES_ID || properties.length === 0) {
+        setAggregatedIndexes(null);
+        return;
+      }
+      try {
+        const indexes = await aggregateIndexes(properties, selectedPeriod);
+        setAggregatedIndexes(indexes);
+      } catch (error) {
+        console.error("Failed to load aggregated indexes:", error);
+        setAggregatedIndexes(null);
+      }
+    };
+    loadAggregatedIndexes();
   }, [selectedPropertyId, properties, selectedPeriod]);
 
   const monthlyBirthRateData = useMemo(() => {
@@ -285,17 +305,38 @@ export default function ReproductiveIndexesPage() {
     }));
   }, [aggregatedIndexes]);
 
-  const expectedBirthsForecast = useMemo(() => {
-    if (selectedPropertyId === ALL_PROPERTIES_ID && company) {
-      return getExpectedBirthsForecast(company.id, { isPropertyId: false, monthsAhead: 9 });
-    } else if (selectedPropertyId && selectedPropertyId !== ALL_PROPERTIES_ID) {
-      return getExpectedBirthsForecast(selectedPropertyId, { isPropertyId: true, monthsAhead: 9 });
-    }
-    return { monthly: [], total: 0 };
+  const [expectedBirthsForecast, setExpectedBirthsForecast] = useState<Awaited<
+    ReturnType<typeof getExpectedBirthsForecast>
+  > | null>(null);
+
+  useEffect(() => {
+    const loadExpectedBirthsForecast = async () => {
+      try {
+        let forecast: Awaited<ReturnType<typeof getExpectedBirthsForecast>>;
+        if (selectedPropertyId === ALL_PROPERTIES_ID && company) {
+          forecast = await getExpectedBirthsForecast(company.id, {
+            isPropertyId: false,
+            monthsAhead: 9,
+          });
+        } else if (selectedPropertyId && selectedPropertyId !== ALL_PROPERTIES_ID) {
+          forecast = await getExpectedBirthsForecast(selectedPropertyId, {
+            isPropertyId: true,
+            monthsAhead: 9,
+          });
+        } else {
+          forecast = { monthly: [], total: 0 };
+        }
+        setExpectedBirthsForecast(forecast);
+      } catch (error) {
+        console.error("Failed to load expected births forecast:", error);
+        setExpectedBirthsForecast({ monthly: [], total: 0 });
+      }
+    };
+    loadExpectedBirthsForecast();
   }, [selectedPropertyId, company]);
 
   const expectedBirthsData = useMemo(() => {
-    if (!expectedBirthsForecast.monthly || expectedBirthsForecast.monthly.length === 0) return [];
+    if (!expectedBirthsForecast?.monthly || expectedBirthsForecast.monthly.length === 0) return [];
     return expectedBirthsForecast.monthly.map((item) => {
       const [year, month] = item.month.split("-");
       const monthDate = new Date(Number.parseInt(year), Number.parseInt(month) - 1, 1);
@@ -305,7 +346,7 @@ export default function ReproductiveIndexesPage() {
         expectedBirths: item.expectedBirths,
       };
     });
-  }, [expectedBirthsForecast.monthly, dateLocale]);
+  }, [expectedBirthsForecast, dateLocale]);
 
   if (properties.length === 0) {
     return (

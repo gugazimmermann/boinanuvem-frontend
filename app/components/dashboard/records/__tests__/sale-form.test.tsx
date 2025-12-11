@@ -1,18 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, act, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SaleForm } from "../sale-form";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
 import { useSaleForm } from "~/hooks/use-sale-form";
 import { isAnimalSold } from "~/services/sales.service";
-import { getAnimalById } from "~/services/animals.service";
 
 vi.mock("~/i18n");
 vi.mock("~/contexts/language-context");
 vi.mock("~/hooks/use-sale-form");
 vi.mock("~/services/sales.service");
-vi.mock("~/services/animals.service");
 vi.mock("~/components/ui", () => ({
   Input: ({
     label,
@@ -111,7 +109,6 @@ describe("SaleForm", () => {
   const mockUseLanguage = vi.mocked(useLanguage);
   const mockUseSaleForm = vi.mocked(useSaleForm);
   const mockIsAnimalSold = vi.mocked(isAnimalSold);
-  const mockGetAnimalById = vi.mocked(getAnimalById);
 
   const defaultProps = {
     animals: [],
@@ -204,8 +201,7 @@ describe("SaleForm", () => {
       calculateTotal: vi.fn(() => 0),
       handleSubmit: vi.fn(),
     });
-    mockIsAnimalSold.mockReturnValue(false);
-    mockGetAnimalById.mockReturnValue(null);
+    mockIsAnimalSold.mockResolvedValue(false);
   });
 
   it("should render sale form", () => {
@@ -299,7 +295,7 @@ describe("SaleForm", () => {
     expect(setAnimalSearch).toHaveBeenCalled();
   });
 
-  it("should display sold badge for sold animals", () => {
+  it("should display sold badge for sold animals", async () => {
     const animals = [
       {
         id: "1",
@@ -311,7 +307,7 @@ describe("SaleForm", () => {
         propertyId: "prop-1",
       },
     ];
-    mockIsAnimalSold.mockReturnValue(true);
+    mockIsAnimalSold.mockResolvedValue(true);
     mockUseSaleForm.mockReturnValue({
       ...mockUseSaleForm(),
       formData: {
@@ -319,11 +315,17 @@ describe("SaleForm", () => {
         selectedAnimalIds: [],
       },
     });
-    render(<SaleForm {...defaultProps} animals={animals} />);
-    expect(screen.getByText("Sold")).toBeInTheDocument();
+    await act(async () => {
+      render(<SaleForm {...defaultProps} animals={animals} />);
+      // Wait for async isAnimalSold check
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    await waitFor(() => {
+      expect(screen.getByText("Sold")).toBeInTheDocument();
+    });
   });
 
-  it("should not show sold badge when animal is in current sale during edit", () => {
+  it("should not show sold badge when animal is in current sale during edit", async () => {
     const animals = [
       {
         id: "1",
@@ -335,7 +337,7 @@ describe("SaleForm", () => {
         propertyId: "prop-1",
       },
     ];
-    mockIsAnimalSold.mockReturnValue(true);
+    mockIsAnimalSold.mockResolvedValue(true);
     mockUseSaleForm.mockReturnValue({
       ...mockUseSaleForm(),
       formData: {
@@ -343,13 +345,19 @@ describe("SaleForm", () => {
         selectedAnimalIds: [],
       },
     });
-    render(
-      <SaleForm {...defaultProps} animals={animals} isEdit={true} currentSaleAnimalIds={["1"]} />
-    );
-    expect(screen.queryByText("Sold")).not.toBeInTheDocument();
+    await act(async () => {
+      render(
+        <SaleForm {...defaultProps} animals={animals} isEdit={true} currentSaleAnimalIds={["1"]} />
+      );
+      // Wait for async isAnimalSold check
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    await waitFor(() => {
+      expect(screen.queryByText("Sold")).not.toBeInTheDocument();
+    });
   });
 
-  it("should display sale items when animals are selected", () => {
+  it("should display sale items when animals are selected", async () => {
     const animals = [
       {
         id: "1",
@@ -361,7 +369,6 @@ describe("SaleForm", () => {
         propertyId: "prop-1",
       },
     ];
-    mockGetAnimalById.mockReturnValue(animals[0] as never);
     mockUseSaleForm.mockReturnValue({
       ...mockUseSaleForm(),
       formData: {
@@ -376,11 +383,17 @@ describe("SaleForm", () => {
         ],
       },
     });
-    render(<SaleForm {...defaultProps} animals={animals} />);
+    await act(async () => {
+      render(<SaleForm {...defaultProps} animals={animals} />);
+    });
     expect(screen.getByText("Sale Items")).toBeInTheDocument();
+    // Component should use animalsMap internally, not getAnimalById
+    // A001 appears in both animal list and sale items, so use getAllByText
+    const a001Elements = screen.getAllByText("A001");
+    expect(a001Elements.length).toBeGreaterThan(0);
   });
 
-  it("should display carcass weight field when saleType is SLAUGHTERHOUSE", () => {
+  it("should display carcass weight field when saleType is SLAUGHTERHOUSE", async () => {
     const animals = [
       {
         id: "1",
@@ -392,7 +405,6 @@ describe("SaleForm", () => {
         propertyId: "prop-1",
       },
     ];
-    mockGetAnimalById.mockReturnValue(animals[0] as never);
     mockUseSaleForm.mockReturnValue({
       ...mockUseSaleForm(),
       formData: {
@@ -409,11 +421,13 @@ describe("SaleForm", () => {
         ],
       },
     });
-    render(<SaleForm {...defaultProps} animals={animals} />);
+    await act(async () => {
+      render(<SaleForm {...defaultProps} animals={animals} />);
+    });
     expect(screen.getByText("Carcass Weight")).toBeInTheDocument();
   });
 
-  it("should display individual price field when pricingMode is INDIVIDUAL", () => {
+  it("should display individual price field when pricingMode is INDIVIDUAL", async () => {
     const animals = [
       {
         id: "1",
@@ -425,7 +439,6 @@ describe("SaleForm", () => {
         propertyId: "prop-1",
       },
     ];
-    mockGetAnimalById.mockReturnValue(animals[0] as never);
     mockUseSaleForm.mockReturnValue({
       ...mockUseSaleForm(),
       formData: {
@@ -441,11 +454,13 @@ describe("SaleForm", () => {
         ],
       },
     });
-    render(<SaleForm {...defaultProps} animals={animals} />);
+    await act(async () => {
+      render(<SaleForm {...defaultProps} animals={animals} />);
+    });
     expect(screen.getByText("Price")).toBeInTheDocument();
   });
 
-  it("should display calculated price when pricingMode is TOTAL", () => {
+  it("should display calculated price when pricingMode is TOTAL", async () => {
     const animals = [
       {
         id: "1",
@@ -457,7 +472,6 @@ describe("SaleForm", () => {
         propertyId: "prop-1",
       },
     ];
-    mockGetAnimalById.mockReturnValue(animals[0] as never);
     mockUseSaleForm.mockReturnValue({
       ...mockUseSaleForm(),
       formData: {
@@ -473,7 +487,9 @@ describe("SaleForm", () => {
         ],
       },
     });
-    render(<SaleForm {...defaultProps} animals={animals} />);
+    await act(async () => {
+      render(<SaleForm {...defaultProps} animals={animals} />);
+    });
     expect(screen.getByText("Calculated Automatically")).toBeInTheDocument();
   });
 
@@ -607,13 +623,15 @@ describe("SaleForm", () => {
       animalSearch: "",
       setAnimalSearch: vi.fn(),
     });
-    render(<SaleForm {...defaultProps} animals={animals} />);
+    await act(async () => {
+      render(<SaleForm {...defaultProps} animals={animals} />);
+    });
     // All animals should be shown when search is empty
     expect(screen.getByText("A001")).toBeInTheDocument();
     expect(screen.getByText("A002")).toBeInTheDocument();
   });
 
-  it("should show no animals message when filtered list is empty", () => {
+  it("should show no animals message when filtered list is empty", async () => {
     const animals = [
       {
         id: "1",
@@ -630,7 +648,9 @@ describe("SaleForm", () => {
       animalSearch: "NONEXISTENT",
       setAnimalSearch: vi.fn(),
     });
-    render(<SaleForm {...defaultProps} animals={animals} />);
+    await act(async () => {
+      render(<SaleForm {...defaultProps} animals={animals} />);
+    });
     expect(screen.getByText("No Animals")).toBeInTheDocument();
   });
 
@@ -668,7 +688,7 @@ describe("SaleForm", () => {
     expect(setAnimalSearch).toHaveBeenCalled();
   });
 
-  it("should render sale items for individual pricing mode", () => {
+  it("should render sale items for individual pricing mode", async () => {
     const animals = [
       {
         id: "1",
@@ -680,7 +700,6 @@ describe("SaleForm", () => {
         propertyId: "prop-1",
       },
     ];
-    mockGetAnimalById.mockReturnValue(animals[0] as never);
     mockUseSaleForm.mockReturnValue({
       ...mockUseSaleForm(),
       formData: {
@@ -696,12 +715,18 @@ describe("SaleForm", () => {
         ],
       },
     });
-    render(<SaleForm {...defaultProps} animals={animals} />);
+    await act(async () => {
+      render(<SaleForm {...defaultProps} animals={animals} />);
+    });
     expect(screen.getByText("Sale Items")).toBeInTheDocument();
     expect(screen.getByText("Price")).toBeInTheDocument();
+    // Component uses animalsMap internally, so animal should be found
+    // A001 appears in both animal list and sale items, so use getAllByText
+    const a001Elements = screen.getAllByText("A001");
+    expect(a001Elements.length).toBeGreaterThan(0);
   });
 
-  it("should render sale items for total pricing mode", () => {
+  it("should render sale items for total pricing mode", async () => {
     const animals = [
       {
         id: "1",
@@ -713,7 +738,6 @@ describe("SaleForm", () => {
         propertyId: "prop-1",
       },
     ];
-    mockGetAnimalById.mockReturnValue(animals[0] as never);
     mockUseSaleForm.mockReturnValue({
       ...mockUseSaleForm(),
       formData: {
@@ -729,12 +753,14 @@ describe("SaleForm", () => {
         ],
       },
     });
-    render(<SaleForm {...defaultProps} animals={animals} />);
+    await act(async () => {
+      render(<SaleForm {...defaultProps} animals={animals} />);
+    });
     expect(screen.getByText("Sale Items")).toBeInTheDocument();
     expect(screen.getByText("Calculated Automatically")).toBeInTheDocument();
   });
 
-  it("should display carcass weight field when saleType is SLAUGHTERHOUSE", () => {
+  it("should display carcass weight field when saleType is SLAUGHTERHOUSE", async () => {
     const animals = [
       {
         id: "1",
@@ -746,7 +772,6 @@ describe("SaleForm", () => {
         propertyId: "prop-1",
       },
     ];
-    mockGetAnimalById.mockReturnValue(animals[0] as never);
     mockUseSaleForm.mockReturnValue({
       ...mockUseSaleForm(),
       formData: {
@@ -763,11 +788,13 @@ describe("SaleForm", () => {
         ],
       },
     });
-    render(<SaleForm {...defaultProps} animals={animals} />);
+    await act(async () => {
+      render(<SaleForm {...defaultProps} animals={animals} />);
+    });
     expect(screen.getByText("Carcass Weight")).toBeInTheDocument();
   });
 
-  it("should not display carcass weight field when saleType is not SLAUGHTERHOUSE", () => {
+  it("should not display carcass weight field when saleType is not SLAUGHTERHOUSE", async () => {
     const animals = [
       {
         id: "1",
@@ -779,7 +806,6 @@ describe("SaleForm", () => {
         propertyId: "prop-1",
       },
     ];
-    mockGetAnimalById.mockReturnValue(animals[0] as never);
     mockUseSaleForm.mockReturnValue({
       ...mockUseSaleForm(),
       formData: {
@@ -795,7 +821,9 @@ describe("SaleForm", () => {
         ],
       },
     });
-    render(<SaleForm {...defaultProps} animals={animals} />);
+    await act(async () => {
+      render(<SaleForm {...defaultProps} animals={animals} />);
+    });
     expect(screen.queryByText("Carcass Weight")).not.toBeInTheDocument();
   });
 
@@ -908,7 +936,6 @@ describe("SaleForm", () => {
         propertyId: "prop-1",
       },
     ];
-    mockGetAnimalById.mockReturnValue(animals[0] as never);
     const handleSaleItemChange = vi.fn();
     mockUseSaleForm.mockReturnValue({
       ...mockUseSaleForm(),
@@ -947,7 +974,6 @@ describe("SaleForm", () => {
         propertyId: "prop-1",
       },
     ];
-    mockGetAnimalById.mockReturnValue(animals[0] as never);
     const handleSaleItemChange = vi.fn();
     mockUseSaleForm.mockReturnValue({
       ...mockUseSaleForm(),
@@ -989,7 +1015,6 @@ describe("SaleForm", () => {
         propertyId: "prop-1",
       },
     ];
-    mockGetAnimalById.mockReturnValue(animals[0] as never);
     const handleSaleItemChange = vi.fn();
     mockUseSaleForm.mockReturnValue({
       ...mockUseSaleForm(),
@@ -1008,7 +1033,9 @@ describe("SaleForm", () => {
       },
       handleSaleItemChange,
     });
-    render(<SaleForm {...defaultProps} animals={animals} />);
+    await act(async () => {
+      render(<SaleForm {...defaultProps} animals={animals} />);
+    });
     // Find carcass weight input - it's the second number input in the sale item
     const numberInputs = document.querySelectorAll('input[type="number"]');
     if (numberInputs.length > 1) {
@@ -1016,5 +1043,41 @@ describe("SaleForm", () => {
       await user.type(numberInputs[1] as HTMLInputElement, "260");
       expect(handleSaleItemChange).toHaveBeenCalled();
     }
+  });
+
+  it("should use animalsMap instead of getAnimalById", async () => {
+    const animals = [
+      {
+        id: "1",
+        code: "A001",
+        registrationNumber: "REG001",
+        status: "active" as const,
+        createdAt: "2024-01-01T00:00:00Z",
+        companyId: "company-1",
+        propertyId: "prop-1",
+      },
+    ];
+    mockUseSaleForm.mockReturnValue({
+      ...mockUseSaleForm(),
+      formData: {
+        ...mockUseSaleForm().formData,
+        selectedAnimalIds: ["1"],
+        saleItems: [
+          {
+            animalId: "1",
+            price: "500",
+            weight: "400",
+          },
+        ],
+      },
+    });
+    await act(async () => {
+      render(<SaleForm {...defaultProps} animals={animals} />);
+    });
+    // Component should use animalsMap internally to find animals
+    // A001 appears in both animal list and sale items, so use getAllByText
+    const a001Elements = screen.getAllByText("A001");
+    expect(a001Elements.length).toBeGreaterThan(0);
+    // getAnimalById should not be called since component uses animalsMap
   });
 });

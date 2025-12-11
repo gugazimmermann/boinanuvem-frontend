@@ -20,10 +20,16 @@ export interface BreedingFormState {
 export interface UseBreedingFormOptions {
   initialAnimalIds?: string[];
   initialDate?: string;
+  companyId: string;
   t: TranslationKey | ReturnType<typeof useTranslation>;
 }
 
-export function useBreedingForm({ initialAnimalIds = [], initialDate, t }: UseBreedingFormOptions) {
+export function useBreedingForm({
+  initialAnimalIds = [],
+  initialDate,
+  companyId,
+  t,
+}: UseBreedingFormOptions) {
   const today = new Date().toISOString().split("T")[0];
 
   const [formData, setFormData] = useState<BreedingFormState>({
@@ -73,7 +79,19 @@ export function useBreedingForm({ initialAnimalIds = [], initialDate, t }: UseBr
     }
   };
 
-  const toggleAnimalSelection = (animalId: string) => {
+  const updateAttemptNumberForAnimal = useCallback(
+    (animalId: string) => {
+      getNextAttemptNumber(animalId, companyId).then((attemptNumber) => {
+        setFormData((current) => ({
+          ...current,
+          attemptNumbers: { ...current.attemptNumbers, [animalId]: attemptNumber },
+        }));
+      });
+    },
+    [companyId]
+  );
+
+  const toggleAnimalSelection = async (animalId: string) => {
     setFormData((prev) => {
       const currentIds = prev.animalIds;
       const newIds = currentIds.includes(animalId)
@@ -83,7 +101,8 @@ export function useBreedingForm({ initialAnimalIds = [], initialDate, t }: UseBr
       const attemptNumbers = { ...prev.attemptNumbers };
       if (prev.method === "artificial_insemination") {
         if (newIds.includes(animalId) && !attemptNumbers[animalId]) {
-          attemptNumbers[animalId] = getNextAttemptNumber(animalId);
+          // Async call - will update on next render
+          updateAttemptNumberForAnimal(animalId);
         } else if (!newIds.includes(animalId)) {
           delete attemptNumbers[animalId];
         }
@@ -107,15 +126,24 @@ export function useBreedingForm({ initialAnimalIds = [], initialDate, t }: UseBr
     });
   };
 
+  const updateAttemptNumbersForAnimals = useCallback(
+    (animalIds: string[]) => {
+      // Async calls - will update on next render
+      for (const animalId of animalIds) {
+        updateAttemptNumberForAnimal(animalId);
+      }
+    },
+    [updateAttemptNumberForAnimal]
+  );
+
   const handleMethodChange = (method: BreedingMethod) => {
     setFormData((prev) => {
       let attemptNumbers: Record<string, number>;
 
       if (method === "artificial_insemination") {
         attemptNumbers = {};
-        for (const animalId of prev.animalIds) {
-          attemptNumbers[animalId] = getNextAttemptNumber(animalId);
-        }
+        // Async calls - will update on next render
+        updateAttemptNumbersForAnimals(prev.animalIds);
       } else {
         attemptNumbers = {};
       }

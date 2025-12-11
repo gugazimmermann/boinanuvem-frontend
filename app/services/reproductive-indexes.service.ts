@@ -9,6 +9,7 @@ import { getAnimalsByPropertyId, getAnimalById } from "./animals.service";
 import { getWeighingsByAnimalId } from "./weighings.service";
 import { getDeathsByCompanyId, getDeathByAnimalId } from "./deaths.service";
 import type { Breeding, Death, Birth } from "~/types";
+import { filterByPeriod } from "~/utils/period-filters";
 
 export interface FertilityRateResult {
   rate: number;
@@ -120,7 +121,7 @@ export interface CalfMortalityRateResult {
     totalCalves: number;
   }>;
 }
-export function getFertilityRate(
+export async function getFertilityRate(
   propertyId: string,
   period?: { startDate?: string; endDate?: string },
   filters?: {
@@ -130,46 +131,21 @@ export function getFertilityRate(
     calvingMonth?: string;
     bcs?: string;
   }
-): FertilityRateResult {
-  const breedings = getBreedingsByPropertyId(propertyId);
+): Promise<FertilityRateResult> {
+  const breedings = await getBreedingsByPropertyId(propertyId);
 
-  let filteredBreedings = breedings;
-
-  if (period?.startDate || period?.endDate) {
-    filteredBreedings = filteredBreedings.filter((b) => {
-      const breedingDate = new Date(b.date).getTime();
-      if (period.startDate) {
-        const start = new Date(period.startDate).getTime();
-        if (breedingDate < start) return false;
-      }
-      if (period.endDate) {
-        const end = new Date(period.endDate).getTime();
-        if (breedingDate > end) return false;
-      }
-      return true;
-    });
-  }
+  let filteredBreedings = filterByPeriod(breedings, period);
 
   if (filters?.bullId) {
     filteredBreedings = filteredBreedings.filter((b) => b.bullId === filters.bullId);
   }
 
   const exposedAnimalIds = new Set(filteredBreedings.map((b) => b.animalId));
-  const exposedCows = Array.from(exposedAnimalIds).filter((animalId) => {
-    const animal = getAnimalById(animalId);
-    if (!animal) return false;
-    const birth = getBirthByAnimalId(animalId);
-    return birth?.gender === "female";
-  });
+  const exposedCows = await getExposedFemaleAnimalIds(exposedAnimalIds);
 
   const confirmedBreedings = filteredBreedings.filter((b) => b.confirmed === true);
   const pregnantAnimalIds = new Set(confirmedBreedings.map((b) => b.animalId));
-  const pregnantCows = Array.from(pregnantAnimalIds).filter((animalId) => {
-    const animal = getAnimalById(animalId);
-    if (!animal) return false;
-    const birth = getBirthByAnimalId(animalId);
-    return birth?.gender === "female";
-  });
+  const pregnantCows = await getExposedFemaleAnimalIds(pregnantAnimalIds);
 
   const rate = exposedCows.length > 0 ? (pregnantCows.length / exposedCows.length) * 100 : 0;
 
@@ -186,7 +162,7 @@ export function getFertilityRate(
       const bullPregnant = new Set(
         bullBreedings.filter((b) => b.confirmed === true).map((b) => b.animalId)
       );
-      const bull = getAnimalById(bullId);
+      const bull = await getAnimalById(bullId);
       if (bull && bullExposed.size > 0) {
         byBull[bull.code] = (bullPregnant.size / bullExposed.size) * 100;
       }
@@ -204,40 +180,59 @@ export function getFertilityRate(
   };
 }
 
-function filterBreedingsByPeriod(
-  breedings: ReturnType<typeof getBreedingsByPropertyId>,
-  period?: { startDate?: string; endDate?: string }
-) {
-  const filtered = breedings.filter((b) => b.confirmed === true);
-  if (!period?.startDate && !period?.endDate) {
-    return filtered;
-  }
-
-  return filtered.filter((b) => {
-    const breedingDate = new Date(b.date).getTime();
-    if (period.startDate) {
-      const start = new Date(period.startDate).getTime();
-      if (breedingDate < start) return false;
-    }
-    if (period.endDate) {
-      const end = new Date(period.endDate).getTime();
-      if (breedingDate > end) return false;
-    }
-    return true;
-  });
-}
-
-function isFemaleAnimal(
+/**
+ * Check if an animal is female by checking its birth record or if it has given birth
+ */
+async function isFemaleAnimal(
   animalId: string,
-  allCompanyBirths: ReturnType<typeof getBirthsByCompanyId>
-): boolean {
-  const birth = getBirthByAnimalId(animalId);
+  allCompanyBirths?: Awaited<ReturnType<typeof getBirthsByCompanyId>>
+): Promise<boolean> {
+  const birth = await getBirthByAnimalId(animalId);
   if (birth?.gender === "female") {
     return true;
   }
 
+  // If no company births provided, only check birth record
+  if (!allCompanyBirths) {
+    return false;
+  }
+
   const birthsAsMother = allCompanyBirths.filter((b) => b.motherId === animalId);
   return birthsAsMother.length > 0;
+}
+
+/**
+ * Get female animals from a list of animals
+ */
+async function getFemaleAnimals<T extends { id: string }>(animals: T[]): Promise<T[]> {
+  const results: (T | null)[] = [];
+  for (const animal of animals) {
+    const birth = await getBirthByAnimalId(animal.id);
+    if (birth?.gender === "female") {
+      results.push(animal);
+    } else {
+      results.push(null);
+    }
+  }
+  return results.filter((a): a is T => a !== null);
+}
+
+/**
+ * Get exposed female animal IDs from breedings
+ * Uses isFemaleAnimal to check both birth record and if animal has given birth
+ */
+async function getExposedFemaleAnimalIds(
+  animalIds: Set<string>,
+  allCompanyBirths?: Awaited<ReturnType<typeof getBirthsByCompanyId>>
+): Promise<string[]> {
+  const exposedFemalesPromises = Array.from(animalIds).map(async (animalId) => {
+    const animal = await getAnimalById(animalId);
+    if (!animal) return false;
+    return await isFemaleAnimal(animalId, allCompanyBirths);
+  });
+  const exposedFemalesResults = await Promise.all(exposedFemalesPromises);
+  const animalIdsArray = Array.from(animalIds);
+  return animalIdsArray.filter((_, index) => exposedFemalesResults[index] === true);
 }
 
 function getExpectedBirthWindow(breedingDate: Date) {
@@ -250,8 +245,9 @@ function getExpectedBirthWindow(breedingDate: Date) {
 
 function findMatchingBirth(
   breeding: { animalId: string; date: string },
-  births: ReturnType<typeof getBirthsByPropertyId>
+  births: Awaited<ReturnType<typeof getBirthsByPropertyId>> | undefined
 ) {
+  if (!births) return undefined;
   const breedingDate = new Date(breeding.date);
   const { expectedBirthStart, expectedBirthEnd } = getExpectedBirthWindow(breedingDate);
 
@@ -264,9 +260,10 @@ function findMatchingBirth(
 
 function countCalvesBorn(
   confirmedBreedingsForFemales: Array<{ animalId: string; date: string }>,
-  births: ReturnType<typeof getBirthsByPropertyId>,
+  births: Awaited<ReturnType<typeof getBirthsByPropertyId>> | undefined,
   period?: { startDate?: string; endDate?: string }
 ): number {
+  if (!births) return 0;
   let calvesBorn = 0;
 
   for (const breeding of confirmedBreedingsForFemales) {
@@ -296,21 +293,25 @@ function getLatestWeight(animalId: string): number | null {
   const weighings = getWeighingsByAnimalId(animalId);
   if (weighings.length === 0) return null;
 
-  const sortedWeighings = weighings.toSorted(
+  const sortedWeighings = [...weighings].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
   return sortedWeighings[0].weight;
 }
 
-function isWeanedCalf(
-  birth: ReturnType<typeof getBirthsByPropertyId>[0],
+/**
+ * Unified function to validate if a calf is weaned
+ * Replaces isWeanedCalf, isValidWeanedCalf, and isBirthValidForWeaning
+ */
+async function isValidWeanedCalf(
+  birth: Birth | undefined,
   propertyId: string,
   breedingSeasonFemales: Set<string>,
-  today: Date,
-  weaningAgeDays: number
-): boolean {
-  if (!birth.motherId) return false;
-  const mother = getAnimalById(birth.motherId);
+  weaningAgeDays: number,
+  today: Date = new Date()
+): Promise<boolean> {
+  if (!birth?.motherId) return false;
+  const mother = await getAnimalById(birth.motherId);
   if (!mother?.propertyId || mother.propertyId !== propertyId) return false;
   if (!breedingSeasonFemales.has(birth.motherId)) return false;
 
@@ -318,7 +319,7 @@ function isWeanedCalf(
   const ageInDays = Math.floor((today.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24));
   if (ageInDays < weaningAgeDays) return false;
 
-  const calf = getAnimalById(birth.animalId);
+  const calf = await getAnimalById(birth.animalId);
   if (!calf || calf.status === "sold") return false;
 
   const death = getDeathByAnimalId(birth.animalId);
@@ -327,9 +328,9 @@ function isWeanedCalf(
 
 function calculateMonthlyBirthRate(
   confirmedBreedingsForFemales: Array<{ animalId: string; date: string }>,
-  births: ReturnType<typeof getBirthsByPropertyId>
+  births: Awaited<ReturnType<typeof getBirthsByPropertyId>> | undefined
 ): BirthRateResult["monthly"] {
-  if (confirmedBreedingsForFemales.length === 0) {
+  if (confirmedBreedingsForFemales.length === 0 || !births) {
     return undefined;
   }
 
@@ -363,25 +364,35 @@ function calculateMonthlyBirthRate(
   return monthly.toSorted((a, b) => a.month.localeCompare(b.month));
 }
 
-export function getBirthRate(
+export async function getBirthRate(
   propertyId: string,
   period?: { startDate?: string; endDate?: string }
-): BirthRateResult {
-  const breedings = getBreedingsByPropertyId(propertyId);
-  const births = getBirthsByPropertyId(propertyId);
-  const animals = getAnimalsByPropertyId(propertyId);
+): Promise<BirthRateResult> {
+  const [breedings, births, animals] = await Promise.all([
+    getBreedingsByPropertyId(propertyId),
+    getBirthsByPropertyId(propertyId),
+    getAnimalsByPropertyId(propertyId),
+  ]);
 
   const animal = animals[0];
   const companyId = animal?.companyId || "550e8400-e29b-41d4-a716-446655440000";
-  const allCompanyBirths = getBirthsByCompanyId(companyId);
+  const allCompanyBirths = await getBirthsByCompanyId(companyId);
 
-  const filteredConfirmedBreedings = filterBreedingsByPeriod(breedings, period);
+  const confirmedBreedings = breedings.filter((b) => b.confirmed === true);
+  const filteredConfirmedBreedings = filterByPeriod(confirmedBreedings, period);
 
-  const confirmedBreedingsForFemales = filteredConfirmedBreedings.filter((breeding) => {
-    const animal = getAnimalById(breeding.animalId);
-    if (!animal) return false;
-    return isFemaleAnimal(animal.id, allCompanyBirths);
+  const confirmedBreedingsForFemalesPromises = filteredConfirmedBreedings.map(async (breeding) => {
+    const animal = await getAnimalById(breeding.animalId);
+    if (!animal) return null;
+    const isFemale = await isFemaleAnimal(animal.id, allCompanyBirths);
+    return isFemale ? breeding : null;
   });
+  const confirmedBreedingsForFemalesResults = await Promise.all(
+    confirmedBreedingsForFemalesPromises
+  );
+  const confirmedBreedingsForFemales = confirmedBreedingsForFemalesResults.filter(
+    (b): b is (typeof breedings)[0] => b !== null
+  );
 
   const pregnantFemales = confirmedBreedingsForFemales.length;
   const calvesBorn = countCalvesBorn(confirmedBreedingsForFemales, births, period);
@@ -397,19 +408,15 @@ export function getBirthRate(
   };
 }
 
-export function getCalvingInterval(propertyId: string): CalvingIntervalResult {
-  const animals = getAnimalsByPropertyId(propertyId);
-
-  const femaleAnimals = animals.filter((animal) => {
-    const birth = getBirthByAnimalId(animal.id);
-    return birth?.gender === "female";
-  });
+export async function getCalvingInterval(propertyId: string): Promise<CalvingIntervalResult> {
+  const animals = await getAnimalsByPropertyId(propertyId);
+  const femaleAnimals = await getFemaleAnimals(animals);
 
   const allIntervals: number[] = [];
   let animalsWithIntervals = 0;
 
   for (const animal of femaleAnimals) {
-    const intervals = getCalvingIntervalsByAnimalId(animal.id);
+    const intervals = await getCalvingIntervalsByAnimalId(animal.id);
     if (intervals.length > 0) {
       allIntervals.push(...intervals);
       animalsWithIntervals++;
@@ -439,34 +446,14 @@ export function getCalvingInterval(propertyId: string): CalvingIntervalResult {
   };
 }
 
-export function getCullingRate(
+export async function getCullingRate(
   propertyId: string,
   period?: { startDate?: string; endDate?: string; year?: string }
-): CullingRateResult {
-  const animals = getAnimalsByPropertyId(propertyId);
+): Promise<CullingRateResult> {
+  const animals = await getAnimalsByPropertyId(propertyId);
+  const femaleAnimals = await getFemaleAnimals(animals);
 
-  const femaleAnimals = animals.filter((animal) => {
-    const birth = getBirthByAnimalId(animal.id);
-    return birth?.gender === "female";
-  });
-
-  let filteredFemales = femaleAnimals;
-  if (period?.startDate || period?.endDate) {
-    filteredFemales = femaleAnimals.filter((animal) => {
-      const animalDate = animal.acquisitionDate || animal.createdAt;
-      if (!animalDate) return true;
-      const date = new Date(animalDate).getTime();
-      if (period.startDate) {
-        const start = new Date(period.startDate).getTime();
-        if (date < start) return false;
-      }
-      if (period.endDate) {
-        const end = new Date(period.endDate).getTime();
-        if (date > end) return false;
-      }
-      return true;
-    });
-  }
+  const filteredFemales = filterByPeriod(femaleAnimals, period);
 
   const replacedFemales = filteredFemales.filter((animal) => animal.status === "inactive");
   const totalFemales = filteredFemales.length;
@@ -510,48 +497,29 @@ export function getCullingRate(
   };
 }
 
-export function getIntrauterineMortalityIndex(
+export async function getIntrauterineMortalityIndex(
   propertyId: string,
   period?: { startDate?: string; endDate?: string }
-): IntrauterineMortalityResult {
-  const breedings = getBreedingsByPropertyId(propertyId);
-  const births = getBirthsByPropertyId(propertyId);
+): Promise<IntrauterineMortalityResult> {
+  const [breedings, births] = await Promise.all([
+    getBreedingsByPropertyId(propertyId),
+    getBirthsByPropertyId(propertyId),
+  ]);
 
   const confirmedBreedings = breedings.filter((b) => b.confirmed === true);
-
-  let filteredBreedings = confirmedBreedings;
-  if (period?.startDate || period?.endDate) {
-    filteredBreedings = confirmedBreedings.filter((b) => {
-      const breedingDate = new Date(b.date).getTime();
-      if (period.startDate) {
-        const start = new Date(period.startDate).getTime();
-        if (breedingDate < start) return false;
-      }
-      if (period.endDate) {
-        const end = new Date(period.endDate).getTime();
-        if (breedingDate > end) return false;
-      }
-      return true;
-    });
-  }
+  const filteredBreedings = filterByPeriod(confirmedBreedings, period);
 
   const pregnantAnimalIds = new Set(filteredBreedings.map((b) => b.animalId));
-  const pregnantCows = Array.from(pregnantAnimalIds).filter((animalId) => {
-    const animal = getAnimalById(animalId);
-    if (!animal) return false;
-    const birth = getBirthByAnimalId(animalId);
-    return birth?.gender === "female";
-  });
+  const pregnantCows = await getExposedFemaleAnimalIds(pregnantAnimalIds);
 
-  const cowsThatCalved = new Set(
-    births
-      .filter((birth) => {
-        if (!birth.motherId) return false;
-        const mother = getAnimalById(birth.motherId);
-        return mother?.propertyId === propertyId;
-      })
-      .map((birth) => birth.motherId)
-  );
+  const cowsThatCalvedPromises = (births || [])
+    .filter((birth) => birth.motherId)
+    .map(async (birth) => {
+      const mother = await getAnimalById(birth.motherId ?? undefined);
+      return mother?.propertyId === propertyId ? birth.motherId : null;
+    });
+  const cowsThatCalvedResults = await Promise.all(cowsThatCalvedPromises);
+  const cowsThatCalved = new Set(cowsThatCalvedResults.filter((id): id is string => id !== null));
 
   const losses = pregnantCows.filter((animalId) => !cowsThatCalved.has(animalId)).length;
 
@@ -565,16 +533,11 @@ export function getIntrauterineMortalityIndex(
   };
 }
 
-export function getBullToCowRatio(propertyId: string): BullToCowRatioResult {
-  const breedings = getBreedingsByPropertyId(propertyId);
+export async function getBullToCowRatio(propertyId: string): Promise<BullToCowRatioResult> {
+  const breedings = await getBreedingsByPropertyId(propertyId);
 
   const exposedAnimalIds = new Set(breedings.map((b) => b.animalId));
-  const exposedCows = Array.from(exposedAnimalIds).filter((animalId) => {
-    const animal = getAnimalById(animalId);
-    if (!animal) return false;
-    const birth = getBirthByAnimalId(animalId);
-    return birth?.gender === "female";
-  });
+  const exposedCows = await getExposedFemaleAnimalIds(exposedAnimalIds);
 
   const bullIds = new Set(breedings.map((b) => b.bullId).filter((id): id is string => !!id));
 
@@ -587,7 +550,7 @@ export function getBullToCowRatio(propertyId: string): BullToCowRatioResult {
   for (const bullId of bullIds) {
     const bullBreedings = breedings.filter((b) => b.bullId === bullId);
     const bullExposedCows = new Set(bullBreedings.map((b) => b.animalId));
-    const bull = getAnimalById(bullId);
+    const bull = await getAnimalById(bullId);
     if (bull) {
       const bullRatioValue = bullExposedCows.size > 0 ? Math.round(bullExposedCows.size / 1) : 0;
       details.push({
@@ -607,16 +570,16 @@ export function getBullToCowRatio(propertyId: string): BullToCowRatioResult {
   };
 }
 
-export function getExpectedBirthsForecast(
+export async function getExpectedBirthsForecast(
   companyIdOrPropertyId: string,
   options?: { isPropertyId?: boolean; monthsAhead?: number }
-): ExpectedBirthsForecastResult {
+): Promise<ExpectedBirthsForecastResult> {
   const isPropertyId = options?.isPropertyId ?? false;
   const monthsAhead = options?.monthsAhead ?? 9;
 
   let breedings: Breeding[];
   if (isPropertyId) {
-    breedings = getBreedingsByPropertyId(companyIdOrPropertyId);
+    breedings = await getBreedingsByPropertyId(companyIdOrPropertyId);
   } else {
     breedings = getBreedingsByCompanyId(companyIdOrPropertyId);
   }
@@ -656,43 +619,24 @@ export function getExpectedBirthsForecast(
   };
 }
 
-export function getWeaningRate(
+export async function getWeaningRate(
   propertyId: string,
   period?: { startDate?: string; endDate?: string }
-): WeaningRateResult {
-  const breedings = getBreedingsByPropertyId(propertyId);
-  const births = getBirthsByPropertyId(propertyId);
-  const animals = getAnimalsByPropertyId(propertyId);
+): Promise<WeaningRateResult> {
+  const [breedings, births, animals] = await Promise.all([
+    getBreedingsByPropertyId(propertyId),
+    getBirthsByPropertyId(propertyId),
+    getAnimalsByPropertyId(propertyId),
+  ]);
 
   const animal = animals[0];
   const companyId = animal?.companyId || "550e8400-e29b-41d4-a716-446655440000";
-  const allCompanyBirths = getBirthsByCompanyId(companyId);
+  const allCompanyBirths = await getBirthsByCompanyId(companyId);
 
   const exposedAnimalIds = new Set(breedings.map((b) => b.animalId));
-  const exposedFemales = Array.from(exposedAnimalIds).filter((animalId) => {
-    const animal = getAnimalById(animalId);
-    if (!animal) return false;
-    const birth = getBirthByAnimalId(animalId);
-    if (birth?.gender === "female") return true;
-    const birthsAsMother = allCompanyBirths.filter((b) => b.motherId === animalId);
-    return birthsAsMother.length > 0;
-  });
+  const exposedFemales = await getExposedFemaleAnimalIds(exposedAnimalIds, allCompanyBirths);
 
-  let filteredBreedings = breedings;
-  if (period?.startDate || period?.endDate) {
-    filteredBreedings = breedings.filter((b) => {
-      const breedingDate = new Date(b.date).getTime();
-      if (period.startDate) {
-        const start = new Date(period.startDate).getTime();
-        if (breedingDate < start) return false;
-      }
-      if (period.endDate) {
-        const end = new Date(period.endDate).getTime();
-        if (breedingDate > end) return false;
-      }
-      return true;
-    });
-  }
+  const filteredBreedings = filterByPeriod(breedings, period);
 
   const today = new Date();
   const weaningAgeDays = 180; // 6 months
@@ -700,8 +644,16 @@ export function getWeaningRate(
   const weanedCalves: string[] = [];
   const breedingSeasonFemales = new Set(filteredBreedings.map((b) => b.animalId));
 
+  if (!births) return { rate: 0, weanedCalves: 0, exposedFemales: exposedFemales.length };
   for (const birth of births) {
-    if (isWeanedCalf(birth, propertyId, breedingSeasonFemales, today, weaningAgeDays)) {
+    const isWeaned = await isValidWeanedCalf(
+      birth,
+      propertyId,
+      breedingSeasonFemales,
+      weaningAgeDays,
+      today
+    );
+    if (isWeaned) {
       weanedCalves.push(birth.animalId);
     }
   }
@@ -715,66 +667,26 @@ export function getWeaningRate(
   };
 }
 
-function filterBreedingsByPeriodGeneric(
-  breedings: Breeding[],
-  period?: { startDate?: string; endDate?: string }
-): Breeding[] {
-  if (!period?.startDate && !period?.endDate) {
-    return breedings;
-  }
-
-  return breedings.filter((b) => {
-    const breedingDate = new Date(b.date).getTime();
-    if (period.startDate) {
-      const start = new Date(period.startDate).getTime();
-      if (breedingDate < start) return false;
-    }
-    if (period.endDate) {
-      const end = new Date(period.endDate).getTime();
-      if (breedingDate > end) return false;
-    }
-    return true;
-  });
-}
-
-function isValidWeanedCalf(
-  birth: Birth,
-  propertyId: string,
-  breedingSeasonFemales: Set<string>,
-  weaningAgeDays: number
-): boolean {
-  if (!birth.motherId) return false;
-  const mother = getAnimalById(birth.motherId);
-  if (!mother?.propertyId || mother.propertyId !== propertyId) return false;
-  if (!breedingSeasonFemales.has(birth.motherId)) return false;
-
-  const today = new Date();
-  const birthDate = new Date(birth.birthDate);
-  const ageInDays = Math.floor((today.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24));
-  if (ageInDays < weaningAgeDays) return false;
-
-  const calf = getAnimalById(birth.animalId);
-  if (!calf || calf.status === "sold") return false;
-
-  const death = getDeathByAnimalId(birth.animalId);
-  if (death) return false;
-
-  return true;
-}
-
-function calculateWeaningWeights(
+async function calculateWeaningWeights(
   births: Birth[],
   propertyId: string,
   breedingSeasonFemales: Set<string>
-): { totalWeanedCalfWeight: number; totalMotherWeight: number; pairs: number } {
+): Promise<{ totalWeanedCalfWeight: number; totalMotherWeight: number; pairs: number }> {
   const weaningAgeDays = 180; // 6 months
 
   let totalWeanedCalfWeight = 0;
   let totalMotherWeight = 0;
   let pairs = 0;
 
+  if (!births) return { totalWeanedCalfWeight: 0, totalMotherWeight: 0, pairs: 0 };
   for (const birth of births) {
-    if (!isValidWeanedCalf(birth, propertyId, breedingSeasonFemales, weaningAgeDays)) {
+    const isValid = await isValidWeanedCalf(
+      birth,
+      propertyId,
+      breedingSeasonFemales,
+      weaningAgeDays
+    );
+    if (!isValid) {
       continue;
     }
 
@@ -791,18 +703,20 @@ function calculateWeaningWeights(
   return { totalWeanedCalfWeight, totalMotherWeight, pairs };
 }
 
-export function getWeaningRatio(
+export async function getWeaningRatio(
   propertyId: string,
   period?: { startDate?: string; endDate?: string }
-): WeaningRatioResult {
-  const breedings = getBreedingsByPropertyId(propertyId);
-  const births = getBirthsByPropertyId(propertyId);
+): Promise<WeaningRatioResult> {
+  const [breedings, births] = await Promise.all([
+    getBreedingsByPropertyId(propertyId),
+    getBirthsByPropertyId(propertyId),
+  ]);
 
-  const filteredBreedings = filterBreedingsByPeriodGeneric(breedings, period);
+  const filteredBreedings = filterByPeriod(breedings, period);
   const breedingSeasonFemales = new Set(filteredBreedings.map((b) => b.animalId));
 
-  const { totalWeanedCalfWeight, totalMotherWeight, pairs } = calculateWeaningWeights(
-    births,
+  const { totalWeanedCalfWeight, totalMotherWeight, pairs } = await calculateWeaningWeights(
+    births || [],
     propertyId,
     breedingSeasonFemales
   );
@@ -817,77 +731,66 @@ export function getWeaningRatio(
   };
 }
 
-function getExposedFemales(breedings: Breeding[], allCompanyBirths: Birth[]): string[] {
+async function getExposedFemales(
+  breedings: Breeding[],
+  allCompanyBirths: Birth[]
+): Promise<string[]> {
   const exposedAnimalIds = new Set(breedings.map((b) => b.animalId));
-  return Array.from(exposedAnimalIds).filter((animalId) => {
-    const animal = getAnimalById(animalId);
-    if (!animal) return false;
-    const birth = getBirthByAnimalId(animalId);
-    if (birth?.gender === "female") return true;
-    const birthsAsMother = allCompanyBirths.filter((b) => b.motherId === animalId);
-    return birthsAsMother.length > 0;
-  });
+  return await getExposedFemaleAnimalIds(exposedAnimalIds, allCompanyBirths);
 }
 
-function calculateWeanedCalfWeights(
+async function calculateWeanedCalfWeights(
   births: Birth[],
   propertyId: string,
   breedingSeasonFemales: Set<string>
-): { totalWeanedWeight: number; weanedCalvesCount: number } {
+): Promise<{ totalWeanedWeight: number; weanedCalvesCount: number }> {
   const today = new Date();
   const weaningAgeDays = 180; // 6 months
 
   let totalWeanedWeight = 0;
   let weanedCalvesCount = 0;
 
+  if (!births) return { totalWeanedWeight: 0, weanedCalvesCount: 0 };
   for (const birth of births) {
-    if (!birth.motherId) continue;
-    const mother = getAnimalById(birth.motherId);
-    if (!mother?.propertyId || mother.propertyId !== propertyId) continue;
-    if (!breedingSeasonFemales.has(birth.motherId)) continue;
-
-    const birthDate = new Date(birth.birthDate);
-    const ageInDays = Math.floor((today.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24));
-    if (ageInDays < weaningAgeDays) continue;
-
-    const calf = getAnimalById(birth.animalId);
-    if (!calf || calf.status === "sold") continue;
-
-    const death = getDeathByAnimalId(birth.animalId);
-    if (death) continue;
-
-    const calfWeighings = getWeighingsByAnimalId(birth.animalId);
-    if (calfWeighings.length === 0) continue;
-
-    const sortedCalfWeighings = calfWeighings.toSorted(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    const isValid = await isValidWeanedCalf(
+      birth,
+      propertyId,
+      breedingSeasonFemales,
+      weaningAgeDays,
+      today
     );
-    const latestCalfWeighing = sortedCalfWeighings[0];
-    totalWeanedWeight += latestCalfWeighing.weight;
+    if (!isValid) continue;
+
+    const latestWeight = getLatestWeight(birth.animalId);
+    if (latestWeight === null) continue;
+
+    totalWeanedWeight += latestWeight;
     weanedCalvesCount++;
   }
 
   return { totalWeanedWeight, weanedCalvesCount };
 }
 
-export function getKgWeanedCalfPerExposedCow(
+export async function getKgWeanedCalfPerExposedCow(
   propertyId: string,
   period?: { startDate?: string; endDate?: string }
-): KgWeanedCalfPerExposedCowResult {
-  const breedings = getBreedingsByPropertyId(propertyId);
-  const births = getBirthsByPropertyId(propertyId);
-  const animals = getAnimalsByPropertyId(propertyId);
+): Promise<KgWeanedCalfPerExposedCowResult> {
+  const [breedings, births, animals] = await Promise.all([
+    getBreedingsByPropertyId(propertyId),
+    getBirthsByPropertyId(propertyId),
+    getAnimalsByPropertyId(propertyId),
+  ]);
 
   const animal = animals[0];
   const companyId = animal?.companyId || "550e8400-e29b-41d4-a716-446655440000";
-  const allCompanyBirths = getBirthsByCompanyId(companyId);
+  const allCompanyBirths = await getBirthsByCompanyId(companyId);
 
-  const exposedFemales = getExposedFemales(breedings, allCompanyBirths);
-  const filteredBreedings = filterBreedingsByPeriodGeneric(breedings, period);
+  const exposedFemales = await getExposedFemales(breedings, allCompanyBirths || []);
+  const filteredBreedings = filterByPeriod(breedings, period);
   const breedingSeasonFemales = new Set(filteredBreedings.map((b) => b.animalId));
 
-  const { totalWeanedWeight, weanedCalvesCount } = calculateWeanedCalfWeights(
-    births,
+  const { totalWeanedWeight, weanedCalvesCount } = await calculateWeanedCalfWeights(
+    births || [],
     propertyId,
     breedingSeasonFemales
   );
@@ -905,36 +808,17 @@ export function getKgWeanedCalfPerExposedCow(
   };
 }
 
-function filterDeathsByPeriod(
-  deaths: Death[],
-  period?: { startDate?: string; endDate?: string }
-): Death[] {
-  if (!period?.startDate && !period?.endDate) {
-    return deaths;
-  }
-
-  return deaths.filter((death) => {
-    const deathDate = new Date(death.date).getTime();
-    if (period.startDate) {
-      const start = new Date(period.startDate).getTime();
-      if (deathDate < start) return false;
-    }
-    if (period.endDate) {
-      const end = new Date(period.endDate).getTime();
-      if (deathDate > end) return false;
-    }
-    return true;
-  });
-}
-
 function countAnimalsInPeriod(
-  animals: ReturnType<typeof getAnimalsByPropertyId>,
+  animals: Awaited<ReturnType<typeof getAnimalsByPropertyId>>,
   period?: { startDate?: string; endDate?: string }
 ): number {
   if (!period?.startDate && !period?.endDate) {
     return animals.length;
   }
 
+  // For animals, we filter by acquisitionDate or createdAt, but the logic is slightly different
+  // (checking if date > start instead of < start for acquisition date)
+  // So we keep the custom logic here
   return animals.filter((animal) => {
     const animalDate = animal.acquisitionDate || animal.createdAt;
     if (!animalDate) return true;
@@ -947,22 +831,24 @@ function countAnimalsInPeriod(
   }).length;
 }
 
-export function getMortalityRate(
+export async function getMortalityRate(
   propertyId: string,
   period?: { startDate?: string; endDate?: string }
-): MortalityRateResult {
-  const animals = getAnimalsByPropertyId(propertyId);
+): Promise<MortalityRateResult> {
+  const animals = await getAnimalsByPropertyId(propertyId);
   const animal = animals[0];
   const companyId = animal?.companyId || "550e8400-e29b-41d4-a716-446655440000";
   const deaths = getDeathsByCompanyId(companyId);
 
-  const propertyDeaths = deaths.filter((death) => {
-    const deadAnimal = getAnimalById(death.animalId);
-    return deadAnimal?.propertyId === propertyId;
+  const propertyDeathsPromises = deaths.map(async (death) => {
+    const deadAnimal = await getAnimalById(death.animalId);
+    return deadAnimal?.propertyId === propertyId ? death : null;
   });
+  const propertyDeathsResults = await Promise.all(propertyDeathsPromises);
+  const propertyDeaths = propertyDeathsResults.filter((d): d is (typeof deaths)[0] => d !== null);
 
-  const filteredDeaths = filterDeathsByPeriod(propertyDeaths, period);
-  const totalAnimals = countAnimalsInPeriod(animals, period);
+  const filteredDeaths = filterByPeriod(propertyDeaths, period);
+  const totalAnimals = countAnimalsInPeriod(animals || [], period);
   const deadAnimals = filteredDeaths.length;
   const rate = totalAnimals > 0 ? (deadAnimals / totalAnimals) * 100 : 0;
 
@@ -974,61 +860,44 @@ export function getMortalityRate(
   };
 }
 
-function filterCalfDeaths(deaths: Death[], propertyId: string): Death[] {
+async function filterCalfDeaths(deaths: Death[], propertyId: string): Promise<Death[]> {
   const calfAgeDays = 12 * 30; // 12 months * 30 days
 
-  return deaths.filter((death) => {
-    const deadAnimal = getAnimalById(death.animalId);
-    if (!deadAnimal?.propertyId || deadAnimal.propertyId !== propertyId) return false;
+  const filteredDeathsPromises = deaths.map(async (death) => {
+    const deadAnimal = await getAnimalById(death.animalId);
+    if (!deadAnimal?.propertyId || deadAnimal.propertyId !== propertyId) return null;
 
-    const birth = getBirthByAnimalId(death.animalId);
-    if (!birth) return false;
+    const birth = await getBirthByAnimalId(death.animalId);
+    if (!birth) return null;
 
     const birthDate = new Date(birth.birthDate);
     const deathDate = new Date(death.date);
     const ageInDays = Math.floor(
       (deathDate.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24)
     );
-    return ageInDays <= calfAgeDays;
+    return ageInDays <= calfAgeDays ? death : null;
   });
+  const filteredDeathsResults = await Promise.all(filteredDeathsPromises);
+  return filteredDeathsResults.filter((d): d is (typeof deaths)[0] => d !== null);
 }
 
-function filterBirthsByPeriod(
-  births: Birth[],
-  period?: { startDate?: string; endDate?: string }
-): Birth[] {
-  if (!period?.startDate && !period?.endDate) {
-    return births;
-  }
-
-  return births.filter((birth) => {
-    const birthDate = new Date(birth.birthDate).getTime();
-    if (period.startDate) {
-      const start = new Date(period.startDate).getTime();
-      if (birthDate < start) return false;
-    }
-    if (period.endDate) {
-      const end = new Date(period.endDate).getTime();
-      if (birthDate > end) return false;
-    }
-    return true;
-  });
-}
-
-export function getCalfMortalityRate(
+export async function getCalfMortalityRate(
   propertyId: string,
   period?: { startDate?: string; endDate?: string }
-): CalfMortalityRateResult {
+): Promise<CalfMortalityRateResult> {
   const calfAgeDays = 12 * 30; // 12 months * 30 days
-  const births = getBirthsByPropertyId(propertyId);
-  const animals = getAnimalsByPropertyId(propertyId);
+  const [births, animals] = await Promise.all([
+    getBirthsByPropertyId(propertyId),
+    getAnimalsByPropertyId(propertyId),
+  ]);
   const animal = animals[0];
   const companyId = animal?.companyId || "550e8400-e29b-41d4-a716-446655440000";
   const deaths = getDeathsByCompanyId(companyId);
 
-  const propertyDeaths = filterCalfDeaths(deaths, propertyId);
-  const filteredDeaths = filterDeathsByPeriod(propertyDeaths, period);
-  const totalCalves = filterBirthsByPeriod(births, period).length;
+  const propertyDeaths = await filterCalfDeaths(deaths, propertyId);
+  const filteredDeaths = filterByPeriod(propertyDeaths, period);
+  const filteredBirths = filterByPeriod(births || [], period);
+  const totalCalves = filteredBirths.length;
 
   const deadCalves = filteredDeaths.length;
   const rate = totalCalves > 0 ? (deadCalves / totalCalves) * 100 : 0;
@@ -1078,7 +947,7 @@ export function getCalfMortalityRate(
     return monthly.toSorted((a, b) => a.month.localeCompare(b.month));
   };
 
-  const monthly = calculateMonthlyMortality(births, deaths, calfAgeDays);
+  const monthly = calculateMonthlyMortality(births || [], deaths, calfAgeDays);
 
   return {
     rate: Math.round(rate * 100) / 100,

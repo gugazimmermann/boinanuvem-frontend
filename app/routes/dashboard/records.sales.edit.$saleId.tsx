@@ -9,6 +9,7 @@ import {
 } from "~/components/dashboard/records/sale-form";
 import { transformSaleFormDataForUpdate } from "~/utils/sale-form-helpers";
 import { useSaleFormData } from "~/hooks/use-sale-form-data";
+import { mockCompanies } from "~/mocks/companies";
 
 export function meta() {
   return [
@@ -30,12 +31,14 @@ export default function EditSale() {
   const navigate = useNavigate();
   const { saleId } = useParams<{ saleId: string }>();
   const sale = getSaleById(saleId);
+  const companyId = mockCompanies[0]?.id || "";
 
   const {
     animals: allAnimals,
     buyers,
     properties,
   } = useSaleFormData({
+    companyId,
     includeSoldAnimals: true,
   });
 
@@ -43,7 +46,7 @@ export default function EditSale() {
     if (!sale) return;
 
     const saleData = transformSaleFormDataForUpdate(data);
-    const success = updateSale(sale.id, saleData);
+    const success = await updateSale(sale.id, saleData);
     if (!success) {
       throw new Error("Failed to update sale");
     }

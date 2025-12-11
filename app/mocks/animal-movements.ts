@@ -1,5 +1,4 @@
 import type { AnimalMovement } from "~/types";
-import { mockAnimals } from "./animals";
 import { mockLocations } from "./locations";
 import { mockEmployees } from "./employees";
 import { mockServiceProviders } from "./service-providers";
@@ -24,9 +23,38 @@ const chacaraLocations = mockLocations
   .filter((loc) => loc.propertyId === CHACARA_DO_JUCA)
   .map((loc) => loc.id);
 
-const fazendaAnimals = mockAnimals.filter((a) => a.propertyId === FAZENDA_DO_JUCA);
-const sitioAnimals = mockAnimals.filter((a) => a.propertyId === SITIO_LIMOEIRO);
-const chacaraAnimals = mockAnimals.filter((a) => a.propertyId === CHACARA_DO_JUCA);
+// Generate mock animal IDs for movements
+const generateMockAnimalIds = (propertyId: string, count: number): string[] => {
+  const base =
+    propertyId === FAZENDA_DO_JUCA
+      ? 446655440100
+      : propertyId === SITIO_LIMOEIRO
+        ? 446655440200
+        : 446655440300;
+  return Array.from(
+    { length: count },
+    (_, i) => `bb0e8400-e29b-41d4-a716-${(base + i).toString().padStart(12, "0")}`
+  );
+};
+
+const fazendaAnimals = generateMockAnimalIds(FAZENDA_DO_JUCA, 20).map((id) => ({
+  id,
+  propertyId: FAZENDA_DO_JUCA,
+  createdAt: "2020-01-01",
+  status: "active",
+}));
+const sitioAnimals = generateMockAnimalIds(SITIO_LIMOEIRO, 10).map((id) => ({
+  id,
+  propertyId: SITIO_LIMOEIRO,
+  createdAt: "2020-01-01",
+  status: "active",
+}));
+const chacaraAnimals = generateMockAnimalIds(CHACARA_DO_JUCA, 10).map((id) => ({
+  id,
+  propertyId: CHACARA_DO_JUCA,
+  createdAt: "2020-01-01",
+  status: "active",
+}));
 
 function generateMovementId(_index: number): string {
   return generateUUID();

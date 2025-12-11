@@ -63,6 +63,7 @@ const { mockUpdateAnimal } = vi.hoisted(() => ({
 vi.mock("../animals.service", () => ({
   getAnimalById: vi.fn(),
   updateAnimal: mockUpdateAnimal,
+  getAnimalsByCompanyId: vi.fn(),
 }));
 
 vi.mock("../cash-flow.service", () => ({
@@ -139,24 +140,32 @@ describe("sales.service", () => {
   });
 
   describe("isAnimalSold", () => {
-    it("should return true when animal status is sold", () => {
+    it("should return true when animal status is sold", async () => {
       const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
-      getAnimal.mockReturnValue({ id: "animal-1", status: "sold" });
+      getAnimal.mockResolvedValue({ id: "animal-1", status: "sold" });
 
-      const result = isAnimalSold("animal-1");
+      const result = await isAnimalSold("animal-1");
       expect(result).toBe(true);
     });
 
-    it("should return false when animal status is active", () => {
+    it("should return false when animal status is active", async () => {
       const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
-      getAnimal.mockReturnValue({ id: "animal-1", status: "active" });
+      getAnimal.mockResolvedValue({ id: "animal-1", status: "active" });
 
-      const result = isAnimalSold("animal-1");
+      const result = await isAnimalSold("animal-1");
       expect(result).toBe(false);
     });
 
-    it("should return false when animal id is empty", () => {
-      const result = isAnimalSold("");
+    it("should return false when animal id is empty", async () => {
+      const result = await isAnimalSold("");
+      expect(result).toBe(false);
+    });
+
+    it("should return false when animal not found", async () => {
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+      getAnimal.mockResolvedValue(undefined);
+
+      const result = await isAnimalSold("nonexistent");
       expect(result).toBe(false);
     });
   });
@@ -183,11 +192,13 @@ describe("sales.service", () => {
   });
 
   describe("addSale", () => {
-    it("should create sale with cash flow payment method", () => {
+    it("should create sale with cash flow payment method", async () => {
       const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
       const addCash = addCashFlow as ReturnType<typeof vi.fn>;
-      getAnimal.mockReturnValue({ id: "animal-3", code: "003", status: "active" });
-      addCash.mockReturnValue({ id: "cf-new" });
+      const updateAnimalMock = updateAnimal as ReturnType<typeof vi.fn>;
+      getAnimal.mockResolvedValue({ id: "animal-3", code: "003", status: "active" });
+      addCash.mockResolvedValue({ id: "cf-new" });
+      updateAnimalMock.mockResolvedValue({ id: "animal-3", status: "sold" } as never);
 
       const formData = {
         companyId: "company-1",
@@ -205,19 +216,21 @@ describe("sales.service", () => {
         propertyIds: [],
       };
 
-      const result = addSale(formData);
+      const result = await addSale(formData);
 
       expect(result.id).toBeDefined();
       expect(result.linkedCashFlowId).toBe("cf-new");
-      expect(updateAnimal).toHaveBeenCalledWith("animal-3", { status: "sold" });
+      expect(updateAnimalMock).toHaveBeenCalledWith("animal-3", { status: "sold" });
       expect(addCash).toHaveBeenCalled();
     });
 
-    it("should create sale with accounts receivable payment method", () => {
+    it("should create sale with accounts receivable payment method", async () => {
       const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
       const addAR = addAccountsReceivable as ReturnType<typeof vi.fn>;
-      getAnimal.mockReturnValue({ id: "animal-4", code: "004", status: "active" });
-      addAR.mockReturnValue({ id: "ar-new" });
+      const updateAnimalMock = updateAnimal as ReturnType<typeof vi.fn>;
+      getAnimal.mockResolvedValue({ id: "animal-4", code: "004", status: "active" });
+      addAR.mockResolvedValue({ id: "ar-new" });
+      updateAnimalMock.mockResolvedValue({ id: "animal-4", status: "sold" } as never);
 
       const formData = {
         companyId: "company-1",
@@ -233,7 +246,7 @@ describe("sales.service", () => {
         propertyIds: [],
       };
 
-      const result = addSale(formData);
+      const result = await addSale(formData);
 
       expect(result.linkedAccountsReceivableId).toBe("ar-new");
       expect(addAR).toHaveBeenCalled();
@@ -241,24 +254,24 @@ describe("sales.service", () => {
   });
 
   describe("updateSale", () => {
-    it("should update sale without changing payment method", () => {
+    it("should update sale without changing payment method", async () => {
       const getSale = vi.spyOn(salesService, "getSaleById");
       getSale.mockReturnValue(mockSales[0]);
 
       const updateData = { totalPrice: 6000 };
-      const result = updateSale("sale-1", updateData);
+      const result = await updateSale("sale-1", updateData);
 
       expect(result).toBe(true);
       expect(updateCashFlow).toHaveBeenCalled();
     });
 
-    it("should update sale and change payment method", () => {
+    it("should update sale and change payment method", async () => {
       const getSale = vi.spyOn(salesService, "getSaleById");
       const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
       const addCash = addCashFlow as ReturnType<typeof vi.fn>;
 
       getSale.mockReturnValue(mockSales[1]); // Has accounts_receivable
-      getAnimal.mockReturnValue({ id: "animal-2", code: "002" });
+      getAnimal.mockResolvedValue({ id: "animal-2", code: "002" });
       addCash.mockReturnValue({ id: "cf-new" });
 
       const updateData = {
@@ -267,22 +280,22 @@ describe("sales.service", () => {
         totalPrice: 4000,
       };
 
-      const result = updateSale("sale-2", updateData);
+      const result = await updateSale("sale-2", updateData);
 
       expect(result).toBe(true);
       expect(deleteAccountsReceivable).toHaveBeenCalledWith("ar-1");
       expect(addCash).toHaveBeenCalled();
     });
 
-    it("should return false when sale not found", () => {
+    it("should return false when sale not found", async () => {
       const getSale = vi.spyOn(salesService, "getSaleById");
       getSale.mockReturnValue(undefined);
 
-      const result = updateSale("nonexistent", { totalPrice: 1000 });
+      const result = await updateSale("nonexistent", { totalPrice: 1000 });
       expect(result).toBe(false);
     });
 
-    it("should update animal statuses when sale items change", () => {
+    it("should update animal statuses when sale items change", async () => {
       // Modify the mock sale to have two animals
       const originalSale = mockSales[0];
       mockSales[0] = {
@@ -294,7 +307,7 @@ describe("sales.service", () => {
       };
 
       const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
-      getAnimal.mockImplementation((id: string) => {
+      getAnimal.mockImplementation(async (id: string) => {
         if (id === "animal-1") return { id: "animal-1", status: "sold" };
         if (id === "animal-2") return { id: "animal-2", status: "sold" };
         return undefined;
@@ -304,7 +317,7 @@ describe("sales.service", () => {
         saleItems: [{ animalId: "animal-1", weight: 500, price: 10 }], // Removed animal-2
       };
 
-      updateSale("sale-1", updateData);
+      await updateSale("sale-1", updateData);
 
       expect(mockUpdateAnimal).toHaveBeenCalledWith("animal-2", { status: "active" });
 
@@ -314,20 +327,24 @@ describe("sales.service", () => {
   });
 
   describe("deleteSale", () => {
-    it("should delete sale and restore animal statuses", () => {
+    it("should delete sale and restore animal statuses", async () => {
       const getSale = vi.spyOn(salesService, "getSaleById");
       const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+      const updateAnimalMock = updateAnimal as ReturnType<typeof vi.fn>;
+      const deleteCashFlowMock = deleteCashFlow as ReturnType<typeof vi.fn>;
       getSale.mockReturnValue(mockSales[0]);
-      getAnimal.mockReturnValue({ id: "animal-1", status: "sold" });
+      getAnimal.mockResolvedValue({ id: "animal-1", code: "001", status: "sold" });
+      updateAnimalMock.mockResolvedValue({ id: "animal-1", status: "active" } as never);
+      deleteCashFlowMock.mockResolvedValue(undefined);
 
-      const result = deleteSale("sale-1");
+      const result = await deleteSale("sale-1");
 
       expect(result).toBe(true);
-      expect(updateAnimal).toHaveBeenCalledWith("animal-1", { status: "active" });
+      expect(updateAnimalMock).toHaveBeenCalledWith("animal-1", { status: "active" });
       expect(deleteCashFlow).toHaveBeenCalledWith("cf-1");
     });
 
-    it("should delete linked accounts receivable", () => {
+    it("should delete linked accounts receivable", async () => {
       // Ensure the sale has linkedAccountsReceivableId by adding it if it doesn't exist
       const sale = mockSales.find((s) => s.id === "sale-2");
       if (sale && !sale.linkedAccountsReceivableId) {
@@ -337,7 +354,15 @@ describe("sales.service", () => {
       // Clear any previous calls
       mockDeleteAccountsReceivable.mockClear();
 
-      const result = deleteSale("sale-2");
+      const getSale = vi.spyOn(salesService, "getSaleById");
+      const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
+      const updateAnimalMock = updateAnimal as ReturnType<typeof vi.fn>;
+      getSale.mockReturnValue(sale);
+      getAnimal.mockResolvedValue({ id: "animal-2", code: "002", status: "sold" });
+      updateAnimalMock.mockResolvedValue({ id: "animal-2", status: "active" } as never);
+      mockDeleteAccountsReceivable.mockResolvedValue(undefined);
+
+      const result = await deleteSale("sale-2");
 
       expect(result).toBe(true);
       // The imported deleteAccountsReceivable should be the same as our mock
@@ -345,11 +370,11 @@ describe("sales.service", () => {
       expect(mockDeleteAccountsReceivable).toHaveBeenCalledWith("ar-1");
     });
 
-    it("should return false when sale not found", () => {
+    it("should return false when sale not found", async () => {
       const getSale = vi.spyOn(salesService, "getSaleById");
       getSale.mockReturnValue(undefined);
 
-      const result = deleteSale("nonexistent");
+      const result = await deleteSale("nonexistent");
       expect(result).toBe(false);
     });
   });

@@ -67,7 +67,7 @@ describe("sales-analytics.service", () => {
 
       const getSales = getSalesByCompanyId as ReturnType<typeof vi.fn>;
       const calcProfit = calculateAnimalProfitability as ReturnType<typeof vi.fn>;
-      getSales.mockReturnValue(mockSales);
+      getSales.mockResolvedValue(mockSales);
       calcProfit.mockResolvedValue({
         totalCost: 3000,
         salePrice: 5000,
@@ -105,7 +105,7 @@ describe("sales-analytics.service", () => {
 
       const getSales = getSalesByCompanyId as ReturnType<typeof vi.fn>;
       const calcProfit = calculateAnimalProfitability as ReturnType<typeof vi.fn>;
-      getSales.mockReturnValue(mockSales);
+      getSales.mockResolvedValue(mockSales);
       calcProfit.mockResolvedValue({
         totalCost: 2000,
         salePrice: 5000,
@@ -138,7 +138,7 @@ describe("sales-analytics.service", () => {
       ];
 
       const getSales = getSalesByCompanyId as ReturnType<typeof vi.fn>;
-      getSales.mockReturnValue(mockSales);
+      getSales.mockResolvedValue(mockSales);
 
       const result = await getPricePerKg("company-1");
       expect(result).toBe(10);
@@ -161,7 +161,7 @@ describe("sales-analytics.service", () => {
       ];
 
       const getSales = getSalesByCompanyId as ReturnType<typeof vi.fn>;
-      getSales.mockReturnValue(mockSales);
+      getSales.mockResolvedValue(mockSales);
 
       const result = await getPricePerHead("company-1");
       expect(result).toBe(2500); // 5000 / 2
@@ -181,7 +181,7 @@ describe("sales-analytics.service", () => {
       ];
 
       const getSales = getSalesByCompanyId as ReturnType<typeof vi.fn>;
-      getSales.mockReturnValue(mockSales);
+      getSales.mockResolvedValue(mockSales);
 
       const result = await getCarcassValue("company-1");
       // Average carcass value = totalRevenue / (totalCarcassWeight / totalWeight) = 5000 / (300 / 500) = 5000 / 0.6 = 8333.33
@@ -204,9 +204,9 @@ describe("sales-analytics.service", () => {
       const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
       const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
 
-      getSales.mockReturnValue(mockSales);
-      getAnimal.mockReturnValue({ id: "animal-1" });
-      getBirth.mockReturnValue({ birthDate: "2022-01-15" });
+      getSales.mockResolvedValue(mockSales);
+      getAnimal.mockResolvedValue({ id: "animal-1" });
+      getBirth.mockResolvedValue({ birthDate: "2022-01-15" });
 
       const result = await getAverageAgeAtSale("company-1");
       expect(result).toBeGreaterThan(0);
@@ -227,7 +227,7 @@ describe("sales-analytics.service", () => {
 
       const getSales = getSalesByCompanyId as ReturnType<typeof vi.fn>;
       const calcAgg = calculateAggregatedProfitability as ReturnType<typeof vi.fn>;
-      getSales.mockReturnValue(mockSales);
+      getSales.mockResolvedValue(mockSales);
       calcAgg.mockResolvedValue({
         totalCost: 3000,
         totalSalePrice: 5000,
@@ -245,7 +245,7 @@ describe("sales-analytics.service", () => {
   });
 
   describe("getSalesByBuyer", () => {
-    it("should group sales by buyer", () => {
+    it("should group sales by buyer", async () => {
       const mockSales = [
         {
           id: "sale-1",
@@ -264,16 +264,16 @@ describe("sales-analytics.service", () => {
       ];
 
       const getSalesByBuyerIdMock = getSalesByBuyerId as ReturnType<typeof vi.fn>;
-      getSalesByBuyerIdMock.mockReturnValue(mockSales);
+      getSalesByBuyerIdMock.mockResolvedValue(mockSales);
 
-      const result = getSalesByBuyer("company-1", "buyer-1");
+      const result = await getSalesByBuyer("company-1", "buyer-1");
       expect(result).toBeDefined();
       expect(result).toHaveLength(2);
     });
   });
 
   describe("getSalesByCategory", () => {
-    it("should group sales by category", () => {
+    it("should group sales by category", async () => {
       const mockSales = [
         {
           id: "sale-1",
@@ -284,9 +284,9 @@ describe("sales-analytics.service", () => {
       ];
 
       const getSales = getSalesByCompanyId as ReturnType<typeof vi.fn>;
-      getSales.mockReturnValue(mockSales);
+      getSales.mockResolvedValue(mockSales);
 
-      const result = getSalesByCategory("company-1", SaleType.OTHER_FARM);
+      const result = await getSalesByCategory("company-1", SaleType.OTHER_FARM);
       expect(result).toBeDefined();
     });
   });

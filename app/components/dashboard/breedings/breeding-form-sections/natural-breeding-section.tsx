@@ -1,11 +1,11 @@
 import { Input } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { AnimalCodeDisplay } from "../animal-code-display";
-import { getBirthByAnimalId } from "~/services/births.service";
-import type { Animal } from "~/types";
+import type { Animal, Birth } from "~/types";
 
 export interface NaturalBreedingSectionProps {
   readonly bulls: Animal[];
+  readonly birthsMap?: Map<string, Birth | undefined>;
   readonly selectedBullId: string;
   readonly searchValue: string;
   readonly onSearchChange: (value: string) => void;
@@ -16,6 +16,7 @@ export interface NaturalBreedingSectionProps {
 
 export function NaturalBreedingSection({
   bulls,
+  birthsMap,
   selectedBullId,
   searchValue,
   onSearchChange,
@@ -43,7 +44,7 @@ export function NaturalBreedingSection({
         ) : (
           <div className="space-y-1 p-2">
             {bulls.map((bull) => {
-              const birth = getBirthByAnimalId(bull.id);
+              const birth = birthsMap?.get(bull.id);
               const breedText = birth?.breed ? t.animals.breeds[birth.breed] || birth.breed : "";
               return (
                 <label

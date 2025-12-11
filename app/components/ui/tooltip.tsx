@@ -18,15 +18,25 @@ interface TooltipProps {
 // Check if a React element is an interactive element (button, input, etc.)
 function isInteractiveElement(element: React.ReactElement): boolean {
   const interactiveTags = ["button", "input", "select", "textarea", "a"];
-  const interactiveRoles = ["button", "link", "menuitem", "option", "tab"];
+  const interactiveRoles = new Set(["button", "link", "menuitem", "option", "tab"]);
 
   if (typeof element.type === "string") {
-    return interactiveTags.includes(element.type.toLowerCase());
+    const tagName = element.type.toLowerCase();
+    if (interactiveTags.includes(tagName)) {
+      return true;
+    }
+    // Also check for role attribute on string elements
+    const props = element.props as { role?: string };
+    const role = props?.role;
+    if (role && interactiveRoles.has(role)) {
+      return true;
+    }
+    return false;
   }
 
   const props = element.props as { role?: string };
   const role = props?.role;
-  return role ? interactiveRoles.includes(role) : false;
+  return role ? interactiveRoles.has(role) : false;
 }
 
 export function Tooltip({ content, children, position = "top" }: TooltipProps) {

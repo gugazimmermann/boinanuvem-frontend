@@ -75,97 +75,97 @@ describe("production-indexes.service", () => {
       getWeighings.mockReset();
     });
 
-    it("should calculate ADG for animals with multiple weighings", () => {
+    it("should calculate ADG for animals with multiple weighings", async () => {
       const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
       const getWeighings = getWeighingsByAnimalId as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getWeighings.mockReturnValue([
         { id: "w1", animalId: "animal-1", date: "2024-01-01", weight: 400 },
         { id: "w2", animalId: "animal-1", date: "2024-02-01", weight: 450 },
       ]);
 
-      const result = getAverageDailyGain("property-1");
+      const result = await getAverageDailyGain("property-1");
       expect(result.length).toBeGreaterThan(0);
       expect(result[0].adg).toBeGreaterThan(0);
     });
 
-    it("should return empty array when less than 2 weighings", () => {
+    it("should return empty array when less than 2 weighings", async () => {
       const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
       const getWeighings = getWeighingsByAnimalId as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getWeighings.mockReturnValue([
         { id: "w1", animalId: "animal-1", date: "2024-01-01", weight: 400 },
       ]);
 
       // Use a different property ID to avoid cache
-      const result = getAverageDailyGain("property-2");
+      const result = await getAverageDailyGain("property-2");
       expect(result).toEqual([]);
     });
 
-    it("should use cache for subsequent calls", () => {
+    it("should use cache for subsequent calls", async () => {
       const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
       const getWeighings = getWeighingsByAnimalId as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getWeighings.mockReturnValue([
         { id: "w1", animalId: "animal-1", date: "2024-01-01", weight: 400 },
         { id: "w2", animalId: "animal-1", date: "2024-02-01", weight: 450 },
       ]);
 
-      getAverageDailyGain("property-1");
+      await getAverageDailyGain("property-1");
       vi.clearAllMocks();
 
-      getAverageDailyGain("property-1");
+      await getAverageDailyGain("property-1");
       expect(getWeighings).not.toHaveBeenCalled();
     });
 
-    it("should filter weighings by period", () => {
+    it("should filter weighings by period", async () => {
       const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
       const getWeighings = getWeighingsByAnimalId as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getWeighings.mockReturnValue([
         { id: "w1", animalId: "animal-1", date: "2024-01-20", weight: 400 },
         { id: "w2", animalId: "animal-1", date: "2024-02-10", weight: 450 },
         { id: "w3", animalId: "animal-1", date: "2024-03-01", weight: 500 },
       ]);
 
-      const result = getAverageDailyGain("property-period-filter", {
+      const result = await getAverageDailyGain("property-period-filter", {
         startDate: "2024-01-15",
         endDate: "2024-02-15",
       });
       expect(result.length).toBeGreaterThan(0);
     });
 
-    it("should return empty array when no animals", () => {
+    it("should return empty array when no animals", async () => {
       const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
-      getAnimals.mockReturnValue([]);
+      getAnimals.mockResolvedValue([]);
 
-      const result = getAverageDailyGain("property-4");
+      const result = await getAverageDailyGain("property-4");
       expect(result).toEqual([]);
     });
 
-    it("should skip animals with days <= 0", () => {
+    it("should skip animals with days <= 0", async () => {
       const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
       const getWeighings = getWeighingsByAnimalId as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getWeighings.mockReturnValue([
         { id: "w1", animalId: "animal-1", date: "2024-01-01", weight: 400 },
         { id: "w2", animalId: "animal-1", date: "2024-01-01", weight: 450 }, // Same date
       ]);
 
-      const result = getAverageDailyGain("property-5");
+      const result = await getAverageDailyGain("property-5");
       expect(result).toEqual([]);
     });
 
-    it("should handle multiple animals", () => {
+    it("should handle multiple animals", async () => {
       const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
       const getWeighings = getWeighingsByAnimalId as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([
+      getAnimals.mockResolvedValue([
         { id: "animal-1", code: "001", companyId: "company-1" },
         { id: "animal-2", code: "002", companyId: "company-1" },
       ]);
@@ -182,51 +182,51 @@ describe("production-indexes.service", () => {
         ];
       });
 
-      const result = getAverageDailyGain("property-6");
+      const result = await getAverageDailyGain("property-6");
       expect(result.length).toBe(2);
     });
   });
 
   describe("getAverageDailyCarcassGain", () => {
-    it("should calculate ADC using ADG and carcass yield", () => {
+    it("should calculate ADC using ADG and carcass yield", async () => {
       const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
       const getWeighings = getWeighingsByAnimalId as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getWeighings.mockReturnValue([
         { id: "w1", animalId: "animal-1", date: "2024-01-01", weight: 400 },
         { id: "w2", animalId: "animal-1", date: "2024-02-01", weight: 450 },
       ]);
 
-      const result = getAverageDailyCarcassGain("property-7", undefined, 50);
+      const result = await getAverageDailyCarcassGain("property-7", undefined, 50);
       expect(result.length).toBeGreaterThan(0);
       expect(result[0].carcassYield).toBe(50);
     });
 
-    it("should handle zero carcass yield", () => {
+    it("should handle zero carcass yield", async () => {
       const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
       const getWeighings = getWeighingsByAnimalId as ReturnType<typeof vi.fn>;
       const getSales = getSalesByCompanyId as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getWeighings.mockReturnValue([
         { id: "w1", animalId: "animal-1", date: "2024-01-01", weight: 400 },
         { id: "w2", animalId: "animal-1", date: "2024-02-01", weight: 450 },
       ]);
       getSales.mockReturnValue([]);
 
-      const result = getAverageDailyCarcassGain("property-7a", undefined, 0);
+      const result = await getAverageDailyCarcassGain("property-7a", undefined, 0);
       expect(result.length).toBeGreaterThan(0);
       expect(result[0].carcassYield).toBe(0);
       expect(result[0].adc).toBe(0);
     });
 
-    it("should handle null carcass yield by calculating from sales", () => {
+    it("should handle null carcass yield by calculating from sales", async () => {
       const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
       const getWeighings = getWeighingsByAnimalId as ReturnType<typeof vi.fn>;
       const getSales = getSalesByCompanyId as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getWeighings.mockReturnValue([
         { id: "w1", animalId: "animal-1", date: "2024-01-01", weight: 400 },
         { id: "w2", animalId: "animal-1", date: "2024-02-01", weight: 450 },
@@ -240,16 +240,16 @@ describe("production-indexes.service", () => {
         },
       ]);
 
-      const result = getAverageDailyCarcassGain("property-7b", undefined, undefined);
+      const result = await getAverageDailyCarcassGain("property-7b", undefined, undefined);
       expect(result.length).toBeGreaterThan(0);
     });
 
-    it("should calculate carcass yield when not provided", () => {
+    it("should calculate carcass yield when not provided", async () => {
       const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
       const getWeighings = getWeighingsByAnimalId as ReturnType<typeof vi.fn>;
       const getSales = getSalesByCompanyId as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getWeighings.mockReturnValue([
         { id: "w1", animalId: "animal-1", date: "2024-01-01", weight: 400 },
         { id: "w2", animalId: "animal-1", date: "2024-02-01", weight: 450 },
@@ -263,21 +263,21 @@ describe("production-indexes.service", () => {
         },
       ]);
 
-      const result = getAverageDailyCarcassGain("property-8");
+      const result = await getAverageDailyCarcassGain("property-8");
       expect(result.length).toBeGreaterThan(0);
     });
 
-    it("should handle period filtering", () => {
+    it("should handle period filtering", async () => {
       const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
       const getWeighings = getWeighingsByAnimalId as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getWeighings.mockReturnValue([
         { id: "w1", animalId: "animal-1", date: "2024-01-01", weight: 400 },
         { id: "w2", animalId: "animal-1", date: "2024-02-01", weight: 450 },
       ]);
 
-      const result = getAverageDailyCarcassGain(
+      const result = await getAverageDailyCarcassGain(
         "property-9",
         {
           startDate: "2024-01-01",
@@ -296,7 +296,7 @@ describe("production-indexes.service", () => {
       const getLocs = getLocations as ReturnType<typeof vi.fn>;
       const getSalesByAnimal = getSalesByAnimalId as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getMovements.mockReturnValue([
         {
           id: "movement-1",
@@ -340,7 +340,7 @@ describe("production-indexes.service", () => {
       const getLocs = getLocations as ReturnType<typeof vi.fn>;
       const getSalesByAnimal = getSalesByAnimalId as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getMovements.mockReturnValue([
         {
           id: "movement-1",
@@ -376,7 +376,7 @@ describe("production-indexes.service", () => {
       const getLocs = getLocations as ReturnType<typeof vi.fn>;
       const getSalesByAnimal = getSalesByAnimalId as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getMovements.mockReturnValue([
         {
           id: "movement-1",
@@ -419,7 +419,7 @@ describe("production-indexes.service", () => {
       const getLocs = getLocations as ReturnType<typeof vi.fn>;
       const getSalesByAnimal = getSalesByAnimalId as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getMovements.mockReturnValue([
         {
           id: "movement-1",
@@ -462,7 +462,7 @@ describe("production-indexes.service", () => {
       const getLocs = getLocations as ReturnType<typeof vi.fn>;
       const getSalesByAnimal = getSalesByAnimalId as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getMovements.mockReturnValue([
         {
           id: "movement-1",
@@ -507,7 +507,7 @@ describe("production-indexes.service", () => {
       const getMovements = getAnimalMovementsByAnimalId as ReturnType<typeof vi.fn>;
       const getLocs = getLocations as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getMovements.mockReturnValue([]);
       getLocs.mockResolvedValue([]);
 
@@ -520,7 +520,7 @@ describe("production-indexes.service", () => {
       const getMovements = getAnimalMovementsByAnimalId as ReturnType<typeof vi.fn>;
       const getLocs = getLocations as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getMovements.mockReturnValue([
         {
           id: "movement-1",
@@ -545,11 +545,11 @@ describe("production-indexes.service", () => {
   });
 
   describe("getCarcassYield", () => {
-    it("should calculate carcass yield", () => {
+    it("should calculate carcass yield", async () => {
       const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
       const getSales = getSalesByCompanyId as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getSales.mockReturnValue([
         {
           id: "sale-1",
@@ -565,28 +565,28 @@ describe("production-indexes.service", () => {
         },
       ]);
 
-      const result = getCarcassYield("property-1");
+      const result = await getCarcassYield("property-1");
       expect(result.yield).toBe(60); // (300 / 500) * 100
       expect(result.count).toBe(1);
     });
 
-    it("should return zero yield when no sales", () => {
+    it("should return zero yield when no sales", async () => {
       const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
       const getSales = getSalesByCompanyId as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getSales.mockReturnValue([]);
 
-      const result = getCarcassYield("property-1a");
+      const result = await getCarcassYield("property-1a");
       expect(result.yield).toBe(0);
       expect(result.count).toBe(0);
     });
 
-    it("should return zero yield when no items with carcass weight", () => {
+    it("should return zero yield when no items with carcass weight", async () => {
       const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
       const getSales = getSalesByCompanyId as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getSales.mockReturnValue([
         {
           id: "sale-1",
@@ -601,16 +601,16 @@ describe("production-indexes.service", () => {
         },
       ]);
 
-      const result = getCarcassYield("property-1b");
+      const result = await getCarcassYield("property-1b");
       expect(result.yield).toBe(0);
       expect(result.count).toBe(0);
     });
 
-    it("should return zero yield when zero live weight", () => {
+    it("should return zero yield when zero live weight", async () => {
       const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
       const getSales = getSalesByCompanyId as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getSales.mockReturnValue([
         {
           id: "sale-1",
@@ -626,15 +626,15 @@ describe("production-indexes.service", () => {
         },
       ]);
 
-      const result = getCarcassYield("property-1c");
+      const result = await getCarcassYield("property-1c");
       expect(result.yield).toBe(0);
     });
 
-    it("should filter sales by period", () => {
+    it("should filter sales by period", async () => {
       const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
       const getSales = getSalesByCompanyId as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getSales.mockReturnValue([
         {
           id: "sale-1",
@@ -664,7 +664,7 @@ describe("production-indexes.service", () => {
         },
       ]);
 
-      const result = getCarcassYield("property-1d", {
+      const result = await getCarcassYield("property-1d", {
         startDate: "2024-01-01",
         endDate: "2024-02-28",
       });
@@ -673,13 +673,13 @@ describe("production-indexes.service", () => {
   });
 
   describe("getSlaughterAge", () => {
-    it("should calculate slaughter age", () => {
+    it("should calculate slaughter age", async () => {
       const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
       const getSales = getSalesByCompanyId as ReturnType<typeof vi.fn>;
       const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
       const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getSales.mockReturnValue([
         {
           id: "sale-1",
@@ -689,20 +689,20 @@ describe("production-indexes.service", () => {
           saleItems: [{ animalId: "animal-1", weight: 500 }],
         },
       ]);
-      getAnimal.mockReturnValue({ id: "animal-1" });
-      getBirth.mockReturnValue({ birthDate: "2022-01-15" });
+      getAnimal.mockResolvedValue({ id: "animal-1" });
+      getBirth.mockResolvedValue({ birthDate: "2022-01-15" });
 
-      const result = getSlaughterAge("property-1");
+      const result = await getSlaughterAge("property-1");
       expect(result.averageAge).toBeGreaterThan(0);
       expect(result.count).toBe(1);
     });
 
-    it("should return zero when no ages", () => {
+    it("should return zero when no ages", async () => {
       const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
       const getSales = getSalesByCompanyId as ReturnType<typeof vi.fn>;
       const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getSales.mockReturnValue([
         {
           id: "sale-1",
@@ -712,22 +712,22 @@ describe("production-indexes.service", () => {
           saleItems: [{ animalId: "animal-1", weight: 500 }],
         },
       ]);
-      getAnimal.mockReturnValue(null);
+      getAnimal.mockResolvedValue(null);
 
-      const result = getSlaughterAge("property-1a");
+      const result = await getSlaughterAge("property-1a");
       expect(result.averageAge).toBe(0);
       expect(result.count).toBe(0);
       expect(result.minAge).toBe(0);
       expect(result.maxAge).toBe(0);
     });
 
-    it("should handle animals without births", () => {
+    it("should handle animals without births", async () => {
       const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
       const getSales = getSalesByCompanyId as ReturnType<typeof vi.fn>;
       const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
       const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getSales.mockReturnValue([
         {
           id: "sale-1",
@@ -737,20 +737,20 @@ describe("production-indexes.service", () => {
           saleItems: [{ animalId: "animal-1", weight: 500 }],
         },
       ]);
-      getAnimal.mockReturnValue({ id: "animal-1" });
-      getBirth.mockReturnValue(null);
+      getAnimal.mockResolvedValue({ id: "animal-1" });
+      getBirth.mockResolvedValue(null);
 
-      const result = getSlaughterAge("property-1b");
+      const result = await getSlaughterAge("property-1b");
       expect(result.count).toBe(0);
     });
 
-    it("should filter sales by period", () => {
+    it("should filter sales by period", async () => {
       const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
       const getSales = getSalesByCompanyId as ReturnType<typeof vi.fn>;
       const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
       const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getSales.mockReturnValue([
         {
           id: "sale-1",
@@ -767,23 +767,23 @@ describe("production-indexes.service", () => {
           saleItems: [{ animalId: "animal-1", weight: 500 }],
         },
       ]);
-      getAnimal.mockReturnValue({ id: "animal-1" });
-      getBirth.mockReturnValue({ birthDate: "2022-01-15" });
+      getAnimal.mockResolvedValue({ id: "animal-1" });
+      getBirth.mockResolvedValue({ birthDate: "2022-01-15" });
 
-      const result = getSlaughterAge("property-1c", {
+      const result = await getSlaughterAge("property-1c", {
         startDate: "2024-01-01",
         endDate: "2024-02-28",
       });
       expect(result.count).toBe(1);
     });
 
-    it("should calculate min and max ages correctly", () => {
+    it("should calculate min and max ages correctly", async () => {
       const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
       const getSales = getSalesByCompanyId as ReturnType<typeof vi.fn>;
       const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
       const getBirth = getBirthByAnimalId as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([
+      getAnimals.mockResolvedValue([
         { id: "animal-1", code: "001", companyId: "company-1" },
         { id: "animal-2", code: "002", companyId: "company-1" },
       ]);
@@ -806,7 +806,7 @@ describe("production-indexes.service", () => {
         return null;
       });
 
-      const result = getSlaughterAge("property-1d");
+      const result = await getSlaughterAge("property-1d");
       expect(result.count).toBe(2);
       expect(result.minAge).toBeLessThanOrEqual(result.maxAge);
     });
@@ -822,7 +822,7 @@ describe("production-indexes.service", () => {
         id: "property-1",
         area: { value: 100, type: AreaType.HECTARES },
       });
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getSales.mockReturnValue([
         {
           id: "sale-1",
@@ -857,7 +857,7 @@ describe("production-indexes.service", () => {
         id: "property-1b",
         area: { value: 0, type: AreaType.HECTARES },
       });
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getSales.mockReturnValue([
         {
           id: "sale-1",
@@ -880,7 +880,7 @@ describe("production-indexes.service", () => {
         id: "property-1c",
         area: { value: 100, type: AreaType.HECTARES },
       });
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getSales.mockReturnValue([]);
 
       const result = await getArrobaProductionPerHectare("property-1c");
@@ -897,7 +897,7 @@ describe("production-indexes.service", () => {
         id: "property-1d",
         area: { value: 10000, type: AreaType.SQUARE_METERS }, // 1 hectare
       });
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getSales.mockReturnValue([
         {
           id: "sale-1",
@@ -921,7 +921,7 @@ describe("production-indexes.service", () => {
         id: "property-1e",
         area: { value: 107639, type: AreaType.SQUARE_FEET }, // ~1 hectare
       });
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getSales.mockReturnValue([
         {
           id: "sale-1",
@@ -944,7 +944,7 @@ describe("production-indexes.service", () => {
         id: "property-1f",
         area: { value: 1, type: AreaType.ACRES }, // ~0.404686 hectares
       });
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getSales.mockReturnValue([
         {
           id: "sale-1",
@@ -967,7 +967,7 @@ describe("production-indexes.service", () => {
         id: "property-1g",
         area: { value: 1, type: AreaType.SQUARE_KILOMETERS }, // 100 hectares
       });
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getSales.mockReturnValue([
         {
           id: "sale-1",
@@ -990,7 +990,7 @@ describe("production-indexes.service", () => {
         id: "property-1h",
         area: { value: 1, type: AreaType.SQUARE_MILES }, // ~258.999 hectares
       });
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getSales.mockReturnValue([
         {
           id: "sale-1",
@@ -1013,7 +1013,7 @@ describe("production-indexes.service", () => {
         id: "property-1i",
         area: { value: 100, type: AreaType.HECTARES },
       });
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getSales.mockReturnValue([
         {
           id: "sale-1",
@@ -1052,7 +1052,7 @@ describe("production-indexes.service", () => {
         id: "property-1",
         area: { value: 100, type: AreaType.HECTARES },
       });
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getWeighings.mockReturnValue([
         { id: "w1", animalId: "animal-1", date: "2024-01-01", weight: 450 },
       ]);
@@ -1096,7 +1096,7 @@ describe("production-indexes.service", () => {
         id: "property-1b",
         area: { value: 100, type: AreaType.HECTARES },
       });
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getWeighings.mockReturnValue([]); // No weighings
       getMovements.mockReturnValue([
         {
@@ -1124,7 +1124,7 @@ describe("production-indexes.service", () => {
         id: "property-1c",
         area: { value: 100, type: AreaType.HECTARES },
       });
-      getAnimals.mockReturnValue([]);
+      getAnimals.mockResolvedValue([]);
       getMovements.mockReturnValue([]);
 
       const result = await getKgNitrogenPerAU("property-1c");
@@ -1143,7 +1143,7 @@ describe("production-indexes.service", () => {
         id: "property-1d",
         area: { value: 100, type: AreaType.HECTARES },
       });
-      getAnimals.mockReturnValue([
+      getAnimals.mockResolvedValue([
         { id: "animal-1", code: "001", companyId: "company-1" },
         { id: "animal-2", code: "002", companyId: "company-1" },
       ]);
@@ -1179,7 +1179,7 @@ describe("production-indexes.service", () => {
         id: "property-1e",
         area: { value: 100, type: AreaType.HECTARES },
       });
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getWeighings.mockReturnValue([
         { id: "w1", animalId: "animal-1", date: "2024-01-01", weight: 0 },
       ]);
@@ -1200,7 +1200,7 @@ describe("production-indexes.service", () => {
         id: "property-1f",
         area: { value: 100, type: AreaType.HECTARES },
       });
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getWeighings.mockReturnValue([
         { id: "w1", animalId: "animal-1", date: "2024-01-01", weight: 450 },
       ]);
@@ -1231,7 +1231,7 @@ describe("production-indexes.service", () => {
         id: "property-1g",
         area: { value: 100, type: AreaType.HECTARES },
       });
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getWeighings.mockReturnValue([
         { id: "w1", animalId: "animal-1", date: "2024-01-01", weight: 450 },
       ]);
@@ -1273,7 +1273,7 @@ describe("production-indexes.service", () => {
         id: "property-1h",
         area: { value: 100, type: AreaType.HECTARES },
       });
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getWeighings.mockReturnValue([
         { id: "w1", animalId: "animal-1", date: "2024-01-01", weight: 400 },
         { id: "w2", animalId: "animal-1", date: "2024-03-01", weight: 450 },
@@ -1299,14 +1299,14 @@ describe("production-indexes.service", () => {
   });
 
   describe("getKgMeatPerKgNitrogen", () => {
-    it("should calculate kg meat per kg nitrogen", () => {
+    it("should calculate kg meat per kg nitrogen", async () => {
       const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
       const getWeighings = getWeighingsByAnimalId as ReturnType<typeof vi.fn>;
       const getMovements = getMovementsByPropertyId as ReturnType<typeof vi.fn>;
       const hasNitrogen = hasNitrogenContent as ReturnType<typeof vi.fn>;
       const getNitrogen = getNitrogenContent as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getWeighings.mockReturnValue([
         { id: "w1", animalId: "animal-1", date: "2024-01-01", weight: 400 },
         { id: "w2", animalId: "animal-1", date: "2024-02-01", weight: 450 },
@@ -1323,17 +1323,17 @@ describe("production-indexes.service", () => {
       hasNitrogen.mockReturnValue(true);
       getNitrogen.mockReturnValue(5);
 
-      const result = getKgMeatPerKgNitrogen("property-1");
+      const result = await getKgMeatPerKgNitrogen("property-1");
       expect(result.kgMeatPerKgNitrogen).toBeGreaterThan(0);
     });
 
-    it("should return zero when zero nitrogen", () => {
+    it("should return zero when zero nitrogen", async () => {
       const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
       const getWeighings = getWeighingsByAnimalId as ReturnType<typeof vi.fn>;
       const getMovements = getMovementsByPropertyId as ReturnType<typeof vi.fn>;
       const hasNitrogen = hasNitrogenContent as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getWeighings.mockReturnValue([
         { id: "w1", animalId: "animal-1", date: "2024-01-01", weight: 400 },
         { id: "w2", animalId: "animal-1", date: "2024-02-01", weight: 450 },
@@ -1349,19 +1349,19 @@ describe("production-indexes.service", () => {
       ]);
       hasNitrogen.mockReturnValue(false);
 
-      const result = getKgMeatPerKgNitrogen("property-1a");
+      const result = await getKgMeatPerKgNitrogen("property-1a");
       expect(result.kgMeatPerKgNitrogen).toBe(0);
       expect(result.totalNitrogen).toBe(0);
     });
 
-    it("should return zero when zero weight gain", () => {
+    it("should return zero when zero weight gain", async () => {
       const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
       const getWeighings = getWeighingsByAnimalId as ReturnType<typeof vi.fn>;
       const getMovements = getMovementsByPropertyId as ReturnType<typeof vi.fn>;
       const hasNitrogen = hasNitrogenContent as ReturnType<typeof vi.fn>;
       const getNitrogen = getNitrogenContent as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getWeighings.mockReturnValue([
         { id: "w1", animalId: "animal-1", date: "2024-01-01", weight: 400 },
         { id: "w2", animalId: "animal-1", date: "2024-02-01", weight: 400 }, // No gain
@@ -1378,19 +1378,19 @@ describe("production-indexes.service", () => {
       hasNitrogen.mockReturnValue(true);
       getNitrogen.mockReturnValue(5);
 
-      const result = getKgMeatPerKgNitrogen("property-1b");
+      const result = await getKgMeatPerKgNitrogen("property-1b");
       expect(result.totalWeightGain).toBe(0);
       expect(result.kgMeatPerKgNitrogen).toBe(0);
     });
 
-    it("should filter by period", () => {
+    it("should filter by period", async () => {
       const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
       const getWeighings = getWeighingsByAnimalId as ReturnType<typeof vi.fn>;
       const getMovements = getMovementsByPropertyId as ReturnType<typeof vi.fn>;
       const hasNitrogen = hasNitrogenContent as ReturnType<typeof vi.fn>;
       const getNitrogen = getNitrogenContent as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getWeighings.mockReturnValue([
         { id: "w1", animalId: "animal-1", date: "2024-01-01", weight: 400 },
         { id: "w2", animalId: "animal-1", date: "2024-02-01", weight: 450 },
@@ -1415,21 +1415,21 @@ describe("production-indexes.service", () => {
       hasNitrogen.mockReturnValue(true);
       getNitrogen.mockReturnValue(5);
 
-      const result = getKgMeatPerKgNitrogen("property-1c", {
+      const result = await getKgMeatPerKgNitrogen("property-1c", {
         startDate: "2024-01-01",
         endDate: "2024-02-28",
       });
       expect(result.totalWeightGain).toBe(50); // Only from first two weighings
     });
 
-    it("should handle no ADG results", () => {
+    it("should handle no ADG results", async () => {
       const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
       const getWeighings = getWeighingsByAnimalId as ReturnType<typeof vi.fn>;
       const getMovements = getMovementsByPropertyId as ReturnType<typeof vi.fn>;
       const hasNitrogen = hasNitrogenContent as ReturnType<typeof vi.fn>;
       const getNitrogen = getNitrogenContent as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getWeighings.mockReturnValue([
         { id: "w1", animalId: "animal-1", date: "2024-01-01", weight: 400 },
       ]); // Only one weighing
@@ -1445,36 +1445,36 @@ describe("production-indexes.service", () => {
       hasNitrogen.mockReturnValue(true);
       getNitrogen.mockReturnValue(5);
 
-      const result = getKgMeatPerKgNitrogen("property-1d");
+      const result = await getKgMeatPerKgNitrogen("property-1d");
       expect(result.totalWeightGain).toBe(0);
     });
   });
 
   describe("cache functionality", () => {
-    it("should use cache for same property and period", () => {
+    it("should use cache for same property and period", async () => {
       const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
       const getWeighings = getWeighingsByAnimalId as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getWeighings.mockReturnValue([
         { id: "w1", animalId: "animal-1", date: "2024-01-01", weight: 400 },
         { id: "w2", animalId: "animal-1", date: "2024-02-01", weight: 450 },
       ]);
 
       // First call
-      const result1 = getAverageDailyGain("property-cache-1");
+      const result1 = await getAverageDailyGain("property-cache-1");
       expect(result1.length).toBeGreaterThan(0);
 
       // Clear mocks but keep cache
       vi.clearAllMocks();
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getWeighings.mockReturnValue([
         { id: "w1", animalId: "animal-1", date: "2024-01-01", weight: 400 },
         { id: "w2", animalId: "animal-1", date: "2024-02-01", weight: 450 },
       ]);
 
       // Second call should use cache
-      const result2 = getAverageDailyGain("property-cache-1");
+      const result2 = await getAverageDailyGain("property-cache-1");
       expect(result2).toEqual(result1);
       // Note: Cache is internal, so we can't directly verify it wasn't called
       // but we can verify the results are the same
@@ -1482,66 +1482,66 @@ describe("production-indexes.service", () => {
   });
 
   describe("period filtering edge cases", () => {
-    it("should handle filterByPeriod with no period", () => {
+    it("should handle filterByPeriod with no period", async () => {
       const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
       const getWeighings = getWeighingsByAnimalId as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getWeighings.mockReturnValue([
         { id: "w1", animalId: "animal-1", date: "2024-01-01", weight: 400 },
         { id: "w2", animalId: "animal-1", date: "2024-02-01", weight: 450 },
       ]);
 
-      const result = getAverageDailyGain("property-period-1", undefined);
+      const result = await getAverageDailyGain("property-period-1", undefined);
       expect(result.length).toBeGreaterThan(0);
     });
 
-    it("should handle filterByPeriod with startDate only", () => {
+    it("should handle filterByPeriod with startDate only", async () => {
       const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
       const getWeighings = getWeighingsByAnimalId as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getWeighings.mockReturnValue([
         { id: "w1", animalId: "animal-1", date: "2024-01-01", weight: 400 },
         { id: "w2", animalId: "animal-1", date: "2024-02-01", weight: 450 },
         { id: "w3", animalId: "animal-1", date: "2024-03-01", weight: 500 },
       ]);
 
-      const result = getAverageDailyGain("property-period-2", {
+      const result = await getAverageDailyGain("property-period-2", {
         startDate: "2024-02-01",
       });
       expect(result.length).toBeGreaterThan(0);
     });
 
-    it("should handle filterByPeriod with endDate only", () => {
+    it("should handle filterByPeriod with endDate only", async () => {
       const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
       const getWeighings = getWeighingsByAnimalId as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getWeighings.mockReturnValue([
         { id: "w1", animalId: "animal-1", date: "2024-01-01", weight: 400 },
         { id: "w2", animalId: "animal-1", date: "2024-02-01", weight: 450 },
         { id: "w3", animalId: "animal-1", date: "2024-03-01", weight: 500 },
       ]);
 
-      const result = getAverageDailyGain("property-period-3", {
+      const result = await getAverageDailyGain("property-period-3", {
         endDate: "2024-02-28",
       });
       expect(result.length).toBeGreaterThan(0);
     });
 
-    it("should handle filterByPeriod with both dates", () => {
+    it("should handle filterByPeriod with both dates", async () => {
       const getAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
       const getWeighings = getWeighingsByAnimalId as ReturnType<typeof vi.fn>;
 
-      getAnimals.mockReturnValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
+      getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getWeighings.mockReturnValue([
         { id: "w1", animalId: "animal-1", date: "2024-01-20", weight: 400 },
         { id: "w2", animalId: "animal-1", date: "2024-02-10", weight: 450 },
         { id: "w3", animalId: "animal-1", date: "2024-03-01", weight: 500 },
       ]);
 
-      const result = getAverageDailyGain("property-period-4", {
+      const result = await getAverageDailyGain("property-period-4", {
         startDate: "2024-01-15",
         endDate: "2024-02-15",
       });

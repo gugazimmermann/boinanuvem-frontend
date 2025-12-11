@@ -1,7 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router";
 import {
-  TableActionButtons,
   AnimalRegistrationModal,
   Tooltip,
   Button,
@@ -15,24 +14,18 @@ import {
 } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
-import { mockAnimals } from "~/mocks/animals";
-import { deleteAnimal } from "~/services/animals.service";
-import { getBirthByAnimalId } from "~/services/births.service";
-import type { Animal } from "~/types";
-import {
-  ROUTES,
-  getAnimalEditRoute,
-  getAnimalViewRoute,
-  getAnimalMovementNewRoute,
-} from "~/routes.config";
+import { useAuth } from "~/contexts/auth-context";
+import { deleteAnimal, getAnimalsByCompanyId } from "~/services/animals.service";
+import { getBirthsByCompanyId } from "~/services/births.service";
+import type { Animal, Birth } from "~/types";
+import { ROUTES, getAnimalViewRoute, getAnimalMovementNewRoute } from "~/routes.config";
 import { usePermissions } from "~/utils/permissions";
-import { formatDate } from "~/utils/formatting";
 import { createRegistrationMeta, createRegistrationLoader } from "~/utils/route-helpers";
 import { useAlert } from "~/hooks/use-alert";
 import { useDeleteHandler } from "~/hooks/use-delete-handler";
 import { useListPage } from "~/hooks/use-list-page";
 import { useDateLocale } from "~/hooks/use-date-locale";
-import { createAnimalTableColumns } from "~/utils/animal-table-columns";
+import { createAnimalTableColumnsWithConfig } from "~/utils/animal-table-config";
 
 export function meta() {
   return createRegistrationMeta("Animais", "Gerenciamento de animais do Boi na Nuvem");
@@ -48,18 +41,60 @@ export default function Animals() {
   const dateLocale = useDateLocale();
   const navigate = useNavigate();
   const { canAdd, canEdit, canRemove } = usePermissions();
-  const [animals, setAnimals] = useState<Animal[]>([...mockAnimals]);
+  const { currentUser } = useAuth();
+  const companyId = currentUser?.companyId || "";
+  const [animals, setAnimals] = useState<Animal[]>([]);
+  const [births, setBirths] = useState<Birth[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isAnimalRegistrationModalOpen, setIsAnimalRegistrationModalOpen] = useState(false);
   const [selectedAnimals, setSelectedAnimals] = useState<Set<string>>(new Set());
   const { alertMessage, showAlert } = useAlert();
 
-  const deleteHandler = useDeleteHandler({
-    onDelete: (animal: Animal) => {
-      const success = deleteAnimal(animal.id);
-      if (success) {
-        setAnimals(animals.filter((a) => a.id !== animal.id));
+  // Load animals and births from API
+  useEffect(() => {
+    const loadData = async () => {
+      if (!companyId) return;
+      setIsLoading(true);
+      try {
+        const [animalsData, birthsData] = await Promise.all([
+          getAnimalsByCompanyId(companyId),
+          getBirthsByCompanyId(companyId),
+        ]);
+        setAnimals(animalsData || []);
+        setBirths(birthsData || []);
+      } catch (error) {
+        console.error("Failed to load animals:", error);
+        showAlert("Erro ao carregar animais", "error");
+      } finally {
+        setIsLoading(false);
       }
-      return success;
+    };
+    loadData();
+  }, [companyId, showAlert]);
+
+  // Create a map of births by animal ID for quick lookup
+  const birthsByAnimalId = useMemo(() => {
+    const map = new Map<string, Birth>();
+    for (const birth of births) {
+      map.set(birth.animalId, birth);
+    }
+    return map;
+  }, [births]);
+
+  const getBirthByAnimalId = (animalId: string): Birth | undefined => {
+    return birthsByAnimalId.get(animalId);
+  };
+
+  const deleteHandler = useDeleteHandler({
+    onDelete: async (animal: Animal) => {
+      try {
+        await deleteAnimal(animal.id);
+        setAnimals(animals.filter((a) => a.id !== animal.id));
+        return true;
+      } catch (error) {
+        console.error("Error deleting animal:", error);
+        return false;
+      }
     },
     showAlert,
     successMessage: t.animals.success.deleted,
@@ -104,61 +139,21 @@ export default function Animals() {
   });
 
   const columns: TableColumn<Animal>[] = useMemo(() => {
-    return createAnimalTableColumns({
+    return createAnimalTableColumnsWithConfig({
+      t,
       language,
       dateLocale,
-      translations: {
-        table: {
-          registration: t.animals.table.registration,
-          breed: t.animals.table.breed,
-          purity: t.animals.table.purity,
-          gender: t.animals.table.gender,
-          birthDate: t.animals.table.birthDate,
-          acquisitionDate: t.animals.table.acquisitionDate,
-          weight: t.animals.table.weight,
-          weightInArrobas: t.animals.table.weightInArrobas,
-          lastWeighingDate: t.animals.table.lastWeighingDate,
-          gmd: t.animals.table.gmd,
-          properties: t.animals.table.properties,
-          breedingStatus: t.animals.table.breedingStatus,
-          breedingStatusPregnant: t.animals.table.breedingStatusPregnant,
-          status: t.animals.table.status,
-          active: t.animals.table.active,
-          inactive: t.animals.table.inactive,
-          sold: t.animals.table.sold,
-        },
-        breeds: t.animals.breeds,
-        purity: t.animals.purity,
-        gender: t.animals.gender,
-        common: {
-          month: t.common.month,
-          months: t.common.months,
-          daysAgo: t.common.daysAgo,
-          dailyAverageGain: t.common.dailyAverageGain,
-        },
-      },
-      formatDateFn: formatDate,
-      TooltipComponent: Tooltip as React.ComponentType<{
-        content: string;
-        position?: string;
-        children: React.ReactNode;
-      }>,
+      birthsMap: birthsByAnimalId,
+      TooltipComponent: Tooltip,
       StatusBadgeComponent: StatusBadge,
+      navigate: (path: string) => {
+        navigate(path);
+      },
+      handleDeleteAnimalClick: deleteHandler.handleDeleteClick,
+      canEdit,
+      canRemove,
       includeProperties: true,
       includeActions: true,
-      actionsColumn: {
-        key: "actions",
-        label: "",
-        headerClassName: "relative",
-        render: (_, row) => (
-          <TableActionButtons
-            onEdit={() => navigate(getAnimalEditRoute(row.id))}
-            onDelete={() => deleteHandler.handleDeleteClick(row)}
-            canEdit={canEdit("registration", "animals")}
-            canDelete={canRemove("registration", "animals")}
-          />
-        ),
-      },
       onStatusRender: (animal) => {
         let label: string = t.animals.table.active;
         let variant: "success" | "default" | "warning" = "success";
@@ -172,7 +167,7 @@ export default function Animals() {
         return { label, variant };
       },
     });
-  }, [t, language, dateLocale, navigate, canEdit, canRemove, deleteHandler]);
+  }, [t, language, dateLocale, navigate, canEdit, canRemove, deleteHandler, birthsByAnimalId]);
 
   const headerActions: TableAction[] = canAdd("registration", "animals")
     ? [
@@ -222,6 +217,17 @@ export default function Animals() {
 
   const selectedCount = selectedAnimals.size;
   const selectedAnimalIds = Array.from(selectedAnimals);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">{t.common.loading || "Carregando..."}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>

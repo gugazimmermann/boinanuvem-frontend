@@ -211,7 +211,9 @@ describe("PropertyMap", () => {
     );
 
     // Wait for the dynamic import to resolve
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    });
 
     // The component should delete _getIconUrl if it exists
     // Since we're mocking, we can verify the prototype was accessed
@@ -337,8 +339,12 @@ describe("PropertyMap", () => {
       { timeout: 2000 }
     );
     // Wait a bit for the dynamic import to resolve
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    unmount();
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    });
+    await act(async () => {
+      unmount();
+    });
     // Map should be cleaned up (remove called)
     // The cleanup happens in the useEffect return
     // If the mock was set up correctly, it should be called

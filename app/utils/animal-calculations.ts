@@ -5,7 +5,7 @@ import type { Birth, Weighing } from "~/types";
 
 export interface AnimalBasicData {
   birth: Birth | null;
-  acquisition: ReturnType<typeof getAcquisitionByAnimalId> | null;
+  acquisition: Awaited<ReturnType<typeof getAcquisitionByAnimalId>> | null;
   acquisitionItem: {
     birthDate?: string;
     gender?: string;
@@ -15,16 +15,20 @@ export interface AnimalBasicData {
   isMale: boolean;
 }
 
-export function computeAnimalBasicData(animal: { id: string } | null): AnimalBasicData | null {
+export async function computeAnimalBasicData(
+  animal: { id: string } | null,
+  birth?: Awaited<ReturnType<typeof getBirthByAnimalId>> | null,
+  acquisition?: Awaited<ReturnType<typeof getAcquisitionByAnimalId>> | null
+): Promise<AnimalBasicData | null> {
   if (!animal) return null;
 
-  const birth = getBirthByAnimalId(animal.id) ?? null;
-  const acquisition = getAcquisitionByAnimalId(animal.id);
+  const birthData = birth ?? (await getBirthByAnimalId(animal.id)) ?? null;
+  const acquisitionData = acquisition ?? (await getAcquisitionByAnimalId(animal.id));
   const acquisitionItem =
-    acquisition?.acquisitionItems?.find((item) => item.animalId === animal?.id) || null;
-  const isMale = birth?.gender === "male" || acquisitionItem?.gender === "male";
+    acquisitionData?.acquisitionItems?.find((item) => item.animalId === animal?.id) || null;
+  const isMale = birthData?.gender === "male" || acquisitionItem?.gender === "male";
 
-  return { birth, acquisition, acquisitionItem, isMale };
+  return { birth: birthData, acquisition: acquisitionData, acquisitionItem, isMale };
 }
 
 export interface WeighingData {

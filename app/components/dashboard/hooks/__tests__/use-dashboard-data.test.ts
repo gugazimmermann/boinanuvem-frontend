@@ -103,11 +103,11 @@ describe("useDashboardData", () => {
     vi.mocked(buyersService.getBuyers).mockResolvedValue(
       mockBuyers as unknown as Awaited<ReturnType<typeof buyersService.getBuyers>>
     );
-    vi.mocked(animalsService.getAnimalsByCompanyId).mockReturnValue(
-      mockAnimals as unknown as ReturnType<typeof animalsService.getAnimalsByCompanyId>
+    vi.mocked(animalsService.getAnimalsByCompanyId).mockResolvedValue(
+      mockAnimals as unknown as Awaited<ReturnType<typeof animalsService.getAnimalsByCompanyId>>
     );
-    vi.mocked(animalsService.getAnimalsByPropertyId).mockReturnValue(
-      [] as unknown as ReturnType<typeof animalsService.getAnimalsByPropertyId>
+    vi.mocked(animalsService.getAnimalsByPropertyId).mockResolvedValue(
+      [] as unknown as Awaited<ReturnType<typeof animalsService.getAnimalsByPropertyId>>
     );
     vi.mocked(weighingsService.getWeighingsByCompanyId).mockReturnValue(
       [] as unknown as ReturnType<typeof weighingsService.getWeighingsByCompanyId>
@@ -124,10 +124,10 @@ describe("useDashboardData", () => {
     vi.mocked(accountsReceivableService.getAccountsReceivableByCompanyId).mockReturnValue(
       [] as never
     );
-    vi.mocked(birthsService.getBirthsByCompanyId).mockReturnValue([] as never);
-    vi.mocked(birthsService.getBirthsByPropertyId).mockReturnValue([] as never);
+    vi.mocked(birthsService.getBirthsByCompanyId).mockResolvedValue([] as never);
+    vi.mocked(birthsService.getBirthsByPropertyId).mockResolvedValue([] as never);
     vi.mocked(breedingsService.getBreedingsByCompanyId).mockReturnValue([] as never);
-    vi.mocked(breedingsService.getBreedingsByPropertyId).mockReturnValue([] as never);
+    vi.mocked(breedingsService.getBreedingsByPropertyId).mockResolvedValue([] as never);
     vi.mocked(salesService.getSalesByCompanyId).mockReturnValue([] as never);
     vi.mocked(salesAnalyticsService.getSalesMetrics).mockResolvedValue({
       totalRevenue: 0,
@@ -167,6 +167,13 @@ describe("useDashboardData", () => {
 
   it("should filter animals by propertyId when filter is provided", async () => {
     const filters = { propertyId: "property-1" };
+    const mockPropertyAnimals = [{ id: "animal-1", companyId: "company-1", status: "active" }];
+    vi.mocked(animalsService.getAnimalsByPropertyId).mockResolvedValue(
+      mockPropertyAnimals as unknown as Awaited<
+        ReturnType<typeof animalsService.getAnimalsByPropertyId>
+      >
+    );
+
     renderHook(() => useDashboardData(companyId, filters));
 
     await waitFor(() => {
@@ -322,7 +329,11 @@ describe("useDashboardData", () => {
   it("should filter weighings by propertyId", async () => {
     const filters = { propertyId: "property-1" };
     const mockPropertyAnimals = [{ id: "animal-1", companyId: "company-1", status: "active" }];
-    vi.mocked(animalsService.getAnimalsByPropertyId).mockReturnValue(mockPropertyAnimals as never);
+    vi.mocked(animalsService.getAnimalsByPropertyId).mockResolvedValue(
+      mockPropertyAnimals as unknown as Awaited<
+        ReturnType<typeof animalsService.getAnimalsByPropertyId>
+      >
+    );
     const mockWeighings = [
       { id: "1", animalId: "animal-1", weight: 500, date: "2024-01-01" },
       { id: "2", animalId: "animal-2", weight: 600, date: "2024-01-01" },
@@ -358,7 +369,7 @@ describe("useDashboardData", () => {
       { id: "1", companyId: "company-1", birthDate: "2024-03-01", animalId: "1" },
       { id: "2", companyId: "company-1", birthDate: "2024-07-01", animalId: "2" },
     ];
-    vi.mocked(birthsService.getBirthsByCompanyId).mockReturnValue(mockBirths as never);
+    vi.mocked(birthsService.getBirthsByCompanyId).mockResolvedValue(mockBirths as never);
 
     const { result } = renderHook(() => useDashboardData(companyId, filters));
 
@@ -526,7 +537,7 @@ describe("useDashboardData", () => {
       { id: "1", companyId: "company-1", birthDate: "2024-01-01", animalId: "1" },
       { id: "2", companyId: "company-1", birthDate: "2024-03-01", animalId: "2" },
     ];
-    vi.mocked(birthsService.getBirthsByCompanyId).mockReturnValue(mockBirths as never);
+    vi.mocked(birthsService.getBirthsByCompanyId).mockResolvedValue(mockBirths as never);
 
     const { result } = renderHook(() => useDashboardData(companyId));
 

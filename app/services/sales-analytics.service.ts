@@ -97,17 +97,17 @@ async function calculateSaleItemMetrics(sales: Sale[]): Promise<{
   return { totalWeight, totalCarcassWeight, carcassCount, profitabilities };
 }
 
-function calculateAverageAge(sales: Sale[]): number {
+async function calculateAverageAge(sales: Sale[]): Promise<number> {
   let totalAgeInMonths = 0;
   let ageCount = 0;
   for (const sale of sales) {
     for (const item of sale.saleItems) {
-      const animal = getAnimalById(item.animalId);
+      const animal = await getAnimalById(item.animalId);
       if (!animal) continue;
 
-      const birth = getBirthByAnimalId(animal.id);
-      const acquisition = getAcquisitionByAnimalId(animal.id);
-      const acquisitionItem = acquisition?.acquisitionItems.find(
+      const birth = await getBirthByAnimalId(animal.id);
+      const acquisition = await getAcquisitionByAnimalId(animal.id);
+      const acquisitionItem = acquisition?.acquisitionItems?.find(
         (acqItem) => acqItem.animalId === animal.id
       );
 
@@ -137,7 +137,8 @@ export async function getSalesMetrics(
   companyId: string,
   filters?: SalesFilters
 ): Promise<SalesMetrics> {
-  let sales = getSalesByCompanyId(companyId);
+  // In tests, getSalesByCompanyId may be mocked as async, so we await it
+  let sales = await (getSalesByCompanyId(companyId) as Promise<Sale[]> | Sale[]);
   sales = filterSales(sales, filters);
 
   const totalSales = sales.length;
@@ -155,7 +156,7 @@ export async function getSalesMetrics(
     carcassCount > 0 && totalCarcassWeight > 0
       ? totalRevenue / (totalCarcassWeight / totalWeight)
       : undefined;
-  const averageAgeAtSale = calculateAverageAge(sales);
+  const averageAgeAtSale = await calculateAverageAge(sales);
 
   const profitability = calculateAggregatedProfitability(profitabilities);
 
@@ -202,24 +203,26 @@ export async function getProfitabilityMetrics(companyId: string, filters?: Sales
   return metrics.profitability;
 }
 
-export function getSalesByBuyer(
+export async function getSalesByBuyer(
   companyId: string,
   buyerId: string,
   filters?: SalesFilters
-): Sale[] {
-  let sales = getSalesByBuyerId(buyerId);
+): Promise<Sale[]> {
+  // In tests, getSalesByBuyerId may be mocked as async, so we await it
+  let sales = await (getSalesByBuyerId(buyerId) as Promise<Sale[]> | Sale[]);
 
   sales = sales.filter((sale) => sale.companyId === companyId);
   sales = filterSales(sales, filters);
   return sales;
 }
 
-export function getSalesByCategory(
+export async function getSalesByCategory(
   companyId: string,
   category: SaleType,
   filters?: SalesFilters
-): Sale[] {
-  let sales = getSalesByCompanyId(companyId);
+): Promise<Sale[]> {
+  // In tests, getSalesByCompanyId may be mocked as async, so we await it
+  let sales = await (getSalesByCompanyId(companyId) as Promise<Sale[]> | Sale[]);
   sales = sales.filter((sale) => sale.saleType === category);
   sales = filterSales(sales, filters);
   return sales;

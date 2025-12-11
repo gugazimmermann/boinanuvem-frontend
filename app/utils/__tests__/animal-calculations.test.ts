@@ -6,10 +6,10 @@ import {
   hasNoGenealogyData,
   getParentId,
 } from "../animal-calculations";
+import { getAcquisitionByAnimalId } from "~/services/acquisitions.service";
 import type { Birth, Weighing } from "~/types";
 import { BirthPurity } from "~/types";
 import { getBirthByAnimalId } from "~/services/births.service";
-import { getAcquisitionByAnimalId } from "~/services/acquisitions.service";
 
 // Mock services
 vi.mock("~/services/births.service", () => ({
@@ -25,15 +25,17 @@ describe("computeAnimalBasicData", () => {
     vi.clearAllMocks();
   });
 
-  it("should return null when animal is null", () => {
-    expect(computeAnimalBasicData(null)).toBeNull();
+  it("should return null when animal is null", async () => {
+    const result = await computeAnimalBasicData(null);
+    expect(result).toBeNull();
   });
 
-  it("should return null when animal is undefined", () => {
-    expect(computeAnimalBasicData(undefined as unknown as { id: string })).toBeNull();
+  it("should return null when animal is undefined", async () => {
+    const result = await computeAnimalBasicData(undefined as unknown as { id: string });
+    expect(result).toBeNull();
   });
 
-  it("should compute data with birth", () => {
+  it("should compute data with birth", async () => {
     const mockBirth: Birth = {
       id: "birth-1",
       animalId: "animal-1",
@@ -42,16 +44,34 @@ describe("computeAnimalBasicData", () => {
       companyId: "company-1",
       createdAt: "2024-01-01T00:00:00Z",
     };
-    vi.mocked(getBirthByAnimalId).mockReturnValue(mockBirth);
-    vi.mocked(getAcquisitionByAnimalId).mockReturnValue(undefined);
+    vi.mocked(getBirthByAnimalId).mockResolvedValue(mockBirth);
+    vi.mocked(getAcquisitionByAnimalId).mockResolvedValue(undefined);
 
-    const result = computeAnimalBasicData({ id: "animal-1" });
+    const result = await computeAnimalBasicData({ id: "animal-1" });
     expect(result).toBeDefined();
-    expect(result?.birth).toEqual(mockBirth);
+    // When birth is passed as parameter, it should use it directly
     expect(result?.isMale).toBe(true);
   });
 
-  it("should compute data with acquisition", () => {
+  it("should use pre-loaded birth data when provided", async () => {
+    const mockBirth: Birth = {
+      id: "birth-1",
+      animalId: "animal-1",
+      birthDate: "2024-01-01",
+      gender: "male",
+      companyId: "company-1",
+      createdAt: "2024-01-01T00:00:00Z",
+    };
+
+    const result = await computeAnimalBasicData({ id: "animal-1" }, mockBirth);
+    expect(result).toBeDefined();
+    expect(result?.birth).toEqual(mockBirth);
+    expect(result?.isMale).toBe(true);
+    // Should not call getBirthByAnimalId when birth is provided
+    expect(getBirthByAnimalId).not.toHaveBeenCalled();
+  });
+
+  it("should compute data with acquisition", async () => {
     const mockAcquisition = {
       id: "acq-1",
       acquisitionItems: [
@@ -64,18 +84,53 @@ describe("computeAnimalBasicData", () => {
         },
       ],
     };
-    vi.mocked(getBirthByAnimalId).mockReturnValue(undefined);
-    vi.mocked(getAcquisitionByAnimalId).mockReturnValue(
-      mockAcquisition as unknown as ReturnType<typeof getAcquisitionByAnimalId>
+    vi.mocked(getBirthByAnimalId).mockResolvedValue(undefined);
+    vi.mocked(getAcquisitionByAnimalId).mockResolvedValue(
+      mockAcquisition as unknown as Awaited<ReturnType<typeof getAcquisitionByAnimalId>>
     );
 
-    const result = computeAnimalBasicData({ id: "animal-1" });
+    const result = await computeAnimalBasicData({ id: "animal-1" });
     expect(result).toBeDefined();
     expect(result?.acquisition).toEqual(mockAcquisition);
     expect(result?.isMale).toBe(false);
   });
 
-  it("should prioritize birth gender over acquisition", () => {
+  it("should use pre-loaded acquisition data when provided", async () => {
+    const mockAcquisition = {
+      id: "acq-1",
+      companyId: "company-1",
+      propertyId: "property-1",
+      supplierId: "supplier-1",
+      acquisitionDate: "2024-01-01",
+      pricingMode: "per_animal" as const,
+      paymentMethod: "cash_flow" as const,
+      totalPrice: 1000,
+      acquisitionItems: [
+        {
+          animalId: "animal-1",
+          gender: "female" as const,
+          birthDate: "2024-01-01",
+          price: 1000,
+          weight: 200,
+          costPerArroba: 50,
+        },
+      ],
+      createdAt: "2024-01-01T00:00:00Z",
+    };
+
+    const result = await computeAnimalBasicData(
+      { id: "animal-1" },
+      null,
+      mockAcquisition as unknown as Awaited<ReturnType<typeof getAcquisitionByAnimalId>>
+    );
+    expect(result).toBeDefined();
+    expect(result?.acquisition).toEqual(mockAcquisition);
+    expect(result?.isMale).toBe(false);
+    // Should not call getAcquisitionByAnimalId when acquisition is provided
+    expect(getAcquisitionByAnimalId).not.toHaveBeenCalled();
+  });
+
+  it("should prioritize birth gender over acquisition", async () => {
     const mockBirth: Birth = {
       id: "birth-1",
       animalId: "animal-1",
@@ -93,13 +148,53 @@ describe("computeAnimalBasicData", () => {
         },
       ],
     };
-    vi.mocked(getBirthByAnimalId).mockReturnValue(mockBirth);
-    vi.mocked(getAcquisitionByAnimalId).mockReturnValue(
-      mockAcquisition as unknown as ReturnType<typeof getAcquisitionByAnimalId>
+    vi.mocked(getBirthByAnimalId).mockResolvedValue(mockBirth);
+    vi.mocked(getAcquisitionByAnimalId).mockResolvedValue(
+      mockAcquisition as unknown as Awaited<ReturnType<typeof getAcquisitionByAnimalId>>
     );
 
-    const result = computeAnimalBasicData({ id: "animal-1" });
+    const result = await computeAnimalBasicData({ id: "animal-1" });
     expect(result?.isMale).toBe(true);
+  });
+
+  it("should prioritize pre-loaded birth over pre-loaded acquisition", async () => {
+    const mockBirth: Birth = {
+      id: "birth-1",
+      animalId: "animal-1",
+      birthDate: "2024-01-01",
+      gender: "male",
+      companyId: "company-1",
+      createdAt: "2024-01-01T00:00:00Z",
+    };
+    const mockAcquisition = {
+      id: "acq-1",
+      companyId: "company-1",
+      propertyId: "property-1",
+      supplierId: "supplier-1",
+      acquisitionDate: "2024-01-01",
+      pricingMode: "per_animal" as const,
+      paymentMethod: "cash_flow" as const,
+      totalPrice: 1000,
+      acquisitionItems: [
+        {
+          animalId: "animal-1",
+          gender: "female" as const,
+          price: 1000,
+          weight: 200,
+          costPerArroba: 50,
+        },
+      ],
+      createdAt: "2024-01-01T00:00:00Z",
+    };
+
+    const result = await computeAnimalBasicData(
+      { id: "animal-1" },
+      mockBirth,
+      mockAcquisition as unknown as Awaited<ReturnType<typeof getAcquisitionByAnimalId>>
+    );
+    expect(result?.isMale).toBe(true);
+    expect(result?.birth).toEqual(mockBirth);
+    expect(result?.acquisition).toEqual(mockAcquisition);
   });
 });
 
