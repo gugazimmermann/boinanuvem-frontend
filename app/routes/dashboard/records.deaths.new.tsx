@@ -6,9 +6,9 @@ import { ROUTES } from "~/routes.config";
 import { addDeath, getDeathByAnimalId } from "~/services/deaths.service";
 import { updateAnimal, getAnimalsByCompanyId } from "~/services/animals.service";
 import type { DeathFormData } from "~/types";
-import { mockCompanies } from "~/mocks/companies";
 import { getBirthByAnimalId, getBirthsByCompanyId } from "~/services/births.service";
 import { useAlert } from "~/hooks/use-alert";
+import { useAuth } from "~/contexts/auth-context";
 
 export function meta() {
   return [
@@ -29,8 +29,8 @@ export default function NewDeath() {
   const t = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const company = mockCompanies[0];
-  const companyId = company?.id || "";
+  const { currentUser } = useAuth();
+  const companyId = currentUser?.companyId || "";
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -128,11 +128,11 @@ export default function NewDeath() {
     }
   };
 
-  const validate = (): boolean => {
+  const validate = async (): Promise<boolean> => {
     const newErrors: Record<string, string> = {};
 
     if (formData.animalId?.trim()) {
-      const existingDeath = getDeathByAnimalId(formData.animalId);
+      const existingDeath = await getDeathByAnimalId(formData.animalId);
       if (existingDeath) {
         newErrors.animalId = t.deaths.new.animalAlreadyDead;
       }
@@ -154,7 +154,7 @@ export default function NewDeath() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return;
+    if (!(await validate())) return;
 
     setIsSubmitting(true);
     try {
@@ -165,7 +165,7 @@ export default function NewDeath() {
         observation: formData.observation || undefined,
         companyId,
       };
-      addDeath(deathData);
+      await addDeath(deathData);
 
       await updateAnimal(formData.animalId, { status: "inactive" });
 

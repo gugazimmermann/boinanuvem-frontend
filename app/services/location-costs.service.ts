@@ -5,17 +5,22 @@ import type {
   AnimalLocationCost,
 } from "~/types/location-costs";
 import type { Animal, InventoryMovement } from "~/types";
-import { getConsumptionMovementsByLocationId } from "./inventory-movements.service";
+import {
+  getConsumptionMovementsByLocationId,
+  getMovementsByCompanyId,
+} from "./inventory-movements.service";
 import { getInventoryItemById } from "./inventory.service";
-import { getAnimalMovementsByAnimalId } from "./animal-movements.service";
+import {
+  getAnimalMovementsByAnimalId,
+  getAnimalMovementsByLocationId,
+} from "./animal-movements.service";
 import { getAnimalById } from "./animals.service";
 import { getLocationById } from "./locations.service";
-import { mockAnimalMovements } from "~/mocks/animal-movements";
-import { mockInventoryMovements } from "~/mocks/inventory-movements";
 
-function getAnimalIdsInLocation(locationId: string): Set<string> {
+async function getAnimalIdsInLocation(locationId: string): Promise<Set<string>> {
   const animalIdsInLocation = new Set<string>();
-  for (const movement of mockAnimalMovements) {
+  const movements = getAnimalMovementsByLocationId(locationId);
+  for (const movement of movements) {
     if (movement.locationId === locationId) {
       for (const id of movement.animalIds) {
         animalIdsInLocation.add(id);
@@ -42,7 +47,7 @@ export async function getAnimalsInLocationOnDate(
 ): Promise<Animal[]> {
   const _animals: Animal[] = [];
   const targetDate = new Date(date);
-  const animalIdsInLocation = getAnimalIdsInLocation(locationId);
+  const animalIdsInLocation = await getAnimalIdsInLocation(locationId);
 
   const animalPromises = Array.from(animalIdsInLocation)
     .filter((animalId) => isAnimalInLocationOnDate(animalId, locationId, targetDate))
@@ -52,7 +57,7 @@ export async function getAnimalsInLocationOnDate(
     });
 
   const animalsData = await Promise.all(animalPromises);
-  return animalsData.filter((animal): animal is Animal => animal !== null);
+  return animalsData.filter((animal): animal is Animal => animal !== null && animal !== undefined);
 }
 
 export async function getLocationConsumptionCosts(
@@ -77,7 +82,7 @@ export async function getLocationConsumptionCosts(
   }
 
   const costPromises = filteredMovements.map(async (movement) => {
-    const item = getInventoryItemById(movement.itemId);
+    const item = await getInventoryItemById(movement.itemId);
     if (!item) return null;
 
     const unitPrice = movement.unitPrice ?? item.unitPrice ?? 0;
@@ -196,7 +201,15 @@ export async function getAnimalCostBreakdownByLocation(
   startDate?: string,
   endDate?: string
 ): Promise<AnimalLocationCost[]> {
-  const consumptionMovements = mockInventoryMovements.filter(
+  // Get animal to retrieve companyId, then get all movements for that company
+  const animal = await getAnimalById(animalId);
+  if (!animal) {
+    return [];
+  }
+
+  // Get all inventory movements for the company, then filter for consumption type with locationId
+  const allMovements = getMovementsByCompanyId(animal.companyId);
+  const consumptionMovements = allMovements.filter(
     (m) => m.type === "consumption" && m.locationId && m.locationId.trim() !== ""
   );
 

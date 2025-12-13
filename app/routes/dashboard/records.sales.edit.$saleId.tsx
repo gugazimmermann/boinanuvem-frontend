@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useTranslation } from "~/i18n";
 import { ROUTES, getSaleViewRoute } from "~/routes.config";
@@ -9,7 +9,7 @@ import {
 } from "~/components/dashboard/records/sale-form";
 import { transformSaleFormDataForUpdate } from "~/utils/sale-form-helpers";
 import { useSaleFormData } from "~/hooks/use-sale-form-data";
-import { mockCompanies } from "~/mocks/companies";
+import { useAuth } from "~/contexts/auth-context";
 
 export function meta() {
   return [
@@ -30,8 +30,19 @@ export default function EditSale() {
   const t = useTranslation();
   const navigate = useNavigate();
   const { saleId } = useParams<{ saleId: string }>();
-  const sale = getSaleById(saleId);
-  const companyId = mockCompanies[0]?.id || "";
+  const { currentUser } = useAuth();
+  const companyId = currentUser?.companyId || "";
+  const [sale, setSale] = useState<Awaited<ReturnType<typeof getSaleById>>>(undefined);
+
+  useEffect(() => {
+    const loadSale = async () => {
+      if (saleId) {
+        const saleData = await getSaleById(saleId);
+        setSale(saleData);
+      }
+    };
+    loadSale();
+  }, [saleId]);
 
   const {
     animals: allAnimals,

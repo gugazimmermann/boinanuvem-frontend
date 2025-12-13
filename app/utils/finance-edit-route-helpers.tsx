@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router";
 import { createFormMeta } from "~/utils/route-helpers";
 import { useTranslation } from "~/i18n";
@@ -25,9 +25,9 @@ export function createFinanceEditMeta(entityName: string, description: string) {
  */
 export interface FinanceEditRouteConfig<TFormData extends FinanceTransactionFormData> {
   transactionType: "accounts-payable" | "accounts-receivable" | "cash-flow";
-  getTransactionById: (id: string | undefined) => unknown;
+  getTransactionById: (id: string | undefined) => Promise<unknown>;
   mapToFormData: <T>(transaction: T) => Partial<TFormData> | undefined;
-  updateTransaction: (id: string, data: Partial<TFormData>) => void;
+  updateTransaction: (id: string, data: Partial<TFormData>) => Promise<void>;
   backRoute: string;
   viewRoute: (id: string) => string;
   getTranslationKeys: (t: ReturnType<typeof useTranslation>) => {
@@ -56,9 +56,24 @@ export function createFinanceEditRoute<TFormData extends FinanceTransactionFormD
     const t = useTranslation();
     const navigate = useNavigate();
     const { transactionId } = useParams<{ transactionId: string }>();
-    const transaction = config.getTransactionById(transactionId);
+    const [initialData, setInitialData] = useState<Partial<TFormData> | undefined>(undefined);
 
-    const initialData = useMemo(() => config.mapToFormData(transaction), [transaction]);
+    useEffect(() => {
+      const loadTransaction = async () => {
+        if (transactionId) {
+          try {
+            const transactionData = await config.getTransactionById(transactionId);
+            if (transactionData) {
+              const mapped = config.mapToFormData(transactionData);
+              setInitialData(mapped);
+            }
+          } catch (error) {
+            console.error("Failed to load transaction:", error);
+          }
+        }
+      };
+      loadTransaction();
+    }, [transactionId]);
 
     const translationKeys = config.getTranslationKeys(t);
 
@@ -81,11 +96,11 @@ export function createFinanceEditRoute<TFormData extends FinanceTransactionFormD
           propertyLabel: translationKeys.propertyLabel,
         }}
         onSubmit={
-          ((data: TFormData) => {
+          (async (data: TFormData) => {
             if (!transactionId) return;
             const updateData = config.mapFormDataToUpdate ? config.mapFormDataToUpdate(data) : data;
-            config.updateTransaction(transactionId, updateData);
-          }) as (data: FinanceTransactionFormData) => void | { id: string }
+            await config.updateTransaction(transactionId, updateData);
+          }) as (data: FinanceTransactionFormData) => Promise<void | { id: string }>
         }
         onSuccess={() => {
           setTimeout(() => {

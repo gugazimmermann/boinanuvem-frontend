@@ -137,8 +137,7 @@ export async function getSalesMetrics(
   companyId: string,
   filters?: SalesFilters
 ): Promise<SalesMetrics> {
-  // In tests, getSalesByCompanyId may be mocked as async, so we await it
-  let sales = await (getSalesByCompanyId(companyId) as Promise<Sale[]> | Sale[]);
+  let sales = await getSalesByCompanyId(companyId);
   sales = filterSales(sales, filters);
 
   const totalSales = sales.length;
@@ -221,8 +220,7 @@ export async function getSalesByCategory(
   category: SaleType,
   filters?: SalesFilters
 ): Promise<Sale[]> {
-  // In tests, getSalesByCompanyId may be mocked as async, so we await it
-  let sales = await (getSalesByCompanyId(companyId) as Promise<Sale[]> | Sale[]);
+  let sales = await getSalesByCompanyId(companyId);
   sales = sales.filter((sale) => sale.saleType === category);
   sales = filterSales(sales, filters);
   return sales;

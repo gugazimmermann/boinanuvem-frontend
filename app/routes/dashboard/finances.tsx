@@ -29,13 +29,13 @@ import {
   getChartColors,
   getPieChartColors,
 } from "~/components/dashboard";
-import { mockCompanies } from "~/mocks/companies";
 import { getCashFlowByCompanyId } from "~/services/cash-flow.service";
+import { useAuth } from "~/contexts/auth-context";
 import { getAccountsPayableByCompanyId } from "~/services/accounts-payable.service";
 import { getAccountsReceivableByCompanyId } from "~/services/accounts-receivable.service";
 import { getSuppliers } from "~/services/suppliers.service";
 import { getBuyers } from "~/services/buyers.service";
-import type { Supplier, Buyer, AccountsPayable, AccountsReceivable } from "~/types";
+import type { Supplier, Buyer, AccountsPayable, AccountsReceivable, CashFlow } from "~/types";
 import { AccountsPayableStatus, AccountsReceivableStatus } from "~/types";
 import { getSalesByCompanyId } from "~/services/sales.service";
 import { getSalesMetrics } from "~/services/sales-analytics.service";
@@ -58,8 +58,8 @@ export default function FinancesDashboard() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
-  const company = useMemo(() => mockCompanies[0], []);
-  const companyId = useMemo(() => company?.id || "", [company]);
+  const { currentUser } = useAuth();
+  const companyId = currentUser?.companyId || "";
   const [suppliers, setSuppliers] = useState<Map<string, Supplier>>(new Map());
   const [buyers, setBuyers] = useState<Map<string, Buyer>>(new Map());
 
@@ -79,13 +79,47 @@ export default function FinancesDashboard() {
   const getSupplierName = (id: string) => suppliers.get(id)?.name;
   const getBuyerName = (id: string) => buyers.get(id)?.name;
 
-  const cashFlowData = useMemo(() => getCashFlowByCompanyId(companyId), [companyId]);
-  const accountsPayableData = useMemo(() => getAccountsPayableByCompanyId(companyId), [companyId]);
-  const accountsReceivableData = useMemo(
-    () => getAccountsReceivableByCompanyId(companyId),
-    [companyId]
-  );
-  const salesData = useMemo(() => getSalesByCompanyId(companyId), [companyId]);
+  const [cashFlowData, setCashFlowData] = useState<CashFlow[]>([]);
+  const [accountsPayableData, setAccountsPayableData] = useState<AccountsPayable[]>([]);
+  const [accountsReceivableData, setAccountsReceivableData] = useState<AccountsReceivable[]>([]);
+
+  useEffect(() => {
+    const loadFinanceData = async () => {
+      if (!companyId) return;
+      try {
+        const [cashFlow, payables, receivables] = await Promise.all([
+          getCashFlowByCompanyId(companyId),
+          getAccountsPayableByCompanyId(companyId),
+          getAccountsReceivableByCompanyId(companyId),
+        ]);
+        setCashFlowData(cashFlow);
+        setAccountsPayableData(payables);
+        setAccountsReceivableData(receivables);
+      } catch (error) {
+        console.error("Failed to load finance data:", error);
+        setCashFlowData([]);
+        setAccountsPayableData([]);
+        setAccountsReceivableData([]);
+      }
+    };
+    loadFinanceData();
+  }, [companyId]);
+  const [salesData, setSalesData] = useState<Awaited<ReturnType<typeof getSalesByCompanyId>>>([]);
+
+  useEffect(() => {
+    const loadSales = async () => {
+      try {
+        const sales = await getSalesByCompanyId(companyId);
+        setSalesData(sales);
+      } catch (error) {
+        console.error("Failed to load sales:", error);
+        setSalesData([]);
+      }
+    };
+    if (companyId) {
+      loadSales();
+    }
+  }, [companyId]);
   const [salesMetrics, setSalesMetrics] = useState<Awaited<
     ReturnType<typeof getSalesMetrics>
   > | null>(null);

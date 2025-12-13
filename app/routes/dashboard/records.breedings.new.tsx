@@ -6,7 +6,7 @@ import { translations } from "~/i18n/translations";
 import { ROUTES } from "~/routes.config";
 import { addBreeding } from "~/services/breedings.service";
 import type { BreedingFormData, BreedingMethod, Animal } from "~/types";
-import { mockCompanies } from "~/mocks/companies";
+import { useAuth } from "~/contexts/auth-context";
 import { useBreedingForm } from "~/hooks/use-breeding-form";
 import { useAnimalSearch } from "~/hooks/use-animal-search";
 import { useAlert } from "~/hooks/use-alert";
@@ -37,8 +37,8 @@ export default function NewBreeding() {
   const t = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const company = mockCompanies[0];
-  const companyId = company?.id || "";
+  const { currentUser } = useAuth();
+  const companyId = currentUser?.companyId || "";
 
   const preSelectedAnimalIds = useMemo(() => {
     const state = location.state as { animalIds?: string[] } | null;

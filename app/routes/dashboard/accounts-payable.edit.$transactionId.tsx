@@ -14,7 +14,9 @@ export default createFinanceEditRoute<AccountsPayableFormData>({
   mapToFormData: mapAccountsPayableToFormData as <T>(
     transaction: T
   ) => Partial<AccountsPayableFormData> | undefined,
-  updateTransaction: updateAccountsPayable,
+  updateTransaction: async (id: string, data: Partial<AccountsPayableFormData>) => {
+    await updateAccountsPayable(id, data);
+  },
   backRoute: ROUTES.ACCOUNTS_PAYABLE,
   viewRoute: getAccountsPayableViewRoute,
   getTranslationKeys: (t) => ({

@@ -17,6 +17,19 @@ import {
   unconfirmMostRecentBreedingForAnimal,
 } from "../breedings.service";
 
+vi.mock("../api-client", async () => {
+  const actual = await vi.importActual("../api-client");
+  return {
+    ...actual,
+    apiClient: {
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
+    },
+  };
+});
+
 vi.mock("~/mocks/breedings", () => ({
   mockBreedings: [
     {
@@ -27,6 +40,8 @@ vi.mock("~/mocks/breedings", () => ({
       method: "artificial_insemination",
       confirmed: true,
       attemptNumber: 1,
+      employeeIds: [],
+      serviceProviderIds: [],
     },
     {
       id: "breeding-2",
@@ -36,6 +51,8 @@ vi.mock("~/mocks/breedings", () => ({
       method: "artificial_insemination",
       confirmed: false,
       attemptNumber: 2,
+      employeeIds: [],
+      serviceProviderIds: [],
     },
     {
       id: "breeding-3",
@@ -44,6 +61,8 @@ vi.mock("~/mocks/breedings", () => ({
       date: "2024-01-20",
       method: "natural",
       confirmed: true,
+      employeeIds: [],
+      serviceProviderIds: [],
     },
   ],
 }));
@@ -81,34 +100,48 @@ vi.mock("../births.service", () => ({
 import { mockBreedings } from "~/mocks/breedings";
 import { getAnimalById, getAnimalsByPropertyId } from "../animals.service";
 import { getBirthByAnimalId } from "../births.service";
+import { apiClient } from "../api-client";
 
 describe("breedings.service", () => {
+  const mockGet = apiClient.get as ReturnType<typeof vi.fn>;
+  const mockPost = apiClient.post as ReturnType<typeof vi.fn>;
+  const mockPut = apiClient.put as ReturnType<typeof vi.fn>;
+  const mockDelete = apiClient.delete as ReturnType<typeof vi.fn>;
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   describe("getBreedingById", () => {
-    it("should find breeding by id", () => {
-      const result = getBreedingById("breeding-1");
+    it("should find breeding by id", async () => {
+      mockGet.mockResolvedValue(mockBreedings[0]);
+      const result = await getBreedingById("breeding-1");
+      expect(mockGet).toHaveBeenCalledWith("/breedings/breeding-1");
       expect(result).toEqual(mockBreedings[0]);
     });
 
-    it("should return undefined when not found", () => {
-      const result = getBreedingById("nonexistent");
+    it("should return undefined when not found", async () => {
+      mockGet.mockRejectedValue(new Error("Not Found"));
+      const result = await getBreedingById("nonexistent");
       expect(result).toBeUndefined();
     });
   });
 
   describe("getBreedingsByAnimalId", () => {
-    it("should find breedings by animal id", () => {
-      const result = getBreedingsByAnimalId("animal-1");
+    it("should find breedings by animal id", async () => {
+      const animalBreedings = mockBreedings.filter((b) => b.animalId === "animal-1");
+      mockGet.mockResolvedValue(animalBreedings);
+      const result = await getBreedingsByAnimalId("animal-1");
+      expect(mockGet).toHaveBeenCalledWith("/breedings/animal/animal-1");
       expect(result).toHaveLength(2);
     });
   });
 
   describe("getBreedingsByCompanyId", () => {
-    it("should find breedings by company id", () => {
-      const result = getBreedingsByCompanyId("company-1");
+    it("should find breedings by company id", async () => {
+      mockGet.mockResolvedValue(mockBreedings);
+      const result = await getBreedingsByCompanyId("company-1");
+      expect(mockGet).toHaveBeenCalledWith("/breedings");
       expect(result).toHaveLength(3);
     });
   });
@@ -117,9 +150,10 @@ describe("breedings.service", () => {
     it("should find breedings by property id", async () => {
       const mockGetAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
       mockGetAnimals.mockResolvedValue([
-        { id: "animal-1", code: "001", name: "Animal 1" },
-        { id: "animal-2", code: "002", name: "Animal 2" },
+        { id: "animal-1", code: "001", name: "Animal 1", companyId: "company-1" },
+        { id: "animal-2", code: "002", name: "Animal 2", companyId: "company-1" },
       ]);
+      mockGet.mockResolvedValue(mockBreedings);
 
       const result = await getBreedingsByPropertyId("property-1");
 
@@ -133,16 +167,21 @@ describe("breedings.service", () => {
     const mockCompanyId = "550e8400-e29b-41d4-a716-446655440000";
 
     it("should return 1 when no previous AI breedings", async () => {
+      mockGet.mockResolvedValue([]); // No breedings for animal-3
       const result = await getNextAttemptNumber("animal-3", mockCompanyId);
       expect(result).toBe(1);
     });
 
     it("should increment from max attempt number", async () => {
+      const animalBreedings = mockBreedings.filter((b) => b.animalId === "animal-1");
+      mockGet.mockResolvedValue(animalBreedings);
       const result = await getNextAttemptNumber("animal-1", mockCompanyId);
       expect(result).toBe(3); // Max is 2, so next is 3
     });
 
     it("should return 1 after birth when no AI breedings after birth", async () => {
+      const animalBreedings = mockBreedings.filter((b) => b.animalId === "animal-1");
+      mockGet.mockResolvedValue(animalBreedings);
       const result = await getNextAttemptNumber("animal-1", mockCompanyId);
       // Has birth on 2023-12-01, breedings after that have max attempt 2
       expect(result).toBeGreaterThan(1);
@@ -150,40 +189,48 @@ describe("breedings.service", () => {
   });
 
   describe("isAnimalPregnant", () => {
-    it("should return true when animal has confirmed breeding", () => {
-      const result = isAnimalPregnant("animal-1");
+    it("should return true when animal has confirmed breeding", async () => {
+      const animalBreedings = mockBreedings.filter((b) => b.animalId === "animal-1");
+      mockGet.mockResolvedValue(animalBreedings);
+      const result = await isAnimalPregnant("animal-1");
       expect(result).toBe(true);
     });
 
-    it("should return false when animal has no confirmed breeding", () => {
-      const result = isAnimalPregnant("animal-3");
+    it("should return false when animal has no confirmed breeding", async () => {
+      mockGet.mockResolvedValue([]);
+      const result = await isAnimalPregnant("animal-3");
       expect(result).toBe(false);
     });
   });
 
   describe("getMostRecentConfirmedBreeding", () => {
-    it("should return most recent confirmed breeding", () => {
-      const result = getMostRecentConfirmedBreeding("animal-1");
+    it("should return most recent confirmed breeding", async () => {
+      const animalBreedings = mockBreedings.filter((b) => b.animalId === "animal-1");
+      mockGet.mockResolvedValue(animalBreedings);
+      const result = await getMostRecentConfirmedBreeding("animal-1");
       expect(result).toEqual(mockBreedings[0]);
     });
 
-    it("should return undefined when no confirmed breedings", () => {
-      const result = getMostRecentConfirmedBreeding("animal-3");
+    it("should return undefined when no confirmed breedings", async () => {
+      mockGet.mockResolvedValue([]);
+      const result = await getMostRecentConfirmedBreeding("animal-3");
       expect(result).toBeUndefined();
     });
   });
 
   describe("getPregnantAnimals", () => {
-    it("should return list of pregnant animal ids", () => {
-      const result = getPregnantAnimals("company-1");
+    it("should return list of pregnant animal ids", async () => {
+      mockGet.mockResolvedValue(mockBreedings);
+      const result = await getPregnantAnimals("company-1");
       expect(result).toContain("animal-1");
       expect(result).toContain("animal-2");
     });
   });
 
   describe("getUnconfirmedBreedings", () => {
-    it("should return unconfirmed breedings", () => {
-      const result = getUnconfirmedBreedings("company-1");
+    it("should return unconfirmed breedings", async () => {
+      mockGet.mockResolvedValue(mockBreedings);
+      const result = await getUnconfirmedBreedings("company-1");
       expect(result).toHaveLength(1);
       expect(result[0].confirmed).toBe(false);
     });
@@ -193,9 +240,10 @@ describe("breedings.service", () => {
     it("should return exposed cows for property", async () => {
       const mockGetAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
       mockGetAnimals.mockResolvedValue([
-        { id: "animal-1", code: "001", name: "Animal 1" },
-        { id: "animal-2", code: "002", name: "Animal 2" },
+        { id: "animal-1", code: "001", name: "Animal 1", companyId: "company-1" },
+        { id: "animal-2", code: "002", name: "Animal 2", companyId: "company-1" },
       ]);
+      mockGet.mockResolvedValue(mockBreedings);
 
       const result = await getBreedingsByPropertyId("property-1");
       const uniqueAnimalIds = new Set(result.map((b) => b.animalId));
@@ -209,9 +257,10 @@ describe("breedings.service", () => {
     it("should return pregnant cows for property", async () => {
       const mockGetAnimals = getAnimalsByPropertyId as ReturnType<typeof vi.fn>;
       mockGetAnimals.mockResolvedValue([
-        { id: "animal-1", code: "001", name: "Animal 1" },
-        { id: "animal-2", code: "002", name: "Animal 2" },
+        { id: "animal-1", code: "001", name: "Animal 1", companyId: "company-1" },
+        { id: "animal-2", code: "002", name: "Animal 2", companyId: "company-1" },
       ]);
+      mockGet.mockResolvedValue(mockBreedings);
 
       const result = await getBreedingsByPropertyId("property-1");
       const confirmedBreedings = result.filter((b) => b.confirmed === true);
@@ -223,15 +272,16 @@ describe("breedings.service", () => {
   });
 
   describe("confirmBreeding", () => {
-    it("should confirm breeding", () => {
-      const result = confirmBreeding("breeding-2");
+    it("should confirm breeding", async () => {
+      mockPut.mockResolvedValue({});
+      const result = await confirmBreeding("breeding-2");
+      expect(mockPut).toHaveBeenCalledWith("/breedings/breeding-2/confirm", {});
       expect(result).toBe(true);
-      expect(mockBreedings[1].confirmed).toBe(true);
     });
   });
 
   describe("addBreeding", () => {
-    it("should create new breeding", () => {
+    it("should create new breeding", async () => {
       const formData = {
         animalId: "animal-3",
         companyId: "company-1",
@@ -243,31 +293,52 @@ describe("breedings.service", () => {
         serviceProviderIds: [],
       };
 
-      const result = addBreeding(formData);
+      const newBreeding = {
+        id: "breeding-4",
+        ...formData,
+        createdAt: "2024-03-01T00:00:00Z",
+      };
+      mockPost.mockResolvedValue(newBreeding);
 
+      const result = await addBreeding(formData);
+
+      expect(mockPost).toHaveBeenCalledWith(
+        "/breedings",
+        expect.objectContaining({
+          animalId: "animal-3",
+          date: "2024-03-01",
+          method: "artificial_insemination",
+          confirmed: false,
+        })
+      );
       expect(result.id).toBeDefined();
       expect(result.animalId).toBe("animal-3");
-      expect(mockBreedings).toContain(result);
     });
   });
 
   describe("updateBreeding", () => {
-    it("should update breeding", () => {
+    it("should update breeding", async () => {
       const updateData = { confirmed: true };
-      const result = updateBreeding("breeding-2", updateData);
+      const updatedBreeding = { ...mockBreedings[1], confirmed: true };
+      mockPut.mockResolvedValue(updatedBreeding);
 
-      expect(result).toBe(true);
-      expect(mockBreedings[1].confirmed).toBe(true);
+      const result = await updateBreeding("breeding-2", updateData);
+
+      expect(mockPut).toHaveBeenCalledWith(
+        "/breedings/breeding-2",
+        expect.objectContaining({
+          confirmed: true,
+        })
+      );
+      expect(result.confirmed).toBe(true);
     });
   });
 
   describe("deleteBreeding", () => {
-    it("should delete breeding", () => {
-      const initialLength = mockBreedings.length;
-      const result = deleteBreeding("breeding-1");
-
-      expect(result).toBe(true);
-      expect(mockBreedings).toHaveLength(initialLength - 1);
+    it("should delete breeding", async () => {
+      mockDelete.mockResolvedValue({});
+      await deleteBreeding("breeding-1");
+      expect(mockDelete).toHaveBeenCalledWith("/breedings/breeding-1");
     });
   });
 
@@ -315,13 +386,19 @@ describe("breedings.service", () => {
   });
 
   describe("unconfirmMostRecentBreedingForAnimal", () => {
-    it("should unconfirm most recent breeding", () => {
-      const result = unconfirmMostRecentBreedingForAnimal("animal-1");
+    it("should unconfirm most recent breeding", async () => {
+      const animalBreedings = mockBreedings.filter((b) => b.animalId === "animal-1");
+      mockGet.mockResolvedValue(animalBreedings);
+      const updatedBreeding = { ...mockBreedings[0], confirmed: false };
+      mockPut.mockResolvedValue(updatedBreeding);
+
+      const result = await unconfirmMostRecentBreedingForAnimal("animal-1");
       expect(result).toBe(true);
     });
 
-    it("should return false when no confirmed breeding", () => {
-      const result = unconfirmMostRecentBreedingForAnimal("animal-3");
+    it("should return false when no confirmed breeding", async () => {
+      mockGet.mockResolvedValue([]);
+      const result = await unconfirmMostRecentBreedingForAnimal("animal-3");
       expect(result).toBe(false);
     });
   });

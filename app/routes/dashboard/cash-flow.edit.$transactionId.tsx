@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useTranslation } from "~/i18n";
 import { ROUTES, getCashFlowViewRoute } from "~/routes.config";
@@ -23,27 +23,38 @@ export default function EditCashFlow() {
   const t = useTranslation();
   const navigate = useNavigate();
   const { transactionId } = useParams<{ transactionId: string }>();
-  const transaction = getCashFlowById(transactionId);
+  const [initialData, setInitialData] = useState<Partial<CashFlowFormData> | undefined>(undefined);
 
-  const initialData = useMemo(() => {
-    if (!transaction) return undefined;
-    return {
-      type: transaction.type,
-      amount: transaction.amount.toString(),
-      date: transaction.date,
-      description: transaction.description,
-      category: transaction.category,
-      paymentMethod: transaction.paymentMethod,
-      supplierId: transaction.supplierId || "",
-      buyerId: transaction.buyerId || "",
-      employeeId: transaction.employeeId || "",
-      serviceProviderId: transaction.serviceProviderId || "",
-      paymentDate: transaction.paymentDate || "",
-      referenceNumber: transaction.referenceNumber || "",
-      bankAccountId: transaction.bankAccountId || "",
-      propertyId: transaction.propertyId,
+  useEffect(() => {
+    const loadTransaction = async () => {
+      if (transactionId) {
+        try {
+          const transactionData = await getCashFlowById(transactionId);
+          if (transactionData) {
+            setInitialData({
+              type: transactionData.type,
+              amount: transactionData.amount,
+              date: transactionData.date,
+              description: transactionData.description,
+              category: transactionData.category,
+              paymentMethod: transactionData.paymentMethod,
+              supplierId: transactionData.supplierId || "",
+              buyerId: transactionData.buyerId || "",
+              employeeId: transactionData.employeeId || "",
+              serviceProviderId: transactionData.serviceProviderId || "",
+              paymentDate: transactionData.paymentDate || "",
+              referenceNumber: transactionData.referenceNumber || "",
+              bankAccountId: transactionData.bankAccountId || "",
+              propertyId: transactionData.propertyId,
+            });
+          }
+        } catch (error) {
+          console.error("Failed to load transaction:", error);
+        }
+      }
     };
-  }, [transaction]);
+    loadTransaction();
+  }, [transactionId]);
 
   return (
     <FinanceTransactionFormPage
@@ -56,7 +67,7 @@ export default function EditCashFlow() {
       backRoute={ROUTES.CASH_FLOW}
       viewRoute={getCashFlowViewRoute}
       transactionId={transactionId}
-      initialData={initialData as Partial<CashFlowFormData> | undefined}
+      initialData={initialData}
       translationKeys={{
         descriptionLabel: t.cashFlow.edit.descriptionLabel,
         amountLabel: t.cashFlow.edit.amountLabel,
@@ -64,9 +75,9 @@ export default function EditCashFlow() {
         propertyLabel: t.cashFlow.edit.propertyLabel,
       }}
       onSubmit={
-        ((data: CashFlowFormData) => {
+        (async (data: CashFlowFormData) => {
           if (!transactionId) return;
-          updateCashFlow(transactionId, {
+          await updateCashFlow(transactionId, {
             type: data.type,
             amount: data.amount,
             date: data.date,
@@ -82,7 +93,7 @@ export default function EditCashFlow() {
             bankAccountId: data.bankAccountId,
             propertyId: data.propertyId,
           });
-        }) as (data: FinanceTransactionFormData) => void | { id: string }
+        }) as (data: FinanceTransactionFormData) => Promise<void | { id: string }>
       }
       onSuccess={() => {
         setTimeout(() => {

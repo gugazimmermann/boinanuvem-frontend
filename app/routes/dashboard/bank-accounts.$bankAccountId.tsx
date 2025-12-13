@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
 import { formatDate } from "~/utils/formatting";
 import {
@@ -23,11 +23,11 @@ import {
 } from "~/routes.config";
 import { getBankAccountById } from "~/services/bank-account.service";
 import { getCashFlowByBankAccountId, deleteCashFlow } from "~/services/cash-flow.service";
+import type { BankAccount, Supplier, Buyer, Property, CashFlow } from "~/types";
 import { getProperties } from "~/services/properties.service";
 import { getSuppliers } from "~/services/suppliers.service";
 import { getBuyers } from "~/services/buyers.service";
 import { renderEntityName } from "~/utils/entity-name-renderer";
-import type { Supplier, Buyer, Property, CashFlow } from "~/types";
 import { sortItems } from "~/utils/table-helpers";
 import { DetailPageEmptyState } from "~/utils/detail-page-helpers";
 
@@ -52,14 +52,24 @@ export default function BankAccountDetails() {
   const t = useTranslation();
   const { language } = useLanguage();
   const { canEdit } = usePermissions();
-  const bankAccount = getBankAccountById(bankAccountId);
-  const initialTransactions = useMemo(() => {
-    if (bankAccountId) {
-      return getCashFlowByBankAccountId(bankAccountId);
-    }
-    return [];
+  const [bankAccount, setBankAccount] = useState<BankAccount | undefined>(undefined);
+  const [allTransactions, setAllTransactions] = useState<CashFlow[]>([]);
+
+  useEffect(() => {
+    const loadBankAccount = async () => {
+      if (bankAccountId) {
+        try {
+          const accountData = await getBankAccountById(bankAccountId);
+          setBankAccount(accountData);
+          const transactions = await getCashFlowByBankAccountId(bankAccountId);
+          setAllTransactions(transactions);
+        } catch (error) {
+          console.error("Failed to load bank account:", error);
+        }
+      }
+    };
+    loadBankAccount();
   }, [bankAccountId]);
-  const [allTransactions, setAllTransactions] = useState<CashFlow[]>(initialTransactions);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [buyers, setBuyers] = useState<Buyer[]>([]);
   const [properties, setProperties] = useState<Map<string, Property>>(new Map());
@@ -105,9 +115,11 @@ export default function BankAccountDetails() {
 
   const handleDeleteTransaction = async () => {
     if (!selectedTransaction) return;
-    const success = deleteCashFlow(selectedTransaction.id);
-    if (success) {
+    try {
+      await deleteCashFlow(selectedTransaction.id);
       setAllTransactions(allTransactions.filter((t) => t.id !== selectedTransaction.id));
+    } catch (error) {
+      console.error("Failed to delete transaction:", error);
     }
     setSelectedTransaction(null);
     setIsDeleteModalOpen(false);

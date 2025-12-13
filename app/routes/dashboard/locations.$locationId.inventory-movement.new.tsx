@@ -23,7 +23,7 @@ import type {
   ServiceProvider,
 } from "~/types";
 import { InventoryMovementType } from "~/types";
-import { mockCompanies } from "~/mocks/companies";
+import { useAuth } from "~/contexts/auth-context";
 import { getUnitLabel } from "~/utils/inventory-utils";
 import { useInventoryMovementForm } from "~/hooks/use-inventory-movement-form";
 
@@ -52,8 +52,8 @@ export default function NewLocationInventoryMovement() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [serviceProviders, setServiceProviders] = useState<ServiceProvider[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const company = mockCompanies[0];
-  const companyId = company?.id || "";
+  const { currentUser } = useAuth();
+  const companyId = currentUser?.companyId || "";
 
   useEffect(() => {
     const fetchData = async () => {
@@ -72,7 +72,7 @@ export default function NewLocationInventoryMovement() {
           setProperty(propertyData);
 
           if (propertyData) {
-            const items = getInventoryItemsByPropertyId(propertyData.id);
+            const items = await getInventoryItemsByPropertyId(propertyData.id);
             setInventoryItems(items);
 
             // Fetch employees and service providers and filter by property

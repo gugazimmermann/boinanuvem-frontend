@@ -12,8 +12,8 @@ import {
   deleteAnimalMovement,
 } from "../animal-movements.service";
 
-vi.mock("~/mocks/animal-movements", () => ({
-  mockAnimalMovements: [
+const { mockAnimalMovements } = vi.hoisted(() => {
+  const mockAnimalMovements = [
     {
       id: "movement-1",
       animalIds: ["animal-1", "animal-2"],
@@ -33,14 +33,17 @@ vi.mock("~/mocks/animal-movements", () => ({
       employeeIds: ["employee-2"],
       date: "2024-02-15",
     },
-  ],
+  ];
+  return { mockAnimalMovements };
+});
+
+vi.mock("~/mocks/animal-movements", () => ({
+  mockAnimalMovements,
 }));
 
 vi.mock("~/utils/uuid", () => ({
   generateUUID: vi.fn(() => "generated-uuid"),
 }));
-
-import { mockAnimalMovements } from "~/mocks/animal-movements";
 
 describe("animal-movements.service", () => {
   beforeEach(() => {

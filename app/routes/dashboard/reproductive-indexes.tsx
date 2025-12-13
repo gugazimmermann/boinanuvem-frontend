@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "~/i18n";
 import { translations } from "~/i18n/translations";
-import { mockCompanies } from "~/mocks/companies";
+import { useAuth } from "~/contexts/auth-context";
 import { getProperties } from "~/services/properties.service";
 import type { Property } from "~/types";
 import { ReproductiveIndexes } from "~/components/dashboard/reproductive-indexes/reproductive-indexes";
@@ -225,22 +225,23 @@ export default function ReproductiveIndexesPage() {
   const isDark = theme === "dark";
   const chartColors = getChartColors(isDark);
   const tooltipStyle = getTooltipStyle(isDark);
-  const company = mockCompanies[0];
+  const { currentUser } = useAuth();
+  const companyId = currentUser?.companyId || "";
   const [properties, setProperties] = useState<Property[]>([]);
 
   useEffect(() => {
     const fetchProperties = async () => {
-      if (company) {
+      if (companyId) {
         try {
           const propertiesData = await getProperties();
-          setProperties(propertiesData.filter((prop) => prop.companyId === company.id));
+          setProperties(propertiesData.filter((prop) => prop.companyId === companyId));
         } catch (error) {
           console.error("Failed to load properties:", error);
         }
       }
     };
     fetchProperties();
-  }, [company]);
+  }, [companyId]);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>(
     properties.length > 0 ? ALL_PROPERTIES_ID : ""
   );
@@ -313,8 +314,8 @@ export default function ReproductiveIndexesPage() {
     const loadExpectedBirthsForecast = async () => {
       try {
         let forecast: Awaited<ReturnType<typeof getExpectedBirthsForecast>>;
-        if (selectedPropertyId === ALL_PROPERTIES_ID && company) {
-          forecast = await getExpectedBirthsForecast(company.id, {
+        if (selectedPropertyId === ALL_PROPERTIES_ID && companyId) {
+          forecast = await getExpectedBirthsForecast(companyId, {
             isPropertyId: false,
             monthsAhead: 9,
           });
@@ -333,7 +334,7 @@ export default function ReproductiveIndexesPage() {
       }
     };
     loadExpectedBirthsForecast();
-  }, [selectedPropertyId, company]);
+  }, [selectedPropertyId, companyId]);
 
   const expectedBirthsData = useMemo(() => {
     if (!expectedBirthsForecast?.monthly || expectedBirthsForecast.monthly.length === 0) return [];

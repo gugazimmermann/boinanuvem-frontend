@@ -11,7 +11,7 @@ import {
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
 import { translations } from "~/i18n/translations";
-import { mockCompanies } from "~/mocks/companies";
+import { useAuth } from "~/contexts/auth-context";
 import {
   getUnconfirmedBreedings,
   confirmBreeding,
@@ -25,7 +25,7 @@ import { AnimalCodeDisplay } from "~/components/dashboard/breedings/animal-code-
 import { BreedingMethodBadge } from "~/components/dashboard/breedings/breeding-method-badge";
 import { formatBreedingDate } from "~/utils/breeding";
 import { getProperties } from "~/services/properties.service";
-import type { Property } from "~/types";
+import type { Property, Breeding } from "~/types";
 import { getAnimalViewRoute } from "~/routes.config";
 import { getStringValue } from "~/utils/string-helpers";
 
@@ -49,8 +49,8 @@ export default function UnconfirmedBreedings() {
   const t = useTranslation();
   const { language } = useLanguage();
   const navigate = useNavigate();
-  const company = mockCompanies[0];
-  const companyId = company?.id || "";
+  const { currentUser } = useAuth();
+  const companyId = currentUser?.companyId || "";
 
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -59,23 +59,38 @@ export default function UnconfirmedBreedings() {
 
   useEffect(() => {
     const fetchProperties = async () => {
-      if (company) {
+      if (companyId) {
         try {
           const propertiesData = await getProperties();
-          setProperties(propertiesData.filter((prop) => prop.companyId === company.id));
+          setProperties(propertiesData.filter((prop) => prop.companyId === companyId));
         } catch (error) {
           console.error("Failed to load properties:", error);
         }
       }
     };
     fetchProperties();
-  }, [company]);
+  }, [companyId]);
 
-  const unconfirmedBreedings = getUnconfirmedBreedings(companyId);
+  const [unconfirmedBreedings, setUnconfirmedBreedings] = useState<Breeding[]>([]);
   const propertiesMap = useMemo(() => new Map(properties.map((p) => [p.id, p])), [properties]);
   const [enrichedBreedings, setEnrichedBreedings] = useState<
     Awaited<ReturnType<typeof enrichBreedingWithAnimalData>>[]
   >([]);
+
+  useEffect(() => {
+    const loadUnconfirmedBreedings = async () => {
+      if (companyId) {
+        try {
+          const breedings = await getUnconfirmedBreedings(companyId);
+          setUnconfirmedBreedings(breedings);
+        } catch (error) {
+          console.error("Failed to load unconfirmed breedings:", error);
+          setUnconfirmedBreedings([]);
+        }
+      }
+    };
+    loadUnconfirmedBreedings();
+  }, [companyId]);
 
   useEffect(() => {
     const loadEnrichedBreedings = async () => {
@@ -148,7 +163,7 @@ export default function UnconfirmedBreedings() {
     if (!selectedBreeding) return;
 
     try {
-      const success = confirmBreeding(selectedBreeding.id);
+      const success = await confirmBreeding(selectedBreeding.id);
       if (success) {
         showAlert(t.breedings.unconfirmed.confirmSuccess, "success");
         setConfirmModalOpen(false);
@@ -166,14 +181,10 @@ export default function UnconfirmedBreedings() {
     if (!selectedBreeding) return;
 
     try {
-      const success = deleteBreeding(selectedBreeding.id);
-      if (success) {
-        showAlert(t.breedings.unconfirmed.deleteSuccess, "success");
-        setDeleteModalOpen(false);
-        setSelectedBreeding(null);
-      } else {
-        showAlert(t.breedings.unconfirmed.deleteError, "error");
-      }
+      await deleteBreeding(selectedBreeding.id);
+      showAlert(t.breedings.unconfirmed.deleteSuccess, "success");
+      setDeleteModalOpen(false);
+      setSelectedBreeding(null);
     } catch (error) {
       console.error("Error deleting breeding:", error);
       showAlert(t.breedings.unconfirmed.deleteError, "error");

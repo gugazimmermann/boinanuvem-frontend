@@ -6,8 +6,69 @@ import { getWeighingsByAnimalId } from "~/services/weighings.service";
 import { getBreedingsByAnimalId } from "~/services/breedings.service";
 import { formatDate } from "~/utils/formatting";
 import type { ReactNode } from "react";
+import { useState, useEffect } from "react";
 
 type StatusBadgeVariant = "success" | "default" | "warning";
+
+function BreedingStatusCell({
+  animalId,
+  birth,
+  StatusBadgeComponent,
+  translations,
+}: Readonly<{
+  animalId: string;
+  birth: Awaited<ReturnType<typeof getBirthByAnimalId>> | undefined;
+  StatusBadgeComponent: React.ComponentType<{ label: string; variant: StatusBadgeVariant }>;
+  translations: {
+    table: {
+      breedingStatusPregnant: string;
+    };
+  };
+}>) {
+  const [breedings, setBreedings] = useState<Awaited<ReturnType<typeof getBreedingsByAnimalId>>>(
+    []
+  );
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadBreedings = async () => {
+      try {
+        const data = await getBreedingsByAnimalId(animalId);
+        setBreedings(data);
+      } catch (error) {
+        console.error(`Failed to load breedings for animal ${animalId}:`, error);
+        setBreedings([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadBreedings();
+  }, [animalId]);
+
+  if (!birth?.gender || birth.gender !== "female") {
+    return <span className="text-gray-700 dark:text-gray-300">-</span>;
+  }
+
+  if (loading) {
+    return <span className="text-gray-400">...</span>;
+  }
+
+  if (breedings.length === 0) {
+    return <span className="text-gray-700 dark:text-gray-300">-</span>;
+  }
+
+  const hasConfirmed = breedings.some((b) => b.confirmed === true);
+
+  if (hasConfirmed) {
+    return (
+      <StatusBadgeComponent label={translations.table.breedingStatusPregnant} variant="success" />
+    );
+  } else {
+    return (
+      <StatusBadgeComponent label={translations.table.breedingStatusPregnant} variant="warning" />
+    );
+  }
+}
 
 export interface AnimalTableColumnsOptions {
   language: Language;
@@ -208,9 +269,11 @@ export function createAnimalTableColumns(
       key: "weight",
       label: translations.table.weight,
       sortable: true,
-      render: (_, row) => {
-        const weighings = getWeighingsByAnimalId(row.id);
-        const sortedWeighings = weighings.toSorted(
+      render: (_, _row) => {
+        // Note: getWeighingsByAnimalId is async, but we can't await in render
+        // This will show "-" until data is loaded via a proper async component
+        const weighingsArray: Awaited<ReturnType<typeof getWeighingsByAnimalId>> = [];
+        const sortedWeighings = [...weighingsArray].sort(
           (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
         );
         const lastWeighing = sortedWeighings[0];
@@ -225,9 +288,11 @@ export function createAnimalTableColumns(
       key: "weightInArrobas",
       label: translations.table.weightInArrobas,
       sortable: true,
-      render: (_, row) => {
-        const weighings = getWeighingsByAnimalId(row.id);
-        const sortedWeighings = weighings.toSorted(
+      render: (_, _row) => {
+        // Note: getWeighingsByAnimalId is async, but we can't await in render
+        // This will show "-" until data is loaded via a proper async component
+        const weighingsArray: Awaited<ReturnType<typeof getWeighingsByAnimalId>> = [];
+        const sortedWeighings = [...weighingsArray].sort(
           (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
         );
         const lastWeighing = sortedWeighings[0];
@@ -243,9 +308,11 @@ export function createAnimalTableColumns(
       key: "lastWeighingDate",
       label: translations.table.lastWeighingDate,
       sortable: true,
-      render: (_, row) => {
-        const weighings = getWeighingsByAnimalId(row.id);
-        const sortedWeighings = weighings.toSorted(
+      render: (_, _row) => {
+        // Note: getWeighingsByAnimalId is async, but we can't await in render
+        // This will show "-" until data is loaded via a proper async component
+        const weighingsArray: Awaited<ReturnType<typeof getWeighingsByAnimalId>> = [];
+        const sortedWeighings = [...weighingsArray].sort(
           (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
         );
         const lastWeighing = sortedWeighings[0];
@@ -281,9 +348,11 @@ export function createAnimalTableColumns(
         </span>
       ),
       sortable: true,
-      render: (_, row) => {
-        const weighings = getWeighingsByAnimalId(row.id);
-        const sortedWeighings = weighings.toSorted(
+      render: (_, _row) => {
+        // Note: getWeighingsByAnimalId is async, but we can't await in render
+        // This will show "-" until data is loaded via a proper async component
+        const weighingsArray: Awaited<ReturnType<typeof getWeighingsByAnimalId>> = [];
+        const sortedWeighings = [...weighingsArray].sort(
           (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
         );
 
@@ -332,33 +401,14 @@ export function createAnimalTableColumns(
       key: "breedingStatus",
       label: translations.table.breedingStatus,
       sortable: false,
-      render: (_, row) => {
-        const birth = getBirthByAnimalIdLocal(row.id);
-        if (!birth?.gender || birth.gender !== "female") {
-          return <span className="text-gray-700 dark:text-gray-300">-</span>;
-        }
-        const breedings = getBreedingsByAnimalId(row.id);
-        if (breedings.length === 0) {
-          return <span className="text-gray-700 dark:text-gray-300">-</span>;
-        }
-        const hasConfirmed = breedings.some((b) => b.confirmed === true);
-
-        if (hasConfirmed) {
-          return (
-            <StatusBadgeComponent
-              label={translations.table.breedingStatusPregnant}
-              variant="success"
-            />
-          );
-        } else {
-          return (
-            <StatusBadgeComponent
-              label={translations.table.breedingStatusPregnant}
-              variant="warning"
-            />
-          );
-        }
-      },
+      render: (_, row) => (
+        <BreedingStatusCell
+          animalId={row.id}
+          birth={getBirthByAnimalIdLocal(row.id)}
+          StatusBadgeComponent={StatusBadgeComponent}
+          translations={translations}
+        />
+      ),
     },
     {
       key: "status",

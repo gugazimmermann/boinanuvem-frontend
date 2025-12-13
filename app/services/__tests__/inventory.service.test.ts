@@ -15,6 +15,19 @@ import {
 } from "../inventory.service";
 import { InventoryItemCategory } from "~/types";
 
+vi.mock("../api-client", async () => {
+  const actual = await vi.importActual("../api-client");
+  return {
+    ...actual,
+    apiClient: {
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
+    },
+  };
+});
+
 vi.mock("~/mocks/inventory", () => ({
   mockInventoryItems: [
     {
@@ -68,84 +81,104 @@ vi.mock("../inventory-movements.service", () => ({
 
 import { mockInventoryItems } from "~/mocks/inventory";
 import { getMovementsByItemId } from "../inventory-movements.service";
+import { apiClient } from "../api-client";
 
 describe("inventory.service", () => {
+  const mockGet = apiClient.get as ReturnType<typeof vi.fn>;
+  const mockPost = apiClient.post as ReturnType<typeof vi.fn>;
+  const mockPut = apiClient.put as ReturnType<typeof vi.fn>;
+  const mockDelete = apiClient.delete as ReturnType<typeof vi.fn>;
+
   beforeEach(() => {
     vi.clearAllMocks();
     clearInventoryCache();
   });
 
   describe("getInventoryItemById", () => {
-    it("should find item by id", () => {
-      const result = getInventoryItemById("item-1");
+    it("should find item by id", async () => {
+      mockGet.mockResolvedValue(mockInventoryItems[0]);
+      const result = await getInventoryItemById("item-1");
+      expect(mockGet).toHaveBeenCalledWith("/inventory-items/item-1");
       expect(result).toEqual(mockInventoryItems[0]);
     });
 
-    it("should return undefined when not found", () => {
-      const result = getInventoryItemById("nonexistent");
+    it("should return undefined when not found", async () => {
+      mockGet.mockRejectedValue(new Error("Not Found"));
+      const result = await getInventoryItemById("nonexistent");
       expect(result).toBeUndefined();
     });
 
-    it("should return undefined when id is undefined", () => {
-      const result = getInventoryItemById(undefined);
+    it("should return undefined when id is undefined", async () => {
+      const result = await getInventoryItemById(undefined);
       expect(result).toBeUndefined();
+      expect(mockGet).not.toHaveBeenCalled();
     });
   });
 
   describe("getInventoryItemsByCompanyId", () => {
-    it("should find items by company id", () => {
-      const result = getInventoryItemsByCompanyId("company-1");
+    it("should find items by company id", async () => {
+      mockGet.mockResolvedValue(mockInventoryItems);
+      const result = await getInventoryItemsByCompanyId("company-1");
+      expect(mockGet).toHaveBeenCalledWith("/inventory-items");
       expect(result).toHaveLength(2);
       expect(result[0]).toEqual(mockInventoryItems[0]);
     });
 
-    it("should return empty array when no matches", () => {
-      const result = getInventoryItemsByCompanyId("nonexistent");
+    it("should return empty array when no matches", async () => {
+      mockGet.mockRejectedValue(new Error("Not Found"));
+      const result = await getInventoryItemsByCompanyId("nonexistent");
       expect(result).toEqual([]);
     });
   });
 
   describe("getInventoryItemsByPropertyId", () => {
-    it("should find items by property id", () => {
-      const result = getInventoryItemsByPropertyId("property-1");
+    it("should find items by property id", async () => {
+      mockGet.mockResolvedValue(mockInventoryItems);
+      const result = await getInventoryItemsByPropertyId("property-1");
+      expect(mockGet).toHaveBeenCalledWith("/inventory-items");
       expect(result).toHaveLength(2);
     });
 
-    it("should return empty array when no matches", () => {
-      const result = getInventoryItemsByPropertyId("nonexistent");
+    it("should return empty array when no matches", async () => {
+      mockGet.mockResolvedValue([]);
+      const result = await getInventoryItemsByPropertyId("nonexistent");
       expect(result).toEqual([]);
     });
   });
 
   describe("getInventoryItemsBySupplierId", () => {
-    it("should find items by supplier id", () => {
-      const result = getInventoryItemsBySupplierId("supplier-1");
+    it("should find items by supplier id", async () => {
+      mockGet.mockResolvedValue(mockInventoryItems);
+      const result = await getInventoryItemsBySupplierId("supplier-1");
+      expect(mockGet).toHaveBeenCalledWith("/inventory-items");
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual(mockInventoryItems[0]);
     });
   });
 
   describe("getInventoryItemsByCategory", () => {
-    it("should find items by category", () => {
-      const result = getInventoryItemsByCategory("feed", "company-1");
+    it("should find items by category", async () => {
+      mockGet.mockResolvedValue(mockInventoryItems);
+      const result = await getInventoryItemsByCategory("feed", "company-1");
+      expect(mockGet).toHaveBeenCalledWith("/inventory-items");
       expect(result).toHaveLength(1);
       expect(result[0].category).toBe("feed");
     });
   });
 
   describe("getCurrentStock", () => {
-    it("should calculate current stock from movements", () => {
-      const result = getCurrentStock("item-1");
+    it("should calculate current stock from movements", async () => {
+      const result = await getCurrentStock("item-1");
       // 20 (purchase) - 5 (consumption) = 15
       expect(result).toBe(15);
     });
 
-    it("should calculate stock for specific property", () => {
-      const result = getCurrentStock("item-1", "property-1");
+    it("should calculate stock for specific property", async () => {
+      const result = await getCurrentStock("item-1", "property-1");
       expect(result).toBe(15);
     });
 
-    it("should return 0 for negative stock", () => {
+    it("should return 0 for negative stock", async () => {
       const getMovements = getMovementsByItemId as ReturnType<typeof vi.fn>;
       getMovements.mockReturnValueOnce([
         {
@@ -158,22 +191,23 @@ describe("inventory.service", () => {
         },
       ]);
 
-      const result = getCurrentStock("item-1");
+      const result = await getCurrentStock("item-1");
       expect(result).toBe(0);
     });
 
-    it("should use cache for subsequent calls", () => {
-      getCurrentStock("item-1");
+    it("should use cache for subsequent calls", async () => {
+      await getCurrentStock("item-1");
       const getMovements = getMovementsByItemId as ReturnType<typeof vi.fn>;
       vi.clearAllMocks();
 
-      getCurrentStock("item-1");
+      await getCurrentStock("item-1");
       expect(getMovements).not.toHaveBeenCalled();
     });
   });
 
   describe("getLowStockItems", () => {
-    it("should find items below minimum stock", () => {
+    it("should find items below minimum stock", async () => {
+      mockGet.mockResolvedValue(mockInventoryItems);
       const getMovements = getMovementsByItemId as ReturnType<typeof vi.fn>;
       getMovements.mockReturnValueOnce([
         {
@@ -186,46 +220,49 @@ describe("inventory.service", () => {
         },
       ]);
 
-      const result = getLowStockItems("company-1");
+      const result = await getLowStockItems("company-1");
       expect(result.length).toBeGreaterThan(0);
     });
 
-    it("should use cache", () => {
-      getLowStockItems("company-1");
+    it("should use cache", async () => {
+      mockGet.mockResolvedValue(mockInventoryItems);
+      await getLowStockItems("company-1");
       vi.clearAllMocks();
 
-      getLowStockItems("company-1");
+      await getLowStockItems("company-1");
       // Should use cache, so getMovements might not be called for all items
     });
   });
 
   describe("getExpiringItems", () => {
-    it("should find items expiring within threshold", () => {
-      const result = getExpiringItems("company-1", 365);
+    it("should find items expiring within threshold", async () => {
+      mockGet.mockResolvedValue(mockInventoryItems);
+      const result = await getExpiringItems("company-1", 365);
       expect(result.length).toBeGreaterThan(0);
     });
 
-    it("should not include items without expiration", () => {
-      const result = getExpiringItems("company-1", 30);
+    it("should not include items without expiration", async () => {
+      mockGet.mockResolvedValue(mockInventoryItems);
+      const result = await getExpiringItems("company-1", 30);
       const itemsWithoutExpiration = result.filter((item) => !item.hasExpiration);
       expect(itemsWithoutExpiration).toHaveLength(0);
     });
   });
 
   describe("clearInventoryCache", () => {
-    it("should clear stock cache", () => {
-      getCurrentStock("item-1");
+    it("should clear stock cache", async () => {
+      await getCurrentStock("item-1");
       clearInventoryCache();
       const getMovements = getMovementsByItemId as ReturnType<typeof vi.fn>;
       vi.clearAllMocks();
 
-      getCurrentStock("item-1");
+      await getCurrentStock("item-1");
       expect(getMovements).toHaveBeenCalled();
     });
   });
 
   describe("addInventoryItem", () => {
-    it("should create new item and clear cache", () => {
+    it("should create new item and clear cache", async () => {
       const formData = {
         code: "003",
         name: "New Item",
@@ -238,41 +275,60 @@ describe("inventory.service", () => {
         unit: "kg",
       };
 
-      const result = addInventoryItem(formData);
+      const newItem = {
+        id: "item-3",
+        ...formData,
+        createdAt: "2024-01-01T00:00:00Z",
+      };
+      mockPost.mockResolvedValue(newItem);
 
+      const result = await addInventoryItem(formData);
+
+      expect(mockPost).toHaveBeenCalledWith(
+        "/inventory-items",
+        expect.objectContaining({
+          code: "003",
+          name: "New Item",
+        })
+      );
       expect(result.id).toBeDefined();
       expect(result.code).toBe("003");
-      expect(mockInventoryItems).toContain(result);
     });
   });
 
   describe("updateInventoryItem", () => {
-    it("should update item and clear cache", () => {
+    it("should update item and clear cache", async () => {
       const updateData = { name: "Updated Item" };
-      const result = updateInventoryItem("item-1", updateData);
+      const updatedItem = { ...mockInventoryItems[0], name: "Updated Item" };
+      mockPut.mockResolvedValue(updatedItem);
 
-      expect(result).toBe(true);
-      expect(mockInventoryItems[0].name).toBe("Updated Item");
+      const result = await updateInventoryItem("item-1", updateData);
+
+      expect(mockPut).toHaveBeenCalledWith(
+        "/inventory-items/item-1",
+        expect.objectContaining({
+          name: "Updated Item",
+        })
+      );
+      expect(result.name).toBe("Updated Item");
     });
 
-    it("should return false when item not found", () => {
-      const result = updateInventoryItem("nonexistent", { name: "Updated" });
-      expect(result).toBe(false);
+    it("should handle error when item not found", async () => {
+      mockPut.mockRejectedValue(new Error("Not Found"));
+      await expect(updateInventoryItem("nonexistent", { name: "Updated" })).rejects.toThrow();
     });
   });
 
   describe("deleteInventoryItem", () => {
-    it("should delete item and clear cache", () => {
-      const initialLength = mockInventoryItems.length;
-      const result = deleteInventoryItem("item-1");
-
-      expect(result).toBe(true);
-      expect(mockInventoryItems).toHaveLength(initialLength - 1);
+    it("should delete item and clear cache", async () => {
+      mockDelete.mockResolvedValue({});
+      await deleteInventoryItem("item-1");
+      expect(mockDelete).toHaveBeenCalledWith("/inventory-items/item-1");
     });
 
-    it("should return false when item not found", () => {
-      const result = deleteInventoryItem("nonexistent");
-      expect(result).toBe(false);
+    it("should handle error when item not found", async () => {
+      mockDelete.mockRejectedValue(new Error("Not Found"));
+      await expect(deleteInventoryItem("nonexistent")).rejects.toThrow();
     });
   });
 });

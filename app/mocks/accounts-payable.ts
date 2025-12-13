@@ -2,7 +2,6 @@ import type { AccountsPayable, AccountsPayableFormData } from "~/types";
 import { AccountsPayableStatus, PaymentMethod, CashFlowCategory } from "~/types";
 import { mockBankAccounts } from "./bank-accounts";
 import { mockEmployees } from "./employees";
-import { mockServiceProviders } from "./service-providers";
 import { mockProperties } from "./properties";
 
 export type { AccountsPayable, AccountsPayableFormData };
@@ -85,7 +84,6 @@ const accountsPayableTransactions: AccountsPayable[] = [
     category: CashFlowCategory.MEDICINES,
     paymentMethod: PaymentMethod.PIX,
     bankAccountId: BANK_ACCOUNT_BRADESCO,
-    serviceProviderId: mockServiceProviders[0].id,
     status: AccountsPayableStatus.PAID,
     paidDate: "2025-11-08",
     paidAmount: 3200.0,
@@ -172,7 +170,6 @@ const accountsPayableTransactions: AccountsPayable[] = [
   {
     id: "ap0e8400-e29b-41d4-a716-446655440019",
     companyId: COMPANY_ID,
-    serviceProviderId: mockServiceProviders[1].id,
     amount: 1800.0,
     dueDate: "2025-11-22",
     description: "Consulta veterinária - novembro",
@@ -268,7 +265,6 @@ const accountsPayableTransactions: AccountsPayable[] = [
   {
     id: "ap0e8400-e29b-41d4-a716-446655440023",
     companyId: COMPANY_ID,
-    serviceProviderId: mockServiceProviders[0].id,
     amount: 1500.0,
     dueDate: "2025-10-20",
     description: "Inseminação artificial - outubro",
@@ -352,7 +348,6 @@ const accountsPayableTransactions: AccountsPayable[] = [
   {
     id: "ap0e8400-e29b-41d4-a716-446655440028",
     companyId: COMPANY_ID,
-    serviceProviderId: mockServiceProviders[1].id,
     amount: 1950.0,
     dueDate: "2025-09-22",
     description: "Consulta veterinária - emergência",
@@ -453,7 +448,6 @@ const accountsPayableTransactions: AccountsPayable[] = [
   {
     id: "ap0e8400-e29b-41d4-a716-446655440034",
     companyId: COMPANY_ID,
-    serviceProviderId: mockServiceProviders[0].id,
     amount: 1500.0,
     dueDate: "2025-08-25",
     description: "Inseminação artificial - agosto",

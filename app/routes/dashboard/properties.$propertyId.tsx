@@ -390,22 +390,22 @@ function convertToHectares(value: number, type: AreaType): number {
   }
 }
 
-function calculatePropertyStats(
+async function calculatePropertyStats(
   propertyAnimals: Animal[],
   property: Property,
   animalsCount: number
-): {
+): Promise<{
   totalWeight: number;
   animalUnits: number;
   areaInHectares: number;
   stockingRate: number;
   density: number;
   averageWeight: number;
-} {
-  const calculateTotalWeight = () => {
+}> {
+  const calculateTotalWeight = async () => {
     let totalWeight = 0;
     for (const animal of propertyAnimals) {
-      const weighings = getWeighingsByAnimalId(animal.id);
+      const weighings = await getWeighingsByAnimalId(animal.id);
       if (weighings.length > 0) {
         const sortedWeighings = weighings.toSorted(
           (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
@@ -417,7 +417,7 @@ function calculatePropertyStats(
     return totalWeight;
   };
 
-  const totalWeight = calculateTotalWeight();
+  const totalWeight = await calculateTotalWeight();
   const animalUnits = totalWeight > 0 ? totalWeight / 450 : 0;
   const areaInHectares = convertToHectares(property.area.value, property.area.type);
   const stockingRate = areaInHectares > 0 && animalUnits > 0 ? animalUnits / areaInHectares : 0;
@@ -564,23 +564,38 @@ function filterAnimalsBySearchAndStatus(
 
 // toSafeString is now imported from table-helpers
 
-function sortAnimals(
+async function sortAnimals(
   animals: Animal[],
   sortState: { column: string | null; direction: SortDirection },
   localeForDateTime: string,
   birthsMap: Map<string, Awaited<ReturnType<typeof getBirthByAnimalId>>>
-): Animal[] {
-  return animals.toSorted((a, b) => {
-    if (!sortState.column || !sortState.direction) {
-      return 0;
-    }
+): Promise<Animal[]> {
+  if (!sortState.column || !sortState.direction) {
+    return animals.toSorted((a, b) => {
+      return (
+        new Date(b.acquisitionDate || b.code).getTime() -
+        new Date(a.acquisitionDate || a.code).getTime()
+      );
+    });
+  }
 
-    const aValue = getAnimalSortValue(a, sortState.column, localeForDateTime, birthsMap);
-    const bValue = getAnimalSortValue(b, sortState.column, localeForDateTime, birthsMap);
-    const comparison = compareAnimalSortValues(aValue, bValue, localeForDateTime);
+  const animalsWithSort = await Promise.all(
+    animals.map(async (animal) => {
+      const sortValue = await getAnimalSortValue(
+        animal,
+        sortState.column!,
+        localeForDateTime,
+        birthsMap
+      );
+      return { animal, sortValue };
+    })
+  );
 
+  const sortedAnimalsWithSort = [...animalsWithSort].sort((a, b) => {
+    const comparison = compareAnimalSortValues(a.sortValue, b.sortValue, localeForDateTime);
     return sortState.direction === "asc" ? comparison : -comparison;
   });
+  return sortedAnimalsWithSort.map(({ animal }) => animal);
 }
 
 type PropertyInformationTabProps = Readonly<{
@@ -975,6 +990,8 @@ export default function PropertyDetails() {
   const navigate = useNavigate();
   const t = useTranslation();
   const { language } = useLanguage();
+  const dateLocale = useDateLocale();
+  const localeForDateTime = getLocaleForLanguage(language as string);
   const { canEdit, canRemove, isMainUser } = usePermissions();
   const [searchParams, setSearchParams] = useSearchParams();
   const [property, setProperty] = useState<Property | null>(null);
@@ -1100,15 +1117,70 @@ export default function PropertyDetails() {
     column: string | null;
     direction: SortDirection;
   }>({ column: "code", direction: "asc" });
+  const [sortedAnimals, setSortedAnimals] = useState<Animal[]>([]);
   const [isDeleteAnimalModalOpen, setIsDeleteAnimalModalOpen] = useState(false);
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
   const [selectedAnimals, setSelectedAnimals] = useState<Set<string>>(new Set());
   const [isAnimalRegistrationModalOpen, setIsAnimalRegistrationModalOpen] = useState(false);
 
   // Finance transaction handlers - must be called at component level
-  const cashFlowTransactions = property ? getCashFlowByPropertyId(property.id) : [];
-  const receivableTransactions = property ? getAccountsReceivableByPropertyId(property.id) : [];
-  const payableTransactions = property ? getAccountsPayableByPropertyId(property.id) : [];
+  const [cashFlowTransactions, setCashFlowTransactions] = useState<CashFlow[]>([]);
+  const [receivableTransactions, setReceivableTransactions] = useState<AccountsReceivable[]>([]);
+  const [payableTransactions, setPayableTransactions] = useState<AccountsPayable[]>([]);
+
+  useEffect(() => {
+    const loadFinanceTransactions = async () => {
+      if (property?.id) {
+        try {
+          const [cashFlow, receivable, payable] = await Promise.all([
+            getCashFlowByPropertyId(property.id),
+            getAccountsReceivableByPropertyId(property.id),
+            getAccountsPayableByPropertyId(property.id),
+          ]);
+          setCashFlowTransactions(cashFlow);
+          setReceivableTransactions(receivable);
+          setPayableTransactions(payable);
+        } catch (error) {
+          console.error("Failed to load finance transactions:", error);
+        }
+      }
+    };
+    loadFinanceTransactions();
+  }, [property?.id]);
+
+  // Sort animals asynchronously
+  useEffect(() => {
+    const performSort = async () => {
+      if (animals.length === 0) {
+        setSortedAnimals([]);
+        return;
+      }
+
+      const filteredAnimals = filterAnimalsBySearchAndStatus(
+        animals,
+        animalsSearchValue,
+        animalsActiveFilter,
+        birthsMap
+      );
+
+      const sorted = await sortAnimals(
+        filteredAnimals,
+        animalsSortState,
+        localeForDateTime,
+        birthsMap
+      );
+      setSortedAnimals(sorted);
+    };
+
+    performSort();
+  }, [
+    animals,
+    animalsSearchValue,
+    animalsActiveFilter,
+    animalsSortState,
+    birthsMap,
+    localeForDateTime,
+  ]);
 
   const financeHandlers = useFinanceTransactionHandlers({
     cashFlowTransactions,
@@ -1153,17 +1225,30 @@ export default function PropertyDetails() {
     return calculateNextMonthExpected(expectedBirthsForecast);
   }, [expectedBirthsForecast]);
 
-  const dateLocale = useDateLocale();
-  const localeForDateTime = getLocaleForLanguage(language as string);
-
   const locationsCount = locations.length;
   const allPropertyAnimals = animals;
   const propertyAnimals = allPropertyAnimals.filter((animal) => animal.status === "active");
   const animalsCount = propertyAnimals.length;
 
-  const propertyStats = useMemo(() => {
-    if (!property) return null;
-    return calculatePropertyStats(propertyAnimals, property, animalsCount);
+  const [propertyStats, setPropertyStats] = useState<Awaited<
+    ReturnType<typeof calculatePropertyStats>
+  > | null>(null);
+
+  useEffect(() => {
+    const loadPropertyStats = async () => {
+      if (!property) {
+        setPropertyStats(null);
+        return;
+      }
+      try {
+        const stats = await calculatePropertyStats(propertyAnimals, property, animalsCount);
+        setPropertyStats(stats);
+      } catch (error) {
+        console.error("Failed to calculate property stats:", error);
+        setPropertyStats(null);
+      }
+    };
+    loadPropertyStats();
   }, [propertyAnimals, property, animalsCount]);
 
   const handleDeleteAnimal = useMemo(
@@ -1526,19 +1611,7 @@ export default function PropertyDetails() {
       {activeTab === "animals" &&
         property &&
         (() => {
-          const allAnimals = animals;
-          const filteredAnimals = filterAnimalsBySearchAndStatus(
-            allAnimals,
-            animalsSearchValue,
-            animalsActiveFilter,
-            birthsMap
-          );
-          const sortedAnimals = sortAnimals(
-            filteredAnimals,
-            animalsSortState,
-            localeForDateTime,
-            birthsMap
-          );
+          // Use sortedAnimals from state (computed via useEffect)
 
           const totalPages = Math.ceil(sortedAnimals.length / itemsPerPage);
           const paginatedAnimals = sortedAnimals.slice(
@@ -1632,7 +1705,7 @@ export default function PropertyDetails() {
                 header={{
                   title: t.animals.title,
                   badge: {
-                    label: t.animals.badge.animals(filteredAnimals.length),
+                    label: t.animals.badge.animals(sortedAnimals.length),
                     variant: "primary",
                   },
                   description: t.animals.description,
@@ -1703,7 +1776,7 @@ export default function PropertyDetails() {
                     setSelectedAnimals(stringSet);
                   },
                   getRowId: (row) => row.id,
-                  allData: filteredAnimals,
+                  allData: sortedAnimals,
                 }}
                 emptyState={{
                   title: t.animals.emptyState.title,
@@ -2663,9 +2736,9 @@ export default function PropertyDetails() {
 
               {financeSubTab === "dashboard" && (
                 <FinanceDashboard
-                  cashFlowData={getCashFlowByPropertyId(property.id)}
-                  accountsPayableData={getAccountsPayableByPropertyId(property.id)}
-                  accountsReceivableData={getAccountsReceivableByPropertyId(property.id)}
+                  cashFlowData={cashFlowTransactions}
+                  accountsPayableData={payableTransactions}
+                  accountsReceivableData={receivableTransactions}
                   language={language}
                   gradientId="colorNetProperty"
                 />

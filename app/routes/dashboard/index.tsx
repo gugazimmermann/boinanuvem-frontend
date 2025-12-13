@@ -40,9 +40,11 @@ const ProductionIndexes = lazy(() =>
     default: module.ProductionIndexes,
   }))
 );
-import { mockCompanies } from "~/mocks/companies";
+import { getCompany } from "~/services/companies.service";
 import { getProperties } from "~/services/properties.service";
 import type { Property } from "~/types";
+import { useAuth } from "~/contexts/auth-context";
+import type { EnhancedCompany } from "~/services/companies.service";
 import { useDashboardData } from "~/components/dashboard/hooks/use-dashboard-data";
 import { useMonthlyTrends } from "~/components/dashboard/hooks/use-monthly-trends";
 import { useRecentActivities } from "~/components/dashboard/hooks/use-recent-activities";
@@ -248,27 +250,42 @@ export default function Dashboard() {
   const t = useTranslation();
   const { theme } = useTheme();
   const { language } = useLanguage();
+  const { currentUser } = useAuth();
   const isDark = theme === "dark";
 
   const dateLocale = useMemo(() => getDateLocale(language), [language]);
 
-  const company = mockCompanies[0];
-  const companyId = company?.id || "";
+  const [company, setCompany] = useState<EnhancedCompany | null>(null);
+  const companyId = company?.id || currentUser?.companyId || "";
   const [properties, setProperties] = useState<Property[]>([]);
 
   useEffect(() => {
+    const fetchCompany = async () => {
+      if (currentUser?.companyId) {
+        try {
+          const companyData = await getCompany(currentUser.companyId);
+          setCompany(companyData);
+        } catch (error) {
+          console.error("Failed to load company:", error);
+        }
+      }
+    };
+    fetchCompany();
+  }, [currentUser?.companyId]);
+
+  useEffect(() => {
     const fetchProperties = async () => {
-      if (company) {
+      if (companyId) {
         try {
           const propertiesData = await getProperties();
-          setProperties(propertiesData.filter((prop) => prop.companyId === company.id));
+          setProperties(propertiesData.filter((prop) => prop.companyId === companyId));
         } catch (error) {
           console.error("Failed to load properties:", error);
         }
       }
     };
     fetchProperties();
-  }, [company]);
+  }, [companyId]);
 
   const getDefaultPeriod = () => {
     const today = new Date();

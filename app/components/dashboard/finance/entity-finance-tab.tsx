@@ -19,9 +19,11 @@ import { useAlert } from "~/hooks/use-alert";
 export interface EntityFinanceTabProps {
   readonly entityType: EntityFinanceTransactionType;
   readonly entityId: string;
-  readonly getCashFlowTransactions: (id: string) => CashFlow[];
-  readonly getPayableTransactions?: (id: string) => AccountsPayable[];
-  readonly getReceivableTransactions?: (id: string) => AccountsReceivable[];
+  readonly getCashFlowTransactions: (id: string) => CashFlow[] | Promise<CashFlow[]>;
+  readonly getPayableTransactions?: (id: string) => AccountsPayable[] | Promise<AccountsPayable[]>;
+  readonly getReceivableTransactions?: (
+    id: string
+  ) => AccountsReceivable[] | Promise<AccountsReceivable[]>;
   readonly gradientId?: string;
   readonly showSubTabs?: boolean;
 }
@@ -69,9 +71,34 @@ export function EntityFinanceTab({
     }
   }, [searchParams, showSubTabs]);
 
-  const cashFlowTransactions = getCashFlowTransactions(entityId);
-  const payableTransactions = getPayableTransactions?.(entityId);
-  const receivableTransactions = getReceivableTransactions?.(entityId);
+  const [cashFlowTransactions, setCashFlowTransactions] = useState<CashFlow[]>([]);
+  const [payableTransactions, setPayableTransactions] = useState<AccountsPayable[] | undefined>(
+    undefined
+  );
+  const [receivableTransactions, setReceivableTransactions] = useState<
+    AccountsReceivable[] | undefined
+  >(undefined);
+
+  useEffect(() => {
+    const loadTransactions = async () => {
+      const cashFlowResult = getCashFlowTransactions(entityId);
+      const cashFlow = await Promise.resolve(cashFlowResult);
+      setCashFlowTransactions(cashFlow);
+
+      if (getPayableTransactions) {
+        const payableResult = getPayableTransactions(entityId);
+        const payable = await Promise.resolve(payableResult);
+        setPayableTransactions(payable);
+      }
+
+      if (getReceivableTransactions) {
+        const receivableResult = getReceivableTransactions(entityId);
+        const receivable = await Promise.resolve(receivableResult);
+        setReceivableTransactions(receivable);
+      }
+    };
+    loadTransactions();
+  }, [entityId, getCashFlowTransactions, getPayableTransactions, getReceivableTransactions]);
 
   const {
     financeTransactions,

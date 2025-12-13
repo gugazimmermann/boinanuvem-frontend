@@ -25,10 +25,10 @@ import { addInventoryMovement } from "~/services/inventory-movements.service";
 import { getAnimalMovementsByAnimalId } from "~/services/animal-movements.service";
 import type { WeighingFormData, Weighing, InventoryItem } from "~/types";
 import { InventoryItemCategory, InventoryMovementType } from "~/types";
-import { mockCompanies } from "~/mocks/companies";
 import { useAlert } from "~/hooks/use-alert";
 import { getUnitLabel } from "~/utils/inventory-utils";
 import { useResponsibleEntities } from "~/hooks/use-responsible-entities";
+import { useAuth } from "~/contexts/auth-context";
 
 export async function loader({ request }: { request: Request }) {
   const { createRouteGuard } = await import("~/utils/route-guard");
@@ -48,8 +48,8 @@ export function meta() {
 export default function NewWeighing() {
   const t = useTranslation();
   const navigate = useNavigate();
-  const company = mockCompanies[0];
-  const companyId = company?.id || "";
+  const { currentUser } = useAuth();
+  const companyId = currentUser?.companyId || "";
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -104,6 +104,9 @@ export default function NewWeighing() {
   type WeighingSessionItem = Weighing & { animalCode: string; animalRegistrationNumber: string };
 
   const [sessionWeighings, setSessionWeighings] = useState<WeighingSessionItem[]>([]);
+  const [allWeighingsByAnimal, setAllWeighingsByAnimal] = useState<Map<string, Weighing[]>>(
+    new Map()
+  );
   const [showSessionModal, setShowSessionModal] = useState(false);
   const [sessionSearch, setSessionSearch] = useState("");
   const [sessionCurrentPage, setSessionCurrentPage] = useState(1);
@@ -113,6 +116,22 @@ export default function NewWeighing() {
   }>({ column: null, direction: null });
   const [selectedMedicineId, setSelectedMedicineId] = useState<string>("");
   const itemsPerPage = 20;
+
+  // Pre-load all weighings for animals in the session
+  useEffect(() => {
+    const loadWeighings = async () => {
+      const animalIds = Array.from(new Set(sessionWeighings.map((w) => w.animalId)));
+      const weighingsMap = new Map<string, Weighing[]>();
+      for (const animalId of animalIds) {
+        const weighings = await getWeighingsByAnimalId(animalId);
+        weighingsMap.set(animalId, weighings);
+      }
+      setAllWeighingsByAnimal(weighingsMap);
+    };
+    if (sessionWeighings.length > 0) {
+      loadWeighings();
+    }
+  }, [sessionWeighings]);
 
   const formatResponsibleNames = useCallback(
     (employeeIds: string[], serviceProviderIds: string[]) => {
@@ -145,17 +164,20 @@ export default function NewWeighing() {
     });
   }, [sessionWeighings, sessionSearch, formatResponsibleNames]);
 
-  const getPreviousWeighing = useCallback((weighing: WeighingSessionItem): Weighing | null => {
-    const allWeighings = getWeighingsByAnimalId(weighing.animalId);
-    const sortedWeighings = allWeighings.toSorted(
-      (w1, w2) => new Date(w2.date).getTime() - new Date(w1.date).getTime()
-    );
-    const currentIndex = sortedWeighings.findIndex((w) => w.id === weighing.id);
-    if (currentIndex >= 0 && currentIndex < sortedWeighings.length - 1) {
-      return sortedWeighings[currentIndex + 1];
-    }
-    return null;
-  }, []);
+  const getPreviousWeighing = useCallback(
+    (weighing: WeighingSessionItem): Weighing | null => {
+      const allWeighings = allWeighingsByAnimal.get(weighing.animalId) || [];
+      const sortedWeighings = allWeighings.toSorted(
+        (w1, w2) => new Date(w2.date).getTime() - new Date(w1.date).getTime()
+      );
+      const currentIndex = sortedWeighings.findIndex((w) => w.id === weighing.id);
+      if (currentIndex >= 0 && currentIndex < sortedWeighings.length - 1) {
+        return sortedWeighings[currentIndex + 1];
+      }
+      return null;
+    },
+    [allWeighingsByAnimal]
+  );
 
   const getGmdValue = useCallback(
     (weighing: WeighingSessionItem): number => {
@@ -258,7 +280,7 @@ export default function NewWeighing() {
         label: t.weighings.new.lastWeight,
         sortable: true,
         render: (_value, weighing) => {
-          const allWeighings = getWeighingsByAnimalId(weighing.animalId);
+          const allWeighings = allWeighingsByAnimal.get(weighing.animalId) || [];
           const sortedWeighings = allWeighings.toSorted(
             (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
           );
@@ -283,7 +305,7 @@ export default function NewWeighing() {
         label: t.weighings.new.difference,
         sortable: true,
         render: (_value, weighing) => {
-          const allWeighings = getWeighingsByAnimalId(weighing.animalId);
+          const allWeighings = allWeighingsByAnimal.get(weighing.animalId) || [];
           const sortedWeighings = allWeighings.toSorted(
             (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
           );
@@ -310,7 +332,7 @@ export default function NewWeighing() {
         label: t.weighings.new.gmd,
         sortable: true,
         render: (_value, weighing) => {
-          const allWeighings = getWeighingsByAnimalId(weighing.animalId);
+          const allWeighings = allWeighingsByAnimal.get(weighing.animalId) || [];
           const sortedWeighings = allWeighings.toSorted(
             (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
           );
@@ -363,15 +385,22 @@ export default function NewWeighing() {
         ),
       },
     ],
-    [t, getResponsibleNames]
+    [t, getResponsibleNames, allWeighingsByAnimal]
   );
 
-  const availableMedicines = useMemo(() => {
-    return getInventoryItemsByCategory(InventoryItemCategory.MEDICINES, companyId);
-  }, [companyId]);
+  const [availableMedicines, setAvailableMedicines] = useState<InventoryItem[]>([]);
+  const [availableVaccines, setAvailableVaccines] = useState<InventoryItem[]>([]);
 
-  const availableVaccines = useMemo(() => {
-    return getInventoryItemsByCategory(InventoryItemCategory.VACCINES, companyId);
+  useEffect(() => {
+    const loadMedicinesVaccines = async () => {
+      const [medicines, vaccines] = await Promise.all([
+        getInventoryItemsByCategory(InventoryItemCategory.MEDICINES, companyId),
+        getInventoryItemsByCategory(InventoryItemCategory.VACCINES, companyId),
+      ]);
+      setAvailableMedicines(medicines);
+      setAvailableVaccines(vaccines);
+    };
+    loadMedicinesVaccines();
   }, [companyId]);
 
   const availableMedicinesVaccines = useMemo(() => {
@@ -385,6 +414,46 @@ export default function NewWeighing() {
     locationId: undefined,
     propertyId: undefined,
   });
+
+  const [inventoryItemsMap, setInventoryItemsMap] = useState<Map<string, InventoryItem>>(new Map());
+  const [stockMap, setStockMap] = useState<Map<string, number>>(new Map());
+
+  // Pre-load inventory items for applied medicines
+  useEffect(() => {
+    const loadInventoryItems = async () => {
+      const itemPromises = formData.appliedMedicines.map(async (applied) => {
+        const item = await getInventoryItemById(applied.itemId);
+        return [applied.itemId, item] as [string, InventoryItem | undefined];
+      });
+      const items = await Promise.all(itemPromises);
+      const itemsMap = new Map(
+        items.filter(([, item]) => item !== undefined) as [string, InventoryItem][]
+      );
+      setInventoryItemsMap(itemsMap);
+    };
+    if (formData.appliedMedicines.length > 0) {
+      loadInventoryItems();
+    } else {
+      setInventoryItemsMap(new Map());
+    }
+  }, [formData.appliedMedicines]);
+
+  // Pre-load stock data
+  useEffect(() => {
+    const loadStockData = async () => {
+      if (!animalLocationInfo.propertyId || formData.appliedMedicines.length === 0) {
+        setStockMap(new Map());
+        return;
+      }
+      const stockPromises = formData.appliedMedicines.map(async (applied) => {
+        const stock = await getCurrentStock(applied.itemId, animalLocationInfo.propertyId);
+        return [applied.itemId, stock] as [string, number];
+      });
+      const stocks = await Promise.all(stockPromises);
+      setStockMap(new Map(stocks));
+    };
+    loadStockData();
+  }, [formData.appliedMedicines, animalLocationInfo.propertyId]);
 
   useEffect(() => {
     const loadAnimalLocationInfo = async () => {
@@ -427,14 +496,12 @@ export default function NewWeighing() {
     return 0;
   };
 
-  const handleChange = (field: keyof typeof formData, value: string | string[]) => {
-    setFormData((prev) => {
-      const newData = { ...prev, [field]: value };
-
-      if (field === "weight" && prev.appliedMedicines.length > 0) {
-        const weight = Number.parseFloat(value as string) || 0;
-        newData.appliedMedicines = prev.appliedMedicines.map((applied) => {
-          const item = getInventoryItemById(applied.itemId);
+  const handleChange = async (field: keyof typeof formData, value: string | string[]) => {
+    if (field === "weight" && formData.appliedMedicines.length > 0) {
+      const weight = Number.parseFloat(value as string) || 0;
+      const updatedMedicines = await Promise.all(
+        formData.appliedMedicines.map(async (applied) => {
+          const item = await getInventoryItemById(applied.itemId);
           if (item) {
             const calculatedDosage = calculateDosage(item, weight);
             return {
@@ -443,10 +510,17 @@ export default function NewWeighing() {
             };
           }
           return applied;
-        });
-      }
-      return newData;
-    });
+        })
+      );
+      setFormData((prev) => {
+        const newData = { ...prev };
+        newData[field] = value as string;
+        newData.appliedMedicines = updatedMedicines;
+        return newData;
+      });
+    } else {
+      setFormData((prev) => ({ ...prev, [field]: value as string }));
+    }
     if (errors[field]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
@@ -466,8 +540,8 @@ export default function NewWeighing() {
     });
   };
 
-  const addMedicine = (itemId: string) => {
-    const item = getInventoryItemById(itemId);
+  const addMedicine = async (itemId: string) => {
+    const item = await getInventoryItemById(itemId);
     if (!item) return;
 
     if (formData.appliedMedicines.some((m) => m.itemId === itemId)) {
@@ -519,13 +593,13 @@ export default function NewWeighing() {
     }
   };
 
-  const validateMedicineStock = (newErrors: Record<string, string>): void => {
+  const validateMedicineStock = async (newErrors: Record<string, string>): Promise<void> => {
     if (formData.appliedMedicines.length === 0 || !animalLocationInfo.propertyId) return;
 
     for (const applied of formData.appliedMedicines) {
-      const item = getInventoryItemById(applied.itemId);
+      const item = await getInventoryItemById(applied.itemId);
       if (item) {
-        const currentStock = getCurrentStock(applied.itemId, animalLocationInfo.propertyId);
+        const currentStock = await getCurrentStock(applied.itemId, animalLocationInfo.propertyId);
         if (currentStock < applied.quantity) {
           newErrors[`medicine_${applied.itemId}`] = t.weighings.new.insufficientStock;
         }
@@ -533,30 +607,32 @@ export default function NewWeighing() {
     }
   };
 
-  const validate = () => {
+  const validate = async () => {
     const newErrors: Record<string, string> = {};
     validateBasicFields(newErrors);
-    validateMedicineStock(newErrors);
+    await validateMedicineStock(newErrors);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return;
+    if (!(await validate())) return;
 
     setIsSubmitting(true);
     try {
       const weight = Number.parseFloat(formData.weight);
-      const appliedMedicinesData = formData.appliedMedicines.map((applied) => {
-        const item = getInventoryItemById(applied.itemId);
-        const calculatedDosage = item ? calculateDosage(item, weight) : applied.quantity;
-        return {
-          itemId: applied.itemId,
-          quantity: applied.quantity,
-          calculatedDosage,
-        };
-      });
+      const appliedMedicinesData = await Promise.all(
+        formData.appliedMedicines.map(async (applied) => {
+          const item = await getInventoryItemById(applied.itemId);
+          const calculatedDosage = item ? calculateDosage(item, weight) : applied.quantity;
+          return {
+            itemId: applied.itemId,
+            quantity: applied.quantity,
+            calculatedDosage,
+          };
+        })
+      );
 
       const weighingData: WeighingFormData = {
         animalId: formData.animalId,
@@ -568,11 +644,11 @@ export default function NewWeighing() {
         appliedMedicines: appliedMedicinesData.length > 0 ? appliedMedicinesData : undefined,
         companyId,
       };
-      const newWeighing = addWeighing(weighingData);
+      const newWeighing = await addWeighing(weighingData);
 
       if (formData.appliedMedicines.length > 0 && animalLocationInfo.propertyId) {
         for (const applied of formData.appliedMedicines) {
-          const item = getInventoryItemById(applied.itemId);
+          const item = await getInventoryItemById(applied.itemId);
           if (item) {
             addInventoryMovement({
               itemId: applied.itemId,
@@ -755,12 +831,12 @@ export default function NewWeighing() {
                     {formData.appliedMedicines.length > 0 && (
                       <div className="space-y-3">
                         {formData.appliedMedicines.map((applied) => {
-                          const item = getInventoryItemById(applied.itemId);
+                          const item = inventoryItemsMap.get(applied.itemId);
                           if (!item) return null;
                           const weight = Number.parseFloat(formData.weight) || 0;
                           const calculatedDosage = calculateDosage(item, weight);
                           const currentStock = animalLocationInfo.propertyId
-                            ? getCurrentStock(applied.itemId, animalLocationInfo.propertyId)
+                            ? stockMap.get(applied.itemId) || 0
                             : 0;
                           const hasError = errors[`medicine_${applied.itemId}`];
 

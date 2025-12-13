@@ -20,9 +20,9 @@ import { getProperties } from "~/services/properties.service";
 import type { Property, Buyer, Sale, Animal } from "~/types";
 import { SaleType as SaleTypeEnum } from "~/types";
 import { getAnimalsByCompanyId } from "~/services/animals.service";
-import { mockCompanies } from "~/mocks/companies";
 import { ROUTES, getSaleEditRoute, getSaleViewRoute } from "~/routes.config";
 import { usePermissions } from "~/utils/permissions";
+import { useAuth } from "~/contexts/auth-context";
 import { useRecordList } from "~/hooks/use-record-list";
 import { useAlert } from "~/hooks/use-alert";
 import { useDeleteHandler } from "~/hooks/use-delete-handler";
@@ -49,8 +49,8 @@ export default function Sales() {
   const { language } = useLanguage();
   const navigate = useNavigate();
   const { canAdd, canEdit, canRemove } = usePermissions();
-  const company = mockCompanies[0];
-  const companyId = company?.id || "";
+  const { currentUser } = useAuth();
+  const companyId = currentUser?.companyId;
   const [sales, setSales] = useState<Sale[]>([]);
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
@@ -58,25 +58,25 @@ export default function Sales() {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (company) {
+      if (companyId) {
         try {
           const [salesData, animalsData, propertiesData, buyersData] = await Promise.all([
-            Promise.resolve(getSalesByCompanyId(companyId)),
+            getSalesByCompanyId(),
             getAnimalsByCompanyId(companyId),
             getProperties(),
             getBuyers(),
           ]);
           setSales(salesData || []);
           setAnimals(animalsData || []);
-          setProperties(propertiesData.filter((prop) => prop.companyId === company.id));
-          setBuyers(buyersData.filter((buy) => buy.companyId === company.id));
+          setProperties(propertiesData.filter((prop) => prop.companyId === companyId));
+          setBuyers(buyersData.filter((buy) => buy.companyId === companyId));
         } catch (error) {
           console.error("Failed to load data:", error);
         }
       }
     };
     fetchData();
-  }, [company, companyId]);
+  }, [companyId]);
 
   const propertiesMap = useMemo(() => new Map(properties.map((p) => [p.id, p])), [properties]);
   const buyersMap = useMemo(() => new Map(buyers.map((b) => [b.id, b])), [buyers]);

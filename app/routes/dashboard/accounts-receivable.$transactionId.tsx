@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
 import { Button } from "~/components/ui";
 import { useTranslation } from "~/i18n";
@@ -9,6 +9,7 @@ import { getAccountsReceivableById } from "~/services/accounts-receivable.servic
 import { getBuyerById } from "~/services/buyers.service";
 import { getBankAccountById } from "~/services/bank-account.service";
 import { getPropertyById } from "~/services/properties.service";
+import type { AccountsReceivable, BankAccount, Buyer, Property } from "~/types";
 import {
   getAccountsReceivableObservationsByAccountsReceivableId,
   addAccountsReceivableObservation,
@@ -17,7 +18,6 @@ import type { AccountsReceivableObservation } from "~/types/accounts-receivable-
 import { ObservationSection } from "~/components/dashboard/observations/observation-section";
 import { FinanceDetailCard } from "~/components/dashboard/finance/finance-detail-card";
 import { getStatusVariant } from "~/utils/finance";
-import type { Buyer, Property } from "~/types";
 
 export function meta() {
   return [
@@ -40,20 +40,33 @@ export default function AccountsReceivableDetails() {
   const t = useTranslation();
   const { language } = useLanguage();
   const { canEdit } = usePermissions();
-  const transaction = getAccountsReceivableById(transactionId);
-  const initialObservations = useMemo(
-    () =>
-      transaction ? getAccountsReceivableObservationsByAccountsReceivableId(transaction.id) : [],
-    [transaction]
-  );
-  const [observations, setObservations] =
-    useState<AccountsReceivableObservation[]>(initialObservations);
+  const [transaction, setTransaction] = useState<AccountsReceivable | undefined>(undefined);
+  const [observations, setObservations] = useState<AccountsReceivableObservation[]>([]);
   const [buyer, setBuyer] = useState<Buyer | null>(null);
   const [property, setProperty] = useState<Property | null>(null);
+  const [bankAccount, setBankAccount] = useState<BankAccount | null>(null);
 
   useEffect(() => {
-    setObservations(initialObservations);
-  }, [initialObservations]);
+    const loadTransaction = async () => {
+      if (transactionId) {
+        try {
+          const transactionData = await getAccountsReceivableById(transactionId);
+          setTransaction(transactionData);
+          if (transactionData) {
+            const obs = getAccountsReceivableObservationsByAccountsReceivableId(transactionData.id);
+            setObservations(obs);
+            if (transactionData.bankAccountId) {
+              const bankAccountData = await getBankAccountById(transactionData.bankAccountId);
+              setBankAccount(bankAccountData || null);
+            }
+          }
+        } catch (error) {
+          console.error("Failed to load transaction:", error);
+        }
+      }
+    };
+    loadTransaction();
+  }, [transactionId]);
 
   useEffect(() => {
     const loadEntities = async () => {
@@ -89,10 +102,6 @@ export default function AccountsReceivableDetails() {
       </div>
     );
   }
-
-  const bankAccount = transaction.bankAccountId
-    ? getBankAccountById(transaction.bankAccountId)
-    : null;
 
   const handleAddObservation = async (observationText: string, files: File[]) => {
     const fileIds = files.map((_, index) => `file-ar-obs-${Date.now()}-${index}`);

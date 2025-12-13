@@ -132,6 +132,25 @@ vi.mock("~/hooks/use-alert", () => ({
     showAlert: vi.fn(),
   }),
 }));
+vi.mock("~/contexts/auth-context", () => ({
+  useAuth: vi.fn(() => ({
+    currentUser: {
+      id: "user-1",
+      email: "test@example.com",
+      name: "Test User",
+      mainUser: true,
+      companyId: "company-1",
+      permissions: {},
+      company: null,
+    },
+    login: vi.fn(),
+    logout: vi.fn(),
+    isAuthenticated: true,
+    refreshTokens: vi.fn(),
+    getAccessToken: vi.fn(() => "access-token"),
+    getRefreshToken: vi.fn(() => "refresh-token"),
+  })),
+}));
 
 describe("animals.movement.new", () => {
   const mockAnimals = [

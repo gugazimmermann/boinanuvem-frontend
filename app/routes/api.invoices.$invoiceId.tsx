@@ -1,6 +1,26 @@
 import { getPaymentsByCompanyId } from "~/services/payments.service";
-import { mockCompanies } from "~/mocks/companies";
+import { getCompany } from "~/services/companies.service";
 import { formatCurrency } from "~/utils/formatting";
+
+function getCompanyIdFromRequest(_request: Request): string | null {
+  // Try to get companyId from user data in localStorage (if available in browser)
+  if (globalThis.window !== undefined) {
+    const userData = localStorage.getItem("user_data");
+    if (userData) {
+      try {
+        const user = JSON.parse(userData);
+        return user?.companyId || null;
+      } catch {
+        return null;
+      }
+    }
+  }
+
+  // Note: companyId extraction from JWT token is not implemented for server-side rendering.
+  // The API client handles authentication via cookies/headers, so this function returns null
+  // and the API call will handle authentication automatically.
+  return null;
+}
 import { format } from "date-fns";
 import { getDateLocale } from "~/utils/date";
 import { translations } from "~/i18n/translations";
@@ -25,13 +45,22 @@ export async function loader({
   const t = translations[language];
   const dateLocale = getDateLocale(language);
 
-  // Find payment by invoiceId
-  const company = mockCompanies[0];
+  // Get companyId from request
+  const companyId = getCompanyIdFromRequest(request);
+  if (!companyId) {
+    throw new Response("Company not found", { status: 404 });
+  }
+
+  // Get company data and payments
+  const [company, payments] = await Promise.all([
+    getCompany(companyId).catch(() => null),
+    getPaymentsByCompanyId(companyId),
+  ]);
+
   if (!company) {
     throw new Response("Company not found", { status: 404 });
   }
 
-  const payments = await getPaymentsByCompanyId(company.id);
   const payment = payments.find((p: Payment) => p.invoiceId === invoiceId);
 
   if (!payment) {

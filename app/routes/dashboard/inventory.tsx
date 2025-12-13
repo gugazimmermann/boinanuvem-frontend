@@ -8,20 +8,70 @@ import {
   type TableFilter,
   type SortDirection,
 } from "~/components/ui";
+
+function CurrentStockCell({
+  itemId,
+  minimumStock,
+  unit,
+}: Readonly<{
+  itemId: string;
+  minimumStock: number;
+  unit: string;
+}>) {
+  const t = useTranslation();
+  const [currentStock, setCurrentStock] = useState<number | null>(null);
+  useEffect(() => {
+    getCurrentStock(itemId)
+      .then(setCurrentStock)
+      .catch(() => setCurrentStock(0));
+  }, [itemId]);
+  if (currentStock === null) return <span className="text-gray-400">...</span>;
+  const isLowStock = currentStock < minimumStock;
+  return (
+    <div className="flex items-center gap-2">
+      <span
+        className={`font-medium ${isLowStock ? "text-red-600 dark:text-red-400" : "text-gray-700 dark:text-gray-300"}`}
+      >
+        {currentStock} {getUnitLabel(unit, currentStock, t)}
+      </span>
+      {isLowStock && (
+        <Tooltip content={t.inventory.table.lowStock} position="top">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+            stroke="currentColor"
+            className="w-5 h-5 text-red-600 dark:text-red-400"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+            />
+          </svg>
+        </Tooltip>
+      )}
+    </div>
+  );
+}
 import { DeleteModalSection } from "~/components/dashboard/common/delete-modal-section";
 import { createActionColumn } from "~/utils/table-action-column";
 import { createAddButtonAction } from "~/utils/header-action-helpers";
 import { createEmptyStateConfig } from "~/utils/empty-state-config";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
-import { mockInventoryItems } from "~/mocks/inventory";
-import { deleteInventoryItem, getCurrentStock } from "~/services/inventory.service";
+import {
+  deleteInventoryItem,
+  getCurrentStock,
+  getInventoryItemsByCompanyId,
+} from "~/services/inventory.service";
 import type { InventoryItem, Supplier, Property } from "~/types";
 import { InventoryItemCategory } from "~/types";
 import { getSuppliers } from "~/services/suppliers.service";
 import { ROUTES, getInventoryEditRoute, getInventoryViewRoute } from "~/routes.config";
 import { usePermissions } from "~/utils/permissions";
-import { mockCompanies } from "~/mocks/companies";
+import { useAuth } from "~/contexts/auth-context";
 import { getProperties } from "~/services/properties.service";
 import { useInventoryStock } from "~/hooks/use-inventory-stock";
 import { useInventoryFilters } from "~/hooks/use-inventory-filters";
@@ -48,9 +98,9 @@ export default function Inventory() {
   const { language } = useLanguage();
   const navigate = useNavigate();
   const { canAdd, canEdit, canRemove } = usePermissions();
-  const company = mockCompanies[0];
-  const companyId = company?.id || "";
-  const [items, setItems] = useState<InventoryItem[]>([...mockInventoryItems]);
+  const { currentUser } = useAuth();
+  const companyId = currentUser?.companyId || "";
+  const [items, setItems] = useState<InventoryItem[]>([]);
   const [suppliers, setSuppliers] = useState<Map<string, Supplier>>(new Map());
   const [currentPage, setCurrentPage] = useState(1);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -59,16 +109,22 @@ export default function Inventory() {
   const itemsPerPage = 10;
 
   useEffect(() => {
-    const loadSuppliers = async () => {
-      try {
-        const suppliersData = await getSuppliers();
-        setSuppliers(new Map(suppliersData.map((s) => [s.id, s])));
-      } catch (error) {
-        console.error("Failed to load suppliers:", error);
+    const loadData = async () => {
+      if (companyId) {
+        try {
+          const [itemsData, suppliersData] = await Promise.all([
+            Promise.resolve(getInventoryItemsByCompanyId(companyId)),
+            getSuppliers(),
+          ]);
+          setItems(itemsData);
+          setSuppliers(new Map(suppliersData.map((s) => [s.id, s])));
+        } catch (error) {
+          console.error("Failed to load data:", error);
+        }
       }
     };
-    loadSuppliers();
-  }, []);
+    loadData();
+  }, [companyId]);
 
   const getSupplierName = (id: string) => suppliers.get(id)?.name;
 
@@ -81,17 +137,17 @@ export default function Inventory() {
 
   useEffect(() => {
     const fetchProperties = async () => {
-      if (company) {
+      if (companyId) {
         try {
           const propertiesData = await getProperties();
-          setProperties(propertiesData.filter((prop) => prop.companyId === company.id));
+          setProperties(propertiesData.filter((prop) => prop.companyId === companyId));
         } catch (error) {
           console.error("Failed to load properties:", error);
         }
       }
     };
     fetchProperties();
-  }, [company]);
+  }, [companyId]);
 
   const {
     searchValue,
@@ -117,11 +173,11 @@ export default function Inventory() {
 
   const handleDeleteItem = async () => {
     if (!selectedItem) return;
-    const success = deleteInventoryItem(selectedItem.id);
-    if (success) {
+    try {
+      await deleteInventoryItem(selectedItem.id);
       setItems(items.filter((i) => i.id !== selectedItem.id));
       showAlert(t.inventory.success.deleted, "success");
-    } else {
+    } catch {
       showAlert(t.inventory.errors.deleteFailed, "error");
     }
     setSelectedItem(null);
@@ -163,37 +219,9 @@ export default function Inventory() {
       key: "currentStock",
       label: t.inventory.table.currentStock,
       sortable: true,
-      render: (_, row) => {
-        const currentStock = getCurrentStock(row.id);
-        const isLowStock = currentStock < row.minimumStock;
-        return (
-          <div className="flex items-center gap-2">
-            <span
-              className={`font-medium ${isLowStock ? "text-red-600 dark:text-red-400" : "text-gray-700 dark:text-gray-300"}`}
-            >
-              {currentStock} {getUnitLabel(row.unit, currentStock, t)}
-            </span>
-            {isLowStock && (
-              <Tooltip content={t.inventory.table.lowStock} position="top">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2}
-                  stroke="currentColor"
-                  className="w-5 h-5 text-red-600 dark:text-red-400"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
-                  />
-                </svg>
-              </Tooltip>
-            )}
-          </div>
-        );
-      },
+      render: (_, row) => (
+        <CurrentStockCell itemId={row.id} minimumStock={row.minimumStock} unit={row.unit} />
+      ),
     },
     {
       key: "supplier",

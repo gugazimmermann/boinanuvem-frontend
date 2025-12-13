@@ -41,10 +41,10 @@ export default function NewCashFlow() {
           t.cashFlow.details.filesHelper || "Você pode anexar múltiplos arquivos à observação",
       }}
       onSubmit={
-        ((data: CashFlowFormData) => {
-          const result = addCashFlow(data);
+        (async (data: CashFlowFormData) => {
+          const result = await addCashFlow(data);
           return { id: result.id };
-        }) as (data: FinanceTransactionFormData) => void | { id: string }
+        }) as (data: FinanceTransactionFormData) => Promise<void | { id: string }>
       }
       onSuccess={() => {
         setTimeout(() => {

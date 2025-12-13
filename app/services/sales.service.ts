@@ -5,8 +5,8 @@ import {
   PaymentMethod,
   AccountsReceivableStatus,
 } from "~/types";
-import { mockSales } from "~/mocks/sales";
-import { findById, findByField, createEntity, updateEntity, deleteEntity } from "./base-service";
+import { apiClient } from "./api-client";
+import { handleApiError, createResourceErrorMessages } from "./error-handlers";
 import { updateAnimal, getAnimalById } from "./animals.service";
 import { addCashFlow, deleteCashFlow, updateCashFlow } from "./cash-flow.service";
 import {
@@ -15,71 +15,174 @@ import {
   updateAccountsReceivable,
 } from "./accounts-receivable.service";
 import { getTotalFees } from "~/utils/fees";
+import {
+  createListHandler,
+  createGetByIdHandler,
+  createGetByFilterHandler,
+  createDateRangeFilter,
+} from "./service-helpers";
+import { createEntityTransform } from "./transform-helpers";
 
-const ID_PREFIX = "sa0e8400-e29b-41d4-a716";
-const DEFAULT_ID = "sa0e8400-e29b-41d4-a716-446655440009";
+const salesErrors = createResourceErrorMessages("vendas");
 
-export function getSaleById(saleId: string | undefined): Sale | undefined {
-  return findById(mockSales, saleId);
+/**
+ * Transform backend SaleResponseDto to frontend Sale type
+ */
+const transformSale = createEntityTransform<Sale>({
+  dateStringFields: ["saleDate"],
+  dateTimeFields: ["createdAt"],
+  amountFields: [],
+  customTransform: (sale) => ({
+    ...sale,
+    saleItems: sale.saleItems.map((item) => ({
+      animalId: item.animalId,
+      price: typeof item.price === "number" ? item.price : Number.parseFloat(String(item.price)),
+      weight:
+        typeof item.weight === "number" ? item.weight : Number.parseFloat(String(item.weight)),
+      carcassWeight: (() => {
+        if (item.carcassWeight === undefined || item.carcassWeight === null) {
+          return undefined;
+        }
+        if (typeof item.carcassWeight === "number") {
+          return item.carcassWeight;
+        }
+        return Number.parseFloat(String(item.carcassWeight));
+      })(),
+    })),
+  }),
+});
+
+/**
+ * Transform SaleFormData to CreateSaleDto format
+ */
+function transformSaleFormDataToDto(data: SaleFormData) {
+  return {
+    propertyId: data.propertyId,
+    buyerId: data.buyerId,
+    saleDate: data.saleDate,
+    saleType: data.saleType,
+    pricingMode: data.pricingMode,
+    paymentMethod: data.paymentMethod,
+    totalPrice: data.totalPrice,
+    fees: data.fees,
+    transportationFee: data.transportationFee,
+    additionalFees: data.additionalFees,
+    saleItems: data.saleItems.map((item) => ({
+      animalId: item.animalId,
+      price: item.price,
+      weight: item.weight,
+      carcassWeight: item.carcassWeight,
+    })),
+    observation: data.observation,
+  };
 }
 
-export function getSalesByCompanyId(companyId: string): Sale[] {
-  return findByField(mockSales, "companyId", companyId);
-}
+/**
+ * Get all sales for the current user's company via API
+ */
+export const getSalesByCompanyId = createListHandler<Sale>({
+  endpoint: "/sales",
+  errorMessages: salesErrors.list,
+  transform: transformSale,
+});
 
-export function getSalesByBuyerId(buyerId: string): Sale[] {
-  return findByField(mockSales, "buyerId", buyerId);
-}
+/**
+ * Get a single sale by ID via API
+ */
+export const getSaleById = createGetByIdHandler<Sale>({
+  endpoint: "/sales",
+  errorMessages: salesErrors.view,
+  transform: transformSale,
+  custom403Message: "Você não tem permissão para visualizar esta venda",
+});
 
-export function getSalesByAnimalId(animalId: string): Sale[] {
+/**
+ * Get sales by buyer ID
+ */
+export const getSalesByBuyerId = createGetByFilterHandler<Sale>({
+  endpoint: "/sales",
+  errorMessages: salesErrors.list,
+  transform: transformSale,
+  filterFn: (sale, buyerId) => sale.buyerId === buyerId,
+});
+
+/**
+ * Get sales by animal ID via API
+ */
+export async function getSalesByAnimalId(animalId: string): Promise<Sale[]> {
   if (!animalId) return [];
-  return mockSales.filter((sale) => sale.saleItems.some((item) => item.animalId === animalId));
+  try {
+    const sales = await apiClient.get<Sale[]>(`/sales/animal/${animalId}`);
+    return sales.map(transformSale);
+  } catch (error) {
+    try {
+      handleApiError(error, salesErrors.list);
+    } catch {
+      return [];
+    }
+  }
 }
 
+/**
+ * Check if an animal is sold
+ */
 export async function isAnimalSold(animalId: string): Promise<boolean> {
   if (!animalId) return false;
   const animal = await getAnimalById(animalId);
   return animal?.status === "sold";
 }
 
-export function getSalesByDateRange(companyId: string, startDate: string, endDate: string): Sale[] {
-  return getSalesByCompanyId(companyId).filter((sale) => {
-    const saleDate = new Date(sale.saleDate);
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    return saleDate >= start && saleDate <= end;
-  });
-}
+/**
+ * Get sales by date range
+ */
+export const getSalesByDateRange = createDateRangeFilter<Sale>({
+  endpoint: "/sales",
+  errorMessages: salesErrors.list,
+  transform: transformSale,
+  dateField: "saleDate",
+});
 
-export function getSalesBySaleType(companyId: string, saleType: string): Sale[] {
-  return getSalesByCompanyId(companyId).filter((sale) => sale.saleType === saleType);
-}
+/**
+ * Get sales by sale type
+ */
+export const getSalesBySaleType = createGetByFilterHandler<Sale>({
+  endpoint: "/sales",
+  errorMessages: salesErrors.list,
+  transform: transformSale,
+  filterFn: (sale, saleType) => sale.saleType === saleType,
+});
 
+/**
+ * Create a new sale via API
+ */
 export async function addSale(data: SaleFormData): Promise<Sale> {
-  const sale = createEntity(mockSales, data, ID_PREFIX, DEFAULT_ID);
-
-  // Update animal statuses to "sold"
-  for (const item of data.saleItems) {
-    const animal = await getAnimalById(item.animalId);
-    if (animal) {
-      await updateAnimal(item.animalId, { status: "sold" });
+  try {
+    // Update animal statuses to "sold"
+    for (const item of data.saleItems) {
+      const animal = await getAnimalById(item.animalId);
+      if (animal) {
+        await updateAnimal(item.animalId, { status: "sold" });
+      }
     }
-  }
 
-  const totalFees = getTotalFees(data.fees, data.transportationFee, data.additionalFees);
-  const totalAmount = data.totalPrice + totalFees;
+    const createDto = transformSaleFormDataToDto(data);
+    const sale = await apiClient.post<Sale>("/sales", createDto);
+    const transformedSale = transformSale(sale);
 
-  // Get animal codes for description
-  const animalCodesPromises = data.saleItems.map(async (item) => {
-    const animal = await getAnimalById(item.animalId);
-    return animal?.code || item.animalId;
-  });
-  const animalCodesArray = await Promise.all(animalCodesPromises);
-  const animalCodes = animalCodesArray.join(", ");
+    const totalFees = getTotalFees(data.fees, data.transportationFee, data.additionalFees);
+    const totalAmount = data.totalPrice + totalFees;
 
-  if (data.paymentMethod === SalePaymentMethod.CASH_FLOW) {
-    const cashFlow = await Promise.resolve(
-      addCashFlow({
+    // Get animal codes for description
+    const animalCodesPromises = data.saleItems.map(async (item) => {
+      const animal = await getAnimalById(item.animalId);
+      return animal?.code || item.animalId;
+    });
+    const animalCodesArray = await Promise.all(animalCodesPromises);
+    const animalCodes = animalCodesArray.join(", ");
+
+    // Create linked financial records if needed
+    if (data.paymentMethod === SalePaymentMethod.CASH_FLOW) {
+      const _cashFlow = await addCashFlow({
         companyId: data.companyId,
         type: "income",
         amount: totalAmount,
@@ -90,13 +193,11 @@ export async function addSale(data: SaleFormData): Promise<Sale> {
         status: "completed",
         buyerId: data.buyerId,
         propertyId: data.propertyId,
-      })
-    );
-    sale.linkedCashFlowId = cashFlow.id;
-    sale.linkedAccountsReceivableId = undefined;
-  } else {
-    const accountsReceivable = await Promise.resolve(
-      addAccountsReceivable({
+      });
+      // Note: The backend doesn't support updating linkedCashFlowId after creation
+      // This would need to be handled differently or the backend updated
+    } else {
+      const _accountsReceivable = await addAccountsReceivable({
         companyId: data.companyId,
         buyerId: data.buyerId,
         amount: totalAmount,
@@ -106,189 +207,174 @@ export async function addSale(data: SaleFormData): Promise<Sale> {
         paymentMethod: PaymentMethod.CASH,
         status: AccountsReceivableStatus.UNPAID,
         propertyId: data.propertyId,
-      })
-    );
-    sale.linkedAccountsReceivableId = accountsReceivable.id;
-    sale.linkedCashFlowId = undefined;
-  }
+      });
+      // Note: The backend doesn't support updating linkedAccountsReceivableId after creation
+      // This would need to be handled differently or the backend updated
+    }
 
-  // Update the sale in the array directly to preserve linked IDs
-  const saleIndex = mockSales.findIndex((s) => s.id === sale.id);
-  if (saleIndex !== -1) {
-    mockSales[saleIndex] = sale;
+    return transformedSale;
+  } catch (error) {
+    handleApiError(error, {
+      ...salesErrors.create,
+      400: "Dados inválidos. Verifique se os animais estão disponíveis para venda",
+    });
   }
-
-  return sale;
 }
 
-async function updateAnimalStatuses(
-  previousIds: string[],
-  newIds: string[],
-  status: "active" | "sold"
-): Promise<void> {
-  const removedIds = previousIds.filter((id) => !newIds.includes(id));
+/**
+ * Update animal statuses when animals are removed from sale
+ */
+async function updateRemovedAnimalsStatus(removedIds: string[]): Promise<void> {
   for (const animalId of removedIds) {
     const animal = await getAnimalById(animalId);
     if (animal) {
-      await updateAnimal(animalId, { status });
+      await updateAnimal(animalId, { status: "active" });
     }
   }
 }
 
-async function getAnimalCodes(saleItems: (typeof mockSales)[0]["saleItems"]): Promise<string> {
-  const codesPromises = saleItems.map(async (item) => {
-    const animal = await getAnimalById(item.animalId);
-    return animal?.code || item.animalId;
-  });
-  const codes = await Promise.all(codesPromises);
-  return codes.join(", ");
+/**
+ * Update animal statuses when animals are added to sale
+ */
+async function updateAddedAnimalsStatus(addedIds: string[]): Promise<void> {
+  for (const animalId of addedIds) {
+    const animal = await getAnimalById(animalId);
+    if (animal) {
+      await updateAnimal(animalId, { status: "sold" });
+    }
+  }
 }
 
-function calculateTotalAmount(data: Partial<SaleFormData>, existingSale: Sale): number {
-  const totalFees = getTotalFees(
-    data.fees ?? existingSale.fees,
-    data.transportationFee ?? existingSale.transportationFee,
-    data.additionalFees ?? existingSale.additionalFees
-  );
-  return (data.totalPrice ?? existingSale.totalPrice) + totalFees;
+/**
+ * Build update DTO from partial sale form data
+ */
+function buildSaleUpdateDto(
+  data: Partial<SaleFormData>
+): Partial<ReturnType<typeof transformSaleFormDataToDto>> {
+  const updateDto: Partial<ReturnType<typeof transformSaleFormDataToDto>> = {};
+  if (data.propertyId !== undefined) updateDto.propertyId = data.propertyId;
+  if (data.buyerId !== undefined) updateDto.buyerId = data.buyerId;
+  if (data.saleDate !== undefined) updateDto.saleDate = data.saleDate;
+  if (data.saleType !== undefined) updateDto.saleType = data.saleType;
+  if (data.pricingMode !== undefined) updateDto.pricingMode = data.pricingMode;
+  if (data.paymentMethod !== undefined) updateDto.paymentMethod = data.paymentMethod;
+  if (data.totalPrice !== undefined) updateDto.totalPrice = data.totalPrice;
+  if (data.fees !== undefined) updateDto.fees = data.fees;
+  if (data.transportationFee !== undefined) updateDto.transportationFee = data.transportationFee;
+  if (data.additionalFees !== undefined) updateDto.additionalFees = data.additionalFees;
+  if (data.saleItems !== undefined) {
+    updateDto.saleItems = data.saleItems.map((item) => ({
+      animalId: item.animalId,
+      price: item.price,
+      weight: item.weight,
+      carcassWeight: item.carcassWeight,
+    }));
+  }
+  if (data.observation !== undefined) updateDto.observation = data.observation;
+  return updateDto;
 }
 
-async function handlePaymentMethodChange(
-  existingSale: Sale,
-  paymentMethod: SalePaymentMethod,
-  data: Partial<SaleFormData>,
-  saleItems: typeof existingSale.saleItems,
-  totalAmount: number,
-  animalCodes: string
-): Promise<{ linkedCashFlowId?: string; linkedAccountsReceivableId?: string }> {
-  if (existingSale.linkedCashFlowId) {
-    deleteCashFlow(existingSale.linkedCashFlowId);
-  }
-  if (existingSale.linkedAccountsReceivableId) {
-    deleteAccountsReceivable(existingSale.linkedAccountsReceivableId);
-  }
-
-  if (paymentMethod === SalePaymentMethod.CASH_FLOW) {
-    const cashFlow = addCashFlow({
-      companyId: existingSale.companyId,
-      type: "income",
-      amount: totalAmount,
-      date: data.saleDate ?? existingSale.saleDate,
-      description: `Venda de animais: ${animalCodes}`,
-      category: CashFlowCategory.CATTLE_SALES,
-      paymentMethod: PaymentMethod.CASH,
-      status: "completed",
-      buyerId: data.buyerId ?? existingSale.buyerId,
-      propertyId: data.propertyId ?? existingSale.propertyId,
-    });
-    return { linkedCashFlowId: cashFlow.id, linkedAccountsReceivableId: undefined };
-  }
-
-  const accountsReceivable = addAccountsReceivable({
-    companyId: existingSale.companyId,
-    buyerId: data.buyerId ?? existingSale.buyerId,
-    amount: totalAmount,
-    dueDate: data.saleDate ?? existingSale.saleDate,
-    description: `Venda de animais: ${animalCodes}`,
-    category: CashFlowCategory.CATTLE_SALES,
-    paymentMethod: PaymentMethod.CASH,
-    status: AccountsReceivableStatus.UNPAID,
-    propertyId: data.propertyId ?? existingSale.propertyId,
-  });
-  return { linkedCashFlowId: undefined, linkedAccountsReceivableId: accountsReceivable.id };
-}
-
+/**
+ * Update linked financial records if prices changed
+ */
 async function updateLinkedFinancialRecords(
   existingSale: Sale,
+  data: Partial<SaleFormData>,
   totalAmount: number
 ): Promise<void> {
   if (existingSale.linkedCashFlowId) {
-    updateCashFlow(existingSale.linkedCashFlowId, { amount: totalAmount });
+    await updateCashFlow(existingSale.linkedCashFlowId, { amount: totalAmount });
   }
   if (existingSale.linkedAccountsReceivableId) {
-    updateAccountsReceivable(existingSale.linkedAccountsReceivableId, {
+    await updateAccountsReceivable(existingSale.linkedAccountsReceivableId, {
       amount: totalAmount,
     });
   }
 }
 
+/**
+ * Update an existing sale via API
+ */
 export async function updateSale(saleId: string, data: Partial<SaleFormData>): Promise<boolean> {
-  const existingSale = getSaleById(saleId);
-  if (!existingSale) return false;
-
-  const previousAnimalIds = existingSale.saleItems.map((item) => item.animalId);
-  const newAnimalIds = data.saleItems
-    ? data.saleItems.map((item) => item.animalId)
-    : previousAnimalIds;
-
-  // Set removed animals back to "active"
-  await updateAnimalStatuses(previousAnimalIds, newAnimalIds, "active");
-  // Set newly added animals to "sold"
-  if (data.saleItems) {
-    await updateAnimalStatuses(newAnimalIds, previousAnimalIds, "sold");
-  }
-
-  const saleItems = data.saleItems ?? existingSale.saleItems;
-  const hasPaymentMethodChange =
-    data.paymentMethod && data.paymentMethod !== existingSale.paymentMethod;
-
-  if (hasPaymentMethodChange && data.paymentMethod) {
-    const totalAmount = calculateTotalAmount(data, existingSale);
-    const animalCodes = await getAnimalCodes(saleItems);
-    const financialLinks = await handlePaymentMethodChange(
-      existingSale,
-      data.paymentMethod,
-      data,
-      saleItems,
-      totalAmount,
-      animalCodes
-    );
-
-    const updateData: Partial<SaleFormData> & {
-      linkedCashFlowId?: string;
-      linkedAccountsReceivableId?: string;
-    } = {
-      ...data,
-      ...financialLinks,
-    };
-    return updateEntity(mockSales, saleId, updateData);
-  }
-
-  const hasPriceChange =
-    data.totalPrice !== undefined ||
-    data.transportationFee !== undefined ||
-    data.additionalFees !== undefined;
-
-  if (hasPriceChange) {
-    const totalAmount = calculateTotalAmount(data, existingSale);
-    await updateLinkedFinancialRecords(existingSale, totalAmount);
-  }
-
-  return updateEntity(mockSales, saleId, data);
-}
-
-export async function deleteSale(saleId: string): Promise<boolean> {
-  const sale = getSaleById(saleId);
-  if (!sale) return false;
-
-  for (const item of sale.saleItems) {
-    const animal = await getAnimalById(item.animalId);
-    if (animal) {
-      await updateAnimal(item.animalId, { status: "active" });
+  try {
+    const existingSale = await getSaleById(saleId);
+    if (!existingSale) {
+      throw new Error("Venda não encontrada");
     }
-  }
 
-  if (sale.linkedCashFlowId) {
-    deleteCashFlow(sale.linkedCashFlowId);
-  }
-  if (sale.linkedAccountsReceivableId) {
-    deleteAccountsReceivable(sale.linkedAccountsReceivableId);
-  }
+    const previousAnimalIds = existingSale.saleItems.map((item) => item.animalId);
+    const newAnimalIds = data.saleItems
+      ? data.saleItems.map((item) => item.animalId)
+      : previousAnimalIds;
 
-  return deleteEntity(mockSales, saleId);
+    // Set removed animals back to "active"
+    const removedIds = previousAnimalIds.filter((id) => !newAnimalIds.includes(id));
+    await updateRemovedAnimalsStatus(removedIds);
+
+    // Set newly added animals to "sold"
+    if (data.saleItems) {
+      const addedIds = newAnimalIds.filter((id) => !previousAnimalIds.includes(id));
+      await updateAddedAnimalsStatus(addedIds);
+    }
+
+    // Transform update data
+    const updateDto = buildSaleUpdateDto(data);
+    await apiClient.put<Sale>(`/sales/${saleId}`, updateDto);
+
+    // Update linked financial records if prices changed
+    const hasPriceChange =
+      data.totalPrice !== undefined ||
+      data.transportationFee !== undefined ||
+      data.additionalFees !== undefined;
+
+    if (hasPriceChange) {
+      const totalFees = getTotalFees(
+        data.fees ?? existingSale.fees,
+        data.transportationFee ?? existingSale.transportationFee,
+        data.additionalFees ?? existingSale.additionalFees
+      );
+      const totalAmount = (data.totalPrice ?? existingSale.totalPrice) + totalFees;
+      await updateLinkedFinancialRecords(existingSale, data, totalAmount);
+    }
+
+    return true;
+  } catch (error) {
+    handleApiError(error, {
+      ...salesErrors.update,
+      400: "Dados inválidos. Verifique os campos preenchidos",
+    });
+  }
 }
 
-export function generateSaleId(index: number): string {
-  const base = 446655440100 + index;
-  return `${ID_PREFIX}-${base.toString().padStart(12, "0")}`;
+/**
+ * Delete a sale via API
+ */
+export async function deleteSale(saleId: string): Promise<boolean> {
+  try {
+    const sale = await getSaleById(saleId);
+    if (!sale) {
+      throw new Error("Venda não encontrada");
+    }
+
+    // Set animals back to "active"
+    for (const item of sale.saleItems) {
+      const animal = await getAnimalById(item.animalId);
+      if (animal) {
+        await updateAnimal(item.animalId, { status: "active" });
+      }
+    }
+
+    // Delete linked financial records
+    if (sale.linkedCashFlowId) {
+      await deleteCashFlow(sale.linkedCashFlowId);
+    }
+    if (sale.linkedAccountsReceivableId) {
+      await deleteAccountsReceivable(sale.linkedAccountsReceivableId);
+    }
+
+    await apiClient.delete(`/sales/${saleId}`);
+    return true;
+  } catch (error) {
+    handleApiError(error, salesErrors.delete);
+  }
 }

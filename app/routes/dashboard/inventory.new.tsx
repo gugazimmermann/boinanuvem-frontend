@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getBankAccountsByCompanyId } from "~/services/bank-account.service";
 import { useNavigate } from "react-router";
 import { useTranslation } from "~/i18n";
 import { FormPageLayout } from "~/components/dashboard/forms/form-page-layout";
@@ -6,20 +7,21 @@ import { ROUTES } from "~/routes.config";
 import { addInventoryItem } from "~/services/inventory.service";
 import { addInventoryMovement } from "~/services/inventory-movements.service";
 import { addInventoryObservation } from "~/services/inventory-observations.service";
-import { getBankAccountsByCompanyId } from "~/services/bank-account.service";
 import { setNitrogenContent } from "~/services/nitrogen-content.service";
 import { addCashFlow } from "~/services/cash-flow.service";
 import { addAccountsPayable } from "~/services/accounts-payable.service";
 import type {
+  BankAccount,
   InventoryItemFormData,
   InventoryMovementFormData,
   CashFlowFormData,
   AccountsPayableFormData,
   Property,
   Supplier,
+  InventoryItemCategory,
 } from "~/types";
-import { InventoryItemCategory, InventoryMovementType, AccountsPayableStatus } from "~/types";
-import { mockCompanies } from "~/mocks/companies";
+import { InventoryMovementType, AccountsPayableStatus } from "~/types";
+import { useAuth } from "~/contexts/auth-context";
 import { getProperties } from "~/services/properties.service";
 import { getSuppliers } from "~/services/suppliers.service";
 import { useInventoryForm } from "~/hooks/use-inventory-form";
@@ -52,9 +54,23 @@ export async function loader({ request }: { request: Request }) {
 export default function NewInventoryItem() {
   const t = useTranslation();
   const navigate = useNavigate();
-  const company = mockCompanies[0];
-  const companyId = company?.id || "";
-  const bankAccounts = getBankAccountsByCompanyId(companyId);
+  const { currentUser } = useAuth();
+  const companyId = currentUser?.companyId || "";
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+
+  useEffect(() => {
+    const loadBankAccounts = async () => {
+      if (companyId) {
+        try {
+          const accounts = await getBankAccountsByCompanyId(companyId);
+          setBankAccounts(accounts);
+        } catch (error) {
+          console.error("Failed to load bank accounts:", error);
+        }
+      }
+    };
+    loadBankAccounts();
+  }, [companyId]);
 
   const { formData, errors, handleChange, validate } = useInventoryForm({
     translations: t,
@@ -83,10 +99,10 @@ export default function NewInventoryItem() {
     fetchEntities();
   }, [companyId]);
 
-  const createCashFlowTransaction = (
+  const createCashFlowTransaction = async (
     item: { category: InventoryItemCategory },
     totalAmount: number
-  ): string | undefined => {
+  ): Promise<string | undefined> => {
     if (!formData.createCashFlowTransaction) return undefined;
 
     const cashFlowData: CashFlowFormData = {
@@ -102,7 +118,7 @@ export default function NewInventoryItem() {
       propertyId: formData.propertyIds[0],
       bankAccountId: formData.bankAccountId || undefined,
     };
-    const cashFlow = addCashFlow(cashFlowData);
+    const cashFlow = await addCashFlow(cashFlowData);
     return cashFlow.id;
   };
 
@@ -127,10 +143,10 @@ export default function NewInventoryItem() {
     addAccountsPayable(accountPayableData);
   };
 
-  const handleInitialStockTransactions = (
+  const handleInitialStockTransactions = async (
     item: { id: string; name: string; category: InventoryItemCategory; unitPrice?: number },
     initialStock: number
-  ): string | undefined => {
+  ): Promise<string | undefined> => {
     if (initialStock <= 0 || !formData.supplierId) {
       return undefined;
     }
@@ -216,12 +232,12 @@ export default function NewInventoryItem() {
         companyId,
         propertyIds: formData.propertyIds,
       };
-      const newItem = addInventoryItem(itemData);
+      const newItem = await addInventoryItem(itemData);
 
       handleNitrogenContent(newItem.id, formData, setNitrogenContent);
 
       const initialStock = getInitialStock(formData.initialStock);
-      const cashFlowId = handleInitialStockTransactions(newItem, initialStock);
+      const cashFlowId = await handleInitialStockTransactions(newItem, initialStock);
       createInitialStockMovement(newItem, initialStock, cashFlowId);
       createObservation(newItem.id);
 

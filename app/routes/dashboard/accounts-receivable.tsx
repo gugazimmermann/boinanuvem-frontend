@@ -5,7 +5,6 @@ import {
   getAccountsReceivableEditRoute,
   getAccountsReceivableViewRoute,
 } from "~/routes.config";
-import { mockAccountsReceivable } from "~/mocks/accounts-receivable";
 import { getAccountsReceivableByCompanyId } from "~/services/accounts-receivable.service";
 import { FinanceTransactionListRoute } from "./finance-transaction-list-route";
 
@@ -34,7 +33,6 @@ export default function AccountsReceivable() {
         entityColumnKey: "buyer",
         amountColorClass: "green",
         getTransactionsByCompanyId: getAccountsReceivableByCompanyId,
-        mockTransactions: mockAccountsReceivable,
         routes: {
           list: ROUTES.ACCOUNTS_RECEIVABLE,
           new: ROUTES.ACCOUNTS_RECEIVABLE_NEW,

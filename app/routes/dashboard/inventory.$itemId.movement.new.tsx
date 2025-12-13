@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { getInventoryItemById } from "~/services/inventory.service";
 import { useNavigate, useParams } from "react-router";
 import { Input, Select, Button, FixedAlert, FileUpload } from "~/components/ui";
 import { useTranslation } from "~/i18n";
@@ -8,7 +9,6 @@ import {
   FormActions,
 } from "~/components/dashboard/shared";
 import { ROUTES, getInventoryViewRoute } from "~/routes.config";
-import { getInventoryItemById } from "~/services/inventory.service";
 import { addInventoryMovement } from "~/services/inventory-movements.service";
 import { addCashFlow } from "~/services/cash-flow.service";
 import { addAccountsPayable } from "~/services/accounts-payable.service";
@@ -19,6 +19,7 @@ import { getLocations } from "~/services/locations.service";
 import { getEmployees } from "~/services/employees.service";
 import { getServiceProviders } from "~/services/service-providers.service";
 import type {
+  InventoryItem,
   Supplier,
   Location,
   Employee,
@@ -27,9 +28,10 @@ import type {
   CashFlowFormData,
   AccountsPayableFormData,
   Property,
+  BankAccount,
 } from "~/types";
 import { InventoryMovementType, PaymentMethod, AccountsPayableStatus } from "~/types";
-import { mockCompanies } from "~/mocks/companies";
+import { useAuth } from "~/contexts/auth-context";
 import { getCategoryForCashFlow, getUnitLabel } from "~/utils/inventory-utils";
 import { useInventoryMovementForm } from "~/hooks/use-inventory-movement-form";
 
@@ -100,15 +102,44 @@ export default function NewInventoryMovement() {
   const t = useTranslation();
   const navigate = useNavigate();
   const { itemId } = useParams<{ itemId: string }>();
-  const item = getInventoryItemById(itemId);
-  const company = mockCompanies[0];
-  const companyId = company?.id || "";
+  const { currentUser } = useAuth();
+  const companyId = currentUser?.companyId || "";
+  const [item, setItem] = useState<InventoryItem | undefined>(undefined);
   const [properties, setProperties] = useState<Property[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [serviceProviders, setServiceProviders] = useState<ServiceProvider[]>([]);
-  const bankAccounts = getBankAccountsByCompanyId(companyId);
+
+  useEffect(() => {
+    const loadItem = async () => {
+      if (itemId) {
+        try {
+          const itemData = await getInventoryItemById(itemId);
+          setItem(itemData);
+        } catch (error) {
+          console.error("Failed to load inventory item:", error);
+        }
+      }
+    };
+    loadItem();
+  }, [itemId]);
+
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+
+  useEffect(() => {
+    const loadBankAccounts = async () => {
+      if (companyId) {
+        try {
+          const accounts = await getBankAccountsByCompanyId(companyId);
+          setBankAccounts(accounts);
+        } catch (error) {
+          console.error("Failed to load bank accounts:", error);
+        }
+      }
+    };
+    loadBankAccounts();
+  }, [companyId]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -232,7 +263,7 @@ export default function NewInventoryMovement() {
           bankAccountId: data.bankAccountId || undefined,
         };
 
-        const cashFlow = addCashFlow(cashFlowData);
+        const cashFlow = await addCashFlow(cashFlowData);
         cashFlowId = cashFlow.id;
       }
 

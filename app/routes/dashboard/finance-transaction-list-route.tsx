@@ -1,6 +1,6 @@
-import { useMemo } from "react";
+import { useState, useEffect } from "react";
 import type { AccountsPayable, AccountsReceivable } from "~/types";
-import { mockCompanies } from "~/mocks/companies";
+import { useAuth } from "~/contexts/auth-context";
 import { FinanceTransactionListPage } from "~/components/dashboard/finance/finance-transaction-list-page";
 import { useFinanceTransactionList } from "~/hooks/use-finance-transaction-list";
 import type { UseFinanceTransactionListOptions } from "~/hooks/use-finance-transaction-list";
@@ -9,8 +9,7 @@ export interface FinanceTransactionListRouteConfig<T extends AccountsPayable | A
   readonly transactionType: "accounts-payable" | "accounts-receivable";
   readonly entityColumnKey: "supplier" | "buyer";
   readonly amountColorClass: "red" | "green";
-  readonly getTransactionsByCompanyId: (companyId: string) => T[];
-  readonly mockTransactions: T[];
+  readonly getTransactionsByCompanyId: (companyId: string) => Promise<T[]>;
   readonly routes: {
     readonly list: string;
     readonly new: string;
@@ -26,13 +25,26 @@ export function FinanceTransactionListRoute<T extends AccountsPayable | Accounts
 }: {
   readonly config: FinanceTransactionListRouteConfig<T>;
 }) {
-  const company = mockCompanies[0];
-  const initialTransactions = useMemo(() => {
-    if (company) {
-      return config.getTransactionsByCompanyId(company.id);
-    }
-    return [...config.mockTransactions];
-  }, [company, config]);
+  const { currentUser } = useAuth();
+  const companyId = currentUser?.companyId || "";
+  const [initialTransactions, setInitialTransactions] = useState<T[]>([]);
+
+  useEffect(() => {
+    const loadTransactions = async () => {
+      if (companyId) {
+        try {
+          const transactions = await config.getTransactionsByCompanyId(companyId);
+          setInitialTransactions(transactions);
+        } catch (error) {
+          console.error("Failed to load transactions:", error);
+          setInitialTransactions([]);
+        }
+      } else {
+        setInitialTransactions([]);
+      }
+    };
+    loadTransactions();
+  }, [companyId, config]);
 
   const { properties, financeList, deleteHandler, columns, headerActions, filters, alertMessage } =
     useFinanceTransactionList<T>({

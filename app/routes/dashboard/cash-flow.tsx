@@ -10,12 +10,12 @@ import {
 } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
-import { mockCashFlow } from "~/mocks/cash-flow";
+import { getCashFlowByCompanyId } from "~/services/cash-flow.service";
 import { getProperties } from "~/services/properties.service";
 import { getSuppliers } from "~/services/suppliers.service";
 import { getBuyers } from "~/services/buyers.service";
 import type { Property, Supplier, Buyer, CashFlow } from "~/types";
-import { mockCompanies } from "~/mocks/companies";
+import { useAuth } from "~/contexts/auth-context";
 import { ROUTES, getCashFlowEditRoute, getCashFlowViewRoute } from "~/routes.config";
 import { usePermissions } from "~/utils/permissions";
 import { useFinanceList } from "~/hooks/use-finance-list";
@@ -53,8 +53,9 @@ export default function CashFlow() {
   const { language } = useLanguage();
   const navigate = useNavigate();
   const { canAdd, canEdit, canRemove } = usePermissions();
-  const company = mockCompanies[0];
-  const [transactions, setTransactions] = useState<CashFlow[]>([...mockCashFlow]);
+  const { currentUser } = useAuth();
+  const companyId = currentUser?.companyId || "";
+  const [transactions, setTransactions] = useState<CashFlow[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [buyers, setBuyers] = useState<Buyer[]>([]);
@@ -62,23 +63,25 @@ export default function CashFlow() {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (company) {
+      if (companyId) {
         try {
-          const [propertiesData, suppliersData, buyersData] = await Promise.all([
+          const [transactionsData, propertiesData, suppliersData, buyersData] = await Promise.all([
+            Promise.resolve(getCashFlowByCompanyId(companyId)),
             getProperties(),
             getSuppliers(),
             getBuyers(),
           ]);
-          setProperties(propertiesData.filter((prop) => prop.companyId === company.id));
-          setSuppliers(suppliersData.filter((sup) => sup.companyId === company.id));
-          setBuyers(buyersData.filter((buy) => buy.companyId === company.id));
+          setTransactions(transactionsData);
+          setProperties(propertiesData.filter((prop) => prop.companyId === companyId));
+          setSuppliers(suppliersData.filter((sup) => sup.companyId === companyId));
+          setBuyers(buyersData.filter((buy) => buy.companyId === companyId));
         } catch (error) {
           console.error("Failed to load data:", error);
         }
       }
     };
     fetchData();
-  }, [company]);
+  }, [companyId]);
 
   const localeForCurrency = getLocaleForCurrency(language);
 

@@ -175,38 +175,97 @@ export function useSaleForm({
   const selectedAnimalIds = formData.selectedAnimalIds;
   const saleItemsLength = formData.saleItems.length;
 
-  useEffect(() => {
-    if (
-      Array.isArray(selectedAnimalIds) &&
-      selectedAnimalIds.length > 0 &&
-      Array.isArray(formData.saleItems) &&
-      saleItemsLength === 0
-    ) {
-      const items = selectedAnimalIds.map((animalId: string) => {
-        const weighings = getWeighingsByAnimalId(animalId);
-        let weight = "";
-        if (weighings.length > 0) {
-          const sortedWeighings = weighings.toSorted(
-            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-          );
-          weight = sortedWeighings[0].weight.toString();
-        }
-        return {
-          animalId,
-          price: "",
-          weight,
-          carcassWeight: "",
-        };
-      });
-      baseForm.setFormData((prev) => ({ ...prev, saleItems: items }));
+  const createSaleItemFromAnimalId = useCallback(async (animalId: string) => {
+    const weighings = await getWeighingsByAnimalId(animalId);
+    let weight = "";
+    if (weighings.length > 0) {
+      const sortedWeighings = weighings.toSorted(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+      weight = sortedWeighings[0].weight.toString();
     }
-  }, [selectedAnimalIds, saleItemsLength, baseForm, formData.saleItems]);
+    return {
+      animalId,
+      price: "",
+      weight,
+      carcassWeight: "",
+    };
+  }, []);
+
+  useEffect(() => {
+    const loadWeighings = async () => {
+      if (
+        Array.isArray(selectedAnimalIds) &&
+        selectedAnimalIds.length > 0 &&
+        Array.isArray(formData.saleItems) &&
+        saleItemsLength === 0
+      ) {
+        const itemsPromises = selectedAnimalIds.map(createSaleItemFromAnimalId);
+        const items = await Promise.all(itemsPromises);
+        baseForm.setFormData((prev) => ({ ...prev, saleItems: items }));
+      }
+    };
+    loadWeighings();
+  }, [
+    selectedAnimalIds,
+    saleItemsLength,
+    baseForm,
+    formData.saleItems,
+    createSaleItemFromAnimalId,
+  ]);
 
   const handleChange = useCallback(
     (field: keyof SaleFormData, value: string | string[]) => {
       baseForm.handleChange(field, value);
     },
     [baseForm]
+  );
+
+  const getLatestWeight = useCallback(async (animalId: string): Promise<string> => {
+    const weighings = await getWeighingsByAnimalId(animalId);
+    if (weighings.length === 0) return "";
+    const sortedWeighings = weighings.toSorted(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+    return sortedWeighings[0].weight.toString();
+  }, []);
+
+  const removeAnimalFromSelection = useCallback(
+    (animalId: string, currentIds: string[], currentItems: SaleFormData["saleItems"]) => {
+      const newIds = currentIds.filter((id: string) => id !== animalId);
+      const newItems = currentItems.filter(
+        (item: { animalId: string; price: string; weight: string; carcassWeight?: string }) =>
+          item.animalId !== animalId
+      );
+      return { newIds, newItems };
+    },
+    []
+  );
+
+  const addAnimalToSelection = useCallback(
+    async (animalId: string, currentIds: string[], currentItems: SaleFormData["saleItems"]) => {
+      const newIds = [...currentIds, animalId];
+      const existingItem = currentItems.find(
+        (item: { animalId: string; price: string; weight: string; carcassWeight?: string }) =>
+          item.animalId === animalId
+      );
+      if (existingItem) {
+        return { newIds, newItems: currentItems };
+      }
+
+      const weight = await getLatestWeight(animalId);
+      const newItems = [
+        ...currentItems,
+        {
+          animalId,
+          price: "",
+          weight,
+          carcassWeight: "",
+        },
+      ];
+      return { newIds, newItems };
+    },
+    [getLatestWeight]
   );
 
   const toggleAnimalSelection = useCallback(
@@ -217,50 +276,61 @@ export function useSaleForm({
         return;
       }
 
-      baseForm.setFormData((prev) => {
-        const prevData = prev as unknown as SaleFormData;
-        const currentIds = Array.isArray(prevData.selectedAnimalIds)
-          ? prevData.selectedAnimalIds
-          : [];
-        const isSelected = currentIds.includes(animalId);
-        let newIds: string[];
-        const currentItems = Array.isArray(prevData.saleItems) ? prevData.saleItems : [];
-        let newItems = [...currentItems];
+      const prevData = baseForm.formData as unknown as SaleFormData;
+      const currentIds = Array.isArray(prevData.selectedAnimalIds)
+        ? prevData.selectedAnimalIds
+        : [];
+      const isSelected = currentIds.includes(animalId);
+      const currentItems = Array.isArray(prevData.saleItems) ? prevData.saleItems : [];
 
-        if (isSelected) {
-          newIds = currentIds.filter((id: string) => id !== animalId);
-          newItems = newItems.filter(
-            (item: { animalId: string; price: string; weight: string; carcassWeight?: string }) =>
-              item.animalId !== animalId
-          );
-        } else {
-          newIds = [...currentIds, animalId];
-          const existingItem = currentItems.find(
-            (item: { animalId: string; price: string; weight: string; carcassWeight?: string }) =>
-              item.animalId === animalId
-          );
-          if (!existingItem) {
-            const weighings = getWeighingsByAnimalId(animalId);
-            let weight = "";
-            if (weighings.length > 0) {
-              const sortedWeighings = weighings.toSorted(
-                (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-              );
-              weight = sortedWeighings[0].weight.toString();
-            }
-            newItems.push({
-              animalId,
-              price: "",
-              weight,
-              carcassWeight: "",
-            });
-          }
-        }
+      const { newIds, newItems } = isSelected
+        ? removeAnimalFromSelection(animalId, currentIds, currentItems)
+        : await addAnimalToSelection(animalId, currentIds, currentItems);
 
-        return { ...prev, selectedAnimalIds: newIds, saleItems: newItems };
-      });
+      baseForm.setFormData((prev) => ({ ...prev, selectedAnimalIds: newIds, saleItems: newItems }));
     },
-    [isEdit, currentSaleAnimalIds, baseForm, t]
+    [isEdit, currentSaleAnimalIds, baseForm, t, removeAnimalFromSelection, addAnimalToSelection]
+  );
+
+  const calculatePricePerAnimal = useCallback(
+    (totalPriceStr: string, animalCount: number): number => {
+      const totalPriceNum =
+        Number.parseFloat(totalPriceStr.replaceAll(/[^\d,.-]/g, "").replaceAll(",", ".")) || 0;
+      return animalCount > 0 ? totalPriceNum / animalCount : 0;
+    },
+    []
+  );
+
+  const distributeTotalPriceToItems = useCallback(
+    (
+      currentItems: SaleFormData["saleItems"],
+      pricePerAnimal: number
+    ): SaleFormData["saleItems"] => {
+      return currentItems.map((item) => ({
+        ...item,
+        price: pricePerAnimal.toFixed(2),
+      }));
+    },
+    []
+  );
+
+  const clearIndividualPrices = useCallback(
+    (currentItems: SaleFormData["saleItems"]): SaleFormData["saleItems"] => {
+      return currentItems.map((item) => ({ ...item, price: "" }));
+    },
+    []
+  );
+
+  const updateSaleItemInList = useCallback(
+    (
+      items: SaleFormData["saleItems"],
+      animalId: string,
+      field: "price" | "weight" | "carcassWeight",
+      value: string
+    ): SaleFormData["saleItems"] => {
+      return items.map((item) => (item.animalId === animalId ? { ...item, [field]: value } : item));
+    },
+    []
   );
 
   const handleSaleItemChange = useCallback(
@@ -270,51 +340,81 @@ export function useSaleForm({
         const currentItems = Array.isArray(prevData.saleItems) ? prevData.saleItems : [];
         return {
           ...prev,
-          saleItems: currentItems.map(
-            (item: { animalId: string; price: string; weight: string; carcassWeight?: string }) =>
-              item.animalId === animalId ? { ...item, [field]: value } : item
-          ),
+          saleItems: updateSaleItemInList(currentItems, animalId, field, value),
         };
       });
     },
-    [baseForm]
+    [baseForm, updateSaleItemInList]
+  );
+
+  const calculateNewItemsForTotalPrice = useCallback(
+    (
+      currentItems: SaleFormData["saleItems"],
+      selectedAnimalIds: string[],
+      pricingMode: PricingMode | "",
+      value: string
+    ): SaleFormData["saleItems"] => {
+      const shouldDistributePrice =
+        pricingMode === PricingModeEnum.TOTAL && value && selectedAnimalIds.length > 0;
+
+      return shouldDistributePrice
+        ? distributeTotalPriceToItems(
+            currentItems,
+            calculatePricePerAnimal(value, selectedAnimalIds.length)
+          )
+        : currentItems;
+    },
+    [calculatePricePerAnimal, distributeTotalPriceToItems]
   );
 
   const handleTotalPriceChange = useCallback(
     (value: string) => {
       baseForm.setFormData((prev) => {
         const prevData = prev as unknown as SaleFormData;
-        const newTotalPrice = value;
         const currentItems = Array.isArray(prevData.saleItems) ? prevData.saleItems : [];
-        let newItems = [...currentItems];
+        const selectedAnimalIds = Array.isArray(prevData.selectedAnimalIds)
+          ? prevData.selectedAnimalIds
+          : [];
 
-        if (
-          prevData.pricingMode === PricingModeEnum.TOTAL &&
-          newTotalPrice &&
-          Array.isArray(prevData.selectedAnimalIds) &&
-          prevData.selectedAnimalIds.length > 0
-        ) {
-          const totalPriceNum =
-            Number.parseFloat(newTotalPrice.replaceAll(/[^\d,.-]/g, "").replaceAll(",", ".")) || 0;
-          const pricePerAnimal = totalPriceNum / prevData.selectedAnimalIds.length;
+        const newItems = calculateNewItemsForTotalPrice(
+          currentItems,
+          selectedAnimalIds,
+          prevData.pricingMode,
+          value
+        );
 
-          newItems = currentItems.map(
-            (item: {
-              animalId: string;
-              price: string;
-              weight: string;
-              carcassWeight?: string;
-            }) => ({
-              ...item,
-              price: pricePerAnimal.toFixed(2),
-            })
-          );
-        }
-
-        return { ...prev, totalPrice: newTotalPrice, saleItems: newItems };
+        return { ...prev, totalPrice: value, saleItems: newItems };
       });
     },
-    [baseForm]
+    [baseForm, calculateNewItemsForTotalPrice]
+  );
+
+  const calculateItemsAndPriceForPricingMode = useCallback(
+    (
+      value: PricingMode,
+      currentItems: SaleFormData["saleItems"],
+      selectedAnimalIds: string[],
+      currentTotalPrice: string
+    ): { newItems: SaleFormData["saleItems"]; newTotalPrice: string } => {
+      if (value === PricingModeEnum.TOTAL && currentTotalPrice && selectedAnimalIds.length > 0) {
+        const pricePerAnimal = calculatePricePerAnimal(currentTotalPrice, selectedAnimalIds.length);
+        return {
+          newItems: distributeTotalPriceToItems(currentItems, pricePerAnimal),
+          newTotalPrice: currentTotalPrice,
+        };
+      }
+      if (value === PricingModeEnum.INDIVIDUAL) {
+        return {
+          newItems: clearIndividualPrices(currentItems),
+          newTotalPrice: "",
+        };
+      }
+      return {
+        newItems: currentItems,
+        newTotalPrice: currentTotalPrice,
+      };
+    },
+    [calculatePricePerAnimal, distributeTotalPriceToItems, clearIndividualPrices]
   );
 
   const handlePricingModeChange = useCallback(
@@ -322,45 +422,23 @@ export function useSaleForm({
       baseForm.setFormData((prev) => {
         const prevData = prev as unknown as SaleFormData;
         const currentItems = Array.isArray(prevData.saleItems) ? prevData.saleItems : [];
-        let newItems = [...currentItems];
-        let newTotalPrice = typeof prevData.totalPrice === "string" ? prevData.totalPrice : "";
+        const selectedAnimalIds = Array.isArray(prevData.selectedAnimalIds)
+          ? prevData.selectedAnimalIds
+          : [];
+        const currentTotalPrice =
+          typeof prevData.totalPrice === "string" ? prevData.totalPrice : "";
 
-        if (
-          value === PricingModeEnum.TOTAL &&
-          newTotalPrice &&
-          Array.isArray(prevData.selectedAnimalIds) &&
-          prevData.selectedAnimalIds.length > 0
-        ) {
-          const totalPriceNum =
-            Number.parseFloat(newTotalPrice.replaceAll(/[^\d,.-]/g, "").replaceAll(",", ".")) || 0;
-          const pricePerAnimal = totalPriceNum / prevData.selectedAnimalIds.length;
-          newItems = currentItems.map(
-            (item: {
-              animalId: string;
-              price: string;
-              weight: string;
-              carcassWeight?: string;
-            }) => ({
-              ...item,
-              price: pricePerAnimal.toFixed(2),
-            })
-          );
-        } else if (value === PricingModeEnum.INDIVIDUAL) {
-          newItems = currentItems.map(
-            (item: {
-              animalId: string;
-              price: string;
-              weight: string;
-              carcassWeight?: string;
-            }) => ({ ...item, price: "" })
-          );
-          newTotalPrice = "";
-        }
+        const { newItems, newTotalPrice } = calculateItemsAndPriceForPricingMode(
+          value,
+          currentItems,
+          selectedAnimalIds,
+          currentTotalPrice
+        );
 
         return { ...prev, pricingMode: value, saleItems: newItems, totalPrice: newTotalPrice };
       });
     },
-    [baseForm]
+    [baseForm, calculateItemsAndPriceForPricingMode]
   );
 
   const addFee = useCallback(() => {
@@ -379,6 +457,13 @@ export function useSaleForm({
     }));
   }, [baseForm]);
 
+  const filterFeeById = useCallback(
+    (fees: SaleFormData["fees"], feeId: string): SaleFormData["fees"] => {
+      return fees.filter((fee) => fee.id !== feeId);
+    },
+    []
+  );
+
   const removeFee = useCallback(
     (feeId: string) => {
       baseForm.setFormData((prev) => {
@@ -386,13 +471,23 @@ export function useSaleForm({
         const currentFees = Array.isArray(prevData.fees) ? prevData.fees : [];
         return {
           ...prev,
-          fees: currentFees.filter(
-            (fee: { id: string; name: string; amount: string }) => fee.id !== feeId
-          ),
+          fees: filterFeeById(currentFees, feeId),
         };
       });
     },
-    [baseForm]
+    [baseForm, filterFeeById]
+  );
+
+  const updateFeeInList = useCallback(
+    (
+      fees: SaleFormData["fees"],
+      feeId: string,
+      field: "name" | "amount",
+      value: string
+    ): SaleFormData["fees"] => {
+      return fees.map((fee) => (fee.id === feeId ? { ...fee, [field]: value } : fee));
+    },
+    []
   );
 
   const updateFee = useCallback(
@@ -402,48 +497,39 @@ export function useSaleForm({
         const currentFees = Array.isArray(prevData.fees) ? prevData.fees : [];
         return {
           ...prev,
-          fees: currentFees.map((fee: { id: string; name: string; amount: string }) =>
-            fee.id === feeId ? { ...fee, [field]: value } : fee
-          ),
+          fees: updateFeeInList(currentFees, feeId, field, value),
         };
       });
     },
-    [baseForm]
+    [baseForm, updateFeeInList]
+  );
+
+  const parsePriceString = useCallback((priceStr: string): number => {
+    return Number.parseFloat(priceStr.replaceAll(/[^\d,.-]/g, "").replaceAll(",", ".")) || 0;
+  }, []);
+
+  const calculateItemsTotal = useCallback(
+    (saleItems: SaleFormData["saleItems"]): number => {
+      return saleItems.reduce((sum, item) => sum + parsePriceString(item.price), 0);
+    },
+    [parsePriceString]
+  );
+
+  const calculateFeesTotal = useCallback(
+    (fees: SaleFormData["fees"]): number => {
+      return fees.reduce((sum, fee) => sum + parsePriceString(fee.amount), 0);
+    },
+    [parsePriceString]
   );
 
   const calculateTotal = useCallback(() => {
     const formData = baseForm.formData as unknown as SaleFormData;
     const saleItems = Array.isArray(formData.saleItems) ? formData.saleItems : [];
     const fees = Array.isArray(formData.fees) ? formData.fees : [];
-    const itemsTotal = saleItems.reduce(
-      (
-        sum: number,
-        item: { animalId: string; price: string; weight: string; carcassWeight?: string }
-      ) => {
-        const price =
-          Number.parseFloat(
-            String(item.price)
-              .replaceAll(/[^\d,.-]/g, "")
-              .replaceAll(",", ".")
-          ) || 0;
-        return sum + price;
-      },
-      0
-    );
-    const feesTotal = fees.reduce(
-      (sum: number, fee: { id: string; name: string; amount: string }) => {
-        const amount =
-          Number.parseFloat(
-            String(fee.amount)
-              .replaceAll(/[^\d,.-]/g, "")
-              .replaceAll(",", ".")
-          ) || 0;
-        return sum + amount;
-      },
-      0
-    );
+    const itemsTotal = calculateItemsTotal(saleItems);
+    const feesTotal = calculateFeesTotal(fees);
     return itemsTotal + feesTotal;
-  }, [baseForm]);
+  }, [baseForm, calculateItemsTotal, calculateFeesTotal]);
 
   return {
     formData: baseForm.formData,

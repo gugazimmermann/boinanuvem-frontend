@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { FinanceTransactionFormPage } from "../finance-transaction-form-page";
 import { useNavigate } from "react-router";
@@ -33,6 +33,25 @@ vi.mock("~/services/accounts-payable-observations.service", () => ({
 }));
 vi.mock("~/services/accounts-receivable-observations.service", () => ({
   addAccountsReceivableObservation: vi.fn(),
+}));
+vi.mock("~/contexts/auth-context", () => ({
+  useAuth: vi.fn(() => ({
+    currentUser: {
+      id: "user-1",
+      email: "test@example.com",
+      name: "Test User",
+      mainUser: true,
+      companyId: "company-1",
+      permissions: {},
+      company: null,
+    },
+    login: vi.fn(),
+    logout: vi.fn(),
+    isAuthenticated: true,
+    refreshTokens: vi.fn(),
+    getAccessToken: vi.fn(() => "access-token"),
+    getRefreshToken: vi.fn(() => "refresh-token"),
+  })),
 }));
 const mockNavigate = vi.fn();
 vi.mock("react-router", () => ({
@@ -148,7 +167,9 @@ describe("FinanceTransactionFormPage", () => {
   });
 
   it("should render title", async () => {
-    render(<FinanceTransactionFormPage {...defaultProps} />);
+    await act(async () => {
+      render(<FinanceTransactionFormPage {...defaultProps} />);
+    });
     // Title is passed to FormPageLayout
     await waitFor(
       () => {
@@ -158,8 +179,10 @@ describe("FinanceTransactionFormPage", () => {
     );
   });
 
-  it("should render transaction form", () => {
-    render(<FinanceTransactionFormPage {...defaultProps} />);
+  it("should render transaction form", async () => {
+    await act(async () => {
+      render(<FinanceTransactionFormPage {...defaultProps} />);
+    });
     expect(screen.getByText("Transaction Form")).toBeInTheDocument();
   });
 
@@ -170,7 +193,9 @@ describe("FinanceTransactionFormPage", () => {
       transactionId: "trans-1",
       viewRoute: (id: string) => `/view/${id}`,
     };
-    render(<FinanceTransactionFormPage {...props} />);
+    await act(async () => {
+      render(<FinanceTransactionFormPage {...props} />);
+    });
     await waitFor(
       () => {
         expect(screen.getByText("New Transaction")).toBeInTheDocument();
@@ -179,24 +204,28 @@ describe("FinanceTransactionFormPage", () => {
     );
   });
 
-  it("should show empty state when transactionId is missing in edit mode", () => {
+  it("should show empty state when transactionId is missing in edit mode", async () => {
     const props = {
       ...defaultProps,
       mode: "edit" as const,
       transactionId: undefined,
     };
-    render(<FinanceTransactionFormPage {...props} />);
+    await act(async () => {
+      render(<FinanceTransactionFormPage {...props} />);
+    });
     expect(screen.getByText("Item não encontrado")).toBeInTheDocument();
   });
 
-  it("should show custom emptyStateTitle when provided", () => {
+  it("should show custom emptyStateTitle when provided", async () => {
     const props = {
       ...defaultProps,
       mode: "edit" as const,
       transactionId: undefined,
       emptyStateTitle: "Custom Not Found",
     };
-    render(<FinanceTransactionFormPage {...props} />);
+    await act(async () => {
+      render(<FinanceTransactionFormPage {...props} />);
+    });
     expect(screen.getByText("Custom Not Found")).toBeInTheDocument();
   });
 
@@ -226,7 +255,9 @@ describe("FinanceTransactionFormPage", () => {
         return result;
       }),
     });
-    render(<FinanceTransactionFormPage {...props} />);
+    await act(async () => {
+      render(<FinanceTransactionFormPage {...props} />);
+    });
     const submitButton = screen.getByText("Save");
     await user.click(submitButton);
     expect(onSubmit).toHaveBeenCalled();
@@ -240,7 +271,9 @@ describe("FinanceTransactionFormPage", () => {
       onSubmit,
       showObservations: true,
     };
-    render(<FinanceTransactionFormPage {...props} />);
+    await act(async () => {
+      render(<FinanceTransactionFormPage {...props} />);
+    });
     expect(addAccountsPayableObservation).toBeDefined();
   });
 
@@ -252,22 +285,28 @@ describe("FinanceTransactionFormPage", () => {
       onSubmit,
       showObservations: true,
     };
-    render(<FinanceTransactionFormPage {...props} />);
+    await act(async () => {
+      render(<FinanceTransactionFormPage {...props} />);
+    });
     expect(addAccountsReceivableObservation).toBeDefined();
   });
 
-  it("should not show observations when showObservations is false", () => {
+  it("should not show observations when showObservations is false", async () => {
     const props = {
       ...defaultProps,
       showObservations: false,
     };
-    render(<FinanceTransactionFormPage {...props} />);
+    await act(async () => {
+      render(<FinanceTransactionFormPage {...props} />);
+    });
     expect(screen.queryByText("Observation Fields")).not.toBeInTheDocument();
   });
 
   it("should navigate to backRoute when back button is clicked in new mode", async () => {
     const user = userEvent.setup();
-    render(<FinanceTransactionFormPage {...defaultProps} />);
+    await act(async () => {
+      render(<FinanceTransactionFormPage {...defaultProps} />);
+    });
     await waitFor(
       async () => {
         const backButton = screen.getByText("Back");
@@ -286,7 +325,9 @@ describe("FinanceTransactionFormPage", () => {
       transactionId: "trans-1",
       viewRoute: (id: string) => `/view/${id}`,
     };
-    render(<FinanceTransactionFormPage {...props} />);
+    await act(async () => {
+      render(<FinanceTransactionFormPage {...props} />);
+    });
     await waitFor(
       async () => {
         const backButton = screen.getByText("Back");
@@ -304,7 +345,9 @@ describe("FinanceTransactionFormPage", () => {
       mode: "edit" as const,
       transactionId: "trans-1",
     };
-    render(<FinanceTransactionFormPage {...props} />);
+    await act(async () => {
+      render(<FinanceTransactionFormPage {...props} />);
+    });
     await waitFor(
       async () => {
         const backButton = screen.getByText("Back");
@@ -315,7 +358,7 @@ describe("FinanceTransactionFormPage", () => {
     );
   });
 
-  it("should display error message when alertMessage is provided", () => {
+  it("should display error message when alertMessage is provided", async () => {
     mockUseFinanceTransactionForm.mockReturnValue({
       formData: {},
       errors: {},
@@ -329,21 +372,29 @@ describe("FinanceTransactionFormPage", () => {
       handleChange: vi.fn(),
       handleSubmit: vi.fn(),
     });
-    render(<FinanceTransactionFormPage {...defaultProps} />);
+    await act(async () => {
+      render(<FinanceTransactionFormPage {...defaultProps} />);
+    });
     expect(screen.getByTestId("alert")).toBeInTheDocument();
   });
 
-  it("should handle different transaction types", () => {
+  it("should handle different transaction types", async () => {
     const types = ["cash-flow", "accounts-payable", "accounts-receivable"] as const;
-    types.forEach((type) => {
+    for (const type of types) {
       const props = {
         ...defaultProps,
         transactionType: type,
       };
-      const { unmount } = render(<FinanceTransactionFormPage {...props} />);
+      let unmount: ReturnType<typeof render>["unmount"] | undefined;
+      await act(async () => {
+        const result = render(<FinanceTransactionFormPage {...props} />);
+        unmount = result.unmount;
+      });
       expect(screen.getByText("Transaction Form")).toBeInTheDocument();
-      unmount();
-    });
+      if (unmount) {
+        unmount();
+      }
+    }
   });
 
   it("should add observation with files for cash-flow", async () => {
@@ -373,7 +424,9 @@ describe("FinanceTransactionFormPage", () => {
         return result;
       }),
     });
-    render(<FinanceTransactionFormPage {...props} />);
+    await act(async () => {
+      render(<FinanceTransactionFormPage {...props} />);
+    });
     const submitButton = screen.getByText("Save");
     await user.click(submitButton);
     await waitFor(() => {
@@ -408,7 +461,9 @@ describe("FinanceTransactionFormPage", () => {
         return result;
       }),
     });
-    render(<FinanceTransactionFormPage {...props} />);
+    await act(async () => {
+      render(<FinanceTransactionFormPage {...props} />);
+    });
     // Observation would be added without fileIds when observationFiles is empty
     expect(screen.getByText("Transaction Form")).toBeInTheDocument();
   });
@@ -438,7 +493,9 @@ describe("FinanceTransactionFormPage", () => {
         return result;
       }),
     });
-    render(<FinanceTransactionFormPage {...props} />);
+    await act(async () => {
+      render(<FinanceTransactionFormPage {...props} />);
+    });
     // When observation is empty, observation should not be added
     expect(screen.getByText("Transaction Form")).toBeInTheDocument();
   });
@@ -451,7 +508,9 @@ describe("FinanceTransactionFormPage", () => {
       onSubmit,
       showObservations: false,
     };
-    render(<FinanceTransactionFormPage {...props} />);
+    await act(async () => {
+      render(<FinanceTransactionFormPage {...props} />);
+    });
     // Observations should not be shown or added
     expect(screen.queryByText("Observation Fields")).not.toBeInTheDocument();
   });
@@ -480,7 +539,9 @@ describe("FinanceTransactionFormPage", () => {
         onSubmit({} as never);
       }),
     });
-    render(<FinanceTransactionFormPage {...props} />);
+    await act(async () => {
+      render(<FinanceTransactionFormPage {...props} />);
+    });
     // When onSubmit returns void, observation should not be added
     expect(screen.getByText("Transaction Form")).toBeInTheDocument();
   });
@@ -509,21 +570,25 @@ describe("FinanceTransactionFormPage", () => {
         onSubmit({} as never);
       }),
     });
-    render(<FinanceTransactionFormPage {...props} />);
+    await act(async () => {
+      render(<FinanceTransactionFormPage {...props} />);
+    });
     // When result is not an object with id, observation should not be added
     expect(screen.getByText("Transaction Form")).toBeInTheDocument();
   });
 
-  it("should show loading state when isSubmitting is true", () => {
+  it("should show loading state when isSubmitting is true", async () => {
     mockUseFinanceTransactionForm.mockReturnValue({
       ...mockUseFinanceTransactionForm(),
       isSubmitting: true,
     });
-    render(<FinanceTransactionFormPage {...defaultProps} />);
+    await act(async () => {
+      render(<FinanceTransactionFormPage {...defaultProps} />);
+    });
     expect(screen.getByText("Saving...")).toBeInTheDocument();
   });
 
-  it("should display alert message in edit mode", () => {
+  it("should display alert message in edit mode", async () => {
     mockUseFinanceTransactionForm.mockReturnValue({
       ...mockUseFinanceTransactionForm(),
       alertMessage: { message: "Error", type: "error" },
@@ -533,7 +598,9 @@ describe("FinanceTransactionFormPage", () => {
       mode: "edit" as const,
       transactionId: "trans-1",
     };
-    render(<FinanceTransactionFormPage {...props} />);
+    await act(async () => {
+      render(<FinanceTransactionFormPage {...props} />);
+    });
     expect(screen.getByTestId("alert")).toBeInTheDocument();
   });
 
@@ -549,7 +616,9 @@ describe("FinanceTransactionFormPage", () => {
       mode: "edit" as const,
       transactionId: "trans-1",
     };
-    render(<FinanceTransactionFormPage {...props} />);
+    await act(async () => {
+      render(<FinanceTransactionFormPage {...props} />);
+    });
     const submitButton = screen.getByText("Save");
     await user.click(submitButton);
     expect(handleSubmit).toHaveBeenCalled();

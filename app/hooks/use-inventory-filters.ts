@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import type { InventoryItem, SortDirection, Language } from "~/types";
 import { getCurrentStock } from "~/services/inventory.service";
 
@@ -18,6 +18,26 @@ export function useInventoryFilters(options: UseInventoryFiltersOptions) {
     column: string | null;
     direction: SortDirection;
   }>({ column: "name", direction: "asc" });
+  const [stockMap, setStockMap] = useState<Map<string, number>>(new Map());
+
+  useEffect(() => {
+    const loadStockValues = async () => {
+      const stockPromises = items.map(async (item) => {
+        try {
+          const stock = await getCurrentStock(item.id);
+          return [item.id, stock] as [string, number];
+        } catch (error) {
+          console.error(`Failed to load stock for item ${item.id}:`, error);
+          return [item.id, 0] as [string, number];
+        }
+      });
+      const stockEntries = await Promise.all(stockPromises);
+      setStockMap(new Map(stockEntries));
+    };
+    if (items.length > 0) {
+      loadStockValues();
+    }
+  }, [items]);
 
   const filteredData = useMemo(() => {
     return items.filter((item) => {
@@ -48,8 +68,8 @@ export function useInventoryFilters(options: UseInventoryFiltersOptions) {
       let bValue: SortValue;
 
       if (sortState.column === "currentStock") {
-        aValue = getCurrentStock(a.id);
-        bValue = getCurrentStock(b.id);
+        aValue = stockMap.get(a.id) ?? 0;
+        bValue = stockMap.get(b.id) ?? 0;
       } else {
         aValue = a[sortState.column as keyof InventoryItem] as string | number | undefined;
         bValue = b[sortState.column as keyof InventoryItem] as string | number | undefined;
@@ -78,7 +98,7 @@ export function useInventoryFilters(options: UseInventoryFiltersOptions) {
 
       return sortState.direction === "asc" ? comparison : -comparison;
     });
-  }, [filteredData, sortState, language]);
+  }, [filteredData, sortState, language, stockMap]);
 
   const handleSort = (column: string, direction: SortDirection) => {
     setSortState({ column, direction });

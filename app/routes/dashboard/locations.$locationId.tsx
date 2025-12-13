@@ -40,6 +40,7 @@ import {
   type Property,
   type Employee,
   type ServiceProvider,
+  type InventoryItem,
 } from "~/types";
 import { getProperties } from "~/services/properties.service";
 import { getLocationMovementsByLocationId } from "~/services/location-movements.service";
@@ -59,7 +60,6 @@ import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
 import { useDateLocale } from "~/hooks/use-date-locale";
 import { createAnimalTableColumnsWithConfig } from "~/utils/animal-table-config";
 import { createBirthsMap } from "~/utils/births-map";
-import { getAnimalSortValue, compareAnimalSortValues } from "~/utils/animal-sorting";
 import {
   getLocationConsumptionCosts,
   getTotalLocationCost,
@@ -102,12 +102,12 @@ function matchesAnimalMovementSearch(
   return animalMovementText.includes(searchLower) || "animal".toLowerCase().includes(searchLower);
 }
 
-function matchesInventoryMovementSearch(
+async function matchesInventoryMovementSearch(
   movement: InventoryMovement,
   searchLower: string,
   t: { inventory: { movements: { types: { consumption?: string } } } }
-): boolean {
-  const item = getInventoryItemById(movement.itemId);
+): Promise<boolean> {
+  const item = await getInventoryItemById(movement.itemId);
   if (item) {
     const itemName = `${item.code} ${item.name}`.toLowerCase();
     if (itemName.includes(searchLower)) return true;
@@ -150,7 +150,7 @@ function matchesAnimalNames(
   return animalNames.includes(searchLower);
 }
 
-function checkMovementTypeSpecificSearch(
+async function checkMovementTypeSpecificSearch(
   movement: MovementUnion,
   searchLower: string,
   t: {
@@ -169,7 +169,7 @@ function checkMovementTypeSpecificSearch(
       };
     };
   }
-): boolean {
+): Promise<boolean> {
   if (movement.movementType === "location") {
     return matchesLocationMovementSearch(movement as LocationMovement, searchLower, t);
   }
@@ -177,12 +177,12 @@ function checkMovementTypeSpecificSearch(
     return matchesAnimalMovementSearch(movement as AnimalMovement, searchLower, t);
   }
   if (movement.movementType === "inventory") {
-    return matchesInventoryMovementSearch(movement as InventoryMovement, searchLower, t);
+    return await matchesInventoryMovementSearch(movement as InventoryMovement, searchLower, t);
   }
   return false;
 }
 
-function matchesMovementSearch(
+async function matchesMovementSearch(
   movement: MovementUnion,
   searchLower: string,
   formatDate: (date: string) => string,
@@ -208,9 +208,9 @@ function matchesMovementSearch(
     serviceProviders: ServiceProvider[];
     animalsMap: Map<string, Animal>;
   }
-): boolean {
+): Promise<boolean> {
   const { locations, employees, serviceProviders, animalsMap } = searchContext;
-  if (checkMovementTypeSpecificSearch(movement, searchLower, t)) {
+  if (await checkMovementTypeSpecificSearch(movement, searchLower, t)) {
     return true;
   }
 
@@ -350,22 +350,22 @@ function getMovementLocationSortValue(movement: UnifiedMovement, locations: Loca
   return loc ? `${loc.name} (${loc.code})` : locationId || "";
 }
 
-function getMovementTypeSortValue(movement: UnifiedMovement): string {
+async function getMovementTypeSortValue(movement: UnifiedMovement): Promise<string> {
   if (movement.movementType === "location") {
     return (movement as LocationMovement).type;
   }
   if (movement.movementType === "animal") {
     return "animal";
   }
-  const item = getInventoryItemById((movement as InventoryMovement).itemId);
+  const item = await getInventoryItemById((movement as InventoryMovement).itemId);
   return item ? `${item.code} - ${item.name}` : "inventory";
 }
 
-function getMovementSortValue(
+async function getMovementSortValue(
   movement: UnifiedMovement,
   column: string,
   locations: Location[]
-): MovementSortValue {
+): Promise<MovementSortValue> {
   if (column === "date") {
     return new Date(movement.date).getTime();
   }
@@ -373,7 +373,7 @@ function getMovementSortValue(
     return getMovementLocationSortValue(movement, locations);
   }
   if (column === "type") {
-    return getMovementTypeSortValue(movement);
+    return await getMovementTypeSortValue(movement);
   }
   if (movement.movementType === "location") {
     return (movement as LocationMovement)[column as keyof LocationMovement] as MovementSortValue;
@@ -414,20 +414,20 @@ function convertToHectares(value: number, type: AreaType): number {
   }
 }
 
-function calculateLocationStats(
+async function calculateLocationStats(
   animalsInLocation: Animal[],
   location: Location
-): {
+): Promise<{
   totalWeight: number;
   animalUnits: number;
   areaInHectares: number;
   stockingRate: number;
   density: number;
-} {
-  const calculateTotalWeight = () => {
+}> {
+  const calculateTotalWeight = async () => {
     let totalWeight = 0;
     for (const animal of animalsInLocation) {
-      const weighings = getWeighingsByAnimalId(animal.id);
+      const weighings = await getWeighingsByAnimalId(animal.id);
       if (weighings.length > 0) {
         const sortedWeighings = weighings.toSorted(
           (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
@@ -439,7 +439,7 @@ function calculateLocationStats(
     return totalWeight;
   };
 
-  const totalWeight = calculateTotalWeight();
+  const totalWeight = await calculateTotalWeight();
   const animalUnits = totalWeight > 0 ? totalWeight / 450 : 0;
   const areaInHectares = convertToHectares(location.area.value, location.area.type);
   const stockingRate = areaInHectares > 0 && animalUnits > 0 ? animalUnits / areaInHectares : 0;
@@ -1010,6 +1010,10 @@ export default function LocationDetails() {
   const [animalsSearchValue, setAnimalsSearchValue] = useState("");
   const [animalsActiveFilter, setAnimalsActiveFilter] = useState<string>("all");
   const [animalsCurrentPage, setAnimalsCurrentPage] = useState(1);
+  const [filteredAndSortedMovements, setFilteredAndSortedMovements] = useState<UnifiedMovement[]>(
+    []
+  );
+  const [inventoryItemsMap, setInventoryItemsMap] = useState<Map<string, InventoryItem>>(new Map());
   const [animalsSortState, setAnimalsSortState] = useState<{
     column: string | null;
     direction: SortDirection;
@@ -1024,6 +1028,11 @@ export default function LocationDetails() {
   const dateLocale = useDateLocale();
   const localeForDateTime = getLocaleForLanguage(language);
   const localeForNumber = localeForDateTime;
+  const formatDate = useMemo(() => createDateFormatter(localeForDateTime), [localeForDateTime]);
+  const formatDateTime = useMemo(
+    () => createDateTimeFormatter(localeForDateTime),
+    [localeForDateTime]
+  );
 
   useEffect(() => {
     const tab = searchParams.get("tab");
@@ -1052,16 +1061,145 @@ export default function LocationDetails() {
     .filter((animal): animal is Animal => animal !== null);
   const animalsInLocation = allAnimalsInLocation.filter((animal) => animal.status === "active");
 
-  const locationStats = useMemo(() => {
-    if (!location) return null;
-    return calculateLocationStats(animalsInLocation, location);
+  const [locationStats, setLocationStats] = useState<{
+    totalWeight: number;
+    animalUnits: number;
+    areaInHectares: number;
+    stockingRate: number;
+    density: number;
+  } | null>(null);
+
+  useEffect(() => {
+    const loadStats = async () => {
+      if (!location) {
+        setLocationStats(null);
+        return;
+      }
+      const stats = await calculateLocationStats(animalsInLocation, location);
+      setLocationStats(stats);
+    };
+    loadStats();
   }, [animalsInLocation, location]);
 
-  const formatDate = useMemo(() => createDateFormatter(localeForDateTime), [localeForDateTime]);
-  const formatDateTime = useMemo(
-    () => createDateTimeFormatter(localeForDateTime),
-    [localeForDateTime]
-  );
+  // Pre-load inventory items for movements
+  useEffect(() => {
+    const loadInventoryItems = async () => {
+      if (!location) {
+        setInventoryItemsMap(new Map());
+        return;
+      }
+      const inventoryMovements = getMovementsByLocationId(location.id).filter(
+        (m) => m.type === InventoryMovementType.CONSUMPTION
+      );
+      const itemIds = new Set(inventoryMovements.map((m) => m.itemId));
+      const itemPromises = Array.from(itemIds).map(async (itemId) => {
+        const item = await getInventoryItemById(itemId);
+        return [itemId, item] as [string, InventoryItem | undefined];
+      });
+      const items = await Promise.all(itemPromises);
+      const itemsMap = new Map(
+        items.filter(([, item]) => item !== undefined) as [string, InventoryItem][]
+      );
+      setInventoryItemsMap(itemsMap);
+    };
+    loadInventoryItems();
+  }, [location]);
+
+  // Filter and sort movements
+  useEffect(() => {
+    const filterAndSortMovements = async () => {
+      if (!location || !property) {
+        setFilteredAndSortedMovements([]);
+        return;
+      }
+
+      const locationMovements = getLocationMovementsByLocationId(location.id);
+      const animalMovements = getAnimalMovementsByLocationId(location.id);
+      const inventoryMovements = getMovementsByLocationId(location.id).filter(
+        (m) => m.type === InventoryMovementType.CONSUMPTION
+      );
+
+      const movements: UnifiedMovement[] = [
+        ...locationMovements.map((m) => ({ ...m, movementType: "location" as const })),
+        ...animalMovements.map((m) => ({ ...m, movementType: "animal" as const })),
+        ...inventoryMovements.map((m) => ({ ...m, movementType: "inventory" as const })),
+      ];
+
+      // Filter movements
+      const filterPromises = movements.map(async (movement) => {
+        if (!searchValue) return movement;
+        const matches = await matchesMovementSearch(
+          movement,
+          searchValue.toLowerCase(),
+          formatDate,
+          t,
+          {
+            locations,
+            employees,
+            serviceProviders,
+            animalsMap,
+          }
+        );
+        return matches ? movement : null;
+      });
+      const filterResults = await Promise.all(filterPromises);
+      const filteredMovements = filterResults.filter((m): m is UnifiedMovement => m !== null);
+
+      // Sort movements
+      const sortPromises = filteredMovements.map(async (movement) => {
+        const sortValue = await getMovementSortValue(
+          movement,
+          sortState.column || "date",
+          locations
+        );
+        return { movement, sortValue };
+      });
+      const sortResults = await Promise.all(sortPromises);
+
+      const sortedResults = [...sortResults].sort((a, b) => {
+        if (!sortState.column || !sortState.direction) {
+          return new Date(b.movement.date).getTime() - new Date(a.movement.date).getTime();
+        }
+
+        const aValue = a.sortValue;
+        const bValue = b.sortValue;
+
+        if (aValue == null && bValue == null) return 0;
+        if (aValue == null) return 1;
+        if (bValue == null) return -1;
+
+        let comparison = 0;
+        if (typeof aValue === "string" && typeof bValue === "string") {
+          comparison = aValue.localeCompare(bValue, localeForDateTime, {
+            sensitivity: "base",
+          });
+        } else if (typeof aValue === "number" && typeof bValue === "number") {
+          comparison = aValue - bValue;
+        } else {
+          comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
+        }
+
+        return sortState.direction === "asc" ? comparison : -comparison;
+      });
+      const sortedMovements = sortedResults.map(({ movement }) => movement);
+
+      setFilteredAndSortedMovements(sortedMovements);
+    };
+
+    filterAndSortMovements();
+  }, [
+    location,
+    property,
+    searchValue,
+    sortState,
+    formatDate,
+    t,
+    locations,
+    employees,
+    serviceProviders,
+    animalsMap,
+    localeForDateTime,
+  ]);
 
   const handleSubmitObservation = useMemo(
     () =>
@@ -1517,30 +1655,8 @@ export default function LocationDetails() {
             return matchesSearch && matchesFilter;
           });
 
-          const sortedAnimals = filteredAnimals.toSorted((a, b) => {
-            if (!animalsSortState.column || !animalsSortState.direction) {
-              return 0;
-            }
-
-            const aValue = getAnimalSortValue(
-              a,
-              animalsSortState.column,
-              localeForDateTime,
-              birthsMap
-            );
-            const bValue = getAnimalSortValue(
-              b,
-              animalsSortState.column,
-              localeForDateTime,
-              birthsMap
-            );
-            const comparison = compareAnimalSortValues(aValue, bValue, localeForDateTime);
-
-            return animalsSortState.direction === "asc" ? comparison : -comparison;
-          });
-
-          const totalPages = Math.ceil(sortedAnimals.length / itemsPerPage);
-          const paginatedAnimals = sortedAnimals.slice(
+          const totalPages = Math.ceil(filteredAnimals.length / itemsPerPage);
+          const paginatedAnimals = filteredAnimals.slice(
             (animalsCurrentPage - 1) * itemsPerPage,
             animalsCurrentPage * itemsPerPage
           );
@@ -2064,50 +2180,14 @@ export default function LocationDetails() {
             (m) => m.type === InventoryMovementType.CONSUMPTION
           );
 
-          const movements: UnifiedMovement[] = [
+          const _movements: UnifiedMovement[] = [
             ...locationMovements.map((m) => ({ ...m, movementType: "location" as const })),
             ...animalMovements.map((m) => ({ ...m, movementType: "animal" as const })),
             ...inventoryMovements.map((m) => ({ ...m, movementType: "inventory" as const })),
           ];
 
-          const filteredMovements = movements.filter((movement) => {
-            if (!searchValue) return true;
-            return matchesMovementSearch(movement, searchValue.toLowerCase(), formatDate, t, {
-              locations,
-              employees,
-              serviceProviders,
-              animalsMap,
-            });
-          });
-
-          const sortedMovements = filteredMovements.toSorted((a, b) => {
-            if (!sortState.column || !sortState.direction) {
-              return new Date(b.date).getTime() - new Date(a.date).getTime();
-            }
-
-            const aValue = getMovementSortValue(a, sortState.column, locations);
-            const bValue = getMovementSortValue(b, sortState.column, locations);
-
-            if (aValue == null && bValue == null) return 0;
-            if (aValue == null) return 1;
-            if (bValue == null) return -1;
-
-            let comparison = 0;
-            if (typeof aValue === "string" && typeof bValue === "string") {
-              comparison = aValue.localeCompare(bValue, localeForDateTime, {
-                sensitivity: "base",
-              });
-            } else if (typeof aValue === "number" && typeof bValue === "number") {
-              comparison = aValue - bValue;
-            } else {
-              comparison = String(aValue).localeCompare(String(bValue), "pt-BR");
-            }
-
-            return sortState.direction === "asc" ? comparison : -comparison;
-          });
-
-          const totalPages = Math.ceil(sortedMovements.length / itemsPerPage);
-          const paginatedMovements = sortedMovements.slice(
+          const totalPages = Math.ceil(filteredAndSortedMovements.length / itemsPerPage);
+          const paginatedMovements = filteredAndSortedMovements.slice(
             (currentPage - 1) * itemsPerPage,
             currentPage * itemsPerPage
           );
@@ -2143,7 +2223,7 @@ export default function LocationDetails() {
                   );
                 } else {
                   const inventoryMovement = row as InventoryMovement;
-                  const item = getInventoryItemById(inventoryMovement.itemId);
+                  const item = inventoryItemsMap.get(inventoryMovement.itemId);
                   return (
                     <span className="text-gray-700 dark:text-gray-300">
                       {item
@@ -2193,7 +2273,7 @@ export default function LocationDetails() {
                 }
                 if (row.movementType === "inventory") {
                   const inventoryMovement = row as InventoryMovement;
-                  const item = getInventoryItemById(inventoryMovement.itemId);
+                  const item = inventoryItemsMap.get(inventoryMovement.itemId);
                   return (
                     <span className="text-gray-700 dark:text-gray-300">
                       {item
@@ -2307,7 +2387,7 @@ export default function LocationDetails() {
                 header={{
                   title: t.properties.details.movements.title,
                   badge: {
-                    label: `${filteredMovements.length} ${filteredMovements.length === 1 ? t.properties.details.movements.movement : t.properties.details.movements.movements}`,
+                    label: `${filteredAndSortedMovements.length} ${filteredAndSortedMovements.length === 1 ? t.properties.details.movements.movement : t.properties.details.movements.movements}`,
                     variant: "primary",
                   },
                   description: t.properties.details.movements.description,

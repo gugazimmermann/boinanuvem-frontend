@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Button, FixedAlert } from "~/components/ui";
 import { useTranslation } from "~/i18n";
@@ -10,8 +10,9 @@ import { getBankAccountsByCompanyId } from "~/services/bank-account.service";
 import { addAccountsPayableObservation } from "~/services/accounts-payable-observations.service";
 import { addAccountsReceivableObservation } from "~/services/accounts-receivable-observations.service";
 import { addCashFlowObservation } from "~/services/cash-flow-observations.service";
-import { mockCompanies } from "~/mocks/companies";
+import { useAuth } from "~/contexts/auth-context";
 import type {
+  BankAccount,
   CashFlowFormData,
   AccountsPayableFormData,
   AccountsReceivableFormData,
@@ -57,7 +58,9 @@ export interface FinanceTransactionFormPageProps {
     readonly files?: string;
     readonly filesHelper?: string;
   };
-  readonly onSubmit: (data: FinanceTransactionFormData) => void | { id: string };
+  readonly onSubmit: (
+    data: FinanceTransactionFormData
+  ) => void | { id: string } | Promise<void | { id: string }>;
   readonly onSuccess: () => void;
   readonly successMessage: string;
   readonly errorMessage: string;
@@ -89,47 +92,62 @@ export function FinanceTransactionFormPage({
 }: FinanceTransactionFormPageProps) {
   const t = useTranslation();
   const navigate = useNavigate();
-  const company = mockCompanies[0];
-  const companyId = company?.id || "";
+  const { currentUser } = useAuth();
+  const companyId = currentUser?.companyId || "";
 
   const [observationFiles, setObservationFiles] = useState<File[]>([]);
   const [observation, setObservation] = useState("");
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
 
-  const bankAccounts = company ? getBankAccountsByCompanyId(company.id) : [];
-
-  const handleSubmitWrapper = (data: FinanceTransactionFormData) => {
-    const result = onSubmit(data);
-    if (
-      showObservations &&
-      observation?.trim() &&
-      result &&
-      typeof result === "object" &&
-      "id" in result
-    ) {
-      const fileIds = observationFiles.map(
-        (_, index) => `file-${transactionType}-obs-${Date.now()}-${index}`
-      );
-
-      if (transactionType === "accounts-payable") {
-        addAccountsPayableObservation({
-          accountsPayableId: result.id,
-          observation: observation.trim(),
-          fileIds: fileIds.length > 0 ? fileIds : undefined,
-        });
-      } else if (transactionType === "accounts-receivable") {
-        addAccountsReceivableObservation({
-          accountsReceivableId: result.id,
-          observation: observation.trim(),
-          fileIds: fileIds.length > 0 ? fileIds : undefined,
-        });
-      } else if (transactionType === "cash-flow") {
-        addCashFlowObservation({
-          cashFlowId: result.id,
-          observation: observation.trim(),
-          fileIds: fileIds.length > 0 ? fileIds : undefined,
-        });
+  useEffect(() => {
+    const loadBankAccounts = async () => {
+      if (companyId) {
+        try {
+          const accounts = await getBankAccountsByCompanyId(companyId);
+          setBankAccounts(accounts);
+        } catch (error) {
+          console.error("Failed to load bank accounts:", error);
+        }
       }
-    }
+    };
+    loadBankAccounts();
+  }, [companyId]);
+
+  const handleSubmitWrapper = (data: FinanceTransactionFormData): void => {
+    void (async () => {
+      const result = await Promise.resolve(onSubmit(data));
+      if (
+        showObservations &&
+        observation?.trim() &&
+        result &&
+        typeof result === "object" &&
+        "id" in result
+      ) {
+        const fileIds = observationFiles.map(
+          (_, index) => `file-${transactionType}-obs-${Date.now()}-${index}`
+        );
+
+        if (transactionType === "accounts-payable") {
+          addAccountsPayableObservation({
+            accountsPayableId: result.id,
+            observation: observation.trim(),
+            fileIds: fileIds.length > 0 ? fileIds : undefined,
+          });
+        } else if (transactionType === "accounts-receivable") {
+          addAccountsReceivableObservation({
+            accountsReceivableId: result.id,
+            observation: observation.trim(),
+            fileIds: fileIds.length > 0 ? fileIds : undefined,
+          });
+        } else if (transactionType === "cash-flow") {
+          addCashFlowObservation({
+            cashFlowId: result.id,
+            observation: observation.trim(),
+            fileIds: fileIds.length > 0 ? fileIds : undefined,
+          });
+        }
+      }
+    })();
   };
 
   const {

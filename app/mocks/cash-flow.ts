@@ -1,10 +1,8 @@
 import type { CashFlow, CashFlowFormData } from "~/types";
 import { CashFlowCategory, PaymentMethod } from "~/types";
 import { mockSuppliers } from "./suppliers";
-import { mockBuyers } from "./buyers";
 import { mockBankAccounts } from "./bank-accounts";
 import { mockEmployees } from "./employees";
-import { mockServiceProviders } from "./service-providers";
 import { mockProperties } from "./properties";
 
 export type { CashFlow, CashFlowFormData };
@@ -14,8 +12,6 @@ const TODAY = new Date("2025-11-21");
 const COMPANY_ID = "550e8400-e29b-41d4-a716-446655440000";
 const SUPPLIER_AGROFORNECEDORA = mockSuppliers[0].id;
 const SUPPLIER_CARLOS = mockSuppliers[1].id;
-const BUYER_FRIGORIFICO = mockBuyers[0].id;
-const BUYER_ROBERTO = mockBuyers[1].id;
 const BANK_ACCOUNT_BB = mockBankAccounts[0].id;
 const BANK_ACCOUNT_BRADESCO = mockBankAccounts[1].id;
 const BANK_ACCOUNT_CEF = mockBankAccounts[2].id;
@@ -79,7 +75,6 @@ const cashFlowTransactions: CashFlow[] = [
     category: CashFlowCategory.CATTLE_SALES,
     paymentMethod: PaymentMethod.BANK_TRANSFER,
     status: "completed",
-    buyerId: BUYER_FRIGORIFICO,
     paymentDate: "2025-11-05",
     referenceNumber: "VEN-2025-001",
     bankAccountId: BANK_ACCOUNT_BB,
@@ -113,7 +108,6 @@ const cashFlowTransactions: CashFlow[] = [
     category: CashFlowCategory.VETERINARY,
     paymentMethod: PaymentMethod.CASH,
     status: "completed",
-    serviceProviderId: mockServiceProviders[1].id,
     paymentDate: "2025-11-12",
     referenceNumber: "DESP-2025-002",
     propertyId: PROPERTY_1,
@@ -162,7 +156,6 @@ const cashFlowTransactions: CashFlow[] = [
     category: CashFlowCategory.MILK_SALES,
     paymentMethod: PaymentMethod.PIX,
     status: "completed",
-    buyerId: BUYER_ROBERTO,
     paymentDate: "2025-11-18",
     referenceNumber: "VEN-2025-004",
     bankAccountId: BANK_ACCOUNT_BB,
@@ -179,7 +172,6 @@ const cashFlowTransactions: CashFlow[] = [
     category: CashFlowCategory.INSEMINATION,
     paymentMethod: PaymentMethod.CASH,
     status: "completed",
-    serviceProviderId: mockServiceProviders[0].id,
     paymentDate: "2025-11-20",
     referenceNumber: "DESP-2025-008",
     propertyId: PROPERTY_1,
@@ -212,7 +204,6 @@ const cashFlowTransactions: CashFlow[] = [
     category: CashFlowCategory.CATTLE_SALES,
     paymentMethod: PaymentMethod.BANK_TRANSFER,
     status: "completed",
-    buyerId: BUYER_ROBERTO,
     paymentDate: "2025-10-18",
     referenceNumber: "VEN-2025-002",
     bankAccountId: BANK_ACCOUNT_BB,
@@ -310,7 +301,6 @@ const cashFlowTransactions: CashFlow[] = [
     category: CashFlowCategory.MILK_SALES,
     paymentMethod: PaymentMethod.BANK_TRANSFER,
     status: "completed",
-    buyerId: BUYER_FRIGORIFICO,
     paymentDate: "2025-10-15",
     referenceNumber: "VEN-2025-005",
     bankAccountId: BANK_ACCOUNT_BB,
@@ -359,7 +349,6 @@ const cashFlowTransactions: CashFlow[] = [
     category: CashFlowCategory.BREEDING_SERVICES,
     paymentMethod: PaymentMethod.PIX,
     status: "completed",
-    serviceProviderId: mockServiceProviders[2].id,
     paymentDate: "2025-09-15",
     referenceNumber: "VEN-2025-003",
     bankAccountId: BANK_ACCOUNT_BRADESCO,
@@ -376,7 +365,6 @@ const cashFlowTransactions: CashFlow[] = [
     category: CashFlowCategory.CATTLE_SALES,
     paymentMethod: PaymentMethod.BANK_TRANSFER,
     status: "completed",
-    buyerId: BUYER_FRIGORIFICO,
     paymentDate: "2025-09-08",
     referenceNumber: "VEN-2025-006",
     bankAccountId: BANK_ACCOUNT_BB,
@@ -427,7 +415,6 @@ const cashFlowTransactions: CashFlow[] = [
     category: CashFlowCategory.VETERINARY,
     paymentMethod: PaymentMethod.CASH,
     status: "completed",
-    serviceProviderId: mockServiceProviders[1].id,
     paymentDate: "2025-09-22",
     referenceNumber: "DESP-2025-016",
     propertyId: PROPERTY_2,
@@ -459,7 +446,6 @@ const cashFlowTransactions: CashFlow[] = [
     category: CashFlowCategory.MILK_SALES,
     paymentMethod: PaymentMethod.BANK_TRANSFER,
     status: "completed",
-    buyerId: BUYER_ROBERTO,
     paymentDate: "2025-09-28",
     referenceNumber: "VEN-2025-007",
     bankAccountId: BANK_ACCOUNT_BB,
@@ -477,7 +463,6 @@ const cashFlowTransactions: CashFlow[] = [
     category: CashFlowCategory.CATTLE_SALES,
     paymentMethod: PaymentMethod.BANK_TRANSFER,
     status: "completed",
-    buyerId: BUYER_FRIGORIFICO,
     paymentDate: "2025-08-12",
     referenceNumber: "VEN-2025-008",
     bankAccountId: BANK_ACCOUNT_BB,
@@ -561,7 +546,6 @@ const cashFlowTransactions: CashFlow[] = [
     category: CashFlowCategory.INSEMINATION,
     paymentMethod: PaymentMethod.CASH,
     status: "completed",
-    serviceProviderId: mockServiceProviders[0].id,
     paymentDate: "2025-08-25",
     referenceNumber: "DESP-2025-022",
     propertyId: PROPERTY_2,
@@ -577,7 +561,6 @@ const cashFlowTransactions: CashFlow[] = [
     category: CashFlowCategory.MILK_SALES,
     paymentMethod: PaymentMethod.PIX,
     status: "completed",
-    buyerId: BUYER_ROBERTO,
     paymentDate: "2025-08-30",
     referenceNumber: "VEN-2025-009",
     bankAccountId: BANK_ACCOUNT_BRADESCO,
@@ -595,7 +578,6 @@ const cashFlowTransactions: CashFlow[] = [
     category: CashFlowCategory.CATTLE_SALES,
     paymentMethod: PaymentMethod.BANK_TRANSFER,
     status: "completed",
-    buyerId: BUYER_FRIGORIFICO,
     paymentDate: "2025-07-10",
     referenceNumber: "VEN-2025-010",
     bankAccountId: BANK_ACCOUNT_BB,
@@ -677,7 +659,6 @@ const cashFlowTransactions: CashFlow[] = [
     category: CashFlowCategory.MILK_SALES,
     paymentMethod: PaymentMethod.BANK_TRANSFER,
     status: "completed",
-    buyerId: BUYER_ROBERTO,
     paymentDate: "2025-07-28",
     referenceNumber: "VEN-2025-011",
     bankAccountId: BANK_ACCOUNT_BB,

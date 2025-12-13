@@ -43,10 +43,10 @@ export default function NewAccountsReceivable() {
           "Você pode anexar múltiplos arquivos à observação",
       }}
       onSubmit={
-        ((data: AccountsReceivableFormData) => {
-          const result = addAccountsReceivable(data);
+        (async (data: AccountsReceivableFormData) => {
+          const result = await addAccountsReceivable(data);
           return { id: result.id };
-        }) as (data: FinanceTransactionFormData) => void | { id: string }
+        }) as (data: FinanceTransactionFormData) => Promise<void | { id: string }>
       }
       onSuccess={() => {
         setTimeout(() => {

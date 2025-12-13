@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { getInventoryItemById } from "~/services/inventory.service";
 import { useParams, useNavigate } from "react-router";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
@@ -24,12 +25,16 @@ import {
   getSupplierViewRoute,
   getCashFlowViewRoute,
 } from "~/routes.config";
-import { getInventoryItemById } from "~/services/inventory.service";
 import { getMovementsByItemId } from "~/services/inventory-movements.service";
 import { getSuppliers } from "~/services/suppliers.service";
 import { getProperties } from "~/services/properties.service";
-import { getCashFlowById } from "~/services/cash-flow.service";
-import type { Supplier, Property, InventoryMovement, InventoryObservation } from "~/types";
+import type {
+  Supplier,
+  Property,
+  InventoryMovement,
+  InventoryObservation,
+  InventoryItem,
+} from "~/types";
 import { InventoryMovementType } from "~/types";
 import {
   getInventoryObservationsByItemId,
@@ -39,7 +44,7 @@ import { useInventoryStock } from "~/hooks/use-inventory-stock";
 import { InventoryItemDetails as InventoryItemDetailsComponent } from "~/components/dashboard/inventory/inventory-item-details";
 import { getUnitLabel, formatInventoryDate } from "~/utils/inventory-utils";
 import { formatCurrency } from "~/utils/formatting";
-import { mockCompanies } from "~/mocks/companies";
+import { useAuth } from "~/contexts/auth-context";
 import { createViewMeta } from "~/utils/route-helpers";
 
 export function meta() {
@@ -57,7 +62,22 @@ export default function InventoryItemDetailsPage() {
   const t = useTranslation();
   const { language } = useLanguage();
   const { canEdit } = usePermissions();
-  const item = getInventoryItemById(itemId);
+  const { currentUser } = useAuth();
+  const [item, setItem] = useState<InventoryItem | undefined>(undefined);
+
+  useEffect(() => {
+    const loadItem = async () => {
+      if (itemId) {
+        try {
+          const itemData = await getInventoryItemById(itemId);
+          setItem(itemData);
+        } catch (error) {
+          console.error("Failed to load inventory item:", error);
+        }
+      }
+    };
+    loadItem();
+  }, [itemId]);
 
   const formatDateTime = (dateString: string) => {
     const dateFormat = language === "en" ? "MM/dd/yyyy HH:mm" : "dd/MM/yyyy HH:mm";
@@ -71,8 +91,7 @@ export default function InventoryItemDetailsPage() {
     });
   };
 
-  const company = mockCompanies[0];
-  const companyId = company?.id || item?.companyId || "";
+  const companyId = currentUser?.companyId || item?.companyId || "";
 
   const { currentStock, isLowStock, isExpiring } = useInventoryStock({
     item,
@@ -328,16 +347,13 @@ export default function InventoryItemDetailsPage() {
       sortable: false,
       render: (_, row) => {
         if (!row.cashFlowId) return <span className="text-gray-400 dark:text-gray-500">-</span>;
-        const cashFlow = getCashFlowById(row.cashFlowId);
-        return cashFlow ? (
+        return (
           <button
             onClick={() => navigate(getCashFlowViewRoute(row.cashFlowId!))}
             className="text-blue-600 dark:text-blue-400 hover:underline"
           >
-            {formatCurrency(cashFlow.amount, language)}
+            {t.inventory.movements.table.cashFlow || "Ver Transação"}
           </button>
-        ) : (
-          <span className="text-gray-400 dark:text-gray-500">-</span>
         );
       },
     },

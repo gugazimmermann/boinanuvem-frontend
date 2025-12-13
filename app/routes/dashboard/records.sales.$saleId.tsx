@@ -62,7 +62,7 @@ export default function SaleDetails() {
   useEffect(() => {
     const loadSale = async () => {
       if (!saleId) return;
-      const saleData = await Promise.resolve(getSaleById(saleId));
+      const saleData = await getSaleById(saleId);
       setSale(saleData);
       if (saleData?.saleItems) {
         // Load animals for sale items

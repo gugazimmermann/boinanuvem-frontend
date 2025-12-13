@@ -18,7 +18,7 @@ import {
 } from "~/services/animal-movements.service";
 import { getEmployees } from "~/services/employees.service";
 import { getServiceProviders } from "~/services/service-providers.service";
-import { mockCompanies } from "~/mocks/companies";
+import { useAuth } from "~/contexts/auth-context";
 import { useMovementForm, type MovementFormBaseData } from "~/hooks/use-movement-form";
 import { useAlert } from "~/hooks/use-alert";
 
@@ -77,8 +77,8 @@ export default function NewAnimalMovement() {
     loadAnimals();
   }, [animalIds]);
 
-  const company = mockCompanies[0];
-  const companyId = company?.id || "";
+  const { currentUser } = useAuth();
+  const companyId = currentUser?.companyId || "";
   const [allLocations, setAllLocations] = useState<Location[]>([]);
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
   const [allServiceProviders, setAllServiceProviders] = useState<ServiceProvider[]>([]);

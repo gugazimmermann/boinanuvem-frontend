@@ -17,7 +17,9 @@ export default createFinanceEditRoute<AccountsReceivableFormData>({
   mapToFormData: mapAccountsReceivableToFormData as <T>(
     transaction: T
   ) => Partial<AccountsReceivableFormData> | undefined,
-  updateTransaction: updateAccountsReceivable,
+  updateTransaction: async (id: string, data: Partial<AccountsReceivableFormData>) => {
+    await updateAccountsReceivable(id, data);
+  },
   backRoute: ROUTES.ACCOUNTS_RECEIVABLE,
   viewRoute: getAccountsReceivableViewRoute,
   getTranslationKeys: (t) => ({

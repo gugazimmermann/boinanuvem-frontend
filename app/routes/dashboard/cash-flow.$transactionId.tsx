@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
 import { Button } from "~/components/ui";
 import { useTranslation } from "~/i18n";
@@ -23,7 +23,7 @@ import {
 import type { CashFlowObservation } from "~/types/cash-flow-observation";
 import { ObservationSection } from "~/components/dashboard/observations/observation-section";
 import { FinanceDetailCard } from "~/components/dashboard/finance/finance-detail-card";
-import type { Supplier, Buyer, Employee, ServiceProvider, Property } from "~/types";
+import type { CashFlow, Supplier, Buyer, Employee, ServiceProvider, Property } from "~/types";
 
 export function meta() {
   return [
@@ -46,21 +46,31 @@ export default function CashFlowDetails() {
   const t = useTranslation();
   const { language } = useLanguage();
   const { canEdit } = usePermissions();
-  const transaction = getCashFlowById(transactionId);
-  const initialObservations = useMemo(
-    () => (transaction ? getCashFlowObservationsByCashFlowId(transaction.id) : []),
-    [transaction]
-  );
-  const [observations, setObservations] = useState<CashFlowObservation[]>(initialObservations);
+  const [transaction, setTransaction] = useState<CashFlow | undefined>(undefined);
+  const [observations, setObservations] = useState<CashFlowObservation[]>([]);
+
+  useEffect(() => {
+    const loadTransaction = async () => {
+      if (transactionId) {
+        try {
+          const transactionData = await getCashFlowById(transactionId);
+          setTransaction(transactionData);
+          if (transactionData) {
+            const obs = getCashFlowObservationsByCashFlowId(transactionData.id);
+            setObservations(obs);
+          }
+        } catch (error) {
+          console.error("Failed to load transaction:", error);
+        }
+      }
+    };
+    loadTransaction();
+  }, [transactionId]);
   const [supplier, setSupplier] = useState<Supplier | null>(null);
   const [buyer, setBuyer] = useState<Buyer | null>(null);
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [serviceProvider, setServiceProvider] = useState<ServiceProvider | null>(null);
   const [property, setProperty] = useState<Property | null>(null);
-
-  useEffect(() => {
-    setObservations(initialObservations);
-  }, [initialObservations]);
 
   useEffect(() => {
     const loadEntities = async () => {

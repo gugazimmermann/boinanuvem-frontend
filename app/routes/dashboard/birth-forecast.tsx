@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "~/i18n";
 import { translations } from "~/i18n/translations";
-import { mockCompanies } from "~/mocks/companies";
+import { useAuth } from "~/contexts/auth-context";
 import { getProperties } from "~/services/properties.service";
 import type { Property } from "~/types";
 import { getExpectedBirthsForecast } from "~/services/reproductive-indexes.service";
@@ -35,16 +35,17 @@ export default function BirthForecastPage() {
   const isDark = theme === "dark";
   const chartColors = getChartColors(isDark);
   const tooltipStyle = getTooltipStyle(isDark);
-  const company = mockCompanies[0];
+  const { currentUser } = useAuth();
+  const companyId = currentUser?.companyId || "";
   const [properties, setProperties] = useState<Property[]>([]);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>(ALL_PROPERTIES_ID);
 
   useEffect(() => {
     const fetchProperties = async () => {
-      if (company) {
+      if (companyId) {
         try {
           const propertiesData = await getProperties();
-          const filteredProperties = propertiesData.filter((prop) => prop.companyId === company.id);
+          const filteredProperties = propertiesData.filter((prop) => prop.companyId === companyId);
           setProperties(filteredProperties);
           if (filteredProperties.length > 0 && selectedPropertyId === ALL_PROPERTIES_ID) {
             setSelectedPropertyId(ALL_PROPERTIES_ID);
@@ -55,7 +56,7 @@ export default function BirthForecastPage() {
       }
     };
     fetchProperties();
-  }, [company, selectedPropertyId]);
+  }, [companyId, selectedPropertyId]);
 
   const dateLocale = useDateLocale();
   const [expectedBirthsForecast, setExpectedBirthsForecast] = useState<Awaited<
@@ -66,8 +67,8 @@ export default function BirthForecastPage() {
     const loadExpectedBirthsForecast = async () => {
       try {
         let forecast: Awaited<ReturnType<typeof getExpectedBirthsForecast>>;
-        if (selectedPropertyId === ALL_PROPERTIES_ID && company) {
-          forecast = await getExpectedBirthsForecast(company.id, {
+        if (selectedPropertyId === ALL_PROPERTIES_ID && companyId) {
+          forecast = await getExpectedBirthsForecast(companyId, {
             isPropertyId: false,
             monthsAhead: 9,
           });
@@ -86,7 +87,7 @@ export default function BirthForecastPage() {
       }
     };
     loadExpectedBirthsForecast();
-  }, [selectedPropertyId, company]);
+  }, [selectedPropertyId, companyId]);
 
   const expectedBirthsData = useMemo(() => {
     if (!expectedBirthsForecast?.monthly || expectedBirthsForecast.monthly.length === 0) return [];

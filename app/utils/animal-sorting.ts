@@ -23,8 +23,8 @@ export function getBirthFieldValue(
 /**
  * Get the last weighing for an animal
  */
-export function getLastWeighing(animalId: string) {
-  const weighings = getWeighingsByAnimalId(animalId);
+export async function getLastWeighing(animalId: string) {
+  const weighings = await getWeighingsByAnimalId(animalId);
   const sorted = weighings.toSorted(
     (x, y) => new Date(y.date).getTime() - new Date(x.date).getTime()
   );
@@ -34,8 +34,11 @@ export function getLastWeighing(animalId: string) {
 /**
  * Get weighing field value for sorting
  */
-export function getWeighingFieldValue(animal: Animal, column: string): AnimalSortValue {
-  const weighings = getWeighingsByAnimalId(animal.id);
+export async function getWeighingFieldValue(
+  animal: Animal,
+  column: string
+): Promise<AnimalSortValue> {
+  const weighings = await getWeighingsByAnimalId(animal.id);
   if (weighings.length === 0) return 0;
 
   const sorted = weighings.toSorted(
@@ -53,8 +56,8 @@ export function getWeighingFieldValue(animal: Animal, column: string): AnimalSor
 /**
  * Calculate GMD (Ganho Médio Diário - Daily Average Gain) for an animal
  */
-export function getGmdValue(animal: Animal): AnimalSortValue {
-  const weighings = getWeighingsByAnimalId(animal.id);
+export async function getGmdValue(animal: Animal): Promise<AnimalSortValue> {
+  const weighings = await getWeighingsByAnimalId(animal.id);
   const sorted = weighings.toSorted(
     (x, y) => new Date(y.date).getTime() - new Date(x.date).getTime()
   );
@@ -69,12 +72,12 @@ export function getGmdValue(animal: Animal): AnimalSortValue {
 /**
  * Get sort value for an animal based on column name
  */
-export function getAnimalSortValue(
+export async function getAnimalSortValue(
   animal: Animal,
   column: string,
   _localeForDateTime: string,
   birthsMap: Map<string, Awaited<ReturnType<typeof getBirthByAnimalId>>>
-): AnimalSortValue {
+): Promise<AnimalSortValue> {
   if (column === "code") return animal.code;
   if (column === "registrationNumber") return animal.registrationNumber;
 
@@ -98,11 +101,11 @@ export function getAnimalSortValue(
   }
 
   if (column === "weight" || column === "weightInArrobas" || column === "lastWeighingDate") {
-    return getWeighingFieldValue(animal, column);
+    return await getWeighingFieldValue(animal, column);
   }
 
   if (column === "gmd") {
-    return getGmdValue(animal);
+    return await getGmdValue(animal);
   }
 
   return animal[column as keyof Animal] as AnimalSortValue;

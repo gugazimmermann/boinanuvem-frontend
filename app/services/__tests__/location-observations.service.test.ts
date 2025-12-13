@@ -7,8 +7,8 @@ import {
   deleteLocationObservation,
 } from "../location-observations.service";
 
-vi.mock("~/mocks/location-observations", () => ({
-  mockLocationObservations: [
+const { mockLocationObservations } = vi.hoisted(() => {
+  const mockLocationObservations = [
     {
       id: "obs-1",
       locationId: "location-1",
@@ -16,14 +16,17 @@ vi.mock("~/mocks/location-observations", () => ({
       createdAt: "2024-01-15",
       updatedAt: "2024-01-15",
     },
-  ],
+  ];
+  return { mockLocationObservations };
+});
+
+vi.mock("~/mocks/location-observations", () => ({
+  mockLocationObservations,
 }));
 
 vi.mock("~/utils/uuid", () => ({
   generateUUID: vi.fn(() => "generated-uuid"),
 }));
-
-import { mockLocationObservations } from "~/mocks/location-observations";
 
 describe("location-observations.service", () => {
   beforeEach(() => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, renderHook } from "@testing-library/react";
+import { render, renderHook, act } from "@testing-library/react";
 import {
   createFinanceEditLoader,
   createFinanceEditMeta,
@@ -36,7 +36,7 @@ vi.mock("~/components/dashboard/finance/finance-transaction-form-page", () => ({
       onSuccess,
       transactionId,
     }: {
-      onSubmit: (data: FinanceTransactionFormData) => void;
+      onSubmit: (data: FinanceTransactionFormData) => Promise<void | { id: string }>;
       onSuccess: () => void;
       transactionId?: string;
     }) => {
@@ -45,9 +45,9 @@ vi.mock("~/components/dashboard/finance/finance-transaction-form-page", () => ({
         <div data-testid="finance-transaction-form-page">
           <button
             data-testid="submit-button"
-            onClick={() => {
+            onClick={async () => {
               if (transactionId) {
-                onSubmit({
+                await onSubmit({
                   description: "Test",
                   amount: 1000,
                 } as import("~/components/dashboard/finance/finance-transaction-form-page").FinanceTransactionFormData);
@@ -104,13 +104,15 @@ describe("createFinanceEditRoute", () => {
 
   const createMockConfig = (): FinanceEditRouteConfig<FinanceTransactionFormData> => ({
     transactionType: "cash-flow" as const,
-    getTransactionById: vi.fn(() => ({
-      id: "test",
-      description: "Test Transaction",
-      amount: 1000,
-    })),
+    getTransactionById: vi.fn(() =>
+      Promise.resolve({
+        id: "test",
+        description: "Test Transaction",
+        amount: 1000,
+      })
+    ),
     mapToFormData: vi.fn(() => ({ description: "Test Transaction", amount: 1000 })),
-    updateTransaction: vi.fn(),
+    updateTransaction: vi.fn(() => Promise.resolve()),
     backRoute: "/back",
     viewRoute: vi.fn((id: string) => `/view/${id}`),
     getTranslationKeys: vi.fn(() => ({
@@ -139,7 +141,9 @@ describe("createFinanceEditRoute", () => {
     );
     const mockConfig = createMockConfig();
     const Component = createFinanceEditRoute(mockConfig);
-    render(<Component />);
+    await act(async () => {
+      render(<Component />);
+    });
 
     expect(FinanceTransactionFormPage).toHaveBeenCalled();
     const callArgs = vi.mocked(FinanceTransactionFormPage).mock.calls[0][0];
@@ -152,12 +156,32 @@ describe("createFinanceEditRoute", () => {
     expect(callArgs.transactionId).toBe("test-id");
   });
 
-  it("should call mapToFormData with transaction to create initialData", () => {
+  it("should call mapToFormData with transaction to create initialData", async () => {
+    const { FinanceTransactionFormPage } = await import(
+      "~/components/dashboard/finance/finance-transaction-form-page"
+    );
     const mockConfig = createMockConfig();
     const Component = createFinanceEditRoute(mockConfig);
-    render(<Component />);
+    await act(async () => {
+      render(<Component />);
+    });
+
+    // Wait for the async useEffect to complete
+    await act(async () => {
+      // Flush promises to ensure the async operation completes
+      await Promise.resolve();
+      await Promise.resolve();
+    });
 
     expect(mockConfig.getTransactionById).toHaveBeenCalledWith("test-id");
+
+    // Check the last call since the component re-renders after initialData is set
+    const calls = vi.mocked(FinanceTransactionFormPage).mock.calls;
+    const lastCallArgs = calls[calls.length - 1]?.[0];
+    expect(lastCallArgs?.initialData).toEqual({
+      description: "Test Transaction",
+      amount: 1000,
+    });
     expect(mockConfig.mapToFormData).toHaveBeenCalledWith({
       id: "test",
       description: "Test Transaction",
@@ -165,13 +189,21 @@ describe("createFinanceEditRoute", () => {
     });
   });
 
-  it("should call updateTransaction on form submit", () => {
+  it("should call updateTransaction on form submit", async () => {
     const mockConfig = createMockConfig();
     const Component = createFinanceEditRoute(mockConfig);
-    const { getByTestId } = render(<Component />);
+    let getByTestId: ReturnType<typeof render>["getByTestId"];
+    await act(async () => {
+      const result = render(<Component />);
+      getByTestId = result.getByTestId;
+      await vi.runAllTimersAsync();
+    });
 
-    const submitButton = getByTestId("submit-button");
-    submitButton.click();
+    await act(async () => {
+      const submitButton = getByTestId("submit-button");
+      submitButton.click();
+      await vi.runAllTimersAsync();
+    });
 
     expect(mockConfig.updateTransaction).toHaveBeenCalledWith("test-id", {
       description: "Test",
@@ -179,17 +211,25 @@ describe("createFinanceEditRoute", () => {
     });
   });
 
-  it("should use mapFormDataToUpdate when provided", () => {
+  it("should use mapFormDataToUpdate when provided", async () => {
     const mockConfig = createMockConfig();
     mockConfig.mapFormDataToUpdate = vi.fn((data: { description: string; amount: number }) => ({
       ...data,
       updated: true,
     }));
     const Component = createFinanceEditRoute(mockConfig);
-    const { getByTestId } = render(<Component />);
+    let getByTestId: ReturnType<typeof render>["getByTestId"];
+    await act(async () => {
+      const result = render(<Component />);
+      getByTestId = result.getByTestId;
+      await vi.runAllTimersAsync();
+    });
 
-    const submitButton = getByTestId("submit-button");
-    submitButton.click();
+    await act(async () => {
+      const submitButton = getByTestId("submit-button");
+      submitButton.click();
+      await vi.runAllTimersAsync();
+    });
 
     expect(mockConfig.mapFormDataToUpdate).toHaveBeenCalledWith({
       description: "Test",
@@ -202,42 +242,64 @@ describe("createFinanceEditRoute", () => {
     });
   });
 
-  it("should not call updateTransaction when transactionId is missing", () => {
+  it("should not call updateTransaction when transactionId is missing", async () => {
     mockUseParams.mockReturnValueOnce({ transactionId: undefined });
     const mockConfig = createMockConfig();
     const Component = createFinanceEditRoute(mockConfig);
-    const { getByTestId } = render(<Component />);
+    let getByTestId: ReturnType<typeof render>["getByTestId"];
+    await act(async () => {
+      const result = render(<Component />);
+      getByTestId = result.getByTestId;
+    });
 
-    const submitButton = getByTestId("submit-button");
-    submitButton.click();
+    await act(async () => {
+      const submitButton = getByTestId("submit-button");
+      submitButton.click();
+    });
 
     expect(mockConfig.updateTransaction).not.toHaveBeenCalled();
   });
 
-  it("should navigate to view route on success after timeout", () => {
+  it("should navigate to view route on success after timeout", async () => {
     const mockConfig = createMockConfig();
     const Component = createFinanceEditRoute(mockConfig);
-    const { getByTestId } = render(<Component />);
+    let getByTestId: ReturnType<typeof render>["getByTestId"];
+    await act(async () => {
+      const result = render(<Component />);
+      getByTestId = result.getByTestId;
+    });
 
-    const submitButton = getByTestId("submit-button");
-    submitButton.click();
+    await act(async () => {
+      const submitButton = getByTestId("submit-button");
+      submitButton.click();
+    });
 
     // Fast-forward time
-    vi.advanceTimersByTime(1500);
+    await act(async () => {
+      vi.advanceTimersByTime(1500);
+    });
 
     expect(mockNavigate).toHaveBeenCalledWith("/view/test-id");
   });
 
-  it("should not navigate when transactionId is missing in onSuccess", () => {
+  it("should not navigate when transactionId is missing in onSuccess", async () => {
     mockUseParams.mockReturnValueOnce({ transactionId: undefined });
     const mockConfig = createMockConfig();
     const Component = createFinanceEditRoute(mockConfig);
-    const { getByTestId } = render(<Component />);
+    let getByTestId: ReturnType<typeof render>["getByTestId"];
+    await act(async () => {
+      const result = render(<Component />);
+      getByTestId = result.getByTestId;
+    });
 
-    const submitButton = getByTestId("submit-button");
-    submitButton.click();
+    await act(async () => {
+      const submitButton = getByTestId("submit-button");
+      submitButton.click();
+    });
 
-    vi.advanceTimersByTime(1500);
+    await act(async () => {
+      vi.advanceTimersByTime(1500);
+    });
 
     expect(mockNavigate).not.toHaveBeenCalled();
   });
@@ -257,7 +319,9 @@ describe("createFinanceEditRoute", () => {
       propertyLabel: "Property",
     });
     const Component = createFinanceEditRoute(mockConfig);
-    render(<Component />);
+    await act(async () => {
+      render(<Component />);
+    });
 
     expect(FinanceTransactionFormPage).toHaveBeenCalled();
     const callArgs = vi.mocked(FinanceTransactionFormPage).mock.calls[0][0];
@@ -283,7 +347,7 @@ describe("useFinanceEditRoute", () => {
   it("should return transactionId, initialData, handleSubmit, and handleSuccess", () => {
     const mockConfig = {
       transactionType: "cash-flow" as const,
-      getTransactionById: vi.fn(() => ({ id: "test", description: "Test" })),
+      getTransactionById: vi.fn(() => Promise.resolve({ id: "test", description: "Test" })),
       mapToFormData: vi.fn(() => ({ description: "Test" })),
       updateTransaction: vi.fn(),
       backRoute: "/back",
@@ -312,7 +376,7 @@ describe("useFinanceEditRoute", () => {
   it("should call updateTransaction in handleSubmit", () => {
     const mockConfig = {
       transactionType: "cash-flow" as const,
-      getTransactionById: vi.fn(() => ({ id: "test" })),
+      getTransactionById: vi.fn(() => Promise.resolve({ id: "test" })),
       mapToFormData: vi.fn(() => ({})),
       updateTransaction: vi.fn(),
       backRoute: "/back",
@@ -346,7 +410,7 @@ describe("useFinanceEditRoute", () => {
     mockUseParams.mockReturnValueOnce({ transactionId: undefined });
     const mockConfig = {
       transactionType: "cash-flow" as const,
-      getTransactionById: vi.fn(() => ({ id: "test" })),
+      getTransactionById: vi.fn(() => Promise.resolve({ id: "test" })),
       mapToFormData: vi.fn(() => ({})),
       updateTransaction: vi.fn(),
       backRoute: "/back",
@@ -373,7 +437,7 @@ describe("useFinanceEditRoute", () => {
   it("should navigate to view route in handleSuccess after timeout", () => {
     const mockConfig = {
       transactionType: "cash-flow" as const,
-      getTransactionById: vi.fn(() => ({ id: "test" })),
+      getTransactionById: vi.fn(() => Promise.resolve({ id: "test" })),
       mapToFormData: vi.fn(() => ({})),
       updateTransaction: vi.fn(),
       backRoute: "/back",
@@ -403,7 +467,7 @@ describe("useFinanceEditRoute", () => {
     mockUseParams.mockReturnValueOnce({ transactionId: undefined });
     const mockConfig = {
       transactionType: "cash-flow" as const,
-      getTransactionById: vi.fn(() => ({ id: "test" })),
+      getTransactionById: vi.fn(() => Promise.resolve({ id: "test" })),
       mapToFormData: vi.fn(() => ({})),
       updateTransaction: vi.fn(),
       backRoute: "/back",

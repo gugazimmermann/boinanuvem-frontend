@@ -14,6 +14,8 @@ import { getBuyers } from "~/services/buyers.service";
 import { getLocations } from "~/services/locations.service";
 import { getProperties } from "~/services/properties.service";
 import { getAcquisitionByAnimalId } from "~/services/acquisitions.service";
+import { getBreedingsByAnimalId } from "~/services/breedings.service";
+import { getSanitaryControlsByAnimalId } from "~/services/sanitary-controls.service";
 import { useAuth } from "~/contexts/auth-context";
 
 vi.mock("react-router", async () => {
@@ -32,6 +34,8 @@ vi.mock("~/services/buyers.service");
 vi.mock("~/services/locations.service");
 vi.mock("~/services/properties.service");
 vi.mock("~/services/acquisitions.service");
+vi.mock("~/services/breedings.service");
+vi.mock("~/services/sanitary-controls.service");
 vi.mock("~/i18n", () => ({
   useTranslation: () => ({
     animals: {
@@ -146,6 +150,8 @@ describe("animals.$animalId", () => {
     vi.mocked(getLocations).mockResolvedValue([]);
     vi.mocked(getProperties).mockResolvedValue([]);
     vi.mocked(getAcquisitionByAnimalId).mockResolvedValue(null);
+    vi.mocked(getBreedingsByAnimalId).mockResolvedValue([]);
+    vi.mocked(getSanitaryControlsByAnimalId).mockResolvedValue([]);
   });
 
   it("should load animal data asynchronously", async () => {

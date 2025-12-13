@@ -14,6 +14,12 @@ export default defineConfig(({ mode }) => {
       globals: true,
       environment: "jsdom",
       setupFiles: ["./vitest.setup.ts"],
+      pool: "forks",
+      poolOptions: {
+        forks: {
+          singleFork: true,
+        },
+      },
       onConsoleLog(log: string, type: "stdout" | "stderr") {
         
         if (

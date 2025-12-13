@@ -5,15 +5,21 @@ import { useTranslation } from "~/i18n";
 import { FormPageLayout } from "~/components/dashboard/forms/form-page-layout";
 import { ROUTES, getInventoryViewRoute } from "~/routes.config";
 import { getInventoryItemById, updateInventoryItem } from "~/services/inventory.service";
+import { getBankAccountsByCompanyId } from "~/services/bank-account.service";
 import { getNitrogenContent, setNitrogenContent } from "~/services/nitrogen-content.service";
-import type { InventoryItemFormData, Property, Supplier } from "~/types";
+import type {
+  BankAccount,
+  InventoryItemFormData,
+  Property,
+  Supplier,
+  InventoryItem,
+} from "~/types";
 import { PaymentMethod } from "~/types";
 import { getProperties } from "~/services/properties.service";
 import { getSuppliers } from "~/services/suppliers.service";
 import { useInventoryForm } from "~/hooks/use-inventory-form";
 import { InventoryItemForm } from "~/components/dashboard/inventory/inventory-item-form";
-import { mockCompanies } from "~/mocks/companies";
-import { getBankAccountsByCompanyId } from "~/services/bank-account.service";
+import { useAuth } from "~/contexts/auth-context";
 import { useAlert } from "~/hooks/use-alert";
 import {
   getUsageFields,
@@ -41,12 +47,40 @@ export default function EditInventoryItem() {
   const t = useTranslation();
   const navigate = useNavigate();
   const { itemId } = useParams<{ itemId: string }>();
-  const item = getInventoryItemById(itemId);
-  const company = mockCompanies[0];
-  const companyId = company?.id || "";
-  const bankAccounts = getBankAccountsByCompanyId(companyId);
+  const { currentUser } = useAuth();
+  const companyId = currentUser?.companyId || "";
+  const [item, setItem] = useState<InventoryItem | undefined>(undefined);
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+
+  useEffect(() => {
+    const loadItem = async () => {
+      if (itemId) {
+        try {
+          const itemData = await getInventoryItemById(itemId);
+          setItem(itemData);
+        } catch (error) {
+          console.error("Failed to load inventory item:", error);
+        }
+      }
+    };
+    loadItem();
+  }, [itemId]);
+
+  useEffect(() => {
+    const loadBankAccounts = async () => {
+      if (companyId) {
+        try {
+          const accounts = await getBankAccountsByCompanyId(companyId);
+          setBankAccounts(accounts);
+        } catch (error) {
+          console.error("Failed to load bank accounts:", error);
+        }
+      }
+    };
+    loadBankAccounts();
+  }, [companyId]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -128,17 +162,13 @@ export default function EditInventoryItem() {
         ...usageFields,
         propertyIds: formData.propertyIds,
       };
-      const success = updateInventoryItem(item.id, itemData);
-      if (success) {
-        handleNitrogenContent(item.id, formData, setNitrogenContent);
+      await updateInventoryItem(item.id, itemData);
+      handleNitrogenContent(item.id, formData, setNitrogenContent);
 
-        showAlert(t.inventory.edit.success, "success");
-        setTimeout(() => {
-          navigate(getInventoryViewRoute(item.id));
-        }, 1500);
-      } else {
-        showAlert(t.inventory.edit.error, "error");
-      }
+      showAlert(t.inventory.edit.success, "success");
+      setTimeout(() => {
+        navigate(getInventoryViewRoute(item.id));
+      }, 1500);
     } catch (error) {
       console.error("Error updating inventory item:", error);
       showAlert(t.inventory.edit.error, "error");

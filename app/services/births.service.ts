@@ -3,25 +3,19 @@ import { BirthPurity } from "~/types";
 import { apiClient, ApiError } from "./api-client";
 import { handleApiError, createResourceErrorMessages } from "./error-handlers";
 import { getAnimalsByPropertyId } from "./animals.service";
+import { buildUpdateDto } from "~/utils/update-dto-builder";
+import { createCrudHandlers } from "./service-helpers";
+import { createEntityTransform } from "./transform-helpers";
 
 const birthErrors = createResourceErrorMessages("nascimentos");
 
 /**
  * Convert backend Date to frontend string format
  */
-function transformBirth(backendBirth: Birth): Birth {
-  return {
-    ...backendBirth,
-    birthDate:
-      typeof backendBirth.birthDate === "string"
-        ? backendBirth.birthDate
-        : new Date(backendBirth.birthDate).toISOString().split("T")[0],
-    createdAt:
-      typeof backendBirth.createdAt === "string"
-        ? backendBirth.createdAt
-        : new Date(backendBirth.createdAt).toISOString(),
-  };
-}
+const transformBirth = createEntityTransform<Birth>({
+  dateStringFields: ["birthDate"],
+  dateTimeFields: ["createdAt"],
+});
 
 /**
  * Get all births for the current user's company via API
@@ -70,43 +64,50 @@ export async function getBirthByAnimalId(animalId: string): Promise<Birth | unde
   }
 }
 
-/**
- * Create a new birth via API (backend creates the animal automatically)
- */
-export async function addBirth(
-  data: BirthFormData & { code: string; registrationNumber: string; propertyId: string }
-): Promise<Birth> {
-  try {
-    const createDto = {
-      code: data.code,
-      registrationNumber: data.registrationNumber,
-      propertyId: data.propertyId,
-      birthDate: data.birthDate,
-      breed: data.breed || undefined,
-      gender: data.gender || undefined,
-      motherId: data.motherId || undefined,
-      fatherId: data.fatherId || undefined,
-      purity: data.purity || undefined,
-      observation: data.observation || undefined,
-    };
+type BirthFormDataWithRequired = BirthFormData & {
+  code: string;
+  registrationNumber: string;
+  propertyId: string;
+};
 
-    const response = await apiClient.post<Birth>("/births", createDto);
-    return transformBirth(response);
-  } catch (error) {
-    handleApiError(error, {
+const birthsCrud = createCrudHandlers<Birth, Birth, BirthFormDataWithRequired>({
+  endpoint: "/births",
+  errorMessages: {
+    create: {
       ...birthErrors.create,
       409: "Já existe um animal com este código ou número de registro",
-    });
-  }
-}
+    },
+    update: {
+      ...birthErrors.update,
+      404: "Nascimento não encontrado",
+    },
+    delete: birthErrors.delete,
+  },
+  transform: transformBirth,
+  buildCreateDto: (data) => ({
+    code: data.code,
+    registrationNumber: data.registrationNumber,
+    propertyId: data.propertyId,
+    birthDate: data.birthDate,
+    breed: data.breed || undefined,
+    gender: data.gender || undefined,
+    motherId: data.motherId || undefined,
+    fatherId: data.fatherId || undefined,
+    purity: data.purity || undefined,
+    observation: data.observation || undefined,
+  }),
+  buildUpdateDto: (data) => {
+    const updateDto = buildUpdateDto(data, [
+      "birthDate",
+      "breed",
+      "gender",
+      "motherId",
+      "fatherId",
+      "purity",
+      "observation",
+    ]);
 
-/**
- * Update a birth via API
- */
-export async function updateBirth(birthId: string, data: Partial<BirthFormData>): Promise<Birth> {
-  try {
-    const updateDto: Record<string, unknown> = {};
-    if (data.birthDate !== undefined) updateDto.birthDate = data.birthDate;
+    // Handle special cases for optional fields that should be undefined when empty
     if (data.breed !== undefined) updateDto.breed = data.breed || undefined;
     if (data.gender !== undefined) updateDto.gender = data.gender || undefined;
     if (data.motherId !== undefined) updateDto.motherId = data.motherId || undefined;
@@ -114,26 +115,24 @@ export async function updateBirth(birthId: string, data: Partial<BirthFormData>)
     if (data.purity !== undefined) updateDto.purity = data.purity || undefined;
     if (data.observation !== undefined) updateDto.observation = data.observation || undefined;
 
-    const response = await apiClient.put<Birth>(`/births/${birthId}`, updateDto);
-    return transformBirth(response);
-  } catch (error) {
-    handleApiError(error, {
-      ...birthErrors.update,
-      404: "Nascimento não encontrado",
-    });
-  }
-}
+    return updateDto;
+  },
+});
+
+/**
+ * Create a new birth via API (backend creates the animal automatically)
+ */
+export const addBirth = birthsCrud.add;
+
+/**
+ * Update a birth via API
+ */
+export const updateBirth = birthsCrud.update;
 
 /**
  * Delete a birth via API
  */
-export async function deleteBirth(birthId: string): Promise<void> {
-  try {
-    await apiClient.delete(`/births/${birthId}`);
-  } catch (error) {
-    handleApiError(error, birthErrors.delete);
-  }
-}
+export const deleteBirth = birthsCrud.remove;
 
 const PURITY_SEQUENCE: BirthPurity[] = [
   BirthPurity.PO,

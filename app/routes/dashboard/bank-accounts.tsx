@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import {
   Table,
@@ -15,7 +15,7 @@ import { createEmptyStateConfig } from "~/utils/empty-state-config";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
 import { sortItems } from "~/utils/table-helpers";
-import { mockCompanies } from "~/mocks/companies";
+import { useAuth } from "~/contexts/auth-context";
 import { deleteBankAccount, getBankAccountsByCompanyId } from "~/services/bank-account.service";
 import type { BankAccount } from "~/types";
 import { ROUTES, getBankAccountEditRoute, getBankAccountViewRoute } from "~/routes.config";
@@ -42,14 +42,23 @@ export default function BankAccounts() {
   const { language } = useLanguage();
   const navigate = useNavigate();
   const { canAdd, canEdit, canRemove } = usePermissions();
-  const company = mockCompanies[0];
-  const initialBankAccounts = useMemo(() => {
-    if (company) {
-      return getBankAccountsByCompanyId(company.id);
-    }
-    return [];
-  }, [company]);
-  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>(initialBankAccounts);
+  const { currentUser } = useAuth();
+  const companyId = currentUser?.companyId || "";
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+
+  useEffect(() => {
+    const loadBankAccounts = async () => {
+      if (companyId) {
+        try {
+          const accounts = await getBankAccountsByCompanyId(companyId);
+          setBankAccounts(accounts);
+        } catch (error) {
+          console.error("Failed to load bank accounts:", error);
+        }
+      }
+    };
+    loadBankAccounts();
+  }, [companyId]);
   const [sortState, setSortState] = useState<{
     column: string | null;
     direction: SortDirection;
@@ -77,11 +86,11 @@ export default function BankAccounts() {
 
   const handleDeleteBankAccount = async () => {
     if (!selectedBankAccount) return;
-    const success = deleteBankAccount(selectedBankAccount.id);
-    if (success) {
+    try {
+      await deleteBankAccount(selectedBankAccount.id);
       setBankAccounts(bankAccounts.filter((ba) => ba.id !== selectedBankAccount.id));
       showAlert(t.bankAccounts.success.deleted, "success");
-    } else {
+    } catch {
       showAlert(t.bankAccounts.errors.deleteFailed, "error");
     }
     setSelectedBankAccount(null);

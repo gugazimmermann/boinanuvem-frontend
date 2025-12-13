@@ -1464,6 +1464,9 @@ export default function AnimalDetails() {
   const [salesProfitability, setSalesProfitability] = useState<
     Map<string, Awaited<ReturnType<typeof calculateAnimalProfitability>>>
   >(new Map());
+  const [animalSales, setAnimalSales] = useState<Awaited<ReturnType<typeof getSalesByAnimalId>>>(
+    []
+  );
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -1490,7 +1493,7 @@ export default function AnimalDetails() {
   }, []);
 
   const calculateSaleProfitability = async (
-    sale: ReturnType<typeof getSalesByAnimalId>[0],
+    sale: Awaited<ReturnType<typeof getSalesByAnimalId>>[0],
     animalId: string
   ) => {
     const saleItem = sale.saleItems.find((item) => item.animalId === animalId);
@@ -1512,9 +1515,10 @@ export default function AnimalDetails() {
   useEffect(() => {
     const loadProfitability = async () => {
       if (!animal) return;
-      const animalSales = getSalesByAnimalId(animal.id);
+      const salesData = await getSalesByAnimalId(animal.id);
+      setAnimalSales(salesData);
 
-      const profitabilityPromises = animalSales.map((sale) =>
+      const profitabilityPromises = salesData.map((sale) =>
         calculateSaleProfitability(sale, animal.id)
       );
       const results = await Promise.all(profitabilityPromises);
@@ -1535,13 +1539,75 @@ export default function AnimalDetails() {
     loadProfitability();
   }, [animal]);
 
-  const breedings = useMemo(() => (animal ? getBreedingsByAnimalId(animal.id) : []), [animal]);
+  const [breedings, setBreedings] = useState<Breeding[]>([]);
 
-  const sanitaryControls = useMemo(
-    () => (animal ? getSanitaryControlsByAnimalId(animal.id) : []),
-    [animal]
-  );
-  const weighings = useMemo(() => (animal ? getWeighingsByAnimalId(animal.id) : []), [animal]);
+  useEffect(() => {
+    const loadBreedings = async () => {
+      if (animal) {
+        const breedingsData = await getBreedingsByAnimalId(animal.id);
+        setBreedings(breedingsData);
+      } else {
+        setBreedings([]);
+      }
+    };
+    loadBreedings();
+  }, [animal]);
+
+  const [sanitaryControls, setSanitaryControls] = useState<
+    import("~/types/sanitary-control").SanitaryControl[]
+  >([]);
+  const [inventoryItemsMap, setInventoryItemsMap] = useState<
+    Map<string, Awaited<ReturnType<typeof getInventoryItemById>>>
+  >(new Map());
+
+  useEffect(() => {
+    const loadSanitaryControls = async () => {
+      if (animal) {
+        const sanitaryControlsData = await getSanitaryControlsByAnimalId(animal.id);
+        setSanitaryControls(sanitaryControlsData);
+
+        // Pre-load inventory items for sanitary controls
+        const itemIds = new Set<string>();
+        for (const control of sanitaryControlsData) {
+          for (const applied of control.appliedMedicines || []) {
+            itemIds.add(applied.itemId);
+          }
+        }
+        const itemsMap = new Map<string, Awaited<ReturnType<typeof getInventoryItemById>>>();
+        await Promise.all(
+          Array.from(itemIds).map(async (itemId) => {
+            try {
+              const item = await getInventoryItemById(itemId);
+              if (item) {
+                itemsMap.set(itemId, item);
+              }
+            } catch (error) {
+              console.error(`Failed to load inventory item ${itemId}:`, error);
+            }
+          })
+        );
+        setInventoryItemsMap(itemsMap);
+      } else {
+        setSanitaryControls([]);
+        setInventoryItemsMap(new Map());
+      }
+    };
+    loadSanitaryControls();
+  }, [animal]);
+
+  const [weighings, setWeighings] = useState<Weighing[]>([]);
+
+  useEffect(() => {
+    const loadWeighings = async () => {
+      if (animal) {
+        const weighingsData = await getWeighingsByAnimalId(animal.id);
+        setWeighings(weighingsData);
+      } else {
+        setWeighings([]);
+      }
+    };
+    loadWeighings();
+  }, [animal]);
 
   const weighingsWithCalculations = useMemo(() => {
     return calculateWeighingsWithCalculations(weighings);
@@ -2562,17 +2628,28 @@ export default function AnimalDetails() {
             setIsConfirmBreedingModalOpen(true);
           };
 
-          const handleConfirmBreedingSubmit = () => {
+          const handleConfirmBreedingSubmit = async () => {
             if (!selectedBreeding) return;
-            const success = confirmBreeding(selectedBreeding.id);
-            if (success) {
-              setBreedingsKey((prev) => prev + 1);
-              setBreedingAlert({
-                title: t.animals.details.breeding.confirmSuccess,
-                variant: "success",
-              });
-              setTimeout(() => setBreedingAlert(null), 3000);
-            } else {
+            try {
+              const success = await confirmBreeding(selectedBreeding.id);
+              if (success) {
+                setBreedingsKey((prev) => prev + 1);
+                setBreedingAlert({
+                  title: t.animals.details.breeding.confirmSuccess,
+                  variant: "success",
+                });
+                setTimeout(() => setBreedingAlert(null), 3000);
+              } else {
+                setBreedingAlert({
+                  title:
+                    t.animals.details.breeding.confirmError ||
+                    "Erro ao confirmar cobertura. Tente novamente.",
+                  variant: "error",
+                });
+                setTimeout(() => setBreedingAlert(null), 3000);
+              }
+            } catch (error) {
+              console.error("Error confirming breeding:", error);
               setBreedingAlert({
                 title:
                   t.animals.details.breeding.confirmError ||
@@ -2590,21 +2667,20 @@ export default function AnimalDetails() {
             setIsDiscardBreedingModalOpen(true);
           };
 
-          const handleDiscardBreedingSubmit = () => {
+          const handleDiscardBreedingSubmit = async () => {
             if (!selectedBreeding) return;
-            const success = deleteBreeding(selectedBreeding.id);
-            if (success) {
+            try {
+              await deleteBreeding(selectedBreeding.id);
               setBreedingsKey((prev) => prev + 1);
               setBreedingAlert({
                 title: t.animals.details.breeding.discardSuccess,
                 variant: "success",
               });
               setTimeout(() => setBreedingAlert(null), 3000);
-            } else {
+            } catch (error) {
+              console.error("Error deleting breeding:", error);
               setBreedingAlert({
-                title:
-                  t.animals.details.breeding.discardError ||
-                  "Erro ao descartar cobertura. Tente novamente.",
+                title: t.animals.details.breeding.discardError || "Erro ao descartar cobertura.",
                 variant: "error",
               });
               setTimeout(() => setBreedingAlert(null), 3000);
@@ -2952,7 +3028,7 @@ export default function AnimalDetails() {
                         applied: { itemId: string; quantity: number; calculatedDosage?: number },
                         idx: number
                       ) => {
-                        const item = getInventoryItemById(applied.itemId);
+                        const item = inventoryItemsMap.get(applied.itemId);
                         return (
                           <div
                             key={`${applied.itemId}-${idx}`}
@@ -3328,10 +3404,9 @@ export default function AnimalDetails() {
         </div>
       )}
 
-      {activeTab === "sales" && animal && (
+      {activeTab === "sales" && animal && animalSales.length > 0 && (
         <div className="space-y-8">
           {(() => {
-            const animalSales = getSalesByAnimalId(animal.id);
             const salesWithDetails = animalSales
               .map((sale) => {
                 const saleItem = sale.saleItems.find((item) => item.animalId === animal.id);

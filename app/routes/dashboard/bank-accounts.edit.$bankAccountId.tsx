@@ -4,7 +4,7 @@ import { Input, Select, Button, FixedAlert } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { ROUTES, getBankAccountViewRoute } from "~/routes.config";
 import { getBankAccountById, updateBankAccount } from "~/services/bank-account.service";
-import type { BankAccountType } from "~/types";
+import type { BankAccount, BankAccountType } from "~/types";
 import { createFormMeta } from "~/utils/route-helpers";
 import { useAlert } from "~/hooks/use-alert";
 
@@ -21,7 +21,7 @@ export default function EditBankAccount() {
   const t = useTranslation();
   const navigate = useNavigate();
   const { bankAccountId } = useParams<{ bankAccountId: string }>();
-  const bankAccount = getBankAccountById(bankAccountId);
+  const [bankAccount, setBankAccount] = useState<BankAccount | undefined>(undefined);
 
   const [formData, setFormData] = useState<{
     bankName: string;
@@ -42,18 +42,29 @@ export default function EditBankAccount() {
   });
 
   useEffect(() => {
-    if (bankAccount) {
-      setFormData({
-        bankName: bankAccount.bankName,
-        bankCode: bankAccount.bankCode,
-        branch: bankAccount.branch,
-        accountNumber: bankAccount.accountNumber,
-        accountType: bankAccount.accountType,
-        accountHolderName: bankAccount.accountHolderName,
-        status: bankAccount.status,
-      });
-    }
-  }, [bankAccount]);
+    const loadBankAccount = async () => {
+      if (bankAccountId) {
+        try {
+          const accountData = await getBankAccountById(bankAccountId);
+          setBankAccount(accountData);
+          if (accountData) {
+            setFormData({
+              bankName: accountData.bankName,
+              bankCode: accountData.bankCode,
+              branch: accountData.branch,
+              accountNumber: accountData.accountNumber,
+              accountType: accountData.accountType,
+              accountHolderName: accountData.accountHolderName || "",
+              status: accountData.status,
+            });
+          }
+        } catch (error) {
+          console.error("Failed to load bank account:", error);
+        }
+      }
+    };
+    loadBankAccount();
+  }, [bankAccountId]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -112,9 +123,10 @@ export default function EditBankAccount() {
     e.preventDefault();
     if (!validate()) return;
 
+    if (!bankAccount) return;
     setIsSubmitting(true);
     try {
-      updateBankAccount(bankAccount.id, {
+      await updateBankAccount(bankAccount.id, {
         bankName: formData.bankName,
         bankCode: formData.bankCode,
         branch: formData.branch,

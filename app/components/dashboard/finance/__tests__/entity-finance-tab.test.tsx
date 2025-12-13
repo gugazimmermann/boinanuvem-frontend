@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { EntityFinanceTab } from "../entity-finance-tab";
 import { useTranslation } from "~/i18n";
@@ -213,6 +213,13 @@ vi.mock("~/hooks/use-entity-loaders", () => ({
   })),
 }));
 
+// Helper to flush all pending promises - multiple ticks to ensure all async operations complete
+const flushPromises = async () => {
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+};
+
 describe("EntityFinanceTab", () => {
   const mockUseTranslation = vi.mocked(useTranslation);
   const mockUseEntityFinanceTransactions = vi.mocked(useEntityFinanceTransactions);
@@ -221,9 +228,9 @@ describe("EntityFinanceTab", () => {
   const defaultProps = {
     entityId: "entity-1",
     entityType: "employee" as const,
-    getCashFlowTransactions: vi.fn(() => []),
-    getPayableTransactions: vi.fn(() => []),
-    getReceivableTransactions: vi.fn(() => []),
+    getCashFlowTransactions: vi.fn(() => Promise.resolve([])),
+    getPayableTransactions: vi.fn(() => Promise.resolve([])),
+    getReceivableTransactions: vi.fn(() => Promise.resolve([])),
   };
 
   beforeEach(() => {
@@ -265,55 +272,90 @@ describe("EntityFinanceTab", () => {
     } as unknown as ReturnType<typeof useTranslation>);
   });
 
-  it("should render finance sub tabs", () => {
-    render(<EntityFinanceTab {...defaultProps} />);
-    expect(screen.getByTestId("sub-tabs")).toBeInTheDocument();
+  it("should render finance sub tabs", async () => {
+    await act(async () => {
+      render(<EntityFinanceTab {...defaultProps} />);
+      await flushPromises();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("sub-tabs")).toBeInTheDocument();
+    });
   });
 
-  it("should render transactions table", () => {
+  it("should render transactions table", async () => {
     const searchParams = new URLSearchParams();
     searchParams.set("subTab", "transactions");
     mockUseSearchParams.mockReturnValue([searchParams, vi.fn()]);
-    render(<EntityFinanceTab {...defaultProps} />);
-    expect(screen.getByTestId("transactions-table")).toBeInTheDocument();
+    await act(async () => {
+      render(<EntityFinanceTab {...defaultProps} />);
+      await flushPromises();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("transactions-table")).toBeInTheDocument();
+    });
   });
 
-  it("should render transactions table when showSubTabs is false", () => {
-    render(<EntityFinanceTab {...defaultProps} showSubTabs={false} />);
-    expect(screen.getByTestId("transactions-table")).toBeInTheDocument();
+  it("should render transactions table when showSubTabs is false", async () => {
+    await act(async () => {
+      render(<EntityFinanceTab {...defaultProps} showSubTabs={false} />);
+      await flushPromises();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("transactions-table")).toBeInTheDocument();
+    });
     expect(screen.queryByTestId("sub-tabs")).not.toBeInTheDocument();
   });
 
-  it("should render alert display", () => {
-    render(<EntityFinanceTab {...defaultProps} />);
-    expect(screen.getByTestId("alert-display")).toBeInTheDocument();
+  it("should render alert display", async () => {
+    await act(async () => {
+      render(<EntityFinanceTab {...defaultProps} />);
+      await flushPromises();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("alert-display")).toBeInTheDocument();
+    });
   });
 
-  it("should render dashboard subTab", () => {
+  it("should render dashboard subTab", async () => {
     const searchParams = new URLSearchParams();
     searchParams.set("subTab", "dashboard");
     const setSearchParams = vi.fn();
     mockUseSearchParams.mockReturnValue([searchParams, setSearchParams]);
-    render(<EntityFinanceTab {...defaultProps} />);
-    expect(screen.getByTestId("finance-dashboard")).toBeInTheDocument();
+    await act(async () => {
+      render(<EntityFinanceTab {...defaultProps} />);
+      await flushPromises();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("finance-dashboard")).toBeInTheDocument();
+    });
   });
 
-  it("should sync subTab state with URL params", () => {
+  it("should sync subTab state with URL params", async () => {
     const searchParams = new URLSearchParams();
     searchParams.set("subTab", "dashboard");
     const setSearchParams = vi.fn();
     mockUseSearchParams.mockReturnValue([searchParams, setSearchParams]);
-    render(<EntityFinanceTab {...defaultProps} />);
-    expect(screen.getByTestId("finance-dashboard")).toBeInTheDocument();
+    await act(async () => {
+      render(<EntityFinanceTab {...defaultProps} />);
+      await flushPromises();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("finance-dashboard")).toBeInTheDocument();
+    });
   });
 
-  it("should default to dashboard when subTab param is null and showSubTabs is true", () => {
+  it("should default to dashboard when subTab param is null and showSubTabs is true", async () => {
     mockUseSearchParams.mockReturnValue([new URLSearchParams(), vi.fn()]);
-    render(<EntityFinanceTab {...defaultProps} showSubTabs={true} />);
-    expect(screen.getByTestId("finance-dashboard")).toBeInTheDocument();
+    await act(async () => {
+      render(<EntityFinanceTab {...defaultProps} showSubTabs={true} />);
+      await flushPromises();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("finance-dashboard")).toBeInTheDocument();
+    });
   });
 
-  it("should get translation keys for serviceProvider entity type", () => {
+  it("should get translation keys for serviceProvider entity type", async () => {
     const props = {
       ...defaultProps,
       entityType: "serviceProvider" as const,
@@ -342,11 +384,16 @@ describe("EntityFinanceTab", () => {
         },
       },
     } as unknown as ReturnType<typeof useTranslation>);
-    render(<EntityFinanceTab {...props} />);
-    expect(screen.getByTestId("sub-tabs")).toBeInTheDocument();
+    await act(async () => {
+      render(<EntityFinanceTab {...props} />);
+      await flushPromises();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("sub-tabs")).toBeInTheDocument();
+    });
   });
 
-  it("should get translation keys for supplier entity type", () => {
+  it("should get translation keys for supplier entity type", async () => {
     const props = {
       ...defaultProps,
       entityType: "supplier" as const,
@@ -375,11 +422,16 @@ describe("EntityFinanceTab", () => {
         },
       },
     } as unknown as ReturnType<typeof useTranslation>);
-    render(<EntityFinanceTab {...props} />);
-    expect(screen.getByTestId("sub-tabs")).toBeInTheDocument();
+    await act(async () => {
+      render(<EntityFinanceTab {...props} />);
+      await flushPromises();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("sub-tabs")).toBeInTheDocument();
+    });
   });
 
-  it("should get translation keys for buyer entity type", () => {
+  it("should get translation keys for buyer entity type", async () => {
     const props = {
       ...defaultProps,
       entityType: "buyer" as const,
@@ -408,26 +460,44 @@ describe("EntityFinanceTab", () => {
         },
       },
     } as unknown as ReturnType<typeof useTranslation>);
-    render(<EntityFinanceTab {...props} />);
-    expect(screen.getByTestId("sub-tabs")).toBeInTheDocument();
+    await act(async () => {
+      render(<EntityFinanceTab {...props} />);
+      await flushPromises();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("sub-tabs")).toBeInTheDocument();
+    });
   });
 
-  it("should get default translation keys for employee entity type", () => {
+  it("should get default translation keys for employee entity type", async () => {
     const props = {
       ...defaultProps,
       entityType: "employee" as const,
     };
-    render(<EntityFinanceTab {...props} />);
-    expect(screen.getByTestId("sub-tabs")).toBeInTheDocument();
+    await act(async () => {
+      render(<EntityFinanceTab {...props} />);
+      await flushPromises();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("sub-tabs")).toBeInTheDocument();
+    });
   });
 
   it("should update search params when tab changes", async () => {
     const user = userEvent.setup();
     const setSearchParams = vi.fn();
     mockUseSearchParams.mockReturnValue([new URLSearchParams(), setSearchParams]);
-    render(<EntityFinanceTab {...defaultProps} />);
+    await act(async () => {
+      render(<EntityFinanceTab {...defaultProps} />);
+      await flushPromises();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("transactions-tab")).toBeInTheDocument();
+    });
     const transactionsTab = screen.getByTestId("transactions-tab");
-    await user.click(transactionsTab);
+    await act(async () => {
+      await user.click(transactionsTab);
+    });
     expect(setSearchParams).toHaveBeenCalledWith({ tab: "finance", subTab: "transactions" });
   });
 
@@ -437,41 +507,58 @@ describe("EntityFinanceTab", () => {
     const searchParams = new URLSearchParams();
     searchParams.set("subTab", "transactions");
     mockUseSearchParams.mockReturnValue([searchParams, setSearchParams]);
-    render(<EntityFinanceTab {...defaultProps} />);
+    await act(async () => {
+      render(<EntityFinanceTab {...defaultProps} />);
+      await flushPromises();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("dashboard-tab")).toBeInTheDocument();
+    });
     const dashboardTab = screen.getByTestId("dashboard-tab");
-    await user.click(dashboardTab);
+    await act(async () => {
+      await user.click(dashboardTab);
+    });
     expect(setSearchParams).toHaveBeenCalledWith({ tab: "finance", subTab: "dashboard" });
   });
 
-  it("should sync state when subTab param changes to transactions", () => {
+  it("should sync state when subTab param changes to transactions", async () => {
     const searchParams = new URLSearchParams();
     searchParams.set("subTab", "transactions");
     mockUseSearchParams.mockReturnValue([searchParams, vi.fn()]);
-    render(<EntityFinanceTab {...defaultProps} />);
-    expect(screen.getByTestId("transactions-table")).toBeInTheDocument();
+    await act(async () => {
+      render(<EntityFinanceTab {...defaultProps} />);
+      await flushPromises();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("transactions-table")).toBeInTheDocument();
+    });
   });
 
-  it("should sync state when subTab param changes to dashboard", () => {
+  it("should sync state when subTab param changes to dashboard", async () => {
     const searchParams = new URLSearchParams();
     searchParams.set("subTab", "dashboard");
     mockUseSearchParams.mockReturnValue([searchParams, vi.fn()]);
-    render(<EntityFinanceTab {...defaultProps} />);
-    expect(screen.getByTestId("finance-dashboard")).toBeInTheDocument();
+    await act(async () => {
+      render(<EntityFinanceTab {...defaultProps} />);
+      await flushPromises();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("finance-dashboard")).toBeInTheDocument();
+    });
   });
 
-  it("should default to dashboard when subTab param is null and showSubTabs is true", () => {
-    mockUseSearchParams.mockReturnValue([new URLSearchParams(), vi.fn()]);
-    render(<EntityFinanceTab {...defaultProps} showSubTabs={true} />);
-    expect(screen.getByTestId("finance-dashboard")).toBeInTheDocument();
-  });
-
-  it("should not sync state when subTab param is invalid", () => {
+  it("should not sync state when subTab param is invalid", async () => {
     const searchParams = new URLSearchParams();
     searchParams.set("subTab", "invalid");
     mockUseSearchParams.mockReturnValue([searchParams, vi.fn()]);
-    render(<EntityFinanceTab {...defaultProps} />);
-    // Should default to dashboard
-    expect(screen.getByTestId("finance-dashboard")).toBeInTheDocument();
+    await act(async () => {
+      render(<EntityFinanceTab {...defaultProps} />);
+      await flushPromises();
+    });
+    await waitFor(() => {
+      // Should default to dashboard
+      expect(screen.getByTestId("finance-dashboard")).toBeInTheDocument();
+    });
   });
 
   it("should call showAlert on success", async () => {
@@ -481,9 +568,14 @@ describe("EntityFinanceTab", () => {
       showAlert,
       AlertDisplay: () => <div data-testid="alert-display">Alert</div>,
     });
-    render(<EntityFinanceTab {...defaultProps} />);
-    // onSuccess callback should be passed to useEntityFinanceTransactions
-    expect(mockUseEntityFinanceTransactions).toHaveBeenCalled();
+    await act(async () => {
+      render(<EntityFinanceTab {...defaultProps} />);
+      await flushPromises();
+    });
+    await waitFor(() => {
+      // onSuccess callback should be passed to useEntityFinanceTransactions
+      expect(mockUseEntityFinanceTransactions).toHaveBeenCalled();
+    });
   });
 
   it("should call showAlert on error", async () => {
@@ -493,9 +585,14 @@ describe("EntityFinanceTab", () => {
       showAlert,
       AlertDisplay: () => <div data-testid="alert-display">Alert</div>,
     });
-    render(<EntityFinanceTab {...defaultProps} />);
-    // onError callback should be passed to useEntityFinanceTransactions
-    expect(mockUseEntityFinanceTransactions).toHaveBeenCalled();
+    await act(async () => {
+      render(<EntityFinanceTab {...defaultProps} />);
+      await flushPromises();
+    });
+    await waitFor(() => {
+      // onError callback should be passed to useEntityFinanceTransactions
+      expect(mockUseEntityFinanceTransactions).toHaveBeenCalled();
+    });
   });
 
   it("should handle getPropertyNameFromHook returning null", async () => {
@@ -509,8 +606,13 @@ describe("EntityFinanceTab", () => {
       getEmployeeName: vi.fn(() => "Employee 1"),
       getServiceProviderName: vi.fn(() => "Service Provider 1"),
     });
-    render(<EntityFinanceTab {...defaultProps} />);
-    expect(screen.getByTestId("sub-tabs")).toBeInTheDocument();
+    await act(async () => {
+      render(<EntityFinanceTab {...defaultProps} />);
+      await flushPromises();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("sub-tabs")).toBeInTheDocument();
+    });
   });
 
   it("should handle getSupplierName returning null", async () => {
@@ -524,8 +626,12 @@ describe("EntityFinanceTab", () => {
       getEmployeeName: vi.fn(() => "Employee 1"),
       getServiceProviderName: vi.fn(() => "Service Provider 1"),
     });
-    render(<EntityFinanceTab {...defaultProps} />);
-    expect(screen.getByTestId("sub-tabs")).toBeInTheDocument();
+    await act(async () => {
+      render(<EntityFinanceTab {...defaultProps} />);
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("sub-tabs")).toBeInTheDocument();
+    });
   });
 
   it("should handle getBuyerName returning null", async () => {
@@ -539,8 +645,12 @@ describe("EntityFinanceTab", () => {
       getEmployeeName: vi.fn(() => "Employee 1"),
       getServiceProviderName: vi.fn(() => "Service Provider 1"),
     });
-    render(<EntityFinanceTab {...defaultProps} />);
-    expect(screen.getByTestId("sub-tabs")).toBeInTheDocument();
+    await act(async () => {
+      render(<EntityFinanceTab {...defaultProps} />);
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("sub-tabs")).toBeInTheDocument();
+    });
   });
 
   it("should handle getEmployeeName returning null", async () => {
@@ -554,8 +664,12 @@ describe("EntityFinanceTab", () => {
       getEmployeeName: vi.fn(() => null),
       getServiceProviderName: vi.fn(() => "Service Provider 1"),
     });
-    render(<EntityFinanceTab {...defaultProps} />);
-    expect(screen.getByTestId("sub-tabs")).toBeInTheDocument();
+    await act(async () => {
+      render(<EntityFinanceTab {...defaultProps} />);
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("sub-tabs")).toBeInTheDocument();
+    });
   });
 
   it("should handle getServiceProviderName returning null", async () => {
@@ -569,11 +683,15 @@ describe("EntityFinanceTab", () => {
       getEmployeeName: vi.fn(() => "Employee 1"),
       getServiceProviderName: vi.fn(() => null),
     });
-    render(<EntityFinanceTab {...defaultProps} />);
-    expect(screen.getByTestId("sub-tabs")).toBeInTheDocument();
+    await act(async () => {
+      render(<EntityFinanceTab {...defaultProps} />);
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("sub-tabs")).toBeInTheDocument();
+    });
   });
 
-  it("should pass payableTransactions when provided", () => {
+  it("should pass payableTransactions when provided", async () => {
     const getPayableTransactions = vi.fn(() => [
       {
         id: "1",
@@ -583,15 +701,23 @@ describe("EntityFinanceTab", () => {
         status: "UNPAID" as const,
       },
     ]);
-    render(<EntityFinanceTab {...defaultProps} getPayableTransactions={getPayableTransactions} />);
-    expect(mockUseEntityFinanceTransactions).toHaveBeenCalledWith(
-      expect.objectContaining({
+    await act(async () => {
+      render(
+        <EntityFinanceTab {...defaultProps} getPayableTransactions={getPayableTransactions} />
+      );
+      await flushPromises();
+    });
+    await waitFor(() => {
+      const calls = mockUseEntityFinanceTransactions.mock.calls;
+      expect(calls.length).toBeGreaterThan(0);
+      const lastCall = calls[calls.length - 1];
+      expect(lastCall[0]).toMatchObject({
         payableTransactions: expect.arrayContaining([expect.objectContaining({ id: "1" })]),
-      })
-    );
+      });
+    });
   });
 
-  it("should pass receivableTransactions when provided", () => {
+  it("should pass receivableTransactions when provided", async () => {
     const getReceivableTransactions = vi.fn(() => [
       {
         id: "1",
@@ -601,21 +727,32 @@ describe("EntityFinanceTab", () => {
         status: "UNPAID" as const,
       },
     ]);
-    render(
-      <EntityFinanceTab {...defaultProps} getReceivableTransactions={getReceivableTransactions} />
-    );
-    expect(mockUseEntityFinanceTransactions).toHaveBeenCalledWith(
-      expect.objectContaining({
+    await act(async () => {
+      render(
+        <EntityFinanceTab {...defaultProps} getReceivableTransactions={getReceivableTransactions} />
+      );
+      await flushPromises();
+    });
+    await waitFor(() => {
+      const calls = mockUseEntityFinanceTransactions.mock.calls;
+      expect(calls.length).toBeGreaterThan(0);
+      const lastCall = calls[calls.length - 1];
+      expect(lastCall[0]).toMatchObject({
         receivableTransactions: expect.arrayContaining([expect.objectContaining({ id: "1" })]),
-      })
-    );
+      });
+    });
   });
 
-  it("should pass gradientId to FinanceDashboard", () => {
+  it("should pass gradientId to FinanceDashboard", async () => {
     const searchParams = new URLSearchParams();
     searchParams.set("subTab", "dashboard");
     mockUseSearchParams.mockReturnValue([searchParams, vi.fn()]);
-    render(<EntityFinanceTab {...defaultProps} gradientId="custom-gradient" />);
-    expect(screen.getByTestId("finance-dashboard")).toBeInTheDocument();
+    await act(async () => {
+      render(<EntityFinanceTab {...defaultProps} gradientId="custom-gradient" />);
+      await flushPromises();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("finance-dashboard")).toBeInTheDocument();
+    });
   });
 });

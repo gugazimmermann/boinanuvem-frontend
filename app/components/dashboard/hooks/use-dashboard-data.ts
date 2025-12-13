@@ -11,6 +11,9 @@ import type {
   Animal,
   Birth,
   Breeding,
+  CashFlow,
+  AccountsPayable,
+  AccountsReceivable,
 } from "~/types";
 import { AccountsPayableStatus, AccountsReceivableStatus } from "~/types";
 import { getAnimalsByCompanyId, getAnimalsByPropertyId } from "~/services/animals.service";
@@ -95,13 +98,30 @@ export function useDashboardData(companyId: string, filters?: DashboardFilters) 
   const totalProperties = properties.length;
   const totalLocations = locations.length;
 
-  const totalWeight = useMemo(() => {
-    const allWeighingsData = getWeighingsByCompanyId(companyId);
+  const [allWeighingsData, setAllWeighingsData] = useState<
+    Awaited<ReturnType<typeof getWeighingsByCompanyId>>
+  >([]);
 
-    let filteredWeighings = allWeighingsData;
+  useEffect(() => {
+    const loadWeighings = async () => {
+      try {
+        const weighings = await getWeighingsByCompanyId(companyId);
+        setAllWeighingsData(weighings);
+      } catch (error) {
+        console.error("Failed to load weighings:", error);
+        setAllWeighingsData([]);
+      }
+    };
+    loadWeighings();
+  }, [companyId]);
+
+  const totalWeight = useMemo(() => {
+    const allWeighingsDataLocal = allWeighingsData;
+
+    let filteredWeighings = allWeighingsDataLocal;
     if (filters?.propertyId) {
       const propertyAnimalIds = new Set(animals.map((a) => a.id));
-      filteredWeighings = allWeighingsData.filter((weighing) =>
+      filteredWeighings = allWeighingsDataLocal.filter((weighing) =>
         propertyAnimalIds.has(weighing.animalId)
       );
     }
@@ -123,7 +143,7 @@ export function useDashboardData(companyId: string, filters?: DashboardFilters) 
     }
 
     return weight;
-  }, [animals, companyId, filters]);
+  }, [animals, filters, allWeighingsData]);
 
   const animalUnits = useMemo(
     () => (totalWeight > 0 ? totalWeight / ANIMAL_UNIT_WEIGHT_KG : 0),
@@ -175,32 +195,68 @@ export function useDashboardData(companyId: string, filters?: DashboardFilters) 
 
   const nextThreeMonthsTotal = expectedBirthsForecast?.total || 0;
 
-  const cashFlowData = useMemo(() => {
-    const allCashFlow = getCashFlowByCompanyId(companyId);
-    if (!filters?.startDate && !filters?.endDate) {
-      return allCashFlow;
-    }
-    return allCashFlow.filter((transaction) => {
-      const transactionDate = parseISO(transaction.date);
-      if (filters.startDate) {
-        const start = new Date(filters.startDate);
-        start.setHours(0, 0, 0, 0);
-        if (transactionDate < start) return false;
-      }
-      if (filters.endDate) {
-        const end = new Date(filters.endDate);
-        end.setHours(23, 59, 59, 999);
-        if (transactionDate > end) return false;
-      }
-      return true;
-    });
-  }, [companyId, filters]);
+  const [cashFlowData, setCashFlowData] = useState<CashFlow[]>([]);
 
-  const accountsPayableData = useMemo(() => getAccountsPayableByCompanyId(companyId), [companyId]);
-  const accountsReceivableData = useMemo(
-    () => getAccountsReceivableByCompanyId(companyId),
-    [companyId]
-  );
+  useEffect(() => {
+    const loadCashFlow = async () => {
+      try {
+        const allCashFlow = await getCashFlowByCompanyId(companyId);
+        if (!filters?.startDate && !filters?.endDate) {
+          setCashFlowData(allCashFlow);
+          return;
+        }
+        const filtered = allCashFlow.filter((transaction) => {
+          const transactionDate = parseISO(transaction.date);
+          if (filters.startDate) {
+            const start = new Date(filters.startDate);
+            start.setHours(0, 0, 0, 0);
+            if (transactionDate < start) return false;
+          }
+          if (filters.endDate) {
+            const end = new Date(filters.endDate);
+            end.setHours(23, 59, 59, 999);
+            if (transactionDate > end) return false;
+          }
+          return true;
+        });
+        setCashFlowData(filtered);
+      } catch (error) {
+        console.error("Failed to load cash flow:", error);
+        setCashFlowData([]);
+      }
+    };
+    loadCashFlow();
+  }, [companyId, filters?.startDate, filters?.endDate]);
+
+  const [accountsPayableData, setAccountsPayableData] = useState<AccountsPayable[]>([]);
+
+  useEffect(() => {
+    const loadAccountsPayable = async () => {
+      try {
+        const data = await getAccountsPayableByCompanyId(companyId);
+        setAccountsPayableData(data);
+      } catch (error) {
+        console.error("Failed to load accounts payable:", error);
+        setAccountsPayableData([]);
+      }
+    };
+    loadAccountsPayable();
+  }, [companyId]);
+
+  const [accountsReceivableData, setAccountsReceivableData] = useState<AccountsReceivable[]>([]);
+
+  useEffect(() => {
+    const loadAccountsReceivable = async () => {
+      try {
+        const data = await getAccountsReceivableByCompanyId(companyId);
+        setAccountsReceivableData(data);
+      } catch (error) {
+        console.error("Failed to load accounts receivable:", error);
+        setAccountsReceivableData([]);
+      }
+    };
+    loadAccountsReceivable();
+  }, [companyId]);
 
   const currentDate = useMemo(() => new Date(), []);
   const currentMonthStart = useMemo(() => startOfMonth(currentDate), [currentDate]);
@@ -303,7 +359,8 @@ export function useDashboardData(companyId: string, filters?: DashboardFilters) 
           const breedingsData = await getBreedingsByPropertyId(filters.propertyId);
           allBreedings = breedingsData || [];
         } else {
-          allBreedings = getBreedingsByCompanyId(companyId);
+          const breedingsData = await getBreedingsByCompanyId(companyId);
+          allBreedings = breedingsData || [];
         }
 
         if (!filters?.startDate && !filters?.endDate) {
@@ -335,8 +392,25 @@ export function useDashboardData(companyId: string, filters?: DashboardFilters) 
     loadBreedings();
   }, [companyId, filters?.propertyId, filters?.startDate, filters?.endDate]);
 
+  const [allSalesData, setAllSalesData] = useState<Awaited<ReturnType<typeof getSalesByCompanyId>>>(
+    []
+  );
+
+  useEffect(() => {
+    const loadSales = async () => {
+      try {
+        const sales = await getSalesByCompanyId(companyId);
+        setAllSalesData(sales);
+      } catch (error) {
+        console.error("Failed to load sales:", error);
+        setAllSalesData([]);
+      }
+    };
+    loadSales();
+  }, [companyId]);
+
   const sales = useMemo(() => {
-    const allSales = getSalesByCompanyId(companyId);
+    const allSales = allSalesData;
     let filtered = allSales;
 
     if (filters?.propertyId) {
@@ -361,7 +435,7 @@ export function useDashboardData(companyId: string, filters?: DashboardFilters) 
     }
 
     return filtered;
-  }, [companyId, filters]);
+  }, [allSalesData, filters]);
 
   const [salesMetrics, setSalesMetrics] = useState<Awaited<
     ReturnType<typeof getSalesMetrics>
@@ -424,9 +498,9 @@ export function useDashboardData(companyId: string, filters?: DashboardFilters) 
   }, [breedings]);
 
   const allWeighings = useMemo(() => {
-    const allWeighingsData = getWeighingsByCompanyId(companyId);
+    const allWeighingsDataLocal = allWeighingsData;
 
-    let filtered = allWeighingsData;
+    let filtered = allWeighingsDataLocal;
     if (filters?.propertyId) {
       const propertyAnimalIds = new Set(allAnimals.map((a) => a.id));
       filtered = filtered.filter((weighing) => propertyAnimalIds.has(weighing.animalId));
@@ -450,7 +524,7 @@ export function useDashboardData(companyId: string, filters?: DashboardFilters) 
     }
 
     return filtered;
-  }, [companyId, filters, allAnimals]);
+  }, [allWeighingsData, filters, allAnimals]);
 
   return {
     animals,

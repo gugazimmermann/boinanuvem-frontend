@@ -42,10 +42,10 @@ export default function NewAccountsPayable() {
           "Você pode anexar múltiplos arquivos à observação",
       }}
       onSubmit={
-        ((data: AccountsPayableFormData) => {
-          const result = addAccountsPayable(data);
+        (async (data: AccountsPayableFormData) => {
+          const result = await addAccountsPayable(data);
           return { id: result.id };
-        }) as (data: FinanceTransactionFormData) => void | { id: string }
+        }) as (data: FinanceTransactionFormData) => Promise<void | { id: string }>
       }
       onSuccess={() => {
         setTimeout(() => {

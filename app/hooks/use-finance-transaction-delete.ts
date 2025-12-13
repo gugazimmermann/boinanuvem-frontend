@@ -43,19 +43,17 @@ export function useFinanceTransactionDelete({
   const handleDeleteTransaction = useCallback(async () => {
     if (!selectedTransaction) return;
 
-    let success = false;
-    if (transactionType === "accounts-payable") {
-      success = deleteAccountsPayable(selectedTransaction.id);
-    } else if (transactionType === "accounts-receivable") {
-      success = deleteAccountsReceivable(selectedTransaction.id);
-    } else if (transactionType === "cash-flow") {
-      success = deleteCashFlow(selectedTransaction.id);
-    }
-
-    if (success) {
+    try {
+      if (transactionType === "accounts-payable") {
+        await deleteAccountsPayable(selectedTransaction.id);
+      } else if (transactionType === "accounts-receivable") {
+        await deleteAccountsReceivable(selectedTransaction.id);
+      } else if (transactionType === "cash-flow") {
+        await deleteCashFlow(selectedTransaction.id);
+      }
       onSuccess(successMessage);
       onDeleteSuccess?.(selectedTransaction);
-    } else {
+    } catch {
       onError(errorMessage);
     }
 

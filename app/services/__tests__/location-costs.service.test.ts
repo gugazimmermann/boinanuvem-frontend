@@ -11,6 +11,7 @@ import {
 
 vi.mock("../inventory-movements.service", () => ({
   getConsumptionMovementsByLocationId: vi.fn(),
+  getMovementsByCompanyId: vi.fn(),
 }));
 
 vi.mock("../inventory.service", () => ({
@@ -19,6 +20,7 @@ vi.mock("../inventory.service", () => ({
 
 vi.mock("../animal-movements.service", () => ({
   getAnimalMovementsByAnimalId: vi.fn(),
+  getAnimalMovementsByLocationId: vi.fn(),
 }));
 
 vi.mock("../animals.service", () => ({
@@ -54,10 +56,17 @@ vi.mock("~/mocks/inventory-movements", () => ({
   ],
 }));
 
-import { getConsumptionMovementsByLocationId } from "../inventory-movements.service";
+import {
+  getConsumptionMovementsByLocationId,
+  getMovementsByCompanyId,
+} from "../inventory-movements.service";
 import { getInventoryItemById } from "../inventory.service";
-import { getAnimalMovementsByAnimalId } from "../animal-movements.service";
+import {
+  getAnimalMovementsByAnimalId,
+  getAnimalMovementsByLocationId,
+} from "../animal-movements.service";
 import { getAnimalById } from "../animals.service";
+import { getLocationById } from "../locations.service";
 
 describe("location-costs.service", () => {
   beforeEach(() => {
@@ -68,8 +77,17 @@ describe("location-costs.service", () => {
     it("should return animals in location on date", async () => {
       const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
       const getMovements = getAnimalMovementsByAnimalId as ReturnType<typeof vi.fn>;
+      const getMovementsByLocation = getAnimalMovementsByLocationId as ReturnType<typeof vi.fn>;
       getAnimal.mockResolvedValue({ id: "animal-1", code: "001" });
       getMovements.mockReturnValue([
+        {
+          id: "movement-1",
+          animalIds: ["animal-1"],
+          locationId: "location-1",
+          date: "2024-01-15",
+        },
+      ]);
+      getMovementsByLocation.mockReturnValue([
         {
           id: "movement-1",
           animalIds: ["animal-1"],
@@ -224,7 +242,13 @@ describe("location-costs.service", () => {
     it("should calculate animal cost breakdown by location", async () => {
       const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
       const getAnimalMovements = getAnimalMovementsByAnimalId as ReturnType<typeof vi.fn>;
-      getAnimal.mockResolvedValue({ id: "animal-1", code: "001" });
+      const getMovements = getMovementsByCompanyId as ReturnType<typeof vi.fn>;
+      const getConsumptionMovements = getConsumptionMovementsByLocationId as ReturnType<
+        typeof vi.fn
+      >;
+      const getItem = getInventoryItemById as ReturnType<typeof vi.fn>;
+      const getLocation = getLocationById as ReturnType<typeof vi.fn>;
+      getAnimal.mockResolvedValue({ id: "animal-1", code: "001", companyId: "company-1" });
       getAnimalMovements.mockReturnValue([
         {
           id: "movement-1",
@@ -233,6 +257,31 @@ describe("location-costs.service", () => {
           date: "2024-01-15",
         },
       ]);
+      getMovements.mockReturnValue([
+        {
+          id: "inv-movement-1",
+          itemId: "item-1",
+          locationId: "location-1",
+          type: "consumption",
+          quantity: 100,
+          unitPrice: 10,
+          date: "2024-01-15",
+          companyId: "company-1",
+        },
+      ]);
+      getConsumptionMovements.mockReturnValue([
+        {
+          id: "inv-movement-1",
+          itemId: "item-1",
+          locationId: "location-1",
+          type: "consumption",
+          quantity: 100,
+          unitPrice: 10,
+          date: "2024-01-15",
+        },
+      ]);
+      getItem.mockReturnValue({ id: "item-1", name: "Feed", unitPrice: 10 });
+      getLocation.mockResolvedValue({ id: "location-1", name: "Location 1" });
 
       const result = await getAnimalCostBreakdownByLocation("animal-1");
       expect(result).toBeDefined();
@@ -243,7 +292,13 @@ describe("location-costs.service", () => {
     it("should calculate total animal cost", async () => {
       const getAnimal = getAnimalById as ReturnType<typeof vi.fn>;
       const getAnimalMovements = getAnimalMovementsByAnimalId as ReturnType<typeof vi.fn>;
-      getAnimal.mockResolvedValue({ id: "animal-1", code: "001" });
+      const getMovements = getMovementsByCompanyId as ReturnType<typeof vi.fn>;
+      const getConsumptionMovements = getConsumptionMovementsByLocationId as ReturnType<
+        typeof vi.fn
+      >;
+      const getItem = getInventoryItemById as ReturnType<typeof vi.fn>;
+      const getLocation = getLocationById as ReturnType<typeof vi.fn>;
+      getAnimal.mockResolvedValue({ id: "animal-1", code: "001", companyId: "company-1" });
       getAnimalMovements.mockReturnValue([
         {
           id: "movement-1",
@@ -252,6 +307,31 @@ describe("location-costs.service", () => {
           date: "2024-01-15",
         },
       ]);
+      getMovements.mockReturnValue([
+        {
+          id: "inv-movement-1",
+          itemId: "item-1",
+          locationId: "location-1",
+          type: "consumption",
+          quantity: 100,
+          unitPrice: 10,
+          date: "2024-01-15",
+          companyId: "company-1",
+        },
+      ]);
+      getConsumptionMovements.mockReturnValue([
+        {
+          id: "inv-movement-1",
+          itemId: "item-1",
+          locationId: "location-1",
+          type: "consumption",
+          quantity: 100,
+          unitPrice: 10,
+          date: "2024-01-15",
+        },
+      ]);
+      getItem.mockReturnValue({ id: "item-1", name: "Feed", unitPrice: 10 });
+      getLocation.mockResolvedValue({ id: "location-1", name: "Location 1" });
 
       const result = await getAnimalTotalCost("animal-1");
       expect(result).toBeDefined();

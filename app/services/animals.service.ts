@@ -1,6 +1,7 @@
 import type { Animal, AnimalFormData } from "~/types";
 import { apiClient } from "./api-client";
 import { handleApiError, createResourceErrorMessages } from "./error-handlers";
+import { safeDateToString, safeDateToDateString } from "~/utils/date-transforms";
 
 const animalErrors = createResourceErrorMessages("animais");
 
@@ -8,21 +9,12 @@ const animalErrors = createResourceErrorMessages("animais");
  * Convert backend Date to frontend string format
  */
 function transformAnimal(backendAnimal: Animal): Animal {
-  let acquisitionDate: string | undefined;
-  if (backendAnimal.acquisitionDate) {
-    acquisitionDate =
-      typeof backendAnimal.acquisitionDate === "string"
-        ? backendAnimal.acquisitionDate
-        : new Date(backendAnimal.acquisitionDate).toISOString().split("T")[0];
-  }
-
   return {
     ...backendAnimal,
-    acquisitionDate,
-    createdAt:
-      typeof backendAnimal.createdAt === "string"
-        ? backendAnimal.createdAt
-        : new Date(backendAnimal.createdAt).toISOString(),
+    acquisitionDate: backendAnimal.acquisitionDate
+      ? safeDateToDateString(backendAnimal.acquisitionDate)
+      : undefined,
+    createdAt: safeDateToString(backendAnimal.createdAt) || backendAnimal.createdAt,
   };
 }
 

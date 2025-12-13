@@ -109,9 +109,11 @@ export interface EntityDetailPageProps<TEntity, TObservation extends Observation
   };
   /** Finance tab configuration */
   readonly financeConfig?: {
-    getCashFlowTransactions: (id: string) => CashFlow[];
-    getPayableTransactions?: (id: string) => AccountsPayable[];
-    getReceivableTransactions?: (id: string) => AccountsReceivable[];
+    getCashFlowTransactions: (id: string) => CashFlow[] | Promise<CashFlow[]>;
+    getPayableTransactions?: (id: string) => AccountsPayable[] | Promise<AccountsPayable[]>;
+    getReceivableTransactions?: (
+      id: string
+    ) => AccountsReceivable[] | Promise<AccountsReceivable[]>;
     gradientId?: string;
     showSubTabs?: boolean;
   };

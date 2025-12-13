@@ -90,19 +90,17 @@ export function useFinanceTransactionHandlers({
   const handleDeleteConfirm = useCallback(async () => {
     if (!selectedTransaction || !selectedTransactionType) return;
 
-    let success = false;
-    if (selectedTransactionType === "cashFlow") {
-      success = deleteCashFlow(selectedTransaction.id);
-    } else if (selectedTransactionType === "payable") {
-      success = deleteAccountsPayable(selectedTransaction.id);
-    } else if (selectedTransactionType === "receivable") {
-      success = deleteAccountsReceivable(selectedTransaction.id);
-    }
-
-    if (success) {
+    try {
+      if (selectedTransactionType === "cashFlow") {
+        await deleteCashFlow(selectedTransaction.id);
+      } else if (selectedTransactionType === "payable") {
+        await deleteAccountsPayable(selectedTransaction.id);
+      } else if (selectedTransactionType === "receivable") {
+        await deleteAccountsReceivable(selectedTransaction.id);
+      }
       const message = successMessage || "Transaction deleted successfully";
       onSuccess?.(message);
-    } else {
+    } catch {
       const message = errorMessage || "Failed to delete transaction";
       onError?.(message);
     }

@@ -5,12 +5,12 @@ import { Table, Tooltip, type TableColumn } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
 import { translations } from "~/i18n/translations";
-import { mockCompanies } from "~/mocks/companies";
+import { useAuth } from "~/contexts/auth-context";
 import { getPregnantAnimals, getMostRecentConfirmedBreeding } from "~/services/breedings.service";
 import { getAnimalsByCompanyId } from "~/services/animals.service";
 import { getBirthsByCompanyId, getBirthByAnimalId } from "~/services/births.service";
 import { getProperties } from "~/services/properties.service";
-import type { Property, Animal } from "~/types";
+import type { Property, Animal, Breeding } from "~/types";
 import { useListPage } from "~/hooks/use-list-page";
 import { PropertyFilterDropdown } from "~/components/dashboard/breedings/property-filter-dropdown";
 import { AnimalCodeDisplay } from "~/components/dashboard/breedings/animal-code-display";
@@ -43,26 +43,41 @@ export default function PregnantCows() {
   const t = useTranslation();
   const { language } = useLanguage();
   const navigate = useNavigate();
-  const company = mockCompanies[0];
-  const companyId = company?.id || "";
+  const { currentUser } = useAuth();
+  const companyId = currentUser?.companyId || "";
 
   const dateLocale = useMemo(() => getDateLocale(language), [language]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [births, setBirths] = useState<Awaited<ReturnType<typeof getBirthsByCompanyId>>>([]);
 
-  const pregnantAnimalIds = useMemo(() => getPregnantAnimals(companyId), [companyId]);
+  const [pregnantAnimalIds, setPregnantAnimalIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    const loadPregnantAnimals = async () => {
+      if (companyId) {
+        try {
+          const ids = await getPregnantAnimals(companyId);
+          setPregnantAnimalIds(ids);
+        } catch (error) {
+          console.error("Failed to load pregnant animals:", error);
+          setPregnantAnimalIds([]);
+        }
+      }
+    };
+    loadPregnantAnimals();
+  }, [companyId]);
 
   useEffect(() => {
     const fetchData = async () => {
-      if (company) {
+      if (companyId) {
         try {
           const [propertiesData, animalsData, birthsData] = await Promise.all([
             getProperties(),
             getAnimalsByCompanyId(companyId),
             getBirthsByCompanyId(companyId),
           ]);
-          setProperties(propertiesData.filter((prop) => prop.companyId === company.id));
+          setProperties(propertiesData.filter((prop) => prop.companyId === companyId));
           setAnimals(animalsData || []);
           setBirths(birthsData || []);
         } catch (error) {
@@ -71,7 +86,7 @@ export default function PregnantCows() {
       }
     };
     fetchData();
-  }, [company, companyId]);
+  }, [companyId]);
 
   const animalsMap = useMemo(() => {
     const map = new Map<string, Animal>();
@@ -113,9 +128,29 @@ export default function PregnantCows() {
 
   const propertiesMap = useMemo(() => new Map(properties.map((p) => [p.id, p])), [properties]);
 
+  const [breedingMap, setBreedingMap] = useState<Map<string, Breeding>>(new Map());
+
+  useEffect(() => {
+    const loadBreedings = async () => {
+      const breedingsMap = new Map<string, Breeding>();
+      await Promise.all(
+        pregnantAnimals.map(async (animal) => {
+          const breeding = await getMostRecentConfirmedBreeding(animal.id);
+          if (breeding) {
+            breedingsMap.set(animal.id, breeding);
+          }
+        })
+      );
+      setBreedingMap(breedingsMap);
+    };
+    if (pregnantAnimals.length > 0) {
+      loadBreedings();
+    }
+  }, [pregnantAnimals]);
+
   const animalsWithBreedingInfo = useMemo(() => {
     return pregnantAnimals.map((animal) => {
-      const mostRecentBreeding = getMostRecentConfirmedBreeding(animal.id);
+      const mostRecentBreeding = breedingMap.get(animal.id);
       const expectedBirthDate = mostRecentBreeding
         ? calculateExpectedBirthDate(mostRecentBreeding.date)
         : null;
@@ -138,7 +173,7 @@ export default function PregnantCows() {
         propertyName: property?.name || "",
       };
     });
-  }, [pregnantAnimals, t, propertiesMap, getBirthByAnimalIdLocal]);
+  }, [pregnantAnimals, t, propertiesMap, getBirthByAnimalIdLocal, breedingMap]);
 
   const searchFields: Array<
     | keyof (typeof animalsWithBreedingInfo)[0]

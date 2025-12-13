@@ -5,7 +5,7 @@ import { useTranslation } from "~/i18n";
 import { ROUTES } from "~/routes.config";
 import { addAnimal } from "~/services/animals.service";
 import type { AnimalFormData, Property } from "~/types";
-import { mockCompanies } from "~/mocks/companies";
+import { useAuth } from "~/contexts/auth-context";
 import { getProperties } from "~/services/properties.service";
 import { createFormMeta, createRegistrationLoader } from "~/utils/route-helpers";
 import { useAlert } from "~/hooks/use-alert";
@@ -21,8 +21,8 @@ export async function loader({ request }: { request: Request }) {
 export default function NewAnimal() {
   const t = useTranslation();
   const navigate = useNavigate();
-  const company = mockCompanies[0];
-  const companyId = company?.id || "";
+  const { currentUser } = useAuth();
+  const companyId = currentUser?.companyId || "";
   const [properties, setProperties] = useState<Property[]>([]);
   const { alertMessage, showAlert } = useAlert();
 

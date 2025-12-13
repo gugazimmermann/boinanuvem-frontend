@@ -5,7 +5,7 @@ import { useTranslation } from "~/i18n";
 import { ROUTES } from "~/routes.config";
 import { addBankAccount } from "~/services/bank-account.service";
 import type { BankAccountFormData, BankAccountType } from "~/types";
-import { mockCompanies } from "~/mocks/companies";
+import { useAuth } from "~/contexts/auth-context";
 import { createFormMeta } from "~/utils/route-helpers";
 import { useAlert } from "~/hooks/use-alert";
 
@@ -16,8 +16,8 @@ export function meta() {
 export default function NewBankAccount() {
   const t = useTranslation();
   const navigate = useNavigate();
-  const company = mockCompanies[0];
-  const companyId = company?.id || "";
+  const { currentUser } = useAuth();
+  const companyId = currentUser?.companyId || "";
 
   const [formData, setFormData] = useState<{
     bankName: string;

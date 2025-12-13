@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
 import { useTranslation } from "~/i18n";
 import { usePermissions } from "~/utils/permissions";
@@ -41,6 +41,28 @@ export default function SupplierDetails() {
   const [inventorySearchValue, setInventorySearchValue] = useState("");
   const [inventoryCurrentPage, setInventoryCurrentPage] = useState(1);
   const inventoryItemsPerPage = 10;
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+  const [stockMap, setStockMap] = useState<Map<string, number>>(new Map());
+
+  useEffect(() => {
+    const loadInventoryData = async (supplierId: string) => {
+      const items = await getInventoryItemsBySupplierId(supplierId);
+      setInventoryItems(items);
+
+      // Load stock for all items
+      const stockPromises = items.map(async (item) => {
+        const propertyId = typeof item.propertyId === "string" ? item.propertyId : undefined;
+        const stock = await getCurrentStock(item.id, propertyId);
+        return [item.id, stock] as [string, number];
+      });
+      const stockEntries = await Promise.all(stockPromises);
+      setStockMap(new Map(stockEntries));
+    };
+
+    if (supplierId) {
+      loadInventoryData(supplierId);
+    }
+  }, [supplierId]);
 
   return (
     <EntityDetailPage<Supplier, SupplierObservation>
@@ -97,10 +119,9 @@ export default function SupplierDetails() {
           onClick: () => {},
         },
       ]}
-      renderCustomTab={(tabId, supplier) => {
+      renderCustomTab={(tabId, _supplier) => {
         if (tabId !== "inventory") return null;
 
-        const inventoryItems = getInventoryItemsBySupplierId(supplier.id);
         const filteredInventoryItems = inventoryItems.filter((item) => {
           if (!inventorySearchValue) return true;
           const searchLower = inventorySearchValue.toLowerCase();
@@ -150,7 +171,7 @@ export default function SupplierDetails() {
             label: t.inventory.table.currentStock,
             sortable: false,
             render: (_, row) => {
-              const currentStock = getCurrentStock(row.id);
+              const currentStock = stockMap.get(row.id) || 0;
               const isLowStock = currentStock < row.minimumStock;
               return (
                 <div className="flex items-center gap-2">

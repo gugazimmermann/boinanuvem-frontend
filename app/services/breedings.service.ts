@@ -1,24 +1,67 @@
 import type { Breeding, BreedingFormData, Animal, Property } from "~/types";
-import { mockBreedings } from "~/mocks/breedings";
-import { findById, findByField, createEntity, updateEntity, deleteEntity } from "./base-service";
+import { apiClient } from "./api-client";
+import { handleApiError, createResourceErrorMessages } from "./error-handlers";
 import { getAnimalsByPropertyId, getAnimalById } from "./animals.service";
 import { getBirthByAnimalId, getBirthsByCompanyId } from "./births.service";
+import { buildUpdateDto } from "~/utils/update-dto-builder";
+import { createListHandler, createGetByIdHandler, createCrudHandlers } from "./service-helpers";
+import { createEntityTransform } from "./transform-helpers";
 
-const ID_PREFIX = "pp0e8400-e29b-41d4-a716";
-const DEFAULT_ID = "pp0e8400-e29b-41d4-a716-446655440009";
+const breedingsErrors = createResourceErrorMessages("cruzamentos");
 
-export function getBreedingById(breedingId: string | undefined): Breeding | undefined {
-  return findById(mockBreedings, breedingId);
+/**
+ * Transform backend BreedingResponseDto to frontend Breeding type
+ */
+const transformBreeding = createEntityTransform<Breeding>({
+  dateStringFields: ["date"],
+  dateTimeFields: ["createdAt"],
+  customTransform: (breeding) => ({
+    ...breeding,
+    date: breeding.date || new Date().toISOString().split("T")[0],
+    confirmed: breeding.confirmed ?? false,
+    employeeIds: breeding.employeeIds || [],
+    serviceProviderIds: breeding.serviceProviderIds || [],
+  }),
+});
+
+/**
+ * Get all breedings for the current user's company via API
+ */
+export const getBreedingsByCompanyId = createListHandler<Breeding>({
+  endpoint: "/breedings",
+  errorMessages: breedingsErrors.list,
+  transform: transformBreeding,
+});
+
+/**
+ * Get a single breeding by ID via API
+ */
+export const getBreedingById = createGetByIdHandler<Breeding>({
+  endpoint: "/breedings",
+  errorMessages: breedingsErrors.view,
+  transform: transformBreeding,
+  custom403Message: "Você não tem permissão para visualizar este cruzamento",
+});
+
+/**
+ * Get breedings by animal ID via API
+ */
+export async function getBreedingsByAnimalId(animalId: string): Promise<Breeding[]> {
+  try {
+    const breedings = await apiClient.get<Breeding[]>(`/breedings/animal/${animalId}`);
+    return breedings.map(transformBreeding);
+  } catch (error) {
+    try {
+      handleApiError(error, breedingsErrors.list);
+    } catch {
+      return [];
+    }
+  }
 }
 
-export function getBreedingsByAnimalId(animalId: string): Breeding[] {
-  return findByField(mockBreedings, "animalId", animalId);
-}
-
-export function getBreedingsByCompanyId(companyId: string): Breeding[] {
-  return findByField(mockBreedings, "companyId", companyId);
-}
-
+/**
+ * Get next attempt number for an animal
+ */
 export async function getNextAttemptNumber(animalId: string, companyId: string): Promise<number> {
   // Get all births for the company to find births where this animal is the mother
   const allBirths = await getBirthsByCompanyId(companyId);
@@ -32,7 +75,7 @@ export async function getNextAttemptNumber(animalId: string, companyId: string):
     mostRecentBirthDate = sortedBirths[0].birthDate;
   }
 
-  const breedings = getBreedingsByAnimalId(animalId);
+  const breedings = await getBreedingsByAnimalId(animalId);
   const aiBreedings = breedings.filter((b) => b.method === "artificial_insemination");
 
   if (!mostRecentBirthDate) {
@@ -58,13 +101,21 @@ export async function getNextAttemptNumber(animalId: string, companyId: string):
   return maxAttempt + 1;
 }
 
-export function isAnimalPregnant(animalId: string): boolean {
-  const breedings = getBreedingsByAnimalId(animalId);
+/**
+ * Check if an animal is pregnant
+ */
+export async function isAnimalPregnant(animalId: string): Promise<boolean> {
+  const breedings = await getBreedingsByAnimalId(animalId);
   return breedings.some((b) => b.confirmed === true);
 }
 
-export function getMostRecentConfirmedBreeding(animalId: string): Breeding | undefined {
-  const breedings = getBreedingsByAnimalId(animalId);
+/**
+ * Get most recent confirmed breeding for an animal
+ */
+export async function getMostRecentConfirmedBreeding(
+  animalId: string
+): Promise<Breeding | undefined> {
+  const breedings = await getBreedingsByAnimalId(animalId);
   const confirmedBreedings = breedings.filter((b) => b.confirmed === true);
 
   if (confirmedBreedings.length === 0) {
@@ -77,8 +128,11 @@ export function getMostRecentConfirmedBreeding(animalId: string): Breeding | und
   return sortedBreedings[0];
 }
 
-export function getPregnantAnimals(companyId: string): string[] {
-  const breedings = getBreedingsByCompanyId(companyId);
+/**
+ * Get pregnant animals for a company
+ */
+export async function getPregnantAnimals(companyId: string): Promise<string[]> {
+  const breedings = await getBreedingsByCompanyId(companyId);
   const uniqueAnimalIds = new Set<string>();
 
   for (const breeding of breedings) {
@@ -90,39 +144,98 @@ export function getPregnantAnimals(companyId: string): string[] {
   return Array.from(uniqueAnimalIds);
 }
 
-export function getUnconfirmedBreedings(companyId: string): Breeding[] {
-  const breedings = getBreedingsByCompanyId(companyId);
+/**
+ * Get unconfirmed breedings for a company
+ */
+export async function getUnconfirmedBreedings(companyId: string): Promise<Breeding[]> {
+  const breedings = await getBreedingsByCompanyId(companyId);
   return breedings.filter((b) => b.confirmed !== true);
 }
 
-export function confirmBreeding(breedingId: string): boolean {
-  return updateBreeding(breedingId, { confirmed: true });
+/**
+ * Confirm a breeding via API
+ */
+export async function confirmBreeding(breedingId: string): Promise<boolean> {
+  try {
+    await apiClient.put(`/breedings/${breedingId}/confirm`, {});
+    return true;
+  } catch (error) {
+    handleApiError(error, breedingsErrors.update);
+  }
 }
 
-export function addBreeding(data: BreedingFormData): Breeding {
-  return createEntity(mockBreedings, data, ID_PREFIX, DEFAULT_ID);
-}
+const breedingsCrud = createCrudHandlers<Breeding, Breeding, BreedingFormData>({
+  endpoint: "/breedings",
+  errorMessages: {
+    create: breedingsErrors.create,
+    update: breedingsErrors.update,
+    delete: breedingsErrors.delete,
+  },
+  transform: transformBreeding,
+  buildCreateDto: (data) => ({
+    animalId: data.animalId,
+    date: data.date,
+    method: data.method,
+    bullId: data.bullId,
+    attemptNumber: data.attemptNumber,
+    semenCode: data.semenCode,
+    employeeIds: data.employeeIds,
+    serviceProviderIds: data.serviceProviderIds,
+    observation: data.observation,
+    confirmed: data.confirmed ?? false,
+  }),
+  buildUpdateDto: (data) =>
+    buildUpdateDto(data, [
+      "animalId",
+      "date",
+      "method",
+      "bullId",
+      "attemptNumber",
+      "semenCode",
+      "employeeIds",
+      "serviceProviderIds",
+      "observation",
+      "confirmed",
+    ]),
+});
 
-export function updateBreeding(breedingId: string, data: Partial<BreedingFormData>): boolean {
-  return updateEntity(mockBreedings, breedingId, data);
-}
+/**
+ * Create a new breeding via API
+ */
+export const addBreeding = breedingsCrud.add;
 
-export function deleteBreeding(breedingId: string): boolean {
-  return deleteEntity(mockBreedings, breedingId);
-}
+/**
+ * Update a breeding via API
+ */
+export const updateBreeding = breedingsCrud.update;
 
+/**
+ * Delete a breeding via API
+ */
+export const deleteBreeding = breedingsCrud.remove;
+
+/**
+ * Get breedings by property ID
+ */
 export async function getBreedingsByPropertyId(propertyId: string): Promise<Breeding[]> {
   const animals = await getAnimalsByPropertyId(propertyId);
   const animalIds = new Set(animals.map((a) => a.id));
-  return mockBreedings.filter((breeding) => animalIds.has(breeding.animalId));
+  const allBreedings = await getBreedingsByCompanyId(animals[0]?.companyId || "");
+  return allBreedings.filter((breeding) => animalIds.has(breeding.animalId));
 }
 
+/**
+ * Get exposed cows for a property
+ */
 export async function getExposedCows(propertyId: string): Promise<string[]> {
   const breedings = await getBreedingsByPropertyId(propertyId);
   const uniqueAnimalIds = new Set(breedings.map((b) => b.animalId));
   return Array.from(uniqueAnimalIds);
 }
 
+/**
+ * Get pregnant cows by property ID
+ */
 export async function getPregnantCowsByPropertyId(propertyId: string): Promise<string[]> {
   const breedings = await getBreedingsByPropertyId(propertyId);
   const uniqueAnimalIds = new Set<string>();
@@ -136,6 +249,9 @@ export async function getPregnantCowsByPropertyId(propertyId: string): Promise<s
   return Array.from(uniqueAnimalIds);
 }
 
+/**
+ * Enrich breeding with animal data
+ */
 export async function enrichBreedingWithAnimalData(breeding: Breeding): Promise<
   Breeding & {
     animal?: Animal;
@@ -145,8 +261,6 @@ export async function enrichBreedingWithAnimalData(breeding: Breeding): Promise<
   }
 > {
   const animal = await getAnimalById(breeding.animalId);
-  // Note: property is set to undefined here since getPropertyById is async
-  // The property should be loaded separately if needed
   const bull = breeding.bullId ? await getAnimalById(breeding.bullId) : null;
   const birth = animal ? await getBirthByAnimalId(animal.id) : null;
 
@@ -159,8 +273,11 @@ export async function enrichBreedingWithAnimalData(breeding: Breeding): Promise<
   };
 }
 
-export function unconfirmMostRecentBreedingForAnimal(animalId: string): boolean {
-  const breedings = getBreedingsByAnimalId(animalId);
+/**
+ * Unconfirm most recent breeding for an animal
+ */
+export async function unconfirmMostRecentBreedingForAnimal(animalId: string): Promise<boolean> {
+  const breedings = await getBreedingsByAnimalId(animalId);
   const confirmedBreedings = breedings.filter((b) => b.confirmed === true);
 
   if (confirmedBreedings.length === 0) {
@@ -172,5 +289,10 @@ export function unconfirmMostRecentBreedingForAnimal(animalId: string): boolean 
   );
   const mostRecentBreeding = sortedBreedings[0];
 
-  return updateBreeding(mostRecentBreeding.id, { confirmed: false });
+  try {
+    await updateBreeding(mostRecentBreeding.id, { confirmed: false });
+    return true;
+  } catch {
+    return false;
+  }
 }

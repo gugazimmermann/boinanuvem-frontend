@@ -145,7 +145,7 @@ export async function getAverageDailyGain(
   const results: AverageDailyGainResult[] = [];
 
   for (const animal of animals) {
-    const weighings = getWeighingsByAnimalId(animal.id);
+    const weighings = await getWeighingsByAnimalId(animal.id);
     if (weighings.length < 2) continue;
 
     const filteredWeighings = filterByPeriod(weighings, period);
@@ -286,8 +286,8 @@ function findEntryAndExitDates(
   return { entryDate, exitDate };
 }
 
-function getExitDateFromSales(animalId: string, _entryDate: Date): Date {
-  const sales = getSalesByAnimalId(animalId);
+async function getExitDateFromSales(animalId: string, _entryDate: Date): Promise<Date> {
+  const sales = await getSalesByAnimalId(animalId);
   if (sales.length === 0) {
     return new Date();
   }
@@ -298,12 +298,12 @@ function getExitDateFromSales(animalId: string, _entryDate: Date): Date {
   return new Date(sortedSales[0].saleDate);
 }
 
-function calculateDaysOnFeed(
+async function calculateDaysOnFeed(
   animal: Awaited<ReturnType<typeof getAnimalsByPropertyId>>[0],
   movements: ReturnType<typeof getAnimalMovementsByAnimalId>,
   confinementLocationIds: Set<string>,
   period?: { startDate?: string; endDate?: string }
-): DaysOnFeedResult | null {
+): Promise<DaysOnFeedResult | null> {
   if (movements.length === 0) {
     return null;
   }
@@ -319,7 +319,9 @@ function calculateDaysOnFeed(
   );
 
   const exitDate =
-    entryDate && !initialExitDate ? getExitDateFromSales(animal.id, entryDate) : initialExitDate;
+    entryDate && !initialExitDate
+      ? await getExitDateFromSales(animal.id, entryDate)
+      : initialExitDate;
 
   if (!entryDate || !exitDate) {
     return null;
@@ -355,7 +357,7 @@ export async function getDaysOnFeed(
 
   for (const animal of animals) {
     const movements = getAnimalMovementsByAnimalId(animal.id);
-    const result = calculateDaysOnFeed(animal, movements, confinementLocationIds, period);
+    const result = await calculateDaysOnFeed(animal, movements, confinementLocationIds, period);
     if (result) {
       results.push(result);
     }
@@ -378,7 +380,7 @@ export async function getCarcassYield(
   const animals = await getAnimalsByPropertyId(propertyId);
   const animal = animals[0];
   const companyId = animal?.companyId || "550e8400-e29b-41d4-a716-446655440000";
-  const allSales = getSalesByCompanyId(companyId);
+  const allSales = await getSalesByCompanyId(companyId);
   const sales: Sale[] = allSales.filter((sale) => sale.propertyId === propertyId);
 
   const filteredSales = filterSalesByPeriod(sales, period);
@@ -423,7 +425,7 @@ export async function getSlaughterAge(
   const animals = await getAnimalsByPropertyId(propertyId);
   const animal = animals[0];
   const companyId = animal?.companyId || "550e8400-e29b-41d4-a716-446655440000";
-  const allSales = getSalesByCompanyId(companyId);
+  const allSales = await getSalesByCompanyId(companyId);
   const sales: Sale[] = allSales.filter((sale) => sale.propertyId === propertyId);
 
   const filteredSales = filterSalesByPeriod(sales, period);
@@ -500,7 +502,7 @@ export async function getArrobaProductionPerHectare(
   const animals = await getAnimalsByPropertyId(propertyId);
   const animal = animals[0];
   const companyId = animal?.companyId || "550e8400-e29b-41d4-a716-446655440000";
-  const allSales = getSalesByCompanyId(companyId);
+  const allSales = await getSalesByCompanyId(companyId);
   const sales: Sale[] = allSales.filter((sale) => sale.propertyId === propertyId);
 
   const filteredSales = filterSalesByPeriod(sales, period);
@@ -550,23 +552,24 @@ export async function getKgNitrogenPerAU(
   const areaInHectares = convertToHectares(property.area.value, property.area.type);
 
   const animals = await getAnimalsByPropertyId(propertyId);
-  const animalsWithWeights = animals
-    .map((animal) => {
-      const weighings = getWeighingsByAnimalId(animal.id);
-      if (weighings.length === 0) return null;
+  const animalsWithWeightsPromises = animals.map(async (animal) => {
+    const weighings = await getWeighingsByAnimalId(animal.id);
+    if (weighings.length === 0) return null;
 
-      const filteredWeighings = filterByPeriod(weighings, period);
+    const filteredWeighings = filterByPeriod(weighings, period);
 
-      if (filteredWeighings.length === 0) return null;
+    if (filteredWeighings.length === 0) return null;
 
-      const latestWeighing = [...filteredWeighings]
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        .at(0);
+    const latestWeighing = [...filteredWeighings]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .at(0);
 
-      if (!latestWeighing) return null;
-      return { weight: latestWeighing.weight };
-    })
-    .filter((animal): animal is { weight: number } => animal !== null);
+    if (!latestWeighing) return null;
+    return { weight: latestWeighing.weight };
+  });
+  const animalsWithWeights = (await Promise.all(animalsWithWeightsPromises)).filter(
+    (animal): animal is { weight: number } => animal !== null
+  );
 
   const animalUnits = calculateAnimalUnits(animalsWithWeights);
 

@@ -1,34 +1,155 @@
 import type { SanitaryControl, SanitaryControlFormData } from "~/types/sanitary-control";
-import { mockSanitaryControls } from "~/mocks/sanitary-controls";
-import { findById, findByField, createEntity, updateEntity, deleteEntity } from "./base-service";
+import { apiClient } from "./api-client";
+import { handleApiError, createResourceErrorMessages } from "./error-handlers";
+import { safeDateToString, safeDateToDateString } from "~/utils/date-transforms";
+import { createListHandler, createGetByIdHandler, createCrudHandlers } from "./service-helpers";
 
-const ID_PREFIX = "ma0e8400-e29b-41d4-a716";
-const DEFAULT_ID = "ma0e8400-e29b-41d4-a716-446655440010";
+const sanitaryControlsErrors = createResourceErrorMessages("controles sanitários");
 
-export function getSanitaryControlById(id: string | undefined): SanitaryControl | undefined {
-  return findById(mockSanitaryControls, id);
+/**
+ * Transform backend SanitaryControlResponseDto to frontend SanitaryControl type
+ */
+function transformSanitaryControl(backendControl: Record<string, unknown>): SanitaryControl {
+  // Backend may return appliedMedicines array (preferred) or flat structure (legacy)
+  // Frontend always expects appliedMedicines array
+  let appliedMedicines: Array<{
+    itemId: string;
+    quantity: number;
+    calculatedDosage: number;
+  }> = [];
+
+  if (Array.isArray(backendControl.appliedMedicines)) {
+    // New structure: array already exists
+    appliedMedicines = (backendControl.appliedMedicines as Array<Record<string, unknown>>).map(
+      (med) => ({
+        itemId: med.itemId as string,
+        quantity: (med.quantity as number) || 0,
+        calculatedDosage: (med.calculatedDosage as number) || 0,
+      })
+    );
+  } else if (backendControl.itemId && backendControl.quantity !== undefined) {
+    // Legacy structure: flat itemId, quantity, calculatedDosage
+    appliedMedicines = [
+      {
+        itemId: backendControl.itemId as string,
+        quantity: backendControl.quantity as number,
+        calculatedDosage: (backendControl.calculatedDosage as number) || 0,
+      },
+    ];
+  }
+
+  return {
+    id: backendControl.id as string,
+    animalId: backendControl.animalId as string,
+    date: safeDateToDateString(backendControl.date) || new Date().toISOString().split("T")[0],
+    appliedMedicines,
+    employeeIds: (backendControl.employeeIds as string[]) || [],
+    serviceProviderIds: (backendControl.serviceProviderIds as string[]) || [],
+    observation: backendControl.observation as string | undefined,
+    companyId: backendControl.companyId as string,
+    createdAt: safeDateToString(backendControl.createdAt) || new Date().toISOString(),
+  };
 }
 
-export function getSanitaryControlsByAnimalId(animalId: string): SanitaryControl[] {
-  return findByField(mockSanitaryControls, "animalId", animalId);
+/**
+ * Get all sanitary controls for the current user's company via API
+ */
+export const getSanitaryControlsByCompanyId = createListHandler<SanitaryControl>({
+  endpoint: "/sanitary-controls",
+  errorMessages: sanitaryControlsErrors.list,
+  transform: transformSanitaryControl,
+});
+
+/**
+ * Get a single sanitary control by ID via API
+ */
+export const getSanitaryControlById = createGetByIdHandler<SanitaryControl>({
+  endpoint: "/sanitary-controls",
+  errorMessages: sanitaryControlsErrors.view,
+  transform: transformSanitaryControl,
+  custom403Message: "Você não tem permissão para visualizar este controle sanitário",
+});
+
+/**
+ * Get sanitary controls by animal ID via API
+ */
+export async function getSanitaryControlsByAnimalId(animalId: string): Promise<SanitaryControl[]> {
+  try {
+    const controls = await apiClient.get<SanitaryControl[]>(
+      `/sanitary-controls/animal/${animalId}`
+    );
+    return controls.map(transformSanitaryControl);
+  } catch (error) {
+    try {
+      handleApiError(error, sanitaryControlsErrors.list);
+    } catch {
+      return [];
+    }
+  }
 }
 
-export function getSanitaryControlsByCompanyId(companyId: string): SanitaryControl[] {
-  return findByField(mockSanitaryControls, "companyId", companyId);
-}
+const sanitaryControlsCrud = createCrudHandlers<
+  SanitaryControl,
+  SanitaryControl,
+  SanitaryControlFormData
+>({
+  endpoint: "/sanitary-controls",
+  errorMessages: {
+    create: sanitaryControlsErrors.create,
+    update: sanitaryControlsErrors.update,
+    delete: sanitaryControlsErrors.delete,
+  },
+  transform: transformSanitaryControl,
+  buildCreateDto: (data) => {
+    // Frontend has appliedMedicines array, backend expects single itemId/quantity/calculatedDosage
+    // Use first medicine if available
+    const firstMedicine = data.appliedMedicines?.[0];
 
-export function addSanitaryControl(data: SanitaryControlFormData): SanitaryControl {
-  return createEntity(mockSanitaryControls, data, ID_PREFIX, DEFAULT_ID);
-}
+    return {
+      animalId: data.animalId,
+      date: data.date,
+      itemId: firstMedicine?.itemId,
+      quantity: firstMedicine?.quantity,
+      calculatedDosage: firstMedicine?.calculatedDosage,
+      employeeIds: data.employeeIds,
+      serviceProviderIds: data.serviceProviderIds,
+      observation: data.observation,
+    };
+  },
+  buildUpdateDto: (data) => {
+    const firstMedicine = data.appliedMedicines?.[0];
 
-export function updateSanitaryControl(id: string, data: Partial<SanitaryControlFormData>): boolean {
-  return updateEntity(mockSanitaryControls, id, data);
-}
+    const updateDto: Record<string, unknown> = {};
+    if (data.animalId !== undefined) updateDto.animalId = data.animalId;
+    if (data.date !== undefined) updateDto.date = data.date;
+    if (firstMedicine?.itemId !== undefined) updateDto.itemId = firstMedicine.itemId;
+    if (firstMedicine?.quantity !== undefined) updateDto.quantity = firstMedicine.quantity;
+    if (firstMedicine?.calculatedDosage !== undefined)
+      updateDto.calculatedDosage = firstMedicine.calculatedDosage;
+    if (data.employeeIds !== undefined) updateDto.employeeIds = data.employeeIds;
+    if (data.serviceProviderIds !== undefined)
+      updateDto.serviceProviderIds = data.serviceProviderIds;
+    if (data.observation !== undefined) updateDto.observation = data.observation;
+    return updateDto;
+  },
+});
 
-export function deleteSanitaryControl(id: string): boolean {
-  return deleteEntity(mockSanitaryControls, id);
-}
+/**
+ * Create a new sanitary control via API
+ */
+export const addSanitaryControl = sanitaryControlsCrud.add;
 
+/**
+ * Update a sanitary control via API
+ */
+export const updateSanitaryControl = sanitaryControlsCrud.update;
+
+/**
+ * Delete a sanitary control via API
+ */
+export const deleteSanitaryControl = sanitaryControlsCrud.remove;
+
+// Legacy aliases for medicine administration
 export const getMedicineAdministrationById = getSanitaryControlById;
 export const getMedicineAdministrationsByAnimalId = getSanitaryControlsByAnimalId;
 export const getMedicineAdministrationsByCompanyId = getSanitaryControlsByCompanyId;

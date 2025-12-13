@@ -289,8 +289,8 @@ function getMonthKey(breedingDate: Date): string {
   return `${breedingDate.getFullYear()}-${String(breedingDate.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function getLatestWeight(animalId: string): number | null {
-  const weighings = getWeighingsByAnimalId(animalId);
+async function getLatestWeight(animalId: string): Promise<number | null> {
+  const weighings = await getWeighingsByAnimalId(animalId);
   if (weighings.length === 0) return null;
 
   const sortedWeighings = [...weighings].sort(
@@ -322,7 +322,7 @@ async function isValidWeanedCalf(
   const calf = await getAnimalById(birth.animalId);
   if (!calf || calf.status === "sold") return false;
 
-  const death = getDeathByAnimalId(birth.animalId);
+  const death = await getDeathByAnimalId(birth.animalId);
   return !death;
 }
 
@@ -581,7 +581,7 @@ export async function getExpectedBirthsForecast(
   if (isPropertyId) {
     breedings = await getBreedingsByPropertyId(companyIdOrPropertyId);
   } else {
-    breedings = getBreedingsByCompanyId(companyIdOrPropertyId);
+    breedings = await getBreedingsByCompanyId(companyIdOrPropertyId);
   }
 
   const confirmedBreedings = breedings.filter((b) => b.confirmed === true);
@@ -690,8 +690,8 @@ async function calculateWeaningWeights(
       continue;
     }
 
-    const calfWeight = getLatestWeight(birth.animalId);
-    const motherWeight = birth.motherId ? getLatestWeight(birth.motherId) : null;
+    const calfWeight = await getLatestWeight(birth.animalId);
+    const motherWeight = birth.motherId ? await getLatestWeight(birth.motherId) : null;
 
     if (calfWeight && motherWeight) {
       totalWeanedCalfWeight += calfWeight;
@@ -761,7 +761,7 @@ async function calculateWeanedCalfWeights(
     );
     if (!isValid) continue;
 
-    const latestWeight = getLatestWeight(birth.animalId);
+    const latestWeight = await getLatestWeight(birth.animalId);
     if (latestWeight === null) continue;
 
     totalWeanedWeight += latestWeight;
@@ -838,7 +838,7 @@ export async function getMortalityRate(
   const animals = await getAnimalsByPropertyId(propertyId);
   const animal = animals[0];
   const companyId = animal?.companyId || "550e8400-e29b-41d4-a716-446655440000";
-  const deaths = getDeathsByCompanyId(companyId);
+  const deaths = await getDeathsByCompanyId(companyId);
 
   const propertyDeathsPromises = deaths.map(async (death) => {
     const deadAnimal = await getAnimalById(death.animalId);
@@ -892,7 +892,7 @@ export async function getCalfMortalityRate(
   ]);
   const animal = animals[0];
   const companyId = animal?.companyId || "550e8400-e29b-41d4-a716-446655440000";
-  const deaths = getDeathsByCompanyId(companyId);
+  const deaths = await getDeathsByCompanyId(companyId);
 
   const propertyDeaths = await filterCalfDeaths(deaths, propertyId);
   const filteredDeaths = filterByPeriod(propertyDeaths, period);

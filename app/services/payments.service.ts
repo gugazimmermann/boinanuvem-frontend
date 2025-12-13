@@ -1,8 +1,7 @@
 import type { Payment } from "~/types/payment";
 import { PaymentStatus } from "~/types/payment";
-import { mockPayments } from "~/mocks/payments";
-import { findById, findByField } from "./base-service";
 import { apiClient, ApiError } from "./api-client";
+import { mockPayments } from "~/mocks/payments";
 
 /**
  * Backend payment response structure
@@ -93,13 +92,10 @@ export async function getPaymentsByCompanyId(companyId: string): Promise<Payment
         // Return empty array if company not found
         return [];
       }
-      console.error("Failed to fetch payments from API:", error.message);
-      // Fallback to mock data on error
-      return findByField(mockPayments, "companyId", companyId);
     }
-    console.error("Unexpected error fetching payments:", error);
-    // Fallback to mock data on error
-    return findByField(mockPayments, "companyId", companyId);
+    // Network error or other non-ApiError - fallback to mock data
+    console.error("Failed to fetch payments, using mock data:", error);
+    return mockPayments.filter((p) => p.companyId === companyId);
   }
 }
 
@@ -118,10 +114,9 @@ export async function getPaymentById(paymentId: string): Promise<Payment | undef
       if (error.status === 403) {
         throw new Error("Access denied to this payment");
       }
-      console.error("Failed to fetch payment from API:", error.message);
     }
-    console.error("Unexpected error fetching payment:", error);
-    // Fallback to mock data
-    return findById(mockPayments, paymentId);
+    // Network error or other non-ApiError - fallback to mock data
+    console.error("Failed to fetch payment, using mock data:", error);
+    return mockPayments.find((p) => p.id === paymentId);
   }
 }

@@ -1,7 +1,6 @@
 import { useTranslation } from "~/i18n";
 import type { AccountsPayable } from "~/types";
 import { ROUTES, getAccountsPayableEditRoute, getAccountsPayableViewRoute } from "~/routes.config";
-import { mockAccountsPayable } from "~/mocks/accounts-payable";
 import { getAccountsPayableByCompanyId } from "~/services/accounts-payable.service";
 import { FinanceTransactionListRoute } from "./finance-transaction-list-route";
 
@@ -30,7 +29,6 @@ export default function AccountsPayable() {
         entityColumnKey: "supplier",
         amountColorClass: "red",
         getTransactionsByCompanyId: getAccountsPayableByCompanyId,
-        mockTransactions: mockAccountsPayable,
         routes: {
           list: ROUTES.ACCOUNTS_PAYABLE,
           new: ROUTES.ACCOUNTS_PAYABLE_NEW,

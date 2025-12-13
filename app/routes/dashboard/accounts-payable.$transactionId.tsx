@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
 import { Button } from "~/components/ui";
 import { useTranslation } from "~/i18n";
@@ -11,6 +11,14 @@ import { getBankAccountById } from "~/services/bank-account.service";
 import { getEmployeeById } from "~/services/employees.service";
 import { getServiceProviderById } from "~/services/service-providers.service";
 import { getPropertyById } from "~/services/properties.service";
+import type {
+  AccountsPayable,
+  BankAccount,
+  Supplier,
+  Employee,
+  ServiceProvider,
+  Property,
+} from "~/types";
 import {
   getAccountsPayableObservationsByAccountsPayableId,
   addAccountsPayableObservation,
@@ -19,7 +27,6 @@ import type { AccountsPayableObservation } from "~/types/accounts-payable-observ
 import { ObservationSection } from "~/components/dashboard/observations/observation-section";
 import { FinanceDetailCard } from "~/components/dashboard/finance/finance-detail-card";
 import { getStatusVariant } from "~/utils/finance";
-import type { Supplier, Employee, ServiceProvider, Property } from "~/types";
 
 export function meta() {
   return [
@@ -42,21 +49,35 @@ export default function AccountsPayableDetails() {
   const t = useTranslation();
   const { language } = useLanguage();
   const { canEdit } = usePermissions();
-  const transaction = getAccountsPayableById(transactionId);
-  const initialObservations = useMemo(
-    () => (transaction ? getAccountsPayableObservationsByAccountsPayableId(transaction.id) : []),
-    [transaction]
-  );
-  const [observations, setObservations] =
-    useState<AccountsPayableObservation[]>(initialObservations);
+  const [transaction, setTransaction] = useState<AccountsPayable | undefined>(undefined);
+  const [observations, setObservations] = useState<AccountsPayableObservation[]>([]);
   const [supplier, setSupplier] = useState<Supplier | null>(null);
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [serviceProvider, setServiceProvider] = useState<ServiceProvider | null>(null);
   const [property, setProperty] = useState<Property | null>(null);
+  const [bankAccount, setBankAccount] = useState<BankAccount | null>(null);
 
   useEffect(() => {
-    setObservations(initialObservations);
-  }, [initialObservations]);
+    const loadTransaction = async () => {
+      if (transactionId) {
+        try {
+          const transactionData = await getAccountsPayableById(transactionId);
+          setTransaction(transactionData);
+          if (transactionData) {
+            const obs = getAccountsPayableObservationsByAccountsPayableId(transactionData.id);
+            setObservations(obs);
+            if (transactionData.bankAccountId) {
+              const bankAccountData = await getBankAccountById(transactionData.bankAccountId);
+              setBankAccount(bankAccountData || null);
+            }
+          }
+        } catch (error) {
+          console.error("Failed to load transaction:", error);
+        }
+      }
+    };
+    loadTransaction();
+  }, [transactionId]);
 
   useEffect(() => {
     const loadEntities = async () => {
@@ -100,10 +121,6 @@ export default function AccountsPayableDetails() {
       </div>
     );
   }
-
-  const bankAccount = transaction.bankAccountId
-    ? getBankAccountById(transaction.bankAccountId)
-    : null;
 
   const handleAddObservation = async (observationText: string, files: File[]) => {
     const fileIds = files.map((_, index) => `file-ap-obs-${Date.now()}-${index}`);

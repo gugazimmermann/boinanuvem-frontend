@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { Input, Button, FixedAlert, Select } from "~/components/ui";
 import { useTranslation } from "~/i18n";
@@ -16,7 +16,7 @@ import { addInventoryMovement } from "~/services/inventory-movements.service";
 import { getAnimalMovementsByAnimalId } from "~/services/animal-movements.service";
 import type { InventoryItem, Employee, ServiceProvider } from "~/types";
 import { InventoryItemCategory, InventoryMovementType } from "~/types";
-import { mockCompanies } from "~/mocks/companies";
+import { useAuth } from "~/contexts/auth-context";
 import { getEmployees } from "~/services/employees.service";
 import { getServiceProviders } from "~/services/service-providers.service";
 import { getUnitLabel } from "~/utils/inventory-utils";
@@ -41,8 +41,8 @@ export default function NewSanitaryControl() {
   const t = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const company = mockCompanies[0];
-  const companyId = company?.id || "";
+  const { currentUser } = useAuth();
+  const companyId = currentUser?.companyId || "";
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -86,9 +86,12 @@ export default function NewSanitaryControl() {
     return map;
   }, [animals]);
 
-  const getAnimalByIdLocal = (animalId: string) => {
-    return animalsMap.get(animalId);
-  };
+  const getAnimalByIdLocal = useCallback(
+    (animalId: string) => {
+      return animalsMap.get(animalId);
+    },
+    [animalsMap]
+  );
 
   const filteredAnimals = useMemo(() => {
     let filtered = animals;
@@ -137,41 +140,118 @@ export default function NewSanitaryControl() {
   const { alertMessage, showAlert } = useAlert();
   const [selectedMedicineId, setSelectedMedicineId] = useState<string>("");
 
-  const availableMedicinesVaccines = useMemo(() => {
-    const medicines = getInventoryItemsByCategory(InventoryItemCategory.MEDICINES, companyId);
-    const vaccines = getInventoryItemsByCategory(InventoryItemCategory.VACCINES, companyId);
-    return [...medicines, ...vaccines];
+  const [availableMedicinesVaccines, setAvailableMedicinesVaccines] = useState<InventoryItem[]>([]);
+  const [inventoryItemsMap, setInventoryItemsMap] = useState<Map<string, InventoryItem>>(new Map());
+  const [animalWeightsMap, setAnimalWeightsMap] = useState<Map<string, number>>(new Map());
+  const [stockMap, setStockMap] = useState<Map<string, number>>(new Map());
+
+  useEffect(() => {
+    const loadMedicinesVaccines = async () => {
+      const [medicines, vaccines] = await Promise.all([
+        getInventoryItemsByCategory(InventoryItemCategory.MEDICINES, companyId),
+        getInventoryItemsByCategory(InventoryItemCategory.VACCINES, companyId),
+      ]);
+      setAvailableMedicinesVaccines([...medicines, ...vaccines]);
+    };
+    loadMedicinesVaccines();
   }, [companyId]);
 
-  const getAnimalLocationInfo = (animalId: string): { locationId: string; propertyId: string } => {
-    const animal = getAnimalByIdLocal(animalId);
-    if (!animal) return { locationId: "", propertyId: "" };
+  // Pre-load inventory items for applied medicines
+  useEffect(() => {
+    const loadInventoryItems = async () => {
+      const itemPromises = formData.appliedMedicines.map(async (applied) => {
+        const item = await getInventoryItemById(applied.itemId);
+        return [applied.itemId, item] as [string, InventoryItem | undefined];
+      });
+      const items = await Promise.all(itemPromises);
+      const itemsMap = new Map(
+        items.filter(([, item]) => item !== undefined) as [string, InventoryItem][]
+      );
+      setInventoryItemsMap(itemsMap);
+    };
+    if (formData.appliedMedicines.length > 0) {
+      loadInventoryItems();
+    } else {
+      setInventoryItemsMap(new Map());
+    }
+  }, [formData.appliedMedicines]);
 
-    const movements = getAnimalMovementsByAnimalId(animalId);
-    if (movements.length === 0) {
+  // Pre-load animal weights
+  useEffect(() => {
+    const loadAnimalWeights = async () => {
+      const weightPromises = formData.animalIds.map(async (animalId) => {
+        const weight = await getAnimalLatestWeight(animalId);
+        return [animalId, weight] as [string, number];
+      });
+      const weights = await Promise.all(weightPromises);
+      setAnimalWeightsMap(new Map(weights));
+    };
+    if (formData.animalIds.length > 0) {
+      loadAnimalWeights();
+    } else {
+      setAnimalWeightsMap(new Map());
+    }
+  }, [formData.animalIds]);
+
+  const getAnimalLocationInfo = useCallback(
+    (animalId: string): { locationId: string; propertyId: string } => {
+      const animal = getAnimalByIdLocal(animalId);
+      if (!animal) return { locationId: "", propertyId: "" };
+
+      const movements = getAnimalMovementsByAnimalId(animalId);
+      if (movements.length === 0) {
+        return {
+          locationId:
+            animal.locationId && typeof animal.locationId === "string" ? animal.locationId : "",
+          propertyId:
+            animal.propertyId && typeof animal.propertyId === "string" ? animal.propertyId : "",
+        };
+      }
+
+      const sortedMovements = [...movements].sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+      const latestMovement = sortedMovements[0];
       return {
         locationId:
-          animal.locationId && typeof animal.locationId === "string" ? animal.locationId : "",
-        propertyId:
-          animal.propertyId && typeof animal.propertyId === "string" ? animal.propertyId : "",
+          latestMovement.locationId && typeof latestMovement.locationId === "string"
+            ? latestMovement.locationId
+            : "",
+        propertyId: latestMovement.propertyId || animal.propertyId || "",
       };
-    }
+    },
+    [getAnimalByIdLocal]
+  );
 
-    const sortedMovements = [...movements].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-    const latestMovement = sortedMovements[0];
-    return {
-      locationId:
-        latestMovement.locationId && typeof latestMovement.locationId === "string"
-          ? latestMovement.locationId
-          : "",
-      propertyId: latestMovement.propertyId || animal.propertyId || "",
+  // Pre-load stock data
+  useEffect(() => {
+    const loadStockData = async () => {
+      const stockPromises: Promise<[string, number]>[] = [];
+      for (const applied of formData.appliedMedicines) {
+        for (const animalId of formData.animalIds) {
+          const locationInfo = getAnimalLocationInfo(animalId);
+          if (locationInfo.propertyId) {
+            stockPromises.push(
+              getCurrentStock(applied.itemId, locationInfo.propertyId).then(
+                (stock) =>
+                  [`${applied.itemId}_${locationInfo.propertyId}`, stock] as [string, number]
+              )
+            );
+          }
+        }
+      }
+      const stocks = await Promise.all(stockPromises);
+      setStockMap(new Map(stocks));
     };
-  };
+    if (formData.appliedMedicines.length > 0 && formData.animalIds.length > 0) {
+      loadStockData();
+    } else {
+      setStockMap(new Map());
+    }
+  }, [formData.appliedMedicines, formData.animalIds, getAnimalLocationInfo]);
 
-  const getAnimalLatestWeight = (animalId: string): number => {
-    const weighings = getWeighingsByAnimalId(animalId);
+  const getAnimalLatestWeight = async (animalId: string): Promise<number> => {
+    const weighings = await getWeighingsByAnimalId(animalId);
     if (weighings.length === 0) return 0;
     const sortedWeighings = [...weighings].sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
@@ -221,8 +301,8 @@ export default function NewSanitaryControl() {
     });
   };
 
-  const addMedicine = (itemId: string) => {
-    const item = getInventoryItemById(itemId);
+  const addMedicine = async (itemId: string) => {
+    const item = await getInventoryItemById(itemId);
     if (!item) return;
 
     if (formData.appliedMedicines.some((m) => m.itemId === itemId)) {
@@ -232,7 +312,7 @@ export default function NewSanitaryControl() {
 
     let quantity = 1;
     if (formData.animalIds.length === 1) {
-      const animalWeight = getAnimalLatestWeight(formData.animalIds[0]);
+      const animalWeight = await getAnimalLatestWeight(formData.animalIds[0]);
       const calculatedDosage = calculateDosage(item, animalWeight);
       quantity = calculatedDosage > 0 ? calculatedDosage : 1;
     }
@@ -274,18 +354,18 @@ export default function NewSanitaryControl() {
     }
   };
 
-  const validateMedicineStockForAnimal = (
+  const validateMedicineStockForAnimal = async (
     animalId: string,
     appliedMedicines: Array<{ itemId: string; quantity: number }>,
     newErrors: Record<string, string>
-  ): void => {
+  ): Promise<void> => {
     const locationInfo = getAnimalLocationInfo(animalId);
     if (!locationInfo.propertyId) return;
 
     for (const applied of appliedMedicines) {
-      const item = getInventoryItemById(applied.itemId);
+      const item = await getInventoryItemById(applied.itemId);
       if (item) {
-        const currentStock = getCurrentStock(applied.itemId, locationInfo.propertyId);
+        const currentStock = await getCurrentStock(applied.itemId, locationInfo.propertyId);
         if (currentStock < applied.quantity) {
           newErrors[`medicine_${applied.itemId}_${animalId}`] =
             t.medicineAdministrations.new.insufficientStock;
@@ -294,13 +374,13 @@ export default function NewSanitaryControl() {
     }
   };
 
-  const validate = () => {
+  const validate = async () => {
     const newErrors: Record<string, string> = {};
     validateBasicFields(newErrors);
 
     if (formData.appliedMedicines.length > 0 && formData.animalIds.length > 0) {
       for (const animalId of formData.animalIds) {
-        validateMedicineStockForAnimal(animalId, formData.appliedMedicines, newErrors);
+        await validateMedicineStockForAnimal(animalId, formData.appliedMedicines, newErrors);
       }
     }
 
@@ -308,26 +388,29 @@ export default function NewSanitaryControl() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const processAppliedMedicines = (animalWeight: number) => {
-    return formData.appliedMedicines.map((applied) => {
-      const item = getInventoryItemById(applied.itemId);
-      const calculatedDosage = item ? calculateDosage(item, animalWeight) : applied.quantity;
-      return {
-        itemId: applied.itemId,
-        quantity: applied.quantity,
-        calculatedDosage,
-      };
-    });
+  const processAppliedMedicines = async (animalWeight: number) => {
+    const results = await Promise.all(
+      formData.appliedMedicines.map(async (applied) => {
+        const item = await getInventoryItemById(applied.itemId);
+        const calculatedDosage = item ? calculateDosage(item, animalWeight) : applied.quantity;
+        return {
+          itemId: applied.itemId,
+          quantity: applied.quantity,
+          calculatedDosage,
+        };
+      })
+    );
+    return results;
   };
 
-  const recordInventoryMovements = (animalId: string) => {
+  const recordInventoryMovements = async (animalId: string) => {
     const locationInfo = getAnimalLocationInfo(animalId);
     if (!formData.appliedMedicines.length || !locationInfo.propertyId) {
       return;
     }
 
     for (const applied of formData.appliedMedicines) {
-      const item = getInventoryItemById(applied.itemId);
+      const item = await getInventoryItemById(applied.itemId);
       if (!item) continue;
 
       addInventoryMovement({
@@ -344,9 +427,9 @@ export default function NewSanitaryControl() {
     }
   };
 
-  const processAnimalAdministration = (animalId: string) => {
-    const animalWeight = getAnimalLatestWeight(animalId);
-    const appliedMedicinesData = processAppliedMedicines(animalWeight);
+  const processAnimalAdministration = async (animalId: string) => {
+    const animalWeight = await getAnimalLatestWeight(animalId);
+    const appliedMedicinesData = await processAppliedMedicines(animalWeight);
 
     const administrationData = {
       animalId,
@@ -358,17 +441,17 @@ export default function NewSanitaryControl() {
       companyId,
     };
     addSanitaryControl(administrationData);
-    recordInventoryMovements(animalId);
+    await recordInventoryMovements(animalId);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return;
+    if (!(await validate())) return;
 
     setIsSubmitting(true);
     try {
       for (const animalId of formData.animalIds) {
-        processAnimalAdministration(animalId);
+        await processAnimalAdministration(animalId);
       }
 
       const animalCount = formData.animalIds.length;
@@ -446,7 +529,7 @@ export default function NewSanitaryControl() {
                   ) : (
                     <div className="space-y-1 p-2">
                       {filteredAnimals.map((animal) => {
-                        const animalWeight = getAnimalLatestWeight(animal.id);
+                        const animalWeight = animalWeightsMap.get(animal.id) || 0;
                         return (
                           <label
                             key={animal.id}
@@ -490,7 +573,7 @@ export default function NewSanitaryControl() {
                 <div className="mt-2 space-y-1">
                   {formData.animalIds.map((animalId) => {
                     const animal = getAnimalByIdLocal(animalId);
-                    const weight = getAnimalLatestWeight(animalId);
+                    const weight = animalWeightsMap.get(animalId) || 0;
                     if (!animal) return null;
                     return (
                       <div key={animalId} className="text-xs text-gray-600 dark:text-gray-400">
@@ -534,13 +617,13 @@ export default function NewSanitaryControl() {
                   {formData.appliedMedicines.length > 0 && (
                     <div className="space-y-3">
                       {formData.appliedMedicines.map((applied) => {
-                        const item = getInventoryItemById(applied.itemId);
+                        const item = inventoryItemsMap.get(applied.itemId);
                         if (!item) return null;
 
                         const avgWeight =
                           formData.animalIds.length > 0
                             ? formData.animalIds.reduce(
-                                (sum, id) => sum + getAnimalLatestWeight(id),
+                                (sum, id) => sum + (animalWeightsMap.get(id) || 0),
                                 0
                               ) / formData.animalIds.length
                             : 0;
@@ -550,7 +633,7 @@ export default function NewSanitaryControl() {
                           .map((animalId) => {
                             const locationInfo = getAnimalLocationInfo(animalId);
                             return locationInfo.propertyId
-                              ? getCurrentStock(applied.itemId, locationInfo.propertyId)
+                              ? stockMap.get(`${applied.itemId}_${locationInfo.propertyId}`) || 0
                               : 0;
                           })
                           .filter((stock) => stock >= 0);

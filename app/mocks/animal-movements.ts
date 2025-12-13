@@ -1,7 +1,6 @@
 import type { AnimalMovement } from "~/types";
 import { mockLocations } from "./locations";
 import { mockEmployees } from "./employees";
-import { mockServiceProviders } from "./service-providers";
 import { generateUUID } from "~/utils/uuid";
 
 export type { AnimalMovement };
@@ -108,10 +107,7 @@ function createMovement(
     mockEmployees.filter((e) => e.companyId === COMPANY_ID).map((e) => e.id),
     Math.floor(Math.random() * 3)
   );
-  const serviceProviderIds = getRandomElements(
-    mockServiceProviders.filter((sp) => sp.companyId === COMPANY_ID).map((sp) => sp.id),
-    Math.floor(Math.random() * 2)
-  );
+  const serviceProviderIds: string[] = [];
 
   const hasObservation = Math.random() < 0.25;
   const observation = hasObservation ? getRandomElement(sampleObservations) : undefined;

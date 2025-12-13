@@ -13,8 +13,8 @@ vi.mock("../api-client", async () => {
   };
 });
 
-vi.mock("~/mocks/companies", () => ({
-  mockCompanies: [
+const { mockCompanies } = vi.hoisted(() => {
+  const mockCompanies = [
     {
       id: "company-1",
       cnpj: "12345678000190",
@@ -27,11 +27,15 @@ vi.mock("~/mocks/companies", () => ({
       companyName: "Another Company",
       status: "active",
     },
-  ],
+  ];
+  return { mockCompanies };
+});
+
+vi.mock("~/mocks/companies", () => ({
+  mockCompanies,
 }));
 
 import { apiClient } from "../api-client";
-import { mockCompanies } from "~/mocks/companies";
 
 describe("companies.service", () => {
   const mockGet = apiClient.get as ReturnType<typeof vi.fn>;
