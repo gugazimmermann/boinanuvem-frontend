@@ -27,7 +27,7 @@ export interface UseBreedingFormOptions {
 export function useBreedingForm({
   initialAnimalIds = [],
   initialDate,
-  companyId,
+  companyId: _companyId,
   t,
 }: UseBreedingFormOptions) {
   const today = new Date().toISOString().split("T")[0];
@@ -79,17 +79,14 @@ export function useBreedingForm({
     }
   };
 
-  const updateAttemptNumberForAnimal = useCallback(
-    (animalId: string) => {
-      getNextAttemptNumber(animalId, companyId).then((attemptNumber) => {
-        setFormData((current) => ({
-          ...current,
-          attemptNumbers: { ...current.attemptNumbers, [animalId]: attemptNumber },
-        }));
-      });
-    },
-    [companyId]
-  );
+  const updateAttemptNumberForAnimal = useCallback((animalId: string) => {
+    getNextAttemptNumber(animalId).then((attemptNumber) => {
+      setFormData((current) => ({
+        ...current,
+        attemptNumbers: { ...current.attemptNumbers, [animalId]: attemptNumber },
+      }));
+    });
+  }, []);
 
   const toggleAnimalSelection = async (animalId: string) => {
     setFormData((prev) => {

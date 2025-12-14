@@ -1,8 +1,8 @@
 import type { Breeding, BreedingFormData, Animal, Property } from "~/types";
 import { apiClient } from "./api-client";
 import { handleApiError, createResourceErrorMessages } from "./error-handlers";
-import { getAnimalsByPropertyId, getAnimalById } from "./animals.service";
-import { getBirthByAnimalId, getBirthsByCompanyId } from "./births.service";
+import { getAnimalById } from "./animals.service";
+import { getBirthByAnimalId } from "./births.service";
 import { buildUpdateDto } from "~/utils/update-dto-builder";
 import { createListHandler, createGetByIdHandler, createCrudHandlers } from "./service-helpers";
 import { createEntityTransform } from "./transform-helpers";
@@ -62,51 +62,37 @@ export async function getBreedingsByAnimalId(animalId: string): Promise<Breeding
 /**
  * Get next attempt number for an animal
  */
-export async function getNextAttemptNumber(animalId: string, companyId: string): Promise<number> {
-  // Get all births for the company to find births where this animal is the mother
-  const allBirths = await getBirthsByCompanyId(companyId);
-  const birthsAsMother = allBirths?.filter((birth) => birth.motherId === animalId) || [];
-
-  let mostRecentBirthDate: string | null = null;
-  if (birthsAsMother.length > 0) {
-    const sortedBirths = birthsAsMother.toSorted(
-      (a, b) => new Date(b.birthDate).getTime() - new Date(a.birthDate).getTime()
+export async function getNextAttemptNumber(animalId: string): Promise<number> {
+  try {
+    const response = await apiClient.get<{ nextAttemptNumber: number }>(
+      `/breedings/animal/${animalId}/next-attempt`
     );
-    mostRecentBirthDate = sortedBirths[0].birthDate;
-  }
-
-  const breedings = await getBreedingsByAnimalId(animalId);
-  const aiBreedings = breedings.filter((b) => b.method === "artificial_insemination");
-
-  if (!mostRecentBirthDate) {
-    if (aiBreedings.length === 0) {
-      return 1;
+    return response.nextAttemptNumber;
+  } catch (error) {
+    try {
+      handleApiError(error, breedingsErrors.view);
+    } catch {
+      return 1; // Default fallback
     }
-    const maxAttempt = Math.max(...aiBreedings.map((b) => b.attemptNumber || 0));
-    return maxAttempt + 1;
   }
-
-  const mostRecentBirthDateValue = mostRecentBirthDate;
-  const aiBreedingsAfterBirth = aiBreedings.filter((b) => {
-    const breedingDate = new Date(b.date).getTime();
-    const birthDate = new Date(mostRecentBirthDateValue).getTime();
-    return breedingDate > birthDate;
-  });
-
-  if (aiBreedingsAfterBirth.length === 0) {
-    return 1;
-  }
-
-  const maxAttempt = Math.max(...aiBreedingsAfterBirth.map((b) => b.attemptNumber || 0));
-  return maxAttempt + 1;
 }
 
 /**
  * Check if an animal is pregnant
  */
 export async function isAnimalPregnant(animalId: string): Promise<boolean> {
-  const breedings = await getBreedingsByAnimalId(animalId);
-  return breedings.some((b) => b.confirmed === true);
+  try {
+    const response = await apiClient.get<{ isPregnant: boolean }>(
+      `/breedings/animal/${animalId}/pregnant`
+    );
+    return response.isPregnant;
+  } catch (error) {
+    try {
+      handleApiError(error, breedingsErrors.view);
+    } catch {
+      return false;
+    }
+  }
 }
 
 /**
@@ -115,17 +101,18 @@ export async function isAnimalPregnant(animalId: string): Promise<boolean> {
 export async function getMostRecentConfirmedBreeding(
   animalId: string
 ): Promise<Breeding | undefined> {
-  const breedings = await getBreedingsByAnimalId(animalId);
-  const confirmedBreedings = breedings.filter((b) => b.confirmed === true);
-
-  if (confirmedBreedings.length === 0) {
-    return undefined;
+  try {
+    const breeding = await apiClient.get<Breeding | null>(
+      `/breedings/animal/${animalId}/most-recent-confirmed`
+    );
+    return breeding ? transformBreeding(breeding) : undefined;
+  } catch (error) {
+    try {
+      handleApiError(error, breedingsErrors.view);
+    } catch {
+      return undefined;
+    }
   }
-
-  const sortedBreedings = confirmedBreedings.toSorted(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
-  return sortedBreedings[0];
 }
 
 /**
@@ -147,9 +134,17 @@ export async function getPregnantAnimals(companyId: string): Promise<string[]> {
 /**
  * Get unconfirmed breedings for a company
  */
-export async function getUnconfirmedBreedings(companyId: string): Promise<Breeding[]> {
-  const breedings = await getBreedingsByCompanyId(companyId);
-  return breedings.filter((b) => b.confirmed !== true);
+export async function getUnconfirmedBreedings(_companyId: string): Promise<Breeding[]> {
+  try {
+    const breedings = await apiClient.get<Breeding[]>("/breedings/unconfirmed");
+    return breedings.map(transformBreeding);
+  } catch (error) {
+    try {
+      handleApiError(error, breedingsErrors.list);
+    } catch {
+      return [];
+    }
+  }
 }
 
 /**
@@ -218,10 +213,16 @@ export const deleteBreeding = breedingsCrud.remove;
  * Get breedings by property ID
  */
 export async function getBreedingsByPropertyId(propertyId: string): Promise<Breeding[]> {
-  const animals = await getAnimalsByPropertyId(propertyId);
-  const animalIds = new Set(animals.map((a) => a.id));
-  const allBreedings = await getBreedingsByCompanyId(animals[0]?.companyId || "");
-  return allBreedings.filter((breeding) => animalIds.has(breeding.animalId));
+  try {
+    const breedings = await apiClient.get<Breeding[]>(`/breedings/property/${propertyId}`);
+    return breedings.map(transformBreeding);
+  } catch (error) {
+    try {
+      handleApiError(error, breedingsErrors.list);
+    } catch {
+      return [];
+    }
+  }
 }
 
 /**
@@ -237,16 +238,18 @@ export async function getExposedCows(propertyId: string): Promise<string[]> {
  * Get pregnant cows by property ID
  */
 export async function getPregnantCowsByPropertyId(propertyId: string): Promise<string[]> {
-  const breedings = await getBreedingsByPropertyId(propertyId);
-  const uniqueAnimalIds = new Set<string>();
-
-  for (const breeding of breedings) {
-    if (breeding.confirmed === true) {
-      uniqueAnimalIds.add(breeding.animalId);
+  try {
+    const response = await apiClient.get<{ animalIds: string[] }>(
+      `/breedings/property/${propertyId}/pregnant`
+    );
+    return response.animalIds;
+  } catch (error) {
+    try {
+      handleApiError(error, breedingsErrors.list);
+    } catch {
+      return [];
     }
   }
-
-  return Array.from(uniqueAnimalIds);
 }
 
 /**
@@ -277,22 +280,14 @@ export async function enrichBreedingWithAnimalData(breeding: Breeding): Promise<
  * Unconfirm most recent breeding for an animal
  */
 export async function unconfirmMostRecentBreedingForAnimal(animalId: string): Promise<boolean> {
-  const breedings = await getBreedingsByAnimalId(animalId);
-  const confirmedBreedings = breedings.filter((b) => b.confirmed === true);
-
-  if (confirmedBreedings.length === 0) {
-    return false;
-  }
-
-  const sortedBreedings = confirmedBreedings.toSorted(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
-  const mostRecentBreeding = sortedBreedings[0];
-
   try {
-    await updateBreeding(mostRecentBreeding.id, { confirmed: false });
+    await apiClient.put(`/breedings/animal/${animalId}/unconfirm-most-recent`, {});
     return true;
-  } catch {
-    return false;
+  } catch (error) {
+    try {
+      handleApiError(error, breedingsErrors.update);
+    } catch {
+      return false;
+    }
   }
 }

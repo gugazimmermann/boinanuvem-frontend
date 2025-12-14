@@ -4,7 +4,7 @@ import { useBreedingForm } from "../use-breeding-form";
 import { getNextAttemptNumber } from "~/services/breedings.service";
 
 vi.mock("~/services/breedings.service", () => ({
-  getNextAttemptNumber: vi.fn((_animalId: string, _companyId: string) => Promise.resolve(1)),
+  getNextAttemptNumber: vi.fn((_animalId: string) => Promise.resolve(1)),
 }));
 
 describe("useBreedingForm", () => {
@@ -140,7 +140,7 @@ describe("useBreedingForm", () => {
       result.current.toggleAnimalSelection("A001");
     });
 
-    expect(getNextAttemptNumber).toHaveBeenCalledWith("A001", mockCompanyId);
+    expect(getNextAttemptNumber).toHaveBeenCalledWith("A001");
 
     await waitFor(() => {
       expect(result.current.formData.attemptNumbers["A001"]).toBe(1);
