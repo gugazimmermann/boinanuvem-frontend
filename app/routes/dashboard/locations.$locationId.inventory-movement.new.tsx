@@ -158,7 +158,7 @@ export default function NewLocationInventoryMovement() {
         fileIds: fileIds.length > 0 ? fileIds : undefined,
       };
 
-      addInventoryMovement(movementData);
+      await addInventoryMovement(movementData);
     },
     onSuccess: () => {
       if (location) {

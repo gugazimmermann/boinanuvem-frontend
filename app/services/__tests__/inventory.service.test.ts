@@ -28,33 +28,36 @@ vi.mock("../api-client", async () => {
   };
 });
 
-vi.mock("~/mocks/inventory", () => ({
-  mockInventoryItems: [
-    {
-      id: "item-1",
-      code: "001",
-      name: "Item 1",
-      companyId: "company-1",
-      propertyIds: ["property-1"],
-      supplierId: "supplier-1",
-      category: "feed",
-      minimumStock: 10,
-      hasExpiration: true,
-      expirationDate: "2025-12-31",
-    },
-    {
-      id: "item-2",
-      code: "002",
-      name: "Item 2",
-      companyId: "company-1",
-      propertyIds: ["property-1", "property-2"],
-      supplierId: "supplier-2",
-      category: "medicine",
-      minimumStock: 5,
-      hasExpiration: false,
-    },
-  ],
-}));
+// Test data - no longer using mocks
+const mockInventoryItems = [
+  {
+    id: "item-1",
+    code: "001",
+    name: "Item 1",
+    companyId: "company-1",
+    propertyIds: ["property-1"],
+    supplierId: "supplier-1",
+    category: "feed",
+    minimumStock: 10,
+    hasExpiration: true,
+    expirationDate: "2025-12-31",
+    unit: "kg",
+    createdAt: "2024-01-01T00:00:00Z",
+  },
+  {
+    id: "item-2",
+    code: "002",
+    name: "Item 2",
+    companyId: "company-1",
+    propertyIds: ["property-1", "property-2"],
+    supplierId: "supplier-2",
+    category: "medicine",
+    minimumStock: 5,
+    hasExpiration: false,
+    unit: "unit",
+    createdAt: "2024-01-01T00:00:00Z",
+  },
+];
 
 vi.mock("../inventory-movements.service", () => ({
   getMovementsByItemId: vi.fn(() => [
@@ -79,7 +82,6 @@ vi.mock("../inventory-movements.service", () => ({
   ]),
 }));
 
-import { mockInventoryItems } from "~/mocks/inventory";
 import { getMovementsByItemId } from "../inventory-movements.service";
 import { apiClient } from "../api-client";
 

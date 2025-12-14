@@ -42,20 +42,6 @@ vi.mock("~/mocks/animal-movements", () => ({
   ],
 }));
 
-vi.mock("~/mocks/inventory-movements", () => ({
-  mockInventoryMovements: [
-    {
-      id: "inv-movement-1",
-      itemId: "item-1",
-      locationId: "location-1",
-      type: "consumption",
-      quantity: 100,
-      unitPrice: 10,
-      date: "2024-01-15",
-    },
-  ],
-}));
-
 import {
   getConsumptionMovementsByLocationId,
   getMovementsByCompanyId,

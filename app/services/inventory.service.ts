@@ -93,7 +93,7 @@ export async function getCurrentStock(itemId: string, propertyId?: string): Prom
     return stockCache.get(cacheKey)!;
   }
 
-  const movements = getMovementsByItemId(itemId);
+  const movements = await getMovementsByItemId(itemId);
 
   const filteredMovements = propertyId
     ? movements.filter((m) => m.propertyId === propertyId)

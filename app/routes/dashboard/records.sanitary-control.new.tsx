@@ -413,7 +413,7 @@ export default function NewSanitaryControl() {
       const item = await getInventoryItemById(applied.itemId);
       if (!item) continue;
 
-      addInventoryMovement({
+      await addInventoryMovement({
         itemId: applied.itemId,
         type: InventoryMovementType.CONSUMPTION,
         quantity: applied.quantity,
@@ -440,7 +440,7 @@ export default function NewSanitaryControl() {
       observation: formData.observation || undefined,
       companyId,
     };
-    addSanitaryControl(administrationData);
+    await addSanitaryControl(administrationData);
     await recordInventoryMovements(animalId);
   };
 

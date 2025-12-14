@@ -166,11 +166,11 @@ export default function NewInventoryItem() {
     return cashFlowId;
   };
 
-  const createInitialStockMovement = (
+  const createInitialStockMovement = async (
     item: { id: string; unitPrice?: number },
     initialStock: number,
     cashFlowId: string | undefined
-  ): void => {
+  ): Promise<void> => {
     if (initialStock <= 0 || formData.propertyIds.length === 0) return;
 
     const unitPrice = formData.unitPrice?.trim()
@@ -194,7 +194,7 @@ export default function NewInventoryItem() {
       expirationDate:
         formData.hasExpiration && formData.expirationDate ? formData.expirationDate : undefined,
     };
-    addInventoryMovement(movementData);
+    await addInventoryMovement(movementData);
   };
 
   const createObservation = (itemId: string): void => {
@@ -238,7 +238,7 @@ export default function NewInventoryItem() {
 
       const initialStock = getInitialStock(formData.initialStock);
       const cashFlowId = await handleInitialStockTransactions(newItem, initialStock);
-      createInitialStockMovement(newItem, initialStock, cashFlowId);
+      await createInitialStockMovement(newItem, initialStock, cashFlowId);
       createObservation(newItem.id);
 
       showAlert(t.inventory.new.success, "success");

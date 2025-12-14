@@ -27,29 +27,6 @@ vi.mock("../api-client", async () => {
   };
 });
 
-vi.mock("~/mocks/sanitary-controls", () => ({
-  mockSanitaryControls: [
-    {
-      id: "sc-1",
-      animalId: "animal-1",
-      companyId: "company-1",
-      date: "2024-01-15",
-      appliedMedicines: [],
-      employeeIds: [],
-      serviceProviderIds: [],
-      createdAt: "2024-01-15T00:00:00Z",
-    },
-    {
-      id: "sc-2",
-      animalId: "animal-2",
-      companyId: "company-1",
-      date: "2024-02-15",
-      medicine: "Medicine B",
-    },
-  ],
-}));
-
-import { mockSanitaryControls as _mockSanitaryControls } from "~/mocks/sanitary-controls";
 import { apiClient } from "../api-client";
 
 describe("sanitary-controls.service", () => {
@@ -168,9 +145,7 @@ describe("sanitary-controls.service", () => {
       expect(mockPut).toHaveBeenCalledWith(
         "/sanitary-controls/sc-1",
         expect.objectContaining({
-          itemId: "item-1",
-          quantity: 1,
-          calculatedDosage: 10,
+          appliedMedicines: [{ itemId: "item-1", quantity: 1, calculatedDosage: 10 }],
         })
       );
       expect(result.appliedMedicines).toEqual([

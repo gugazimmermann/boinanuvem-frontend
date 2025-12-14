@@ -101,35 +101,60 @@ const sanitaryControlsCrud = createCrudHandlers<
   },
   transform: transformSanitaryControl,
   buildCreateDto: (data) => {
-    // Frontend has appliedMedicines array, backend expects single itemId/quantity/calculatedDosage
-    // Use first medicine if available
-    const firstMedicine = data.appliedMedicines?.[0];
-
-    return {
+    // Backend supports appliedMedicines array (preferred) or legacy single itemId/quantity/calculatedDosage
+    // Send appliedMedicines array if available, otherwise use legacy fields
+    const dto: Record<string, unknown> = {
       animalId: data.animalId,
       date: data.date,
-      itemId: firstMedicine?.itemId,
-      quantity: firstMedicine?.quantity,
-      calculatedDosage: firstMedicine?.calculatedDosage,
       employeeIds: data.employeeIds,
       serviceProviderIds: data.serviceProviderIds,
       observation: data.observation,
     };
+
+    if (data.appliedMedicines && data.appliedMedicines.length > 0) {
+      // Use new structure with array
+      dto.appliedMedicines = data.appliedMedicines.map((med) => ({
+        itemId: med.itemId,
+        quantity: med.quantity,
+        calculatedDosage: med.calculatedDosage,
+      }));
+    } else {
+      // Fallback to legacy structure if no medicines provided
+      const firstMedicine = data.appliedMedicines?.[0];
+      if (firstMedicine) {
+        dto.itemId = firstMedicine.itemId;
+        dto.quantity = firstMedicine.quantity;
+        dto.calculatedDosage = firstMedicine.calculatedDosage;
+      }
+    }
+
+    return dto;
   },
   buildUpdateDto: (data) => {
-    const firstMedicine = data.appliedMedicines?.[0];
-
     const updateDto: Record<string, unknown> = {};
+
     if (data.animalId !== undefined) updateDto.animalId = data.animalId;
     if (data.date !== undefined) updateDto.date = data.date;
-    if (firstMedicine?.itemId !== undefined) updateDto.itemId = firstMedicine.itemId;
-    if (firstMedicine?.quantity !== undefined) updateDto.quantity = firstMedicine.quantity;
-    if (firstMedicine?.calculatedDosage !== undefined)
-      updateDto.calculatedDosage = firstMedicine.calculatedDosage;
     if (data.employeeIds !== undefined) updateDto.employeeIds = data.employeeIds;
     if (data.serviceProviderIds !== undefined)
       updateDto.serviceProviderIds = data.serviceProviderIds;
     if (data.observation !== undefined) updateDto.observation = data.observation;
+
+    // Handle appliedMedicines array if provided
+    if (data.appliedMedicines !== undefined) {
+      if (data.appliedMedicines.length > 0) {
+        // Use new structure with array
+        updateDto.appliedMedicines = data.appliedMedicines.map((med) => ({
+          itemId: med.itemId,
+          quantity: med.quantity,
+          calculatedDosage: med.calculatedDosage,
+        }));
+      } else {
+        // Empty array - clear medicines
+        updateDto.appliedMedicines = [];
+      }
+    }
+
     return updateDto;
   },
 });

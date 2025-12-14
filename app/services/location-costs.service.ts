@@ -65,7 +65,7 @@ export async function getLocationConsumptionCosts(
   startDate?: string,
   endDate?: string
 ): Promise<LocationConsumptionCost[]> {
-  const movements = getConsumptionMovementsByLocationId(locationId);
+  const movements = await getConsumptionMovementsByLocationId(locationId);
 
   let filteredMovements = movements;
   if (startDate || endDate) {
@@ -208,7 +208,7 @@ export async function getAnimalCostBreakdownByLocation(
   }
 
   // Get all inventory movements for the company, then filter for consumption type with locationId
-  const allMovements = getMovementsByCompanyId(animal.companyId);
+  const allMovements = await getMovementsByCompanyId();
   const consumptionMovements = allMovements.filter(
     (m) => m.type === "consumption" && m.locationId && m.locationId.trim() !== ""
   );

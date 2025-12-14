@@ -650,7 +650,7 @@ export default function NewWeighing() {
         for (const applied of formData.appliedMedicines) {
           const item = await getInventoryItemById(applied.itemId);
           if (item) {
-            addInventoryMovement({
+            await addInventoryMovement({
               itemId: applied.itemId,
               type: InventoryMovementType.CONSUMPTION,
               quantity: applied.quantity,

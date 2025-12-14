@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { getInventoryItemById } from "~/services/inventory.service";
 import { useParams, useNavigate } from "react-router";
 import { format } from "date-fns";
@@ -129,10 +129,23 @@ export default function InventoryItemDetailsPage() {
   }>({ column: "date", direction: "desc" });
   const [suppliers, setSuppliers] = useState<Map<string, Supplier>>(new Map());
   const [properties, setProperties] = useState<Map<string, Property>>(new Map());
+  const [movements, setMovements] = useState<InventoryMovement[]>([]);
 
-  const movements = useMemo(() => {
-    if (!item) return [];
-    return getMovementsByItemId(item.id);
+  useEffect(() => {
+    const loadMovements = async () => {
+      if (item) {
+        try {
+          const movementsData = await getMovementsByItemId(item.id);
+          setMovements(movementsData);
+        } catch (error) {
+          console.error("Failed to load movements:", error);
+          setMovements([]);
+        }
+      } else {
+        setMovements([]);
+      }
+    };
+    loadMovements();
   }, [item]);
 
   useEffect(() => {

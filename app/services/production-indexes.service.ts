@@ -573,7 +573,7 @@ export async function getKgNitrogenPerAU(
 
   const animalUnits = calculateAnimalUnits(animalsWithWeights);
 
-  const movements = getMovementsByPropertyId(propertyId);
+  const movements = await getMovementsByPropertyId(propertyId);
   let filteredMovements = movements.filter(
     (movement) => movement.type === InventoryMovementType.CONSUMPTION
   );
@@ -619,7 +619,7 @@ export async function getKgMeatPerKgNitrogen(
     totalWeightGain += result.finalWeight - result.initialWeight;
   }
 
-  const movements = getMovementsByPropertyId(propertyId);
+  const movements = await getMovementsByPropertyId(propertyId);
   let filteredMovements = movements.filter(
     (movement) => movement.type === InventoryMovementType.CONSUMPTION
   );

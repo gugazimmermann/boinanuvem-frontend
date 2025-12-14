@@ -77,6 +77,7 @@ export interface InventoryMovement extends Record<string, unknown> {
   observation?: string;
   fileIds?: string[];
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface InventoryMovementFormData {

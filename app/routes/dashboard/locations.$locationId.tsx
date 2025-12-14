@@ -1088,7 +1088,8 @@ export default function LocationDetails() {
         setInventoryItemsMap(new Map());
         return;
       }
-      const inventoryMovements = getMovementsByLocationId(location.id).filter(
+      const inventoryMovementsData = await getMovementsByLocationId(location.id);
+      const inventoryMovements = inventoryMovementsData.filter(
         (m) => m.type === InventoryMovementType.CONSUMPTION
       );
       const itemIds = new Set(inventoryMovements.map((m) => m.itemId));
@@ -1115,7 +1116,8 @@ export default function LocationDetails() {
 
       const locationMovements = getLocationMovementsByLocationId(location.id);
       const animalMovements = getAnimalMovementsByLocationId(location.id);
-      const inventoryMovements = getMovementsByLocationId(location.id).filter(
+      const inventoryMovementsData = await getMovementsByLocationId(location.id);
+      const inventoryMovements = inventoryMovementsData.filter(
         (m) => m.type === InventoryMovementType.CONSUMPTION
       );
 
@@ -2174,18 +2176,7 @@ export default function LocationDetails() {
             return loc ? `${loc.name} (${loc.code})` : id;
           };
 
-          const locationMovements = getLocationMovementsByLocationId(location.id);
-          const animalMovements = getAnimalMovementsByLocationId(location.id);
-          const inventoryMovements = getMovementsByLocationId(location.id).filter(
-            (m) => m.type === InventoryMovementType.CONSUMPTION
-          );
-
-          const _movements: UnifiedMovement[] = [
-            ...locationMovements.map((m) => ({ ...m, movementType: "location" as const })),
-            ...animalMovements.map((m) => ({ ...m, movementType: "animal" as const })),
-            ...inventoryMovements.map((m) => ({ ...m, movementType: "inventory" as const })),
-          ];
-
+          // Note: Movements are loaded via useEffect and stored in filteredAndSortedMovements state
           const totalPages = Math.ceil(filteredAndSortedMovements.length / itemsPerPage);
           const paginatedMovements = filteredAndSortedMovements.slice(
             (currentPage - 1) * itemsPerPage,
