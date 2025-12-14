@@ -100,7 +100,7 @@ export const en = {
     accountsPayable: "Accounts Payable",
     accountsReceivable: "Accounts Receivable",
     bankAccounts: "Bank Accounts",
-    financas: "Finance",
+    finances: "Finance",
     financesDashboard: "Dashboard",
   },
 

@@ -100,7 +100,7 @@ export const es = {
     accountsPayable: "Cuentas por Pagar",
     accountsReceivable: "Cuentas por Cobrar",
     bankAccounts: "Cuentas Bancarias",
-    financas: "Finanzas",
+    finances: "Finanzas",
     financesDashboard: "Dashboard",
   },
 

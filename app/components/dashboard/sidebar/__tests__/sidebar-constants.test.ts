@@ -46,11 +46,11 @@ describe("SIDEBAR_ITEMS", () => {
     expect(inventoryItem?.path).toBe(ROUTES.INVENTORY);
   });
 
-  it("should have financas item with subItems", () => {
-    const financasItem = SIDEBAR_ITEMS.find((item) => item.translationKey === "financas");
-    expect(financasItem).toBeDefined();
-    expect(financasItem?.subItems).toBeDefined();
-    expect(Array.isArray(financasItem?.subItems)).toBe(true);
+  it("should have finances item with subItems", () => {
+    const financesItem = SIDEBAR_ITEMS.find((item) => item.translationKey === "finances");
+    expect(financesItem).toBeDefined();
+    expect(financesItem?.subItems).toBeDefined();
+    expect(Array.isArray(financesItem?.subItems)).toBe(true);
   });
 
   it("should have all items with required properties", () => {

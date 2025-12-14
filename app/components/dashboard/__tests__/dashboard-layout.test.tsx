@@ -69,7 +69,7 @@ vi.mock("~/i18n", () => ({
       pregnantCows: "Pregnant Cows",
       reproductiveIndexes: "Reproductive Indexes",
       birthForecast: "Birth Forecast",
-      financas: "Finance",
+      finances: "Finance",
       cashFlow: "Cash Flow",
       accountsPayable: "Accounts Payable",
       accountsReceivable: "Accounts Receivable",

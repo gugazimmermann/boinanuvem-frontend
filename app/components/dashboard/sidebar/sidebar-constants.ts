@@ -50,7 +50,7 @@ export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
   },
   { translationKey: "inventory", path: ROUTES.INVENTORY, icon: "📦" },
   {
-    translationKey: "financas",
+    translationKey: "finances",
     path: "#",
     icon: "💰",
     subItems: [

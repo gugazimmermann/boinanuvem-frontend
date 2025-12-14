@@ -99,7 +99,7 @@ export const pt = {
     accountsPayable: "Contas a Pagar",
     accountsReceivable: "Contas a Receber",
     bankAccounts: "Contas Bancárias",
-    financas: "Finanças",
+    finances: "Finanças",
     financesDashboard: "Dashboard",
   },
 

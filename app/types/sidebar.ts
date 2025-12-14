@@ -50,7 +50,7 @@ export interface SidebarItemConfig {
     cashFlow: string;
     accountsPayable: string;
     accountsReceivable: string;
-    financas: string;
+    finances: string;
     pastures: string;
     reports: string;
     settings: string;
