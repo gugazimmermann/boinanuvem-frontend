@@ -56,7 +56,7 @@ export default function CashFlowDetails() {
           const transactionData = await getCashFlowById(transactionId);
           setTransaction(transactionData);
           if (transactionData) {
-            const obs = getCashFlowObservationsByCashFlowId(transactionData.id);
+            const obs = await getCashFlowObservationsByCashFlowId(transactionData.id);
             setObservations(obs);
           }
         } catch (error) {
@@ -110,13 +110,13 @@ export default function CashFlowDetails() {
 
     const fileIds = files.map((_, index) => `file-cashflow-obs-${Date.now()}-${index}`);
 
-    addCashFlowObservation({
+    await addCashFlowObservation({
       cashFlowId: transaction.id,
       observation: observationText,
       fileIds: fileIds.length > 0 ? fileIds : undefined,
     });
 
-    const updatedObservations = getCashFlowObservationsByCashFlowId(transaction.id);
+    const updatedObservations = await getCashFlowObservationsByCashFlowId(transaction.id);
     setObservations(updatedObservations);
   };
 

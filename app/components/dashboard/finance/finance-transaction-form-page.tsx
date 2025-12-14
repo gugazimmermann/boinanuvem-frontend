@@ -128,19 +128,19 @@ export function FinanceTransactionFormPage({
         );
 
         if (transactionType === "accounts-payable") {
-          addAccountsPayableObservation({
+          await addAccountsPayableObservation({
             accountsPayableId: result.id,
             observation: observation.trim(),
             fileIds: fileIds.length > 0 ? fileIds : undefined,
           });
         } else if (transactionType === "accounts-receivable") {
-          addAccountsReceivableObservation({
+          await addAccountsReceivableObservation({
             accountsReceivableId: result.id,
             observation: observation.trim(),
             fileIds: fileIds.length > 0 ? fileIds : undefined,
           });
         } else if (transactionType === "cash-flow") {
-          addCashFlowObservation({
+          await addCashFlowObservation({
             cashFlowId: result.id,
             observation: observation.trim(),
             fileIds: fileIds.length > 0 ? fileIds : undefined,

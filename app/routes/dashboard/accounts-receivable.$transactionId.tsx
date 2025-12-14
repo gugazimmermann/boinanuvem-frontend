@@ -53,7 +53,9 @@ export default function AccountsReceivableDetails() {
           const transactionData = await getAccountsReceivableById(transactionId);
           setTransaction(transactionData);
           if (transactionData) {
-            const obs = getAccountsReceivableObservationsByAccountsReceivableId(transactionData.id);
+            const obs = await getAccountsReceivableObservationsByAccountsReceivableId(
+              transactionData.id
+            );
             setObservations(obs);
             if (transactionData.bankAccountId) {
               const bankAccountData = await getBankAccountById(transactionData.bankAccountId);
@@ -106,13 +108,13 @@ export default function AccountsReceivableDetails() {
   const handleAddObservation = async (observationText: string, files: File[]) => {
     const fileIds = files.map((_, index) => `file-ar-obs-${Date.now()}-${index}`);
 
-    addAccountsReceivableObservation({
+    await addAccountsReceivableObservation({
       accountsReceivableId: transaction.id,
       observation: observationText,
       fileIds: fileIds.length > 0 ? fileIds : undefined,
     });
 
-    const updatedObservations = getAccountsReceivableObservationsByAccountsReceivableId(
+    const updatedObservations = await getAccountsReceivableObservationsByAccountsReceivableId(
       transaction.id
     );
     setObservations(updatedObservations);

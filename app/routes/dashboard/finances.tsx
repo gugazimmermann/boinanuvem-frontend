@@ -41,6 +41,7 @@ import { getSalesByCompanyId } from "~/services/sales.service";
 import { getSalesMetrics } from "~/services/sales-analytics.service";
 import { useFinanceCalculations } from "~/hooks/use-finance-calculations";
 import { calculateRemainingAmount } from "~/utils/finance";
+import { usePermissions } from "~/utils/permissions";
 
 export function meta() {
   return [
@@ -52,6 +53,11 @@ export function meta() {
   ];
 }
 
+export async function loader({ request }: { request: Request }) {
+  const { createRouteGuard } = await import("~/utils/route-guard");
+  return createRouteGuard(undefined, "view")({ request });
+}
+
 export default function FinancesDashboard() {
   const t = useTranslation();
   const { language } = useLanguage();
@@ -59,9 +65,15 @@ export default function FinancesDashboard() {
   const isDark = theme === "dark";
 
   const { currentUser } = useAuth();
+  const { canView } = usePermissions();
   const companyId = currentUser?.companyId || "";
   const [suppliers, setSuppliers] = useState<Map<string, Supplier>>(new Map());
   const [buyers, setBuyers] = useState<Map<string, Buyer>>(new Map());
+
+  // Check permissions for each finance resource
+  const canViewCashFlow = canView("finances", "cashFlow");
+  const canViewAccountsPayable = canView("finances", "accountsPayable");
+  const canViewAccountsReceivable = canView("finances", "accountsReceivable");
 
   useEffect(() => {
     const loadEntities = async () => {
@@ -86,24 +98,45 @@ export default function FinancesDashboard() {
   useEffect(() => {
     const loadFinanceData = async () => {
       if (!companyId) return;
-      try {
-        const [cashFlow, payables, receivables] = await Promise.all([
-          getCashFlowByCompanyId(companyId),
-          getAccountsPayableByCompanyId(companyId),
-          getAccountsReceivableByCompanyId(companyId),
-        ]);
-        setCashFlowData(cashFlow);
-        setAccountsPayableData(payables);
-        setAccountsReceivableData(receivables);
-      } catch (error) {
-        console.error("Failed to load finance data:", error);
-        setCashFlowData([]);
-        setAccountsPayableData([]);
-        setAccountsReceivableData([]);
+      const promises: Promise<unknown>[] = [];
+
+      if (canViewCashFlow) {
+        promises.push(
+          getCashFlowByCompanyId(companyId)
+            .then(setCashFlowData)
+            .catch((error) => {
+              console.error("Failed to load cash flow data:", error);
+              setCashFlowData([]);
+            })
+        );
       }
+
+      if (canViewAccountsPayable) {
+        promises.push(
+          getAccountsPayableByCompanyId(companyId)
+            .then(setAccountsPayableData)
+            .catch((error) => {
+              console.error("Failed to load accounts payable data:", error);
+              setAccountsPayableData([]);
+            })
+        );
+      }
+
+      if (canViewAccountsReceivable) {
+        promises.push(
+          getAccountsReceivableByCompanyId(companyId)
+            .then(setAccountsReceivableData)
+            .catch((error) => {
+              console.error("Failed to load accounts receivable data:", error);
+              setAccountsReceivableData([]);
+            })
+        );
+      }
+
+      await Promise.all(promises);
     };
     loadFinanceData();
-  }, [companyId]);
+  }, [companyId, canViewCashFlow, canViewAccountsPayable, canViewAccountsReceivable]);
   const [salesData, setSalesData] = useState<Awaited<ReturnType<typeof getSalesByCompanyId>>>([]);
 
   useEffect(() => {
@@ -307,47 +340,57 @@ export default function FinancesDashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-        <StatCard
-          title={t.financesDashboard.cards.totalIncome}
-          value={formatCurrency(totalIncome, "pt")}
-          valueColor="green"
-          icon={<span className="text-lg">📈</span>}
-        />
+        {canViewCashFlow && (
+          <>
+            <StatCard
+              title={t.financesDashboard.cards.totalIncome}
+              value={formatCurrency(totalIncome, "pt")}
+              valueColor="green"
+              icon={<span className="text-lg">📈</span>}
+            />
 
-        <StatCard
-          title={t.financesDashboard.cards.totalExpenses}
-          value={formatCurrency(totalExpenses, language)}
-          valueColor="red"
-          icon={<span className="text-lg">📉</span>}
-        />
+            <StatCard
+              title={t.financesDashboard.cards.totalExpenses}
+              value={formatCurrency(totalExpenses, language)}
+              valueColor="red"
+              icon={<span className="text-lg">📉</span>}
+            />
 
-        <StatCard
-          title={t.financesDashboard.cards.netCashFlow}
-          value={formatCurrency(netCashFlow, language)}
-          valueColor={netCashFlow >= 0 ? "green" : "red"}
-          icon={<span className="text-lg">💰</span>}
-        />
+            <StatCard
+              title={t.financesDashboard.cards.netCashFlow}
+              value={formatCurrency(netCashFlow, language)}
+              valueColor={netCashFlow >= 0 ? "green" : "red"}
+              icon={<span className="text-lg">💰</span>}
+            />
+          </>
+        )}
 
-        <StatCard
-          title={t.financesDashboard.cards.accountsPayable}
-          value={formatCurrency(totalAccountsPayable, language)}
-          valueColor="orange"
-          icon={<span className="text-lg">📤</span>}
-        />
+        {canViewAccountsPayable && (
+          <StatCard
+            title={t.financesDashboard.cards.accountsPayable}
+            value={formatCurrency(totalAccountsPayable, language)}
+            valueColor="orange"
+            icon={<span className="text-lg">📤</span>}
+          />
+        )}
 
-        <StatCard
-          title={t.financesDashboard.cards.accountsReceivable}
-          value={formatCurrency(totalAccountsReceivable, language)}
-          valueColor="blue"
-          icon={<span className="text-lg">📥</span>}
-        />
+        {canViewAccountsReceivable && (
+          <StatCard
+            title={t.financesDashboard.cards.accountsReceivable}
+            value={formatCurrency(totalAccountsReceivable, language)}
+            valueColor="blue"
+            icon={<span className="text-lg">📥</span>}
+          />
+        )}
 
-        <StatCard
-          title={t.financesDashboard.cards.overdue}
-          value={formatCurrency(totalOverdue, language)}
-          valueColor="red"
-          icon={<span className="text-lg">⚠️</span>}
-        />
+        {(canViewAccountsPayable || canViewAccountsReceivable) && (
+          <StatCard
+            title={t.financesDashboard.cards.overdue}
+            value={formatCurrency(totalOverdue, language)}
+            valueColor="red"
+            icon={<span className="text-lg">⚠️</span>}
+          />
+        )}
       </div>
 
       <div>
@@ -549,429 +592,449 @@ export default function FinancesDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <ChartWrapper
-          title={t.financesDashboard.charts.incomeVsExpenses}
-          isEmpty={monthlyData.length === 0}
-          emptyMessage={t.financesDashboard.tables.noData}
-        >
-          <LineChart data={monthlyData}>
-            <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
-            <XAxis dataKey="month" tick={{ fill: chartColors.text, fontSize: 12 }} />
-            <YAxis
-              tick={{ fill: chartColors.text, fontSize: 12 }}
-              tickFormatter={(value) => t.common.currency.formatShort(value)}
-            />
-            <Tooltip {...tooltipStyle} formatter={(value: number) => formatCurrency(value)} />
-            <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
-            <Line
-              type="monotone"
-              dataKey="income"
-              stroke={chartColors.income}
-              strokeWidth={2}
-              name={t.financesDashboard.charts.income}
-            />
-            <Line
-              type="monotone"
-              dataKey="expenses"
-              stroke={chartColors.expense}
-              strokeWidth={2}
-              name={t.financesDashboard.charts.expenses}
-            />
-          </LineChart>
-        </ChartWrapper>
+      {canViewCashFlow && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <ChartWrapper
+            title={t.financesDashboard.charts.incomeVsExpenses}
+            isEmpty={monthlyData.length === 0}
+            emptyMessage={t.financesDashboard.tables.noData}
+          >
+            <LineChart data={monthlyData}>
+              <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
+              <XAxis dataKey="month" tick={{ fill: chartColors.text, fontSize: 12 }} />
+              <YAxis
+                tick={{ fill: chartColors.text, fontSize: 12 }}
+                tickFormatter={(value) => t.common.currency.formatShort(value)}
+              />
+              <Tooltip {...tooltipStyle} formatter={(value: number) => formatCurrency(value)} />
+              <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
+              <Line
+                type="monotone"
+                dataKey="income"
+                stroke={chartColors.income}
+                strokeWidth={2}
+                name={t.financesDashboard.charts.income}
+              />
+              <Line
+                type="monotone"
+                dataKey="expenses"
+                stroke={chartColors.expense}
+                strokeWidth={2}
+                name={t.financesDashboard.charts.expenses}
+              />
+            </LineChart>
+          </ChartWrapper>
 
-        <ChartWrapper
-          title={t.financesDashboard.charts.monthlyCashFlow}
-          isEmpty={monthlyData.length === 0}
-          emptyMessage={t.financesDashboard.tables.noData}
-        >
-          <AreaChart data={monthlyData}>
-            <defs>
-              <linearGradient id="colorNet" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={chartColors.net} stopOpacity={0.8} />
-                <stop offset="95%" stopColor={chartColors.net} stopOpacity={0.1} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
-            <XAxis dataKey="month" tick={{ fill: chartColors.text, fontSize: 12 }} />
-            <YAxis
-              tick={{ fill: chartColors.text, fontSize: 12 }}
-              tickFormatter={(value) => t.common.currency.formatShort(value)}
-            />
-            <Tooltip {...tooltipStyle} formatter={(value: number) => formatCurrency(value)} />
-            <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
-            <Area
-              type="monotone"
-              dataKey="net"
-              stroke={chartColors.net}
-              fillOpacity={1}
-              fill="url(#colorNet)"
-              name={t.financesDashboard.charts.netCashFlow}
-            />
-          </AreaChart>
-        </ChartWrapper>
+          <ChartWrapper
+            title={t.financesDashboard.charts.monthlyCashFlow}
+            isEmpty={monthlyData.length === 0}
+            emptyMessage={t.financesDashboard.tables.noData}
+          >
+            <AreaChart data={monthlyData}>
+              <defs>
+                <linearGradient id="colorNet" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={chartColors.net} stopOpacity={0.8} />
+                  <stop offset="95%" stopColor={chartColors.net} stopOpacity={0.1} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
+              <XAxis dataKey="month" tick={{ fill: chartColors.text, fontSize: 12 }} />
+              <YAxis
+                tick={{ fill: chartColors.text, fontSize: 12 }}
+                tickFormatter={(value) => t.common.currency.formatShort(value)}
+              />
+              <Tooltip {...tooltipStyle} formatter={(value: number) => formatCurrency(value)} />
+              <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
+              <Area
+                type="monotone"
+                dataKey="net"
+                stroke={chartColors.net}
+                fillOpacity={1}
+                fill="url(#colorNet)"
+                name={t.financesDashboard.charts.netCashFlow}
+              />
+            </AreaChart>
+          </ChartWrapper>
 
-        <ChartWrapper
-          title={t.financesDashboard.charts.cashFlowByCategory}
-          isEmpty={categoryData.length === 0}
-          emptyMessage={t.financesDashboard.tables.noData}
-        >
-          <BarChart data={categoryData} layout="vertical">
-            <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
-            <XAxis
-              type="number"
-              tick={{ fill: chartColors.text, fontSize: 12 }}
-              tickFormatter={(value) => t.common.currency.formatShort(value)}
-            />
-            <YAxis
-              type="category"
-              dataKey="name"
-              tick={{ fill: chartColors.text, fontSize: 11 }}
-              width={120}
-            />
-            <Tooltip {...tooltipStyle} formatter={(value: number) => formatCurrency(value)} />
-            <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
-            <Bar
-              dataKey="income"
-              fill={chartColors.income}
-              name={t.financesDashboard.charts.income}
-            />
-            <Bar
-              dataKey="expenses"
-              fill={chartColors.expense}
-              name={t.financesDashboard.charts.expenses}
-            />
-          </BarChart>
-        </ChartWrapper>
+          <ChartWrapper
+            title={t.financesDashboard.charts.cashFlowByCategory}
+            isEmpty={categoryData.length === 0}
+            emptyMessage={t.financesDashboard.tables.noData}
+          >
+            <BarChart data={categoryData} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
+              <XAxis
+                type="number"
+                tick={{ fill: chartColors.text, fontSize: 12 }}
+                tickFormatter={(value) => t.common.currency.formatShort(value)}
+              />
+              <YAxis
+                type="category"
+                dataKey="name"
+                tick={{ fill: chartColors.text, fontSize: 11 }}
+                width={120}
+              />
+              <Tooltip {...tooltipStyle} formatter={(value: number) => formatCurrency(value)} />
+              <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
+              <Bar
+                dataKey="income"
+                fill={chartColors.income}
+                name={t.financesDashboard.charts.income}
+              />
+              <Bar
+                dataKey="expenses"
+                fill={chartColors.expense}
+                name={t.financesDashboard.charts.expenses}
+              />
+            </BarChart>
+          </ChartWrapper>
+        </div>
+      )}
 
-        <ChartWrapper
-          title={t.financesDashboard.charts.paymentStatus}
-          isEmpty={statusData.length === 0}
-          emptyMessage={t.financesDashboard.tables.noData}
-        >
-          <PieChart>
-            <Pie
-              data={statusData}
-              cx="50%"
-              cy="50%"
-              labelLine={false}
-              label={({ name, percent }) => `${name}: ${((percent || 0) * 100).toFixed(0)}%`}
-              outerRadius={80}
-              fill="#8884d8"
-              dataKey="value"
-            >
-              {statusData.map((entry, index) => (
-                <Cell
-                  key={`cell-${entry.name || index}`}
-                  fill={pieColors[index % pieColors.length]}
-                />
-              ))}
-            </Pie>
-            <Tooltip {...tooltipStyle} />
-          </PieChart>
-        </ChartWrapper>
+      {(canViewAccountsPayable || canViewAccountsReceivable) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <ChartWrapper
+            title={t.financesDashboard.charts.paymentStatus}
+            isEmpty={statusData.length === 0}
+            emptyMessage={t.financesDashboard.tables.noData}
+          >
+            <PieChart>
+              <Pie
+                data={statusData}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percent }) => `${name}: ${((percent || 0) * 100).toFixed(0)}%`}
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                {statusData.map((entry, index) => (
+                  <Cell
+                    key={`cell-${entry.name || index}`}
+                    fill={pieColors[index % pieColors.length]}
+                  />
+                ))}
+              </Pie>
+              <Tooltip {...tooltipStyle} />
+            </PieChart>
+          </ChartWrapper>
 
-        <ChartWrapper
-          title={t.financesDashboard.charts.expenseCategories}
-          isEmpty={expenseCategoriesData.length === 0}
-          emptyMessage={t.financesDashboard.tables.noData}
-          height={400}
-        >
-          <BarChart data={expenseCategoriesData} layout="vertical">
-            <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
-            <XAxis
-              type="number"
-              tick={{ fill: chartColors.text, fontSize: 12 }}
-              tickFormatter={(value) => t.common.currency.formatShort(value)}
-            />
-            <YAxis
-              type="category"
-              dataKey="name"
-              tick={{ fill: chartColors.text, fontSize: 11 }}
-              width={150}
-            />
-            <Tooltip {...tooltipStyle} formatter={(value: number) => formatCurrency(value)} />
-            <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
-            <Bar
-              dataKey="value"
-              fill={chartColors.expense}
-              name={t.financesDashboard.charts.expenses}
-            />
-          </BarChart>
-        </ChartWrapper>
-      </div>
+          <ChartWrapper
+            title={t.financesDashboard.charts.expenseCategories}
+            isEmpty={expenseCategoriesData.length === 0}
+            emptyMessage={t.financesDashboard.tables.noData}
+            height={400}
+          >
+            <BarChart data={expenseCategoriesData} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} />
+              <XAxis
+                type="number"
+                tick={{ fill: chartColors.text, fontSize: 12 }}
+                tickFormatter={(value) => t.common.currency.formatShort(value)}
+              />
+              <YAxis
+                type="category"
+                dataKey="name"
+                tick={{ fill: chartColors.text, fontSize: 11 }}
+                width={150}
+              />
+              <Tooltip {...tooltipStyle} formatter={(value: number) => formatCurrency(value)} />
+              <Legend wrapperStyle={{ fontSize: "12px", color: chartColors.text }} />
+              <Bar
+                dataKey="value"
+                fill={chartColors.expense}
+                name={t.financesDashboard.charts.expenses}
+              />
+            </BarChart>
+          </ChartWrapper>
+        </div>
+      )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-            {t.financesDashboard.tables.recentTransactions}
-          </h2>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t.financesDashboard.tables.date}
-                  </th>
-                  <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t.financesDashboard.tables.description}
-                  </th>
-                  <th className="text-right py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t.financesDashboard.tables.amount}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentTransactions.length > 0 ? (
-                  recentTransactions.map((transaction) => (
-                    <tr
-                      key={transaction.id}
-                      className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                    >
-                      <td className="py-2 px-3 text-sm text-gray-700 dark:text-gray-300">
-                        {formatDate(transaction.date, language)}
-                      </td>
-                      <td className="py-2 px-3 text-sm text-gray-700 dark:text-gray-300">
-                        {transaction.description}
-                      </td>
-                      <td
-                        className={`py-2 px-3 text-sm font-medium text-right ${
-                          transaction.type === "income"
-                            ? "text-green-600 dark:text-green-400"
-                            : "text-red-600 dark:text-red-400"
-                        }`}
+      {canViewCashFlow && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
+              {t.financesDashboard.tables.recentTransactions}
+            </h2>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200 dark:border-gray-700">
+                    <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {t.financesDashboard.tables.date}
+                    </th>
+                    <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {t.financesDashboard.tables.description}
+                    </th>
+                    <th className="text-right py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {t.financesDashboard.tables.amount}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentTransactions.length > 0 ? (
+                    recentTransactions.map((transaction) => (
+                      <tr
+                        key={transaction.id}
+                        className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50"
                       >
-                        {transaction.type === "income" ? "+" : "-"}{" "}
-                        {formatCurrency(transaction.amount, language)}
+                        <td className="py-2 px-3 text-sm text-gray-700 dark:text-gray-300">
+                          {formatDate(transaction.date, language)}
+                        </td>
+                        <td className="py-2 px-3 text-sm text-gray-700 dark:text-gray-300">
+                          {transaction.description}
+                        </td>
+                        <td
+                          className={`py-2 px-3 text-sm font-medium text-right ${
+                            transaction.type === "income"
+                              ? "text-green-600 dark:text-green-400"
+                              : "text-red-600 dark:text-red-400"
+                          }`}
+                        >
+                          {transaction.type === "income" ? "+" : "-"}{" "}
+                          {formatCurrency(transaction.amount, language)}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={3} className="py-8 text-center text-gray-500 dark:text-gray-400">
+                        {t.financesDashboard.tables.noData}
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={3} className="py-8 text-center text-gray-500 dark:text-gray-400">
-                      {t.financesDashboard.tables.noData}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
+      )}
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-            {t.financesDashboard.tables.upcomingPayments}
-          </h2>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t.financesDashboard.tables.dueDate}
-                  </th>
-                  <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t.financesDashboard.tables.description}
-                  </th>
-                  <th className="text-right py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t.financesDashboard.tables.amount}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedUpcomingPayments.length > 0 ? (
-                  sortedUpcomingPayments.map((payment) => {
-                    const supplierName = payment.supplierId
-                      ? getSupplierName(payment.supplierId)
-                      : undefined;
-                    return (
-                      <tr
-                        key={payment.id}
-                        className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                      >
-                        <td className="py-2 px-3 text-sm text-gray-700 dark:text-gray-300">
-                          {formatDate(payment.dueDate, language)}
-                        </td>
-                        <td className="py-2 px-3 text-sm text-gray-700 dark:text-gray-300">
-                          {payment.description}
-                          {supplierName && (
-                            <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
-                              ({supplierName})
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-2 px-3 text-sm font-medium text-right text-orange-600 dark:text-orange-400">
-                          {formatCurrency(
-                            calculateRemainingAmount(payment.amount, payment.paidAmount)
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan={3} className="py-8 text-center text-gray-500 dark:text-gray-400">
-                      {t.financesDashboard.tables.noData}
-                    </td>
+      {canViewAccountsPayable && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
+              {t.financesDashboard.tables.upcomingPayments}
+            </h2>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200 dark:border-gray-700">
+                    <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {t.financesDashboard.tables.dueDate}
+                    </th>
+                    <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {t.financesDashboard.tables.description}
+                    </th>
+                    <th className="text-right py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {t.financesDashboard.tables.amount}
+                    </th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {sortedUpcomingPayments.length > 0 ? (
+                    sortedUpcomingPayments.map((payment) => {
+                      const supplierName = payment.supplierId
+                        ? getSupplierName(payment.supplierId)
+                        : undefined;
+                      return (
+                        <tr
+                          key={payment.id}
+                          className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                        >
+                          <td className="py-2 px-3 text-sm text-gray-700 dark:text-gray-300">
+                            {formatDate(payment.dueDate, language)}
+                          </td>
+                          <td className="py-2 px-3 text-sm text-gray-700 dark:text-gray-300">
+                            {payment.description}
+                            {supplierName && (
+                              <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                                ({supplierName})
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-2 px-3 text-sm font-medium text-right text-orange-600 dark:text-orange-400">
+                            {formatCurrency(
+                              calculateRemainingAmount(payment.amount, payment.paidAmount)
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan={3} className="py-8 text-center text-gray-500 dark:text-gray-400">
+                        {t.financesDashboard.tables.noData}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
+      )}
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-            {t.financesDashboard.tables.upcomingReceivables}
-          </h2>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t.financesDashboard.tables.dueDate}
-                  </th>
-                  <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t.financesDashboard.tables.description}
-                  </th>
-                  <th className="text-right py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t.financesDashboard.tables.amount}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedUpcomingReceivables.length > 0 ? (
-                  sortedUpcomingReceivables.map((receivable) => {
-                    const buyerName = receivable.buyerId
-                      ? getBuyerName(receivable.buyerId)
-                      : undefined;
-                    return (
-                      <tr
-                        key={receivable.id}
-                        className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                      >
-                        <td className="py-2 px-3 text-sm text-gray-700 dark:text-gray-300">
-                          {formatDate(receivable.dueDate, language)}
-                        </td>
-                        <td className="py-2 px-3 text-sm text-gray-700 dark:text-gray-300">
-                          {receivable.description}
-                          {buyerName && (
-                            <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
-                              ({buyerName})
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-2 px-3 text-sm font-medium text-right text-blue-600 dark:text-blue-400">
-                          {formatCurrency(
-                            calculateRemainingAmount(receivable.amount, receivable.paidAmount)
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan={3} className="py-8 text-center text-gray-500 dark:text-gray-400">
-                      {t.financesDashboard.tables.noData}
-                    </td>
+      {canViewAccountsReceivable && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
+              {t.financesDashboard.tables.upcomingReceivables}
+            </h2>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200 dark:border-gray-700">
+                    <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {t.financesDashboard.tables.dueDate}
+                    </th>
+                    <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {t.financesDashboard.tables.description}
+                    </th>
+                    <th className="text-right py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {t.financesDashboard.tables.amount}
+                    </th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {sortedUpcomingReceivables.length > 0 ? (
+                    sortedUpcomingReceivables.map((receivable) => {
+                      const buyerName = receivable.buyerId
+                        ? getBuyerName(receivable.buyerId)
+                        : undefined;
+                      return (
+                        <tr
+                          key={receivable.id}
+                          className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                        >
+                          <td className="py-2 px-3 text-sm text-gray-700 dark:text-gray-300">
+                            {formatDate(receivable.dueDate, language)}
+                          </td>
+                          <td className="py-2 px-3 text-sm text-gray-700 dark:text-gray-300">
+                            {receivable.description}
+                            {buyerName && (
+                              <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                                ({buyerName})
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-2 px-3 text-sm font-medium text-right text-blue-600 dark:text-blue-400">
+                            {formatCurrency(
+                              calculateRemainingAmount(receivable.amount, receivable.paidAmount)
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan={3} className="py-8 text-center text-gray-500 dark:text-gray-400">
+                        {t.financesDashboard.tables.noData}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
+      )}
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-            {t.financesDashboard.tables.overdue}
-          </h2>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t.financesDashboard.tables.type}
-                  </th>
-                  <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t.financesDashboard.tables.dueDate}
-                  </th>
-                  <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t.financesDashboard.tables.description}
-                  </th>
-                  <th className="text-right py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t.financesDashboard.tables.amount}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {overdueItems.length > 0 ? (
-                  overdueItems.map((item) => {
-                    const isPayable = item.type === "payable";
-                    const supplierId = isPayable
-                      ? (item.item as AccountsPayable).supplierId
-                      : undefined;
-                    const buyerId = isPayable
-                      ? undefined
-                      : (item.item as AccountsReceivable).buyerId;
-                    const supplierName = supplierId ? getSupplierName(supplierId) : undefined;
-                    const buyerName = buyerId ? getBuyerName(buyerId) : undefined;
-                    const remainingAmount = calculateRemainingAmount(
-                      item.item.amount,
-                      item.item.paidAmount
-                    );
-
-                    return (
-                      <tr
-                        key={`${item.type}-${item.item.id}`}
-                        className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                      >
-                        <td className="py-2 px-3 text-sm">
-                          <span
-                            className={`px-2 py-1 rounded text-xs font-medium ${
-                              isPayable
-                                ? "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400"
-                                : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
-                            }`}
-                          >
-                            {isPayable
-                              ? t.financesDashboard.tables.payable
-                              : t.financesDashboard.tables.receivable}
-                          </span>
-                        </td>
-                        <td className="py-2 px-3 text-sm text-red-600 dark:text-red-400 font-medium">
-                          {formatDate(item.item.dueDate, language)}
-                        </td>
-                        <td className="py-2 px-3 text-sm text-gray-700 dark:text-gray-300">
-                          {item.item.description}
-                          {supplierName && (
-                            <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
-                              ({supplierName})
-                            </span>
-                          )}
-                          {buyerName && (
-                            <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
-                              ({buyerName})
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-2 px-3 text-sm font-medium text-right text-red-600 dark:text-red-400">
-                          {formatCurrency(remainingAmount, language)}
-                        </td>
-                      </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan={4} className="py-8 text-center text-gray-500 dark:text-gray-400">
-                      {t.financesDashboard.tables.noOverdue}
-                    </td>
+      {(canViewAccountsPayable || canViewAccountsReceivable) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
+              {t.financesDashboard.tables.overdue}
+            </h2>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200 dark:border-gray-700">
+                    <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {t.financesDashboard.tables.type}
+                    </th>
+                    <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {t.financesDashboard.tables.dueDate}
+                    </th>
+                    <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {t.financesDashboard.tables.description}
+                    </th>
+                    <th className="text-right py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {t.financesDashboard.tables.amount}
+                    </th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {overdueItems.length > 0 ? (
+                    overdueItems.map((item) => {
+                      const isPayable = item.type === "payable";
+                      const supplierId = isPayable
+                        ? (item.item as AccountsPayable).supplierId
+                        : undefined;
+                      const buyerId = isPayable
+                        ? undefined
+                        : (item.item as AccountsReceivable).buyerId;
+                      const supplierName = supplierId ? getSupplierName(supplierId) : undefined;
+                      const buyerName = buyerId ? getBuyerName(buyerId) : undefined;
+                      const remainingAmount = calculateRemainingAmount(
+                        item.item.amount,
+                        item.item.paidAmount
+                      );
+
+                      return (
+                        <tr
+                          key={`${item.type}-${item.item.id}`}
+                          className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                        >
+                          <td className="py-2 px-3 text-sm">
+                            <span
+                              className={`px-2 py-1 rounded text-xs font-medium ${
+                                isPayable
+                                  ? "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400"
+                                  : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
+                              }`}
+                            >
+                              {isPayable
+                                ? t.financesDashboard.tables.payable
+                                : t.financesDashboard.tables.receivable}
+                            </span>
+                          </td>
+                          <td className="py-2 px-3 text-sm text-red-600 dark:text-red-400 font-medium">
+                            {formatDate(item.item.dueDate, language)}
+                          </td>
+                          <td className="py-2 px-3 text-sm text-gray-700 dark:text-gray-300">
+                            {item.item.description}
+                            {supplierName && (
+                              <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                                ({supplierName})
+                              </span>
+                            )}
+                            {buyerName && (
+                              <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                                ({buyerName})
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-2 px-3 text-sm font-medium text-right text-red-600 dark:text-red-400">
+                            {formatCurrency(remainingAmount, language)}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan={4} className="py-8 text-center text-gray-500 dark:text-gray-400">
+                        {t.financesDashboard.tables.noOverdue}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

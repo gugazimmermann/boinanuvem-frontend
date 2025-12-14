@@ -64,7 +64,7 @@ export default function AccountsPayableDetails() {
           const transactionData = await getAccountsPayableById(transactionId);
           setTransaction(transactionData);
           if (transactionData) {
-            const obs = getAccountsPayableObservationsByAccountsPayableId(transactionData.id);
+            const obs = await getAccountsPayableObservationsByAccountsPayableId(transactionData.id);
             setObservations(obs);
             if (transactionData.bankAccountId) {
               const bankAccountData = await getBankAccountById(transactionData.bankAccountId);
@@ -125,13 +125,15 @@ export default function AccountsPayableDetails() {
   const handleAddObservation = async (observationText: string, files: File[]) => {
     const fileIds = files.map((_, index) => `file-ap-obs-${Date.now()}-${index}`);
 
-    addAccountsPayableObservation({
+    await addAccountsPayableObservation({
       accountsPayableId: transaction.id,
       observation: observationText,
       fileIds: fileIds.length > 0 ? fileIds : undefined,
     });
 
-    const updatedObservations = getAccountsPayableObservationsByAccountsPayableId(transaction.id);
+    const updatedObservations = await getAccountsPayableObservationsByAccountsPayableId(
+      transaction.id
+    );
     setObservations(updatedObservations);
   };
 

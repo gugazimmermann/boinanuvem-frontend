@@ -13,6 +13,11 @@ export function meta() {
   return createFormMeta("Adicionar", "Conta a Receber", "Adicionar nova conta a receber");
 }
 
+export async function loader({ request }: { request: Request }) {
+  const { createRouteGuard } = await import("~/utils/route-guard");
+  return createRouteGuard(undefined, "add")({ request });
+}
+
 export default function NewAccountsReceivable() {
   const t = useTranslation();
   const navigate = useNavigate();

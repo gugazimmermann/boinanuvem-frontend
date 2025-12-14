@@ -26,13 +26,28 @@ vi.mock("~/services/bank-account.service", () => ({
   getBankAccountsByCompanyId: vi.fn(() => []),
 }));
 vi.mock("~/services/cash-flow-observations.service", () => ({
-  addCashFlowObservation: vi.fn(),
+  addCashFlowObservation: vi.fn().mockResolvedValue({
+    id: "obs-1",
+    cashFlowId: "cf-1",
+    observation: "Test observation",
+    createdAt: "2024-01-01T00:00:00Z",
+  }),
 }));
 vi.mock("~/services/accounts-payable-observations.service", () => ({
-  addAccountsPayableObservation: vi.fn(),
+  addAccountsPayableObservation: vi.fn().mockResolvedValue({
+    id: "obs-1",
+    accountsPayableId: "ap-1",
+    observation: "Test observation",
+    createdAt: "2024-01-01T00:00:00Z",
+  }),
 }));
 vi.mock("~/services/accounts-receivable-observations.service", () => ({
-  addAccountsReceivableObservation: vi.fn(),
+  addAccountsReceivableObservation: vi.fn().mockResolvedValue({
+    id: "obs-1",
+    accountsReceivableId: "ar-1",
+    observation: "Test observation",
+    createdAt: "2024-01-01T00:00:00Z",
+  }),
 }));
 vi.mock("~/contexts/auth-context", () => ({
   useAuth: vi.fn(() => ({
@@ -76,7 +91,40 @@ vi.mock("~/components/ui", () => ({
 }));
 
 vi.mock("~/components/dashboard/observations/observation-form-fields", () => ({
-  ObservationFormFields: () => <div>Observation Fields</div>,
+  ObservationFormFields: ({
+    observation,
+    onObservationChange,
+    observationFiles: _observationFiles,
+    onObservationFilesChange,
+  }: {
+    observation: string;
+    onObservationChange: (value: string) => void;
+    observationFiles: File[];
+    onObservationFilesChange: (files: File[]) => void;
+    isSubmitting: boolean;
+    observationLabel?: string;
+    observationPlaceholder?: string;
+    filesLabel?: string;
+    filesHelperText?: string;
+  }) => (
+    <div>
+      <div>Observation Fields</div>
+      <textarea
+        data-testid="observation-textarea"
+        value={observation}
+        onChange={(e) => onObservationChange(e.target.value)}
+      />
+      <input
+        data-testid="observation-files"
+        type="file"
+        multiple
+        onChange={(e) => {
+          const files = Array.from(e.target.files || []);
+          onObservationFilesChange(files);
+        }}
+      />
+    </div>
+  ),
 }));
 
 vi.mock("~/components/dashboard/forms/form-page-layout", () => ({
@@ -399,45 +447,91 @@ describe("FinanceTransactionFormPage", () => {
 
   it("should add observation with files for cash-flow", async () => {
     const user = userEvent.setup();
-    const onSubmit = vi.fn(() => ({ id: "trans-1" }));
-    vi.mocked(addCashFlowObservation);
+    const onSubmit = vi.fn(() => Promise.resolve({ id: "trans-1" }));
+    vi.mocked(addCashFlowObservation).mockResolvedValue({
+      id: "obs-1",
+      cashFlowId: "trans-1",
+      observation: "Test observation",
+      createdAt: "2024-01-01T00:00:00Z",
+    });
     const props = {
       ...defaultProps,
       transactionType: "cash-flow" as const,
       onSubmit,
       showObservations: true,
     };
-    mockUseFinanceTransactionForm.mockReturnValue({
-      formData: {},
-      errors: {},
-      isSubmitting: false,
-      alertMessage: null,
-      properties: [],
-      employees: [],
-      serviceProviders: [],
-      suppliers: [],
-      buyers: [],
-      handleChange: vi.fn(),
-      handleSubmit: vi.fn(async (e: React.FormEvent) => {
-        e.preventDefault();
-        const result = onSubmit({} as never);
-        return result;
-      }),
-    });
+
+    // Capture the onSubmit prop that will be passed to useFinanceTransactionForm (which is handleSubmitWrapper)
+    let capturedOnSubmit: ((data: unknown) => Promise<{ id: string } | void>) | undefined;
+    mockUseFinanceTransactionForm.mockImplementation(
+      (hookProps: { onSubmit?: (data: unknown) => Promise<{ id: string } | void> }) => {
+        // Store the onSubmit prop (which is handleSubmitWrapper) so we can call it
+        capturedOnSubmit = hookProps?.onSubmit as (data: unknown) => Promise<{ id: string } | void>;
+        return {
+          formData: {},
+          errors: {},
+          isSubmitting: false,
+          alertMessage: null,
+          properties: [],
+          employees: [],
+          serviceProviders: [],
+          suppliers: [],
+          buyers: [],
+          handleChange: vi.fn(),
+          handleSubmit: vi.fn(async (e: React.FormEvent) => {
+            e.preventDefault();
+            // Call the onSubmit prop (handleSubmitWrapper) which will add the observation
+            if (capturedOnSubmit) {
+              await capturedOnSubmit({} as never);
+            }
+          }),
+        };
+      }
+    );
+
     await act(async () => {
       render(<FinanceTransactionFormPage {...props} />);
     });
+
+    // Set observation value by typing into the textarea
+    const observationTextarea = screen.getByTestId("observation-textarea");
+    await user.type(observationTextarea, "Test observation");
+
+    // Add a file
+    const fileInput = screen.getByTestId("observation-files");
+    const file = new File(["test"], "test.txt", { type: "text/plain" });
+    await user.upload(fileInput, file);
+
     const submitButton = screen.getByText("Save");
     await user.click(submitButton);
+
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalled();
     });
+
     // Observation would be added after successful submission
+    await waitFor(
+      () => {
+        expect(addCashFlowObservation).toHaveBeenCalledWith(
+          expect.objectContaining({
+            cashFlowId: "trans-1",
+            observation: "Test observation",
+            fileIds: expect.any(Array),
+          })
+        );
+      },
+      { timeout: 3000 }
+    );
   });
 
   it("should add observation without files when fileIds array is empty", async () => {
-    const onSubmit = vi.fn(() => ({ id: "trans-1" }));
-    vi.mocked(addCashFlowObservation);
+    const onSubmit = vi.fn(() => Promise.resolve({ id: "trans-1" }));
+    vi.mocked(addCashFlowObservation).mockResolvedValue({
+      id: "obs-1",
+      cashFlowId: "trans-1",
+      observation: "Test observation",
+      createdAt: "2024-01-01T00:00:00Z",
+    });
     const props = {
       ...defaultProps,
       transactionType: "cash-flow" as const,
@@ -457,7 +551,7 @@ describe("FinanceTransactionFormPage", () => {
       handleChange: vi.fn(),
       handleSubmit: vi.fn(async (e: React.FormEvent) => {
         e.preventDefault();
-        const result = onSubmit({} as never);
+        const result = await onSubmit({} as never);
         return result;
       }),
     });

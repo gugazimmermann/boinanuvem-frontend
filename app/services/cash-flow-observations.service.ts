@@ -2,47 +2,92 @@ import type {
   CashFlowObservation,
   CashFlowObservationFormData,
 } from "~/types/cash-flow-observation";
-import { mockCashFlowObservations } from "~/mocks/cash-flow-observations";
-import { findById, findByField, deleteEntity } from "./base-service";
-import { generateUUID } from "~/utils/uuid";
+import { createResourceErrorMessages } from "./error-handlers";
+import { buildUpdateDto } from "~/utils/update-dto-builder";
+import {
+  createListHandler,
+  createGetByIdHandler,
+  createGetByFilterHandler,
+  createCrudHandlers,
+} from "./service-helpers";
+import { createEntityTransform } from "./transform-helpers";
 
-export function getCashFlowObservationsByCashFlowId(cashFlowId: string): CashFlowObservation[] {
-  return findByField(mockCashFlowObservations, "cashFlowId", cashFlowId);
-}
+const cashFlowObservationErrors = createResourceErrorMessages("observação de fluxo de caixa");
 
-export function getCashFlowObservationById(
-  observationId: string | undefined
-): CashFlowObservation | undefined {
-  return findById(mockCashFlowObservations, observationId);
-}
+/**
+ * Transform backend CashFlowObservationResponseDto to frontend CashFlowObservation type
+ */
+const transformCashFlowObservation = createEntityTransform<CashFlowObservation>({
+  dateTimeFields: ["createdAt", "updatedAt"],
+});
 
-export function addCashFlowObservation(data: CashFlowObservationFormData): CashFlowObservation {
-  const newObservation: CashFlowObservation = {
-    ...data,
-    id: generateUUID(),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-  mockCashFlowObservations.push(newObservation);
-  return newObservation;
-}
+/**
+ * Get all cash flow observations via API
+ */
+export const getCashFlowObservations = createListHandler<CashFlowObservation>({
+  endpoint: "/cash-flow-observations",
+  errorMessages: cashFlowObservationErrors.list,
+  transform: transformCashFlowObservation,
+});
 
-export function deleteCashFlowObservation(observationId: string): boolean {
-  return deleteEntity(mockCashFlowObservations, observationId);
-}
+/**
+ * Get cash flow observations by cash flow ID via API
+ */
+export const getCashFlowObservationsByCashFlowId = createGetByFilterHandler<CashFlowObservation>({
+  endpoint: "/cash-flow-observations",
+  errorMessages: cashFlowObservationErrors.list,
+  transform: transformCashFlowObservation,
+  filterFn: (obs, cashFlowId) => obs.cashFlowId === cashFlowId,
+});
 
-export function updateCashFlowObservation(
+/**
+ * Get a single cash flow observation by ID via API
+ */
+export const getCashFlowObservationById = createGetByIdHandler<CashFlowObservation>({
+  endpoint: "/cash-flow-observations",
+  errorMessages: cashFlowObservationErrors.view,
+  transform: transformCashFlowObservation,
+  custom403Message: "Você não tem permissão para visualizar esta observação",
+});
+
+const cashFlowObservationCrud = createCrudHandlers<
+  CashFlowObservation,
+  CashFlowObservation,
+  CashFlowObservationFormData
+>({
+  endpoint: "/cash-flow-observations",
+  errorMessages: {
+    create: cashFlowObservationErrors.create,
+    update: cashFlowObservationErrors.update,
+    delete: cashFlowObservationErrors.delete,
+  },
+  transform: transformCashFlowObservation,
+  buildCreateDto: (data) => ({
+    cashFlowId: data.cashFlowId,
+    observation: data.observation,
+    fileIds: data.fileIds,
+  }),
+  buildUpdateDto: (data) => buildUpdateDto(data, ["cashFlowId", "observation", "fileIds"]),
+});
+
+/**
+ * Create a new cash flow observation via API
+ */
+export const addCashFlowObservation = cashFlowObservationCrud.add;
+
+/**
+ * Update a cash flow observation via API
+ */
+export const updateCashFlowObservation = async (
   observationId: string,
   data: Partial<CashFlowObservationFormData>
-): boolean {
-  const index = mockCashFlowObservations.findIndex((obs) => obs.id === observationId);
-  if (index !== -1) {
-    mockCashFlowObservations[index] = {
-      ...mockCashFlowObservations[index],
-      ...data,
-      updatedAt: new Date().toISOString(),
-    };
-    return true;
-  }
-  return false;
-}
+): Promise<CashFlowObservation> => {
+  return cashFlowObservationCrud.update(observationId, data);
+};
+
+/**
+ * Delete a cash flow observation via API
+ */
+export const deleteCashFlowObservation = async (observationId: string): Promise<void> => {
+  return cashFlowObservationCrud.remove(observationId);
+};

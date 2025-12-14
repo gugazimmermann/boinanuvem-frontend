@@ -13,6 +13,11 @@ export function meta() {
   return createFormMeta("Adicionar", "Conta Bancária", "Adicionar nova conta bancária");
 }
 
+export async function loader({ request }: { request: Request }) {
+  const { createRouteGuard } = await import("~/utils/route-guard");
+  return createRouteGuard(undefined, "add")({ request });
+}
+
 export default function NewBankAccount() {
   const t = useTranslation();
   const navigate = useNavigate();

@@ -1,4 +1,4 @@
-export interface AccountsReceivableObservation {
+export interface AccountsReceivableObservation extends Record<string, unknown> {
   id: string;
   accountsReceivableId: string;
   observation: string;

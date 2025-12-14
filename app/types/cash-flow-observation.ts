@@ -1,4 +1,4 @@
-export interface CashFlowObservation {
+export interface CashFlowObservation extends Record<string, unknown> {
   id: string;
   cashFlowId: string;
   observation: string;
