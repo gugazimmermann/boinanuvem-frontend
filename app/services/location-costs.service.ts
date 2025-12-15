@@ -19,26 +19,40 @@ import { getLocationById } from "./locations.service";
 
 async function getAnimalIdsInLocation(locationId: string): Promise<Set<string>> {
   const animalIdsInLocation = new Set<string>();
-  const movements = getAnimalMovementsByLocationId(locationId);
-  for (const movement of movements) {
-    if (movement.locationId === locationId) {
-      for (const id of movement.animalIds) {
-        animalIdsInLocation.add(id);
+  try {
+    const movements = await getAnimalMovementsByLocationId(locationId);
+    for (const movement of movements) {
+      if (movement.locationId === locationId) {
+        for (const id of movement.animalIds) {
+          animalIdsInLocation.add(id);
+        }
       }
     }
+  } catch {
+    // Return empty set on error - movements service already handles errors and returns []
+    return new Set<string>();
   }
   return animalIdsInLocation;
 }
 
-function isAnimalInLocationOnDate(animalId: string, locationId: string, targetDate: Date): boolean {
-  const animalMovements = getAnimalMovementsByAnimalId(animalId);
-  const movementsBeforeDate = animalMovements
-    .filter((m) => new Date(m.date) <= targetDate)
-    .toSorted((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+async function isAnimalInLocationOnDate(
+  animalId: string,
+  locationId: string,
+  targetDate: Date
+): Promise<boolean> {
+  try {
+    const animalMovements = await getAnimalMovementsByAnimalId(animalId);
+    const movementsBeforeDate = animalMovements
+      .filter((m) => new Date(m.date) <= targetDate)
+      .toSorted((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  if (movementsBeforeDate.length === 0) return false;
-  const mostRecentMovement = movementsBeforeDate[0];
-  return mostRecentMovement.locationId === locationId;
+    if (movementsBeforeDate.length === 0) return false;
+    const mostRecentMovement = movementsBeforeDate[0];
+    return mostRecentMovement.locationId === locationId;
+  } catch {
+    // Return false on error - movements service already handles errors and returns []
+    return false;
+  }
 }
 
 export async function getAnimalsInLocationOnDate(
@@ -49,12 +63,22 @@ export async function getAnimalsInLocationOnDate(
   const targetDate = new Date(date);
   const animalIdsInLocation = await getAnimalIdsInLocation(locationId);
 
-  const animalPromises = Array.from(animalIdsInLocation)
-    .filter((animalId) => isAnimalInLocationOnDate(animalId, locationId, targetDate))
-    .map(async (animalId) => {
-      const animal = await getAnimalById(animalId);
-      return animal;
-    });
+  // Check each animal and filter by location on date
+  const animalChecks = await Promise.all(
+    Array.from(animalIdsInLocation).map(async (animalId) => {
+      const isInLocation = await isAnimalInLocationOnDate(animalId, locationId, targetDate);
+      return { animalId, isInLocation };
+    })
+  );
+
+  const validAnimalIds = animalChecks
+    .filter((check) => check.isInLocation)
+    .map((check) => check.animalId);
+
+  const animalPromises = validAnimalIds.map(async (animalId) => {
+    const animal = await getAnimalById(animalId);
+    return animal;
+  });
 
   const animalsData = await Promise.all(animalPromises);
   return animalsData.filter((animal): animal is Animal => animal !== null && animal !== undefined);

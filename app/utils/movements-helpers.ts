@@ -2,9 +2,11 @@ import type { LocationMovement, AnimalMovement } from "~/types";
 import type { UnifiedMovement } from "~/components/dashboard/movements/movements-section";
 
 export function getLocationIds(movement: UnifiedMovement): string[] {
-  return movement.movementType === "location"
-    ? (movement as LocationMovement).locationIds
-    : [(movement as AnimalMovement).locationId];
+  if (movement.movementType === "location") {
+    return (movement as LocationMovement).locationIds;
+  }
+  const animalMovement = movement as AnimalMovement;
+  return animalMovement.locationId ? [animalMovement.locationId] : [];
 }
 
 export function getLocationNamesForSearch(

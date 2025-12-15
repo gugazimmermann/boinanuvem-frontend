@@ -122,11 +122,15 @@ function matchesLocationNames(
   searchLower: string,
   locations: Location[]
 ): boolean {
-  const locationIds =
-    movement.movementType === "location"
-      ? (movement as LocationMovement).locationIds
-      : [(movement as AnimalMovement).locationId];
+  let locationIds: string[];
+  if (movement.movementType === "location") {
+    locationIds = (movement as LocationMovement).locationIds;
+  } else {
+    const animalMovement = movement as AnimalMovement;
+    locationIds = animalMovement.locationId ? [animalMovement.locationId] : [];
+  }
   const locationNames = locationIds
+    .filter((id): id is string => id !== null && id !== undefined)
     .map((id) => {
       const loc = locations.find((l) => l.id === id);
       return loc ? `${loc.name} ${loc.code}`.toLowerCase() : id.toLowerCase();
@@ -1018,6 +1022,7 @@ export default function LocationDetails() {
   const [filteredAndSortedMovements, setFilteredAndSortedMovements] = useState<UnifiedMovement[]>(
     []
   );
+  const [animalIdsInLocation, setAnimalIdsInLocation] = useState<string[]>([]);
   const [inventoryItemsMap, setInventoryItemsMap] = useState<Map<string, InventoryItem>>(new Map());
   const [animalsSortState, setAnimalsSortState] = useState<{
     column: string | null;
@@ -1055,6 +1060,24 @@ export default function LocationDetails() {
   const [observations, setObservations] = useState<LocationObservation[]>([]);
 
   useEffect(() => {
+    const loadAnimalsInLocation = async () => {
+      if (!location) {
+        setAnimalIdsInLocation([]);
+        return;
+      }
+      try {
+        const ids = await getAnimalsByLastMovementLocation(location.id);
+        setAnimalIdsInLocation(ids);
+      } catch (error) {
+        console.error("Failed to load animals in location:", error);
+        setAnimalIdsInLocation([]);
+      }
+    };
+
+    void loadAnimalsInLocation();
+  }, [location]);
+
+  useEffect(() => {
     const loadObservations = async () => {
       if (!location) {
         setObservations([]);
@@ -1072,7 +1095,6 @@ export default function LocationDetails() {
     void loadObservations();
   }, [location]);
 
-  const animalIdsInLocation = location ? getAnimalsByLastMovementLocation(location.id) : [];
   const allAnimalsInLocation = animalIdsInLocation
     .map((id) => getAnimalByIdLocal(id))
     .filter((animal): animal is Animal => animal !== null);
@@ -1131,9 +1153,11 @@ export default function LocationDetails() {
         return;
       }
 
-      const locationMovements = getLocationMovementsByLocationId(location.id);
-      const animalMovements = getAnimalMovementsByLocationId(location.id);
-      const inventoryMovementsData = await getMovementsByLocationId(location.id);
+      const [locationMovements, animalMovements, inventoryMovementsData] = await Promise.all([
+        getLocationMovementsByLocationId(location.id),
+        getAnimalMovementsByLocationId(location.id),
+        getMovementsByLocationId(location.id),
+      ]);
       const inventoryMovements = inventoryMovementsData.filter(
         (m) => m.type === InventoryMovementType.CONSUMPTION
       );
@@ -1629,10 +1653,7 @@ export default function LocationDetails() {
       {activeTab === "animals" &&
         location &&
         (() => {
-          const animalIdsInLocation = getAnimalsByLastMovementLocation(location.id);
-          const allAnimals = animalIdsInLocation
-            .map((id) => getAnimalByIdLocal(id))
-            .filter((animal): animal is Animal => animal !== null);
+          const allAnimals = allAnimalsInLocation;
 
           const handleDeleteAnimalClick = (animal: Animal) => {
             setSelectedAnimal(animal);
@@ -2258,11 +2279,15 @@ export default function LocationDetails() {
                     </span>
                   );
                 }
-                const locationIds =
-                  row.movementType === "location"
-                    ? (row as LocationMovement).locationIds
-                    : [(row as AnimalMovement).locationId];
+                let locationIds: string[];
+                if (row.movementType === "location") {
+                  locationIds = (row as LocationMovement).locationIds;
+                } else {
+                  const animalMovement = row as AnimalMovement;
+                  locationIds = animalMovement.locationId ? [animalMovement.locationId] : [];
+                }
                 const locationNames = locationIds
+                  .filter((id): id is string => id !== null && id !== undefined)
                   .map((id) => getLocationNameById(id, locations))
                   .join(", ");
                 return (
@@ -2328,10 +2353,10 @@ export default function LocationDetails() {
               render: (_, row) => {
                 const getObservation = (movement: typeof row): string | undefined => {
                   if (movement.movementType === "location") {
-                    return (movement as LocationMovement).observation;
+                    return (movement as LocationMovement).observation || undefined;
                   }
                   if (movement.movementType === "animal") {
-                    return (movement as AnimalMovement).observation;
+                    return (movement as AnimalMovement).observation || undefined;
                   }
                   return (movement as InventoryMovement).description;
                 };

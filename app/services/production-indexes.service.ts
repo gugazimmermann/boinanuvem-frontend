@@ -273,6 +273,7 @@ function findEntryAndExitDates(
   let exitDate: Date | null = null;
 
   for (const movement of sortedMovements) {
+    if (!movement.locationId) continue;
     const isConfinement = confinementLocationIds.has(movement.locationId);
 
     if (isConfinement && !entryDate) {
@@ -300,45 +301,50 @@ async function getExitDateFromSales(animalId: string, _entryDate: Date): Promise
 
 async function calculateDaysOnFeed(
   animal: Awaited<ReturnType<typeof getAnimalsByPropertyId>>[0],
-  movements: ReturnType<typeof getAnimalMovementsByAnimalId>,
   confinementLocationIds: Set<string>,
   period?: { startDate?: string; endDate?: string }
 ): Promise<DaysOnFeedResult | null> {
-  if (movements.length === 0) {
+  try {
+    const movements = await getAnimalMovementsByAnimalId(animal.id);
+    if (movements.length === 0) {
+      return null;
+    }
+
+    const filteredMovements = filterMovementsByPeriod(movements, period);
+    const sortedMovements = [...filteredMovements].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+
+    const { entryDate, exitDate: initialExitDate } = findEntryAndExitDates(
+      sortedMovements,
+      confinementLocationIds
+    );
+
+    const exitDate =
+      entryDate && !initialExitDate
+        ? await getExitDateFromSales(animal.id, entryDate)
+        : initialExitDate;
+
+    if (!entryDate || !exitDate) {
+      return null;
+    }
+
+    const days = Math.floor((exitDate.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24));
+    if (days <= 0) {
+      return null;
+    }
+
+    return {
+      days,
+      animalId: animal.id,
+      animalCode: animal.code,
+      entryDate: entryDate.toISOString().split("T")[0],
+      exitDate: exitDate.toISOString().split("T")[0],
+    };
+  } catch {
+    // Return null on error - movements service already handles errors and returns []
     return null;
   }
-
-  const filteredMovements = filterMovementsByPeriod(movements, period);
-  const sortedMovements = [...filteredMovements].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-  );
-
-  const { entryDate, exitDate: initialExitDate } = findEntryAndExitDates(
-    sortedMovements,
-    confinementLocationIds
-  );
-
-  const exitDate =
-    entryDate && !initialExitDate
-      ? await getExitDateFromSales(animal.id, entryDate)
-      : initialExitDate;
-
-  if (!entryDate || !exitDate) {
-    return null;
-  }
-
-  const days = Math.floor((exitDate.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24));
-  if (days <= 0) {
-    return null;
-  }
-
-  return {
-    days,
-    animalId: animal.id,
-    animalCode: animal.code,
-    entryDate: entryDate.toISOString().split("T")[0],
-    exitDate: exitDate.toISOString().split("T")[0],
-  };
 }
 
 export async function getDaysOnFeed(
@@ -356,8 +362,7 @@ export async function getDaysOnFeed(
   const results: DaysOnFeedResult[] = [];
 
   for (const animal of animals) {
-    const movements = getAnimalMovementsByAnimalId(animal.id);
-    const result = await calculateDaysOnFeed(animal, movements, confinementLocationIds, period);
+    const result = await calculateDaysOnFeed(animal, confinementLocationIds, period);
     if (result) {
       results.push(result);
     }

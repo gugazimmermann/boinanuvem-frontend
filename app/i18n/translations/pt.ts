@@ -369,6 +369,11 @@ export const pt = {
         noServiceProviders: "Nenhum prestador de serviço disponível",
         success: "Movimentação adicionada com sucesso!",
         error: "Erro ao adicionar movimentação",
+        deleteSuccess: "Movimentação excluída com sucesso",
+        deleteError: "Erro ao excluir movimentação",
+        deleteTitle: "Excluir movimentação de localização",
+        deleteMessage:
+          "Tem certeza que deseja excluir esta movimentação? Esta ação não pode ser desfeita.",
         movement: "movimentação",
         movements: "movimentações",
         errors: {

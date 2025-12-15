@@ -370,6 +370,11 @@ export const es = {
         noServiceProviders: "No hay proveedores de servicios disponibles",
         success: "¡Movimiento agregado con éxito!",
         error: "Error al agregar movimiento",
+        deleteSuccess: "Movimiento eliminado con éxito",
+        deleteError: "Error al eliminar movimiento",
+        deleteTitle: "Eliminar movimiento de ubicación",
+        deleteMessage:
+          "¿Está seguro de que desea eliminar este movimiento? Esta acción no se puede deshacer.",
         movement: "movimiento",
         movements: "movimientos",
         errors: {

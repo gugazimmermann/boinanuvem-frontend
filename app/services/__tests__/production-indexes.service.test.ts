@@ -297,7 +297,7 @@ describe("production-indexes.service", () => {
       const getSalesByAnimal = getSalesByAnimalId as ReturnType<typeof vi.fn>;
 
       getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
-      getMovements.mockReturnValue([
+      getMovements.mockResolvedValue([
         {
           id: "movement-1",
           animalIds: ["animal-1"],
@@ -341,7 +341,7 @@ describe("production-indexes.service", () => {
       const getSalesByAnimal = getSalesByAnimalId as ReturnType<typeof vi.fn>;
 
       getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
-      getMovements.mockReturnValue([
+      getMovements.mockResolvedValue([
         {
           id: "movement-1",
           animalIds: ["animal-1"],
@@ -377,7 +377,7 @@ describe("production-indexes.service", () => {
       const getSalesByAnimal = getSalesByAnimalId as ReturnType<typeof vi.fn>;
 
       getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
-      getMovements.mockReturnValue([
+      getMovements.mockResolvedValue([
         {
           id: "movement-1",
           animalIds: ["animal-1"],
@@ -420,7 +420,7 @@ describe("production-indexes.service", () => {
       const getSalesByAnimal = getSalesByAnimalId as ReturnType<typeof vi.fn>;
 
       getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
-      getMovements.mockReturnValue([
+      getMovements.mockResolvedValue([
         {
           id: "movement-1",
           animalIds: ["animal-1"],
@@ -463,7 +463,7 @@ describe("production-indexes.service", () => {
       const getSalesByAnimal = getSalesByAnimalId as ReturnType<typeof vi.fn>;
 
       getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
-      getMovements.mockReturnValue([
+      getMovements.mockResolvedValue([
         {
           id: "movement-1",
           animalIds: ["animal-1"],
@@ -508,7 +508,7 @@ describe("production-indexes.service", () => {
       const getLocs = getLocations as ReturnType<typeof vi.fn>;
 
       getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
-      getMovements.mockReturnValue([]);
+      getMovements.mockResolvedValue([]);
       getLocs.mockResolvedValue([]);
 
       const result = await getDaysOnFeed("property-1e");
@@ -521,7 +521,7 @@ describe("production-indexes.service", () => {
       const getLocs = getLocations as ReturnType<typeof vi.fn>;
 
       getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
-      getMovements.mockReturnValue([
+      getMovements.mockResolvedValue([
         {
           id: "movement-1",
           animalIds: ["animal-1"],
@@ -1056,7 +1056,7 @@ describe("production-indexes.service", () => {
       getWeighings.mockReturnValue([
         { id: "w1", animalId: "animal-1", date: "2024-01-01", weight: 450 },
       ]);
-      getMovements.mockReturnValue([
+      getMovements.mockResolvedValue([
         {
           id: "movement-1",
           itemId: "item-1",
@@ -1098,7 +1098,7 @@ describe("production-indexes.service", () => {
       });
       getAnimals.mockResolvedValue([{ id: "animal-1", code: "001", companyId: "company-1" }]);
       getWeighings.mockReturnValue([]); // No weighings
-      getMovements.mockReturnValue([
+      getMovements.mockResolvedValue([
         {
           id: "movement-1",
           itemId: "item-1",
@@ -1125,7 +1125,7 @@ describe("production-indexes.service", () => {
         area: { value: 100, type: AreaType.HECTARES },
       });
       getAnimals.mockResolvedValue([]);
-      getMovements.mockReturnValue([]);
+      getMovements.mockResolvedValue([]);
 
       const result = await getKgNitrogenPerAU("property-1c");
       expect(result.animalUnits).toBe(0);
@@ -1153,7 +1153,7 @@ describe("production-indexes.service", () => {
         }
         return [{ id: "w2", animalId: "animal-2", date: "2024-01-01", weight: 450 }];
       });
-      getMovements.mockReturnValue([
+      getMovements.mockResolvedValue([
         {
           id: "movement-1",
           itemId: "item-1",
@@ -1183,7 +1183,7 @@ describe("production-indexes.service", () => {
       getWeighings.mockReturnValue([
         { id: "w1", animalId: "animal-1", date: "2024-01-01", weight: 0 },
       ]);
-      getMovements.mockReturnValue([]);
+      getMovements.mockResolvedValue([]);
 
       const result = await getKgNitrogenPerAU("property-1e");
       expect(result.animalUnits).toBe(0);
@@ -1204,7 +1204,7 @@ describe("production-indexes.service", () => {
       getWeighings.mockReturnValue([
         { id: "w1", animalId: "animal-1", date: "2024-01-01", weight: 450 },
       ]);
-      getMovements.mockReturnValue([
+      getMovements.mockResolvedValue([
         {
           id: "movement-1",
           itemId: "item-1",
@@ -1235,7 +1235,7 @@ describe("production-indexes.service", () => {
       getWeighings.mockReturnValue([
         { id: "w1", animalId: "animal-1", date: "2024-01-01", weight: 450 },
       ]);
-      getMovements.mockReturnValue([
+      getMovements.mockResolvedValue([
         {
           id: "movement-1",
           itemId: "item-1",
@@ -1278,7 +1278,7 @@ describe("production-indexes.service", () => {
         { id: "w1", animalId: "animal-1", date: "2024-01-01", weight: 400 },
         { id: "w2", animalId: "animal-1", date: "2024-03-01", weight: 450 },
       ]);
-      getMovements.mockReturnValue([
+      getMovements.mockResolvedValue([
         {
           id: "movement-1",
           itemId: "item-1",
@@ -1311,7 +1311,7 @@ describe("production-indexes.service", () => {
         { id: "w1", animalId: "animal-1", date: "2024-01-01", weight: 400 },
         { id: "w2", animalId: "animal-1", date: "2024-02-01", weight: 450 },
       ]);
-      getMovements.mockReturnValue([
+      getMovements.mockResolvedValue([
         {
           id: "movement-1",
           itemId: "item-1",
@@ -1338,7 +1338,7 @@ describe("production-indexes.service", () => {
         { id: "w1", animalId: "animal-1", date: "2024-01-01", weight: 400 },
         { id: "w2", animalId: "animal-1", date: "2024-02-01", weight: 450 },
       ]);
-      getMovements.mockReturnValue([
+      getMovements.mockResolvedValue([
         {
           id: "movement-1",
           itemId: "item-1",
@@ -1366,7 +1366,7 @@ describe("production-indexes.service", () => {
         { id: "w1", animalId: "animal-1", date: "2024-01-01", weight: 400 },
         { id: "w2", animalId: "animal-1", date: "2024-02-01", weight: 400 }, // No gain
       ]);
-      getMovements.mockReturnValue([
+      getMovements.mockResolvedValue([
         {
           id: "movement-1",
           itemId: "item-1",
@@ -1396,7 +1396,7 @@ describe("production-indexes.service", () => {
         { id: "w2", animalId: "animal-1", date: "2024-02-01", weight: 450 },
         { id: "w3", animalId: "animal-1", date: "2024-03-01", weight: 500 },
       ]);
-      getMovements.mockReturnValue([
+      getMovements.mockResolvedValue([
         {
           id: "movement-1",
           itemId: "item-1",
@@ -1433,7 +1433,7 @@ describe("production-indexes.service", () => {
       getWeighings.mockReturnValue([
         { id: "w1", animalId: "animal-1", date: "2024-01-01", weight: 400 },
       ]); // Only one weighing
-      getMovements.mockReturnValue([
+      getMovements.mockResolvedValue([
         {
           id: "movement-1",
           itemId: "item-1",

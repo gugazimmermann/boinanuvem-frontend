@@ -1,68 +1,165 @@
 import type { LocationMovement, LocationMovementFormData } from "~/types/location-movement";
 import { LocationMovementType } from "~/types/location-movement";
-import { mockLocationMovements } from "~/mocks/location-movements";
-import { findById, findByField, deleteEntity } from "./base-service";
-import { generateUUID } from "~/utils/uuid";
+import { apiClient } from "./api-client";
+import { createCrudHandlers, createGetByIdHandler, createListHandler } from "./service-helpers";
+import { createEntityTransform } from "./transform-helpers";
+import { createResourceErrorMessages, handleApiError } from "./error-handlers";
 
-export function getLocationMovementsByLocationId(locationId: string): LocationMovement[] {
-  return mockLocationMovements.filter((movement) => movement.locationIds.includes(locationId));
-}
+const locationMovementsErrors = createResourceErrorMessages("movimentações de localizações");
 
-export function getLocationMovementsByPropertyId(propertyId: string): LocationMovement[] {
-  return findByField(mockLocationMovements, "propertyId", propertyId);
-}
-
-export function getLocationMovementsByCompanyId(companyId: string): LocationMovement[] {
-  return findByField(mockLocationMovements, "companyId", companyId);
-}
-
-export function getLocationMovementsByEmployeeId(employeeId: string): LocationMovement[] {
-  return mockLocationMovements.filter((movement) => movement.employeeIds.includes(employeeId));
-}
-
-export function getLocationMovementsByServiceProviderId(
-  serviceProviderId: string
-): LocationMovement[] {
-  return mockLocationMovements.filter((movement) =>
-    movement.serviceProviderIds?.includes(serviceProviderId)
-  );
-}
-
-export function getLocationMovementsByType(type: LocationMovementType): LocationMovement[] {
-  return findByField(mockLocationMovements, "type", type);
-}
-
-export function getLocationMovementById(
-  movementId: string | undefined
-): LocationMovement | undefined {
-  return findById(mockLocationMovements, movementId);
-}
-
-export function addLocationMovement(data: LocationMovementFormData): LocationMovement {
-  const newMovement: LocationMovement = {
-    ...data,
-    id: generateUUID(),
-    createdAt: new Date().toISOString(),
-  };
-  mockLocationMovements.push(newMovement);
-  return newMovement;
-}
-
-export function deleteLocationMovement(movementId: string): boolean {
-  return deleteEntity(mockLocationMovements, movementId);
-}
-
-export function updateLocationMovement(
-  movementId: string,
-  data: Partial<LocationMovementFormData>
-): boolean {
-  const index = mockLocationMovements.findIndex((movement) => movement.id === movementId);
-  if (index !== -1) {
-    mockLocationMovements[index] = {
-      ...mockLocationMovements[index],
-      ...data,
-    };
-    return true;
+/**
+ * Transform backend LocationMovementResponseDto to frontend LocationMovement type
+ */
+const transformLocationMovement = createEntityTransform<LocationMovement & Record<string, unknown>>(
+  {
+    dateStringFields: ["date"],
+    dateTimeFields: ["createdAt", "updatedAt"],
   }
-  return false;
+) as unknown as (obj: LocationMovement) => LocationMovement;
+
+/**
+ * Get all location movements for the current user's company via API
+ */
+export const getLocationMovementsByCompanyId = createListHandler<LocationMovement>({
+  endpoint: "/location-movements",
+  errorMessages: locationMovementsErrors.list,
+  transform: transformLocationMovement,
+});
+
+/**
+ * Get a single location movement by ID via API
+ */
+export const getLocationMovementById = createGetByIdHandler<LocationMovement>({
+  endpoint: "/location-movements",
+  errorMessages: locationMovementsErrors.view,
+  transform: transformLocationMovement,
+});
+
+/**
+ * Get location movements by location ID via API
+ */
+export async function getLocationMovementsByLocationId(
+  locationId: string
+): Promise<LocationMovement[]> {
+  try {
+    const movements = await apiClient.get<LocationMovement[]>(
+      `/location-movements/location/${locationId}`
+    );
+    return movements.map(transformLocationMovement);
+  } catch (error) {
+    try {
+      handleApiError(error, locationMovementsErrors.list);
+    } catch {
+      return [];
+    }
+  }
 }
+
+/**
+ * Get location movements by property ID via API
+ */
+export async function getLocationMovementsByPropertyId(
+  propertyId: string
+): Promise<LocationMovement[]> {
+  try {
+    const movements = await apiClient.get<LocationMovement[]>(
+      `/location-movements/property/${propertyId}`
+    );
+    return movements.map(transformLocationMovement);
+  } catch (error) {
+    try {
+      handleApiError(error, locationMovementsErrors.list);
+    } catch {
+      return [];
+    }
+  }
+}
+
+/**
+ * Get location movements by employee ID via API
+ */
+export async function getLocationMovementsByEmployeeId(
+  employeeId: string
+): Promise<LocationMovement[]> {
+  try {
+    const movements = await apiClient.get<LocationMovement[]>(
+      `/location-movements/employee/${employeeId}`
+    );
+    return movements.map(transformLocationMovement);
+  } catch (error) {
+    try {
+      handleApiError(error, locationMovementsErrors.list);
+    } catch {
+      return [];
+    }
+  }
+}
+
+/**
+ * Get location movements by service provider ID via API
+ */
+export async function getLocationMovementsByServiceProviderId(
+  serviceProviderId: string
+): Promise<LocationMovement[]> {
+  try {
+    const movements = await apiClient.get<LocationMovement[]>(
+      `/location-movements/service-provider/${serviceProviderId}`
+    );
+    return movements.map(transformLocationMovement);
+  } catch (error) {
+    try {
+      handleApiError(error, locationMovementsErrors.list);
+    } catch {
+      return [];
+    }
+  }
+}
+
+/**
+ * Get location movements by type via API
+ */
+export async function getLocationMovementsByType(
+  type: LocationMovementType
+): Promise<LocationMovement[]> {
+  try {
+    const movements = await apiClient.get<LocationMovement[]>(`/location-movements/type/${type}`);
+    return movements.map(transformLocationMovement);
+  } catch (error) {
+    try {
+      handleApiError(error, locationMovementsErrors.list);
+    } catch {
+      return [];
+    }
+  }
+}
+
+const locationMovementsCrud = createCrudHandlers<
+  LocationMovement,
+  LocationMovement,
+  LocationMovementFormData
+>({
+  endpoint: "/location-movements",
+  errorMessages: {
+    create: locationMovementsErrors.create,
+    update: locationMovementsErrors.update,
+    delete: locationMovementsErrors.delete,
+  },
+  transform: transformLocationMovement,
+  buildCreateDto: (data) => data as unknown as Record<string, unknown>,
+  buildUpdateDto: (data) => data,
+});
+
+/**
+ * Create a new location movement via API
+ */
+export const addLocationMovement = locationMovementsCrud.add;
+
+/**
+ * Update a location movement via API
+ */
+export const updateLocationMovement = locationMovementsCrud.update;
+
+/**
+ * Delete a location movement via API
+ */
+export const deleteLocationMovement = locationMovementsCrud.remove;

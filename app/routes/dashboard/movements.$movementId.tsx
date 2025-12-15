@@ -1,7 +1,15 @@
 import { useParams, useNavigate, useSearchParams } from "react-router";
 import { format } from "date-fns";
 import React, { useState, useEffect, useMemo } from "react";
-import { Button, Table, Tooltip, StatusBadge, type TableColumn } from "~/components/ui";
+import {
+  Button,
+  Table,
+  Tooltip,
+  StatusBadge,
+  Alert,
+  ConfirmationModal,
+  type TableColumn,
+} from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
 import { useDateLocale } from "~/hooks/use-date-locale";
@@ -15,9 +23,14 @@ import {
   getServiceProviderViewRoute,
   getAnimalViewRoute,
 } from "~/routes.config";
+import { usePermissions } from "~/utils/permissions";
+import { useAlert } from "~/hooks/use-alert";
 import { getEmployeeById } from "~/services/employees.service";
 import { getServiceProviderById } from "~/services/service-providers.service";
-import { getLocationMovementById } from "~/services/location-movements.service";
+import {
+  getLocationMovementById,
+  deleteLocationMovement,
+} from "~/services/location-movements.service";
 import { getAnimalMovementById } from "~/services/animal-movements.service";
 import { getPropertyById } from "~/services/properties.service";
 import { getLocationById } from "~/services/locations.service";
@@ -52,13 +65,16 @@ export default function MovementDetails() {
   const t = useTranslation();
   const { language } = useLanguage();
   const dateLocale = useDateLocale();
+  const { canRemove } = usePermissions();
+  const { alertMessage, showAlert } = useAlert();
 
   const localeForDateTime = getLocaleForDateTime(language);
-  const locationMovement = movementId ? getLocationMovementById(movementId) : undefined;
-  const animalMovement = movementId ? getAnimalMovementById(movementId) : undefined;
-  const movement = locationMovement || animalMovement;
-  const isLocationMovement = !!locationMovement;
-  const isAnimalMovement = !!animalMovement;
+  const [movement, setMovement] = useState<LocationMovement | AnimalMovement | undefined>(
+    undefined
+  );
+  const [isLocationMovement, setIsLocationMovement] = useState(false);
+  const [isAnimalMovement, setIsAnimalMovement] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const fromLocationId = searchParams.get("fromLocation");
   const fromEmployeeId = searchParams.get("fromEmployee");
   const fromServiceProviderId = searchParams.get("fromServiceProvider");
@@ -76,6 +92,33 @@ export default function MovementDetails() {
   const [births, setBirths] = useState<Awaited<ReturnType<typeof getBirthsByCompanyId>>>([]);
 
   useEffect(() => {
+    const loadMovement = async () => {
+      if (!movementId) return;
+
+      try {
+        const locationMovement = await getLocationMovementById(movementId);
+        if (locationMovement) {
+          setMovement(locationMovement);
+          setIsLocationMovement(true);
+          setIsAnimalMovement(false);
+          return;
+        }
+
+        const animalMovement = await getAnimalMovementById(movementId);
+        if (animalMovement) {
+          setMovement(animalMovement);
+          setIsLocationMovement(false);
+          setIsAnimalMovement(true);
+        }
+      } catch (error) {
+        console.error("Failed to load movement:", error);
+      }
+    };
+
+    void loadMovement();
+  }, [movementId]);
+
+  useEffect(() => {
     const loadEntities = async () => {
       if (!movement) return;
 
@@ -86,11 +129,10 @@ export default function MovementDetails() {
             (id) => getLocationById(id) as Promise<Location | undefined>
           );
         } else if (isAnimalMovement) {
-          locationPromises = [
-            getLocationById((movement as AnimalMovement).locationId) as Promise<
-              Location | undefined
-            >,
-          ];
+          const animalMovement = movement as AnimalMovement;
+          locationPromises = animalMovement.locationId
+            ? [getLocationById(animalMovement.locationId) as Promise<Location | undefined>]
+            : [];
         }
 
         const [propertyData, ...locationResults] = await Promise.all([
@@ -154,6 +196,44 @@ export default function MovementDetails() {
     return map;
   }, [births]);
 
+  const canDeleteLocationMovement = isLocationMovement && canRemove("records", "locationMovements");
+
+  const handleDeleteMovement = async () => {
+    if (!movement || !isLocationMovement) return;
+
+    try {
+      await deleteLocationMovement(movement.id);
+      showAlert(
+        t.properties.details.movements.deleteSuccess || "Movimentação excluída com sucesso",
+        "success"
+      );
+
+      setTimeout(() => {
+        if (fromLocationId) {
+          navigate(`${getLocationViewRoute(fromLocationId)}?tab=movements`);
+        } else if (fromEmployeeId) {
+          navigate(getEmployeeViewRoute(fromEmployeeId));
+        } else if (fromServiceProviderId) {
+          navigate(getServiceProviderViewRoute(fromServiceProviderId));
+        } else if (fromPropertyId) {
+          navigate(`${getPropertyViewRoute(fromPropertyId)}?tab=movements`);
+        } else if (property?.id) {
+          navigate(`${getPropertyViewRoute(property.id)}?tab=movements`);
+        } else {
+          navigate(ROUTES.PROPERTIES);
+        }
+      }, 1500);
+    } catch (error) {
+      console.error("Failed to delete location movement:", error);
+      showAlert(
+        t.properties.details.movements.deleteError || "Erro ao excluir movimentação",
+        "error"
+      );
+    } finally {
+      setIsDeleteModalOpen(false);
+    }
+  };
+
   if (!movement) {
     return (
       <DetailPageEmptyState
@@ -183,6 +263,8 @@ export default function MovementDetails() {
 
   return (
     <div className="space-y-8">
+      {alertMessage && <Alert variant={alertMessage.variant} title={alertMessage.title} />}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -193,6 +275,11 @@ export default function MovementDetails() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          {canDeleteLocationMovement && (
+            <Button variant="danger" onClick={() => setIsDeleteModalOpen(true)}>
+              {t.common.delete}
+            </Button>
+          )}
           <Button
             variant="outline"
             onClick={() => {
@@ -406,6 +493,20 @@ export default function MovementDetails() {
           })()}
         </div>
       )}
+
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDeleteMovement}
+        title={t.properties.details.movements.deleteTitle || "Excluir movimentação de localização"}
+        message={
+          t.properties.details.movements.deleteMessage ||
+          "Tem certeza que deseja excluir esta movimentação? Esta ação não pode ser desfeita."
+        }
+        confirmLabel={t.common.delete}
+        cancelLabel={t.common.cancel}
+        variant="danger"
+      />
     </div>
   );
 }

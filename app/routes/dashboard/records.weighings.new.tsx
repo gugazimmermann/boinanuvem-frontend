@@ -467,7 +467,7 @@ export default function NewWeighing() {
         return;
       }
 
-      const movements = getAnimalMovementsByAnimalId(animal.id);
+      const movements = await getAnimalMovementsByAnimalId(animal.id);
       if (movements.length === 0) {
         setAnimalLocationInfo({ locationId: undefined, propertyId: animal.propertyId });
         return;
@@ -478,7 +478,7 @@ export default function NewWeighing() {
       );
       const latestMovement = sortedMovements[0];
       setAnimalLocationInfo({
-        locationId: latestMovement.locationId,
+        locationId: latestMovement.locationId || undefined,
         propertyId: latestMovement.propertyId || animal.propertyId,
       });
     };

@@ -15,8 +15,10 @@ vi.mock("~/services/employees.service");
 vi.mock("~/services/service-providers.service");
 vi.mock("~/services/properties.service");
 vi.mock("~/services/animal-movements.service", () => ({
-  addAnimalMovement: vi.fn(),
-  getAnimalMovementsByAnimalId: vi.fn(() => []),
+  addAnimalMovement: vi.fn().mockResolvedValue({
+    id: "movement-1",
+  }),
+  getAnimalMovementsByAnimalId: vi.fn().mockResolvedValue([]),
 }));
 vi.mock("~/i18n", () => ({
   useTranslation: () => ({

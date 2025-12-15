@@ -1,70 +1,173 @@
 import type { AnimalMovement } from "~/types";
-import { mockAnimalMovements } from "~/mocks/animal-movements";
-import { findById, findByField, deleteEntity } from "./base-service";
-import { generateUUID } from "~/utils/uuid";
+import { apiClient } from "./api-client";
+import { createCrudHandlers, createGetByIdHandler, createListHandler } from "./service-helpers";
+import { createEntityTransform } from "./transform-helpers";
+import { createResourceErrorMessages, handleApiError } from "./error-handlers";
 
-export function getAnimalMovementsByAnimalId(animalId: string): AnimalMovement[] {
-  return mockAnimalMovements.filter((movement) => movement.animalIds.includes(animalId));
-}
+const animalMovementsErrors = createResourceErrorMessages("movimentações de animais");
 
-export function getAnimalMovementsByLocationId(locationId: string): AnimalMovement[] {
-  return mockAnimalMovements.filter((movement) => movement.locationId === locationId);
-}
+export type AnimalMovementFormData = Omit<AnimalMovement, "id" | "createdAt" | "updatedAt">;
 
-export function getAnimalMovementsByPropertyId(propertyId: string): AnimalMovement[] {
-  return findByField(mockAnimalMovements, "propertyId", propertyId);
-}
+/**
+ * Transform backend AnimalMovementResponseDto to frontend AnimalMovement type
+ */
+const transformAnimalMovement = createEntityTransform<AnimalMovement & Record<string, unknown>>({
+  dateStringFields: ["date"],
+  dateTimeFields: ["createdAt", "updatedAt"],
+}) as unknown as (obj: AnimalMovement) => AnimalMovement;
 
-export function getAnimalMovementsByCompanyId(companyId: string): AnimalMovement[] {
-  return findByField(mockAnimalMovements, "companyId", companyId);
-}
+/**
+ * Get all animal movements for the current user's company via API
+ */
+export const getAnimalMovementsByCompanyId = createListHandler<AnimalMovement>({
+  endpoint: "/animal-movements",
+  errorMessages: animalMovementsErrors.list,
+  transform: transformAnimalMovement,
+});
 
-export function getAnimalMovementsByEmployeeId(employeeId: string): AnimalMovement[] {
-  return mockAnimalMovements.filter((movement) => movement.employeeIds.includes(employeeId));
-}
-
-export function getAnimalMovementsByServiceProviderId(serviceProviderId: string): AnimalMovement[] {
-  return mockAnimalMovements.filter((movement) =>
-    movement.serviceProviderIds?.includes(serviceProviderId)
-  );
-}
-
-export function getAnimalMovementById(movementId: string): AnimalMovement | undefined {
-  return findById(mockAnimalMovements, movementId);
-}
-
-export function getAnimalsByLastMovementLocation(locationId: string): string[] {
-  const movementsByAnimal = new Map<string, AnimalMovement>();
-
-  for (const movement of mockAnimalMovements) {
-    for (const animalId of movement.animalIds) {
-      const existing = movementsByAnimal.get(animalId);
-      if (!existing || new Date(movement.date) > new Date(existing.date)) {
-        movementsByAnimal.set(animalId, movement);
-      }
+/**
+ * Get animal movements by animal ID via API
+ */
+export async function getAnimalMovementsByAnimalId(animalId: string): Promise<AnimalMovement[]> {
+  try {
+    const movements = await apiClient.get<AnimalMovement[]>(`/animal-movements/animal/${animalId}`);
+    return movements.map(transformAnimalMovement);
+  } catch (error) {
+    try {
+      handleApiError(error, animalMovementsErrors.list);
+    } catch {
+      return [];
     }
   }
+}
 
-  const animalIds: string[] = [];
-  for (const [animalId, movement] of movementsByAnimal) {
-    if (movement.locationId === locationId) {
-      animalIds.push(animalId);
+/**
+ * Get animal movements by location ID via API
+ */
+export async function getAnimalMovementsByLocationId(
+  locationId: string
+): Promise<AnimalMovement[]> {
+  try {
+    const movements = await apiClient.get<AnimalMovement[]>(
+      `/animal-movements/location/${locationId}`
+    );
+    return movements.map(transformAnimalMovement);
+  } catch (error) {
+    try {
+      handleApiError(error, animalMovementsErrors.list);
+    } catch {
+      return [];
     }
   }
-
-  return animalIds;
 }
 
-export function addAnimalMovement(data: Omit<AnimalMovement, "id" | "createdAt">): AnimalMovement {
-  const newMovement: AnimalMovement = {
-    ...data,
-    id: generateUUID(),
-    createdAt: new Date().toISOString(),
-  };
-  mockAnimalMovements.push(newMovement);
-  return newMovement;
+/**
+ * Get animal movements by property ID via API
+ */
+export async function getAnimalMovementsByPropertyId(
+  propertyId: string
+): Promise<AnimalMovement[]> {
+  try {
+    const movements = await apiClient.get<AnimalMovement[]>(
+      `/animal-movements/property/${propertyId}`
+    );
+    return movements.map(transformAnimalMovement);
+  } catch (error) {
+    try {
+      handleApiError(error, animalMovementsErrors.list);
+    } catch {
+      return [];
+    }
+  }
 }
 
-export function deleteAnimalMovement(movementId: string): boolean {
-  return deleteEntity(mockAnimalMovements, movementId);
+/**
+ * Get animal movements by employee ID via API
+ */
+export async function getAnimalMovementsByEmployeeId(
+  employeeId: string
+): Promise<AnimalMovement[]> {
+  try {
+    const movements = await apiClient.get<AnimalMovement[]>(
+      `/animal-movements/employee/${employeeId}`
+    );
+    return movements.map(transformAnimalMovement);
+  } catch (error) {
+    try {
+      handleApiError(error, animalMovementsErrors.list);
+    } catch {
+      return [];
+    }
+  }
 }
+
+/**
+ * Get animal movements by service provider ID via API
+ */
+export async function getAnimalMovementsByServiceProviderId(
+  serviceProviderId: string
+): Promise<AnimalMovement[]> {
+  try {
+    const movements = await apiClient.get<AnimalMovement[]>(
+      `/animal-movements/service-provider/${serviceProviderId}`
+    );
+    return movements.map(transformAnimalMovement);
+  } catch (error) {
+    try {
+      handleApiError(error, animalMovementsErrors.list);
+    } catch {
+      return [];
+    }
+  }
+}
+
+/**
+ * Get an animal movement by ID via API
+ */
+export const getAnimalMovementById = createGetByIdHandler<AnimalMovement>({
+  endpoint: "/animal-movements",
+  errorMessages: animalMovementsErrors.view,
+  transform: transformAnimalMovement,
+});
+
+/**
+ * Get animal IDs whose last movement is to the specified location via API
+ */
+export async function getAnimalsByLastMovementLocation(locationId: string): Promise<string[]> {
+  try {
+    const animalIds = await apiClient.get<string[]>(
+      `/animal-movements/last-location/${locationId}/animals`
+    );
+    return animalIds;
+  } catch (error) {
+    try {
+      handleApiError(error, animalMovementsErrors.list);
+    } catch {
+      return [];
+    }
+  }
+}
+
+const animalMovementsCrud = createCrudHandlers<
+  AnimalMovement,
+  AnimalMovement,
+  AnimalMovementFormData
+>({
+  endpoint: "/animal-movements",
+  errorMessages: {
+    create: animalMovementsErrors.create,
+    update: animalMovementsErrors.update,
+    delete: animalMovementsErrors.delete,
+  },
+  transform: transformAnimalMovement,
+});
+
+/**
+ * Create a new animal movement via API
+ */
+export const addAnimalMovement = animalMovementsCrud.add;
+
+/**
+ * Delete an animal movement via API
+ */
+export const deleteAnimalMovement = animalMovementsCrud.remove;

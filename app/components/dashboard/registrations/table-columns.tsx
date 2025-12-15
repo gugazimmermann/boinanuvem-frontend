@@ -204,7 +204,7 @@ export function createPropertiesColumn<T extends { propertyIds: string[] }>(
 
 export function createLastMovementColumn<T extends { id: string }>(
   label: string,
-  getMovements: (id: string) => Movement[],
+  getMovements: (id: string) => Movement[] | Promise<Movement[]>,
   translation: {
     properties?: {
       details?: {
@@ -216,29 +216,58 @@ export function createLastMovementColumn<T extends { id: string }>(
   },
   language: Language = "pt"
 ): TableColumn<T> {
+  function LastMovementCell({ id }: { readonly id: string }) {
+    const [movements, setMovements] = useState<Movement[] | null>(null);
+
+    useEffect(() => {
+      let isCancelled = false;
+
+      const load = async () => {
+        try {
+          const result = getMovements(id);
+          const resolved = result instanceof Promise ? await result : result;
+          if (!isCancelled) {
+            setMovements(resolved);
+          }
+        } catch (error) {
+          console.error("Failed to load movements for entity:", error);
+          if (!isCancelled) {
+            setMovements([]);
+          }
+        }
+      };
+
+      void load();
+
+      return () => {
+        isCancelled = true;
+      };
+    }, [id]);
+
+    if (!movements || movements.length === 0) {
+      return <span className="text-gray-400 dark:text-gray-500">-</span>;
+    }
+
+    const sortedMovements = movements.toSorted(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+    const lastMovement = sortedMovements[0];
+    const movementTypeLabel =
+      translation.properties?.details?.movements?.types?.[lastMovement.type] || lastMovement.type;
+    return (
+      <div className="space-y-1">
+        <p className="text-sm text-gray-700 dark:text-gray-300">{movementTypeLabel}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          {formatDate(lastMovement.date, language)}
+        </p>
+      </div>
+    );
+  }
+
   return {
     key: "lastMovement",
     label,
     sortable: false,
-    render: (_, row) => {
-      const movements = getMovements(row.id);
-      if (movements.length === 0) {
-        return <span className="text-gray-400 dark:text-gray-500">-</span>;
-      }
-      const sortedMovements = movements.toSorted(
-        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-      );
-      const lastMovement = sortedMovements[0];
-      const movementTypeLabel =
-        translation.properties?.details?.movements?.types?.[lastMovement.type] || lastMovement.type;
-      return (
-        <div className="space-y-1">
-          <p className="text-sm text-gray-700 dark:text-gray-300">{movementTypeLabel}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {formatDate(lastMovement.date, language)}
-          </p>
-        </div>
-      );
-    },
+    render: (_, row) => <LastMovementCell id={row.id} />,
   };
 }

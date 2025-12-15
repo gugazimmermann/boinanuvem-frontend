@@ -370,6 +370,11 @@ export const en = {
         noServiceProviders: "No service providers available",
         success: "Movement added successfully!",
         error: "Error adding movement",
+        deleteSuccess: "Movement deleted successfully",
+        deleteError: "Failed to delete movement",
+        deleteTitle: "Delete location movement",
+        deleteMessage:
+          "Are you sure you want to delete this movement? This action cannot be undone.",
         movement: "movement",
         movements: "movements",
         errors: {

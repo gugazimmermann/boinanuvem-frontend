@@ -70,11 +70,15 @@ export function createMovementsTableColumns({
       label: translationKeys.locations,
       sortable: true,
       render: (_, row) => {
-        const locationIds =
-          row.movementType === "location"
-            ? (row as LocationMovement).locationIds
-            : [(row as AnimalMovement).locationId];
+        let locationIds: string[];
+        if (row.movementType === "location") {
+          locationIds = (row as LocationMovement).locationIds;
+        } else {
+          const animalMovement = row as AnimalMovement;
+          locationIds = animalMovement.locationId ? [animalMovement.locationId] : [];
+        }
         const locationNames = locationIds
+          .filter((id): id is string => id !== null && id !== undefined)
           .map((id) => {
             const location = getLocationById(id);
             return location ? `${location.name} (${location.code})` : id;

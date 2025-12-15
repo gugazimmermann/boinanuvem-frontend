@@ -37,8 +37,8 @@ export async function loader({ request }: { request: Request }) {
   return createRouteGuard(undefined, "add")({ request });
 }
 
-const getAnimalPropertyId = (animalId: string): string | undefined => {
-  const movements = getAnimalMovementsByAnimalId(animalId);
+const getAnimalPropertyId = async (animalId: string): Promise<string | undefined> => {
+  const movements = await getAnimalMovementsByAnimalId(animalId);
   if (movements.length === 0) return undefined;
   const sortedMovements = movements.toSorted(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
@@ -154,15 +154,27 @@ export default function NewAnimalMovement() {
   const { showAlert: showAlertMessage } = useAlert();
 
   useEffect(() => {
-    if (animals.length > 0) {
-      const firstPropertyId = getAnimalPropertyId(animals[0].id);
-      if (firstPropertyId) {
-        const allSameProperty = animals.every((a) => getAnimalPropertyId(a.id) === firstPropertyId);
-        if (allSameProperty && formData.propertyId !== firstPropertyId) {
-          setFormData((prev) => ({ ...prev, propertyId: firstPropertyId }));
-        }
+    const inferPropertyFromMovements = async () => {
+      if (animals.length === 0) return;
+
+      const firstPropertyId = await getAnimalPropertyId(animals[0].id);
+      if (!firstPropertyId) return;
+
+      const allSameResults = await Promise.all(
+        animals.map(async (a) => {
+          const propertyId = await getAnimalPropertyId(a.id);
+          return propertyId === firstPropertyId;
+        })
+      );
+
+      const allSameProperty = allSameResults.every(Boolean);
+
+      if (allSameProperty && formData.propertyId !== firstPropertyId) {
+        setFormData((prev) => ({ ...prev, propertyId: firstPropertyId }));
       }
-    }
+    };
+
+    inferPropertyFromMovements();
   }, [animals, setFormData, formData.propertyId]);
 
   const locations = useMemo(() => {
@@ -207,8 +219,8 @@ export default function NewAnimalMovement() {
     return Object.keys(validationErrors).length === 0;
   };
 
-  const createMovementForAnimal = (animal: Animal): boolean => {
-    const currentPropertyId = getAnimalPropertyId(animal.id);
+  const createMovementForAnimal = async (animal: Animal): Promise<boolean> => {
+    const currentPropertyId = await getAnimalPropertyId(animal.id);
     const shouldCreateMovement =
       formData.propertyId && (formData.propertyId !== currentPropertyId || formData.locationId);
 
@@ -218,14 +230,15 @@ export default function NewAnimalMovement() {
 
     try {
       const fileIds = files.map((_, index) => `file-${Date.now()}-${index}`);
-      const movement = addAnimalMovement({
+      const movement = await addAnimalMovement({
         animalIds: [animal.id],
         propertyId: formData.propertyId,
-        locationId: formData.locationId || "",
+        locationId: formData.locationId || null,
         date: formData.date,
         companyId: animal.companyId,
-        employeeIds: formData.employeeIds,
-        serviceProviderIds: formData.serviceProviderIds,
+        employeeIds: formData.employeeIds.length > 0 ? formData.employeeIds : [],
+        serviceProviderIds:
+          formData.serviceProviderIds.length > 0 ? formData.serviceProviderIds : [],
         observation: formData.observation.trim() || undefined,
         fileIds: fileIds.length > 0 ? fileIds : undefined,
       });
@@ -246,7 +259,7 @@ export default function NewAnimalMovement() {
 
     let successCount = 0;
     for (const animal of animals) {
-      if (createMovementForAnimal(animal)) {
+      if (await createMovementForAnimal(animal)) {
         successCount++;
       }
     }

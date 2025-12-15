@@ -177,9 +177,9 @@ describe("locations.$locationId", () => {
     vi.mocked(getServiceProviders).mockResolvedValue([]);
     vi.mocked(getAnimalsByCompanyId).mockResolvedValue([]);
     vi.mocked(getBirthsByCompanyId).mockResolvedValue([]);
-    vi.mocked(getLocationMovementsByLocationId).mockReturnValue([]);
-    vi.mocked(getAnimalMovementsByLocationId).mockReturnValue([]);
-    vi.mocked(getAnimalsByLastMovementLocation).mockReturnValue([]);
+    vi.mocked(getLocationMovementsByLocationId).mockResolvedValue([]);
+    vi.mocked(getAnimalMovementsByLocationId).mockResolvedValue([]);
+    vi.mocked(getAnimalsByLastMovementLocation).mockResolvedValue([]);
     vi.mocked(getMovementsByLocationId).mockReturnValue([]);
     vi.mocked(getWeighingsByAnimalId).mockReturnValue([]);
     vi.mocked(getInventoryItemById).mockReturnValue(null);

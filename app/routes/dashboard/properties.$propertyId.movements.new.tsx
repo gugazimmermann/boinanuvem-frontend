@@ -257,14 +257,15 @@ export default function NewMovement() {
         companyId: property.companyId,
         propertyId: property.id,
         locationIds: formData.locationIds,
-        employeeIds: formData.employeeIds,
-        serviceProviderIds: formData.serviceProviderIds,
+        employeeIds: formData.employeeIds.length > 0 ? formData.employeeIds : [],
+        serviceProviderIds:
+          formData.serviceProviderIds.length > 0 ? formData.serviceProviderIds : [],
         type: formData.type,
         date: formData.date,
         observation: formData.observation.trim() || undefined,
         fileIds: fileIds.length > 0 ? fileIds : undefined,
       };
-      addLocationMovement(movementData);
+      await addLocationMovement(movementData);
       showAlert(t.properties.details.movements.success, "success");
       setTimeout(() => {
         if (locationIdParam && locationExists) {
@@ -279,7 +280,9 @@ export default function NewMovement() {
       }, 1500);
     } catch (error) {
       console.error("Error adding movement:", error);
-      showAlert(t.properties.details.movements.error, "error");
+      const errorMessage =
+        error instanceof Error ? error.message : t.properties.details.movements.error;
+      showAlert(errorMessage, "error");
     } finally {
       setIsSubmitting(false);
     }

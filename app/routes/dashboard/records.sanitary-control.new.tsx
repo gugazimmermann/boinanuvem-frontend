@@ -194,11 +194,11 @@ export default function NewSanitaryControl() {
   }, [formData.animalIds]);
 
   const getAnimalLocationInfo = useCallback(
-    (animalId: string): { locationId: string; propertyId: string } => {
+    async (animalId: string): Promise<{ locationId: string; propertyId: string }> => {
       const animal = getAnimalByIdLocal(animalId);
       if (!animal) return { locationId: "", propertyId: "" };
 
-      const movements = getAnimalMovementsByAnimalId(animalId);
+      const movements = await getAnimalMovementsByAnimalId(animalId);
       if (movements.length === 0) {
         return {
           locationId:
@@ -229,7 +229,7 @@ export default function NewSanitaryControl() {
       const stockPromises: Promise<[string, number]>[] = [];
       for (const applied of formData.appliedMedicines) {
         for (const animalId of formData.animalIds) {
-          const locationInfo = getAnimalLocationInfo(animalId);
+          const locationInfo = await getAnimalLocationInfo(animalId);
           if (locationInfo.propertyId) {
             stockPromises.push(
               getCurrentStock(applied.itemId, locationInfo.propertyId).then(
@@ -359,7 +359,7 @@ export default function NewSanitaryControl() {
     appliedMedicines: Array<{ itemId: string; quantity: number }>,
     newErrors: Record<string, string>
   ): Promise<void> => {
-    const locationInfo = getAnimalLocationInfo(animalId);
+    const locationInfo = await getAnimalLocationInfo(animalId);
     if (!locationInfo.propertyId) return;
 
     for (const applied of appliedMedicines) {
@@ -404,7 +404,7 @@ export default function NewSanitaryControl() {
   };
 
   const recordInventoryMovements = async (animalId: string) => {
-    const locationInfo = getAnimalLocationInfo(animalId);
+    const locationInfo = await getAnimalLocationInfo(animalId);
     if (!formData.appliedMedicines.length || !locationInfo.propertyId) {
       return;
     }
@@ -629,11 +629,19 @@ export default function NewSanitaryControl() {
                             : 0;
                         const calculatedDosage = calculateDosage(item, avgWeight);
 
+                        // Calculate current stock from pre-loaded stockMap
+                        // Note: This uses the stockMap which is loaded asynchronously in useEffect
+                        // For accurate real-time stock, we'd need to load it here, but that would
+                        // require making this component async, which isn't possible in JSX render
                         const stocks = formData.animalIds
                           .map((animalId) => {
-                            const locationInfo = getAnimalLocationInfo(animalId);
-                            return locationInfo.propertyId
-                              ? stockMap.get(`${applied.itemId}_${locationInfo.propertyId}`) || 0
+                            // Try to get propertyId from pre-loaded animal location info
+                            // This is a best-effort approach - for accurate stock, the stockMap
+                            // should be pre-populated with all relevant propertyIds
+                            const animal = getAnimalByIdLocal(animalId);
+                            const propertyId = animal?.propertyId;
+                            return propertyId
+                              ? stockMap.get(`${applied.itemId}_${propertyId}`) || 0
                               : 0;
                           })
                           .filter((stock) => stock >= 0);

@@ -233,6 +233,89 @@ type UnifiedMovement =
   | (LocationMovement & { movementType: "location" } & Record<string, unknown>)
   | (AnimalMovement & { movementType: "animal" } & Record<string, unknown>);
 
+function matchesMovementType(
+  movement: UnifiedMovement,
+  searchLower: string,
+  movementTypes: Record<string, string>
+): boolean {
+  if (movement.movementType === "location") {
+    const typeText =
+      movementTypes[(movement as LocationMovement).type as keyof typeof movementTypes] ||
+      (movement as LocationMovement).type;
+    return typeText.toLowerCase().includes(searchLower);
+  }
+  const animalMovementText = movementTypes.animal_movement.toLowerCase();
+  return animalMovementText.includes(searchLower) || "animal".toLowerCase().includes(searchLower);
+}
+
+function matchesLocationNames(
+  movement: UnifiedMovement,
+  searchLower: string,
+  locations: Location[]
+): boolean {
+  let locationIds: string[];
+  if (movement.movementType === "location") {
+    locationIds = (movement as LocationMovement).locationIds;
+  } else {
+    const animalMovement = movement as AnimalMovement;
+    locationIds = animalMovement.locationId ? [animalMovement.locationId] : [];
+  }
+  const locationNames = locationIds
+    .filter((id): id is string => id !== null && id !== undefined)
+    .map((id) => {
+      const location = locations.find((l) => l.id === id);
+      return location ? `${location.name} ${location.code}`.toLowerCase() : id.toLowerCase();
+    })
+    .join(" ");
+  return locationNames.includes(searchLower);
+}
+
+function matchesAnimalNames(
+  movement: UnifiedMovement,
+  searchLower: string,
+  animalsMap: Map<string, Animal>
+): boolean {
+  if (movement.movementType !== "animal") return false;
+  const animalNames = (movement as AnimalMovement).animalIds
+    .map((id) => {
+      const animal = animalsMap.get(id);
+      return animal ? `${animal.code} ${animal.registrationNumber}`.toLowerCase() : "";
+    })
+    .filter((name) => name !== "")
+    .join(" ");
+  return animalNames.includes(searchLower);
+}
+
+function matchesEmployeeNames(
+  movement: UnifiedMovement,
+  searchLower: string,
+  employees: Employee[]
+): boolean {
+  const employeeNames = movement.employeeIds
+    .map((id) => {
+      const employee = employees.find((e) => e.id === id);
+      return employee ? employee.name.toLowerCase() : "";
+    })
+    .filter((name) => name !== "")
+    .join(" ");
+  return employeeNames.includes(searchLower);
+}
+
+function matchesProviderNames(
+  movement: UnifiedMovement,
+  searchLower: string,
+  serviceProviders: ServiceProvider[]
+): boolean {
+  const providerNames = movement.serviceProviderIds
+    .map((id) => {
+      const provider = serviceProviders.find((sp) => sp.id === id);
+      return provider ? provider.name.toLowerCase() : "";
+    })
+    .filter((name) => name !== "")
+    .join(" ");
+  return providerNames.includes(searchLower);
+}
+
 function filterMovementsBySearch(
   movements: UnifiedMovement[],
   searchValue: string,
@@ -251,60 +334,15 @@ function filterMovementsBySearch(
   const searchLower = searchValue.toLowerCase();
 
   return movements.filter((movement) => {
-    if (movement.movementType === "location") {
-      const typeText =
-        movementTypes[(movement as LocationMovement).type as keyof typeof movementTypes] ||
-        (movement as LocationMovement).type;
-      if (typeText.toLowerCase().includes(searchLower)) return true;
-    } else {
-      const animalMovementText = movementTypes.animal_movement.toLowerCase();
-      if (animalMovementText.includes(searchLower) || "animal".toLowerCase().includes(searchLower))
-        return true;
-    }
+    if (matchesMovementType(movement, searchLower, movementTypes)) return true;
 
     const dateText = formatDate(movement.date);
     if (dateText.toLowerCase().includes(searchLower)) return true;
 
-    const locationIds =
-      movement.movementType === "location"
-        ? (movement as LocationMovement).locationIds
-        : [(movement as AnimalMovement).locationId];
-    const locationNames = locationIds
-      .map((id) => {
-        const location = locations.find((l) => l.id === id);
-        return location ? `${location.name} ${location.code}`.toLowerCase() : id.toLowerCase();
-      })
-      .join(" ");
-    if (locationNames.includes(searchLower)) return true;
-
-    if (movement.movementType === "animal") {
-      const animalNames = (movement as AnimalMovement).animalIds
-        .map((id) => {
-          const animal = animalsMap.get(id);
-          return animal ? `${animal.code} ${animal.registrationNumber}`.toLowerCase() : "";
-        })
-        .filter((name) => name !== "")
-        .join(" ");
-      if (animalNames.includes(searchLower)) return true;
-    }
-
-    const employeeNames = movement.employeeIds
-      .map((id) => {
-        const employee = employees.find((e) => e.id === id);
-        return employee ? employee.name.toLowerCase() : "";
-      })
-      .filter((name) => name !== "")
-      .join(" ");
-    if (employeeNames.includes(searchLower)) return true;
-
-    const providerNames = movement.serviceProviderIds
-      .map((id) => {
-        const provider = serviceProviders.find((sp) => sp.id === id);
-        return provider ? provider.name.toLowerCase() : "";
-      })
-      .filter((name) => name !== "")
-      .join(" ");
-    if (providerNames.includes(searchLower)) return true;
+    if (matchesLocationNames(movement, searchLower, locations)) return true;
+    if (matchesAnimalNames(movement, searchLower, animalsMap)) return true;
+    if (matchesEmployeeNames(movement, searchLower, employees)) return true;
+    if (matchesProviderNames(movement, searchLower, serviceProviders)) return true;
 
     return false;
   });
@@ -320,11 +358,15 @@ function getMovementSortValue(
   if (column === "date") {
     return new Date(item.date).getTime();
   } else if (column === "locations") {
-    const locationIds =
-      item.movementType === "location"
-        ? (item as LocationMovement).locationIds
-        : [(item as AnimalMovement).locationId];
+    let locationIds: string[];
+    if (item.movementType === "location") {
+      locationIds = (item as LocationMovement).locationIds;
+    } else {
+      const animalMovement = item as AnimalMovement;
+      locationIds = animalMovement.locationId ? [animalMovement.locationId] : [];
+    }
     const locationNames = locationIds
+      .filter((id): id is string => id !== null && id !== undefined)
       .map((id) => {
         const location = locations.find((l) => l.id === id);
         return location ? `${location.name} (${location.code})` : id;
@@ -1103,6 +1145,7 @@ export default function PropertyDetails() {
     direction: SortDirection;
   }>({ column: "date", direction: "desc" });
   const financeItemsPerPage = 10;
+  const [propertyMovements, setPropertyMovements] = useState<UnifiedMovement[]>([]);
 
   useEffect(() => {
     if (activeTab === "activities" && !isMainUser()) {
@@ -1121,6 +1164,34 @@ export default function PropertyDetails() {
   const [isDeleteAnimalModalOpen, setIsDeleteAnimalModalOpen] = useState(false);
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
   const [selectedAnimals, setSelectedAnimals] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const loadMovements = async () => {
+      if (!property) {
+        setPropertyMovements([]);
+        return;
+      }
+
+      try {
+        const [locationMovements, animalMovements] = await Promise.all([
+          getLocationMovementsByPropertyId(property.id),
+          getAnimalMovementsByPropertyId(property.id),
+        ]);
+
+        const movements: UnifiedMovement[] = [
+          ...locationMovements.map((m) => ({ ...m, movementType: "location" as const })),
+          ...animalMovements.map((m) => ({ ...m, movementType: "animal" as const })),
+        ];
+
+        setPropertyMovements(movements);
+      } catch (error) {
+        console.error("Failed to load property movements:", error);
+        setPropertyMovements([]);
+      }
+    };
+
+    void loadMovements();
+  }, [property]);
   const [isAnimalRegistrationModalOpen, setIsAnimalRegistrationModalOpen] = useState(false);
 
   // Finance transaction handlers - must be called at component level
@@ -2532,16 +2603,8 @@ export default function PropertyDetails() {
       {activeTab === "movements" &&
         property &&
         (() => {
-          const locationMovements = getLocationMovementsByPropertyId(property.id);
-          const animalMovements = getAnimalMovementsByPropertyId(property.id);
-
-          const movements: UnifiedMovement[] = [
-            ...locationMovements.map((m) => ({ ...m, movementType: "location" as const })),
-            ...animalMovements.map((m) => ({ ...m, movementType: "animal" as const })),
-          ];
-
           const filteredMovements = filterMovementsBySearch(
-            movements,
+            propertyMovements,
             searchValue,
             formatDate,
             t.properties.details.movements.types,

@@ -58,7 +58,7 @@ import { getLocationById, getLocations } from "~/services/locations.service";
 import { getSalesByAnimalId } from "~/services/sales.service";
 import { getBuyerById, getBuyers } from "~/services/buyers.service";
 import { calculateAnimalProfitability } from "~/utils/profitability";
-import type { Breeding, Birth, BirthPurity, Weighing } from "~/types";
+import type { AnimalMovement, Breeding, Birth, BirthPurity, Weighing } from "~/types";
 import type { AnimalObservation } from "~/types/animal-observation";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
 import { usePermissions } from "~/utils/permissions";
@@ -626,7 +626,7 @@ type AnimalDashboardTabProps = Readonly<{
   averageCalvingInterval: number | null;
   currentLocation: Awaited<ReturnType<typeof getLocationById>> | undefined;
   currentProperty: Awaited<ReturnType<typeof getPropertyById>> | undefined;
-  animalMovements: ReturnType<typeof getAnimalMovementsByAnimalId>;
+  animalMovements: AnimalMovement[];
   locationsMap: Map<string, Awaited<ReturnType<typeof getLocationById>>>;
   daysInCurrentLocation: number | null;
   animalCostData: Awaited<ReturnType<typeof getAnimalTotalCost>> | null;
@@ -640,7 +640,7 @@ type AnimalDashboardTabProps = Readonly<{
   weightChartData: Array<{ date: string; weight: number }>;
   recentWeighings: Weighing[];
   recentBreedingsList: Breeding[];
-  recentMovementsList: ReturnType<typeof getAnimalMovementsByAnimalId>;
+  recentMovementsList: AnimalMovement[];
   isDark: boolean;
   formatDate: (dateString: string | undefined) => string;
   formatRelativeTime: (dateString: string) => string;
@@ -1232,7 +1232,9 @@ function AnimalDashboardTab({ animal, ...props }: AnimalDashboardTabProps) {
               </h3>
               <div className="space-y-2">
                 {recentMovementsList.map((movement) => {
-                  const location = locationsMap.get(movement.locationId);
+                  const location = movement.locationId
+                    ? locationsMap.get(movement.locationId)
+                    : undefined;
                   return (
                     <div
                       key={movement.id}
@@ -1689,10 +1691,25 @@ export default function AnimalDetails() {
       ? Math.round(calvingIntervals.reduce((a, b) => a + b, 0) / calvingIntervals.length)
       : null;
 
-  const animalMovements = useMemo(
-    () => (animal ? getAnimalMovementsByAnimalId(animal.id) : []),
-    [animal]
-  );
+  const [animalMovements, setAnimalMovements] = useState<AnimalMovement[]>([]);
+
+  useEffect(() => {
+    const loadAnimalMovements = async () => {
+      if (!animal?.id) {
+        setAnimalMovements([]);
+        return;
+      }
+      try {
+        const movements = await getAnimalMovementsByAnimalId(animal.id);
+        setAnimalMovements(movements || []);
+      } catch (error) {
+        console.error("Failed to load animal movements:", error);
+        setAnimalMovements([]);
+      }
+    };
+    loadAnimalMovements();
+  }, [animal?.id]);
+
   const sortedMovements = useMemo(
     () =>
       animalMovements.toSorted((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
@@ -1708,7 +1725,7 @@ export default function AnimalDetails() {
 
   useEffect(() => {
     const loadLocationAndProperty = async () => {
-      if (currentMovement) {
+      if (currentMovement?.locationId) {
         try {
           const location = await getLocationById(currentMovement.locationId);
           setCurrentLocation(location);

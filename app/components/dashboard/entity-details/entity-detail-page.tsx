@@ -119,8 +119,8 @@ export interface EntityDetailPageProps<TEntity, TObservation extends Observation
   };
   /** Movements tab configuration */
   readonly movementsConfig?: {
-    getLocationMovements: (id: string) => LocationMovement[];
-    getAnimalMovements: (id: string) => AnimalMovement[];
+    getLocationMovements: (id: string) => LocationMovement[] | Promise<LocationMovement[]>;
+    getAnimalMovements: (id: string) => AnimalMovement[] | Promise<AnimalMovement[]>;
     getMovementNewRouteParam: (propertyId: string, entityId: string) => string;
     entityType: "employee" | "serviceProvider";
   };
@@ -159,6 +159,8 @@ export function EntityDetailPage<TEntity, TObservation extends Observation>({
   const [, setSearchParams] = useSearchParams();
   const [entity, setEntity] = useState<TEntity | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [locationMovements, setLocationMovements] = useState<LocationMovement[]>([]);
+  const [animalMovements, setAnimalMovements] = useState<AnimalMovement[]>([]);
 
   useEffect(() => {
     const loadEntity = async () => {
@@ -191,6 +193,36 @@ export function EntityDetailPage<TEntity, TObservation extends Observation>({
   });
 
   const entityData = entity ? mapEntityToData(entity) : null;
+
+  // Load movements when movements tab is active
+  useEffect(() => {
+    const loadMovements = async () => {
+      if (!movementsConfig || !entityData) {
+        setLocationMovements([]);
+        setAnimalMovements([]);
+        return;
+      }
+
+      try {
+        const locationResult = movementsConfig.getLocationMovements(entityData.id);
+        const animalResult = movementsConfig.getAnimalMovements(entityData.id);
+
+        const [locationMovs, animalMovs] = await Promise.all([
+          Promise.resolve(locationResult),
+          Promise.resolve(animalResult),
+        ]);
+
+        setLocationMovements(locationMovs);
+        setAnimalMovements(animalMovs);
+      } catch (error) {
+        console.error("Failed to load movements:", error);
+        setLocationMovements([]);
+        setAnimalMovements([]);
+      }
+    };
+
+    loadMovements();
+  }, [movementsConfig, entityData]);
 
   const entityDetailsConfig = useEntityDetailsConfig({
     entityType,
@@ -400,8 +432,8 @@ export function EntityDetailPage<TEntity, TObservation extends Observation>({
           entityType={movementsConfig.entityType}
           entityId={entityData.id}
           entityPropertyIds={entityData.propertyIds}
-          locationMovements={movementsConfig.getLocationMovements(entityData.id)}
-          animalMovements={movementsConfig.getAnimalMovements(entityData.id)}
+          locationMovements={locationMovements}
+          animalMovements={animalMovements}
           getMovementNewRouteParam={(propertyId) =>
             movementsConfig.getMovementNewRouteParam(propertyId, entityData.id)
           }
