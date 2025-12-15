@@ -2,51 +2,117 @@ import type {
   ServiceProviderObservation,
   ServiceProviderObservationFormData,
 } from "~/types/service-provider-observation";
-import { mockServiceProviderObservations } from "~/mocks/service-provider-observations";
-import { findById, findByField, deleteEntity } from "./base-service";
-import { generateUUID } from "~/utils/uuid";
+import { apiClient } from "./api-client";
+import { createResourceErrorMessages, handleApiError } from "./error-handlers";
+import { createEntityTransform } from "./transform-helpers";
+import { buildUpdateDto } from "~/utils/update-dto-builder";
 
-export function getServiceProviderObservationsByServiceProviderId(
+const serviceProviderObservationErrors = createResourceErrorMessages(
+  "observação de prestador de serviço"
+);
+
+/**
+ * Transform backend ServiceProviderObservationResponseDto to frontend ServiceProviderObservation type
+ */
+const transformServiceProviderObservation = createEntityTransform<
+  ServiceProviderObservation & Record<string, unknown>
+>({
+  dateTimeFields: ["createdAt", "updatedAt"],
+}) as unknown as (obs: ServiceProviderObservation) => ServiceProviderObservation;
+
+/**
+ * Get all observations for a service provider via API
+ */
+export async function getServiceProviderObservationsByServiceProviderId(
   serviceProviderId: string
-): ServiceProviderObservation[] {
-  return findByField(mockServiceProviderObservations, "serviceProviderId", serviceProviderId);
+): Promise<ServiceProviderObservation[]> {
+  if (!serviceProviderId) return [];
+  try {
+    const observations = await apiClient.get<ServiceProviderObservation[]>(
+      `/service-providers/${serviceProviderId}/observations`
+    );
+    return observations.map(transformServiceProviderObservation);
+  } catch (error) {
+    try {
+      handleApiError(error, serviceProviderObservationErrors.list);
+    } catch {
+      return [];
+    }
+  }
 }
 
-export function getServiceProviderObservationById(
+/**
+ * Get a single service provider observation by ID via API
+ */
+export async function getServiceProviderObservationById(
   observationId: string | undefined
-): ServiceProviderObservation | undefined {
-  return findById(mockServiceProviderObservations, observationId);
+): Promise<ServiceProviderObservation | undefined> {
+  if (!observationId) return undefined;
+  try {
+    const observation = await apiClient.get<ServiceProviderObservation>(
+      `/service-provider-observations/${observationId}`
+    );
+    return transformServiceProviderObservation(observation);
+  } catch (error) {
+    try {
+      handleApiError(error, {
+        ...serviceProviderObservationErrors.view,
+        403: "Você não tem permissão para visualizar esta observação",
+      });
+    } catch {
+      return undefined;
+    }
+  }
 }
 
-export function addServiceProviderObservation(
+/**
+ * Create a new service provider observation via API
+ */
+export async function addServiceProviderObservation(
   data: ServiceProviderObservationFormData
-): ServiceProviderObservation {
-  const newObservation: ServiceProviderObservation = {
-    ...data,
-    id: generateUUID(),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-  mockServiceProviderObservations.push(newObservation);
-  return newObservation;
+): Promise<ServiceProviderObservation> {
+  try {
+    const createDto = {
+      observation: data.observation,
+      fileIds: data.fileIds,
+    };
+
+    const response = await apiClient.post<ServiceProviderObservation>(
+      `/service-providers/${data.serviceProviderId}/observations`,
+      createDto
+    );
+    return transformServiceProviderObservation(response);
+  } catch (error) {
+    handleApiError(error, serviceProviderObservationErrors.create);
+  }
 }
 
-export function deleteServiceProviderObservation(observationId: string): boolean {
-  return deleteEntity(mockServiceProviderObservations, observationId);
-}
-
-export function updateServiceProviderObservation(
+/**
+ * Update a service provider observation via API
+ */
+export async function updateServiceProviderObservation(
   observationId: string,
   data: Partial<ServiceProviderObservationFormData>
-): boolean {
-  const index = mockServiceProviderObservations.findIndex((obs) => obs.id === observationId);
-  if (index !== -1) {
-    mockServiceProviderObservations[index] = {
-      ...mockServiceProviderObservations[index],
-      ...data,
-      updatedAt: new Date().toISOString(),
-    };
-    return true;
+): Promise<ServiceProviderObservation> {
+  try {
+    const updateDto = buildUpdateDto(data, ["observation", "fileIds"]);
+    const response = await apiClient.put<ServiceProviderObservation>(
+      `/service-provider-observations/${observationId}`,
+      updateDto
+    );
+    return transformServiceProviderObservation(response);
+  } catch (error) {
+    handleApiError(error, serviceProviderObservationErrors.update);
   }
-  return false;
+}
+
+/**
+ * Delete a service provider observation via API
+ */
+export async function deleteServiceProviderObservation(observationId: string): Promise<void> {
+  try {
+    await apiClient.delete(`/service-provider-observations/${observationId}`);
+  } catch (error) {
+    handleApiError(error, serviceProviderObservationErrors.delete);
+  }
 }

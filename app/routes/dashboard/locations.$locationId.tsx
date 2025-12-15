@@ -595,13 +595,18 @@ function createObservationSubmitHandler(options: ObservationSubmitHandlerOptions
     try {
       const fileIds = observationFiles.map((_, index) => `file-obs-${Date.now()}-${index}`);
 
-      addLocationObservation({
+      await addLocationObservation({
         locationId: location.id,
         observation: observationText.trim(),
         fileIds: fileIds.length > 0 ? fileIds : undefined,
       });
 
-      setObservations(getLocationObservationsByLocationId(location.id));
+      try {
+        const updated = await getLocationObservationsByLocationId(location.id);
+        setObservations(updated);
+      } catch (error) {
+        console.error("Error reloading location observations:", error);
+      }
 
       setObservationAlert({
         title: t.locations.details.observationAdded,
@@ -1050,9 +1055,21 @@ export default function LocationDetails() {
   const [observations, setObservations] = useState<LocationObservation[]>([]);
 
   useEffect(() => {
-    if (location) {
-      setObservations(getLocationObservationsByLocationId(location.id));
-    }
+    const loadObservations = async () => {
+      if (!location) {
+        setObservations([]);
+        return;
+      }
+      try {
+        const result = await getLocationObservationsByLocationId(location.id);
+        setObservations(result);
+      } catch (error) {
+        console.error("Error loading location observations:", error);
+        setObservations([]);
+      }
+    };
+
+    void loadObservations();
   }, [location]);
 
   const animalIdsInLocation = location ? getAnimalsByLastMovementLocation(location.id) : [];

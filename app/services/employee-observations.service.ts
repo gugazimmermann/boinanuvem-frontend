@@ -2,47 +2,115 @@ import type {
   EmployeeObservation,
   EmployeeObservationFormData,
 } from "~/types/employee-observation";
-import { mockEmployeeObservations } from "~/mocks/employee-observations";
-import { findById, findByField, deleteEntity } from "./base-service";
-import { generateUUID } from "~/utils/uuid";
+import { apiClient } from "./api-client";
+import { createResourceErrorMessages, handleApiError } from "./error-handlers";
+import { createEntityTransform } from "./transform-helpers";
+import { buildUpdateDto } from "~/utils/update-dto-builder";
 
-export function getEmployeeObservationsByEmployeeId(employeeId: string): EmployeeObservation[] {
-  return findByField(mockEmployeeObservations, "employeeId", employeeId);
+const employeeObservationErrors = createResourceErrorMessages("observação de funcionário");
+
+/**
+ * Transform backend EmployeeObservationResponseDto to frontend EmployeeObservation type
+ */
+const transformEmployeeObservation = createEntityTransform<
+  EmployeeObservation & Record<string, unknown>
+>({
+  dateTimeFields: ["createdAt", "updatedAt"],
+}) as unknown as (obs: EmployeeObservation) => EmployeeObservation;
+
+/**
+ * Get all observations for an employee via API
+ */
+export async function getEmployeeObservationsByEmployeeId(
+  employeeId: string
+): Promise<EmployeeObservation[]> {
+  if (!employeeId) return [];
+  try {
+    const observations = await apiClient.get<EmployeeObservation[]>(
+      `/employees/${employeeId}/observations`
+    );
+    return observations.map(transformEmployeeObservation);
+  } catch (error) {
+    try {
+      handleApiError(error, employeeObservationErrors.list);
+    } catch {
+      return [];
+    }
+  }
 }
 
-export function getEmployeeObservationById(
+/**
+ * Get a single employee observation by ID via API
+ */
+export async function getEmployeeObservationById(
   observationId: string | undefined
-): EmployeeObservation | undefined {
-  return findById(mockEmployeeObservations, observationId);
+): Promise<EmployeeObservation | undefined> {
+  if (!observationId) return undefined;
+  try {
+    const observation = await apiClient.get<EmployeeObservation>(
+      `/employee-observations/${observationId}`
+    );
+    return transformEmployeeObservation(observation);
+  } catch (error) {
+    try {
+      handleApiError(error, {
+        ...employeeObservationErrors.view,
+        403: "Você não tem permissão para visualizar esta observação",
+      });
+    } catch {
+      return undefined;
+    }
+  }
 }
 
-export function addEmployeeObservation(data: EmployeeObservationFormData): EmployeeObservation {
-  const newObservation: EmployeeObservation = {
-    ...data,
-    id: generateUUID(),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-  mockEmployeeObservations.push(newObservation);
-  return newObservation;
+/**
+ * Create a new employee observation via API
+ */
+export async function addEmployeeObservation(
+  data: EmployeeObservationFormData
+): Promise<EmployeeObservation> {
+  try {
+    const createDto = {
+      observation: data.observation,
+      fileIds: data.fileIds,
+    };
+
+    const response = await apiClient.post<EmployeeObservation>(
+      `/employees/${data.employeeId}/observations`,
+      createDto
+    );
+    return transformEmployeeObservation(response);
+  } catch (error) {
+    handleApiError(error, employeeObservationErrors.create);
+  }
 }
 
-export function deleteEmployeeObservation(observationId: string): boolean {
-  return deleteEntity(mockEmployeeObservations, observationId);
-}
-
-export function updateEmployeeObservation(
+/**
+ * Update an employee observation via API
+ */
+export async function updateEmployeeObservation(
   observationId: string,
   data: Partial<EmployeeObservationFormData>
-): boolean {
-  const index = mockEmployeeObservations.findIndex((obs) => obs.id === observationId);
-  if (index !== -1) {
-    mockEmployeeObservations[index] = {
-      ...mockEmployeeObservations[index],
-      ...data,
-      updatedAt: new Date().toISOString(),
-    };
-    return true;
+): Promise<EmployeeObservation> {
+  try {
+    const updateDto = buildUpdateDto(data, ["observation", "fileIds"]);
+    const response = await apiClient.put<EmployeeObservation>(
+      `/employee-observations/${observationId}`,
+      updateDto
+    );
+    return transformEmployeeObservation(response);
+  } catch (error) {
+    handleApiError(error, employeeObservationErrors.update);
   }
-  return false;
+}
+
+/**
+ * Delete an employee observation via API
+ */
+export async function deleteEmployeeObservation(observationId: string): Promise<void> {
+  try {
+    await apiClient.delete(`/employee-observations/${observationId}`);
+  } catch (error) {
+    handleApiError(error, employeeObservationErrors.delete);
+  }
 }

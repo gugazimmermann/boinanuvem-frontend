@@ -149,9 +149,22 @@ export default function InventoryItemDetailsPage() {
   }, [item]);
 
   useEffect(() => {
-    if (item) {
-      setObservations(getInventoryObservationsByItemId(item.id));
-    }
+    const loadObservations = async () => {
+      if (!item) {
+        setObservations([]);
+        return;
+      }
+
+      try {
+        const obs = await getInventoryObservationsByItemId(item.id);
+        setObservations(obs);
+      } catch (error) {
+        console.error("Failed to load inventory observations:", error);
+        setObservations([]);
+      }
+    };
+
+    void loadObservations();
   }, [item]);
 
   useEffect(() => {
@@ -188,13 +201,18 @@ export default function InventoryItemDetailsPage() {
     try {
       const fileIds = observationFiles.map((_, index) => `file-inv-obs-${Date.now()}-${index}`);
 
-      addInventoryObservation({
+      await addInventoryObservation({
         itemId: item.id,
         observation: observationText.trim(),
         fileIds: fileIds.length > 0 ? fileIds : undefined,
       });
 
-      setObservations(getInventoryObservationsByItemId(item.id));
+      try {
+        const obs = await getInventoryObservationsByItemId(item.id);
+        setObservations(obs);
+      } catch (error) {
+        console.error("Failed to reload inventory observations:", error);
+      }
 
       setObservationAlert({
         title: "Observação adicionada com sucesso!",

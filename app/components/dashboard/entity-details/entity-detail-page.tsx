@@ -98,8 +98,8 @@ export interface EntityDetailPageProps<TEntity, TObservation extends Observation
   readonly permissionResource: "buyer" | "employee" | "serviceProvider" | "supplier";
   /** Observation management configuration */
   readonly observationConfig: {
-    fetchObservations: (id: string) => TObservation[];
-    addObservation: (data: { [key: string]: unknown }) => TObservation;
+    fetchObservations: (id: string) => TObservation[] | Promise<TObservation[]>;
+    addObservation: (data: { [key: string]: unknown }) => TObservation | Promise<TObservation>;
     translationKeys: {
       observationRequired: string;
       observationAdded: string;

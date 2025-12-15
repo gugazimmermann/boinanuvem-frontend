@@ -2,47 +2,115 @@ import type {
   InventoryObservation,
   InventoryObservationFormData,
 } from "~/types/inventory-observation";
-import { mockInventoryObservations } from "~/mocks/inventory-observations";
-import { findById, findByField, deleteEntity } from "./base-service";
-import { generateUUID } from "~/utils/uuid";
+import { apiClient } from "./api-client";
+import { createResourceErrorMessages, handleApiError } from "./error-handlers";
+import { createEntityTransform } from "./transform-helpers";
+import { buildUpdateDto } from "~/utils/update-dto-builder";
 
-export function getInventoryObservationsByItemId(itemId: string): InventoryObservation[] {
-  return findByField(mockInventoryObservations, "itemId", itemId);
+const inventoryObservationErrors = createResourceErrorMessages("observação de item de estoque");
+
+/**
+ * Transform backend InventoryObservationResponseDto to frontend InventoryObservation type
+ */
+const transformInventoryObservation = createEntityTransform<
+  InventoryObservation & Record<string, unknown>
+>({
+  dateTimeFields: ["createdAt", "updatedAt"],
+}) as unknown as (obs: InventoryObservation) => InventoryObservation;
+
+/**
+ * Get all observations for an inventory item via API
+ */
+export async function getInventoryObservationsByItemId(
+  itemId: string
+): Promise<InventoryObservation[]> {
+  if (!itemId) return [];
+  try {
+    const observations = await apiClient.get<InventoryObservation[]>(
+      `/inventory-items/${itemId}/observations`
+    );
+    return observations.map(transformInventoryObservation);
+  } catch (error) {
+    try {
+      handleApiError(error, inventoryObservationErrors.list);
+    } catch {
+      return [];
+    }
+  }
 }
 
-export function getInventoryObservationById(
+/**
+ * Get a single inventory observation by ID via API
+ */
+export async function getInventoryObservationById(
   observationId: string | undefined
-): InventoryObservation | undefined {
-  return findById(mockInventoryObservations, observationId);
+): Promise<InventoryObservation | undefined> {
+  if (!observationId) return undefined;
+  try {
+    const observation = await apiClient.get<InventoryObservation>(
+      `/inventory-observations/${observationId}`
+    );
+    return transformInventoryObservation(observation);
+  } catch (error) {
+    try {
+      handleApiError(error, {
+        ...inventoryObservationErrors.view,
+        403: "Você não tem permissão para visualizar esta observação",
+      });
+    } catch {
+      return undefined;
+    }
+  }
 }
 
-export function addInventoryObservation(data: InventoryObservationFormData): InventoryObservation {
-  const newObservation: InventoryObservation = {
-    ...data,
-    id: generateUUID(),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-  mockInventoryObservations.push(newObservation);
-  return newObservation;
+/**
+ * Create a new inventory observation via API
+ */
+export async function addInventoryObservation(
+  data: InventoryObservationFormData
+): Promise<InventoryObservation> {
+  try {
+    const createDto = {
+      observation: data.observation,
+      fileIds: data.fileIds,
+    };
+
+    const response = await apiClient.post<InventoryObservation>(
+      `/inventory-items/${data.itemId}/observations`,
+      createDto
+    );
+    return transformInventoryObservation(response);
+  } catch (error) {
+    handleApiError(error, inventoryObservationErrors.create);
+  }
 }
 
-export function deleteInventoryObservation(observationId: string): boolean {
-  return deleteEntity(mockInventoryObservations, observationId);
-}
-
-export function updateInventoryObservation(
+/**
+ * Update an inventory observation via API
+ */
+export async function updateInventoryObservation(
   observationId: string,
   data: Partial<InventoryObservationFormData>
-): boolean {
-  const index = mockInventoryObservations.findIndex((obs) => obs.id === observationId);
-  if (index !== -1) {
-    mockInventoryObservations[index] = {
-      ...mockInventoryObservations[index],
-      ...data,
-      updatedAt: new Date().toISOString(),
-    };
-    return true;
+): Promise<InventoryObservation> {
+  try {
+    const updateDto = buildUpdateDto(data, ["observation", "fileIds"]);
+    const response = await apiClient.put<InventoryObservation>(
+      `/inventory-observations/${observationId}`,
+      updateDto
+    );
+    return transformInventoryObservation(response);
+  } catch (error) {
+    handleApiError(error, inventoryObservationErrors.update);
   }
-  return false;
+}
+
+/**
+ * Delete an inventory observation via API
+ */
+export async function deleteInventoryObservation(observationId: string): Promise<void> {
+  try {
+    await apiClient.delete(`/inventory-observations/${observationId}`);
+  } catch (error) {
+    handleApiError(error, inventoryObservationErrors.delete);
+  }
 }

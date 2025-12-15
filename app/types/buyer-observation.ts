@@ -1,4 +1,4 @@
-export interface BuyerObservation {
+export interface BuyerObservation extends Record<string, unknown> {
   id: string;
   buyerId: string;
   observation: string;

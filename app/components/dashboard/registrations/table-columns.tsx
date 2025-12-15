@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import type { TableColumn } from "~/components/ui";
 import { StatusBadge, TableActionButtons } from "~/components/ui";
 import { formatAreaType, getLocaleForNumber, formatDate } from "~/utils/formatting";
@@ -115,40 +116,67 @@ export function createTextColumn<T>(
 
 export function createLastObservationColumn<T extends { id: string }>(
   label: string,
-  getObservations: (id: string) => Observation[],
+  getObservations: (id: string) => Observation[] | Promise<Observation[]>,
   language: Language = "pt"
 ): TableColumn<T> {
+  function LastObservationCell({ id }: { readonly id: string }) {
+    const [observations, setObservations] = useState<Observation[] | null>(null);
+
+    useEffect(() => {
+      let isCancelled = false;
+
+      const load = async () => {
+        try {
+          const result = getObservations(id);
+          const resolved = result instanceof Promise ? await result : result;
+          if (!isCancelled) {
+            setObservations(resolved);
+          }
+        } catch (error) {
+          console.error("Failed to load observations for entity:", error);
+          if (!isCancelled) {
+            setObservations([]);
+          }
+        }
+      };
+
+      void load();
+
+      return () => {
+        isCancelled = true;
+      };
+    }, [id]);
+
+    if (!observations || observations.length === 0) {
+      return <span className="text-gray-400 dark:text-gray-500">-</span>;
+    }
+
+    const sortedObservations = observations.toSorted(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    const lastObservation = sortedObservations[0];
+    const truncated =
+      lastObservation.observation.length > 60
+        ? `${lastObservation.observation.substring(0, 60)}...`
+        : lastObservation.observation;
+
+    return (
+      <div className="space-y-1">
+        <p className="text-sm text-gray-700 dark:text-gray-300" title={lastObservation.observation}>
+          {truncated}
+        </p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          {formatDate(lastObservation.createdAt, language)}
+        </p>
+      </div>
+    );
+  }
+
   return {
     key: "lastObservation",
     label,
     sortable: false,
-    render: (_, row) => {
-      const observations = getObservations(row.id);
-      if (observations.length === 0) {
-        return <span className="text-gray-400 dark:text-gray-500">-</span>;
-      }
-      const sortedObservations = observations.toSorted(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-      const lastObservation = sortedObservations[0];
-      const truncated =
-        lastObservation.observation.length > 60
-          ? `${lastObservation.observation.substring(0, 60)}...`
-          : lastObservation.observation;
-      return (
-        <div className="space-y-1">
-          <p
-            className="text-sm text-gray-700 dark:text-gray-300"
-            title={lastObservation.observation}
-          >
-            {truncated}
-          </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {formatDate(lastObservation.createdAt, language)}
-          </p>
-        </div>
-      );
-    },
+    render: (_, row) => <LastObservationCell id={row.id} />,
   };
 }
 

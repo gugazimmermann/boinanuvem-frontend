@@ -17,6 +17,9 @@ vi.mock("~/services/animal-observations.service");
 vi.mock("~/services/animals.service");
 vi.mock("~/i18n", () => ({
   useTranslation: () => ({
+    common: {
+      loading: "Carregando observação...",
+    },
     locations: {
       details: {
         tabs: {

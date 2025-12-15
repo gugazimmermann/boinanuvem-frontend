@@ -24,6 +24,21 @@ import { getSupplierById } from "~/services/suppliers.service";
 import { getBuyerById } from "~/services/buyers.service";
 import { getAnimalById } from "~/services/animals.service";
 
+interface BaseObservationDetails {
+  id: string;
+  observation: string;
+  createdAt: string;
+  updatedAt?: string;
+  fileIds?: string[];
+  createdBy?: string;
+  locationId?: string;
+  employeeId?: string;
+  serviceProviderId?: string;
+  supplierId?: string;
+  buyerId?: string;
+  animalId?: string;
+}
+
 export function meta() {
   return [
     { title: "Detalhes da Observação - Boi na Nuvem" },
@@ -97,20 +112,9 @@ export default function ObservationDetails() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const t = useTranslation();
-
-  const locationObservation = getLocationObservationById(observationId);
-  const employeeObservation = getEmployeeObservationById(observationId);
-  const serviceProviderObservation = getServiceProviderObservationById(observationId);
-  const supplierObservation = getSupplierObservationById(observationId);
-  const buyerObservation = getBuyerObservationById(observationId);
-  const animalObservation = getAnimalObservationById(observationId);
-  const observation =
-    locationObservation ||
-    employeeObservation ||
-    serviceProviderObservation ||
-    supplierObservation ||
-    buyerObservation ||
-    animalObservation;
+  const [observation, setObservation] = useState<BaseObservationDetails | null>(null);
+  const [isLoadingObservation, setIsLoadingObservation] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const fromLocationId = searchParams.get("fromLocation");
   const fromEmployeeId = searchParams.get("fromEmployee");
@@ -135,54 +139,115 @@ export default function ObservationDetails() {
   const [animal, setAnimal] = useState<Awaited<ReturnType<typeof getAnimalById>> | null>(null);
 
   useEffect(() => {
+    let isCancelled = false;
+
+    const loadObservation = async () => {
+      if (!observationId) {
+        setObservation(null);
+        setIsLoadingObservation(false);
+        return;
+      }
+
+      setIsLoadingObservation(true);
+      setLoadError(null);
+
+      try {
+        const [
+          locationObservation,
+          employeeObservation,
+          serviceProviderObservation,
+          supplierObservation,
+          buyerObservation,
+          animalObservation,
+        ] = await Promise.all([
+          getLocationObservationById(observationId),
+          getEmployeeObservationById(observationId),
+          getServiceProviderObservationById(observationId),
+          getSupplierObservationById(observationId),
+          getBuyerObservationById(observationId),
+          getAnimalObservationById(observationId),
+        ]);
+
+        if (isCancelled) return;
+
+        const foundObservation =
+          locationObservation ||
+          employeeObservation ||
+          serviceProviderObservation ||
+          supplierObservation ||
+          buyerObservation ||
+          animalObservation ||
+          null;
+
+        setObservation(
+          foundObservation ? (foundObservation as unknown as BaseObservationDetails) : null
+        );
+      } catch (error) {
+        console.error("Failed to load observation:", error);
+        if (!isCancelled) {
+          setLoadError("Erro ao carregar observação");
+          setObservation(null);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoadingObservation(false);
+        }
+      }
+    };
+
+    void loadObservation();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [observationId]);
+
+  useEffect(() => {
     const loadEntities = async () => {
       try {
         const promises: Promise<unknown>[] = [];
 
-        if (locationObservation) {
+        if (observation?.locationId) {
           promises.push(
-            getLocationById(locationObservation.locationId)
+            getLocationById(observation.locationId)
               .then(setLocation)
               .catch(() => setLocation(null))
           );
         }
-        if (employeeObservation) {
+        if (observation?.employeeId) {
           promises.push(
-            getEmployeeById(employeeObservation.employeeId)
+            getEmployeeById(observation.employeeId)
               .then(setEmployee)
               .catch(() => setEmployee(null))
           );
         }
-        if (serviceProviderObservation) {
+        if (observation?.serviceProviderId) {
           promises.push(
-            getServiceProviderById(serviceProviderObservation.serviceProviderId)
+            getServiceProviderById(observation.serviceProviderId)
               .then(setServiceProvider)
               .catch(() => setServiceProvider(null))
           );
         }
-        if (supplierObservation) {
+        if (observation?.supplierId) {
           promises.push(
-            getSupplierById(supplierObservation.supplierId)
+            getSupplierById(observation.supplierId)
               .then(setSupplier)
               .catch(() => setSupplier(null))
           );
         }
-        if (buyerObservation) {
+        if (observation?.buyerId) {
           promises.push(
-            getBuyerById(buyerObservation.buyerId)
+            getBuyerById(observation.buyerId)
               .then(setBuyer)
               .catch(() => setBuyer(null))
           );
         }
-        if (animalObservation) {
-          const animalId = animalObservation.animalId;
-          if (animalId) {
-            promises.push(
-              getAnimalById(animalId)
-                .then(setAnimal)
-                .catch(() => setAnimal(null))
-            );
-          }
+        if (observation?.animalId) {
+          promises.push(
+            getAnimalById(observation.animalId)
+              .then(setAnimal)
+              .catch(() => setAnimal(null))
+          );
         }
 
         await Promise.all(promises);
@@ -191,22 +256,29 @@ export default function ObservationDetails() {
       }
     };
 
-    loadEntities();
-  }, [
-    locationObservation,
-    employeeObservation,
-    serviceProviderObservation,
-    supplierObservation,
-    buyerObservation,
-    animalObservation,
-  ]);
+    if (observation) {
+      void loadEntities();
+    }
+  }, [observation]);
 
-  if (!observation) {
+  if (isLoadingObservation) {
+    return (
+      <div className="space-y-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            {t.common.loading || "Carregando observação..."}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError || !observation) {
     return (
       <div className="space-y-8">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
           <p className="text-gray-600 dark:text-gray-400 mb-4">
-            {t.locations.details.observationNotFound}
+            {loadError || t.locations.details.observationNotFound}
           </p>
           <Button variant="outline" onClick={() => navigate(ROUTES.LOCATIONS)}>
             {t.team.new.back}

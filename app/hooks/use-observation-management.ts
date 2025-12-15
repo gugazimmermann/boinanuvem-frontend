@@ -16,8 +16,8 @@ export interface ObservationFormData {
 
 export interface UseObservationManagementOptions<T extends Observation> {
   entityId: string;
-  fetchObservations: (entityId: string) => T[];
-  addObservation: (data: ObservationFormData & { [key: string]: string }) => T;
+  fetchObservations: (entityId: string) => T[] | Promise<T[]>;
+  addObservation: (data: ObservationFormData & { [key: string]: string }) => T | Promise<T>;
   translationKeys: {
     observationRequired: string;
     observationAdded: string;
@@ -44,9 +44,30 @@ export function useObservationManagement<T extends Observation>({
   } | null>(null);
 
   useEffect(() => {
-    if (entityId) {
-      setObservations(fetchObservations(entityId));
-    }
+    let isCancelled = false;
+
+    const loadObservations = async () => {
+      if (!entityId) return;
+
+      try {
+        const result = fetchObservations(entityId);
+        const resolved = result instanceof Promise ? await result : result;
+        if (!isCancelled) {
+          setObservations(resolved);
+        }
+      } catch (error) {
+        console.error("Error loading observations:", error);
+        if (!isCancelled) {
+          setObservations([]);
+        }
+      }
+    };
+
+    void loadObservations();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [entityId, fetchObservations]);
 
   const handleSubmit = async (e: React.FormEvent, additionalData: Record<string, string> = {}) => {
@@ -67,13 +88,19 @@ export function useObservationManagement<T extends Observation>({
         (_, index) => `${generateFileIdPrefix(entityId)}-${Date.now()}-${index}`
       );
 
-      addObservation({
+      await addObservation({
         ...additionalData,
         observation: observationText.trim(),
         fileIds: fileIds.length > 0 ? fileIds : undefined,
       } as ObservationFormData & { [key: string]: string });
 
-      setObservations(fetchObservations(entityId));
+      try {
+        const result = fetchObservations(entityId);
+        const resolved = result instanceof Promise ? await result : result;
+        setObservations(resolved);
+      } catch (error) {
+        console.error("Error reloading observations:", error);
+      }
 
       setAlert({
         title: translationKeys.observationAdded,
@@ -114,9 +141,14 @@ export function useObservationManagement<T extends Observation>({
     alert,
     handleSubmit,
     handleCloseForm,
-    refreshObservations: () => {
-      if (entityId) {
-        setObservations(fetchObservations(entityId));
+    refreshObservations: async () => {
+      if (!entityId) return;
+      try {
+        const result = fetchObservations(entityId);
+        const resolved = result instanceof Promise ? await result : result;
+        setObservations(resolved);
+      } catch (error) {
+        console.error("Error refreshing observations:", error);
       }
     },
   };
