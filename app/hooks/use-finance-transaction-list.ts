@@ -3,9 +3,9 @@ import { useNavigate } from "react-router";
 import { type TableColumn, type TableAction } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
+import { useAuth } from "~/contexts/auth-context";
 import { getProperties } from "~/services/properties.service";
 import type { Property, CashFlow, AccountsPayable, AccountsReceivable } from "~/types";
-import { mockCompanies } from "~/mocks/companies";
 import { usePermissions } from "~/utils/permissions";
 import { useFinanceList } from "~/hooks/use-finance-list";
 import { useAlert } from "~/hooks/use-alert";
@@ -128,24 +128,25 @@ export function useFinanceTransactionList<TTransaction extends FinanceTransactio
   const { language } = useLanguage();
   const navigate = useNavigate();
   const { canAdd, canEdit, canRemove } = usePermissions();
-  const company = mockCompanies[0];
+  const { currentUser } = useAuth();
+  const companyId = currentUser?.companyId;
   const [transactions, setTransactions] = useState<TTransaction[]>(initialTransactions);
   const [properties, setProperties] = useState<Property[]>([]);
   const { alertMessage, showAlert } = useAlert();
 
   useEffect(() => {
     const fetchProperties = async () => {
-      if (company) {
+      if (companyId) {
         try {
           const propertiesData = await getProperties();
-          setProperties(propertiesData.filter((prop) => prop.companyId === company.id));
+          setProperties(propertiesData.filter((prop) => prop.companyId === companyId));
         } catch (error) {
           console.error("Failed to load properties:", error);
         }
       }
     };
     fetchProperties();
-  }, [company]);
+  }, [companyId]);
 
   const financeList = useFinanceList<TTransaction>({
     data: transactions,

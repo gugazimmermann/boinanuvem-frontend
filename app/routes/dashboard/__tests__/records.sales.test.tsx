@@ -32,14 +32,6 @@ vi.mock("~/utils/permissions", () => ({
     canRemove: () => true,
   }),
 }));
-vi.mock("~/mocks/companies", () => ({
-  mockCompanies: [
-    {
-      id: "company-1",
-      companyName: "Test Company",
-    },
-  ],
-}));
 vi.mock("~/hooks/use-alert", () => ({
   useAlert: () => ({
     alertMessage: null,

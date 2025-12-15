@@ -1,6 +1,3 @@
-import type { Company } from "~/types";
-import { mockCompanies } from "~/mocks/companies";
-import { findById } from "./base-service";
 import { apiClient, ApiError } from "./api-client";
 
 export interface EnhancedCompany {
@@ -105,14 +102,4 @@ export async function updateCompany(
     }
     throw error;
   }
-}
-
-// Legacy mock functions (kept for backward compatibility)
-export function getCompanyById(companyId: string | undefined): Company | undefined {
-  return findById(mockCompanies, companyId);
-}
-
-export function getCompanyByCNPJ(cnpj: string): Company | undefined {
-  const unmaskedCNPJ = cnpj.replaceAll(/\D/g, "");
-  return mockCompanies.find((company) => company.cnpj.replaceAll(/\D/g, "") === unmaskedCNPJ);
 }

@@ -52,10 +52,6 @@ const { mockWeighings, mockApiClient, mockGet, mockPost, mockPut, mockDelete } =
   };
 });
 
-vi.mock("~/mocks/weighings", () => ({
-  mockWeighings,
-}));
-
 vi.mock("../api-client", async (importOriginal: () => Promise<typeof import("../api-client")>) => {
   const actual = await importOriginal();
   return {

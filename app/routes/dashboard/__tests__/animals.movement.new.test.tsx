@@ -91,14 +91,6 @@ vi.mock("~/i18n", () => ({
     },
   }),
 }));
-vi.mock("~/mocks/companies", () => ({
-  mockCompanies: [
-    {
-      id: "company-1",
-      companyName: "Test Company",
-    },
-  ],
-}));
 vi.mock("~/hooks/use-movement-form", () => ({
   useMovementForm: vi.fn(() => ({
     formData: {

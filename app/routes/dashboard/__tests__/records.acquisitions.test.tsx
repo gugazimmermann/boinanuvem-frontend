@@ -88,14 +88,6 @@ vi.mock("~/hooks/use-alert", () => ({
     showAlert: vi.fn(),
   }),
 }));
-vi.mock("~/mocks/companies", () => ({
-  mockCompanies: [
-    {
-      id: "company-1",
-      companyName: "Test Company",
-    },
-  ],
-}));
 vi.mock("react-router", async () => {
   const actual = await vi.importActual("react-router");
   return {

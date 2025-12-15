@@ -1,7 +1,6 @@
 import type { Payment } from "~/types/payment";
 import { PaymentStatus } from "~/types/payment";
 import { apiClient, ApiError } from "./api-client";
-import { mockPayments } from "~/mocks/payments";
 
 /**
  * Backend payment response structure
@@ -93,9 +92,8 @@ export async function getPaymentsByCompanyId(companyId: string): Promise<Payment
         return [];
       }
     }
-    // Network error or other non-ApiError - fallback to mock data
-    console.error("Failed to fetch payments, using mock data:", error);
-    return mockPayments.filter((p) => p.companyId === companyId);
+    // Network error or other non-ApiError - rethrow
+    throw error;
   }
 }
 
@@ -115,8 +113,7 @@ export async function getPaymentById(paymentId: string): Promise<Payment | undef
         throw new Error("Access denied to this payment");
       }
     }
-    // Network error or other non-ApiError - fallback to mock data
-    console.error("Failed to fetch payment, using mock data:", error);
-    return mockPayments.find((p) => p.id === paymentId);
+    // Network error or other non-ApiError - rethrow
+    throw error;
   }
 }

@@ -6,7 +6,7 @@ import { getAnimalsByCompanyId } from "~/services/animals.service";
 import type { Buyer, Property, Animal } from "~/types";
 
 export interface UseSaleFormDataOptions {
-  /** Company ID - if not provided, uses mockCompanies[0] */
+  /** Company ID - if not provided, uses empty string */
   companyId?: string;
   /** Whether to include sold animals (for edit mode) */
   includeSoldAnimals?: boolean;
@@ -39,7 +39,7 @@ export function useSaleFormData({
 }: UseSaleFormDataOptions = {}): UseSaleFormDataReturn {
   const location = useLocation();
   // Use providedCompanyId if given, otherwise use empty string
-  // Routes should explicitly provide companyId (e.g., from mockCompanies[0]?.id)
+  // Routes should explicitly provide companyId (e.g., from currentUser?.companyId)
   // This allows tests to verify behavior when no companyId is provided
   const companyId = providedCompanyId ?? "";
 

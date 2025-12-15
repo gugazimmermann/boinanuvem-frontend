@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { ApiError } from "../api-client";
-import { getCompany, updateCompany, getCompanyById, getCompanyByCNPJ } from "../companies.service";
+import { getCompany, updateCompany } from "../companies.service";
 
 vi.mock("../api-client", async () => {
   const actual = await vi.importActual("../api-client");
@@ -12,28 +12,6 @@ vi.mock("../api-client", async () => {
     },
   };
 });
-
-const { mockCompanies } = vi.hoisted(() => {
-  const mockCompanies = [
-    {
-      id: "company-1",
-      cnpj: "12345678000190",
-      companyName: "Test Company",
-      status: "active",
-    },
-    {
-      id: "company-2",
-      cnpj: "98765432000110",
-      companyName: "Another Company",
-      status: "active",
-    },
-  ];
-  return { mockCompanies };
-});
-
-vi.mock("~/mocks/companies", () => ({
-  mockCompanies,
-}));
 
 import { apiClient } from "../api-client";
 
@@ -147,40 +125,6 @@ describe("companies.service", () => {
       await expect(updateCompany("company-1", updateData)).rejects.toThrow(
         "Company with this email already exists"
       );
-    });
-  });
-
-  describe("getCompanyById", () => {
-    it("should find company by id", () => {
-      const result = getCompanyById("company-1");
-      expect(result).toEqual(mockCompanies[0]);
-    });
-
-    it("should return undefined when not found", () => {
-      const result = getCompanyById("nonexistent");
-      expect(result).toBeUndefined();
-    });
-
-    it("should return undefined when id is undefined", () => {
-      const result = getCompanyById(undefined);
-      expect(result).toBeUndefined();
-    });
-  });
-
-  describe("getCompanyByCNPJ", () => {
-    it("should find company by CNPJ", () => {
-      const result = getCompanyByCNPJ("12.345.678/0001-90");
-      expect(result).toEqual(mockCompanies[0]);
-    });
-
-    it("should find company by unmasked CNPJ", () => {
-      const result = getCompanyByCNPJ("12345678000190");
-      expect(result).toEqual(mockCompanies[0]);
-    });
-
-    it("should return undefined when not found", () => {
-      const result = getCompanyByCNPJ("00000000000000");
-      expect(result).toBeUndefined();
     });
   });
 });

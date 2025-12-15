@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { ApiError } from "../api-client";
 import { PaymentStatus } from "~/types/payment";
 import { getPaymentsByCompanyId, getPaymentById } from "../payments.service";
@@ -13,38 +13,13 @@ vi.mock("../api-client", async () => {
   };
 });
 
-vi.mock("~/mocks/payments", () => ({
-  mockPayments: [
-    {
-      id: "payment-1",
-      companyId: "company-1",
-      month: "2024-01",
-      plan: "Basic Plan",
-      amount: 100,
-      status: PaymentStatus.PAID,
-      invoiceId: "payment-1",
-      createdAt: "2024-01-01",
-    },
-  ],
-}));
-
 import { apiClient } from "../api-client";
-import { mockPayments } from "~/mocks/payments";
 
 describe("payments.service", () => {
   const mockGet = apiClient.get as ReturnType<typeof vi.fn>;
-  const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  afterEach(() => {
-    consoleErrorSpy.mockClear();
-  });
-
-  afterAll(() => {
-    consoleErrorSpy.mockRestore();
   });
 
   describe("getPaymentsByCompanyId", () => {
@@ -120,12 +95,11 @@ describe("payments.service", () => {
       expect(result).toEqual([]);
     });
 
-    it("should fallback to mock data on error", async () => {
-      mockGet.mockRejectedValue(new Error("Network error"));
+    it("should throw error on network failure", async () => {
+      const networkError = new Error("Network error");
+      mockGet.mockRejectedValue(networkError);
 
-      const result = await getPaymentsByCompanyId("company-1");
-      expect(result).toEqual(mockPayments.filter((p) => p.companyId === "company-1"));
-      expect(consoleErrorSpy).toHaveBeenCalled();
+      await expect(getPaymentsByCompanyId("company-1")).rejects.toThrow("Network error");
     });
   });
 
@@ -162,12 +136,11 @@ describe("payments.service", () => {
       await expect(getPaymentById("payment-1")).rejects.toThrow("Access denied to this payment");
     });
 
-    it("should fallback to mock data on error", async () => {
-      mockGet.mockRejectedValue(new Error("Network error"));
+    it("should throw error on network failure", async () => {
+      const networkError = new Error("Network error");
+      mockGet.mockRejectedValue(networkError);
 
-      const result = await getPaymentById("payment-1");
-      expect(result).toEqual(mockPayments[0]);
-      expect(consoleErrorSpy).toHaveBeenCalled();
+      await expect(getPaymentById("payment-1")).rejects.toThrow("Network error");
     });
   });
 });
