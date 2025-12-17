@@ -4,11 +4,11 @@ import userEvent from "@testing-library/user-event";
 import { AnimalRegistrationModal } from "../animal-registration-modal";
 
 vi.mock("~/i18n", () => ({
-  useTranslation: vi.fn(() => ({
+  useTranslation: () => ({
     animals: {
       registrationModal: {
-        title: "Register Animal",
-        description: "Choose registration type",
+        title: "Animal Registration",
+        description: "Choose how you want to register the animal",
       },
     },
     sidebar: {
@@ -18,7 +18,7 @@ vi.mock("~/i18n", () => ({
     common: {
       cancel: "Cancel",
     },
-  })),
+  }),
 }));
 
 describe("AnimalRegistrationModal", () => {
@@ -44,7 +44,7 @@ describe("AnimalRegistrationModal", () => {
       />
     );
     await waitFor(() => {
-      expect(screen.getByText("Register Animal")).toBeInTheDocument();
+      expect(screen.getByText("Animal Registration")).toBeInTheDocument();
     });
   });
 
@@ -58,7 +58,7 @@ describe("AnimalRegistrationModal", () => {
       />
     );
     await waitFor(() => {
-      expect(screen.getByText("Register Animal")).toBeInTheDocument();
+      expect(screen.getByText("Animal Registration")).toBeInTheDocument();
     });
   });
 
@@ -72,14 +72,15 @@ describe("AnimalRegistrationModal", () => {
       />
     );
     await waitFor(() => {
-      expect(screen.getByText("Choose registration type")).toBeInTheDocument();
+      expect(screen.getByText("Choose how you want to register the animal")).toBeInTheDocument();
     });
   });
 
   it("should call onSelectBirth and onClose when birth button is clicked", async () => {
-    const onSelectBirth = vi.fn();
     const onClose = vi.fn();
+    const onSelectBirth = vi.fn();
     const user = userEvent.setup();
+
     render(
       <AnimalRegistrationModal
         isOpen
@@ -88,21 +89,25 @@ describe("AnimalRegistrationModal", () => {
         onSelectAcquisition={vi.fn()}
       />
     );
+
     await waitFor(() => {
       expect(screen.getByText("Births")).toBeInTheDocument();
     });
+
     const birthButton = screen.getByText("Births").closest("button");
     if (birthButton) {
       await user.click(birthButton);
     }
+
     expect(onSelectBirth).toHaveBeenCalledTimes(1);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it("should call onSelectAcquisition and onClose when acquisition button is clicked", async () => {
-    const onSelectAcquisition = vi.fn();
     const onClose = vi.fn();
+    const onSelectAcquisition = vi.fn();
     const user = userEvent.setup();
+
     render(
       <AnimalRegistrationModal
         isOpen
@@ -111,13 +116,16 @@ describe("AnimalRegistrationModal", () => {
         onSelectAcquisition={onSelectAcquisition}
       />
     );
+
     await waitFor(() => {
       expect(screen.getByText("Acquisitions")).toBeInTheDocument();
     });
+
     const acquisitionButton = screen.getByText("Acquisitions").closest("button");
     if (acquisitionButton) {
       await user.click(acquisitionButton);
     }
+
     expect(onSelectAcquisition).toHaveBeenCalledTimes(1);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
@@ -125,6 +133,7 @@ describe("AnimalRegistrationModal", () => {
   it("should call onClose when cancel button is clicked", async () => {
     const onClose = vi.fn();
     const user = userEvent.setup();
+
     render(
       <AnimalRegistrationModal
         isOpen
@@ -133,13 +142,16 @@ describe("AnimalRegistrationModal", () => {
         onSelectAcquisition={vi.fn()}
       />
     );
+
     await waitFor(() => {
       expect(screen.getByText("Cancel")).toBeInTheDocument();
     });
+
     const cancelButton = screen.getByText("Cancel").closest("button");
     if (cancelButton) {
       await user.click(cancelButton);
     }
+
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
@@ -154,16 +166,18 @@ describe("AnimalRegistrationModal", () => {
         onSelectAcquisition={vi.fn()}
       />
     );
+
     await waitFor(() => {
-      const dialog = container.querySelector("dialog");
-      expect(dialog).toBeInTheDocument();
+      expect(container.querySelector("dialog")).toBeInTheDocument();
     });
-    const dialog = container.querySelector("dialog");
-    if (dialog) {
-      // Click on the dialog element itself (which represents the backdrop when clicked directly)
-      await user.click(dialog);
-      expect(onClose).toHaveBeenCalled();
+
+    const backdrop = container.querySelector('div[aria-hidden="true"]');
+    expect(backdrop).toBeInTheDocument();
+    if (backdrop) {
+      await user.click(backdrop);
     }
+
+    expect(onClose).toHaveBeenCalled();
   });
 
   it("should render birth button with icon", async () => {
@@ -179,10 +193,7 @@ describe("AnimalRegistrationModal", () => {
       expect(screen.getByText("Births")).toBeInTheDocument();
     });
     const birthButton = screen.getByText("Births").closest("button");
-    if (birthButton) {
-      const icon = birthButton.querySelector("svg");
-      expect(icon).toBeInTheDocument();
-    }
+    expect(birthButton?.querySelector("svg")).toBeInTheDocument();
   });
 
   it("should render acquisition button with icon", async () => {
@@ -198,9 +209,6 @@ describe("AnimalRegistrationModal", () => {
       expect(screen.getByText("Acquisitions")).toBeInTheDocument();
     });
     const acquisitionButton = screen.getByText("Acquisitions").closest("button");
-    if (acquisitionButton) {
-      const icon = acquisitionButton.querySelector("svg");
-      expect(icon).toBeInTheDocument();
-    }
+    expect(acquisitionButton?.querySelector("svg")).toBeInTheDocument();
   });
 });

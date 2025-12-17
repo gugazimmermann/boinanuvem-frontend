@@ -4,6 +4,8 @@
 
 🌐 **Live Website:** [https://www.boinanuvem.com.br/](https://www.boinanuvem.com.br/)
 
+**Version:** 0.0.10
+
 Boi na Nuvem is a modern, comprehensive web platform for managing rural properties specialized in beef cattle operations. The system provides complete control over properties, pastures, animals, reproduction, finances, inventory, and sales—all integrated into a single platform with advanced analytics and detailed reports.
 
 ## Table of Contents
@@ -110,6 +112,15 @@ Boi na Nuvem is designed to digitize and streamline cattle farm management opera
 - Employee, service provider, supplier, and buyer management
 - Main user vs. regular user distinction
 
+### Observations System
+- Rich text observations for all entities (animals, locations, employees, suppliers, buyers, inventory, financial transactions)
+- File attachments (photos, PDFs, documents)
+- Complete observation history with timestamps and authors
+- Search and filter observations
+- Edit and delete capabilities
+- Chronological organization
+- Multiple observations per entity
+
 ### Dashboards & Reports
 - Main dashboard with general metrics
 - Property-level dashboard
@@ -152,16 +163,33 @@ The application uses React Context API for global state:
 
 ### Data Visualization
 
-- **Recharts**: Interactive charts and graphs for analytics
-- **Leaflet**: Interactive maps for property and location visualization
+- **Recharts 3.4.1**: Interactive charts and graphs for analytics
+  - Line charts, bar charts, pie charts
+  - Financial dashboards and trend analysis
+  - Animal weight tracking visualizations
+- **Leaflet 1.9.4**: Interactive maps for property and location visualization
+  - Property location mapping
+  - Pasture visualization
+  - Geolocation support
+
+### Additional Dependencies
+
+- **date-fns 4.1.0**: Date manipulation and formatting with locale support
+  - Locale-aware date formatting
+  - Relative time calculations
+  - Date range utilities
+- **isbot 5.1.31**: Bot detection for SSR optimization
+- **bcryptjs 2.4.3**: Password hashing utilities (for client-side password validation)
 
 ### API Layer
 
 **Custom ApiClient Pattern**
 - Centralized HTTP client with error handling
-- Service layer architecture (40+ services)
+- Service layer architecture (91+ services)
 - Type-safe request/response handling
 - Base service utilities for CRUD operations
+- Entity service factory pattern
+- Transform helpers for data normalization
 
 ### Type Safety
 
@@ -170,6 +198,10 @@ The application uses React Context API for global state:
 - Complete type coverage
 - Type-safe route definitions
 - Comprehensive type definitions for all entities
+- Path aliases configured (`~/*` maps to `./app/*`)
+- ES2022 target with ES2022 modules
+- React JSX transform (react-jsx)
+- Verbatim module syntax enabled
 
 ### Build Tool
 
@@ -177,7 +209,9 @@ The application uses React Context API for global state:
 - Fast development server with HMR
 - Optimized production builds
 - React Router plugin integration
-- TypeScript path aliases support
+- TypeScript path aliases support (via vite-tsconfig-paths)
+- Tailwind CSS plugin integration
+- Test mode configuration with conditional plugins
 
 ### Testing
 
@@ -207,39 +241,55 @@ boinanuvem-frontend/
 ├── app/                          # Main application code
 │   ├── components/               # React components
 │   │   ├── dashboard/           # Dashboard-specific components
-│   │   │   ├── [181 files]     # 157 TSX, 24 TS files
-│   │   ├── site/                # Public site components
-│   │   │   ├── [82 files]       # 56 TSX, 26 TS files
-│   │   └── ui/                  # Reusable UI components
-│   │       ├── [47 files]       # 46 TSX, 1 TS file
-│   ├── contexts/                # React Context providers
+│   │   │   ├── [186 files]       # 162 TSX, 24 TS files
+│   │   ├── site/                 # Public site components
+│   │   │   ├── [84 files]        # 58 TSX, 26 TS files
+│   │   └── ui/                   # Reusable UI components
+│   │       ├── [49 files]        # 48 TSX, 1 TS file
+│   ├── contexts/                 # React Context providers
 │   │   ├── auth-context.tsx     # Authentication context
 │   │   ├── language-context.tsx # Internationalization context
 │   │   └── theme-context.tsx    # Theme management context
 │   ├── hooks/                    # Custom React hooks
-│   │   ├── [41 hooks]           # Reusable business logic hooks
+│   │   ├── [41 hooks]            # Reusable business logic hooks
+│   │   │   ├── Form management hooks (use-base-form, use-entity-form)
+│   │   │   ├── Finance hooks (use-finance-transactions, use-finance-calculations)
+│   │   │   ├── Inventory hooks (use-inventory-form, use-inventory-stock)
+│   │   │   ├── Observation hooks (use-observation-management)
+│   │   │   ├── Date and filter hooks (use-date-filters, use-date-range-filter)
+│   │   │   └── Entity management hooks (use-entity-loader, use-entity-tab)
 │   ├── i18n/                     # Internationalization
-│   │   ├── translations/        # Translation files (pt, en, es)
-│   │   ├── index.ts             # i18n configuration
-│   │   └── use-translation.ts   # Translation hook
+│   │   ├── translations/         # Translation files (pt, en, es)
+│   │   ├── index.ts              # i18n configuration
+│   │   └── use-translation.ts    # Translation hook
 │   ├── mocks/                    # Mock data for development/testing
-│   │   ├── [35 mock files]      # Entity mock data
+│   │   ├── [35+ mock files]      # Entity mock data
 │   ├── routes/                   # React Router routes
 │   │   ├── dashboard/           # Dashboard routes
-│   │   │   ├── [82 route files] # Feature-specific routes
+│   │   │   ├── [100+ route files] # Feature-specific routes
 │   │   ├── api.invoices.$invoiceId.tsx
 │   │   ├── dashboard.tsx        # Dashboard layout route
 │   │   ├── home.tsx             # Home page route
 │   │   ├── login.tsx            # Login route
 │   │   └── [other public routes]
-│   ├── services/                # API service layer
-│   │   ├── [42 service files]   # Entity-specific services
+│   ├── services/                 # API service layer
+│   │   ├── [91 service files]    # Entity-specific services
 │   │   ├── api-client.ts        # Base API client
-│   │   └── base-service.ts     # Base service utilities
+│   │   ├── base-service.ts      # Base service utilities
+│   │   ├── entity-service-factory.ts # Service factory pattern
+│   │   ├── service-helpers.ts   # Service helper functions
+│   │   └── transform-helpers.ts # Data transformation utilities
 │   ├── types/                    # TypeScript type definitions
-│   │   ├── [49 type files]      # Entity and utility types
+│   │   ├── [49 type files]       # Entity and utility types
 │   ├── utils/                    # Utility functions
-│   │   ├── [84 utility files]   # Helper functions and utilities
+│   │   ├── [99 utility files]    # Helper functions and utilities
+│   │   │   ├── Form helpers (form-helpers, form-validation)
+│   │   │   ├── Date utilities (date, date-locale)
+│   │   │   ├── String utilities (string-helpers)
+│   │   │   ├── Table utilities (table-helpers, finance-column-helpers)
+│   │   │   ├── Permission utilities (permissions, route-permissions)
+│   │   │   ├── Entity utilities (entity-getters, entity-route-helpers)
+│   │   │   └── Domain-specific utilities (inventory-utils, sale-form-helpers)
 │   ├── root.tsx                  # Root component and layout
 │   ├── routes.config.ts          # Route constants and helpers
 │   └── routes.ts                 # Route configuration
@@ -287,6 +337,41 @@ Services follow a consistent pattern:
 - Base service utilities for common CRUD operations
 - Type-safe API client for HTTP requests
 - Error handling and response transformation
+
+### Utility Functions
+
+The application includes 99+ utility files organized by domain:
+
+**Form Utilities:**
+- `form-helpers.ts`: Common form operations (error clearing, field validation)
+- `form-validation.ts`: Validation helpers for required fields and formats
+- `inventory-form-helpers.ts`: Inventory-specific form utilities
+- `sale-form-helpers.ts`: Sales form data transformation
+
+**Date Utilities:**
+- `date.ts`: Date formatting and manipulation with locale support
+- `date-locale.ts`: Locale-specific date formatting
+
+**String Utilities:**
+- `string-helpers.ts`: String conversion and manipulation functions
+
+**Table Utilities:**
+- `table-helpers.ts`: Table filtering and sorting helpers
+- `finance-column-helpers.tsx`: Financial table column generators
+- `animal-sorting.ts`: Animal-specific sorting utilities
+
+**Permission Utilities:**
+- `permissions.ts`: Permission checking and validation
+- `route-permissions.ts`: Route-to-permission mapping
+
+**Entity Utilities:**
+- `entity-getters.ts`: Entity retrieval helpers
+- `entity-route-helpers.ts`: Entity route generation
+
+**Domain-Specific Utilities:**
+- `inventory-utils.ts`: Inventory unit conversion and formatting
+- `finance-calculations.ts`: Financial calculation helpers
+- `auth-helpers.ts`: Authentication validation utilities
 
 ### Route Configuration
 
@@ -492,6 +577,34 @@ Routes are centrally defined in `routes.config.ts`:
 - Profitability metrics
 - Financial trends and charts
 
+### Observations System
+
+**Overview:**
+The observations system allows users to add detailed notes, comments, and file attachments to various entities throughout the application.
+
+**Supported Entities:**
+- Animals
+- Locations (pastures, corrals, barns)
+- Employees
+- Service Providers
+- Suppliers
+- Buyers
+- Inventory Items
+- Financial Transactions (Cash Flow, Accounts Payable, Accounts Receivable)
+
+**Features:**
+- Rich text observations with formatting support
+- File attachments (photos, PDFs, documents)
+- Multiple observations per entity
+- Complete history with timestamps and author information
+- Search and filter capabilities
+- Edit and delete existing observations
+- Chronological organization
+- File management with unique file IDs
+
+**Usage:**
+Observations are accessible from entity detail pages through the "Observations" section or tab. Users can add, edit, and delete observations, with full audit trail of who created or modified each observation and when.
+
 ## Development Setup
 
 ### Prerequisites
@@ -604,7 +717,7 @@ await apiClient.delete(`/animals/${id}`);
 
 ### Service Layer Structure
 
-The service layer consists of 42 entity-specific services, each following a consistent pattern:
+The service layer consists of 91+ entity-specific services, each following a consistent pattern:
 
 **Service Pattern:**
 ```typescript
@@ -623,6 +736,16 @@ export function deleteAnimal(id: string): boolean
 - `updateEntity`: Update existing entity
 - `deleteEntity`: Delete entity
 - `generateNextId`: Generate sequential IDs
+
+**Service Helpers** (`app/services/service-helpers.ts`):
+- Helper functions for common service operations
+- Data transformation utilities
+- Response normalization
+
+**Entity Service Factory** (`app/services/entity-service-factory.ts`):
+- Factory pattern for creating entity services
+- Standardized service creation
+- Consistent service interface
 
 ### Error Handling
 
@@ -684,7 +807,14 @@ export const ROUTES = {
   LOGIN: "/entrar",
   DASHBOARD: "/dashboard",
   PROPERTIES: "/dashboard/propriedades",
-  // ... 90+ route definitions
+  // ... 90+ route definitions including:
+  // - Properties, Locations, Animals
+  // - Records (Births, Acquisitions, Sales, Deaths, Weighings, Sanitary Controls)
+  // - Breedings, Reproductive Indexes, Birth Forecast
+  // - Financial transactions (Cash Flow, Accounts Payable/Receivable, Bank Accounts)
+  // - Inventory and Inventory Movements
+  // - Team Management, Profile, Help
+  // - Observations
 } as const;
 ```
 
@@ -1038,13 +1168,18 @@ npm run test -- animals.service.test.ts
 - Global test configuration
 - Testing Library setup
 - Mock service configuration
+- jsdom environment for DOM testing
+- Single fork pool for test isolation
+- Console log filtering for known warnings
 
 ### Coverage Requirements
 
 **Coverage Configuration:**
 - Provider: v8
 - Reporters: text, json, html, lcov
-- Exclusions: node_modules, build, config files, types, translations
+- Exclusions: node_modules, build, config files, types, translations, test utilities, index files
+- Coverage reports available in `coverage/` directory
+- HTML reports for detailed coverage analysis
 
 **Coverage Goals:**
 - Maintain above 80% code coverage
@@ -1150,24 +1285,28 @@ npm run build
 ### SSR Configuration
 
 **React Router SSR:**
-- Server-side rendering enabled in `react-router.config.ts`
+- Server-side rendering enabled in `react-router.config.ts` (`ssr: true`)
 - Improved initial load performance
 - SEO optimization
 - Hydration on client side
+- Full-stack React Router v7 with file-based routing
+- Server-side data loading with loaders
 
 ### Docker Multi-stage Build
 
 **Dockerfile Stages:**
-1. **development-dependencies-env**: Install all dependencies
-2. **production-dependencies-env**: Install production dependencies only
-3. **build-env**: Build the application
-4. **Final stage**: Copy production files and dependencies
+1. **development-dependencies-env**: Install all dependencies (including dev dependencies)
+2. **production-dependencies-env**: Install production dependencies only (omit dev dependencies)
+3. **build-env**: Build the application using development dependencies
+4. **Final stage**: Copy production files and production dependencies only
 
 **Build Optimization:**
 - Separate dependency installation stages
 - Production dependencies only in final image
 - Reduced image size
 - Faster build times
+- Uses Node.js 20 Alpine for smaller image size
+- Husky disabled during Docker builds (HUSKY=0)
 
 ### Render.com Deployment
 

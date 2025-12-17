@@ -93,6 +93,9 @@ export const ROUTES = {
   BANK_ACCOUNTS_VIEW: "/dashboard/contas-bancarias/:bankAccountId",
   FINANCES_DASHBOARD: "/dashboard/financas",
   PAYMENTS: "/dashboard/pagamentos",
+  SUBSCRIPTION: "/dashboard/assinatura",
+  SUBSCRIPTION_PAYMENT: "/dashboard/assinatura/pagamento",
+  SUBSCRIPTION_SUCCESS: "/dashboard/assinatura/sucesso",
 } as const;
 
 export function getUserProfileRoute(userId: string): string {

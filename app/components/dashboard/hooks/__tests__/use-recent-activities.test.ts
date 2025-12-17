@@ -294,4 +294,81 @@ describe("useRecentActivities", () => {
     const animalActivity = result.current.find((a) => a.type === "animal");
     expect(animalActivity?.date).toBe("2024-06-01T10:00:00Z");
   });
+
+  it("should use fallback date for animals without createdAt", () => {
+    const animalWithoutCreatedAt: Animal = {
+      id: "1",
+      code: "A001",
+      name: "Animal 1",
+      registrationNumber: "REG001",
+      status: "active",
+      createdAt: "", // Empty string to test fallback behavior
+      companyId: "company-1",
+      propertyId: "property-1",
+    };
+
+    const beforeDate = new Date().toISOString();
+    const { result } = renderHook(() =>
+      useRecentActivities({
+        animals: [animalWithoutCreatedAt],
+        births: [],
+        weighings: [],
+        breedings: [],
+        cashFlowData: [],
+        sales: [],
+        t: mockTranslation,
+      })
+    );
+    const afterDate = new Date().toISOString();
+
+    const animalActivity = result.current.find((a) => a.type === "animal");
+    expect(animalActivity).toBeDefined();
+    expect(animalActivity?.date).toBeDefined();
+    // The date should be between before and after (within a reasonable timeframe)
+    const activityDate = new Date(animalActivity!.date).getTime();
+    const beforeTime = new Date(beforeDate).getTime();
+    const afterTime = new Date(afterDate).getTime();
+    expect(activityDate).toBeGreaterThanOrEqual(beforeTime);
+    expect(activityDate).toBeLessThanOrEqual(afterTime);
+  });
+
+  it("should handle multiple activities of the same type correctly", () => {
+    const multipleAnimals: Animal[] = [
+      {
+        id: "1",
+        code: "A001",
+        name: "Animal 1",
+        createdAt: "2024-06-01T10:00:00Z",
+        registrationNumber: "REG001",
+        status: "active",
+        companyId: "company-1",
+        propertyId: "property-1",
+      },
+      {
+        id: "2",
+        code: "A002",
+        name: "Animal 2",
+        createdAt: "2024-06-02T10:00:00Z",
+        registrationNumber: "REG002",
+        status: "active",
+        companyId: "company-1",
+        propertyId: "property-1",
+      },
+    ];
+
+    const { result } = renderHook(() =>
+      useRecentActivities({
+        animals: multipleAnimals,
+        births: [],
+        weighings: [],
+        breedings: [],
+        cashFlowData: [],
+        sales: [],
+        t: mockTranslation,
+      })
+    );
+
+    const animalActivities = result.current.filter((a) => a.type === "animal");
+    expect(animalActivities.length).toBe(2);
+  });
 });

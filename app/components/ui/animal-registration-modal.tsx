@@ -33,9 +33,9 @@ export function AnimalRegistrationModal({
     }
   }, [isOpen]);
 
-  const handleBackdropClick = (e: React.MouseEvent<HTMLDialogElement>) => {
-    // Close dialog when clicking on the backdrop (the dialog element itself)
-    if (e.target === dialogRef.current) {
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Close dialog when clicking on the backdrop
+    if (e.target === e.currentTarget) {
       onClose();
     }
   };
@@ -46,15 +46,15 @@ export function AnimalRegistrationModal({
     <dialog
       ref={dialogRef}
       className="fixed inset-0 z-50 overflow-y-auto bg-transparent"
-      onClick={handleBackdropClick}
       onClose={onClose}
     >
-      <div className="flex items-center justify-center min-h-screen px-4 py-4 text-center sm:block sm:p-0">
-        <span
-          className="hidden sm:inline-block sm:align-middle sm:h-screen"
-          aria-hidden="true"
-          onClick={(e) => e.stopPropagation()}
-        >
+      <div
+        className="fixed inset-0 bg-black bg-opacity-50"
+        onClick={handleBackdropClick}
+        aria-hidden="true"
+      />
+      <div className="flex items-center justify-center min-h-screen px-4 py-4 text-center sm:block sm:p-0 relative z-10">
+        <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
           &#8203;
         </span>
 

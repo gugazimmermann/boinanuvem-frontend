@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { Link } from "react-router";
 import { formatCurrency } from "~/utils/formatting";
 import { Table, StatusBadge, type TableColumn, type TableFilter } from "~/components/ui";
 import { useTranslation } from "~/i18n";
@@ -11,6 +12,12 @@ import { useListPage } from "~/hooks/use-list-page";
 import { format } from "date-fns";
 import { getDateLocale } from "~/utils/date";
 import { translations } from "~/i18n/translations";
+import { useCompanyTrial } from "~/hooks/use-company-trial";
+import { ROUTES } from "~/routes.config";
+import { SubscriptionCard } from "~/components/dashboard/subscription-card";
+import type { Subscription } from "~/types/subscription";
+import { getCompany } from "~/services/companies.service";
+import { t as translate } from "~/utils/translation-helpers";
 
 export function meta() {
   const t = translations.pt;
@@ -34,10 +41,14 @@ export default function Payments() {
   const { language } = useLanguage();
   const { currentUser } = useAuth();
   const companyId = currentUser?.companyId;
+  const { company, isOnTrial, isLoading: isLoadingCompany } = useCompanyTrial();
+  const isTrialExpired = company?.trial?.isTrialExpired ?? false;
+  const showSubscriptionButton = isOnTrial || isTrialExpired;
 
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [currentSubscription, setCurrentSubscription] = useState<Subscription | null>(null);
 
   // Use refs to track loading state and prevent infinite loops
   const loadedCompanyIdRef = useRef<string | undefined>(undefined);
@@ -95,6 +106,31 @@ export default function Payments() {
       isLoadingRef.current = false;
     };
   }, [companyId]);
+
+  // Fetch current subscription from company data
+  useEffect(() => {
+    const sub = company?.currentSubscription;
+    if (sub && typeof sub === "object" && "id" in sub && sub.id) {
+      setCurrentSubscription(sub as Subscription);
+    } else {
+      setCurrentSubscription(null);
+    }
+  }, [company]);
+
+  const handleSubscriptionUpdate = async () => {
+    if (!companyId) return;
+    try {
+      const updatedCompany = await getCompany(companyId);
+      const sub = updatedCompany?.currentSubscription;
+      if (sub && typeof sub === "object" && "id" in sub && sub.id) {
+        setCurrentSubscription(sub as Subscription);
+      } else {
+        setCurrentSubscription(null);
+      }
+    } catch (error) {
+      console.error("Failed to refresh subscription:", error);
+    }
+  };
 
   const {
     searchValue,
@@ -295,11 +331,7 @@ export default function Payments() {
             }}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
           >
-            {(() => {
-              if (language === "pt") return "Tentar novamente";
-              if (language === "es") return "Intentar de nuevo";
-              return "Try again";
-            })()}
+            {translate(language, "Tentar novamente", "Intentar de nuevo", "Try again")}
           </button>
         </div>
       </div>
@@ -308,6 +340,52 @@ export default function Payments() {
 
   return (
     <div>
+      {showSubscriptionButton && !currentSubscription && (
+        <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
+                {translate(
+                  language,
+                  "Assine um plano para continuar",
+                  "Suscríbete a un plan para continuar",
+                  "Subscribe to a plan to continue"
+                )}
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {isTrialExpired
+                  ? translate(
+                      language,
+                      "Seu período de teste expirou. Assine um plano para continuar usando o sistema.",
+                      "Su período de prueba ha expirado. Suscríbase a un plan para continuar usando el sistema.",
+                      "Your trial period has expired. Subscribe to a plan to continue using the system."
+                    )
+                  : translate(
+                      language,
+                      "Você está no período de teste. Assine um plano para continuar após o término do teste.",
+                      "Estás en el período de prueba. Suscríbete a un plan para continuar después de que termine la prueba.",
+                      "You are on a trial period. Subscribe to a plan to continue after the trial ends."
+                    )}
+              </p>
+            </div>
+            <Link
+              to={ROUTES.SUBSCRIPTION}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-medium rounded-lg transition-colors shadow-sm hover:shadow-md"
+            >
+              {translate(language, "Assinar Plano", "Suscribirse", "Subscribe")}
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {currentSubscription && !isLoadingCompany && !isOnTrial && (
+        <SubscriptionCard
+          subscription={currentSubscription}
+          onUpdate={handleSubscriptionUpdate}
+          language={language}
+        />
+      )}
+
       <Table<Payment>
         columns={columns}
         data={paginatedData}
