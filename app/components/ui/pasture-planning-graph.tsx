@@ -72,15 +72,7 @@ export function PasturePlanningGraph({
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
-  if (!data || data.length === 0) {
-    return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-        <p className="text-gray-600 dark:text-gray-400">
-          {t.properties.details.pasturePlanning.noData}
-        </p>
-      </div>
-    );
-  }
+  const isEmpty = !data || data.length === 0;
 
   const classificationHeightMap: Record<string, number> = {
     Excellent: 4,
@@ -89,7 +81,7 @@ export function PasturePlanningGraph({
     Poor: 1,
   };
 
-  const chartData = data.map((d) => ({
+  const chartData = (data ?? []).map((d) => ({
     month: monthMap[d.month] || d.month.substring(0, 3),
     min: d.min,
     max: d.max,
@@ -108,7 +100,7 @@ export function PasturePlanningGraph({
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
             {t.properties.details.pasturePlanning.title}
           </h2>
-          {!isModifiedByUser && (
+          {!isModifiedByUser && !isEmpty && (
             <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
               <p className="text-sm text-blue-800 dark:text-blue-300">
                 {t.properties.details.pasturePlanning.aiGeneratedNote}
@@ -126,135 +118,141 @@ export function PasturePlanningGraph({
         </Button>
       </div>
 
-      <div className="w-full">
-        <ResponsiveContainer width="100%" height={450}>
-          <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 80 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke={gridColor} opacity={0.3} />
-            <XAxis
-              dataKey="month"
-              tick={{ fill: textColor, fontSize: 12 }}
-              label={{
-                value: t.properties.details.pasturePlanning.month,
-                position: "insideBottom",
-                offset: -10,
-                style: { textAnchor: "middle", fill: textColor, fontSize: 12 },
-              }}
-            />
-            <YAxis
-              yAxisId="temp"
-              orientation="left"
-              tick={{ fill: textColor, fontSize: 12 }}
-              label={{
-                value: t.properties.details.pasturePlanning.temperature,
-                angle: -90,
-                position: "insideLeft",
-                style: { textAnchor: "middle", fill: textColor, fontSize: 12 },
-              }}
-            />
-            <YAxis
-              yAxisId="precip"
-              orientation="right"
-              tick={{ fill: textColor, fontSize: 12 }}
-              label={{
-                value: t.properties.details.pasturePlanning.precipitation,
-                angle: 90,
-                position: "insideRight",
-                style: { textAnchor: "middle", fill: textColor, fontSize: 12 },
-              }}
-            />
-            <YAxis yAxisId="classification" orientation="right" hide={true} domain={[0, 5]} />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: isDark ? "#1f2937" : "#ffffff",
-                border: `1px solid ${isDark ? "#374151" : "#e5e7eb"}`,
-                borderRadius: "8px",
-                color: textColor,
-              }}
-              labelStyle={{ color: textColor, fontWeight: "bold" }}
-              formatter={(
-                value: number | string,
-                name: string,
-                props: { payload?: { classification?: string } }
-              ) => {
-                if (
-                  name === t.properties.details.pasturePlanning.forage ||
-                  name === "classificationHeight"
-                ) {
-                  const classification = props.payload?.classification;
-                  return [
-                    t.properties.details.pasturePlanning.classification[
-                      classification as keyof typeof t.properties.details.pasturePlanning.classification
-                    ] || classification,
-                    t.properties.details.pasturePlanning.forage,
-                  ];
-                }
-                return [value, name];
-              }}
-            />
-            <Legend
-              wrapperStyle={{ paddingTop: "20px" }}
-              iconType="line"
-              formatter={getLegendFormatter(textColor)}
-            />
-            <Area
-              yAxisId="precip"
-              type="monotone"
-              dataKey="precipitation"
-              fill={isDark ? "oklch(60% 0.2 240)" : "oklch(70% 0.2 240)"}
-              fillOpacity={0.4}
-              stroke={isDark ? "oklch(60% 0.2 240)" : "oklch(70% 0.2 240)"}
-              strokeWidth={2}
-              name={t.properties.details.pasturePlanning.precip}
-            />
-            <Line
-              yAxisId="temp"
-              type="monotone"
-              dataKey="min"
-              stroke={isDark ? "oklch(50% 0.2 250)" : "oklch(60% 0.2 250)"}
-              strokeWidth={2}
-              dot={{ fill: isDark ? "oklch(50% 0.2 250)" : "oklch(60% 0.2 250)", r: 4 }}
-              name={t.properties.details.pasturePlanning.minTemp}
-            />
-            <Line
-              yAxisId="temp"
-              type="monotone"
-              dataKey="max"
-              stroke={isDark ? "oklch(50% 0.2 30)" : "oklch(60% 0.2 30)"}
-              strokeWidth={2}
-              dot={{ fill: isDark ? "oklch(50% 0.2 30)" : "oklch(60% 0.2 30)", r: 4 }}
-              name={t.properties.details.pasturePlanning.maxTemp}
-            />
-            <Bar
-              yAxisId="classification"
-              dataKey="classificationHeight"
-              barSize={30}
-              radius={[4, 4, 0, 0]}
-              isAnimationActive={false}
-              name={t.properties.details.pasturePlanning.forage}
-            >
-              {chartData.map((entry) => {
-                const color = isDark
-                  ? CLASSIFICATION_COLORS_DARK[entry.classification]
-                  : CLASSIFICATION_COLORS[entry.classification];
-                return <Cell key={`cell-${entry.month}`} fill={color} />;
-              })}
-              <LabelList
-                dataKey="classification"
-                position="insideBottom"
-                formatter={(value) => {
-                  if (!value || typeof value !== "string") return "";
-                  const translated =
-                    t.properties.details.pasturePlanning.classification[
-                      value as keyof typeof t.properties.details.pasturePlanning.classification
-                    ] || value;
-                  return translated.length > 6 ? translated.substring(0, 4) : translated;
+      {isEmpty ? (
+        <p className="text-gray-600 dark:text-gray-400">
+          {t.properties.details.pasturePlanning.noData}
+        </p>
+      ) : (
+        <div className="w-full">
+          <ResponsiveContainer width="100%" height={450}>
+            <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 80 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={gridColor} opacity={0.3} />
+              <XAxis
+                dataKey="month"
+                tick={{ fill: textColor, fontSize: 12 }}
+                label={{
+                  value: t.properties.details.pasturePlanning.month,
+                  position: "insideBottom",
+                  offset: -10,
+                  style: { textAnchor: "middle", fill: textColor, fontSize: 12 },
                 }}
-                style={{ fill: isDark ? "#ffffff" : "#000000", fontSize: 9, fontWeight: "bold" }}
               />
-            </Bar>
-          </ComposedChart>
-        </ResponsiveContainer>
-      </div>
+              <YAxis
+                yAxisId="temp"
+                orientation="left"
+                tick={{ fill: textColor, fontSize: 12 }}
+                label={{
+                  value: t.properties.details.pasturePlanning.temperature,
+                  angle: -90,
+                  position: "insideLeft",
+                  style: { textAnchor: "middle", fill: textColor, fontSize: 12 },
+                }}
+              />
+              <YAxis
+                yAxisId="precip"
+                orientation="right"
+                tick={{ fill: textColor, fontSize: 12 }}
+                label={{
+                  value: t.properties.details.pasturePlanning.precipitation,
+                  angle: 90,
+                  position: "insideRight",
+                  style: { textAnchor: "middle", fill: textColor, fontSize: 12 },
+                }}
+              />
+              <YAxis yAxisId="classification" orientation="right" hide={true} domain={[0, 5]} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: isDark ? "#1f2937" : "#ffffff",
+                  border: `1px solid ${isDark ? "#374151" : "#e5e7eb"}`,
+                  borderRadius: "8px",
+                  color: textColor,
+                }}
+                labelStyle={{ color: textColor, fontWeight: "bold" }}
+                formatter={(
+                  value: number | string,
+                  name: string,
+                  props: { payload?: { classification?: string } }
+                ) => {
+                  if (
+                    name === t.properties.details.pasturePlanning.forage ||
+                    name === "classificationHeight"
+                  ) {
+                    const classification = props.payload?.classification;
+                    return [
+                      t.properties.details.pasturePlanning.classification[
+                        classification as keyof typeof t.properties.details.pasturePlanning.classification
+                      ] || classification,
+                      t.properties.details.pasturePlanning.forage,
+                    ];
+                  }
+                  return [value, name];
+                }}
+              />
+              <Legend
+                wrapperStyle={{ paddingTop: "20px" }}
+                iconType="line"
+                formatter={getLegendFormatter(textColor)}
+              />
+              <Area
+                yAxisId="precip"
+                type="monotone"
+                dataKey="precipitation"
+                fill={isDark ? "oklch(60% 0.2 240)" : "oklch(70% 0.2 240)"}
+                fillOpacity={0.4}
+                stroke={isDark ? "oklch(60% 0.2 240)" : "oklch(70% 0.2 240)"}
+                strokeWidth={2}
+                name={t.properties.details.pasturePlanning.precip}
+              />
+              <Line
+                yAxisId="temp"
+                type="monotone"
+                dataKey="min"
+                stroke={isDark ? "oklch(50% 0.2 250)" : "oklch(60% 0.2 250)"}
+                strokeWidth={2}
+                dot={{ fill: isDark ? "oklch(50% 0.2 250)" : "oklch(60% 0.2 250)", r: 4 }}
+                name={t.properties.details.pasturePlanning.minTemp}
+              />
+              <Line
+                yAxisId="temp"
+                type="monotone"
+                dataKey="max"
+                stroke={isDark ? "oklch(50% 0.2 30)" : "oklch(60% 0.2 30)"}
+                strokeWidth={2}
+                dot={{ fill: isDark ? "oklch(50% 0.2 30)" : "oklch(60% 0.2 30)", r: 4 }}
+                name={t.properties.details.pasturePlanning.maxTemp}
+              />
+              <Bar
+                yAxisId="classification"
+                dataKey="classificationHeight"
+                barSize={30}
+                radius={[4, 4, 0, 0]}
+                isAnimationActive={false}
+                name={t.properties.details.pasturePlanning.forage}
+              >
+                {chartData.map((entry) => {
+                  const color = isDark
+                    ? CLASSIFICATION_COLORS_DARK[entry.classification]
+                    : CLASSIFICATION_COLORS[entry.classification];
+                  return <Cell key={`cell-${entry.month}`} fill={color} />;
+                })}
+                <LabelList
+                  dataKey="classification"
+                  position="insideBottom"
+                  formatter={(value) => {
+                    if (!value || typeof value !== "string") return "";
+                    const translated =
+                      t.properties.details.pasturePlanning.classification[
+                        value as keyof typeof t.properties.details.pasturePlanning.classification
+                      ] || value;
+                    return translated.length > 6 ? translated.substring(0, 4) : translated;
+                  }}
+                  style={{ fill: isDark ? "#ffffff" : "#000000", fontSize: 9, fontWeight: "bold" }}
+                />
+              </Bar>
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </div>
   );
 }

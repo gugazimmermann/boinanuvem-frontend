@@ -103,6 +103,22 @@ export async function loader({ request }: { request: Request }) {
   return createRouteGuard(undefined, "view")({ request });
 }
 
+function isPasturePlanningEffectivelyEmpty(
+  pasturePlanning: Property["pasturePlanning"],
+  pasturePlanningModifiedByUser: boolean | null | undefined
+): boolean {
+  if (!pasturePlanning || pasturePlanning.length === 0) return true;
+
+  // If the dataset has no meaningful numeric values, treat as empty.
+  // This covers the "default 12 months with zeros" case, even if flags/classification differ.
+  return pasturePlanning.every((m) => {
+    const min = Number((m as unknown as { min?: unknown }).min ?? 0);
+    const max = Number((m as unknown as { max?: unknown }).max ?? 0);
+    const precipitation = Number((m as unknown as { precipitation?: unknown }).precipitation ?? 0);
+    return min === 0 && max === 0 && precipitation === 0;
+  });
+}
+
 function getFinanceEditRoute(transactionType: string, id: string): string {
   if (transactionType === "cashFlow") {
     return getCashFlowEditRoute(id);
@@ -949,9 +965,16 @@ function PropertyInformationTab({
         </div>
       </div>
 
-      {property.pasturePlanning && property.pasturePlanning.length > 0 && (
+      {property.pasturePlanning && (
         <PasturePlanningGraph
-          data={property.pasturePlanning}
+          data={
+            isPasturePlanningEffectivelyEmpty(
+              property.pasturePlanning,
+              property.pasturePlanningModifiedByUser
+            )
+              ? []
+              : property.pasturePlanning
+          }
           propertyId={property.id}
           isModifiedByUser={property.pasturePlanningModifiedByUser || false}
         />
@@ -1298,7 +1321,10 @@ export default function PropertyDetails() {
 
   const locationsCount = locations.length;
   const allPropertyAnimals = animals;
-  const propertyAnimals = allPropertyAnimals.filter((animal) => animal.status === "active");
+  const propertyAnimals = useMemo(
+    () => allPropertyAnimals.filter((animal) => animal.status === "active"),
+    [allPropertyAnimals]
+  );
   const animalsCount = propertyAnimals.length;
 
   const [propertyStats, setPropertyStats] = useState<Awaited<

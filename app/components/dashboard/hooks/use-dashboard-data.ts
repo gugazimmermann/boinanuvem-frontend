@@ -72,14 +72,15 @@ export function useDashboardData(companyId: string, filters?: DashboardFilters) 
   const [allAnimals, setAllAnimals] = useState<Animal[]>([]);
 
   useEffect(() => {
+    let cancelled = false;
     const loadAnimals = async () => {
       try {
         if (filters?.propertyId) {
           const animalsData = await getAnimalsByPropertyId(filters.propertyId);
-          setAllAnimals(animalsData || []);
+          if (!cancelled) setAllAnimals(animalsData || []);
         } else {
           const animalsData = await getAnimalsByCompanyId(companyId);
-          setAllAnimals(animalsData || []);
+          if (!cancelled) setAllAnimals(animalsData || []);
         }
       } catch (error) {
         console.error("Failed to load animals:", error);
@@ -87,6 +88,9 @@ export function useDashboardData(companyId: string, filters?: DashboardFilters) 
       }
     };
     loadAnimals();
+    return () => {
+      cancelled = true;
+    };
   }, [companyId, filters?.propertyId]);
 
   const animals = useMemo(

@@ -40,6 +40,8 @@ export class ApiClient {
   private onAuthFailureCallback: OnAuthFailureCallback | null = null;
   private isRefreshing = false;
   private refreshPromise: Promise<{ access_token: string; refresh_token: string }> | null = null;
+  private inflightRequests = new Map<string, Promise<unknown>>();
+  private responseCache = new Map<string, { expiresAt: number; value: unknown }>();
 
   constructor(baseUrl: string = API_BASE_URL) {
     this.baseUrl = baseUrl;
@@ -204,7 +206,8 @@ export class ApiClient {
   private async makeRequest<T>(
     endpoint: string,
     options: RequestInit,
-    retryOn401 = true
+    retryOn401 = true,
+    retryOn429 = 1
   ): Promise<T> {
     // Handle both full URLs and relative paths
     const url = endpoint.startsWith("http") ? endpoint : `${this.baseUrl}${endpoint}`;
@@ -215,9 +218,70 @@ export class ApiClient {
       response = await this.handle401Response(url, options, response);
     }
 
+    // If we get a 429, respect Retry-After and retry a limited number of times.
+    if (response.status === 429 && retryOn429 > 0) {
+      const retryAfterHeader = response.headers.get("retry-after");
+      let delayMs = 500;
+      if (retryAfterHeader) {
+        const asSeconds = Number(retryAfterHeader);
+        if (Number.isFinite(asSeconds) && asSeconds >= 0) {
+          delayMs = Math.max(delayMs, Math.round(asSeconds * 1000));
+        }
+      }
+      await new Promise<void>((resolve, reject) => {
+        const id = setTimeout(() => resolve(), delayMs);
+        if (options.signal) {
+          if (options.signal.aborted) {
+            clearTimeout(id);
+            reject(new DOMException("The operation was aborted.", "AbortError"));
+            return;
+          }
+          options.signal.addEventListener(
+            "abort",
+            () => {
+              clearTimeout(id);
+              reject(new DOMException("The operation was aborted.", "AbortError"));
+            },
+            { once: true }
+          );
+        }
+      });
+      return this.makeRequest<T>(endpoint, options, retryOn401, retryOn429 - 1);
+    }
+
     if (!response.ok) {
+      // Try to extract a useful error message from the response body.
+      // NestJS (and many APIs) often return `{ message, error, statusCode }` for 4xx
+      // and may return plain text / HTML for 5xx depending on config.
+      let details: string | undefined;
+      try {
+        const contentType = response.headers.get("content-type") ?? "";
+        if (contentType.includes("application/json")) {
+          const body = (await response.clone().json()) as unknown;
+          if (body && typeof body === "object") {
+            const maybeMessage = (body as Record<string, unknown>).message;
+            const maybeError = (body as Record<string, unknown>).error;
+            if (typeof maybeMessage === "string") {
+              details = maybeMessage;
+            } else if (Array.isArray(maybeMessage)) {
+              details = maybeMessage.filter((x) => typeof x === "string").join("; ");
+            } else if (typeof maybeError === "string") {
+              details = maybeError;
+            } else {
+              details = JSON.stringify(body);
+            }
+          }
+        } else {
+          const text = await response.clone().text();
+          if (text) details = text;
+        }
+      } catch {
+        // Ignore parsing errors and fallback to status text.
+      }
+
+      const suffix = details ? ` - ${details}` : "";
       throw new ApiError(
-        `HTTP ${response.status}: ${response.statusText}`,
+        `HTTP ${response.status}: ${response.statusText}${suffix}`,
         response.status,
         response
       );
@@ -238,7 +302,20 @@ export class ApiClient {
   /**
    * Make a GET request to the specified endpoint
    */
-  async get<T>(endpoint: string, params?: Record<string, string>): Promise<T> {
+  async get<T>(
+    endpoint: string,
+    params?: Record<string, string>,
+    options?: RequestInit & {
+      dedupe?: boolean;
+      retryOn429?: number;
+      /**
+       * Cache successful GET responses for a short time (ms) to avoid request storms
+       * from repeated sequential calls (common in dev + StrictMode).
+       * Set to 0 to disable caching for this request.
+       */
+      cacheTtlMs?: number;
+    }
+  ): Promise<T> {
     let url = endpoint;
 
     // Build query string if params provided
@@ -251,10 +328,44 @@ export class ApiClient {
       url = `${endpoint}${endpoint.includes("?") ? "&" : "?"}${queryString}`;
     }
 
-    return this.makeRequest<T>(url, {
+    const requestOptions: RequestInit = {
       method: "GET",
-      headers: this.getHeaders(),
-    });
+      headers: { ...this.getHeaders(), ...(options?.headers ?? {}) },
+      signal: options?.signal,
+    };
+
+    const shouldDedupe = options?.dedupe ?? true;
+    const cacheTtlMs = options?.cacheTtlMs ?? 5000;
+    const auth = (requestOptions.headers as Record<string, unknown>)?.Authorization ?? "";
+    const inflightKey = `GET ${url} :: ${String(auth)}`;
+
+    if (cacheTtlMs > 0) {
+      const cached = this.responseCache.get(inflightKey);
+      if (cached && cached.expiresAt > Date.now()) {
+        return cached.value as T;
+      }
+    }
+
+    if (shouldDedupe) {
+      const existing = this.inflightRequests.get(inflightKey);
+      if (existing) return existing as Promise<T>;
+    }
+
+    const promise = this.makeRequest<T>(url, requestOptions, true, options?.retryOn429 ?? 1)
+      .then((value) => {
+        if (cacheTtlMs > 0) {
+          this.responseCache.set(inflightKey, { expiresAt: Date.now() + cacheTtlMs, value });
+        }
+        return value;
+      })
+      .finally(() => {
+        this.inflightRequests.delete(inflightKey);
+      });
+
+    if (shouldDedupe) {
+      this.inflightRequests.set(inflightKey, promise as Promise<unknown>);
+    }
+    return promise;
   }
 
   /**
