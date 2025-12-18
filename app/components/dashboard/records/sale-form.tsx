@@ -1,8 +1,9 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { Input, Button, Alert, Select, FormFieldGroup } from "~/components/ui";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
 import { formatCurrency } from "~/utils/currency";
+import { maskCurrency, getCurrencyPlaceholder } from "~/utils/currency-mask";
 import { isAnimalSold } from "~/services/sales.service";
 import { useSaleForm, type SaleFormData } from "~/hooks/use-sale-form";
 import type { PricingMode, Property, Buyer, Animal } from "~/types";
@@ -91,7 +92,7 @@ export function SaleForm({
     alertMessage,
     animalSearch,
     setAnimalSearch,
-    handleChange,
+    handleChange: baseHandleChange,
     toggleAnimalSelection,
     handleSaleItemChange,
     handleTotalPriceChange,
@@ -111,15 +112,42 @@ export function SaleForm({
     errorMessage,
   });
 
+  // Custom handler for property change that clears selected animals
+  const handlePropertyChange = useCallback(
+    (propertyId: string) => {
+      baseHandleChange("propertyId", propertyId);
+      // Clear selected animals and sale items when property changes
+      if (propertyId !== formData.propertyId) {
+        baseHandleChange("selectedAnimalIds", []);
+        baseHandleChange("saleItems", []);
+      }
+    },
+    [baseHandleChange, formData.propertyId]
+  );
+
   const filteredAnimals = useMemo(() => {
-    if (!animalSearch?.trim()) return animals;
-    const searchLower = animalSearch.toLowerCase();
-    return animals.filter(
-      (animal) =>
-        animal.code.toLowerCase().includes(searchLower) ||
-        animal.registrationNumber.toLowerCase().includes(searchLower)
-    );
-  }, [animals, animalSearch]);
+    // If no property is selected, show no animals
+    if (!formData.propertyId) {
+      return [];
+    }
+
+    let filtered = animals;
+
+    // Filter by property
+    filtered = filtered.filter((animal) => animal.propertyId === formData.propertyId);
+
+    // Filter by search term
+    if (animalSearch?.trim()) {
+      const searchLower = animalSearch.toLowerCase();
+      filtered = filtered.filter(
+        (animal) =>
+          animal.code.toLowerCase().includes(searchLower) ||
+          animal.registrationNumber.toLowerCase().includes(searchLower)
+      );
+    }
+
+    return filtered;
+  }, [animals, animalSearch, formData.propertyId]);
 
   const toSafeString = (value: unknown): string => {
     if (typeof value === "string") return value;
@@ -157,7 +185,7 @@ export function SaleForm({
               </label>
               <Select
                 value={toSafeString(formData.propertyId)}
-                onChange={(e) => handleChange("propertyId", e.target.value)}
+                onChange={(e) => handlePropertyChange(e.target.value)}
                 disabled={isSubmitting}
                 className={errors.propertyId ? "border-red-500" : ""}
                 options={[
@@ -180,7 +208,7 @@ export function SaleForm({
               </label>
               <Select
                 value={toSafeString(formData.buyerId)}
-                onChange={(e) => handleChange("buyerId", e.target.value)}
+                onChange={(e) => baseHandleChange("buyerId", e.target.value)}
                 disabled={isSubmitting}
                 className={errors.buyerId ? "border-red-500" : ""}
                 options={[
@@ -202,7 +230,7 @@ export function SaleForm({
               <Input
                 type="date"
                 value={toSafeString(formData.saleDate)}
-                onChange={(e) => handleChange("saleDate", e.target.value)}
+                onChange={(e) => baseHandleChange("saleDate", e.target.value)}
                 disabled={isSubmitting}
                 className={errors.saleDate ? "border-red-500" : ""}
               />
@@ -215,7 +243,7 @@ export function SaleForm({
               </label>
               <Select
                 value={toSafeString(formData.saleType)}
-                onChange={(e) => handleChange("saleType", e.target.value)}
+                onChange={(e) => baseHandleChange("saleType", e.target.value)}
                 disabled={isSubmitting}
                 className={errors.saleType ? "border-red-500" : ""}
                 options={[
@@ -271,7 +299,7 @@ export function SaleForm({
               </label>
               <Select
                 value={toSafeString(formData.paymentMethod)}
-                onChange={(e) => handleChange("paymentMethod", e.target.value)}
+                onChange={(e) => baseHandleChange("paymentMethod", e.target.value)}
                 disabled={isSubmitting}
                 className={errors.paymentMethod ? "border-red-500" : ""}
                 options={[
@@ -301,9 +329,9 @@ export function SaleForm({
               <Input
                 type="text"
                 value={toSafeString(formData.totalPrice)}
-                onChange={(e) => handleTotalPriceChange(e.target.value)}
+                onChange={(e) => handleTotalPriceChange(maskCurrency(e.target.value, language))}
                 disabled={isSubmitting}
-                placeholder="0,00"
+                placeholder={getCurrencyPlaceholder(language)}
                 className={errors.totalPrice ? "border-red-500" : ""}
               />
               {errors.totalPrice && (
@@ -453,6 +481,7 @@ export function SaleForm({
                                   handleSaleItemChange(item.animalId, "weight", e.target.value)
                                 }
                                 disabled={isSubmitting}
+                                placeholder="0.00"
                                 className={
                                   errors[`weight_${item.animalId}`] ? "border-red-500" : ""
                                 }
@@ -472,10 +501,14 @@ export function SaleForm({
                                   type="text"
                                   value={item.price}
                                   onChange={(e) =>
-                                    handleSaleItemChange(item.animalId, "price", e.target.value)
+                                    handleSaleItemChange(
+                                      item.animalId,
+                                      "price",
+                                      maskCurrency(e.target.value, language)
+                                    )
                                   }
                                   disabled={isSubmitting}
-                                  placeholder="0,00"
+                                  placeholder={getCurrencyPlaceholder(language)}
                                   className={
                                     errors[`price_${item.animalId}`] ? "border-red-500" : ""
                                   }
@@ -520,6 +553,7 @@ export function SaleForm({
                                     )
                                   }
                                   disabled={isSubmitting}
+                                  placeholder="0.00"
                                 />
                               </div>
                             )}
@@ -538,7 +572,7 @@ export function SaleForm({
             </label>
             <textarea
               value={toSafeString(formData.observation)}
-              onChange={(e) => handleChange("observation", e.target.value)}
+              onChange={(e) => baseHandleChange("observation", e.target.value)}
               disabled={isSubmitting}
               rows={3}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"

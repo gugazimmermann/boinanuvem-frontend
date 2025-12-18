@@ -11,6 +11,7 @@ import {
   getAnimalNames,
 } from "~/utils/movements-helpers";
 import { paginateItems } from "~/utils/table-helpers";
+import { consolidateAnimalMovements } from "~/utils/movement-consolidation";
 
 interface UseMovementsOptions {
   locationMovements: LocationMovement[];
@@ -44,12 +45,17 @@ export function useMovements({
     direction: "asc" | "desc" | null;
   }>({ column: "date", direction: "desc" });
 
+  const consolidatedAnimalMovements = useMemo(
+    () => consolidateAnimalMovements(animalMovements),
+    [animalMovements]
+  );
+
   const movements: UnifiedMovement[] = useMemo(
     () => [
       ...locationMovements.map((m) => ({ ...m, movementType: "location" as const })),
-      ...animalMovements.map((m) => ({ ...m, movementType: "animal" as const })),
+      ...consolidatedAnimalMovements.map((m) => ({ ...m, movementType: "animal" as const })),
     ],
-    [locationMovements, animalMovements]
+    [locationMovements, consolidatedAnimalMovements]
   );
 
   const filteredMovements = useMemo(() => {

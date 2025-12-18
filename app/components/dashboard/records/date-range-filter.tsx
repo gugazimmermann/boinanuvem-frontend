@@ -1,4 +1,5 @@
 import { useTranslation } from "~/i18n";
+import { DateInput } from "~/components/ui/date-input";
 
 export interface DateRangeFilterProps {
   readonly startDate: string;
@@ -25,29 +26,35 @@ export function DateRangeFilter({
   const defaultEndLabel = endDateLabel || t.sales?.filters?.endDate || "Data Final";
 
   return (
-    <div className={`flex items-center gap-2 flex-wrap ${className}`}>
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-        {defaultStartLabel}:
-      </label>
-      <input
-        type="date"
-        value={startDate}
-        onChange={(e) => {
-          onStartDateChange(e.target.value);
-        }}
-        className="px-3 py-2 bg-white border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200 text-sm"
-      />
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-        {defaultEndLabel}:
-      </label>
-      <input
-        type="date"
-        value={endDate}
-        onChange={(e) => {
-          onEndDateChange(e.target.value);
-        }}
-        className="px-3 py-2 bg-white border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200 text-sm"
-      />
+    <div className={`flex items-center gap-3 ${className}`}>
+      <div className="flex items-center gap-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+          {defaultStartLabel}:
+        </label>
+        <div className="w-[150px]">
+          <DateInput
+            value={startDate}
+            onChange={(e) => {
+              onStartDateChange(e.target.value);
+            }}
+            className="mt-0! px-3! py-2! text-sm"
+          />
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+          {defaultEndLabel}:
+        </label>
+        <div className="w-[150px]">
+          <DateInput
+            value={endDate}
+            onChange={(e) => {
+              onEndDateChange(e.target.value);
+            }}
+            className="mt-0! px-3! py-2! text-sm"
+          />
+        </div>
+      </div>
     </div>
   );
 }

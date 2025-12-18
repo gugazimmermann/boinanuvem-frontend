@@ -273,6 +273,12 @@ describe("computeWeighingData", () => {
     expect(result.weightInArrobas).toBe("0.00");
   });
 
+  it("should use fallback weight when there are no weighings", () => {
+    const result = computeWeighingData([], { fallbackWeightKg: 120 });
+    expect(result.currentWeight).toBe(120);
+    expect(result.weightInArrobas).toBe("4.00");
+  });
+
   it("should handle single weighing", () => {
     const result = computeWeighingData([mockWeighings[0]]);
     expect(result.lastWeighing?.weight).toBe(100);

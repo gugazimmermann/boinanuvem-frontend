@@ -16,6 +16,8 @@ vi.mock("~/components/site/utils/masks", () => ({
   maskCPF: vi.fn((v: string) => v),
   maskCNPJ: vi.fn((v: string) => v),
   maskPhone: vi.fn((v: string) => v),
+  unmaskCPF: vi.fn((v: string) => v.replaceAll(/\D/g, "")),
+  unmaskCNPJ: vi.fn((v: string) => v.replaceAll(/\D/g, "")),
 }));
 
 describe("useEntityForm", () => {
@@ -487,6 +489,7 @@ describe("useEntityForm", () => {
       const result = validateFn({
         code: "C001",
         name: "Test Name",
+        cpf: "123.456.789-00",
         propertyIds: ["prop1", "prop2"],
       });
       expect(result).toBe(true);

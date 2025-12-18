@@ -6,7 +6,22 @@ import type { Plan } from "~/types/plan";
 import { formatCurrency } from "~/utils/formatting";
 import { ROUTES } from "~/routes.config";
 import { requireMainUser } from "~/utils/route-guard";
-import { t } from "~/utils/translation-helpers";
+import {
+  getLoadingPlansText,
+  getLoadPlansError,
+  getBackText,
+  getChoosePlanTitle,
+  getChoosePlanDescription,
+  getMostPopularText,
+  getPerPeriodText,
+  getSaveText,
+  getPlanLimitsTitle,
+  getAllFeaturesTitle,
+  getAllFeaturesDescription,
+  getSubscribeNowText,
+  getBackToPaymentsText,
+  getPeriodText,
+} from "~/utils/subscription-translations";
 
 export function meta() {
   return [
@@ -30,80 +45,10 @@ export default function Subscription() {
   const [isMonthly, setIsMonthly] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Translation helper functions
-  const getLoadPlansError = useCallback((): string => {
-    return t(
-      language,
-      "Falha ao carregar planos",
-      "Error al cargar planes",
-      "Failed to load plans"
-    );
+  // Error message helper
+  const getLoadPlansErrorText = useCallback((): string => {
+    return getLoadPlansError(language);
   }, [language]);
-
-  const getLoadingPlansText = (): string => {
-    return t(language, "Carregando planos...", "Cargando planes...", "Loading plans...");
-  };
-
-  const getBackText = (): string => {
-    return t(language, "Voltar", "Volver", "Back");
-  };
-
-  const getChoosePlanTitle = (): string => {
-    return t(language, "Escolha seu Plano", "Elige tu Plan", "Choose Your Plan");
-  };
-
-  const getChoosePlanDescription = (): string => {
-    return t(
-      language,
-      "Selecione o plano que melhor se adequa às necessidades da sua propriedade",
-      "Selecciona el plan que mejor se adapte a las necesidades de tu propiedad",
-      "Select the plan that best fits your property's needs"
-    );
-  };
-
-  const getMostPopularText = (): string => {
-    return t(language, "Mais Popular", "Más Popular", "Most Popular");
-  };
-
-  const getPerPeriodText = (period: string): string => {
-    return t(language, `por ${period}`, `por ${period}`, `per ${period}`);
-  };
-
-  const getSaveText = (amount: string): string => {
-    return t(language, `Economize ${amount}`, `Ahorra ${amount}`, `Save ${amount}`);
-  };
-
-  const getPlanLimitsTitle = (): string => {
-    return t(language, "Limites do Plano:", "Límites del Plan:", "Plan Limits:");
-  };
-
-  const getAllFeaturesTitle = (): string => {
-    return t(language, "Todas as Funcionalidades:", "Todas las Funcionalidades:", "All Features:");
-  };
-
-  const getAllFeaturesDescription = (): string => {
-    return t(
-      language,
-      "Todos os planos incluem as mesmas funcionalidades",
-      "Todos los planes incluyen las mismas funcionalidades",
-      "All plans include the same features"
-    );
-  };
-
-  const getSubscribeNowText = (): string => {
-    return t(language, "Assinar Agora →", "Suscribirse Ahora →", "Subscribe Now →");
-  };
-
-  const getBackToPaymentsText = (): string => {
-    return t(language, "← Voltar para Pagamentos", "← Volver a Pagos", "← Back to Payments");
-  };
-
-  const getPeriodText = (): string => {
-    if (isMonthly) {
-      return t(language, "mês", "mes", "month");
-    }
-    return t(language, "ano", "año", "year");
-  };
 
   useEffect(() => {
     const loadPlans = async () => {
@@ -113,14 +58,14 @@ export default function Subscription() {
         setPlans(plansData);
       } catch (err) {
         console.error("Failed to load plans:", err);
-        setError(err instanceof Error ? err.message : getLoadPlansError());
+        setError(err instanceof Error ? err.message : getLoadPlansErrorText());
       } finally {
         setIsLoading(false);
       }
     };
 
     loadPlans();
-  }, [language, getLoadPlansError]);
+  }, [language, getLoadPlansErrorText]);
 
   const handleSubscribe = (planId: string) => {
     // Navigate to payment page with plan selection
@@ -167,7 +112,7 @@ export default function Subscription() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">{getLoadingPlansText()}</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">{getLoadingPlansText(language)}</p>
         </div>
       </div>
     );
@@ -182,7 +127,7 @@ export default function Subscription() {
             onClick={() => navigate(ROUTES.PAYMENTS)}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
           >
-            {getBackText()}
+            {getBackText(language)}
           </button>
         </div>
       </div>
@@ -193,10 +138,10 @@ export default function Subscription() {
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="mb-8 text-center">
         <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-          {getChoosePlanTitle()}
+          {getChoosePlanTitle(language)}
         </h1>
         <p className="text-xl text-gray-600 dark:text-gray-400 leading-relaxed">
-          {getChoosePlanDescription()}
+          {getChoosePlanDescription(language)}
         </p>
       </div>
 
@@ -237,7 +182,7 @@ export default function Subscription() {
           const annualPrice = parsePrice(plan.annualPrice);
           const displayPrice = isMonthly ? plan.monthlyPrice : plan.annualPrice;
           const savings = isMonthly ? 0 : calculateAnnualSavings(monthlyPrice) - annualPrice;
-          const period = getPeriodText();
+          const period = getPeriodText(language, isMonthly ? "monthly" : "annual");
 
           return (
             <div
@@ -252,7 +197,7 @@ export default function Subscription() {
             >
               {plan.popular && (
                 <span className="absolute -top-4 left-8 px-3 py-1 rounded-full text-sm border-2 font-medium text-white bg-blue-600 border-blue-600">
-                  {getMostPopularText()}
+                  {getMostPopularText(language)}
                 </span>
               )}
               <div className="flex justify-between items-start mb-6">
@@ -267,11 +212,11 @@ export default function Subscription() {
                     {displayPrice}
                   </div>
                   <div className="text-sm text-gray-500 dark:text-gray-400">
-                    {getPerPeriodText(period)}
+                    {getPerPeriodText(language, period)}
                   </div>
                   {!isMonthly && savings > 0 && (
                     <div className="text-sm text-green-600 dark:text-green-400 font-semibold mt-1">
-                      {getSaveText(formatCurrency(savings, language))}
+                      {getSaveText(language, formatCurrency(savings, language))}
                     </div>
                   )}
                 </div>
@@ -282,7 +227,7 @@ export default function Subscription() {
                 }`}
               >
                 <p className="font-bold mb-3 text-lg text-gray-900 dark:text-gray-100">
-                  {getPlanLimitsTitle()}
+                  {getPlanLimitsTitle(language)}
                 </p>
                 <div className="grid grid-cols-2 gap-3 mb-5">
                   <div className="flex items-center text-sm">
@@ -308,10 +253,10 @@ export default function Subscription() {
                 </div>
                 <div className="mb-3">
                   <p className="font-bold mb-1 text-lg text-gray-900 dark:text-gray-100">
-                    {getAllFeaturesTitle()}
+                    {getAllFeaturesTitle(language)}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 italic">
-                    {getAllFeaturesDescription()}
+                    {getAllFeaturesDescription(language)}
                   </p>
                 </div>
                 <ul className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar flex-1">
@@ -337,7 +282,7 @@ export default function Subscription() {
                       : "bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100"
                   }`}
                 >
-                  {getSubscribeNowText()}
+                  {getSubscribeNowText(language)}
                 </button>
               </div>
             </div>
@@ -350,7 +295,7 @@ export default function Subscription() {
           onClick={() => navigate(ROUTES.PAYMENTS)}
           className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
         >
-          {getBackToPaymentsText()}
+          {getBackToPaymentsText(language)}
         </button>
       </div>
     </div>

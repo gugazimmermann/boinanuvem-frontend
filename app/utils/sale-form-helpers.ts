@@ -1,20 +1,24 @@
-import type { SaleItem, SaleFormData } from "~/types";
+import type { SaleItem, SaleFormData, Language } from "~/types";
 import type { SaleFormData as SaleFormDataType } from "~/components/dashboard/records/sale-form";
+import { parseCurrency } from "~/utils/currency-mask";
 
 /**
  * Parses a price string (with currency formatting) to a number
  */
-export function parsePrice(priceString: string): number {
-  return Number.parseFloat(priceString.replaceAll(/[^\d,.-]/g, "").replaceAll(",", ".")) || 0;
+export function parsePrice(priceString: string, language: Language = "pt"): number {
+  return parseCurrency(priceString, language);
 }
 
 /**
  * Transforms sale form items to SaleItem format
  */
-export function transformSaleItems(saleItems: SaleFormDataType["saleItems"]): SaleItem[] {
+export function transformSaleItems(
+  saleItems: SaleFormDataType["saleItems"],
+  language: Language = "pt"
+): SaleItem[] {
   return saleItems.map((item) => ({
     animalId: item.animalId,
-    price: parsePrice(item.price),
+    price: parsePrice(item.price, language),
     weight: Number.parseFloat(item.weight) || 0,
     carcassWeight: item.carcassWeight ? Number.parseFloat(item.carcassWeight) : undefined,
   }));
@@ -23,13 +27,16 @@ export function transformSaleItems(saleItems: SaleFormDataType["saleItems"]): Sa
 /**
  * Transforms sale form fees to SaleFormData fees format
  */
-export function transformSaleFees(fees: SaleFormDataType["fees"]): SaleFormData["fees"] {
+export function transformSaleFees(
+  fees: SaleFormDataType["fees"],
+  language: Language = "pt"
+): SaleFormData["fees"] {
   const transformedFees = fees
     .filter((fee) => fee.name.trim() && fee.amount)
     .map((fee) => ({
       id: fee.id,
       name: fee.name.trim(),
-      amount: parsePrice(fee.amount),
+      amount: parsePrice(fee.amount, language),
     }));
 
   return transformedFees.length > 0 ? transformedFees : undefined;
@@ -45,10 +52,14 @@ export function calculateTotalPrice(saleItems: SaleItem[]): number {
 /**
  * Transforms sale form data to SaleFormData format for creation
  */
-export function transformSaleFormData(formData: SaleFormDataType, companyId: string): SaleFormData {
-  const saleItems = transformSaleItems(formData.saleItems);
+export function transformSaleFormData(
+  formData: SaleFormDataType,
+  companyId: string,
+  language: Language = "pt"
+): SaleFormData {
+  const saleItems = transformSaleItems(formData.saleItems, language);
   const totalPrice = calculateTotalPrice(saleItems);
-  const fees = transformSaleFees(formData.fees);
+  const fees = transformSaleFees(formData.fees, language);
 
   return {
     companyId,
@@ -68,10 +79,13 @@ export function transformSaleFormData(formData: SaleFormDataType, companyId: str
 /**
  * Transforms sale form data to partial SaleFormData format for updates
  */
-export function transformSaleFormDataForUpdate(formData: SaleFormDataType): Partial<SaleFormData> {
-  const saleItems = transformSaleItems(formData.saleItems);
+export function transformSaleFormDataForUpdate(
+  formData: SaleFormDataType,
+  language: Language = "pt"
+): Partial<SaleFormData> {
+  const saleItems = transformSaleItems(formData.saleItems, language);
   const totalPrice = calculateTotalPrice(saleItems);
-  const fees = transformSaleFees(formData.fees);
+  const fees = transformSaleFees(formData.fees, language);
 
   return {
     propertyId: formData.propertyId,

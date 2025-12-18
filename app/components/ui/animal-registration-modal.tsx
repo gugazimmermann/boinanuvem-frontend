@@ -45,11 +45,13 @@ export function AnimalRegistrationModal({
   return (
     <dialog
       ref={dialogRef}
-      className="fixed inset-0 z-50 overflow-y-auto bg-transparent"
+      // Native <dialog> has default margin/padding/border that can break our overlay layout.
+      // Normalize it so the modal always centers correctly.
+      className="fixed inset-0 z-50 m-0 p-0 border-0 max-w-none w-full bg-transparent overflow-y-auto"
       onClose={onClose}
     >
       <div
-        className="fixed inset-0 bg-black bg-opacity-50"
+        className="fixed inset-0 transition-opacity bg-black/5 dark:bg-black/10 backdrop-blur-sm"
         onClick={handleBackdropClick}
         aria-hidden="true"
       />

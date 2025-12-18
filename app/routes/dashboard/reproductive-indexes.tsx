@@ -23,6 +23,8 @@ import {
 } from "~/services/reproductive-indexes.service";
 import { format, subYears } from "date-fns";
 import { useDateLocale } from "~/hooks/use-date-locale";
+import { useLanguage } from "~/contexts/language-context";
+import { DateInput } from "~/components/ui/date-input";
 import {
   LineChart,
   Line,
@@ -222,6 +224,7 @@ function aggregateAnnualCullingRates(cullingRates: CullingRateResult[]): Array<{
 export default function ReproductiveIndexesPage() {
   const t = useTranslation();
   const { theme } = useTheme();
+  const { language: _language } = useLanguage();
   const isDark = theme === "dark";
   const chartColors = getChartColors(isDark);
   const tooltipStyle = getTooltipStyle(isDark);
@@ -392,8 +395,7 @@ export default function ReproductiveIndexesPage() {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               {t.reproductiveIndexes.filters.startDate}
             </label>
-            <input
-              type="date"
+            <DateInput
               value={selectedPeriod.startDate || ""}
               onChange={(e) =>
                 setSelectedPeriod((prev) => ({
@@ -408,8 +410,7 @@ export default function ReproductiveIndexesPage() {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               {t.reproductiveIndexes.filters.endDate}
             </label>
-            <input
-              type="date"
+            <DateInput
               value={selectedPeriod.endDate || ""}
               onChange={(e) =>
                 setSelectedPeriod((prev) => ({

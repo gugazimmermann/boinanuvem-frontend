@@ -174,9 +174,22 @@ function getPurityWhenOneMissing(
 }
 
 function checkPOPOCombination(motherBreed?: string, fatherBreed?: string): BirthPurity | null {
+  // Se ambas as raças são undefined, não há informação de cruzamento
+  if (!motherBreed && !fatherBreed) {
+    return BirthPurity.PO;
+  }
+
+  // Se apenas uma raça está disponível, considera como PO (raça pura conhecida)
+  if (!motherBreed || !fatherBreed) {
+    return BirthPurity.PO;
+  }
+
+  // Se ambas as raças estão disponíveis e são iguais, é PO
   if (motherBreed === fatherBreed) {
     return BirthPurity.PO;
   }
+
+  // Se ambas as raças estão disponíveis e são diferentes, é F1 (cruzamento)
   return BirthPurity.F1;
 }
 

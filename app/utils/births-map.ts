@@ -1,4 +1,3 @@
-import { getBirthByAnimalId } from "~/services/births.service";
 import type { Birth } from "~/types";
 
 /**
@@ -6,13 +5,13 @@ import type { Birth } from "~/types";
  * @param births Array of birth records
  * @returns Map with animal ID as key and birth record as value
  */
-export function createBirthsMap(
-  births: Birth[] | undefined | null
-): Map<string, Awaited<ReturnType<typeof getBirthByAnimalId>>> {
-  const map = new Map<string, Awaited<ReturnType<typeof getBirthByAnimalId>>>();
+export function createBirthsMap(births: Birth[] | undefined | null): Map<string, Birth> {
+  const map = new Map<string, Birth>();
   if (births) {
     for (const birth of births) {
-      map.set(birth.animalId, birth);
+      if (birth) {
+        map.set(birth.animalId, birth);
+      }
     }
   }
   return map;

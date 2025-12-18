@@ -36,6 +36,12 @@ export function calculateMonthlyFinanceData(
   const months: Record<string, { month: string; income: number; expenses: number; net: number }> =
     {};
 
+  const parseTransactionDate = (value: string): Date => {
+    const d = new Date(value);
+    if (!Number.isNaN(d.getTime())) return d;
+    return parseISO(value);
+  };
+
   for (let i = 11; i >= 0; i--) {
     const monthDate = subMonths(currentDate, i);
     const monthKey = format(monthDate, "yyyy-MM");
@@ -50,7 +56,7 @@ export function calculateMonthlyFinanceData(
     };
 
     for (const transaction of cashFlowData) {
-      const transactionDate = parseISO(transaction.date);
+      const transactionDate = parseTransactionDate(transaction.date);
       if (transactionDate >= monthStart && transactionDate <= monthEnd) {
         if (transaction.type === "income") {
           months[monthKey].income += transaction.amount;

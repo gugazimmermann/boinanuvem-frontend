@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, act, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { EntityMovementsTab } from "../entity-movements-tab";
 import { useNavigate } from "react-router";
@@ -9,6 +9,18 @@ import { useLanguage } from "~/contexts/language-context";
 vi.mock("react-router");
 vi.mock("~/i18n");
 vi.mock("~/contexts/language-context");
+vi.mock("~/services/locations.service", () => ({
+  getLocations: vi.fn(() => Promise.resolve([])),
+}));
+vi.mock("~/services/employees.service", () => ({
+  getEmployees: vi.fn(() => Promise.resolve([])),
+}));
+vi.mock("~/services/service-providers.service", () => ({
+  getServiceProviders: vi.fn(() => Promise.resolve([])),
+}));
+vi.mock("~/services/animals.service", () => ({
+  getAnimalsByPropertyId: vi.fn(() => Promise.resolve([])),
+}));
 vi.mock("~/hooks/use-movements", () => ({
   useMovements: vi.fn(() => ({
     movements: [],
@@ -119,35 +131,55 @@ describe("EntityMovementsTab", () => {
     mockUseLanguage.mockReturnValue({ language: "pt" });
   });
 
-  it("should render movements section", () => {
-    render(<EntityMovementsTab {...defaultProps} />);
-    expect(screen.getByTestId("movements-section")).toBeInTheDocument();
+  it("should render movements section", async () => {
+    await act(async () => {
+      render(<EntityMovementsTab {...defaultProps} />);
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("movements-section")).toBeInTheDocument();
+    });
   });
 
-  it("should handle employee entity type", () => {
-    render(<EntityMovementsTab {...defaultProps} entityType="employee" />);
-    expect(screen.getByTestId("movements-section")).toBeInTheDocument();
+  it("should handle employee entity type", async () => {
+    await act(async () => {
+      render(<EntityMovementsTab {...defaultProps} entityType="employee" />);
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("movements-section")).toBeInTheDocument();
+    });
   });
 
-  it("should handle serviceProvider entity type", () => {
-    render(<EntityMovementsTab {...defaultProps} entityType="serviceProvider" />);
-    expect(screen.getByTestId("movements-section")).toBeInTheDocument();
+  it("should handle serviceProvider entity type", async () => {
+    await act(async () => {
+      render(<EntityMovementsTab {...defaultProps} entityType="serviceProvider" />);
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("movements-section")).toBeInTheDocument();
+    });
   });
 
   it("should show header actions when entityPropertyIds are provided", async () => {
     const user = userEvent.setup();
     const navigate = vi.fn();
     mockUseNavigate.mockReturnValue(navigate);
-    render(<EntityMovementsTab {...defaultProps} entityPropertyIds={["property-1"]} />);
+    await act(async () => {
+      render(<EntityMovementsTab {...defaultProps} entityPropertyIds={["property-1"]} />);
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("add-button")).toBeInTheDocument();
+    });
     const addButton = screen.getByTestId("add-button");
-    expect(addButton).toBeInTheDocument();
     await user.click(addButton);
     expect(navigate).toHaveBeenCalled();
   });
 
-  it("should not show header actions when entityPropertyIds are empty", () => {
-    render(<EntityMovementsTab {...defaultProps} entityPropertyIds={[]} />);
-    expect(screen.queryByTestId("add-button")).not.toBeInTheDocument();
+  it("should not show header actions when entityPropertyIds are empty", async () => {
+    await act(async () => {
+      render(<EntityMovementsTab {...defaultProps} entityPropertyIds={[]} />);
+    });
+    await waitFor(() => {
+      expect(screen.queryByTestId("add-button")).not.toBeInTheDocument();
+    });
   });
 
   it("should use getMovementNewRouteParam when provided", async () => {
@@ -155,13 +187,18 @@ describe("EntityMovementsTab", () => {
     const navigate = vi.fn();
     mockUseNavigate.mockReturnValue(navigate);
     const getMovementNewRouteParam = vi.fn((propertyId: string) => `/custom/new/${propertyId}`);
-    render(
-      <EntityMovementsTab
-        {...defaultProps}
-        entityPropertyIds={["property-1"]}
-        getMovementNewRouteParam={getMovementNewRouteParam}
-      />
-    );
+    await act(async () => {
+      render(
+        <EntityMovementsTab
+          {...defaultProps}
+          entityPropertyIds={["property-1"]}
+          getMovementNewRouteParam={getMovementNewRouteParam}
+        />
+      );
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("add-button")).toBeInTheDocument();
+    });
     const addButton = screen.getByTestId("add-button");
     await user.click(addButton);
     expect(getMovementNewRouteParam).toHaveBeenCalledWith("property-1");
@@ -172,7 +209,12 @@ describe("EntityMovementsTab", () => {
     const user = userEvent.setup();
     const navigate = vi.fn();
     mockUseNavigate.mockReturnValue(navigate);
-    render(<EntityMovementsTab {...defaultProps} entityPropertyIds={["property-1"]} />);
+    await act(async () => {
+      render(<EntityMovementsTab {...defaultProps} entityPropertyIds={["property-1"]} />);
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("add-button")).toBeInTheDocument();
+    });
     const addButton = screen.getByTestId("add-button");
     await user.click(addButton);
     expect(navigate).toHaveBeenCalledWith(expect.stringContaining("/movements/new/property-1"));
@@ -184,9 +226,17 @@ describe("EntityMovementsTab", () => {
     const navigate = vi.fn();
     mockUseNavigate.mockReturnValue(navigate);
     const getMovementViewRouteParam = vi.fn((movementId: string) => `/custom/view/${movementId}`);
-    render(
-      <EntityMovementsTab {...defaultProps} getMovementViewRouteParam={getMovementViewRouteParam} />
-    );
+    await act(async () => {
+      render(
+        <EntityMovementsTab
+          {...defaultProps}
+          getMovementViewRouteParam={getMovementViewRouteParam}
+        />
+      );
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("row-button")).toBeInTheDocument();
+    });
     const rowButton = screen.getByTestId("row-button");
     await user.click(rowButton);
     expect(getMovementViewRouteParam).toHaveBeenCalledWith("movement-1");
@@ -197,7 +247,12 @@ describe("EntityMovementsTab", () => {
     const user = userEvent.setup();
     const navigate = vi.fn();
     mockUseNavigate.mockReturnValue(navigate);
-    render(<EntityMovementsTab {...defaultProps} entityType="employee" />);
+    await act(async () => {
+      render(<EntityMovementsTab {...defaultProps} entityType="employee" />);
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("row-button")).toBeInTheDocument();
+    });
     const rowButton = screen.getByTestId("row-button");
     await user.click(rowButton);
     expect(navigate).toHaveBeenCalledWith(expect.stringContaining("/movements/movement-1"));
@@ -208,7 +263,12 @@ describe("EntityMovementsTab", () => {
     const user = userEvent.setup();
     const navigate = vi.fn();
     mockUseNavigate.mockReturnValue(navigate);
-    render(<EntityMovementsTab {...defaultProps} entityType="serviceProvider" />);
+    await act(async () => {
+      render(<EntityMovementsTab {...defaultProps} entityType="serviceProvider" />);
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("row-button")).toBeInTheDocument();
+    });
     const rowButton = screen.getByTestId("row-button");
     await user.click(rowButton);
     expect(navigate).toHaveBeenCalledWith(expect.stringContaining("fromServiceProvider=1"));
@@ -216,7 +276,12 @@ describe("EntityMovementsTab", () => {
 
   it("should handle onSort callback", async () => {
     const user = userEvent.setup();
-    render(<EntityMovementsTab {...defaultProps} />);
+    await act(async () => {
+      render(<EntityMovementsTab {...defaultProps} />);
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("sort-button")).toBeInTheDocument();
+    });
     const sortButton = screen.getByTestId("sort-button");
     await user.click(sortButton);
     // onSort should be called

@@ -313,7 +313,7 @@ export default function Sales() {
         }}
         filters={filters}
         rightContent={
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-4 flex-wrap">
             <PropertyFilter
               value={recordList.propertyFilter}
               onChange={recordList.setPropertyFilter}

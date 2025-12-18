@@ -139,7 +139,7 @@ describe("acquisitions.service", () => {
 
   describe("getAcquisitionByAnimalId", () => {
     it("should find acquisition by animal id", async () => {
-      mockGet.mockResolvedValue(mockAcquisitionsData);
+      mockGet.mockResolvedValue(mockAcquisitionsData[0]);
       const result = await getAcquisitionByAnimalId("animal-1");
       expect(result).toEqual(mockAcquisitionsData[0]);
     });

@@ -7,6 +7,24 @@ import { usePermissions } from "~/utils/permissions";
 import { getRoutePermission } from "~/utils/route-permissions";
 import type { UserPermissions } from "~/types/permissions";
 
+function stripTrailingSlash(path: string) {
+  if (path.length > 1 && path.endsWith("/")) {
+    return path.slice(0, -1);
+  }
+  return path;
+}
+
+function isRouteActive(currentPathname: string, itemPath: string) {
+  const current = stripTrailingSlash(currentPathname);
+  const target = stripTrailingSlash(itemPath);
+
+  if (current === target) {
+    return true;
+  }
+
+  return current.startsWith(`${target}/`);
+}
+
 interface SidebarProps {
   readonly isOpen?: boolean;
   readonly onClose?: () => void;
@@ -19,7 +37,11 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
   const autoExpandedKey = useMemo(() => {
     for (const item of SIDEBAR_ITEMS) {
-      if (item.subItems?.some((subItem: { path: string }) => location.pathname === subItem.path)) {
+      if (
+        item.subItems?.some((subItem: { path: string }) =>
+          isRouteActive(location.pathname, subItem.path)
+        )
+      ) {
         return item.translationKey;
       }
     }

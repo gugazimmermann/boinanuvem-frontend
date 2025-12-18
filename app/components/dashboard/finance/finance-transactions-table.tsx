@@ -98,6 +98,8 @@ interface FinanceTransactionsTableProps {
   readonly canEdit?: (transaction: UnifiedTransaction) => boolean;
   readonly canDelete?: (transaction: UnifiedTransaction) => boolean;
   readonly getPropertyName?: (propertyId: string) => string | undefined;
+  readonly yearOptions?: Array<{ value: string; label: string }>;
+  readonly monthOptions?: Array<{ value: string; label: string }>;
 }
 
 export interface GetFinanceTransactionsTablePropsParams {
@@ -240,6 +242,8 @@ export function FinanceTransactionsTable({
   onDeleteConfirm,
   selectedTransaction,
   getStatusVariant,
+  yearOptions,
+  monthOptions,
   getStatusLabel,
   getEditRoute,
   getViewRoute,
@@ -434,6 +438,8 @@ export function FinanceTransactionsTable({
             onYearChange={onYearChange}
             onMonthChange={onMonthChange}
             onPageChange={onPageChange}
+            yearOptions={yearOptions}
+            monthOptions={monthOptions}
           />
         }
         middleContent={

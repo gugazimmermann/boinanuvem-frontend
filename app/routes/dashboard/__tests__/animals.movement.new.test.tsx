@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, waitFor } from "@testing-library/react";
+import { waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import NewAnimalMovement from "../animals.movement.new";
+import { renderWithProviders } from "~/utils/test-utils";
 import { getAnimalById } from "~/services/animals.service";
 import { getLocations } from "~/services/locations.service";
 import { getEmployees } from "~/services/employees.service";
@@ -117,9 +118,117 @@ vi.mock("react-router", async () => {
     useNavigate: () => vi.fn(),
   };
 });
-vi.mock("~/contexts/language-context", () => ({
-  useLanguage: () => ({ language: "en" }),
-}));
+vi.mock("~/contexts/language-context", async () => {
+  const actual = await vi.importActual("~/contexts/language-context");
+  return {
+    ...actual,
+    useLanguage: () => ({ language: "en" }),
+  };
+});
+vi.mock("~/contexts/theme-context", async () => {
+  const actual = await vi.importActual("~/contexts/theme-context");
+  return actual;
+});
+// Mock react-datepicker for DateInput component
+vi.mock("react-datepicker", async () => {
+  const React = await import("react");
+  interface MockDatePickerProps {
+    selected?: Date | null;
+    onChange?: (date: Date | null) => void;
+    dateFormat?: string;
+    locale?: unknown;
+    className?: string;
+    id?: string;
+    disabled?: boolean;
+    required?: boolean;
+    wrapperClassName?: string;
+    calendarClassName?: string;
+    showPopperArrow?: boolean;
+    showMonthDropdown?: boolean;
+    showYearDropdown?: boolean;
+    dropdownMode?: string;
+    inputProps?: Record<string, unknown>;
+    [key: string]: unknown;
+  }
+  const MockedDatePicker = React.forwardRef<HTMLInputElement, MockDatePickerProps>(
+    (
+      {
+        selected,
+        onChange,
+        dateFormat: _dateFormat,
+        locale: _locale,
+        className,
+        id,
+        disabled,
+        required,
+        wrapperClassName: _wrapperClassName,
+        calendarClassName: _calendarClassName,
+        showPopperArrow: _showPopperArrow,
+        showMonthDropdown: _showMonthDropdown,
+        showYearDropdown: _showYearDropdown,
+        dropdownMode: _dropdownMode,
+        inputProps,
+        ...props
+      },
+      ref
+    ) => {
+      // Filter out DatePicker-specific props that shouldn't be passed to DOM elements
+      // Extract props from inputProps if provided, otherwise use direct props
+      const inputPropsObj = (inputProps as Record<string, unknown>) || {};
+      const typedId = (inputPropsObj.id as string | undefined) || (id as string | undefined);
+      const typedClassName =
+        (inputPropsObj.className as string | undefined) || (className as string | undefined);
+      const typedDisabled =
+        (inputPropsObj.disabled as boolean | undefined) ?? (disabled as boolean | undefined);
+      const typedRequired =
+        (inputPropsObj.required as boolean | undefined) ?? (required as boolean | undefined);
+      const typedOnChange = onChange as ((date: Date | null) => void) | undefined;
+      const typedSelected = selected as Date | null | undefined;
+
+      // Filter out DatePicker-specific props from props before merging
+      const {
+        dateFormat: __dateFormat,
+        locale: __locale,
+        wrapperClassName: __wrapperClassName,
+        calendarClassName: __calendarClassName,
+        showPopperArrow: __showPopperArrow,
+        showMonthDropdown: __showMonthDropdown,
+        showYearDropdown: __showYearDropdown,
+        dropdownMode: __dropdownMode,
+        ...safeProps
+      } = props as Record<string, unknown>;
+
+      // Merge inputProps with safe props, giving precedence to inputProps
+      const mergedProps = { ...safeProps, ...inputPropsObj };
+
+      return (
+        <input
+          ref={ref}
+          id={typedId}
+          type="text"
+          value={typedSelected ? new Date(typedSelected).toISOString().split("T")[0] : ""}
+          onChange={(e) => {
+            if (typedOnChange && e.target.value) {
+              const date = new Date(e.target.value);
+              typedOnChange(date);
+            } else if (typedOnChange) {
+              typedOnChange(null);
+            }
+          }}
+          className={typedClassName}
+          disabled={typedDisabled}
+          required={typedRequired}
+          data-testid="date-input"
+          {...mergedProps}
+        />
+      );
+    }
+  );
+  MockedDatePicker.displayName = "MockedDatePicker";
+  return {
+    default: MockedDatePicker,
+  };
+});
 vi.mock("~/hooks/use-alert", () => ({
   useAlert: () => ({
     alertMessage: null,
@@ -199,7 +308,7 @@ describe("animals.movement.new", () => {
         {children}
       </MemoryRouter>
     );
-    render(<NewAnimalMovement />, { wrapper });
+    renderWithProviders(<NewAnimalMovement />, { wrapper });
 
     await waitFor(() => {
       expect(getAnimalById).toHaveBeenCalledWith("animal-1");

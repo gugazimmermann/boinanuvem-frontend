@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useTranslation } from "~/i18n";
+import { useLanguage } from "~/contexts/language-context";
 import { ROUTES, getSaleViewRoute } from "~/routes.config";
 import { getSaleById, updateSale } from "~/services/sales.service";
 import {
@@ -10,6 +11,7 @@ import {
 import { transformSaleFormDataForUpdate } from "~/utils/sale-form-helpers";
 import { useSaleFormData } from "~/hooks/use-sale-form-data";
 import { useAuth } from "~/contexts/auth-context";
+import { formatCurrency as formatCurrencyDisplay } from "~/utils/formatting";
 
 export function meta() {
   return [
@@ -28,6 +30,7 @@ export async function loader({ request }: { request: Request }) {
 
 export default function EditSale() {
   const t = useTranslation();
+  const { language } = useLanguage();
   const navigate = useNavigate();
   const { saleId } = useParams<{ saleId: string }>();
   const { currentUser } = useAuth();
@@ -56,7 +59,7 @@ export default function EditSale() {
   const handleSubmit = async (data: SaleFormDataType) => {
     if (!sale) return;
 
-    const saleData = transformSaleFormDataForUpdate(data);
+    const saleData = transformSaleFormDataForUpdate(data, language);
     const success = await updateSale(sale.id, saleData);
     if (!success) {
       throw new Error("Failed to update sale");
@@ -75,7 +78,7 @@ export default function EditSale() {
       return sale.fees.map((fee) => ({
         id: fee.id,
         name: fee.name,
-        amount: fee.amount.toString(),
+        amount: formatCurrencyDisplay(fee.amount, language),
       }));
     }
     const legacyFees: Array<{ id: string; name: string; amount: string }> = [];
@@ -83,18 +86,18 @@ export default function EditSale() {
       legacyFees.push({
         id: `fee-transport-${sale.id}`,
         name: "Taxa de Transporte",
-        amount: sale.transportationFee.toString(),
+        amount: formatCurrencyDisplay(sale.transportationFee, language),
       });
     }
     if (sale.additionalFees) {
       legacyFees.push({
         id: `fee-additional-${sale.id}`,
         name: "Taxas Adicionais",
-        amount: sale.additionalFees.toString(),
+        amount: formatCurrencyDisplay(sale.additionalFees, language),
       });
     }
     return legacyFees;
-  }, [sale]);
+  }, [sale, language]);
 
   if (!sale) {
     return (
@@ -119,12 +122,12 @@ export default function EditSale() {
     saleType: sale.saleType,
     pricingMode: sale.pricingMode,
     paymentMethod: sale.paymentMethod,
-    totalPrice: sale.totalPrice.toString(),
+    totalPrice: formatCurrencyDisplay(sale.totalPrice, language),
     fees,
     selectedAnimalIds: sale.saleItems.map((item) => item.animalId),
     saleItems: sale.saleItems.map((item) => ({
       animalId: item.animalId,
-      price: item.price.toString(),
+      price: formatCurrencyDisplay(item.price, language),
       weight: item.weight.toString(),
       carcassWeight: item.carcassWeight?.toString() || "",
     })),

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams, Link } from "react-router";
 import { format } from "date-fns";
 import {
@@ -38,6 +38,7 @@ import {
   getAccountsReceivableEditRoute,
   getAccountsPayableViewRoute,
   getAccountsPayableEditRoute,
+  getAcquisitionViewRoute,
 } from "~/routes.config";
 import { getPropertyById } from "~/services/properties.service";
 import { getLocations } from "~/services/locations.service";
@@ -45,18 +46,19 @@ import { getEmployees } from "~/services/employees.service";
 import { getServiceProviders } from "~/services/service-providers.service";
 import { getSuppliers } from "~/services/suppliers.service";
 import { getBuyers } from "~/services/buyers.service";
-import { getLocationMovementsByPropertyId } from "~/services/location-movements.service";
-import { getAnimalMovementsByPropertyId } from "~/services/animal-movements.service";
+import { getAnimalsByLastMovementLocation } from "~/services/animal-movements.service";
 import { getAnimalsByPropertyId, deleteAnimal } from "~/services/animals.service";
 import { getBirthByAnimalId, getBirthsByCompanyId } from "~/services/births.service";
 import { getWeighingsByAnimalId } from "~/services/weighings.service";
+import { getAcquisitionsByCompanyId } from "~/services/acquisitions.service";
+import { getBreedingsByCompanyId } from "~/services/breedings.service";
 import { getExpectedBirthsForecast } from "~/services/reproductive-indexes.service";
 import { getCashFlowByPropertyId } from "~/services/cash-flow.service";
 import { getAccountsReceivableByPropertyId } from "~/services/accounts-receivable.service";
 import { getAccountsPayableByPropertyId } from "~/services/accounts-payable.service";
 import { usePermissions } from "~/utils/permissions";
 import { useFinanceTransactionHandlers } from "~/hooks/use-finance-transaction-handlers";
-import type { UnifiedTransaction } from "~/hooks/use-finance-transactions";
+import type { UnifiedTransaction as BaseUnifiedTransaction } from "~/hooks/use-finance-transactions";
 import { createMovementsTableColumns } from "~/utils/movements-table-columns";
 import { sortItems } from "~/utils/sorting";
 import { toSafeString } from "~/utils/table-helpers";
@@ -76,8 +78,9 @@ import type {
   AccountsReceivable,
   AccountsPayable,
   Language,
+  Acquisition,
 } from "~/types";
-import { AreaType } from "~/types";
+import { CashFlowCategory, PaymentMethod } from "~/types";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
 import { LocationTypeBadge } from "~/components/dashboard/utils/location-type-badge";
 import { ReproductiveIndexes } from "~/components/dashboard/reproductive-indexes/reproductive-indexes";
@@ -86,7 +89,48 @@ import { useAlert } from "~/hooks/use-alert";
 import { useDateLocale } from "~/hooks/use-date-locale";
 import { formatAreaType, formatNumber } from "~/utils/formatting";
 import { createAnimalTableColumnsWithConfig } from "~/utils/animal-table-config";
-import { createBirthsMap } from "~/utils/births-map";
+import { useEntityMovements } from "~/hooks/use-entity-movements";
+import { useEntityDetailData } from "~/hooks/use-entity-detail-data";
+import { convertToHectares } from "~/utils/area-conversion";
+import {
+  matchesMovementType,
+  matchesLocationNames,
+  matchesAnimalNames,
+  matchesEmployeeNames,
+  matchesProviderNames,
+  type UnifiedMovement as SharedUnifiedMovement,
+} from "~/utils/movement-search-helpers";
+
+type PropertyFinanceTransaction =
+  | BaseUnifiedTransaction
+  | ({
+      transactionType: "acquisition";
+      id: string;
+      type: "expense";
+      amount: number;
+      date: string;
+      description: string;
+      category?: string;
+      paymentMethod?: string;
+      referenceNumber?: string;
+      status: string;
+      propertyId?: string;
+      supplierId?: string;
+      buyerId?: string;
+      employeeId?: string;
+      serviceProviderId?: string;
+    } & Record<string, unknown>);
+
+function getAcquisitionTotalWithFees(acq: Acquisition): number {
+  const feesTotal = (acq.fees ?? []).reduce(
+    (sum, f) => sum + (typeof f?.amount === "number" ? f.amount : 0),
+    0
+  );
+  const transportationFee = typeof acq.transportationFee === "number" ? acq.transportationFee : 0;
+  const handlingFee = typeof acq.handlingFee === "number" ? acq.handlingFee : 0;
+  const base = typeof acq.totalPrice === "number" ? acq.totalPrice : 0;
+  return base + feesTotal + transportationFee + handlingFee;
+}
 
 export function meta() {
   return [
@@ -105,7 +149,7 @@ export async function loader({ request }: { request: Request }) {
 
 function isPasturePlanningEffectivelyEmpty(
   pasturePlanning: Property["pasturePlanning"],
-  pasturePlanningModifiedByUser: boolean | null | undefined
+  _pasturePlanningModifiedByUser: boolean | null | undefined
 ): boolean {
   if (!pasturePlanning || pasturePlanning.length === 0) return true;
 
@@ -172,7 +216,7 @@ interface MatchesFinanceSearchOptions {
 }
 
 function matchesFinanceSearch(
-  transaction: UnifiedTransaction,
+  transaction: PropertyFinanceTransaction,
   options: MatchesFinanceSearchOptions
 ): boolean {
   const {
@@ -224,7 +268,7 @@ function matchesFinanceSearch(
 }
 
 function matchesFinanceFilters(
-  transaction: UnifiedTransaction,
+  transaction: PropertyFinanceTransaction,
   financeActiveFilter: string,
   financeSelectedYear: string,
   financeSelectedMonth: string
@@ -245,92 +289,7 @@ function matchesFinanceFilters(
   return Boolean(matchesFilter && matchesYear && matchesMonth);
 }
 
-type UnifiedMovement =
-  | (LocationMovement & { movementType: "location" } & Record<string, unknown>)
-  | (AnimalMovement & { movementType: "animal" } & Record<string, unknown>);
-
-function matchesMovementType(
-  movement: UnifiedMovement,
-  searchLower: string,
-  movementTypes: Record<string, string>
-): boolean {
-  if (movement.movementType === "location") {
-    const typeText =
-      movementTypes[(movement as LocationMovement).type as keyof typeof movementTypes] ||
-      (movement as LocationMovement).type;
-    return typeText.toLowerCase().includes(searchLower);
-  }
-  const animalMovementText = movementTypes.animal_movement.toLowerCase();
-  return animalMovementText.includes(searchLower) || "animal".toLowerCase().includes(searchLower);
-}
-
-function matchesLocationNames(
-  movement: UnifiedMovement,
-  searchLower: string,
-  locations: Location[]
-): boolean {
-  let locationIds: string[];
-  if (movement.movementType === "location") {
-    locationIds = (movement as LocationMovement).locationIds;
-  } else {
-    const animalMovement = movement as AnimalMovement;
-    locationIds = animalMovement.locationId ? [animalMovement.locationId] : [];
-  }
-  const locationNames = locationIds
-    .filter((id): id is string => id !== null && id !== undefined)
-    .map((id) => {
-      const location = locations.find((l) => l.id === id);
-      return location ? `${location.name} ${location.code}`.toLowerCase() : id.toLowerCase();
-    })
-    .join(" ");
-  return locationNames.includes(searchLower);
-}
-
-function matchesAnimalNames(
-  movement: UnifiedMovement,
-  searchLower: string,
-  animalsMap: Map<string, Animal>
-): boolean {
-  if (movement.movementType !== "animal") return false;
-  const animalNames = (movement as AnimalMovement).animalIds
-    .map((id) => {
-      const animal = animalsMap.get(id);
-      return animal ? `${animal.code} ${animal.registrationNumber}`.toLowerCase() : "";
-    })
-    .filter((name) => name !== "")
-    .join(" ");
-  return animalNames.includes(searchLower);
-}
-
-function matchesEmployeeNames(
-  movement: UnifiedMovement,
-  searchLower: string,
-  employees: Employee[]
-): boolean {
-  const employeeNames = movement.employeeIds
-    .map((id) => {
-      const employee = employees.find((e) => e.id === id);
-      return employee ? employee.name.toLowerCase() : "";
-    })
-    .filter((name) => name !== "")
-    .join(" ");
-  return employeeNames.includes(searchLower);
-}
-
-function matchesProviderNames(
-  movement: UnifiedMovement,
-  searchLower: string,
-  serviceProviders: ServiceProvider[]
-): boolean {
-  const providerNames = movement.serviceProviderIds
-    .map((id) => {
-      const provider = serviceProviders.find((sp) => sp.id === id);
-      return provider ? provider.name.toLowerCase() : "";
-    })
-    .filter((name) => name !== "")
-    .join(" ");
-  return providerNames.includes(searchLower);
-}
+type UnifiedMovement = SharedUnifiedMovement;
 
 function filterMovementsBySearch(
   movements: UnifiedMovement[],
@@ -429,29 +388,14 @@ function getFinanceSubTab(subTabParam: string | null): string {
   return subTabParam === "transactions" ? "transactions" : "dashboard";
 }
 
-function convertToHectares(value: number, type: AreaType): number {
-  switch (type) {
-    case AreaType.HECTARES:
-      return value;
-    case AreaType.SQUARE_METERS:
-      return value / 10000;
-    case AreaType.SQUARE_FEET:
-      return value / 107639;
-    case AreaType.ACRES:
-      return value * 0.404686;
-    case AreaType.SQUARE_KILOMETERS:
-      return value * 100;
-    case AreaType.SQUARE_MILES:
-      return value * 258.999;
-    default:
-      return value;
-  }
-}
-
 async function calculatePropertyStats(
   propertyAnimals: Animal[],
   property: Property,
-  animalsCount: number
+  animalsCount: number,
+  options?: {
+    weighingsByAnimalId?: Map<string, Awaited<ReturnType<typeof getWeighingsByAnimalId>>>;
+    acquisitionItemsByAnimalId?: Map<string, { weight?: number }>;
+  }
 ): Promise<{
   totalWeight: number;
   animalUnits: number;
@@ -460,22 +404,22 @@ async function calculatePropertyStats(
   density: number;
   averageWeight: number;
 }> {
-  const calculateTotalWeight = async () => {
-    let totalWeight = 0;
-    for (const animal of propertyAnimals) {
-      const weighings = await getWeighingsByAnimalId(animal.id);
-      if (weighings.length > 0) {
-        const sortedWeighings = weighings.toSorted(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        );
-        const lastWeighing = sortedWeighings[0];
-        totalWeight += lastWeighing.weight;
-      }
-    }
-    return totalWeight;
-  };
+  const weighingsByAnimalId = options?.weighingsByAnimalId;
+  const acquisitionItemsByAnimalId = options?.acquisitionItemsByAnimalId;
 
-  const totalWeight = await calculateTotalWeight();
+  // Prefer already-loaded data to avoid N+1 calls and to include acquisition weight fallback.
+  let totalWeight = 0;
+  for (const animal of propertyAnimals) {
+    const weighings = weighingsByAnimalId?.get(animal.id) ?? [];
+    const lastWeighing =
+      weighings.length > 0
+        ? weighings.toSorted((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
+        : undefined;
+    const acquisitionWeight = acquisitionItemsByAnimalId?.get(animal.id)?.weight ?? 0;
+    const weight = lastWeighing?.weight ?? acquisitionWeight ?? 0;
+    totalWeight += typeof weight === "number" && weight > 0 ? weight : 0;
+  }
+
   const animalUnits = totalWeight > 0 ? totalWeight / 450 : 0;
   const areaInHectares = convertToHectares(property.area.value, property.area.type);
   const stockingRate = areaInHectares > 0 && animalUnits > 0 ? animalUnits / areaInHectares : 0;
@@ -750,9 +694,6 @@ function PropertyInformationTab({
                 <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
                   {formatNumber(animalsCount, language as Language)}
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {animalsCount} {t.properties.details.activeAnimals.toLowerCase()}
-                </p>
               </div>
               <div
                 className="w-10 h-10 dark:bg-blue-900/30 rounded-lg flex items-center justify-center"
@@ -766,9 +707,12 @@ function PropertyInformationTab({
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.properties.table.uas}
-                </p>
+                <UITooltip content="Unidade Animal (UA) é uma medida padrão do tamanho do rebanho. Aqui usamos 1 UA = 450 kg de peso vivo total.">
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400 inline-flex items-center gap-1 border-b border-dotted border-gray-400/70 dark:border-gray-500/70">
+                    {t.properties.table.uas}
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400">?</span>
+                  </p>
+                </UITooltip>
                 <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
                   {animalUnits.toLocaleString(localeForDateTime, {
                     minimumFractionDigits: 2,
@@ -1050,6 +994,52 @@ function PropertyInformationTab({
   );
 }
 
+// Finance Summary Component
+function FinanceSummary({
+  totalIncome,
+  totalExpenses,
+  netTotal,
+  formatCurrency,
+  t,
+}: {
+  readonly totalIncome: number;
+  readonly totalExpenses: number;
+  readonly netTotal: number;
+  readonly formatCurrency: (value: number) => string;
+  readonly t: ReturnType<typeof useTranslation>;
+}) {
+  return (
+    <div className="flex items-center gap-4 text-sm">
+      <div className="flex flex-col">
+        <span className="text-gray-500 dark:text-gray-400 text-xs">
+          {t.cashFlow.filters.income}
+        </span>
+        <span className="font-semibold text-green-600 dark:text-green-400">
+          {formatCurrency(totalIncome)}
+        </span>
+      </div>
+      <div className="flex flex-col">
+        <span className="text-gray-500 dark:text-gray-400 text-xs">
+          {t.cashFlow.filters.expense}
+        </span>
+        <span className="font-semibold text-red-600 dark:text-red-400">
+          {formatCurrency(totalExpenses)}
+        </span>
+      </div>
+      <div className="flex flex-col">
+        <span className="text-gray-500 dark:text-gray-400 text-xs">{t.common.total}</span>
+        <span
+          className={`font-semibold ${
+            netTotal >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+          }`}
+        >
+          {formatCurrency(netTotal)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export default function PropertyDetails() {
   const { propertyId } = useParams<{ propertyId: string }>();
   const navigate = useNavigate();
@@ -1062,7 +1052,20 @@ export default function PropertyDetails() {
   const [property, setProperty] = useState<Property | null>(null);
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [births, setBirths] = useState<Awaited<ReturnType<typeof getBirthsByCompanyId>>>([]);
+  const [acquisitions, setAcquisitions] = useState<
+    Awaited<ReturnType<typeof getAcquisitionsByCompanyId>>
+  >([]);
+  const [breedings, setBreedings] = useState<Awaited<ReturnType<typeof getBreedingsByCompanyId>>>(
+    []
+  );
   const [locations, setLocations] = useState<Location[]>([]);
+  const propertyLocations = useMemo(() => {
+    if (!property) return [];
+    return locations.filter((loc) => loc.propertyId === property.id);
+  }, [locations, property]);
+  const [animalsCountByLocationId, setAnimalsCountByLocationId] = useState<Map<string, number>>(
+    new Map()
+  );
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [serviceProviders, setServiceProviders] = useState<ServiceProvider[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -1107,12 +1110,20 @@ export default function PropertyDetails() {
         // Load births for the property's company
         if (propertyData?.companyId) {
           try {
-            const birthsData = await getBirthsByCompanyId(propertyData.companyId);
+            const [birthsData, acquisitionsData, breedingsData] = await Promise.all([
+              getBirthsByCompanyId(propertyData.companyId),
+              getAcquisitionsByCompanyId(propertyData.companyId),
+              getBreedingsByCompanyId(propertyData.companyId),
+            ]);
             setBirths(birthsData || []);
+            setAcquisitions(acquisitionsData || []);
+            setBreedings(breedingsData || []);
           } catch (error) {
             console.error("Failed to load births:", error);
           }
         }
+
+        // Weighings are now loaded by useEntityDetailData hook
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : t.properties.errors.loadFailed;
@@ -1129,8 +1140,20 @@ export default function PropertyDetails() {
     fetchData();
   }, [propertyId, navigate, showAlert, t]);
 
-  const animalsMap = useMemo(() => new Map(animals.map((a) => [a.id, a])), [animals]);
-  const birthsMap = useMemo(() => createBirthsMap(births), [births]);
+  const {
+    animalsMap,
+    birthsMap,
+    acquisitionItemsByAnimalId,
+    acquisitionDateByAnimalId,
+    breedingsByAnimalId,
+    weighingsMap,
+  } = useEntityDetailData({
+    companyId: property?.companyId,
+    animals,
+    births,
+    acquisitions,
+    breedings,
+  });
   const getAnimalByIdLocal = (id: string) => {
     return animalsMap.get(id);
   };
@@ -1149,6 +1172,29 @@ export default function PropertyDetails() {
   const registrationsSubTab = getRegistrationsSubTab(subTabParam);
   const financeSubTab = getFinanceSubTab(subTabParam);
 
+  useEffect(() => {
+    let cancelled = false;
+    const loadCounts = async () => {
+      if (activeTab !== "locations") return;
+      if (!property) {
+        setAnimalsCountByLocationId(new Map());
+        return;
+      }
+      const entries = await Promise.all(
+        propertyLocations.map(async (loc) => {
+          const ids = await getAnimalsByLastMovementLocation(loc.id);
+          return [loc.id, ids.length] as const;
+        })
+      );
+      if (cancelled) return;
+      setAnimalsCountByLocationId(new Map(entries));
+    };
+    void loadCounts();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, property, propertyLocations]);
+
   const [sortState, setSortState] = useState<{
     column: string | null;
     direction: SortDirection;
@@ -1160,21 +1206,26 @@ export default function PropertyDetails() {
 
   const [financeSearchValue, setFinanceSearchValue] = useState("");
   const [financeActiveFilter, setFinanceActiveFilter] = useState<string>("all");
-  const [financeSelectedYear, setFinanceSelectedYear] = useState<string>("all");
-  const [financeSelectedMonth, setFinanceSelectedMonth] = useState<string>("all");
+  const currentYear = useMemo(() => String(new Date().getFullYear()), []);
+  const currentMonth = useMemo(() => String(new Date().getMonth() + 1), []);
+  const [financeSelectedYear, setFinanceSelectedYear] = useState<string>(currentYear);
+  const [financeSelectedMonth, setFinanceSelectedMonth] = useState<string>(currentMonth);
   const [financeCurrentPage, setFinanceCurrentPage] = useState(1);
   const [financeSortState, setFinanceSortState] = useState<{
     column: string | null;
     direction: SortDirection;
   }>({ column: "date", direction: "desc" });
   const financeItemsPerPage = 10;
-  const [propertyMovements, setPropertyMovements] = useState<UnifiedMovement[]>([]);
-
   useEffect(() => {
     if (activeTab === "activities" && !isMainUser()) {
       setSearchParams({ tab: "information" });
     }
   }, [activeTab, isMainUser, setSearchParams]);
+
+  const { movements: propertyMovements } = useEntityMovements({
+    entityType: "property",
+    entityId: property?.id,
+  });
 
   const [animalsSearchValue, setAnimalsSearchValue] = useState("");
   const [animalsActiveFilter, setAnimalsActiveFilter] = useState<string>("all");
@@ -1187,34 +1238,6 @@ export default function PropertyDetails() {
   const [isDeleteAnimalModalOpen, setIsDeleteAnimalModalOpen] = useState(false);
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
   const [selectedAnimals, setSelectedAnimals] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    const loadMovements = async () => {
-      if (!property) {
-        setPropertyMovements([]);
-        return;
-      }
-
-      try {
-        const [locationMovements, animalMovements] = await Promise.all([
-          getLocationMovementsByPropertyId(property.id),
-          getAnimalMovementsByPropertyId(property.id),
-        ]);
-
-        const movements: UnifiedMovement[] = [
-          ...locationMovements.map((m) => ({ ...m, movementType: "location" as const })),
-          ...animalMovements.map((m) => ({ ...m, movementType: "animal" as const })),
-        ];
-
-        setPropertyMovements(movements);
-      } catch (error) {
-        console.error("Failed to load property movements:", error);
-        setPropertyMovements([]);
-      }
-    };
-
-    void loadMovements();
-  }, [property]);
   const [isAnimalRegistrationModalOpen, setIsAnimalRegistrationModalOpen] = useState(false);
 
   // Finance transaction handlers - must be called at component level
@@ -1319,7 +1342,566 @@ export default function PropertyDetails() {
     return calculateNextMonthExpected(expectedBirthsForecast);
   }, [expectedBirthsForecast]);
 
-  const locationsCount = locations.length;
+  // Helper function to get payment method label for a row
+  const getPaymentMethodLabelForRow = useCallback(
+    (
+      row: PropertyFinanceTransaction,
+      lang: string,
+      translations: ReturnType<typeof useTranslation>
+    ): string => {
+      if (!row.paymentMethod) return "";
+      if (row.transactionType === "acquisition") {
+        // For acquisitions, use the acquisition payment method translations
+        const acquisitionPaymentMethods = (translations.acquisitions as Record<string, unknown>)
+          ?.paymentMethods as Record<string, string> | undefined;
+        if (acquisitionPaymentMethods) {
+          if (row.paymentMethod === "cash_flow") {
+            return acquisitionPaymentMethods.cashFlow || row.paymentMethod;
+          }
+          if (row.paymentMethod === "accounts_payable") {
+            return acquisitionPaymentMethods.accountsPayable || row.paymentMethod;
+          }
+        }
+        return row.paymentMethod;
+      }
+      return (
+        (translations.cashFlow.paymentMethods as Record<string, string>)[row.paymentMethod] ||
+        row.paymentMethod
+      );
+    },
+    []
+  );
+
+  // Helper functions for year/month select handlers
+  const handleFinanceYearChange = (value: string) => {
+    setFinanceSelectedYear(value);
+  };
+
+  const handleFinanceMonthChange = (value: string) => {
+    setFinanceSelectedMonth(value);
+  };
+
+  const handleFinanceYearChangeWithPageReset = (value: string) => {
+    setFinanceSelectedYear(value);
+    setFinanceCurrentPage(1);
+  };
+
+  const handleFinanceMonthChangeWithPageReset = (value: string) => {
+    setFinanceSelectedMonth(value);
+    setFinanceCurrentPage(1);
+  };
+
+  // Helper functions for sub-tab navigation
+  const handleFinanceDashboardTabClick = () => {
+    setSearchParams({ tab: "finance", subTab: "dashboard" });
+  };
+
+  const handleFinanceTransactionsTabClick = () => {
+    setSearchParams({ tab: "finance", subTab: "transactions" });
+  };
+
+  // Helper functions to normalize transaction types
+  const normalizeCashFlowTransaction = useCallback(
+    (cf: CashFlow): PropertyFinanceTransaction => ({
+      id: cf.id,
+      type: cf.type,
+      amount: cf.amount,
+      date: cf.date,
+      description: cf.description,
+      category: cf.category,
+      paymentMethod: cf.paymentMethod,
+      referenceNumber: cf.referenceNumber,
+      status: cf.status,
+      transactionType: "cashFlow",
+      supplierId: cf.supplierId,
+      buyerId: cf.buyerId,
+      employeeId: cf.employeeId,
+      serviceProviderId: cf.serviceProviderId,
+    }),
+    []
+  );
+
+  const normalizeReceivableTransaction = useCallback(
+    (ar: AccountsReceivable): PropertyFinanceTransaction => ({
+      id: ar.id,
+      type: "income",
+      amount: ar.amount,
+      date: ar.dueDate,
+      description: ar.description,
+      category: ar.category,
+      paymentMethod: ar.paymentMethod,
+      referenceNumber: ar.referenceNumber,
+      status: ar.status,
+      transactionType: "receivable",
+      buyerId: ar.buyerId,
+    }),
+    []
+  );
+
+  const normalizePayableTransaction = useCallback(
+    (ap: AccountsPayable): PropertyFinanceTransaction => ({
+      id: ap.id,
+      type: "expense",
+      amount: ap.amount,
+      date: ap.dueDate,
+      description: ap.description,
+      category: ap.category,
+      paymentMethod: ap.paymentMethod,
+      referenceNumber: ap.referenceNumber,
+      status: ap.status,
+      transactionType: "payable",
+      supplierId: ap.supplierId,
+      employeeId: ap.employeeId,
+      serviceProviderId: ap.serviceProviderId,
+    }),
+    []
+  );
+
+  const normalizeAcquisitionTransaction = useCallback(
+    (a: Acquisition): PropertyFinanceTransaction => ({
+      id: a.id,
+      type: "expense",
+      amount: getAcquisitionTotalWithFees(a),
+      date: a.acquisitionDate,
+      description: "Aquisição",
+      category: CashFlowCategory.ANIMAL_ACQUISITION,
+      paymentMethod: a.paymentMethod,
+      referenceNumber: undefined,
+      status: "completed",
+      transactionType: "acquisition",
+      supplierId: a.supplierId,
+      propertyId: a.propertyId,
+    }),
+    []
+  );
+
+  // Convert acquisitions to CashFlow format for dashboard
+  const createAcquisitionCashFlow = useMemo((): CashFlow[] => {
+    if (!acquisitions || !property) return [];
+    return acquisitions
+      .filter((a): a is Acquisition => Boolean(a) && a.propertyId === property.id)
+      .map((a) => ({
+        id: `acq:${a.id}`,
+        companyId: a.companyId,
+        type: "expense" as const,
+        amount: getAcquisitionTotalWithFees(a),
+        date: a.acquisitionDate,
+        description: "Aquisição",
+        category: CashFlowCategory.ANIMAL_ACQUISITION,
+        paymentMethod: PaymentMethod.OTHER,
+        status: "completed" as const,
+        supplierId: a.supplierId,
+        propertyId: a.propertyId,
+        createdAt: a.createdAt,
+      }));
+  }, [acquisitions, property]);
+
+  // Helper function to build all transactions
+  const buildAllFinanceTransactions = useMemo((): PropertyFinanceTransaction[] => {
+    return [
+      ...cashFlowTransactions.map(normalizeCashFlowTransaction),
+      ...receivableTransactions.map(normalizeReceivableTransaction),
+      ...payableTransactions.map(normalizePayableTransaction),
+      ...(acquisitions || [])
+        .filter((a): a is Acquisition => Boolean(a) && a.propertyId === property?.id)
+        .map(normalizeAcquisitionTransaction),
+    ];
+  }, [
+    cashFlowTransactions,
+    receivableTransactions,
+    payableTransactions,
+    acquisitions,
+    property?.id,
+    normalizeCashFlowTransaction,
+    normalizeReceivableTransaction,
+    normalizePayableTransaction,
+    normalizeAcquisitionTransaction,
+  ]);
+
+  // Helper functions for year/month options
+  const getFinanceYearOptions = useCallback((): Array<{ value: string; label: string }> => {
+    const allDates = [
+      ...cashFlowTransactions.map((t) => t.date),
+      ...createAcquisitionCashFlow.map((t) => t.date),
+    ];
+    const years = new Set<number>();
+    for (const dateStr of allDates) {
+      try {
+        const year = new Date(dateStr).getFullYear();
+        if (!Number.isNaN(year)) years.add(year);
+      } catch {
+        // Ignore invalid dates
+      }
+    }
+    const currentYear = new Date().getFullYear();
+    if (years.size === 0) {
+      return [
+        { value: "all", label: t.cashFlow.filters.allYears },
+        { value: String(currentYear), label: String(currentYear) },
+      ];
+    }
+    const minYear = Math.min(...Array.from(years));
+    const maxYear = Math.max(currentYear, ...Array.from(years));
+    const options: Array<{ value: string; label: string }> = [
+      { value: "all", label: t.cashFlow.filters.allYears },
+    ];
+    for (let y = minYear; y <= maxYear; y++) {
+      options.push({ value: String(y), label: String(y) });
+    }
+    return options;
+  }, [cashFlowTransactions, createAcquisitionCashFlow, t]);
+
+  const getFinanceMonthOptions = useCallback((): Array<{ value: string; label: string }> => {
+    const localeMap: Record<string, string> = {
+      pt: "pt-BR",
+      en: "en-US",
+      es: "es-ES",
+    };
+    const locale = localeMap[language] || "pt-BR";
+    const options: Array<{ value: string; label: string }> = [
+      { value: "all", label: t.cashFlow.filters.allMonths },
+    ];
+    for (let month = 1; month <= 12; month++) {
+      const monthName = new Date(2000, month - 1).toLocaleDateString(locale, {
+        month: "long",
+      });
+      options.push({ value: String(month), label: monthName });
+    }
+    return options;
+  }, [language, t]);
+
+  const getFinanceYearOptionsFromTransactions = useCallback(
+    (transactions: PropertyFinanceTransaction[]): Array<{ value: string; label: string }> => {
+      const years = new Set<number>();
+      for (const t of transactions) {
+        try {
+          const year = new Date(t.date).getFullYear();
+          if (!Number.isNaN(year)) years.add(year);
+        } catch {
+          // Ignore invalid dates
+        }
+      }
+      const currentYear = new Date().getFullYear();
+      if (years.size === 0) {
+        return [
+          { value: "all", label: t.cashFlow.filters.allYears },
+          { value: String(currentYear), label: String(currentYear) },
+        ];
+      }
+      const minYear = Math.min(...Array.from(years));
+      const maxYear = Math.max(currentYear, ...Array.from(years));
+      const options: Array<{ value: string; label: string }> = [
+        { value: "all", label: t.cashFlow.filters.allYears },
+      ];
+      for (let y = minYear; y <= maxYear; y++) {
+        options.push({ value: String(y), label: String(y) });
+      }
+      return options;
+    },
+    [t]
+  );
+
+  // Helper function to format date
+  const formatFinanceDate = useCallback(
+    (dateString: string): string => {
+      const date = new Date(dateString);
+      return format(date, "dd/MM/yyyy", { locale: dateLocale });
+    },
+    [dateLocale]
+  );
+
+  // Helper function to format currency
+  const formatFinanceCurrency = useCallback(
+    (value: number): string => {
+      return new Intl.NumberFormat(localeForDateTime, {
+        style: "currency",
+        currency: "BRL",
+      }).format(value);
+    },
+    [localeForDateTime]
+  );
+
+  // Helper function to get entity name getters
+  const getEntityNameGetters = useMemo(
+    () => ({
+      getPropertyName: (id: string) => (property?.id === id ? property.name : undefined),
+      getSupplierName: (id: string) => suppliersMap.get(id)?.name,
+      getBuyerName: (id: string) => buyersMap.get(id)?.name,
+      getEmployeeName: (id: string) => employeesMap.get(id)?.name,
+      getServiceProviderName: (id: string) => serviceProvidersMap.get(id)?.name,
+    }),
+    [property, suppliersMap, buyersMap, employeesMap, serviceProvidersMap]
+  );
+
+  // Helper function to filter finance data
+  const filterFinanceTransactions = useCallback(
+    (
+      transactions: PropertyFinanceTransaction[],
+      searchValue: string,
+      activeFilter: string,
+      selectedYear: string,
+      selectedMonth: string
+    ): PropertyFinanceTransaction[] => {
+      return transactions.filter((transaction) => {
+        const matchesSearch = searchValue
+          ? matchesFinanceSearch(transaction, {
+              searchLower: searchValue.toLowerCase(),
+              formatCurrency: formatFinanceCurrency,
+              t,
+              getPropertyName: getEntityNameGetters.getPropertyName,
+              getSupplierName: getEntityNameGetters.getSupplierName,
+              getBuyerName: getEntityNameGetters.getBuyerName,
+              getEmployeeName: getEntityNameGetters.getEmployeeName,
+              getServiceProviderName: getEntityNameGetters.getServiceProviderName,
+            })
+          : true;
+
+        const matchesFilter = matchesFinanceFilters(
+          transaction,
+          activeFilter,
+          selectedYear,
+          selectedMonth
+        );
+
+        return matchesSearch && matchesFilter;
+      });
+    },
+    [formatFinanceCurrency, t, getEntityNameGetters]
+  );
+
+  // Helper function to calculate finance totals
+  const calculateFinanceTotals = useCallback(
+    (
+      transactions: PropertyFinanceTransaction[]
+    ): { totalIncome: number; totalExpenses: number; netTotal: number } => {
+      const totalIncome = transactions
+        .filter((t) => t.type === "income")
+        .reduce((sum, t) => sum + t.amount, 0);
+      const totalExpenses = transactions
+        .filter((t) => t.type === "expense")
+        .reduce((sum, t) => sum + t.amount, 0);
+      const netTotal = totalIncome - totalExpenses;
+      return { totalIncome, totalExpenses, netTotal };
+    },
+    []
+  );
+
+  // Helper function to get status label
+  const getFinanceStatusLabel = useCallback(
+    (status: string, transactionType: string): string => {
+      if (transactionType === "acquisition") {
+        return t.cashFlow.table.completed;
+      }
+      return financeHandlers.getStatusLabel(status, transactionType, {
+        cashFlow: { completed: t.cashFlow.table.completed },
+        accountsReceivable: { status: t.accountsReceivable.status },
+        accountsPayable: { status: t.accountsPayable.status },
+      });
+    },
+    [t, financeHandlers]
+  );
+
+  const handleFinanceEdit = useCallback(
+    (transaction: PropertyFinanceTransaction) => {
+      if (transaction.transactionType === "acquisition") {
+        navigate(getAcquisitionViewRoute(transaction.id));
+        return;
+      }
+      const editRoute = getFinanceEditRoute(transaction.transactionType, transaction.id);
+      navigate(editRoute);
+    },
+    [navigate]
+  );
+
+  const handleFinanceDelete = useCallback(
+    (transaction: PropertyFinanceTransaction) => {
+      if (transaction.transactionType === "acquisition") return;
+      financeHandlers.handleDeleteClick(transaction);
+    },
+    [financeHandlers]
+  );
+
+  const renderFinanceActions = useCallback(
+    (row: PropertyFinanceTransaction) => {
+      if (row.transactionType === "acquisition") {
+        return null;
+      }
+      const canEditValue = getFinanceCanEditPermission(
+        row.transactionType,
+        canEdit as (module: string, resource: string) => boolean
+      );
+      const canDeleteValue = getFinanceCanDeletePermission(
+        row.transactionType,
+        canRemove as (module: string, resource: string) => boolean
+      );
+
+      return (
+        <TableActionButtons
+          onEdit={() => handleFinanceEdit(row)}
+          onDelete={() => handleFinanceDelete(row)}
+          canEdit={canEditValue}
+          canDelete={canDeleteValue}
+        />
+      );
+    },
+    [canEdit, canRemove, handleFinanceEdit, handleFinanceDelete]
+  );
+
+  // Helper function to create finance table columns
+  const createFinanceColumns = useCallback((): TableColumn<PropertyFinanceTransaction>[] => {
+    return [
+      {
+        key: "type",
+        label: t.cashFlow.table.type,
+        sortable: true,
+        render: (_, row) => (
+          <StatusBadge
+            label={row.type === "income" ? t.cashFlow.table.income : t.cashFlow.table.expense}
+            variant={row.type === "income" ? "success" : "default"}
+          />
+        ),
+      },
+      {
+        key: "amount",
+        label: t.cashFlow.table.amount,
+        sortable: true,
+        render: (_, row) => (
+          <span
+            className={`font-medium ${
+              row.type === "income"
+                ? "text-green-600 dark:text-green-400"
+                : "text-red-600 dark:text-red-400"
+            }`}
+          >
+            {row.type === "income" ? "+" : "-"} {formatFinanceCurrency(row.amount)}
+          </span>
+        ),
+      },
+      {
+        key: "date",
+        label: t.cashFlow.table.date,
+        sortable: true,
+        render: (_, row) => (
+          <span className="text-gray-700 dark:text-gray-300">{formatFinanceDate(row.date)}</span>
+        ),
+      },
+      {
+        key: "category",
+        label: t.cashFlow.table.category,
+        sortable: true,
+        render: (_, row) => (
+          <span className="text-gray-700 dark:text-gray-300">
+            {row.category
+              ? (t.cashFlow.categories as Record<string, string>)[row.category] || row.category
+              : row.category}
+          </span>
+        ),
+      },
+      {
+        key: "description",
+        label: t.cashFlow.table.description,
+        sortable: true,
+        render: (_, row) => (
+          <span className="text-gray-700 dark:text-gray-300">{row.description}</span>
+        ),
+      },
+      {
+        key: "supplierBuyer",
+        label: "",
+        sortable: false,
+        render: (_, row) =>
+          renderEntityName({
+            supplierId: row.supplierId,
+            employeeId: row.employeeId,
+            serviceProviderId: row.serviceProviderId,
+            buyerId: row.buyerId,
+            type: row.type,
+          }),
+      },
+      {
+        key: "paymentMethod",
+        label: t.cashFlow.table.paymentMethod,
+        sortable: true,
+        render: (_, row) => (
+          <span className="text-gray-700 dark:text-gray-300">
+            {getPaymentMethodLabelForRow(row, language, t)}
+          </span>
+        ),
+      },
+      {
+        key: "referenceNumber",
+        label: t.cashFlow.table.referenceNumber,
+        sortable: true,
+        render: (_, row) => (
+          <span className="text-gray-700 dark:text-gray-300">{row.referenceNumber || "-"}</span>
+        ),
+      },
+      {
+        key: "status",
+        label: t.cashFlow.table.status,
+        sortable: true,
+        render: (_, row) => (
+          <StatusBadge
+            label={getFinanceStatusLabel(row.status, row.transactionType)}
+            variant={financeHandlers.getStatusVariant(row.status, row.transactionType)}
+          />
+        ),
+      },
+      {
+        key: "actions",
+        label: "",
+        headerClassName: "relative",
+        render: (_, row) => renderFinanceActions(row),
+      },
+    ];
+  }, [
+    t,
+    language,
+    formatFinanceCurrency,
+    formatFinanceDate,
+    getPaymentMethodLabelForRow,
+    getFinanceStatusLabel,
+    financeHandlers,
+    renderFinanceActions,
+  ]);
+
+  // Helper function to create finance filters
+  const createFinanceFilters = useCallback((): TableFilter[] => {
+    return [
+      {
+        label: t.cashFlow.filters.all,
+        value: "all",
+        active: financeActiveFilter === "all",
+        onClick: () => {
+          setFinanceActiveFilter("all");
+          setFinanceCurrentPage(1);
+        },
+      },
+      {
+        label: t.cashFlow.filters.income,
+        value: "income",
+        active: financeActiveFilter === "income",
+        onClick: () => {
+          setFinanceActiveFilter("income");
+          setFinanceCurrentPage(1);
+        },
+      },
+      {
+        label: t.cashFlow.filters.expense,
+        value: "expense",
+        active: financeActiveFilter === "expense",
+        onClick: () => {
+          setFinanceActiveFilter("expense");
+          setFinanceCurrentPage(1);
+        },
+      },
+    ];
+  }, [t, financeActiveFilter, setFinanceActiveFilter, setFinanceCurrentPage]);
+
+  const locationsCount = useMemo(() => {
+    if (!property) return 0;
+    return locations.filter((loc) => loc.propertyId === property.id).length;
+  }, [locations, property]);
   const allPropertyAnimals = animals;
   const propertyAnimals = useMemo(
     () => allPropertyAnimals.filter((animal) => animal.status === "active"),
@@ -1338,7 +1920,10 @@ export default function PropertyDetails() {
         return;
       }
       try {
-        const stats = await calculatePropertyStats(propertyAnimals, property, animalsCount);
+        const stats = await calculatePropertyStats(propertyAnimals, property, animalsCount, {
+          weighingsByAnimalId: weighingsMap,
+          acquisitionItemsByAnimalId,
+        });
         setPropertyStats(stats);
       } catch (error) {
         console.error("Failed to calculate property stats:", error);
@@ -1346,7 +1931,7 @@ export default function PropertyDetails() {
       }
     };
     loadPropertyStats();
-  }, [propertyAnimals, property, animalsCount]);
+  }, [propertyAnimals, property, animalsCount, weighingsMap, acquisitionItemsByAnimalId]);
 
   const handleDeleteAnimal = useMemo(
     () =>
@@ -1393,35 +1978,6 @@ export default function PropertyDetails() {
   const handleDeleteAnimalClick = (animal: Animal) => {
     setSelectedAnimal(animal);
     setIsDeleteAnimalModalOpen(true);
-  };
-
-  const handleFinanceEdit = (transaction: UnifiedTransaction) => {
-    const editRoute = getFinanceEditRoute(transaction.transactionType, transaction.id);
-    navigate(editRoute);
-  };
-
-  const handleFinanceDelete = (transaction: UnifiedTransaction) => {
-    financeHandlers.handleDeleteClick(transaction);
-  };
-
-  const renderFinanceActions = (row: UnifiedTransaction) => {
-    const canEditValue = getFinanceCanEditPermission(
-      row.transactionType,
-      canEdit as (module: string, resource: string) => boolean
-    );
-    const canDeleteValue = getFinanceCanDeletePermission(
-      row.transactionType,
-      canRemove as (module: string, resource: string) => boolean
-    );
-
-    return (
-      <TableActionButtons
-        onEdit={() => handleFinanceEdit(row)}
-        onDelete={() => handleFinanceDelete(row)}
-        canEdit={canEditValue}
-        canDelete={canDeleteValue}
-      />
-    );
   };
 
   const formatDate = (dateString: string) => {
@@ -1721,6 +2277,10 @@ export default function PropertyDetails() {
             language,
             dateLocale,
             birthsMap,
+            acquisitionItemsMap: acquisitionItemsByAnimalId,
+            acquisitionDateByAnimalId,
+            weighingsMap,
+            breedingsMap: breedingsByAnimalId,
             TooltipComponent: UITooltip,
             StatusBadgeComponent: StatusBadge,
             navigate: (path: string) => {
@@ -1920,8 +2480,6 @@ export default function PropertyDetails() {
       {activeTab === "locations" &&
         property &&
         (() => {
-          const propertyLocations = locations.filter((loc) => loc.propertyId === property.id);
-
           const locationsArray = [...propertyLocations];
           const sortedLocations = locationsArray.toSorted((a, b) => {
             if (!sortState.column || !sortState.direction) {
@@ -1999,6 +2557,16 @@ export default function PropertyDetails() {
                     maximumFractionDigits: 2,
                   })}{" "}
                   {formatAreaType(row.area.type)}
+                </span>
+              ),
+            },
+            {
+              key: "animalsCount",
+              label: t.animals?.title || "Animais",
+              sortable: false,
+              render: (_, row) => (
+                <span className="text-gray-700 dark:text-gray-300">
+                  {animalsCountByLocationId.get(row.id) ?? 0}
                 </span>
               ),
             },
@@ -2760,6 +3328,20 @@ export default function PropertyDetails() {
                   clearSearchLabel: searchValue ? t.common.clearSearch : undefined,
                 }}
                 onRowClick={(row) => {
+                  if (
+                    row.movementType === "animal" &&
+                    Boolean((row as Record<string, unknown>).isConsolidated) &&
+                    Array.isArray((row as Record<string, unknown>).groupedMovementIds) &&
+                    ((row as Record<string, unknown>).groupedMovementIds as unknown[]).length > 1
+                  ) {
+                    showAlert(
+                      language === "en"
+                        ? "This is a consolidated movement (multiple records). Open the original record from the movement details screen if needed."
+                        : "Essa é uma movimentação consolidada (múltiplos registros). Se precisar, abra o registro original pela tela de detalhes da movimentação.",
+                      "info"
+                    );
+                    return;
+                  }
                   navigate(`${getMovementViewRoute(row.id)}?fromProperty=${property.id}`);
                 }}
               />
@@ -2775,9 +3357,7 @@ export default function PropertyDetails() {
               <div className="mb-4">
                 <nav className="flex space-x-3" aria-label="Sub Tabs">
                   <button
-                    onClick={() => {
-                      setSearchParams({ tab: "finance", subTab: "dashboard" });
-                    }}
+                    onClick={handleFinanceDashboardTabClick}
                     className={`
                       px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer
                       ${
@@ -2798,9 +3378,7 @@ export default function PropertyDetails() {
                     {t.properties.details.finance.subTabs.dashboard}
                   </button>
                   <button
-                    onClick={() => {
-                      setSearchParams({ tab: "finance", subTab: "transactions" });
-                    }}
+                    onClick={handleFinanceTransactionsTabClick}
                     className={`
                       px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer
                       ${
@@ -2823,132 +3401,60 @@ export default function PropertyDetails() {
                 </nav>
               </div>
 
-              {financeSubTab === "dashboard" && (
-                <FinanceDashboard
-                  cashFlowData={cashFlowTransactions}
-                  accountsPayableData={payableTransactions}
-                  accountsReceivableData={receivableTransactions}
-                  language={language}
-                  gradientId="colorNetProperty"
-                />
-              )}
+              {financeSubTab === "dashboard" &&
+                (() => {
+                  const cashFlowWithAcquisitions = [
+                    ...cashFlowTransactions,
+                    ...createAcquisitionCashFlow,
+                  ];
+
+                  const getYearOptions = () => getFinanceYearOptions();
+                  const getMonthOptions = () => getFinanceMonthOptions();
+
+                  return (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-end gap-2">
+                        <div className="w-32">
+                          <Select
+                            value={financeSelectedYear}
+                            onChange={(e) => handleFinanceYearChange(e.target.value)}
+                            options={getYearOptions()}
+                            selectClassName="text-xs sm:text-sm py-2"
+                          />
+                        </div>
+                        <div className="w-36">
+                          <Select
+                            value={financeSelectedMonth}
+                            onChange={(e) => handleFinanceMonthChange(e.target.value)}
+                            options={getMonthOptions()}
+                            selectClassName="text-xs sm:text-sm py-2"
+                          />
+                        </div>
+                      </div>
+                      <FinanceDashboard
+                        cashFlowData={cashFlowWithAcquisitions}
+                        accountsPayableData={payableTransactions}
+                        accountsReceivableData={receivableTransactions}
+                        language={language}
+                        gradientId="colorNetProperty"
+                        selectedYear={financeSelectedYear}
+                        selectedMonth={financeSelectedMonth}
+                      />
+                    </div>
+                  );
+                })()}
 
               {financeSubTab === "transactions" &&
                 (() => {
-                  type UnifiedTransaction = {
-                    id: string;
-                    type: "income" | "expense";
-                    amount: number;
-                    date: string;
-                    description: string;
-                    category?: string;
-                    paymentMethod?: string;
-                    referenceNumber?: string;
-                    status: string;
-                    transactionType: "cashFlow" | "receivable" | "payable";
-                    propertyId?: string;
-                    supplierId?: string;
-                    buyerId?: string;
-                    employeeId?: string;
-                    serviceProviderId?: string;
-                    [key: string]: unknown;
-                  };
+                  const allTransactions = buildAllFinanceTransactions;
 
-                  const normalizeCashFlow = (cf: CashFlow): UnifiedTransaction => ({
-                    id: cf.id,
-                    type: cf.type,
-                    amount: cf.amount,
-                    date: cf.date,
-                    description: cf.description,
-                    category: cf.category,
-                    paymentMethod: cf.paymentMethod,
-                    referenceNumber: cf.referenceNumber,
-                    status: cf.status,
-                    transactionType: "cashFlow",
-                    supplierId: cf.supplierId,
-                    buyerId: cf.buyerId,
-                    employeeId: cf.employeeId,
-                    serviceProviderId: cf.serviceProviderId,
-                  });
-
-                  const normalizeReceivable = (ar: AccountsReceivable): UnifiedTransaction => ({
-                    id: ar.id,
-                    type: "income",
-                    amount: ar.amount,
-                    date: ar.dueDate,
-                    description: ar.description,
-                    category: ar.category,
-                    paymentMethod: ar.paymentMethod,
-                    referenceNumber: ar.referenceNumber,
-                    status: ar.status,
-                    transactionType: "receivable",
-                    buyerId: ar.buyerId,
-                  });
-
-                  const normalizePayable = (ap: AccountsPayable): UnifiedTransaction => ({
-                    id: ap.id,
-                    type: "expense",
-                    amount: ap.amount,
-                    date: ap.dueDate,
-                    description: ap.description,
-                    category: ap.category,
-                    paymentMethod: ap.paymentMethod,
-                    referenceNumber: ap.referenceNumber,
-                    status: ap.status,
-                    transactionType: "payable",
-                    supplierId: ap.supplierId,
-                    employeeId: ap.employeeId,
-                    serviceProviderId: ap.serviceProviderId,
-                  });
-
-                  const allTransactions: UnifiedTransaction[] = [
-                    ...cashFlowTransactions.map(normalizeCashFlow),
-                    ...receivableTransactions.map(normalizeReceivable),
-                    ...payableTransactions.map(normalizePayable),
-                  ];
-
-                  const formatDate = (dateString: string) => {
-                    const date = new Date(dateString);
-                    return format(date, "dd/MM/yyyy", { locale: dateLocale });
-                  };
-
-                  const formatCurrency = (value: number) => {
-                    return new Intl.NumberFormat(localeForDateTime, {
-                      style: "currency",
-                      currency: "BRL",
-                    }).format(value);
-                  };
-
-                  const getPropertyName = (id: string) =>
-                    property?.id === id ? property.name : undefined;
-                  const getSupplierName = (id: string) => suppliersMap.get(id)?.name;
-                  const getBuyerName = (id: string) => buyersMap.get(id)?.name;
-                  const getEmployeeName = (id: string) => employeesMap.get(id)?.name;
-                  const getServiceProviderName = (id: string) => serviceProvidersMap.get(id)?.name;
-
-                  const filteredFinanceData = allTransactions.filter((transaction) => {
-                    const matchesSearch = financeSearchValue
-                      ? matchesFinanceSearch(transaction, {
-                          searchLower: financeSearchValue.toLowerCase(),
-                          formatCurrency,
-                          t,
-                          getPropertyName,
-                          getSupplierName,
-                          getBuyerName,
-                          getEmployeeName,
-                          getServiceProviderName,
-                        })
-                      : true;
-
-                    const matchesFilter = matchesFinanceFilters(
-                      transaction,
-                      financeActiveFilter,
-                      financeSelectedYear,
-                      financeSelectedMonth
-                    );
-
-                    return matchesSearch && matchesFilter;
-                  });
+                  const filteredFinanceData = filterFinanceTransactions(
+                    allTransactions,
+                    financeSearchValue,
+                    financeActiveFilter,
+                    financeSelectedYear,
+                    financeSelectedMonth
+                  );
 
                   const sortedFinanceData = sortItems({
                     items: filteredFinanceData,
@@ -2964,216 +3470,19 @@ export default function PropertyDetails() {
                     filteredFinanceData.length / financeItemsPerPage
                   );
 
-                  const totalIncome = filteredFinanceData
-                    .filter((t) => t.type === "income")
-                    .reduce((sum, t) => sum + t.amount, 0);
-                  const totalExpenses = filteredFinanceData
-                    .filter((t) => t.type === "expense")
-                    .reduce((sum, t) => sum + t.amount, 0);
-                  const netTotal = totalIncome - totalExpenses;
+                  const { totalIncome, totalExpenses, netTotal } =
+                    calculateFinanceTotals(filteredFinanceData);
 
-                  const getStatusLabel = (status: string, transactionType: string) => {
-                    return financeHandlers.getStatusLabel(status, transactionType, {
-                      cashFlow: { completed: t.cashFlow.table.completed },
-                      accountsReceivable: { status: t.accountsReceivable.status },
-                      accountsPayable: { status: t.accountsPayable.status },
-                    });
-                  };
+                  const financeColumns = createFinanceColumns();
+                  const financeFilters = createFinanceFilters();
 
-                  const financeColumns: TableColumn<UnifiedTransaction>[] = [
-                    {
-                      key: "type",
-                      label: t.cashFlow.table.type,
-                      sortable: true,
-                      render: (_, row) => (
-                        <StatusBadge
-                          label={
-                            row.type === "income"
-                              ? t.cashFlow.table.income
-                              : t.cashFlow.table.expense
-                          }
-                          variant={row.type === "income" ? "success" : "default"}
-                        />
-                      ),
-                    },
-                    {
-                      key: "amount",
-                      label: t.cashFlow.table.amount,
-                      sortable: true,
-                      render: (_, row) => (
-                        <span
-                          className={`font-medium ${
-                            row.type === "income"
-                              ? "text-green-600 dark:text-green-400"
-                              : "text-red-600 dark:text-red-400"
-                          }`}
-                        >
-                          {row.type === "income" ? "+" : "-"} {formatCurrency(row.amount)}
-                        </span>
-                      ),
-                    },
-                    {
-                      key: "date",
-                      label: t.cashFlow.table.date,
-                      sortable: true,
-                      render: (_, row) => (
-                        <span className="text-gray-700 dark:text-gray-300">
-                          {formatDate(row.date)}
-                        </span>
-                      ),
-                    },
-                    {
-                      key: "category",
-                      label: t.cashFlow.table.category,
-                      sortable: true,
-                      render: (_, row) => (
-                        <span className="text-gray-700 dark:text-gray-300">
-                          {row.category
-                            ? (t.cashFlow.categories as Record<string, string>)[row.category] ||
-                              row.category
-                            : row.category}
-                        </span>
-                      ),
-                    },
-                    {
-                      key: "description",
-                      label: t.cashFlow.table.description,
-                      sortable: true,
-                      render: (_, row) => (
-                        <span className="text-gray-700 dark:text-gray-300">{row.description}</span>
-                      ),
-                    },
-                    {
-                      key: "supplierBuyer",
-                      label: "",
-                      sortable: false,
-                      render: (_, row) =>
-                        renderEntityName({
-                          supplierId: row.supplierId,
-                          employeeId: row.employeeId,
-                          serviceProviderId: row.serviceProviderId,
-                          buyerId: row.buyerId,
-                          type: row.type,
-                        }),
-                    },
-                    {
-                      key: "paymentMethod",
-                      label: t.cashFlow.table.paymentMethod,
-                      sortable: true,
-                      render: (_, row) => (
-                        <span className="text-gray-700 dark:text-gray-300">
-                          {row.paymentMethod
-                            ? (t.cashFlow.paymentMethods as Record<string, string>)[
-                                row.paymentMethod
-                              ] || row.paymentMethod
-                            : row.paymentMethod}
-                        </span>
-                      ),
-                    },
-                    {
-                      key: "referenceNumber",
-                      label: t.cashFlow.table.referenceNumber,
-                      sortable: true,
-                      render: (_, row) => (
-                        <span className="text-gray-700 dark:text-gray-300">
-                          {row.referenceNumber || "-"}
-                        </span>
-                      ),
-                    },
-                    {
-                      key: "status",
-                      label: t.cashFlow.table.status,
-                      sortable: true,
-                      render: (_, row) => (
-                        <StatusBadge
-                          label={getStatusLabel(row.status, row.transactionType)}
-                          variant={financeHandlers.getStatusVariant(
-                            row.status,
-                            row.transactionType
-                          )}
-                        />
-                      ),
-                    },
-                    {
-                      key: "actions",
-                      label: "",
-                      headerClassName: "relative",
-                      render: (_, row) => renderFinanceActions(row),
-                    },
-                  ];
-
-                  const financeFilters: TableFilter[] = [
-                    {
-                      label: t.cashFlow.filters.all,
-                      value: "all",
-                      active: financeActiveFilter === "all",
-                      onClick: () => {
-                        setFinanceActiveFilter("all");
-                        setFinanceCurrentPage(1);
-                      },
-                    },
-                    {
-                      label: t.cashFlow.filters.income,
-                      value: "income",
-                      active: financeActiveFilter === "income",
-                      onClick: () => {
-                        setFinanceActiveFilter("income");
-                        setFinanceCurrentPage(1);
-                      },
-                    },
-                    {
-                      label: t.cashFlow.filters.expense,
-                      value: "expense",
-                      active: financeActiveFilter === "expense",
-                      onClick: () => {
-                        setFinanceActiveFilter("expense");
-                        setFinanceCurrentPage(1);
-                      },
-                    },
-                  ];
-
-                  const getYearOptions = () => {
-                    const options: Array<{ value: string; label: string }> = [
-                      { value: "all", label: t.cashFlow.filters.allYears },
-                    ];
-                    const currentDate = new Date();
-                    const currentYear = currentDate.getFullYear();
-
-                    options.push(
-                      {
-                        value: String(currentYear - 1),
-                        label: String(currentYear - 1),
-                      },
-                      { value: String(currentYear), label: String(currentYear) }
-                    );
-
-                    return options;
-                  };
-
-                  const getMonthOptions = () => {
-                    const localeMap: Record<string, string> = {
-                      pt: localeForDateTime,
-                      en: "en-US",
-                      es: "es-ES",
-                    };
-                    const locale = localeMap[language] || localeForDateTime;
-                    const options: Array<{ value: string; label: string }> = [
-                      { value: "all", label: t.cashFlow.filters.allMonths },
-                    ];
-
-                    for (let month = 1; month <= 12; month++) {
-                      const monthName = new Date(2000, month - 1).toLocaleDateString(locale, {
-                        month: "long",
-                      });
-                      options.push({ value: String(month), label: monthName });
-                    }
-
-                    return options;
-                  };
+                  const getYearOptions = () =>
+                    getFinanceYearOptionsFromTransactions(allTransactions);
+                  const getMonthOptions = () => getFinanceMonthOptions();
 
                   return (
                     <div className="space-y-8">
-                      <Table<UnifiedTransaction>
+                      <Table<PropertyFinanceTransaction>
                         columns={financeColumns}
                         data={paginatedFinanceData}
                         header={{
@@ -3195,10 +3504,9 @@ export default function PropertyDetails() {
                             <div className="w-32">
                               <Select
                                 value={financeSelectedYear}
-                                onChange={(e) => {
-                                  setFinanceSelectedYear(e.target.value);
-                                  setFinanceCurrentPage(1);
-                                }}
+                                onChange={(e) =>
+                                  handleFinanceYearChangeWithPageReset(e.target.value)
+                                }
                                 options={getYearOptions()}
                                 selectClassName="text-xs sm:text-sm py-2"
                               />
@@ -3206,10 +3514,9 @@ export default function PropertyDetails() {
                             <div className="w-36">
                               <Select
                                 value={financeSelectedMonth}
-                                onChange={(e) => {
-                                  setFinanceSelectedMonth(e.target.value);
-                                  setFinanceCurrentPage(1);
-                                }}
+                                onChange={(e) =>
+                                  handleFinanceMonthChangeWithPageReset(e.target.value)
+                                }
                                 options={getMonthOptions()}
                                 selectClassName="text-xs sm:text-sm py-2"
                               />
@@ -3217,38 +3524,13 @@ export default function PropertyDetails() {
                           </div>
                         }
                         middleContent={
-                          <div className="flex items-center gap-4 text-sm">
-                            <div className="flex flex-col">
-                              <span className="text-gray-500 dark:text-gray-400 text-xs">
-                                {t.cashFlow.filters.income}
-                              </span>
-                              <span className="font-semibold text-green-600 dark:text-green-400">
-                                {formatCurrency(totalIncome)}
-                              </span>
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="text-gray-500 dark:text-gray-400 text-xs">
-                                {t.cashFlow.filters.expense}
-                              </span>
-                              <span className="font-semibold text-red-600 dark:text-red-400">
-                                {formatCurrency(totalExpenses)}
-                              </span>
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="text-gray-500 dark:text-gray-400 text-xs">
-                                {t.common.total}
-                              </span>
-                              <span
-                                className={`font-semibold ${
-                                  netTotal >= 0
-                                    ? "text-green-600 dark:text-green-400"
-                                    : "text-red-600 dark:text-red-400"
-                                }`}
-                              >
-                                {formatCurrency(netTotal)}
-                              </span>
-                            </div>
-                          </div>
+                          <FinanceSummary
+                            totalIncome={totalIncome}
+                            totalExpenses={totalExpenses}
+                            netTotal={netTotal}
+                            formatCurrency={formatFinanceCurrency}
+                            t={t}
+                          />
                         }
                         pagination={{
                           currentPage: financeCurrentPage,
@@ -3266,6 +3548,8 @@ export default function PropertyDetails() {
                             navigate(getCashFlowViewRoute(row.id));
                           } else if (row.transactionType === "receivable") {
                             navigate(getAccountsReceivableViewRoute(row.id));
+                          } else if (row.transactionType === "acquisition") {
+                            navigate(getAcquisitionViewRoute(row.id));
                           } else {
                             navigate(getAccountsPayableViewRoute(row.id));
                           }

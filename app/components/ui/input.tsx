@@ -1,6 +1,9 @@
 import { forwardRef, useId, useState, type InputHTMLAttributes } from "react";
-import { maskDate, dateToISO, isoToDate } from "~/components/site/utils/masks";
+import { dateToISO } from "~/components/site/utils/masks";
 import { useTranslation } from "~/i18n/use-translation";
+import { useLanguage } from "~/contexts/language-context";
+import { DateInput } from "./date-input";
+import type DatePicker from "react-datepicker";
 
 interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "className"> {
   label?: string;
@@ -64,6 +67,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     ref
   ) => {
     const t = useTranslation();
+    const { language: _language, languageInfo: _languageInfo } = useLanguage();
     const generatedId = useId();
     const inputId = id || generatedId;
     const hasError = Boolean(error);
@@ -75,7 +79,6 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     const [showPassword, setShowPassword] = useState(false);
     const getInputType = () => {
       if (shouldShowToggle && showPassword) return "text";
-      if (isDateType) return "text";
       return type;
     };
     const inputType = getInputType();
@@ -87,7 +90,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       if (!value || typeof value !== "string") {
         return "";
       }
-      if (value.includes("-") && value.length === 10) return isoToDate(value);
+      // Native date inputs expect ISO (YYYY-MM-DD). If consumer passes dd/MM/yyyy, convert it.
+      if (value.includes("/") && value.length === 10) {
+        return dateToISO(value);
+      }
       return value;
     };
     const displayValue = getDisplayValue();
@@ -104,20 +110,55 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     const togglePasswordVisibility = () => {
       setShowPassword((prev) => !prev);
     };
+    const handleChange = onChange;
 
-    const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const masked = maskDate(e.target.value);
-      if (onChange) {
-        const isoValue = masked.length === 10 ? dateToISO(masked) : masked;
-        const syntheticEvent = {
-          ...e,
-          target: { ...e.target, value: isoValue },
-        } as React.ChangeEvent<HTMLInputElement>;
-        onChange(syntheticEvent);
-      }
-    };
+    // Use DateInput component for date type inputs
+    if (isDateType) {
+      // Filter out HTML input-specific props that shouldn't be passed to DatePicker
+      const {
+        name: _name,
+        placeholder: _placeholder,
+        autoComplete: _autoComplete,
+        autoFocus: _autoFocus,
+        readOnly: _readOnly,
+        min: _min,
+        max: _max,
+        step: _step,
+        pattern: _pattern,
+        inputMode: _inputMode,
+        ...dateInputProps
+      } = inputProps;
 
-    const handleChange = isDateType && onChange ? handleDateChange : onChange;
+      return (
+        <div className={className}>
+          {label && (
+            <label htmlFor={inputId} className="block text-sm text-gray-500 dark:text-gray-400">
+              {label}
+            </label>
+          )}
+
+          <DateInput
+            ref={ref as React.Ref<DatePicker>}
+            id={inputId}
+            value={displayValue as string}
+            onChange={handleChange as (event: { target: { value: string } }) => void}
+            disabled={inputProps.disabled}
+            required={inputProps.required}
+            className={inputStyles}
+            {...(dateInputProps as Record<string, unknown>)}
+          />
+
+          {displayText && (
+            <p
+              id={helperId}
+              className={`mt-3 text-xs ${hasError ? "text-red-500 dark:text-red-400" : "text-gray-400 dark:text-gray-500"}`}
+            >
+              {displayText}
+            </p>
+          )}
+        </div>
+      );
+    }
 
     return (
       <div className={className}>
@@ -137,8 +178,6 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             aria-describedby={helperId}
             value={displayValue}
             onChange={handleChange}
-            placeholder={isDateType ? "dd/MM/yyyy" : inputProps.placeholder}
-            maxLength={isDateType ? 10 : inputProps.maxLength}
             {...inputProps}
           />
 

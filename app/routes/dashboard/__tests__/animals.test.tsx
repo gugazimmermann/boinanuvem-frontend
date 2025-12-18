@@ -11,6 +11,24 @@ import { useAuth } from "~/contexts/auth-context";
 
 vi.mock("~/services/animals.service");
 vi.mock("~/services/births.service");
+vi.mock("~/services/properties.service", () => ({
+  getProperties: vi.fn().mockResolvedValue([]),
+}));
+vi.mock("~/services/acquisitions.service", () => ({
+  getAcquisitionsByCompanyId: vi.fn().mockResolvedValue([]),
+}));
+vi.mock("~/services/weighings.service", () => ({
+  getWeighingsByCompanyId: vi.fn().mockResolvedValue([]),
+}));
+vi.mock("~/services/breedings.service", () => ({
+  getBreedingsByCompanyId: vi.fn().mockResolvedValue([]),
+}));
+vi.mock("~/services/locations.service", () => ({
+  getLocations: vi.fn().mockResolvedValue([]),
+}));
+vi.mock("~/services/animal-movements.service", () => ({
+  getAnimalsByLastMovementLocation: vi.fn().mockResolvedValue([]),
+}));
 vi.mock("~/i18n", () => ({
   useTranslation: () => ({
     animals: {
@@ -81,7 +99,7 @@ vi.mock("~/i18n", () => ({
       clearSearch: "Clear search",
       month: "month",
       months: "months",
-      daysAgo: "days ago",
+      daysAgo: (days: number) => `${days} days ago`,
       dailyAverageGain: "Daily Average Gain",
     },
   }),
@@ -97,6 +115,7 @@ vi.mock("~/utils/permissions", () => ({
     canAdd: () => true,
     canEdit: () => true,
     canRemove: () => true,
+    canView: () => true,
   }),
 }));
 vi.mock("~/hooks/use-alert", () => ({
@@ -228,14 +247,18 @@ describe("animals.tsx", () => {
       expect(screen.getByText("A001")).toBeInTheDocument();
     });
 
+    // Wait for delete button to be rendered (actions column might render asynchronously)
+    await waitFor(() => {
+      const deleteButtons = screen.queryAllByRole("button", { name: /delete/i });
+      expect(deleteButtons.length).toBeGreaterThan(0);
+    });
+
     // Find and click delete button
-    const deleteButtons = screen.queryAllByRole("button", { name: /delete/i });
-    if (deleteButtons.length > 0) {
-      await user.click(deleteButtons[0]);
-      await waitFor(() => {
-        expect(mockHandleDeleteClick).toHaveBeenCalled();
-      });
-    }
+    const deleteButtons = screen.getAllByRole("button", { name: /delete/i });
+    await user.click(deleteButtons[0]);
+    await waitFor(() => {
+      expect(mockHandleDeleteClick).toHaveBeenCalled();
+    });
   });
 
   it("should show loading state initially", async () => {

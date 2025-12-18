@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useTranslation } from "~/i18n";
-import { maskCPF, maskCNPJ, maskPhone } from "~/components/site/utils/masks";
+import { maskCPF, maskCNPJ, maskPhone, unmaskCPF, unmaskCNPJ } from "~/components/site/utils/masks";
 import { useBaseForm } from "./use-base-form";
 import { useAddressForm } from "./use-address-form";
 
@@ -93,6 +93,29 @@ export function useEntityForm({
           (translations.edit as { propertyRequired?: string })?.propertyRequired ||
           t.profile.errors.required("Property");
         newErrors.propertyIds = propertyRequired;
+      }
+
+      // Require exactly one of CPF or CNPJ for non-employees
+      if (entityType !== "employee") {
+        const cpfDigits = typeof data.cpf === "string" ? unmaskCPF(data.cpf) : "";
+        const cnpjDigits = typeof data.cnpj === "string" ? unmaskCNPJ(data.cnpj) : "";
+        const hasCpf = cpfDigits.length > 0;
+        const hasCnpj = cnpjDigits.length > 0;
+
+        if (hasCpf === hasCnpj) {
+          const cpfLabel =
+            (translations.new as { cpfLabel?: string })?.cpfLabel ||
+            (translations.edit as { cpfLabel?: string })?.cpfLabel ||
+            "CPF";
+          const cnpjLabel =
+            (translations.new as { cnpjLabel?: string })?.cnpjLabel ||
+            (translations.edit as { cnpjLabel?: string })?.cnpjLabel ||
+            "CNPJ";
+
+          const message = t.profile.errors.required(`${cpfLabel} ou ${cnpjLabel}`);
+          newErrors.cpf = message;
+          newErrors.cnpj = message;
+        }
       }
 
       return Object.keys(newErrors).length === 0 ? true : newErrors;

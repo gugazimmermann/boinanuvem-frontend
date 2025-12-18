@@ -30,7 +30,6 @@ import {
 } from "~/routes.config";
 import { getLocationById, getLocations } from "~/services/locations.service";
 import {
-  AreaType,
   InventoryMovementType,
   type LocationMovement,
   type AnimalMovement,
@@ -41,30 +40,36 @@ import {
   type Employee,
   type ServiceProvider,
   type InventoryItem,
+  type AcquisitionItem,
 } from "~/types";
 import { getProperties } from "~/services/properties.service";
-import { getLocationMovementsByLocationId } from "~/services/location-movements.service";
 import { getEmployees } from "~/services/employees.service";
 import { getServiceProviders } from "~/services/service-providers.service";
 import { useAlert } from "~/hooks/use-alert";
 import { format } from "date-fns";
 import type { Locale } from "date-fns";
-import {
-  getAnimalsByLastMovementLocation,
-  getAnimalMovementsByLocationId,
-} from "~/services/animal-movements.service";
+import { getAnimalsByLastMovementLocation } from "~/services/animal-movements.service";
 import { getAnimalsByCompanyId, deleteAnimal } from "~/services/animals.service";
 import { getBirthsByCompanyId } from "~/services/births.service";
 import { getWeighingsByAnimalId } from "~/services/weighings.service";
+import { getAcquisitionsByCompanyId } from "~/services/acquisitions.service";
+import { getBreedingsByCompanyId } from "~/services/breedings.service";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
 import { useDateLocale } from "~/hooks/use-date-locale";
 import { createAnimalTableColumnsWithConfig } from "~/utils/animal-table-config";
-import { createBirthsMap } from "~/utils/births-map";
 import {
   getLocationConsumptionCosts,
   getTotalLocationCost,
   getAnimalCostBreakdown,
 } from "~/services/location-costs.service";
+import { useEntityMovements } from "~/hooks/use-entity-movements";
+import { useEntityDetailData } from "~/hooks/use-entity-detail-data";
+import { convertToHectares } from "~/utils/area-conversion";
+import {
+  matchesLocationNames,
+  matchesAnimalNames,
+  type UnifiedMovement as SearchUnifiedMovement,
+} from "~/utils/movement-search-helpers";
 
 type LocationTab =
   | "information"
@@ -115,43 +120,6 @@ async function matchesInventoryMovementSearch(
   }
   const consumptionText = t.inventory.movements.types.consumption?.toLowerCase() || "consumo";
   return consumptionText.includes(searchLower);
-}
-
-function matchesLocationNames(
-  movement: MovementUnion,
-  searchLower: string,
-  locations: Location[]
-): boolean {
-  let locationIds: string[];
-  if (movement.movementType === "location") {
-    locationIds = (movement as LocationMovement).locationIds;
-  } else {
-    const animalMovement = movement as AnimalMovement;
-    locationIds = animalMovement.locationId ? [animalMovement.locationId] : [];
-  }
-  const locationNames = locationIds
-    .filter((id): id is string => id !== null && id !== undefined)
-    .map((id) => {
-      const loc = locations.find((l) => l.id === id);
-      return loc ? `${loc.name} ${loc.code}`.toLowerCase() : id.toLowerCase();
-    })
-    .join(" ");
-  return locationNames.includes(searchLower);
-}
-
-function matchesAnimalNames(
-  movement: AnimalMovement,
-  searchLower: string,
-  animalsMap: Map<string, Animal>
-): boolean {
-  const animalNames = movement.animalIds
-    .map((id) => {
-      const animal = animalsMap.get(id);
-      return animal ? `${animal.code} ${animal.registrationNumber}`.toLowerCase() : "";
-    })
-    .filter((name) => name !== "")
-    .join(" ");
-  return animalNames.includes(searchLower);
 }
 
 async function checkMovementTypeSpecificSearch(
@@ -223,7 +191,7 @@ async function matchesMovementSearch(
 
   if (
     movement.movementType !== "inventory" &&
-    matchesLocationNames(movement, searchLower, locations)
+    matchesLocationNames({ ...movement } as SearchUnifiedMovement, searchLower, locations)
   ) {
     return true;
   }
@@ -399,28 +367,11 @@ export async function loader({ request }: { request: Request }) {
   return createRouteGuard(undefined, "view")({ request });
 }
 
-function convertToHectares(value: number, type: AreaType): number {
-  switch (type) {
-    case AreaType.HECTARES:
-      return value;
-    case AreaType.SQUARE_METERS:
-      return value / 10000;
-    case AreaType.SQUARE_FEET:
-      return value / 107639;
-    case AreaType.ACRES:
-      return value * 0.404686;
-    case AreaType.SQUARE_KILOMETERS:
-      return value * 100;
-    case AreaType.SQUARE_MILES:
-      return value * 258.999;
-    default:
-      return value;
-  }
-}
-
 async function calculateLocationStats(
   animalsInLocation: Animal[],
-  location: Location
+  location: Location,
+  weighingsMap?: Map<string, Awaited<ReturnType<typeof getWeighingsByAnimalId>>>,
+  acquisitionItemsByAnimalId?: Map<string, { weight?: number }>
 ): Promise<{
   totalWeight: number;
   animalUnits: number;
@@ -431,13 +382,16 @@ async function calculateLocationStats(
   const calculateTotalWeight = async () => {
     let totalWeight = 0;
     for (const animal of animalsInLocation) {
-      const weighings = await getWeighingsByAnimalId(animal.id);
-      if (weighings.length > 0) {
-        const sortedWeighings = weighings.toSorted(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        );
-        const lastWeighing = sortedWeighings[0];
-        totalWeight += lastWeighing.weight;
+      const weighings = weighingsMap?.get(animal.id) ?? (await getWeighingsByAnimalId(animal.id));
+      const lastWeighing =
+        weighings.length > 0
+          ? weighings.toSorted((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
+          : undefined;
+
+      const fallbackWeight = acquisitionItemsByAnimalId?.get(animal.id)?.weight;
+      const resolvedWeight = lastWeighing?.weight ?? fallbackWeight;
+      if (typeof resolvedWeight === "number" && resolvedWeight > 0) {
+        totalWeight += resolvedWeight;
       }
     }
     return totalWeight;
@@ -640,6 +594,8 @@ function LocationCostsContent({
   costsEndDate,
   onStartDateChange,
   onEndDateChange,
+  animalsInLocation,
+  acquisitionItemsByAnimalId,
   t,
   language: _language,
   dateLocale,
@@ -650,6 +606,8 @@ function LocationCostsContent({
   costsEndDate: string;
   onStartDateChange: (value: string) => void;
   onEndDateChange: (value: string) => void;
+  animalsInLocation: Animal[];
+  acquisitionItemsByAnimalId?: Map<string, AcquisitionItem>;
   t: ReturnType<typeof useTranslation>;
   language: string;
   dateLocale: Locale;
@@ -693,7 +651,28 @@ function LocationCostsContent({
     loadCosts();
   }, [locationId, costsStartDate, costsEndDate]);
 
-  const averageCostPerAnimal = animalBreakdown.length > 0 ? totalCost / animalBreakdown.length : 0;
+  const acquisitionCostTotal = useMemo(() => {
+    if (!acquisitionItemsByAnimalId) return 0;
+    return animalsInLocation.reduce((sum, a) => {
+      const item = acquisitionItemsByAnimalId.get(a.id);
+      const price = item?.price;
+      return sum + (typeof price === "number" ? price : 0);
+    }, 0);
+  }, [animalsInLocation, acquisitionItemsByAnimalId]);
+
+  const totalCostWithAcquisition = totalCost + acquisitionCostTotal;
+  const averageCostPerAnimal =
+    animalBreakdown.length > 0 ? totalCostWithAcquisition / animalBreakdown.length : 0;
+
+  const animalBreakdownWithAcquisition = useMemo(() => {
+    if (!acquisitionItemsByAnimalId) return animalBreakdown;
+    return animalBreakdown.map((b) => {
+      const item = acquisitionItemsByAnimalId.get(b.animal.id);
+      const price = item?.price;
+      const acqCost = typeof price === "number" ? price : 0;
+      return { ...b, totalCost: b.totalCost + acqCost };
+    });
+  }, [animalBreakdown, acquisitionItemsByAnimalId]);
 
   if (isLoadingCosts) {
     return (
@@ -756,7 +735,7 @@ function LocationCostsContent({
               {t.locations.costs.totalCost}
             </p>
             <p className="text-2xl font-bold text-blue-900 dark:text-blue-100 mt-1">
-              {totalCost.toLocaleString(localeForNumber, {
+              {totalCostWithAcquisition.toLocaleString(localeForNumber, {
                 style: "currency",
                 currency: "BRL",
               })}
@@ -782,6 +761,22 @@ function LocationCostsContent({
             </p>
           </div>
         </div>
+
+        {acquisitionCostTotal > 0 && (
+          <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4 border border-amber-200 dark:border-amber-800 mb-6">
+            <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
+              {_language === "en"
+                ? "Acquisition cost (animals currently in location)"
+                : "Custo de aquisição (animais atualmente na localização)"}
+            </p>
+            <p className="text-xl font-bold text-amber-900 dark:text-amber-100 mt-1">
+              {acquisitionCostTotal.toLocaleString(localeForNumber, {
+                style: "currency",
+                currency: "BRL",
+              })}
+            </p>
+          </div>
+        )}
 
         <div className="mb-6">
           <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-4">
@@ -861,7 +856,7 @@ function LocationCostsContent({
           )}
         </div>
 
-        {animalBreakdown.length > 0 && (
+        {animalBreakdownWithAcquisition.length > 0 && (
           <div>
             <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-4">
               {t.locations.costs.perAnimalBreakdown}
@@ -888,7 +883,7 @@ function LocationCostsContent({
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                  {animalBreakdown.map((breakdown) => (
+                  {animalBreakdownWithAcquisition.map((breakdown) => (
                     <tr key={breakdown.animal.id}>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                         {breakdown.animal.code}
@@ -935,6 +930,12 @@ export default function LocationDetails() {
   const [property, setProperty] = useState<Property | null>(null);
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [births, setBirths] = useState<Awaited<ReturnType<typeof getBirthsByCompanyId>>>([]);
+  const [acquisitions, setAcquisitions] = useState<
+    Awaited<ReturnType<typeof getAcquisitionsByCompanyId>>
+  >([]);
+  const [breedings, setBreedings] = useState<Awaited<ReturnType<typeof getBreedingsByCompanyId>>>(
+    []
+  );
   const [locations, setLocations] = useState<Location[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [serviceProviders, setServiceProviders] = useState<ServiceProvider[]>([]);
@@ -966,12 +967,18 @@ export default function LocationDetails() {
           setProperty(propertyData);
           // Load animals and births for this property's company
           try {
-            const [animalsData, birthsData] = await Promise.all([
+            const [animalsData, birthsData, acquisitionsData, breedingsData] = await Promise.all([
               getAnimalsByCompanyId(propertyData.companyId),
               getBirthsByCompanyId(propertyData.companyId),
+              getAcquisitionsByCompanyId(propertyData.companyId),
+              getBreedingsByCompanyId(propertyData.companyId),
             ]);
             setAnimals(animalsData || []);
             setBirths(birthsData || []);
+            setAcquisitions(acquisitionsData || []);
+            setBreedings(breedingsData || []);
+
+            // Weighings are now loaded by useEntityDetailData hook
           } catch (error) {
             console.error("Failed to load animals:", error);
           }
@@ -993,10 +1000,23 @@ export default function LocationDetails() {
 
   const locationsMap = useMemo(() => new Map(locations.map((l) => [l.id, l])), [locations]);
   const getLocationByIdSync = (id: string) => locationsMap.get(id);
-  const animalsMap = useMemo(() => new Map(animals.map((a) => [a.id, a])), [animals]);
-  const birthsMap = useMemo(() => createBirthsMap(births), [births]);
 
-  const getAnimalByIdLocal = (id: string) => {
+  const {
+    animalsMap,
+    birthsMap,
+    acquisitionItemsByAnimalId,
+    acquisitionDateByAnimalId,
+    breedingsByAnimalId,
+    weighingsMap,
+  } = useEntityDetailData({
+    companyId: property?.companyId,
+    animals,
+    births,
+    acquisitions,
+    breedings,
+  });
+
+  const _getAnimalByIdLocal = (id: string) => {
     return animalsMap.get(id);
   };
 
@@ -1095,10 +1115,17 @@ export default function LocationDetails() {
     void loadObservations();
   }, [location]);
 
-  const allAnimalsInLocation = animalIdsInLocation
-    .map((id) => getAnimalByIdLocal(id))
-    .filter((animal): animal is Animal => animal !== null);
-  const animalsInLocation = allAnimalsInLocation.filter((animal) => animal.status === "active");
+  // Memoize to keep stable references between renders; otherwise effects that depend
+  // on these arrays can run every render (and potentially cause update loops).
+  const allAnimalsInLocation = useMemo(() => {
+    return animalIdsInLocation
+      .map((id) => animalsMap.get(id) ?? null)
+      .filter((animal): animal is Animal => animal !== null);
+  }, [animalIdsInLocation, animalsMap]);
+
+  const animalsInLocation = useMemo(() => {
+    return allAnimalsInLocation.filter((animal) => animal.status === "active");
+  }, [allAnimalsInLocation]);
 
   const [locationStats, setLocationStats] = useState<{
     totalWeight: number;
@@ -1114,11 +1141,28 @@ export default function LocationDetails() {
         setLocationStats(null);
         return;
       }
-      const stats = await calculateLocationStats(animalsInLocation, location);
-      setLocationStats(stats);
+      const stats = await calculateLocationStats(
+        animalsInLocation,
+        location,
+        weighingsMap,
+        acquisitionItemsByAnimalId
+      );
+      setLocationStats((prev) => {
+        if (
+          prev &&
+          prev.totalWeight === stats.totalWeight &&
+          prev.animalUnits === stats.animalUnits &&
+          prev.areaInHectares === stats.areaInHectares &&
+          prev.stockingRate === stats.stockingRate &&
+          prev.density === stats.density
+        ) {
+          return prev;
+        }
+        return stats;
+      });
     };
-    loadStats();
-  }, [animalsInLocation, location]);
+    void loadStats();
+  }, [animalsInLocation, location, weighingsMap, acquisitionItemsByAnimalId]);
 
   // Pre-load inventory items for movements
   useEffect(() => {
@@ -1145,6 +1189,12 @@ export default function LocationDetails() {
     loadInventoryItems();
   }, [location]);
 
+  // Load location and animal movements using hook
+  const { movements: entityMovements } = useEntityMovements({
+    entityType: "location",
+    entityId: location?.id,
+  });
+
   // Filter and sort movements
   useEffect(() => {
     const filterAndSortMovements = async () => {
@@ -1153,18 +1203,14 @@ export default function LocationDetails() {
         return;
       }
 
-      const [locationMovements, animalMovements, inventoryMovementsData] = await Promise.all([
-        getLocationMovementsByLocationId(location.id),
-        getAnimalMovementsByLocationId(location.id),
-        getMovementsByLocationId(location.id),
-      ]);
+      // Load inventory movements separately (location-specific)
+      const inventoryMovementsData = await getMovementsByLocationId(location.id);
       const inventoryMovements = inventoryMovementsData.filter(
         (m) => m.type === InventoryMovementType.CONSUMPTION
       );
 
       const movements: UnifiedMovement[] = [
-        ...locationMovements.map((m) => ({ ...m, movementType: "location" as const })),
-        ...animalMovements.map((m) => ({ ...m, movementType: "animal" as const })),
+        ...entityMovements,
         ...inventoryMovements.map((m) => ({ ...m, movementType: "inventory" as const })),
       ];
 
@@ -1233,6 +1279,7 @@ export default function LocationDetails() {
   }, [
     location,
     property,
+    entityMovements,
     searchValue,
     sortState,
     formatDate,
@@ -1323,6 +1370,34 @@ export default function LocationDetails() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <Button
+            variant="primary"
+            onClick={() => {
+              const destinationPropertyId = location.propertyId;
+              const destinationLocationId = location.id;
+              navigate(ROUTES.ANIMALS_MOVEMENT_NEW, {
+                state: { destinationPropertyId, destinationLocationId },
+              });
+            }}
+            leftIcon={
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className="w-5 h-5"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"
+                />
+              </svg>
+            }
+          >
+            {t.animals.movement.addButton}
+          </Button>
           {canEdit("registration", "location") && (
             <Button
               variant="outline"
@@ -1706,6 +1781,10 @@ export default function LocationDetails() {
             language,
             dateLocale,
             birthsMap,
+            acquisitionItemsMap: acquisitionItemsByAnimalId,
+            acquisitionDateByAnimalId,
+            weighingsMap,
+            breedingsMap: breedingsByAnimalId,
             TooltipComponent: Tooltip,
             StatusBadgeComponent: StatusBadge,
             navigate: (path: string) => {
@@ -1738,6 +1817,33 @@ export default function LocationDetails() {
                 </svg>
               ),
               onClick: () => setIsAnimalRegistrationModalOpen(true),
+            },
+            {
+              label: "Adicionar animais nesta localização",
+              variant: "outline",
+              leftIcon: (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="w-5 h-5"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"
+                  />
+                </svg>
+              ),
+              onClick: () => {
+                const destinationPropertyId = location.propertyId;
+                const destinationLocationId = location.id;
+                navigate(ROUTES.ANIMALS_MOVEMENT_NEW, {
+                  state: { destinationPropertyId, destinationLocationId },
+                });
+              },
             },
           ];
 
@@ -2517,9 +2623,23 @@ export default function LocationDetails() {
                   if (row.movementType === "inventory") {
                     const inventoryMovement = row as InventoryMovement;
                     navigate(getInventoryViewRoute(inventoryMovement.itemId));
-                  } else {
-                    navigate(`${getMovementViewRoute(row.id)}?fromLocation=${location.id}`);
+                    return;
                   }
+                  if (
+                    row.movementType === "animal" &&
+                    Boolean((row as Record<string, unknown>).isConsolidated) &&
+                    Array.isArray((row as Record<string, unknown>).groupedMovementIds) &&
+                    ((row as Record<string, unknown>).groupedMovementIds as unknown[]).length > 1
+                  ) {
+                    showAlert(
+                      language === "en"
+                        ? "This is a consolidated movement (multiple records). Open the original record from the movement details screen if needed."
+                        : "Essa é uma movimentação consolidada (múltiplos registros). Se precisar, abra o registro original pela tela de detalhes da movimentação.",
+                      "info"
+                    );
+                    return;
+                  }
+                  navigate(`${getMovementViewRoute(row.id)}?fromLocation=${location.id}`);
                 }}
               />
             </div>
@@ -2533,6 +2653,8 @@ export default function LocationDetails() {
           costsEndDate={costsEndDate}
           onStartDateChange={setCostsStartDate}
           onEndDateChange={setCostsEndDate}
+          animalsInLocation={animalsInLocation}
+          acquisitionItemsByAnimalId={acquisitionItemsByAnimalId}
           t={t}
           language={language}
           dateLocale={dateLocale}

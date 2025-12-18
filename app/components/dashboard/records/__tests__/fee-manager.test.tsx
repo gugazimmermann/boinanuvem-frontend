@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { FeeManager } from "../fee-manager";
 import { useTranslation } from "~/i18n";
 import type { FeeItem } from "~/types/records";
+import { renderWithProviders } from "~/utils/test-utils";
 
 vi.mock("~/i18n");
 vi.mock("~/components/ui", () => ({
@@ -71,19 +72,19 @@ describe("FeeManager", () => {
   });
 
   it("should render fees label", () => {
-    render(<FeeManager {...defaultProps} />);
+    renderWithProviders(<FeeManager {...defaultProps} />);
     expect(screen.getByText("Fees")).toBeInTheDocument();
   });
 
   it("should render add fee button", () => {
-    render(<FeeManager {...defaultProps} />);
+    renderWithProviders(<FeeManager {...defaultProps} />);
     expect(screen.getByText(/Add Fee/)).toBeInTheDocument();
   });
 
   it("should call onAddFee when add button is clicked", async () => {
     const user = userEvent.setup();
     const onAddFee = vi.fn();
-    render(<FeeManager {...defaultProps} onAddFee={onAddFee} />);
+    renderWithProviders(<FeeManager {...defaultProps} onAddFee={onAddFee} />);
 
     const addButton = screen.getByText(/Add Fee/);
     await user.click(addButton);
@@ -92,7 +93,7 @@ describe("FeeManager", () => {
   });
 
   it("should render all fees", () => {
-    render(<FeeManager {...defaultProps} />);
+    renderWithProviders(<FeeManager {...defaultProps} />);
     expect(screen.getByDisplayValue("Fee 1")).toBeInTheDocument();
     expect(screen.getByDisplayValue("10.00")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Fee 2")).toBeInTheDocument();
@@ -102,7 +103,7 @@ describe("FeeManager", () => {
   it("should call onUpdateFee when fee name changes", async () => {
     const user = userEvent.setup();
     const onUpdateFee = vi.fn();
-    render(<FeeManager {...defaultProps} onUpdateFee={onUpdateFee} />);
+    renderWithProviders(<FeeManager {...defaultProps} onUpdateFee={onUpdateFee} />);
 
     const inputs = screen.getAllByTestId("input");
     await user.type(inputs[0], "New Name");
@@ -110,10 +111,38 @@ describe("FeeManager", () => {
     expect(onUpdateFee).toHaveBeenCalled();
   });
 
+  it("should mask fee amount as BRL currency", async () => {
+    const onUpdateFee = vi.fn();
+    renderWithProviders(
+      <FeeManager
+        {...defaultProps}
+        fees={[
+          { id: "1", name: "Fee 1", amount: "" },
+          { id: "2", name: "Fee 2", amount: "" },
+        ]}
+        onUpdateFee={onUpdateFee}
+      />
+    );
+
+    const inputs = screen.getAllByTestId("input");
+    // inputs[1] is the first fee amount input (after first fee name)
+    fireEvent.change(inputs[1]!, { target: { value: "1234" } });
+
+    const calls = onUpdateFee.mock.calls.filter((c: unknown[]) => c[1] === "amount");
+    expect(calls.length).toBeGreaterThan(0);
+    const last = calls[calls.length - 1];
+    // maskCurrency formats "1234" as "R$ 12,34" for Portuguese
+    // The actual format might vary, so check that it contains the currency symbol and amount
+    const formattedValue = String(last[2]);
+    expect(formattedValue).toContain("R$");
+    expect(formattedValue).toContain("12");
+    expect(formattedValue).toContain("34");
+  });
+
   it("should call onRemoveFee when remove button is clicked", async () => {
     const user = userEvent.setup();
     const onRemoveFee = vi.fn();
-    render(<FeeManager {...defaultProps} onRemoveFee={onRemoveFee} />);
+    renderWithProviders(<FeeManager {...defaultProps} onRemoveFee={onRemoveFee} />);
 
     const removeButtons = screen
       .getAllByRole("button")
@@ -125,7 +154,7 @@ describe("FeeManager", () => {
   });
 
   it("should disable inputs when disabled is true", () => {
-    render(<FeeManager {...defaultProps} disabled={true} />);
+    renderWithProviders(<FeeManager {...defaultProps} disabled={true} />);
     const inputs = screen.getAllByTestId("input");
     inputs.forEach((input) => {
       expect(input).toBeDisabled();
@@ -133,13 +162,15 @@ describe("FeeManager", () => {
   });
 
   it("should use custom labels when provided", () => {
-    render(<FeeManager {...defaultProps} feesLabel="Custom Fees" addFeeLabel="Add Custom Fee" />);
+    renderWithProviders(
+      <FeeManager {...defaultProps} feesLabel="Custom Fees" addFeeLabel="Add Custom Fee" />
+    );
     expect(screen.getByText("Custom Fees")).toBeInTheDocument();
     expect(screen.getByText(/Add Custom Fee/)).toBeInTheDocument();
   });
 
   it("should render empty fees array", () => {
-    render(<FeeManager {...defaultProps} fees={[]} />);
+    renderWithProviders(<FeeManager {...defaultProps} fees={[]} />);
     expect(screen.getByText("Fees")).toBeInTheDocument();
     expect(screen.getByText(/Add Fee/)).toBeInTheDocument();
   });

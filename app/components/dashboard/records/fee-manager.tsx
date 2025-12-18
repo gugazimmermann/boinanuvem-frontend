@@ -1,5 +1,7 @@
 import { Input, Button } from "~/components/ui";
 import { useTranslation } from "~/i18n";
+import { useLanguage } from "~/contexts/language-context";
+import { maskCurrency, getCurrencyPlaceholder } from "~/utils/currency-mask";
 import type { FeeItem } from "~/types/records";
 
 export interface FeeManagerProps {
@@ -30,6 +32,7 @@ export function FeeManager({
   feeAmountPlaceholder,
 }: FeeManagerProps) {
   const t = useTranslation();
+  const { language } = useLanguage();
 
   const defaultFeesLabel = feesLabel || t.sales?.form?.fees || "Taxas e Encargos";
   const defaultAddFeeLabel = addFeeLabel || t.sales?.form?.addFee || "Adicionar Taxa";
@@ -37,7 +40,7 @@ export function FeeManager({
   const defaultFeeNamePlaceholder =
     feeNamePlaceholder || t.sales?.form?.feeNamePlaceholder || "Ex: Taxa de Transporte";
   const defaultFeeAmountLabel = feeAmountLabel || t.sales?.form?.feeAmount || "Valor";
-  const defaultFeeAmountPlaceholder = feeAmountPlaceholder || "0,00";
+  const defaultFeeAmountPlaceholder = feeAmountPlaceholder || getCurrencyPlaceholder(language);
 
   return (
     <div>
@@ -81,7 +84,9 @@ export function FeeManager({
                 <Input
                   type="text"
                   value={fee.amount}
-                  onChange={(e) => onUpdateFee(fee.id, "amount", e.target.value)}
+                  onChange={(e) =>
+                    onUpdateFee(fee.id, "amount", maskCurrency(e.target.value, language))
+                  }
                   disabled={disabled}
                   placeholder={defaultFeeAmountPlaceholder}
                 />

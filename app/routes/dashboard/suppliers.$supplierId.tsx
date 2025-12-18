@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
 import { useTranslation } from "~/i18n";
 import { usePermissions } from "~/utils/permissions";
@@ -8,6 +8,7 @@ import type { Supplier, InventoryItem } from "~/types";
 import { InventoryItemCategory } from "~/types";
 import { getCashFlowBySupplierId } from "~/services/cash-flow.service";
 import { getAccountsPayableBySupplierId } from "~/services/accounts-payable.service";
+import { getAcquisitionsBySupplierId } from "~/services/acquisitions.service";
 import {
   getSupplierObservationsBySupplierId,
   addSupplierObservation,
@@ -44,6 +45,28 @@ export default function SupplierDetails() {
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [stockMap, setStockMap] = useState<Map<string, number>>(new Map());
 
+  const mapEntityToData = useCallback((supplier: Supplier) => {
+    return {
+      id: supplier.id,
+      code: supplier.code,
+      name: supplier.name,
+      cpf: supplier.cpf,
+      cnpj: supplier.cnpj,
+      email: supplier.email,
+      phone: supplier.phone,
+      propertyIds: supplier.propertyIds,
+      createdAt: supplier.createdAt,
+      status: supplier.status,
+      street: supplier.street,
+      number: supplier.number,
+      complement: supplier.complement,
+      neighborhood: supplier.neighborhood,
+      city: supplier.city,
+      state: supplier.state,
+      zipCode: supplier.zipCode,
+    };
+  }, []);
+
   useEffect(() => {
     const loadInventoryData = async (supplierId: string) => {
       const items = await getInventoryItemsBySupplierId(supplierId);
@@ -69,25 +92,7 @@ export default function SupplierDetails() {
       entityId={supplierId}
       fetchEntity={getSupplierById}
       entityType="supplier"
-      mapEntityToData={(supplier) => ({
-        id: supplier.id,
-        code: supplier.code,
-        name: supplier.name,
-        cpf: supplier.cpf,
-        cnpj: supplier.cnpj,
-        email: supplier.email,
-        phone: supplier.phone,
-        propertyIds: supplier.propertyIds,
-        createdAt: supplier.createdAt,
-        status: supplier.status,
-        street: supplier.street,
-        number: supplier.number,
-        complement: supplier.complement,
-        neighborhood: supplier.neighborhood,
-        city: supplier.city,
-        state: supplier.state,
-        zipCode: supplier.zipCode,
-      })}
+      mapEntityToData={mapEntityToData}
       translations={t.suppliers}
       routes={{
         list: ROUTES.SUPPLIERS,
@@ -110,6 +115,7 @@ export default function SupplierDetails() {
       financeConfig={{
         getCashFlowTransactions: getCashFlowBySupplierId,
         getPayableTransactions: getAccountsPayableBySupplierId,
+        getAcquisitionsTransactions: getAcquisitionsBySupplierId,
         gradientId: "colorNetSupplier",
       }}
       customTabs={[

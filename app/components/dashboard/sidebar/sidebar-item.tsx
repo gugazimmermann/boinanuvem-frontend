@@ -1,6 +1,31 @@
 import { Link, useLocation } from "react-router";
 import { DASHBOARD_COLORS } from "../utils/colors";
 
+function stripTrailingSlash(path: string) {
+  if (path.length > 1 && path.endsWith("/")) {
+    return path.slice(0, -1);
+  }
+  return path;
+}
+
+function isRouteActive(currentPathname: string, itemPath: string) {
+  const current = stripTrailingSlash(currentPathname);
+  const target = stripTrailingSlash(itemPath);
+
+  // Special-case: "/dashboard" is a common prefix for all dashboard routes.
+  // We only want the Dashboard item active on the exact dashboard home route.
+  if (target === "/dashboard") {
+    return current === target;
+  }
+
+  if (current === target) {
+    return true;
+  }
+
+  // Consider nested routes active (e.g. "/aquisicoes/novo" should activate "/aquisicoes")
+  return current.startsWith(`${target}/`);
+}
+
 interface SidebarSubItemProps {
   readonly label: string;
   readonly path: string;
@@ -23,7 +48,7 @@ interface SidebarSubItemPropsWithCallback extends SidebarSubItemProps {
 
 function SidebarSubItem({ label, path, icon, onItemClick }: SidebarSubItemPropsWithCallback) {
   const location = useLocation();
-  const isActive = location.pathname === path;
+  const isActive = isRouteActive(location.pathname, path);
 
   const baseClasses =
     "flex items-center space-x-2 px-3 py-2 pl-8 rounded-lg transition-colors cursor-pointer text-sm";
@@ -59,8 +84,11 @@ export function SidebarItem({
 }: SidebarItemProps) {
   const location = useLocation();
 
-  const hasActiveSubItem = subItems?.some((subItem) => location.pathname === subItem.path);
-  const isActive = location.pathname === path || hasActiveSubItem;
+  const hasActiveSubItem = subItems?.some((subItem) =>
+    isRouteActive(location.pathname, subItem.path)
+  );
+  const isActive =
+    path !== "#" && isRouteActive(location.pathname, path) ? true : Boolean(hasActiveSubItem);
 
   const baseClasses =
     "flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors cursor-pointer text-sm";

@@ -1,5 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useTranslation } from "~/i18n";
+import { useLanguage } from "~/contexts/language-context";
+import { parseCurrency } from "~/utils/currency-mask";
+import { formatCurrency as formatCurrencyDisplay } from "~/utils/formatting";
 import { isAnimalSold } from "~/services/sales.service";
 import { getWeighingsByAnimalId } from "~/services/weighings.service";
 import type { SaleType, PricingMode, SalePaymentMethod } from "~/types";
@@ -63,22 +66,21 @@ function validateAnimals(
 function validatePricing(
   data: SaleFormData,
   errors: Record<string, string>,
-  t: ReturnType<typeof useTranslation>
+  t: ReturnType<typeof useTranslation>,
+  language: "pt" | "en" | "es"
 ): void {
   if (data.pricingMode === PricingModeEnum.TOTAL) {
     if (!data.totalPrice) {
       errors.totalPrice = t.sales.errors.totalPriceRequired;
       return;
     }
-    const totalPriceNum =
-      Number.parseFloat(data.totalPrice.replaceAll(/[^\d,.-]/g, "").replaceAll(",", ".")) || 0;
+    const totalPriceNum = parseCurrency(data.totalPrice, language);
     if (totalPriceNum <= 0) {
       errors.totalPrice = t.sales.errors.totalPriceInvalid;
     }
   } else if (data.pricingMode === PricingModeEnum.INDIVIDUAL) {
     for (const item of data.saleItems) {
-      const priceNum =
-        Number.parseFloat(item.price.replaceAll(/[^\d,.-]/g, "").replaceAll(",", ".")) || 0;
+      const priceNum = parseCurrency(item.price, language);
       if (!item.price || priceNum <= 0) {
         errors[`price_${item.animalId}`] = t.sales.errors.priceRequired;
       }
@@ -133,6 +135,7 @@ export function useSaleForm({
   errorMessage,
 }: UseSaleFormOptions) {
   const t = useTranslation();
+  const { language } = useLanguage();
   const feeIdCounter = useRef(0);
   const [animalSearch, setAnimalSearch] = useState("");
 
@@ -164,7 +167,7 @@ export function useSaleForm({
       validateBasicFields(saleData, newErrors, t);
       validateSaleDate(saleData, newErrors, t);
       validateAnimals(saleData, newErrors, isEdit, currentSaleAnimalIds, t);
-      validatePricing(saleData, newErrors, t);
+      validatePricing(saleData, newErrors, t, language);
       validateWeights(saleData, newErrors, t);
 
       return Object.keys(newErrors).length === 0 ? true : newErrors;
@@ -294,11 +297,10 @@ export function useSaleForm({
 
   const calculatePricePerAnimal = useCallback(
     (totalPriceStr: string, animalCount: number): number => {
-      const totalPriceNum =
-        Number.parseFloat(totalPriceStr.replaceAll(/[^\d,.-]/g, "").replaceAll(",", ".")) || 0;
+      const totalPriceNum = parseCurrency(totalPriceStr, language);
       return animalCount > 0 ? totalPriceNum / animalCount : 0;
     },
-    []
+    [language]
   );
 
   const distributeTotalPriceToItems = useCallback(
@@ -308,10 +310,10 @@ export function useSaleForm({
     ): SaleFormData["saleItems"] => {
       return currentItems.map((item) => ({
         ...item,
-        price: pricePerAnimal.toFixed(2),
+        price: formatCurrencyDisplay(pricePerAnimal, language),
       }));
     },
-    []
+    [language]
   );
 
   const clearIndividualPrices = useCallback(
@@ -504,9 +506,12 @@ export function useSaleForm({
     [baseForm, updateFeeInList]
   );
 
-  const parsePriceString = useCallback((priceStr: string): number => {
-    return Number.parseFloat(priceStr.replaceAll(/[^\d,.-]/g, "").replaceAll(",", ".")) || 0;
-  }, []);
+  const parsePriceString = useCallback(
+    (priceStr: string): number => {
+      return parseCurrency(priceStr, language);
+    },
+    [language]
+  );
 
   const calculateItemsTotal = useCallback(
     (saleItems: SaleFormData["saleItems"]): number => {

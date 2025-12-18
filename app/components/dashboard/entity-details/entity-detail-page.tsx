@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { formatDate } from "~/utils/formatting";
 import { Button } from "~/components/ui";
@@ -25,6 +25,8 @@ import type {
   CashFlow,
   AccountsPayable,
   AccountsReceivable,
+  Acquisition,
+  Sale,
 } from "~/types";
 
 export interface EntityDetailPageProps<TEntity, TObservation extends Observation> {
@@ -114,6 +116,8 @@ export interface EntityDetailPageProps<TEntity, TObservation extends Observation
     getReceivableTransactions?: (
       id: string
     ) => AccountsReceivable[] | Promise<AccountsReceivable[]>;
+    getAcquisitionsTransactions?: (id: string) => Acquisition[] | Promise<Acquisition[]>;
+    getSalesTransactions?: (id: string) => Sale[] | Promise<Sale[]>;
     gradientId?: string;
     showSubTabs?: boolean;
   };
@@ -128,7 +132,7 @@ export interface EntityDetailPageProps<TEntity, TObservation extends Observation
   readonly customTabs?: Array<{
     id: string;
     label: string;
-    onClick: () => void;
+    onClick?: () => void;
   }>;
   /** Custom tab content renderer */
   readonly renderCustomTab?: (tabId: string, entity: TEntity) => React.ReactNode;
@@ -192,14 +196,19 @@ export function EntityDetailPage<TEntity, TObservation extends Observation>({
     isMainUser,
   });
 
-  const entityData = entity ? mapEntityToData(entity) : null;
+  const entityData = useMemo(
+    () => (entity ? mapEntityToData(entity) : null),
+    [entity, mapEntityToData]
+  );
 
   // Load movements when movements tab is active
   useEffect(() => {
     const loadMovements = async () => {
-      if (!movementsConfig || !entityData) {
-        setLocationMovements([]);
-        setAnimalMovements([]);
+      if (activeTab !== "movements") return;
+
+      if (!movementsConfig || !entityData?.id) {
+        setLocationMovements((prev) => (prev.length ? [] : prev));
+        setAnimalMovements((prev) => (prev.length ? [] : prev));
         return;
       }
 
@@ -216,13 +225,13 @@ export function EntityDetailPage<TEntity, TObservation extends Observation>({
         setAnimalMovements(animalMovs);
       } catch (error) {
         console.error("Failed to load movements:", error);
-        setLocationMovements([]);
-        setAnimalMovements([]);
+        setLocationMovements((prev) => (prev.length ? [] : prev));
+        setAnimalMovements((prev) => (prev.length ? [] : prev));
       }
     };
 
     loadMovements();
-  }, [movementsConfig, entityData]);
+  }, [activeTab, movementsConfig, entityData?.id]);
 
   const entityDetailsConfig = useEntityDetailsConfig({
     entityType,
@@ -313,7 +322,15 @@ export function EntityDetailPage<TEntity, TObservation extends Observation>({
           },
         ]
       : []),
-    ...(Array.isArray(customTabs) ? customTabs : []),
+    ...(Array.isArray(customTabs)
+      ? customTabs.map((tab) => ({
+          ...tab,
+          onClick: () => {
+            tab.onClick?.();
+            setActiveTab(tab.id);
+          },
+        }))
+      : []),
     ...(isMainUser() && translations.details?.tabs?.activities
       ? [
           {
@@ -496,6 +513,8 @@ export function EntityDetailPage<TEntity, TObservation extends Observation>({
           getCashFlowTransactions={financeConfig.getCashFlowTransactions}
           getPayableTransactions={financeConfig.getPayableTransactions}
           getReceivableTransactions={financeConfig.getReceivableTransactions}
+          getAcquisitionsTransactions={financeConfig.getAcquisitionsTransactions}
+          getSalesTransactions={financeConfig.getSalesTransactions}
           gradientId={financeConfig.gradientId}
           showSubTabs={financeConfig.showSubTabs}
         />

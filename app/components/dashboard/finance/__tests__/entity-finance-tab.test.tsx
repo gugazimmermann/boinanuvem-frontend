@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, act } from "@testing-library/react";
+import { screen, waitFor, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { EntityFinanceTab } from "../entity-finance-tab";
 import { useTranslation } from "~/i18n";
 import { useEntityFinanceTransactions } from "~/hooks/use-entity-finance-transactions";
 import { useSearchParams } from "react-router";
+import { renderWithProviders } from "~/utils/test-utils";
 
 vi.mock("react-router", () => ({
   useNavigate: vi.fn(() => vi.fn()),
@@ -38,6 +39,10 @@ vi.mock("~/i18n", () => ({
     },
     cashFlow: {
       categories: {},
+      filters: {
+        allYears: "All years",
+        allMonths: "All months",
+      },
     },
     common: {
       currency: {
@@ -46,16 +51,24 @@ vi.mock("~/i18n", () => ({
     },
   })),
 }));
-vi.mock("~/contexts/language-context", () => ({
-  useLanguage: vi.fn(() => ({ language: "pt" })),
-}));
-vi.mock("~/contexts/theme-context", () => ({
-  useTheme: vi.fn(() => ({
-    theme: "light",
-    toggleTheme: vi.fn(),
-    setTheme: vi.fn(),
-  })),
-}));
+vi.mock("~/contexts/language-context", async () => {
+  const actual = await vi.importActual("~/contexts/language-context");
+  return {
+    ...actual,
+    useLanguage: vi.fn(() => ({ language: "pt" })),
+  };
+});
+vi.mock("~/contexts/theme-context", async () => {
+  const actual = await vi.importActual("~/contexts/theme-context");
+  return {
+    ...actual,
+    useTheme: vi.fn(() => ({
+      theme: "light",
+      toggleTheme: vi.fn(),
+      setTheme: vi.fn(),
+    })),
+  };
+});
 vi.mock("~/hooks/use-entity-finance-transactions", () => ({
   useEntityFinanceTransactions: vi.fn(() => ({
     financeTransactions: {
@@ -263,6 +276,10 @@ describe("EntityFinanceTab", () => {
       },
       cashFlow: {
         categories: {},
+        filters: {
+          allYears: "All years",
+          allMonths: "All months",
+        },
       },
       common: {
         currency: {
@@ -274,7 +291,7 @@ describe("EntityFinanceTab", () => {
 
   it("should render finance sub tabs", async () => {
     await act(async () => {
-      render(<EntityFinanceTab {...defaultProps} />);
+      renderWithProviders(<EntityFinanceTab {...defaultProps} />);
       await flushPromises();
     });
     await waitFor(() => {
@@ -287,7 +304,7 @@ describe("EntityFinanceTab", () => {
     searchParams.set("subTab", "transactions");
     mockUseSearchParams.mockReturnValue([searchParams, vi.fn()]);
     await act(async () => {
-      render(<EntityFinanceTab {...defaultProps} />);
+      renderWithProviders(<EntityFinanceTab {...defaultProps} />);
       await flushPromises();
     });
     await waitFor(() => {
@@ -297,7 +314,7 @@ describe("EntityFinanceTab", () => {
 
   it("should render transactions table when showSubTabs is false", async () => {
     await act(async () => {
-      render(<EntityFinanceTab {...defaultProps} showSubTabs={false} />);
+      renderWithProviders(<EntityFinanceTab {...defaultProps} showSubTabs={false} />);
       await flushPromises();
     });
     await waitFor(() => {
@@ -308,7 +325,7 @@ describe("EntityFinanceTab", () => {
 
   it("should render alert display", async () => {
     await act(async () => {
-      render(<EntityFinanceTab {...defaultProps} />);
+      renderWithProviders(<EntityFinanceTab {...defaultProps} />);
       await flushPromises();
     });
     await waitFor(() => {
@@ -322,7 +339,7 @@ describe("EntityFinanceTab", () => {
     const setSearchParams = vi.fn();
     mockUseSearchParams.mockReturnValue([searchParams, setSearchParams]);
     await act(async () => {
-      render(<EntityFinanceTab {...defaultProps} />);
+      renderWithProviders(<EntityFinanceTab {...defaultProps} />);
       await flushPromises();
     });
     await waitFor(() => {
@@ -336,7 +353,7 @@ describe("EntityFinanceTab", () => {
     const setSearchParams = vi.fn();
     mockUseSearchParams.mockReturnValue([searchParams, setSearchParams]);
     await act(async () => {
-      render(<EntityFinanceTab {...defaultProps} />);
+      renderWithProviders(<EntityFinanceTab {...defaultProps} />);
       await flushPromises();
     });
     await waitFor(() => {
@@ -347,7 +364,7 @@ describe("EntityFinanceTab", () => {
   it("should default to dashboard when subTab param is null and showSubTabs is true", async () => {
     mockUseSearchParams.mockReturnValue([new URLSearchParams(), vi.fn()]);
     await act(async () => {
-      render(<EntityFinanceTab {...defaultProps} showSubTabs={true} />);
+      renderWithProviders(<EntityFinanceTab {...defaultProps} showSubTabs={true} />);
       await flushPromises();
     });
     await waitFor(() => {
@@ -377,6 +394,10 @@ describe("EntityFinanceTab", () => {
       },
       cashFlow: {
         categories: {},
+        filters: {
+          allYears: "All years",
+          allMonths: "All months",
+        },
       },
       common: {
         currency: {
@@ -385,7 +406,7 @@ describe("EntityFinanceTab", () => {
       },
     } as unknown as ReturnType<typeof useTranslation>);
     await act(async () => {
-      render(<EntityFinanceTab {...props} />);
+      renderWithProviders(<EntityFinanceTab {...props} />);
       await flushPromises();
     });
     await waitFor(() => {
@@ -415,6 +436,10 @@ describe("EntityFinanceTab", () => {
       },
       cashFlow: {
         categories: {},
+        filters: {
+          allYears: "All years",
+          allMonths: "All months",
+        },
       },
       common: {
         currency: {
@@ -423,7 +448,7 @@ describe("EntityFinanceTab", () => {
       },
     } as unknown as ReturnType<typeof useTranslation>);
     await act(async () => {
-      render(<EntityFinanceTab {...props} />);
+      renderWithProviders(<EntityFinanceTab {...props} />);
       await flushPromises();
     });
     await waitFor(() => {
@@ -453,6 +478,10 @@ describe("EntityFinanceTab", () => {
       },
       cashFlow: {
         categories: {},
+        filters: {
+          allYears: "All years",
+          allMonths: "All months",
+        },
       },
       common: {
         currency: {
@@ -461,7 +490,7 @@ describe("EntityFinanceTab", () => {
       },
     } as unknown as ReturnType<typeof useTranslation>);
     await act(async () => {
-      render(<EntityFinanceTab {...props} />);
+      renderWithProviders(<EntityFinanceTab {...props} />);
       await flushPromises();
     });
     await waitFor(() => {
@@ -475,7 +504,7 @@ describe("EntityFinanceTab", () => {
       entityType: "employee" as const,
     };
     await act(async () => {
-      render(<EntityFinanceTab {...props} />);
+      renderWithProviders(<EntityFinanceTab {...props} />);
       await flushPromises();
     });
     await waitFor(() => {
@@ -488,7 +517,7 @@ describe("EntityFinanceTab", () => {
     const setSearchParams = vi.fn();
     mockUseSearchParams.mockReturnValue([new URLSearchParams(), setSearchParams]);
     await act(async () => {
-      render(<EntityFinanceTab {...defaultProps} />);
+      renderWithProviders(<EntityFinanceTab {...defaultProps} />);
       await flushPromises();
     });
     await waitFor(() => {
@@ -508,7 +537,7 @@ describe("EntityFinanceTab", () => {
     searchParams.set("subTab", "transactions");
     mockUseSearchParams.mockReturnValue([searchParams, setSearchParams]);
     await act(async () => {
-      render(<EntityFinanceTab {...defaultProps} />);
+      renderWithProviders(<EntityFinanceTab {...defaultProps} />);
       await flushPromises();
     });
     await waitFor(() => {
@@ -526,7 +555,7 @@ describe("EntityFinanceTab", () => {
     searchParams.set("subTab", "transactions");
     mockUseSearchParams.mockReturnValue([searchParams, vi.fn()]);
     await act(async () => {
-      render(<EntityFinanceTab {...defaultProps} />);
+      renderWithProviders(<EntityFinanceTab {...defaultProps} />);
       await flushPromises();
     });
     await waitFor(() => {
@@ -539,7 +568,7 @@ describe("EntityFinanceTab", () => {
     searchParams.set("subTab", "dashboard");
     mockUseSearchParams.mockReturnValue([searchParams, vi.fn()]);
     await act(async () => {
-      render(<EntityFinanceTab {...defaultProps} />);
+      renderWithProviders(<EntityFinanceTab {...defaultProps} />);
       await flushPromises();
     });
     await waitFor(() => {
@@ -552,7 +581,7 @@ describe("EntityFinanceTab", () => {
     searchParams.set("subTab", "invalid");
     mockUseSearchParams.mockReturnValue([searchParams, vi.fn()]);
     await act(async () => {
-      render(<EntityFinanceTab {...defaultProps} />);
+      renderWithProviders(<EntityFinanceTab {...defaultProps} />);
       await flushPromises();
     });
     await waitFor(() => {
@@ -569,7 +598,7 @@ describe("EntityFinanceTab", () => {
       AlertDisplay: () => <div data-testid="alert-display">Alert</div>,
     });
     await act(async () => {
-      render(<EntityFinanceTab {...defaultProps} />);
+      renderWithProviders(<EntityFinanceTab {...defaultProps} />);
       await flushPromises();
     });
     await waitFor(() => {
@@ -586,7 +615,7 @@ describe("EntityFinanceTab", () => {
       AlertDisplay: () => <div data-testid="alert-display">Alert</div>,
     });
     await act(async () => {
-      render(<EntityFinanceTab {...defaultProps} />);
+      renderWithProviders(<EntityFinanceTab {...defaultProps} />);
       await flushPromises();
     });
     await waitFor(() => {
@@ -607,7 +636,7 @@ describe("EntityFinanceTab", () => {
       getServiceProviderName: vi.fn(() => "Service Provider 1"),
     });
     await act(async () => {
-      render(<EntityFinanceTab {...defaultProps} />);
+      renderWithProviders(<EntityFinanceTab {...defaultProps} />);
       await flushPromises();
     });
     await waitFor(() => {
@@ -627,7 +656,7 @@ describe("EntityFinanceTab", () => {
       getServiceProviderName: vi.fn(() => "Service Provider 1"),
     });
     await act(async () => {
-      render(<EntityFinanceTab {...defaultProps} />);
+      renderWithProviders(<EntityFinanceTab {...defaultProps} />);
     });
     await waitFor(() => {
       expect(screen.getByTestId("sub-tabs")).toBeInTheDocument();
@@ -646,7 +675,7 @@ describe("EntityFinanceTab", () => {
       getServiceProviderName: vi.fn(() => "Service Provider 1"),
     });
     await act(async () => {
-      render(<EntityFinanceTab {...defaultProps} />);
+      renderWithProviders(<EntityFinanceTab {...defaultProps} />);
     });
     await waitFor(() => {
       expect(screen.getByTestId("sub-tabs")).toBeInTheDocument();
@@ -665,7 +694,7 @@ describe("EntityFinanceTab", () => {
       getServiceProviderName: vi.fn(() => "Service Provider 1"),
     });
     await act(async () => {
-      render(<EntityFinanceTab {...defaultProps} />);
+      renderWithProviders(<EntityFinanceTab {...defaultProps} />);
     });
     await waitFor(() => {
       expect(screen.getByTestId("sub-tabs")).toBeInTheDocument();
@@ -684,7 +713,7 @@ describe("EntityFinanceTab", () => {
       getServiceProviderName: vi.fn(() => null),
     });
     await act(async () => {
-      render(<EntityFinanceTab {...defaultProps} />);
+      renderWithProviders(<EntityFinanceTab {...defaultProps} />);
     });
     await waitFor(() => {
       expect(screen.getByTestId("sub-tabs")).toBeInTheDocument();
@@ -692,7 +721,7 @@ describe("EntityFinanceTab", () => {
   });
 
   it("should pass payableTransactions when provided", async () => {
-    const getPayableTransactions = vi.fn(() => [
+    const payableData = [
       {
         id: "1",
         companyId: "company-1",
@@ -700,21 +729,38 @@ describe("EntityFinanceTab", () => {
         dueDate: "2024-01-01",
         status: "UNPAID" as const,
       },
-    ]);
+    ];
+    const getPayableTransactions = vi.fn(() => Promise.resolve(payableData));
     await act(async () => {
-      render(
+      renderWithProviders(
         <EntityFinanceTab {...defaultProps} getPayableTransactions={getPayableTransactions} />
       );
       await flushPromises();
     });
-    await waitFor(() => {
-      const calls = mockUseEntityFinanceTransactions.mock.calls;
-      expect(calls.length).toBeGreaterThan(0);
-      const lastCall = calls[calls.length - 1];
-      expect(lastCall[0]).toMatchObject({
-        payableTransactions: expect.arrayContaining([expect.objectContaining({ id: "1" })]),
-      });
-    });
+    // Wait for transactions to load and hook to be called with updated data
+    await waitFor(
+      () => {
+        const calls = mockUseEntityFinanceTransactions.mock.calls;
+        expect(calls.length).toBeGreaterThan(0);
+        // Check the last call which should have the loaded transactions
+        const lastCall = calls[calls.length - 1];
+        if (lastCall && lastCall[0]) {
+          const payableTransactions = lastCall[0].payableTransactions;
+          if (
+            payableTransactions &&
+            Array.isArray(payableTransactions) &&
+            payableTransactions.length > 0
+          ) {
+            expect(payableTransactions).toEqual(
+              expect.arrayContaining([expect.objectContaining({ id: "1" })])
+            );
+            return true;
+          }
+        }
+        throw new Error("Hook not called with payableTransactions yet");
+      },
+      { timeout: 3000 }
+    );
   });
 
   it("should pass receivableTransactions when provided", async () => {
@@ -728,7 +774,7 @@ describe("EntityFinanceTab", () => {
       },
     ]);
     await act(async () => {
-      render(
+      renderWithProviders(
         <EntityFinanceTab {...defaultProps} getReceivableTransactions={getReceivableTransactions} />
       );
       await flushPromises();
@@ -748,7 +794,7 @@ describe("EntityFinanceTab", () => {
     searchParams.set("subTab", "dashboard");
     mockUseSearchParams.mockReturnValue([searchParams, vi.fn()]);
     await act(async () => {
-      render(<EntityFinanceTab {...defaultProps} gradientId="custom-gradient" />);
+      renderWithProviders(<EntityFinanceTab {...defaultProps} gradientId="custom-gradient" />);
       await flushPromises();
     });
     await waitFor(() => {

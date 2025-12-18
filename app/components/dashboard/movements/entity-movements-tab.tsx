@@ -1,13 +1,26 @@
+import { useMemo, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
-import type { LocationMovement, AnimalMovement } from "~/types";
+import type {
+  LocationMovement,
+  AnimalMovement,
+  Location,
+  Employee,
+  ServiceProvider,
+  Animal,
+} from "~/types";
 import type { TableAction } from "~/components/ui";
 import { MovementsSection } from "./movements-section";
 import { useMovements } from "~/hooks/use-movements";
 import { createMovementsTableColumns } from "~/utils/movements-table-columns";
 import { createEntityGetters } from "~/utils/entity-getters";
 import { getMovementNewRoute, getMovementViewRoute } from "~/routes.config";
+import { useAlert } from "~/hooks/use-alert";
+import { getLocations } from "~/services/locations.service";
+import { getEmployees } from "~/services/employees.service";
+import { getServiceProviders } from "~/services/service-providers.service";
+import { getAnimalsByPropertyId } from "~/services/animals.service";
 
 export type EntityMovementsType = "employee" | "serviceProvider";
 
@@ -33,8 +46,71 @@ export function EntityMovementsTab({
   const navigate = useNavigate();
   const t = useTranslation();
   const { language } = useLanguage();
+  const { showAlert } = useAlert();
 
-  const entityGetters = createEntityGetters();
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [serviceProviders, setServiceProviders] = useState<ServiceProvider[]>([]);
+  const [animals, setAnimals] = useState<Animal[]>([]);
+
+  const firstPropertyId =
+    entityPropertyIds && entityPropertyIds.length > 0 ? entityPropertyIds[0] : null;
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadLookupData = async () => {
+      try {
+        const [locationsData, employeesData, serviceProvidersData] = await Promise.all([
+          getLocations(),
+          getEmployees(),
+          getServiceProviders(),
+        ]);
+        if (cancelled) return;
+        setLocations(locationsData || []);
+        setEmployees(employeesData || []);
+        setServiceProviders(serviceProvidersData || []);
+      } catch (error) {
+        console.error("Failed to load movements lookup data:", error);
+      }
+    };
+    void loadLookupData();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadAnimals = async () => {
+      if (!firstPropertyId) {
+        setAnimals([]);
+        return;
+      }
+      try {
+        const animalsData = await getAnimalsByPropertyId(firstPropertyId);
+        if (cancelled) return;
+        setAnimals(animalsData || []);
+      } catch (error) {
+        console.error("Failed to load animals for movements:", error);
+        setAnimals([]);
+      }
+    };
+    void loadAnimals();
+    return () => {
+      cancelled = true;
+    };
+  }, [firstPropertyId]);
+
+  const entityGetters = useMemo(
+    () =>
+      createEntityGetters({
+        locations,
+        employees,
+        serviceProviders,
+        animals,
+      }),
+    [animals, employees, locations, serviceProviders]
+  );
 
   const movementsData = useMovements({
     locationMovements,
@@ -46,23 +122,24 @@ export function EntityMovementsTab({
     ...entityGetters,
   });
 
-  const columns = createMovementsTableColumns({
-    language,
-    translationKeys: {
-      date: t.properties.details.movements.table.date,
-      type: t.properties.details.movements.table.type,
-      locations: t.properties.details.movements.table.locations,
-      animals: "Animais",
-      responsible: t.properties.details.movements.table.responsible,
-      observation: t.properties.details.movements.observation,
-      files: t.properties.details.movements.files,
-      types: t.properties.details.movements.types as Record<string, string>,
-    },
-    ...entityGetters,
-  });
-
-  const firstPropertyId =
-    entityPropertyIds && entityPropertyIds.length > 0 ? entityPropertyIds[0] : null;
+  const columns = useMemo(
+    () =>
+      createMovementsTableColumns({
+        language,
+        translationKeys: {
+          date: t.properties.details.movements.table.date,
+          type: t.properties.details.movements.table.type,
+          locations: t.properties.details.movements.table.locations,
+          animals: "Animais",
+          responsible: t.properties.details.movements.table.responsible,
+          observation: t.properties.details.movements.observation,
+          files: t.properties.details.movements.files,
+          types: t.properties.details.movements.types as Record<string, string>,
+        },
+        ...entityGetters,
+      }),
+    [entityGetters, language, t]
+  );
 
   const headerActions: TableAction[] = firstPropertyId
     ? [
@@ -126,7 +203,24 @@ export function EntityMovementsTab({
       emptyStateDescriptionWithSearch={
         t.properties.details.movements.emptyState.descriptionWithSearch
       }
-      onRowClick={(row) => navigate(getRowClickRoute(row.id))}
+      onRowClick={(row) => {
+        const r = row as Record<string, unknown>;
+        if (
+          r.movementType === "animal" &&
+          Boolean(r.isConsolidated) &&
+          Array.isArray(r.groupedMovementIds) &&
+          r.groupedMovementIds.length > 1
+        ) {
+          showAlert(
+            language === "en"
+              ? "This is a consolidated movement (multiple records). Open the original record from the movement details screen if needed."
+              : "Essa é uma movimentação consolidada (múltiplos registros). Se precisar, abra o registro original pela tela de detalhes da movimentação.",
+            "info"
+          );
+          return;
+        }
+        navigate(getRowClickRoute(row.id));
+      }}
       translationKeys={{
         date: t.properties.details.movements.table.date,
         type: t.properties.details.movements.table.type,

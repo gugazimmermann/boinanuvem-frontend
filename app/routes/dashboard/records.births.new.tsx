@@ -8,16 +8,18 @@ import {
   FormActions,
 } from "~/components/dashboard/shared";
 import { ROUTES } from "~/routes.config";
-import {
-  addBirth,
-  calculatePurity,
-  getBirthByAnimalId,
-  getBirthsByCompanyId,
-} from "~/services/births.service";
+import { addBirth, getBirthsByCompanyId } from "~/services/births.service";
 import { unconfirmMostRecentBreedingForAnimal } from "~/services/breedings.service";
 import { getAnimalsByCompanyId } from "~/services/animals.service";
 import { addWeighing } from "~/services/weighings.service";
-import type { WeighingFormData, Property, Employee, ServiceProvider } from "~/types";
+import { getAcquisitionsByCompanyId } from "~/services/acquisitions.service";
+import type {
+  WeighingFormData,
+  Property,
+  Employee,
+  ServiceProvider,
+  AcquisitionItem,
+} from "~/types";
 import { useAuth } from "~/contexts/auth-context";
 import { getProperties } from "~/services/properties.service";
 import { getEmployees } from "~/services/employees.service";
@@ -62,18 +64,23 @@ export default function NewBirth() {
     Array<{ id: string; code: string; registrationNumber: string }>
   >([]);
   const [births, setBirths] = useState<Array<{ animalId: string; gender?: string }>>([]);
+  const [acquisitions, setAcquisitions] = useState<
+    Awaited<ReturnType<typeof getAcquisitionsByCompanyId>>
+  >([]);
 
-  // Load animals and births from API
+  // Load animals, births, and acquisitions from API
   useEffect(() => {
     const loadData = async () => {
       if (!companyId) return;
       try {
-        const [animalsData, birthsData] = await Promise.all([
+        const [animalsData, birthsData, acquisitionsData] = await Promise.all([
           getAnimalsByCompanyId(companyId),
           getBirthsByCompanyId(companyId),
+          getAcquisitionsByCompanyId(companyId),
         ]);
         setAnimals(animalsData || []);
         setBirths(birthsData || []);
+        setAcquisitions(acquisitionsData || []);
       } catch (error) {
         console.error("Failed to load data:", error);
       }
@@ -90,6 +97,19 @@ export default function NewBirth() {
     return map;
   }, [births]);
 
+  // Create a map of acquisition items by animal ID
+  const acquisitionItemsByAnimalId = useMemo(() => {
+    const map = new Map<string, AcquisitionItem>();
+    for (const acq of acquisitions || []) {
+      for (const item of acq.acquisitionItems || []) {
+        if (item?.animalId) {
+          map.set(item.animalId, item);
+        }
+      }
+    }
+    return map;
+  }, [acquisitions]);
+
   const getBirthByAnimalIdLocal = useCallback(
     (animalId: string) => {
       return birthsByAnimalId.get(animalId);
@@ -97,18 +117,27 @@ export default function NewBirth() {
     [birthsByAnimalId]
   );
 
+  const getAcquisitionItemByAnimalIdLocal = useCallback(
+    (animalId: string) => {
+      return acquisitionItemsByAnimalId.get(animalId);
+    },
+    [acquisitionItemsByAnimalId]
+  );
+
   const femaleAnimals = useMemo(() => {
     return animals.filter((animal) => {
       const birth = getBirthByAnimalIdLocal(animal.id);
-      return birth?.gender === "female";
+      const acquisitionItem = getAcquisitionItemByAnimalIdLocal(animal.id);
+      return birth?.gender === "female" || acquisitionItem?.gender === "female";
     });
-  }, [animals, getBirthByAnimalIdLocal]);
+  }, [animals, getBirthByAnimalIdLocal, getAcquisitionItemByAnimalIdLocal]);
   const maleAnimals = useMemo(() => {
     return animals.filter((animal) => {
       const birth = getBirthByAnimalIdLocal(animal.id);
-      return birth?.gender === "male";
+      const acquisitionItem = getAcquisitionItemByAnimalIdLocal(animal.id);
+      return birth?.gender === "male" || acquisitionItem?.gender === "male";
     });
-  }, [animals, getBirthByAnimalIdLocal]);
+  }, [animals, getBirthByAnimalIdLocal, getAcquisitionItemByAnimalIdLocal]);
 
   const filteredFemaleAnimals = useMemo(() => {
     if (!motherSearch.trim()) return femaleAnimals;
@@ -270,33 +299,18 @@ export default function NewBirth() {
 
     setIsSubmitting(true);
     try {
-      // Get mother and father birth records for purity calculation
-      const motherBirth = formData.motherId
-        ? await getBirthByAnimalId(formData.motherId)
-        : undefined;
-      const fatherBirth = formData.fatherId
-        ? await getBirthByAnimalId(formData.fatherId)
-        : undefined;
-
-      const motherBreed = motherBirth?.breed;
-      const fatherBreed = fatherBirth?.breed;
-
-      const calculatedBreed = fatherBreed || motherBreed || undefined;
-
-      const purity = calculatePurity(motherBirth, fatherBirth, motherBreed, fatherBreed);
-
-      // Backend creates the animal automatically, so we pass code, registrationNumber, and propertyId
+      // Backend will calculate breed and purity automatically based on parent data
+      // We only send the parent IDs and let the backend do the calculation
       const newBirth = await addBirth({
         animalId: "", // Empty string since backend creates the animal
         code: formData.code,
         registrationNumber: formData.registrationNumber,
         propertyId: formData.propertyId,
         birthDate: formData.birthDate,
-        breed: calculatedBreed || undefined,
         gender: formData.gender || undefined,
         motherId: formData.motherId || undefined,
         fatherId: formData.fatherId || undefined,
-        purity: purity || undefined,
+        // Don't send purity - backend will calculate it
         observation: formData.observation || undefined,
         companyId,
       });

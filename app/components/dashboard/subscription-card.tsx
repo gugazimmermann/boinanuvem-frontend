@@ -6,7 +6,31 @@ import { cancelSubscription, createCustomerPortalSession } from "~/services/subs
 import { format } from "date-fns";
 import { getDateLocale } from "~/utils/date";
 import type { Language } from "~/types";
-import { t } from "~/utils/translation-helpers";
+import {
+  getBillingCycleLabel,
+  getBillingCycleText,
+  getPriceLabel,
+  getPriceSuffix,
+  getStartDateLabel,
+  getEndDateLabel,
+  getStatusLabel,
+  getManageButtonText,
+  getOpeningButtonText,
+  getCancelSubscriptionText,
+  getCancelSubscriptionTitle,
+  getCancelQuestionText,
+  getEndOfPeriodTitle,
+  getEndOfPeriodDescription,
+  getEndOfPeriodAriaLabel,
+  getImmediatelyTitle,
+  getImmediatelyDescription,
+  getImmediatelyAriaLabel,
+  getBackText,
+  getCancelButtonText,
+  getCancellingButtonText,
+  getCancelError,
+  getPortalError,
+} from "~/utils/subscription-translations";
 
 interface SubscriptionCardProps {
   readonly subscription: Subscription;
@@ -55,23 +79,6 @@ export function SubscriptionCard({
     }
   };
 
-  const getStatusLabel = (status: string): string => {
-    const getActiveLabel = (): string => t(language, "Ativa", "Activa", "Active");
-    const getCancelledLabel = (): string => t(language, "Cancelada", "Cancelada", "Cancelled");
-    const getExpiredLabel = (): string => t(language, "Expirada", "Expirada", "Expired");
-    const getPastDueLabel = (): string => t(language, "Atrasada", "Atrasada", "Past Due");
-    const getUnpaidLabel = (): string => t(language, "Não Paga", "No Pagada", "Unpaid");
-
-    const labels: Record<string, string> = {
-      active: getActiveLabel(),
-      cancelled: getCancelledLabel(),
-      expired: getExpiredLabel(),
-      past_due: getPastDueLabel(),
-      unpaid: getUnpaidLabel(),
-    };
-    return labels[status] || status;
-  };
-
   const handleCancel = async () => {
     try {
       setIsCancelling(true);
@@ -82,15 +89,7 @@ export function SubscriptionCard({
       setShowCancelDialog(false);
       onUpdate();
     } catch (err) {
-      const getCancelError = (): string => {
-        return t(
-          language,
-          "Falha ao cancelar assinatura",
-          "Error al cancelar suscripción",
-          "Failed to cancel subscription"
-        );
-      };
-      setError(err instanceof Error ? err.message : getCancelError());
+      setError(err instanceof Error ? err.message : getCancelError(language));
     } finally {
       setIsCancelling(false);
     }
@@ -104,151 +103,11 @@ export function SubscriptionCard({
       globalThis.location.href = response.url;
     } catch (err) {
       setIsOpeningPortal(false);
-      const getPortalError = (): string => {
-        return t(
-          language,
-          "Falha ao abrir portal",
-          "Error al abrir portal",
-          "Failed to open portal"
-        );
-      };
-      setError(err instanceof Error ? err.message : getPortalError());
+      setError(err instanceof Error ? err.message : getPortalError(language));
     }
   };
 
   const isActive = subscription.isActive && subscription.status === "active";
-
-  const getEndOfPeriodAriaLabel = (): string => {
-    if (language === "pt") {
-      return "No final do período: Continue usando até o final do período pago";
-    }
-    if (language === "es") {
-      return "Al final del período: Continúa usando hasta el final del período pagado";
-    }
-    return "At end of period: Continue using until the end of the paid period";
-  };
-
-  const getImmediatelyAriaLabel = (): string => {
-    if (language === "pt") {
-      return "Imediatamente: Cancelar agora e parar o acesso imediatamente";
-    }
-    if (language === "es") {
-      return "Inmediatamente: Cancelar ahora y detener el acceso inmediatamente";
-    }
-    return "Immediately: Cancel now and stop access immediately";
-  };
-
-  // Translation helper functions
-  const getBillingCycleLabel = (): string => {
-    return t(language, "Ciclo de cobrança:", "Ciclo de facturación:", "Billing cycle:");
-  };
-
-  const getMonthlyLabel = (): string => {
-    return t(language, "Mensal", "Mensual", "Monthly");
-  };
-
-  const getAnnualLabel = (): string => {
-    return t(language, "Anual", "Anual", "Annual");
-  };
-
-  const getBillingCycleText = (): string => {
-    return subscription.billingCycle === "monthly" ? getMonthlyLabel() : getAnnualLabel();
-  };
-
-  const getPriceLabel = (): string => {
-    return t(language, "Valor:", "Valor:", "Price:");
-  };
-
-  const getMonthSuffix = (): string => {
-    return t(language, " / mês", " / mes", " / month");
-  };
-
-  const getYearSuffix = (): string => {
-    return t(language, " / ano", " / año", " / year");
-  };
-
-  const getPriceSuffix = (): string => {
-    return subscription.billingCycle === "monthly" ? getMonthSuffix() : getYearSuffix();
-  };
-
-  const getStartDateLabel = (): string => {
-    return t(language, "Início:", "Inicio:", "Start date:");
-  };
-
-  const getEndDateLabel = (): string => {
-    return t(language, "Fim:", "Fin:", "End date:");
-  };
-
-  const getOpeningText = (): string => {
-    return t(language, "Abrindo...", "Abriendo...", "Opening...");
-  };
-
-  const getManageSubscriptionText = (): string => {
-    return t(language, "Gerenciar Assinatura", "Gestionar Suscripción", "Manage Subscription");
-  };
-
-  const getManageButtonText = (): string => {
-    return isOpeningPortal ? getOpeningText() : getManageSubscriptionText();
-  };
-
-  const getCancelSubscriptionText = (): string => {
-    return t(language, "Cancelar Assinatura", "Cancelar Suscripción", "Cancel Subscription");
-  };
-
-  const getCancelSubscriptionTitle = (): string => {
-    return t(language, "Cancelar Assinatura", "Cancelar Suscripción", "Cancel Subscription");
-  };
-
-  const getCancelQuestionText = (): string => {
-    return t(
-      language,
-      "Como você deseja cancelar sua assinatura?",
-      "¿Cómo deseas cancelar tu suscripción?",
-      "How would you like to cancel your subscription?"
-    );
-  };
-
-  const getEndOfPeriodTitle = (): string => {
-    return t(language, "No final do período", "Al final del período", "At end of period");
-  };
-
-  const getEndOfPeriodDescription = (): string => {
-    return t(
-      language,
-      "Continue usando até o final do período pago",
-      "Continúa usando hasta el final del período pagado",
-      "Continue using until the end of the paid period"
-    );
-  };
-
-  const getImmediatelyTitle = (): string => {
-    return t(language, "Imediatamente", "Inmediatamente", "Immediately");
-  };
-
-  const getImmediatelyDescription = (): string => {
-    return t(
-      language,
-      "Cancelar agora e parar o acesso imediatamente",
-      "Cancelar ahora y detener el acceso inmediatamente",
-      "Cancel now and stop access immediately"
-    );
-  };
-
-  const getBackText = (): string => {
-    return t(language, "Voltar", "Volver", "Back");
-  };
-
-  const getCancellingText = (): string => {
-    return t(language, "Cancelando...", "Cancelando...", "Cancelling...");
-  };
-
-  const getConfirmCancellationText = (): string => {
-    return t(language, "Confirmar Cancelamento", "Confirmar Cancelación", "Confirm Cancellation");
-  };
-
-  const getCancelButtonText = (): string => {
-    return isCancelling ? getCancellingText() : getConfirmCancellationText();
-  };
 
   return (
     <div className="mb-6 p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
@@ -259,29 +118,30 @@ export function SubscriptionCard({
               {plan?.name || "Plano"}
             </h3>
             <StatusBadge
-              label={getStatusLabel(subscription.status)}
+              label={getStatusLabel(language, subscription.status)}
               variant={getStatusVariant(subscription.status)}
             />
           </div>
           <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
             <p>
-              <span className="font-medium">{getBillingCycleLabel()}</span> {getBillingCycleText()}
+              <span className="font-medium">{getBillingCycleLabel(language)}</span>{" "}
+              {getBillingCycleText(language, subscription.billingCycle)}
             </p>
             {price && (
               <p>
-                <span className="font-medium">{getPriceLabel()}</span> {price}
-                {getPriceSuffix()}
+                <span className="font-medium">{getPriceLabel(language)}</span> {price}
+                {getPriceSuffix(language, subscription.billingCycle)}
               </p>
             )}
             {subscription.startDate && (
               <p>
-                <span className="font-medium">{getStartDateLabel()}</span>{" "}
+                <span className="font-medium">{getStartDateLabel(language)}</span>{" "}
                 {formatDate(subscription.startDate)}
               </p>
             )}
             {subscription.endDate && (
               <p>
-                <span className="font-medium">{getEndDateLabel()}</span>{" "}
+                <span className="font-medium">{getEndDateLabel(language)}</span>{" "}
                 {formatDate(subscription.endDate)}
               </p>
             )}
@@ -299,7 +159,7 @@ export function SubscriptionCard({
         {isActive && (
           <>
             <Button variant="outline" onClick={handleManage} disabled={isOpeningPortal} size="sm">
-              {getManageButtonText()}
+              {isOpeningPortal ? getOpeningButtonText(language) : getManageButtonText(language)}
             </Button>
             <Button
               variant="danger"
@@ -307,7 +167,7 @@ export function SubscriptionCard({
               disabled={isCancelling}
               size="sm"
             >
-              {getCancelSubscriptionText()}
+              {getCancelSubscriptionText(language)}
             </Button>
           </>
         )}
@@ -318,15 +178,15 @@ export function SubscriptionCard({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 border border-gray-200 dark:border-gray-700">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              {getCancelSubscriptionTitle()}
+              {getCancelSubscriptionTitle(language)}
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              {getCancelQuestionText()}
+              {getCancelQuestionText(language)}
             </p>
             <div className="space-y-3 mb-6">
               <label
                 className="flex items-start gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-md cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                aria-label={getEndOfPeriodAriaLabel()}
+                aria-label={getEndOfPeriodAriaLabel(language)}
               >
                 <input
                   type="radio"
@@ -337,16 +197,16 @@ export function SubscriptionCard({
                 />
                 <div>
                   <div className="font-medium text-gray-900 dark:text-gray-100">
-                    {getEndOfPeriodTitle()}
+                    {getEndOfPeriodTitle(language)}
                   </div>
                   <div className="text-sm text-gray-600 dark:text-gray-400">
-                    {getEndOfPeriodDescription()}
+                    {getEndOfPeriodDescription(language)}
                   </div>
                 </div>
               </label>
               <label
                 className="flex items-start gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-md cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                aria-label={getImmediatelyAriaLabel()}
+                aria-label={getImmediatelyAriaLabel(language)}
               >
                 <input
                   type="radio"
@@ -357,10 +217,10 @@ export function SubscriptionCard({
                 />
                 <div>
                   <div className="font-medium text-gray-900 dark:text-gray-100">
-                    {getImmediatelyTitle()}
+                    {getImmediatelyTitle(language)}
                   </div>
                   <div className="text-sm text-gray-600 dark:text-gray-400">
-                    {getImmediatelyDescription()}
+                    {getImmediatelyDescription(language)}
                   </div>
                 </div>
               </label>
@@ -372,10 +232,10 @@ export function SubscriptionCard({
                 disabled={isCancelling}
                 size="sm"
               >
-                {getBackText()}
+                {getBackText(language)}
               </Button>
               <Button variant="danger" onClick={handleCancel} disabled={isCancelling} size="sm">
-                {getCancelButtonText()}
+                {isCancelling ? getCancellingButtonText(language) : getCancelButtonText(language)}
               </Button>
             </div>
           </div>

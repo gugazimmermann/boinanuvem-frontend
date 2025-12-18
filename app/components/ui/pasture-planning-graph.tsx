@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router";
+import { useMemo } from "react";
 import type { PasturePlanningMonth } from "~/types/property";
 import { useTranslation } from "~/i18n";
 import { useTheme } from "~/contexts/theme-context";
@@ -62,6 +63,144 @@ function getLegendFormatter(textColor: string) {
   return LegendFormatter;
 }
 
+// Helper function to get chart colors based on theme
+function getChartColors(isDark: boolean) {
+  return {
+    precip: {
+      fill: isDark ? "oklch(60% 0.2 240)" : "oklch(70% 0.2 240)",
+      stroke: isDark ? "oklch(60% 0.2 240)" : "oklch(70% 0.2 240)",
+    },
+    minTemp: {
+      stroke: isDark ? "oklch(50% 0.2 250)" : "oklch(60% 0.2 250)",
+      dot: isDark ? "oklch(50% 0.2 250)" : "oklch(60% 0.2 250)",
+    },
+    maxTemp: {
+      stroke: isDark ? "oklch(50% 0.2 30)" : "oklch(60% 0.2 30)",
+      dot: isDark ? "oklch(50% 0.2 30)" : "oklch(60% 0.2 30)",
+    },
+    text: isDark ? "#ffffff" : "#000000",
+  };
+}
+
+// Helper function to get axis configuration
+function getAxisConfig(textColor: string, t: ReturnType<typeof useTranslation>) {
+  return {
+    xAxis: {
+      tick: { fill: textColor, fontSize: 12 },
+      label: {
+        value: t.properties.details.pasturePlanning.month,
+        position: "insideBottom" as const,
+        offset: -10,
+        style: { textAnchor: "middle", fill: textColor, fontSize: 12 },
+      },
+    },
+    yAxisTemp: {
+      tick: { fill: textColor, fontSize: 12 },
+      label: {
+        value: t.properties.details.pasturePlanning.temperature,
+        angle: -90,
+        position: "insideLeft" as const,
+        style: { textAnchor: "middle", fill: textColor, fontSize: 12 },
+      },
+    },
+    yAxisPrecip: {
+      tick: { fill: textColor, fontSize: 12 },
+      label: {
+        value: t.properties.details.pasturePlanning.precipitation,
+        angle: 90,
+        position: "insideRight" as const,
+        style: { textAnchor: "middle", fill: textColor, fontSize: 12 },
+      },
+    },
+  };
+}
+
+// Helper function to get tooltip formatter
+function createTooltipFormatter(
+  t: ReturnType<typeof useTranslation>
+): (
+  value: number | string,
+  name: string,
+  props: { payload?: { classification?: string } }
+) => [string | number, string] {
+  return (
+    value: number | string,
+    name: string,
+    props: { payload?: { classification?: string } }
+  ) => {
+    if (name === t.properties.details.pasturePlanning.forage || name === "classificationHeight") {
+      const classification = props.payload?.classification;
+      return [
+        t.properties.details.pasturePlanning.classification[
+          classification as keyof typeof t.properties.details.pasturePlanning.classification
+        ] || classification,
+        t.properties.details.pasturePlanning.forage,
+      ];
+    }
+    return [value, name];
+  };
+}
+
+// Helper function to get bar cell color for light theme
+function getBarCellColorLight(classification: string): string {
+  return (
+    CLASSIFICATION_COLORS[classification as keyof typeof CLASSIFICATION_COLORS] ||
+    CLASSIFICATION_COLORS.Poor
+  );
+}
+
+// Helper function to get bar cell color for dark theme
+function getBarCellColorDark(classification: string): string {
+  return (
+    CLASSIFICATION_COLORS_DARK[classification as keyof typeof CLASSIFICATION_COLORS_DARK] ||
+    CLASSIFICATION_COLORS_DARK.Poor
+  );
+}
+
+// Helper function to create label list formatter
+function createLabelListFormatter(
+  t: ReturnType<typeof useTranslation>,
+  _isDark: boolean
+): (value: string | number | boolean | null | undefined) => string {
+  return (value: string | number | boolean | null | undefined) => {
+    if (value === undefined || value === null || value === false) return "";
+    // If value is a number, return empty string
+    if (typeof value === "number") return "";
+    const stringValue = String(value);
+    if (!stringValue) return "";
+    // Check if it's a valid classification key before translating
+    const validClassifications = ["Poor", "Medium", "Good", "Excellent"];
+    if (!validClassifications.includes(stringValue)) return "";
+    const translated =
+      t.properties.details.pasturePlanning.classification[
+        stringValue as keyof typeof t.properties.details.pasturePlanning.classification
+      ] || stringValue;
+    return translated.length > 6 ? translated.substring(0, 4) : translated;
+  };
+}
+
+// Helper function to transform chart data
+function transformChartData(
+  data: PasturePlanningMonth[],
+  classificationHeightMap: Record<string, number>
+): Array<{
+  month: string;
+  min: number;
+  max: number;
+  precipitation: number;
+  classification: string;
+  classificationHeight: number;
+}> {
+  return (data ?? []).map((d) => ({
+    month: monthMap[d.month] || d.month.substring(0, 3),
+    min: d.min,
+    max: d.max,
+    precipitation: d.precipitation,
+    classification: d.classification,
+    classificationHeight: classificationHeightMap[d.classification] || 1,
+  }));
+}
+
 export function PasturePlanningGraph({
   data,
   propertyId,
@@ -74,24 +213,22 @@ export function PasturePlanningGraph({
 
   const isEmpty = !data || data.length === 0;
 
-  const classificationHeightMap: Record<string, number> = {
-    Excellent: 4,
-    Good: 3,
-    Medium: 2,
-    Poor: 1,
-  };
-
-  const chartData = (data ?? []).map((d) => ({
-    month: monthMap[d.month] || d.month.substring(0, 3),
-    min: d.min,
-    max: d.max,
-    precipitation: d.precipitation,
-    classification: d.classification,
-    classificationHeight: classificationHeightMap[d.classification] || 1,
-  }));
+  const chartData = useMemo(() => {
+    const classificationHeightMap: Record<string, number> = {
+      Excellent: 4,
+      Good: 3,
+      Medium: 2,
+      Poor: 1,
+    };
+    return transformChartData(data, classificationHeightMap);
+  }, [data]);
 
   const textColor = isDark ? "#e5e7eb" : "#374151";
   const gridColor = isDark ? "#374151" : "#e5e7eb";
+  const chartColors = useMemo(() => getChartColors(isDark), [isDark]);
+  const axisConfig = useMemo(() => getAxisConfig(textColor, t), [textColor, t]);
+  const tooltipFormatter = useMemo(() => createTooltipFormatter(t), [t]);
+  const labelListFormatter = useMemo(() => createLabelListFormatter(t, isDark), [t, isDark]);
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
@@ -127,37 +264,18 @@ export function PasturePlanningGraph({
           <ResponsiveContainer width="100%" height={450}>
             <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 80 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={gridColor} opacity={0.3} />
-              <XAxis
-                dataKey="month"
-                tick={{ fill: textColor, fontSize: 12 }}
-                label={{
-                  value: t.properties.details.pasturePlanning.month,
-                  position: "insideBottom",
-                  offset: -10,
-                  style: { textAnchor: "middle", fill: textColor, fontSize: 12 },
-                }}
-              />
+              <XAxis dataKey="month" tick={axisConfig.xAxis.tick} label={axisConfig.xAxis.label} />
               <YAxis
                 yAxisId="temp"
                 orientation="left"
-                tick={{ fill: textColor, fontSize: 12 }}
-                label={{
-                  value: t.properties.details.pasturePlanning.temperature,
-                  angle: -90,
-                  position: "insideLeft",
-                  style: { textAnchor: "middle", fill: textColor, fontSize: 12 },
-                }}
+                tick={axisConfig.yAxisTemp.tick}
+                label={axisConfig.yAxisTemp.label}
               />
               <YAxis
                 yAxisId="precip"
                 orientation="right"
-                tick={{ fill: textColor, fontSize: 12 }}
-                label={{
-                  value: t.properties.details.pasturePlanning.precipitation,
-                  angle: 90,
-                  position: "insideRight",
-                  style: { textAnchor: "middle", fill: textColor, fontSize: 12 },
-                }}
+                tick={axisConfig.yAxisPrecip.tick}
+                label={axisConfig.yAxisPrecip.label}
               />
               <YAxis yAxisId="classification" orientation="right" hide={true} domain={[0, 5]} />
               <Tooltip
@@ -168,25 +286,7 @@ export function PasturePlanningGraph({
                   color: textColor,
                 }}
                 labelStyle={{ color: textColor, fontWeight: "bold" }}
-                formatter={(
-                  value: number | string,
-                  name: string,
-                  props: { payload?: { classification?: string } }
-                ) => {
-                  if (
-                    name === t.properties.details.pasturePlanning.forage ||
-                    name === "classificationHeight"
-                  ) {
-                    const classification = props.payload?.classification;
-                    return [
-                      t.properties.details.pasturePlanning.classification[
-                        classification as keyof typeof t.properties.details.pasturePlanning.classification
-                      ] || classification,
-                      t.properties.details.pasturePlanning.forage,
-                    ];
-                  }
-                  return [value, name];
-                }}
+                formatter={tooltipFormatter}
               />
               <Legend
                 wrapperStyle={{ paddingTop: "20px" }}
@@ -197,9 +297,9 @@ export function PasturePlanningGraph({
                 yAxisId="precip"
                 type="monotone"
                 dataKey="precipitation"
-                fill={isDark ? "oklch(60% 0.2 240)" : "oklch(70% 0.2 240)"}
+                fill={chartColors.precip.fill}
                 fillOpacity={0.4}
-                stroke={isDark ? "oklch(60% 0.2 240)" : "oklch(70% 0.2 240)"}
+                stroke={chartColors.precip.stroke}
                 strokeWidth={2}
                 name={t.properties.details.pasturePlanning.precip}
               />
@@ -207,18 +307,18 @@ export function PasturePlanningGraph({
                 yAxisId="temp"
                 type="monotone"
                 dataKey="min"
-                stroke={isDark ? "oklch(50% 0.2 250)" : "oklch(60% 0.2 250)"}
+                stroke={chartColors.minTemp.stroke}
                 strokeWidth={2}
-                dot={{ fill: isDark ? "oklch(50% 0.2 250)" : "oklch(60% 0.2 250)", r: 4 }}
+                dot={{ fill: chartColors.minTemp.dot, r: 4 }}
                 name={t.properties.details.pasturePlanning.minTemp}
               />
               <Line
                 yAxisId="temp"
                 type="monotone"
                 dataKey="max"
-                stroke={isDark ? "oklch(50% 0.2 30)" : "oklch(60% 0.2 30)"}
+                stroke={chartColors.maxTemp.stroke}
                 strokeWidth={2}
-                dot={{ fill: isDark ? "oklch(50% 0.2 30)" : "oklch(60% 0.2 30)", r: 4 }}
+                dot={{ fill: chartColors.maxTemp.dot, r: 4 }}
                 name={t.properties.details.pasturePlanning.maxTemp}
               />
               <Bar
@@ -229,24 +329,21 @@ export function PasturePlanningGraph({
                 isAnimationActive={false}
                 name={t.properties.details.pasturePlanning.forage}
               >
-                {chartData.map((entry) => {
-                  const color = isDark
-                    ? CLASSIFICATION_COLORS_DARK[entry.classification]
-                    : CLASSIFICATION_COLORS[entry.classification];
-                  return <Cell key={`cell-${entry.month}`} fill={color} />;
-                })}
+                {chartData.map((entry) => (
+                  <Cell
+                    key={`cell-${entry.month}`}
+                    fill={
+                      isDark
+                        ? getBarCellColorDark(entry.classification)
+                        : getBarCellColorLight(entry.classification)
+                    }
+                  />
+                ))}
                 <LabelList
                   dataKey="classification"
                   position="insideBottom"
-                  formatter={(value) => {
-                    if (!value || typeof value !== "string") return "";
-                    const translated =
-                      t.properties.details.pasturePlanning.classification[
-                        value as keyof typeof t.properties.details.pasturePlanning.classification
-                      ] || value;
-                    return translated.length > 6 ? translated.substring(0, 4) : translated;
-                  }}
-                  style={{ fill: isDark ? "#ffffff" : "#000000", fontSize: 9, fontWeight: "bold" }}
+                  formatter={labelListFormatter}
+                  style={{ fill: chartColors.text, fontSize: 9, fontWeight: "bold" }}
                 />
               </Bar>
             </ComposedChart>

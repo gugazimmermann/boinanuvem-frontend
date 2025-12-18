@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
+import { screen, waitFor, fireEvent, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AddressForm } from "../address-form";
 import type { AddressFormData } from "~/types";
+import { renderWithProviders } from "~/utils/test-utils";
 
 vi.mock("~/i18n/use-translation", () => ({
   useTranslation: vi.fn(() => ({
@@ -50,7 +51,7 @@ describe("AddressForm", () => {
   });
 
   it("should render all form fields", () => {
-    render(<AddressForm data={defaultData} onChange={mockOnChange} />);
+    renderWithProviders(<AddressForm data={defaultData} onChange={mockOnChange} />);
     expect(screen.getByLabelText("CEP")).toBeInTheDocument();
     expect(screen.getByLabelText("Rua")).toBeInTheDocument();
     expect(screen.getByLabelText("Bairro")).toBeInTheDocument();
@@ -59,17 +60,21 @@ describe("AddressForm", () => {
   });
 
   it("should render number field when showNumber is true", () => {
-    render(<AddressForm data={defaultData} onChange={mockOnChange} showNumber={true} />);
+    renderWithProviders(
+      <AddressForm data={defaultData} onChange={mockOnChange} showNumber={true} />
+    );
     expect(screen.getByLabelText("Número")).toBeInTheDocument();
   });
 
   it("should not render number field when showNumber is false", () => {
-    render(<AddressForm data={defaultData} onChange={mockOnChange} showNumber={false} />);
+    renderWithProviders(
+      <AddressForm data={defaultData} onChange={mockOnChange} showNumber={false} />
+    );
     expect(screen.queryByLabelText("Número")).not.toBeInTheDocument();
   });
 
   it("should render complement field when showComplement is true", () => {
-    render(
+    renderWithProviders(
       <AddressForm
         data={defaultData}
         onChange={mockOnChange}
@@ -81,7 +86,7 @@ describe("AddressForm", () => {
   });
 
   it("should not render complement field when showComplement is false", () => {
-    render(
+    renderWithProviders(
       <AddressForm
         data={defaultData}
         onChange={mockOnChange}
@@ -94,7 +99,7 @@ describe("AddressForm", () => {
 
   it("should call onChange when zip code is changed", async () => {
     const user = userEvent.setup();
-    render(<AddressForm data={defaultData} onChange={mockOnChange} />);
+    renderWithProviders(<AddressForm data={defaultData} onChange={mockOnChange} />);
     const zipCodeInput = screen.getByLabelText("CEP");
 
     await user.type(zipCodeInput, "12345678");
@@ -103,7 +108,7 @@ describe("AddressForm", () => {
   });
 
   it("should mask zip code input", () => {
-    render(<AddressForm data={defaultData} onChange={mockOnChange} />);
+    renderWithProviders(<AddressForm data={defaultData} onChange={mockOnChange} />);
     const zipCodeInput = screen.getByLabelText("CEP") as HTMLInputElement;
 
     // Test masking by directly triggering onChange events with values that should be masked
@@ -122,7 +127,9 @@ describe("AddressForm", () => {
   });
 
   it("should display error message when zipCodeError is provided", () => {
-    render(<AddressForm data={defaultData} onChange={mockOnChange} zipCodeError="Invalid CEP" />);
+    renderWithProviders(
+      <AddressForm data={defaultData} onChange={mockOnChange} zipCodeError="Invalid CEP" />
+    );
     expect(screen.getByText("Invalid CEP")).toBeInTheDocument();
   });
 
@@ -131,13 +138,15 @@ describe("AddressForm", () => {
       street: "Street is required",
       city: "City is required",
     };
-    render(<AddressForm data={defaultData} onChange={mockOnChange} errors={errors} />);
+    renderWithProviders(<AddressForm data={defaultData} onChange={mockOnChange} errors={errors} />);
     expect(screen.getByText("Street is required")).toBeInTheDocument();
     expect(screen.getByText("City is required")).toBeInTheDocument();
   });
 
   it("should show loading message when zipCodeLoading is true", () => {
-    render(<AddressForm data={defaultData} onChange={mockOnChange} zipCodeLoading={true} />);
+    renderWithProviders(
+      <AddressForm data={defaultData} onChange={mockOnChange} zipCodeLoading={true} />
+    );
     expect(screen.getByText("Buscando endereço...")).toBeInTheDocument();
   });
 
@@ -158,7 +167,7 @@ describe("AddressForm", () => {
       fetchCEP: vi.fn(),
     });
 
-    render(
+    renderWithProviders(
       <AddressForm
         data={defaultData}
         onChange={mockOnChange}
@@ -190,7 +199,7 @@ describe("AddressForm", () => {
       fetchCEP: vi.fn(),
     });
 
-    render(<AddressForm data={defaultData} onChange={mockOnChange} />);
+    renderWithProviders(<AddressForm data={defaultData} onChange={mockOnChange} />);
 
     // The hook should be called and when data is available, it should trigger onChange
     // Since the hook is mocked, we need to check that it was called with the right parameters
@@ -200,7 +209,7 @@ describe("AddressForm", () => {
   });
 
   it("should render state select with Brazilian states", () => {
-    render(<AddressForm data={defaultData} onChange={mockOnChange} />);
+    renderWithProviders(<AddressForm data={defaultData} onChange={mockOnChange} />);
     const stateSelect = screen.getByLabelText("Estado");
     expect(stateSelect).toBeInTheDocument();
     expect(stateSelect.tagName).toBe("SELECT");
@@ -239,7 +248,7 @@ describe("AddressForm", () => {
       }
     );
 
-    render(
+    renderWithProviders(
       <AddressForm
         data={defaultData}
         onChange={mockOnChange}
@@ -319,7 +328,7 @@ describe("AddressForm", () => {
       }
     );
 
-    render(<AddressForm data={defaultData} onChange={mockOnChange} />);
+    renderWithProviders(<AddressForm data={defaultData} onChange={mockOnChange} />);
 
     // Wait for the component to render and the hook to be called
     await waitFor(() => {
@@ -396,7 +405,7 @@ describe("AddressForm", () => {
       }
     );
 
-    render(<AddressForm data={defaultData} onChange={mockOnChange} />);
+    renderWithProviders(<AddressForm data={defaultData} onChange={mockOnChange} />);
 
     // Wait for the component to render and the hook to be called
     await waitFor(() => {
@@ -443,7 +452,9 @@ describe("AddressForm", () => {
   });
 
   it("should show loading when zipCodeLoading is true", () => {
-    render(<AddressForm data={defaultData} onChange={mockOnChange} zipCodeLoading={true} />);
+    renderWithProviders(
+      <AddressForm data={defaultData} onChange={mockOnChange} zipCodeLoading={true} />
+    );
     expect(screen.getByText("Buscando endereço...")).toBeInTheDocument();
   });
 
@@ -455,7 +466,7 @@ describe("AddressForm", () => {
       fetchCEP: vi.fn(),
     });
 
-    render(<AddressForm data={defaultData} onChange={mockOnChange} />);
+    renderWithProviders(<AddressForm data={defaultData} onChange={mockOnChange} />);
     expect(screen.getByText("Buscando endereço...")).toBeInTheDocument();
   });
 
@@ -467,12 +478,14 @@ describe("AddressForm", () => {
       fetchCEP: vi.fn(),
     });
 
-    render(<AddressForm data={defaultData} onChange={mockOnChange} zipCodeLoading={true} />);
+    renderWithProviders(
+      <AddressForm data={defaultData} onChange={mockOnChange} zipCodeLoading={true} />
+    );
     expect(screen.getByText("Buscando endereço...")).toBeInTheDocument();
   });
 
   it("should prioritize zipCodeError over errors.zipCode", () => {
-    render(
+    renderWithProviders(
       <AddressForm
         data={defaultData}
         onChange={mockOnChange}
@@ -485,7 +498,7 @@ describe("AddressForm", () => {
   });
 
   it("should use errors.zipCode when zipCodeError is not provided", () => {
-    render(
+    renderWithProviders(
       <AddressForm
         data={defaultData}
         onChange={mockOnChange}
@@ -530,7 +543,7 @@ describe("AddressForm", () => {
       zipCode: "98.765-432",
     };
 
-    render(<AddressForm data={dataWithZipCode} onChange={mockOnChange} />);
+    renderWithProviders(<AddressForm data={dataWithZipCode} onChange={mockOnChange} />);
 
     // Wait for the component to render and the hook to be called
     await waitFor(() => {

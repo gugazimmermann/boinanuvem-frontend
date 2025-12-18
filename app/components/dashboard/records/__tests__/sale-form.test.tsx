@@ -1,14 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, act, waitFor } from "@testing-library/react";
+import { screen, act, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SaleForm } from "../sale-form";
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
 import { useSaleForm } from "~/hooks/use-sale-form";
 import { isAnimalSold } from "~/services/sales.service";
+import { renderWithProviders } from "~/utils/test-utils";
+import { AreaType } from "~/types";
 
 vi.mock("~/i18n");
-vi.mock("~/contexts/language-context");
+vi.mock("~/contexts/language-context", async () => {
+  const actual = await vi.importActual("~/contexts/language-context");
+  return {
+    ...actual,
+    useLanguage: vi.fn(() => ({ language: "pt" })),
+  };
+});
+vi.mock("~/contexts/theme-context", async () => {
+  const actual = await vi.importActual("~/contexts/theme-context");
+  return actual;
+});
 vi.mock("~/hooks/use-sale-form");
 vi.mock("~/services/sales.service");
 vi.mock("~/components/ui", () => ({
@@ -205,23 +217,25 @@ describe("SaleForm", () => {
   });
 
   it("should render sale form", () => {
-    render(<SaleForm {...defaultProps} />);
+    renderWithProviders(<SaleForm {...defaultProps} />);
     // Check for a unique label to confirm the form rendered
     expect(screen.getByText("Property")).toBeInTheDocument();
   });
 
   it("should render fee manager", () => {
-    render(<SaleForm {...defaultProps} />);
+    renderWithProviders(<SaleForm {...defaultProps} />);
     expect(screen.getByTestId("fee-manager")).toBeInTheDocument();
   });
 
   it("should call useSaleForm hook", () => {
-    render(<SaleForm {...defaultProps} />);
+    renderWithProviders(<SaleForm {...defaultProps} />);
     expect(mockUseSaleForm).toHaveBeenCalled();
   });
 
   it("should display title and description when provided", () => {
-    render(<SaleForm {...defaultProps} title="New Sale" description="Create a new sale" />);
+    renderWithProviders(
+      <SaleForm {...defaultProps} title="New Sale" description="Create a new sale" />
+    );
     expect(screen.getByText("New Sale")).toBeInTheDocument();
     expect(screen.getByText("Create a new sale")).toBeInTheDocument();
   });
@@ -231,7 +245,7 @@ describe("SaleForm", () => {
       ...mockUseSaleForm(),
       alertMessage: { title: "Error", variant: "error" },
     });
-    render(<SaleForm {...defaultProps} />);
+    renderWithProviders(<SaleForm {...defaultProps} />);
     expect(screen.getByTestId("alert")).toHaveTextContent("Error");
   });
 
@@ -243,7 +257,7 @@ describe("SaleForm", () => {
         pricingMode: "total",
       },
     });
-    render(<SaleForm {...defaultProps} />);
+    renderWithProviders(<SaleForm {...defaultProps} />);
     expect(screen.getByText("Total Price")).toBeInTheDocument();
   });
 
@@ -257,7 +271,7 @@ describe("SaleForm", () => {
         selectedAnimalIds: ["animal-1", "animal-2"],
       },
     });
-    render(<SaleForm {...defaultProps} />);
+    renderWithProviders(<SaleForm {...defaultProps} />);
     expect(screen.getByText(/Price per Animal/i)).toBeInTheDocument();
   });
 
@@ -289,7 +303,7 @@ describe("SaleForm", () => {
       animalSearch: "",
       setAnimalSearch,
     });
-    render(<SaleForm {...defaultProps} animals={animals} />);
+    renderWithProviders(<SaleForm {...defaultProps} animals={animals} />);
     const searchInput = screen.getByPlaceholderText("Search Animals");
     await user.type(searchInput, "A001");
     expect(setAnimalSearch).toHaveBeenCalled();
@@ -312,17 +326,41 @@ describe("SaleForm", () => {
       ...mockUseSaleForm(),
       formData: {
         ...mockUseSaleForm().formData,
+        propertyId: "prop-1", // Property must be selected for animals to show
         selectedAnimalIds: [],
       },
     });
-    await act(async () => {
-      render(<SaleForm {...defaultProps} animals={animals} />);
-      // Wait for async isAnimalSold check
-      await new Promise((resolve) => setTimeout(resolve, 0));
-    });
-    await waitFor(() => {
-      expect(screen.getByText("Sold")).toBeInTheDocument();
-    });
+    renderWithProviders(
+      <SaleForm
+        {...defaultProps}
+        animals={animals}
+        properties={[
+          {
+            id: "prop-1",
+            code: "P001",
+            name: "Property 1",
+            area: { value: 100, type: AreaType.HECTARES },
+            status: "active" as const,
+            createdAt: "2024-01-01",
+            companyId: "company-1",
+            street: "Street",
+            number: "123",
+            complement: "",
+            neighborhood: "Neighborhood",
+            city: "City",
+            state: "State",
+            zipCode: "12345-678",
+          },
+        ]}
+      />
+    );
+    // Wait for async isAnimalSold check to complete and component to render
+    await waitFor(
+      () => {
+        expect(screen.getByText("Sold")).toBeInTheDocument();
+      },
+      { timeout: 5000 }
+    );
   });
 
   it("should not show sold badge when animal is in current sale during edit", async () => {
@@ -346,7 +384,7 @@ describe("SaleForm", () => {
       },
     });
     await act(async () => {
-      render(
+      renderWithProviders(
         <SaleForm {...defaultProps} animals={animals} isEdit={true} currentSaleAnimalIds={["1"]} />
       );
       // Wait for async isAnimalSold check
@@ -384,7 +422,7 @@ describe("SaleForm", () => {
       },
     });
     await act(async () => {
-      render(<SaleForm {...defaultProps} animals={animals} />);
+      renderWithProviders(<SaleForm {...defaultProps} animals={animals} />);
     });
     expect(screen.getByText("Sale Items")).toBeInTheDocument();
     // Component should use animalsMap internally, not getAnimalById
@@ -422,7 +460,7 @@ describe("SaleForm", () => {
       },
     });
     await act(async () => {
-      render(<SaleForm {...defaultProps} animals={animals} />);
+      renderWithProviders(<SaleForm {...defaultProps} animals={animals} />);
     });
     expect(screen.getByText("Carcass Weight")).toBeInTheDocument();
   });
@@ -455,7 +493,7 @@ describe("SaleForm", () => {
       },
     });
     await act(async () => {
-      render(<SaleForm {...defaultProps} animals={animals} />);
+      renderWithProviders(<SaleForm {...defaultProps} animals={animals} />);
     });
     expect(screen.getByText("Price")).toBeInTheDocument();
   });
@@ -488,7 +526,7 @@ describe("SaleForm", () => {
       },
     });
     await act(async () => {
-      render(<SaleForm {...defaultProps} animals={animals} />);
+      renderWithProviders(<SaleForm {...defaultProps} animals={animals} />);
     });
     expect(screen.getByText("Calculated Automatically")).toBeInTheDocument();
   });
@@ -500,20 +538,20 @@ describe("SaleForm", () => {
       ...mockUseSaleForm(),
       handleSubmit,
     });
-    render(<SaleForm {...defaultProps} />);
+    renderWithProviders(<SaleForm {...defaultProps} />);
     const submitButton = screen.getByRole("button", { name: /submit/i });
     await user.click(submitButton);
     expect(handleSubmit).toHaveBeenCalled();
   });
 
   it("should display custom submit button text", () => {
-    render(<SaleForm {...defaultProps} submitButtonText="Create Sale" />);
+    renderWithProviders(<SaleForm {...defaultProps} submitButtonText="Create Sale" />);
     const buttons = screen.getAllByTestId("button");
     expect(buttons.some((btn) => btn.textContent?.includes("Create Sale"))).toBe(true);
   });
 
   it("should display custom cancel button text", () => {
-    render(<SaleForm {...defaultProps} cancelButtonText="Go Back" />);
+    renderWithProviders(<SaleForm {...defaultProps} cancelButtonText="Go Back" />);
     const buttons = screen.getAllByTestId("button");
     expect(buttons.some((btn) => btn.textContent?.includes("Go Back"))).toBe(true);
   });
@@ -525,7 +563,7 @@ describe("SaleForm", () => {
         ...mockUseSaleForm().formData,
       },
     });
-    render(<SaleForm {...defaultProps} isEdit={true} />);
+    renderWithProviders(<SaleForm {...defaultProps} isEdit={true} />);
     const buttons = screen.getAllByTestId("button");
     expect(buttons.some((btn) => btn.textContent?.includes("Update"))).toBe(true);
   });
@@ -535,7 +573,7 @@ describe("SaleForm", () => {
       ...mockUseSaleForm(),
       calculateTotal: vi.fn(() => 1500),
     });
-    render(<SaleForm {...defaultProps} />);
+    renderWithProviders(<SaleForm {...defaultProps} />);
     // Find the Total text in the price display section (bg-gray-50 container), not the select option
     const totalTexts = screen.getAllByText("Total");
     const totalPriceText = totalTexts.find(
@@ -552,7 +590,7 @@ describe("SaleForm", () => {
         buyerId: "Buyer is required",
       },
     });
-    render(<SaleForm {...defaultProps} />);
+    renderWithProviders(<SaleForm {...defaultProps} />);
     expect(screen.getByText("Property is required")).toBeInTheDocument();
     expect(screen.getByText("Buyer is required")).toBeInTheDocument();
   });
@@ -568,7 +606,7 @@ describe("SaleForm", () => {
         saleType: true as never,
       },
     });
-    render(<SaleForm {...defaultProps} />);
+    renderWithProviders(<SaleForm {...defaultProps} />);
     // The form should render without errors
     expect(screen.getByText("Property")).toBeInTheDocument();
   });
@@ -581,7 +619,7 @@ describe("SaleForm", () => {
         propertyId: BigInt(12345) as never,
       },
     });
-    render(<SaleForm {...defaultProps} />);
+    renderWithProviders(<SaleForm {...defaultProps} />);
     expect(screen.getByText("Property")).toBeInTheDocument();
   });
 
@@ -593,7 +631,7 @@ describe("SaleForm", () => {
         propertyId: Symbol("test") as never,
       },
     });
-    render(<SaleForm {...defaultProps} />);
+    renderWithProviders(<SaleForm {...defaultProps} />);
     expect(screen.getByText("Property")).toBeInTheDocument();
   });
 
@@ -620,15 +658,44 @@ describe("SaleForm", () => {
     ];
     mockUseSaleForm.mockReturnValue({
       ...mockUseSaleForm(),
+      formData: {
+        ...mockUseSaleForm().formData,
+        propertyId: "prop-1",
+      },
       animalSearch: "",
       setAnimalSearch: vi.fn(),
     });
     await act(async () => {
-      render(<SaleForm {...defaultProps} animals={animals} />);
+      renderWithProviders(
+        <SaleForm
+          {...defaultProps}
+          animals={animals}
+          properties={[
+            {
+              id: "prop-1",
+              code: "P001",
+              name: "Property 1",
+              area: { value: 100, type: AreaType.HECTARES },
+              status: "active" as const,
+              createdAt: "2024-01-01",
+              companyId: "company-1",
+              street: "Street",
+              number: "123",
+              complement: "",
+              neighborhood: "Neighborhood",
+              city: "City",
+              state: "State",
+              zipCode: "12345-678",
+            },
+          ]}
+        />
+      );
     });
-    // All animals should be shown when search is empty
-    expect(screen.getByText("A001")).toBeInTheDocument();
-    expect(screen.getByText("A002")).toBeInTheDocument();
+    // All animals should be shown when search is empty and property is selected
+    await waitFor(() => {
+      expect(screen.getByText("A001")).toBeInTheDocument();
+      expect(screen.getByText("A002")).toBeInTheDocument();
+    });
   });
 
   it("should show no animals message when filtered list is empty", async () => {
@@ -649,7 +716,7 @@ describe("SaleForm", () => {
       setAnimalSearch: vi.fn(),
     });
     await act(async () => {
-      render(<SaleForm {...defaultProps} animals={animals} />);
+      renderWithProviders(<SaleForm {...defaultProps} animals={animals} />);
     });
     expect(screen.getByText("No Animals")).toBeInTheDocument();
   });
@@ -682,7 +749,7 @@ describe("SaleForm", () => {
       animalSearch: "",
       setAnimalSearch,
     });
-    render(<SaleForm {...defaultProps} animals={animals} />);
+    renderWithProviders(<SaleForm {...defaultProps} animals={animals} />);
     const searchInput = screen.getByPlaceholderText("Search Animals");
     await user.type(searchInput, "REG001");
     expect(setAnimalSearch).toHaveBeenCalled();
@@ -716,7 +783,7 @@ describe("SaleForm", () => {
       },
     });
     await act(async () => {
-      render(<SaleForm {...defaultProps} animals={animals} />);
+      renderWithProviders(<SaleForm {...defaultProps} animals={animals} />);
     });
     expect(screen.getByText("Sale Items")).toBeInTheDocument();
     expect(screen.getByText("Price")).toBeInTheDocument();
@@ -754,7 +821,7 @@ describe("SaleForm", () => {
       },
     });
     await act(async () => {
-      render(<SaleForm {...defaultProps} animals={animals} />);
+      renderWithProviders(<SaleForm {...defaultProps} animals={animals} />);
     });
     expect(screen.getByText("Sale Items")).toBeInTheDocument();
     expect(screen.getByText("Calculated Automatically")).toBeInTheDocument();
@@ -789,7 +856,7 @@ describe("SaleForm", () => {
       },
     });
     await act(async () => {
-      render(<SaleForm {...defaultProps} animals={animals} />);
+      renderWithProviders(<SaleForm {...defaultProps} animals={animals} />);
     });
     expect(screen.getByText("Carcass Weight")).toBeInTheDocument();
   });
@@ -822,7 +889,7 @@ describe("SaleForm", () => {
       },
     });
     await act(async () => {
-      render(<SaleForm {...defaultProps} animals={animals} />);
+      renderWithProviders(<SaleForm {...defaultProps} animals={animals} />);
     });
     expect(screen.queryByText("Carcass Weight")).not.toBeInTheDocument();
   });
@@ -832,7 +899,7 @@ describe("SaleForm", () => {
       ...mockUseSaleForm(),
       calculateTotal: vi.fn(() => 2500),
     });
-    render(<SaleForm {...defaultProps} />);
+    renderWithProviders(<SaleForm {...defaultProps} />);
     // Total should be displayed in the summary section
     const totalTexts = screen.getAllByText("Total");
     expect(totalTexts.length).toBeGreaterThan(0);
@@ -848,7 +915,7 @@ describe("SaleForm", () => {
         selectedAnimalIds: ["1", "2"],
       },
     });
-    render(<SaleForm {...defaultProps} />);
+    renderWithProviders(<SaleForm {...defaultProps} />);
     expect(screen.getByText(/Price per Animal/i)).toBeInTheDocument();
   });
 
@@ -862,7 +929,7 @@ describe("SaleForm", () => {
         selectedAnimalIds: [],
       },
     });
-    render(<SaleForm {...defaultProps} />);
+    renderWithProviders(<SaleForm {...defaultProps} />);
     expect(screen.queryByText(/Price per Animal/i)).not.toBeInTheDocument();
   });
 
@@ -876,7 +943,7 @@ describe("SaleForm", () => {
         selectedAnimalIds: ["1", "2"],
       },
     });
-    render(<SaleForm {...defaultProps} />);
+    renderWithProviders(<SaleForm {...defaultProps} />);
     expect(screen.queryByText(/Price per Animal/i)).not.toBeInTheDocument();
   });
 
@@ -891,7 +958,7 @@ describe("SaleForm", () => {
       },
       handleChange,
     });
-    render(<SaleForm {...defaultProps} />);
+    renderWithProviders(<SaleForm {...defaultProps} />);
     // Find textarea by its role or by querying for textarea element
     const observationTextarea = document.querySelector("textarea");
     expect(observationTextarea).toBeInTheDocument();
@@ -913,13 +980,13 @@ describe("SaleForm", () => {
         observation: null as never,
       },
     });
-    render(<SaleForm {...defaultProps} />);
+    renderWithProviders(<SaleForm {...defaultProps} />);
     const observationTextarea = document.querySelector("textarea");
     expect(observationTextarea).toBeInTheDocument();
   });
 
   it("should display fee manager component", () => {
-    render(<SaleForm {...defaultProps} />);
+    renderWithProviders(<SaleForm {...defaultProps} />);
     expect(screen.getByTestId("fee-manager")).toBeInTheDocument();
   });
 
@@ -952,7 +1019,7 @@ describe("SaleForm", () => {
       },
       handleSaleItemChange,
     });
-    render(<SaleForm {...defaultProps} animals={animals} />);
+    renderWithProviders(<SaleForm {...defaultProps} animals={animals} />);
     // Find weight input by type="number" in sale items section
     const weightInputs = document.querySelectorAll('input[type="number"]');
     if (weightInputs.length > 0) {
@@ -991,14 +1058,22 @@ describe("SaleForm", () => {
       },
       handleSaleItemChange,
     });
-    render(<SaleForm {...defaultProps} animals={animals} />);
+    renderWithProviders(<SaleForm {...defaultProps} animals={animals} />);
+    // Wait for Sale Items section to render
+    await waitFor(() => {
+      expect(screen.getByText("Sale Items")).toBeInTheDocument();
+    });
+    // Wait a bit for async operations (isAnimalSold checks) to complete
+    await new Promise((resolve) => setTimeout(resolve, 100));
     // Find price input by placeholder or type="text" in sale items section
     const priceInputs = Array.from(document.querySelectorAll('input[type="text"]')).filter(
       (input) => (input as HTMLInputElement).placeholder === "0,00"
     );
     if (priceInputs.length > 0 && !(priceInputs[0] as HTMLInputElement).disabled) {
       await user.type(priceInputs[0] as HTMLInputElement, "600");
-      expect(handleSaleItemChange).toHaveBeenCalled();
+      await waitFor(() => {
+        expect(handleSaleItemChange).toHaveBeenCalled();
+      });
     }
   });
 
@@ -1034,7 +1109,7 @@ describe("SaleForm", () => {
       handleSaleItemChange,
     });
     await act(async () => {
-      render(<SaleForm {...defaultProps} animals={animals} />);
+      renderWithProviders(<SaleForm {...defaultProps} animals={animals} />);
     });
     // Find carcass weight input - it's the second number input in the sale item
     const numberInputs = document.querySelectorAll('input[type="number"]');
@@ -1072,7 +1147,7 @@ describe("SaleForm", () => {
       },
     });
     await act(async () => {
-      render(<SaleForm {...defaultProps} animals={animals} />);
+      renderWithProviders(<SaleForm {...defaultProps} animals={animals} />);
     });
     // Component should use animalsMap internally to find animals
     // A001 appears in both animal list and sale items, so use getAllByText

@@ -38,11 +38,75 @@ export function calculateAcquisitionCostPerArroba(
 }
 
 /**
+ * Parse a numeric value from unknown type (number, string, or other)
+ */
+function parseNumericValue(value: unknown, defaultValue: number = 0): number {
+  if (typeof value === "number") {
+    return value;
+  }
+  if (typeof value === "string") {
+    return Number.parseFloat(value);
+  }
+  return defaultValue;
+}
+
+/**
+ * Normalize an acquisition item from raw backend data
+ */
+function normalizeAcquisitionItem(item: unknown): AcquisitionItem | null {
+  if (!item || typeof item !== "object") return null;
+  const obj = item as Record<string, unknown>;
+
+  const animalId = typeof obj.animalId === "string" ? obj.animalId : "";
+  const price = parseNumericValue(obj.price, 0);
+  const weight = parseNumericValue(obj.weight, 0);
+  const providedCostPerArroba = parseNumericValue(obj.costPerArroba, Number.NaN);
+
+  const safeWeight = Number.isFinite(weight) ? weight : 0;
+  const safePrice = Number.isFinite(price) ? price : 0;
+  const costPerArroba = Number.isFinite(providedCostPerArroba)
+    ? providedCostPerArroba
+    : calculateAcquisitionCostPerArroba(safeWeight, safePrice);
+
+  return {
+    animalId,
+    price: Number.isFinite(price) ? price : 0,
+    weight: Number.isFinite(weight) ? weight : 0,
+    costPerArroba: Number.isFinite(costPerArroba) ? costPerArroba : 0,
+    breed: obj.breed as AcquisitionItem["breed"],
+    gender: obj.gender as AcquisitionItem["gender"],
+    birthDate: obj.birthDate as AcquisitionItem["birthDate"],
+    motherId: obj.motherId as AcquisitionItem["motherId"],
+    fatherId: obj.fatherId as AcquisitionItem["fatherId"],
+    motherRegistrationNumber:
+      obj.motherRegistrationNumber as AcquisitionItem["motherRegistrationNumber"],
+    fatherRegistrationNumber:
+      obj.fatherRegistrationNumber as AcquisitionItem["fatherRegistrationNumber"],
+    purity: obj.purity as AcquisitionItem["purity"],
+    birthObservation: obj.birthObservation as AcquisitionItem["birthObservation"],
+  };
+}
+
+/**
  * Convert backend Date to frontend string format
  */
 const transformAcquisition = createEntityTransform<Acquisition>({
   dateStringFields: ["acquisitionDate"],
   dateTimeFields: ["createdAt"],
+  amountFields: ["totalPrice", "transportationFee", "handlingFee"],
+  customTransform: (acq) => {
+    const acquisitionItemsRaw = (acq as unknown as { acquisitionItems?: unknown }).acquisitionItems;
+    const acquisitionItems = Array.isArray(acquisitionItemsRaw) ? acquisitionItemsRaw : [];
+
+    const normalizedItems = acquisitionItems
+      .map(normalizeAcquisitionItem)
+      .filter((x): x is AcquisitionItem => x !== null);
+
+    return {
+      ...acq,
+      acquisitionItems: normalizedItems,
+    };
+  },
 });
 
 /**
@@ -110,13 +174,39 @@ export const getAcquisitionById = createGetByIdHandler<Acquisition>({
 export async function getAcquisitionByAnimalId(animalId: string): Promise<Acquisition | undefined> {
   if (!animalId) return undefined;
   try {
-    const acquisitions = await apiClient.get<Acquisition[]>("/acquisitions");
-    const acquisition = acquisitions.find((acq) =>
-      acq.acquisitionItems.some((item) => item.animalId === animalId)
-    );
+    // Prefer backend endpoint optimized for this lookup (and avoids scanning all acquisitions)
+    // allow404=true means 404s return undefined instead of throwing (expected for animals without acquisitions)
+    const acquisition = (await apiClient.get<Acquisition>(
+      `/acquisitions/animal/${animalId}`,
+      undefined,
+      { allow404: true }
+    )) as Acquisition | undefined;
     return acquisition ? transformAcquisition(acquisition) : undefined;
   } catch (error) {
-    handleApiError(error, acquisitionErrors.list);
+    try {
+      // If user doesn't have permission to view acquisitions, fallback to an animals endpoint
+      // that returns acquisition data but is guarded by animals:view.
+      if (
+        error instanceof Error &&
+        "status" in error &&
+        (error as unknown as { status?: number }).status === 403
+      ) {
+        const acquisition = (await apiClient.get<Acquisition>(
+          `/animals/${animalId}/acquisition`,
+          undefined,
+          { allow404: true }
+        )) as Acquisition | undefined;
+        return acquisition ? transformAcquisition(acquisition) : undefined;
+      }
+
+      handleApiError(error, {
+        ...acquisitionErrors.list,
+        403: "Você não tem permissão para visualizar aquisições",
+        404: "Aquisição não encontrada para este animal",
+      });
+    } catch {
+      return undefined;
+    }
   }
 }
 

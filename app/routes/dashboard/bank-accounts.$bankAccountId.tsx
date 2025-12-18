@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
-import { formatDate } from "~/utils/formatting";
+import { formatDate, formatCurrency } from "~/utils/formatting";
 import {
   Button,
   StatusBadge,
@@ -200,13 +200,6 @@ export default function BankAccountDetails() {
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + t.amount, 0);
   const netTotal = totalIncome - totalExpenses;
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(value);
-  };
 
   const handleSort = (column: string, direction: SortDirection) => {
     setSortState({ column, direction });

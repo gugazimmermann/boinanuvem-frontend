@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, waitFor, act } from "@testing-library/react";
+import { render, act } from "@testing-library/react";
 import React from "react";
 import { createAnimalTableColumns } from "../animal-table-columns";
 import type { Property, Animal, Birth, Weighing, Breeding, AnimalBreed } from "~/types";
@@ -7,7 +7,6 @@ import { AreaType, BirthPurity } from "~/types";
 import type { Locale } from "date-fns";
 import { getBirthByAnimalId } from "~/services/births.service";
 import { getWeighingsByAnimalId } from "~/services/weighings.service";
-import { getBreedingsByAnimalId } from "~/services/breedings.service";
 
 // Mock services
 vi.mock("~/services/births.service", () => ({
@@ -62,6 +61,7 @@ describe("createAnimalTableColumns", () => {
   };
 
   const mockBirthsMap = new Map<string, Awaited<ReturnType<typeof getBirthByAnimalId>>>();
+  const mockBreedingsMap = new Map<string, Breeding[]>();
 
   const baseOptions = {
     language: "en" as const,
@@ -69,11 +69,13 @@ describe("createAnimalTableColumns", () => {
     translations: mockTranslations,
     StatusBadgeComponent: mockStatusBadge,
     birthsMap: mockBirthsMap,
+    breedingsMap: mockBreedingsMap,
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockBirthsMap.clear();
+    mockBreedingsMap.clear();
   });
 
   it("should create columns array", () => {
@@ -275,7 +277,7 @@ describe("createAnimalTableColumns", () => {
       expect(getBirthByAnimalId).not.toHaveBeenCalled();
     });
 
-    it("should render dash when purity is missing", () => {
+    it("should fallback purity to PO when no genealogy info exists", () => {
       const mockBirth: Birth = {
         id: "birth-1",
         animalId: "animal-1",
@@ -297,7 +299,7 @@ describe("createAnimalTableColumns", () => {
       };
       const result = purityColumn?.render?.(undefined, mockAnimal, 0);
       const { container } = render(result!);
-      expect(container.textContent).toBe("-");
+      expect(container.textContent).toContain("Pure");
     });
   });
 
@@ -442,9 +444,13 @@ describe("createAnimalTableColumns", () => {
       };
       const result = birthDateColumn?.render?.(undefined, mockAnimal, 0);
       const { container, getByTestId } = render(result!);
-      expect(container.textContent).toContain("5");
-      expect(container.textContent).toContain("months");
-      expect(getByTestId("tooltip")).toBeDefined();
+      // The formatted date should be visible
+      expect(container.textContent).toContain("01/15/2024");
+      // The tooltip content should be in the data-content attribute
+      const tooltip = getByTestId("tooltip");
+      expect(tooltip).toBeDefined();
+      expect(tooltip.getAttribute("data-content")).toContain("5");
+      expect(tooltip.getAttribute("data-content")).toContain("months");
       expect(getBirthByAnimalId).not.toHaveBeenCalled();
     });
 
@@ -459,8 +465,6 @@ describe("createAnimalTableColumns", () => {
         createdAt: "2024-01-01T00:00:00Z",
       };
       mockBirthsMap.set("animal-1", mockBirth);
-      const columns = createAnimalTableColumns(baseOptions);
-      const birthDateColumn = columns.find((col) => col.key === "birthDate");
       const mockAnimal: Animal = {
         id: "animal-1",
         code: "A001",
@@ -470,11 +474,27 @@ describe("createAnimalTableColumns", () => {
         createdAt: "2024-01-01T00:00:00Z",
         companyId: "company-1",
       };
+      const mockTooltip = vi.fn(
+        ({ children, content }: { children: React.ReactNode; content: string }) => (
+          <div data-testid="tooltip" data-content={content}>
+            {children}
+          </div>
+        )
+      );
+      const columns = createAnimalTableColumns({
+        ...baseOptions,
+        TooltipComponent: mockTooltip,
+      });
+      const birthDateColumn = columns.find((col) => col.key === "birthDate");
       const result = birthDateColumn?.render?.(undefined, mockAnimal, 0);
-      const { container } = render(result!);
-      expect(container.textContent).toContain("1");
-      expect(container.textContent).toContain("month");
-      expect(container.textContent).not.toContain("months");
+      const { container, getByTestId } = render(result!);
+      // The formatted date should be visible
+      expect(container.textContent).toContain("01/15/2024");
+      // The tooltip content should be in the data-content attribute
+      const tooltip = getByTestId("tooltip");
+      expect(tooltip.getAttribute("data-content")).toContain("1");
+      expect(tooltip.getAttribute("data-content")).toContain("month");
+      expect(tooltip.getAttribute("data-content")).not.toContain("months");
     });
 
     it("should render dash when birth date is missing", () => {
@@ -568,9 +588,13 @@ describe("createAnimalTableColumns", () => {
       const acquisitionDateColumn = columns.find((col) => col.key === "acquisitionDate");
       const result = acquisitionDateColumn?.render?.(undefined, mockAnimal, 0);
       const { container, getByTestId } = render(result!);
-      expect(container.textContent).toContain("3");
-      expect(container.textContent).toContain("months");
-      expect(getByTestId("tooltip")).toBeDefined();
+      // The formatted date should be visible
+      expect(container.textContent).toContain("01/15/2024");
+      // The tooltip content should be in the data-content attribute
+      const tooltip = getByTestId("tooltip");
+      expect(tooltip).toBeDefined();
+      expect(tooltip.getAttribute("data-content")).toContain("3");
+      expect(tooltip.getAttribute("data-content")).toContain("months");
     });
 
     it("should render dash when acquisition date is missing", () => {
@@ -828,7 +852,7 @@ describe("createAnimalTableColumns", () => {
       expect(getBirthByAnimalId).not.toHaveBeenCalled();
     });
 
-    it("should render dash when no breedings exist", async () => {
+    it("should render dash when no breedings exist", () => {
       const mockBirth: Birth = {
         id: "birth-1",
         animalId: "animal-1",
@@ -838,7 +862,8 @@ describe("createAnimalTableColumns", () => {
         createdAt: "2024-01-01T00:00:00Z",
       };
       mockBirthsMap.set("animal-1", mockBirth);
-      vi.mocked(getBreedingsByAnimalId).mockResolvedValue([]);
+      // Don't set breedings in map, so it will be empty
+      mockBreedingsMap.set("animal-1", []);
       const columns = createAnimalTableColumns(baseOptions);
       const breedingStatusColumn = columns.find((col) => col.key === "breedingStatus");
       const mockAnimal: Animal = {
@@ -852,12 +877,10 @@ describe("createAnimalTableColumns", () => {
       };
       const result = breedingStatusColumn?.render?.(undefined, mockAnimal, 0);
       const { container } = render(result!);
-      await waitFor(() => {
-        expect(container.textContent).toBe("-");
-      });
+      expect(container.textContent).toBe("-");
     });
 
-    it("should render success badge when confirmed breeding exists", async () => {
+    it("should render success badge when confirmed breeding exists", () => {
       const mockBirth: Birth = {
         id: "birth-1",
         animalId: "animal-1",
@@ -867,9 +890,9 @@ describe("createAnimalTableColumns", () => {
         createdAt: "2024-01-01T00:00:00Z",
       };
       mockBirthsMap.set("animal-1", mockBirth);
-      vi.mocked(getBreedingsByAnimalId).mockResolvedValue([
-        { id: "b1", animalId: "animal-1", confirmed: true, companyId: "comp-1" },
-      ] as Breeding[]);
+      mockBreedingsMap.set("animal-1", [
+        { id: "b1", animalId: "animal-1", confirmed: true, companyId: "comp-1" } as Breeding,
+      ]);
       const columns = createAnimalTableColumns(baseOptions);
       const breedingStatusColumn = columns.find((col) => col.key === "breedingStatus");
       const mockAnimal: Animal = {
@@ -883,16 +906,14 @@ describe("createAnimalTableColumns", () => {
       };
       const result = breedingStatusColumn?.render?.(undefined, mockAnimal, 0);
       const { container } = render(result!);
-      await waitFor(() => {
-        expect(container.textContent).toContain("Pregnant");
-      });
+      expect(container.textContent).toContain("Pregnant");
       expect(mockStatusBadge).toHaveBeenCalledWith(
         { label: "Pregnant", variant: "success" },
         undefined
       );
     });
 
-    it("should render warning badge when no confirmed breeding exists", async () => {
+    it("should render warning badge when no confirmed breeding exists", () => {
       const mockBirth: Birth = {
         id: "birth-1",
         animalId: "animal-1",
@@ -902,9 +923,9 @@ describe("createAnimalTableColumns", () => {
         createdAt: "2024-01-01T00:00:00Z",
       };
       mockBirthsMap.set("animal-1", mockBirth);
-      vi.mocked(getBreedingsByAnimalId).mockResolvedValue([
-        { id: "b1", animalId: "animal-1", confirmed: false, companyId: "comp-1" },
-      ] as Breeding[]);
+      mockBreedingsMap.set("animal-1", [
+        { id: "b1", animalId: "animal-1", confirmed: false, companyId: "comp-1" } as Breeding,
+      ]);
       const columns = createAnimalTableColumns(baseOptions);
       const breedingStatusColumn = columns.find((col) => col.key === "breedingStatus");
       const mockAnimal: Animal = {
@@ -918,9 +939,7 @@ describe("createAnimalTableColumns", () => {
       };
       const result = breedingStatusColumn?.render?.(undefined, mockAnimal, 0);
       const { container } = render(result!);
-      await waitFor(() => {
-        expect(container.textContent).toContain("Pregnant");
-      });
+      expect(container.textContent).toContain("Pregnant");
       expect(mockStatusBadge).toHaveBeenCalledWith(
         { label: "Pregnant", variant: "warning" },
         undefined

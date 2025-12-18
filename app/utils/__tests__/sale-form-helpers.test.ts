@@ -12,30 +12,33 @@ import type { SaleItem } from "~/types";
 describe("parsePrice", () => {
   it("should parse price with currency symbols", () => {
     // Brazilian format: "1.234,56" - thousands separator is dot, decimal is comma
-    // After removing symbols and replacing comma with dot: "1.234.56"
-    // parseFloat stops at second dot, so this returns 1.234
-    expect(parsePrice("R$ 1.234,56")).toBe(1.234);
-    // US format: "$1,234.56" -> "1,234.56" -> "1.234.56" -> parseFloat -> 1.234
-    // The function doesn't handle dots in US format correctly
-    expect(parsePrice("$1,234.56")).toBe(1.234);
+    // parseCurrency now properly handles locale-specific formats
+    expect(parsePrice("R$ 1.234,56", "pt")).toBe(1234.56);
+    // US format: "$1,234.56" - thousands separator is comma, decimal is dot
+    expect(parsePrice("$1,234.56", "en")).toBe(1234.56);
   });
 
   it("should parse simple number string", () => {
-    expect(parsePrice("1234.56")).toBe(1234.56);
-    expect(parsePrice("1234,56")).toBe(1234.56);
+    // Without locale context, defaults to pt (Brazilian format)
+    expect(parsePrice("1234,56", "pt")).toBe(1234.56);
+    // US format
+    expect(parsePrice("1234.56", "en")).toBe(1234.56);
   });
 
   it("should handle negative prices", () => {
-    expect(parsePrice("-1234.56")).toBe(-1234.56);
+    expect(parsePrice("-1234,56", "pt")).toBe(-1234.56);
+    expect(parsePrice("-1,234.56", "en")).toBe(-1234.56);
   });
 
   it("should return 0 for invalid input", () => {
-    expect(parsePrice("abc")).toBe(0);
-    expect(parsePrice("")).toBe(0);
+    expect(parsePrice("abc", "pt")).toBe(0);
+    expect(parsePrice("", "pt")).toBe(0);
   });
 
   it("should handle prices with spaces", () => {
-    expect(parsePrice("1 234.56")).toBe(1234.56);
+    // Spaces are removed by parseCurrency
+    expect(parsePrice("1 234,56", "pt")).toBe(1234.56);
+    expect(parsePrice("1 234.56", "en")).toBe(1234.56);
   });
 });
 

@@ -39,13 +39,18 @@ export interface WeighingData {
   weightInArrobas: string;
 }
 
-export function computeWeighingData(weighings: Weighing[]): WeighingData {
+export function computeWeighingData(
+  weighings: Weighing[],
+  options?: { fallbackWeightKg?: number }
+): WeighingData {
   const sortedWeighings = weighings.toSorted(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
   const lastWeighing = sortedWeighings[0];
   const firstWeighing = sortedWeighings.length > 0 ? (sortedWeighings.at(-1) ?? null) : null;
-  const currentWeight = lastWeighing?.weight || 0;
+  const fallbackWeightKg = options?.fallbackWeightKg ?? 0;
+  const currentWeight =
+    (lastWeighing?.weight ?? 0) > 0 ? (lastWeighing?.weight ?? 0) : fallbackWeightKg;
   const weightInArrobas = currentWeight > 0 ? (currentWeight / 30).toFixed(2) : "0.00";
 
   return {

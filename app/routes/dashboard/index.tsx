@@ -5,6 +5,7 @@ import { useTranslation } from "~/i18n";
 import { Tooltip } from "~/components/ui/tooltip";
 import { useTheme } from "~/contexts/theme-context";
 import { useLanguage } from "~/contexts/language-context";
+import { DateInput } from "~/components/ui/date-input";
 import { StatCard, ChartWrapper, getChartColors, getTooltipStyle } from "~/components/dashboard";
 import { LineChartConfig } from "~/components/dashboard/charts/line-chart-config";
 import { AreaChartConfig } from "~/components/dashboard/charts/area-chart-config";
@@ -506,8 +507,7 @@ export default function Dashboard() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 {t.productionIndexes.filters.startDate}
               </label>
-              <input
-                type="date"
+              <DateInput
                 value={selectedPeriod.startDate || ""}
                 onChange={(e) =>
                   setSelectedPeriod((prev) => ({
@@ -522,8 +522,7 @@ export default function Dashboard() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 {t.productionIndexes.filters.endDate}
               </label>
-              <input
-                type="date"
+              <DateInput
                 value={selectedPeriod.endDate || ""}
                 onChange={(e) =>
                   setSelectedPeriod((prev) => ({

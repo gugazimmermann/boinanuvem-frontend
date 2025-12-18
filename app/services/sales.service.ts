@@ -63,15 +63,33 @@ function transformSaleFormDataToDto(data: SaleFormData) {
     saleType: data.saleType,
     pricingMode: data.pricingMode,
     paymentMethod: data.paymentMethod,
-    totalPrice: data.totalPrice,
-    fees: data.fees,
+    totalPrice:
+      typeof data.totalPrice === "number"
+        ? data.totalPrice
+        : Number.parseFloat(String(data.totalPrice)) || 0,
+    fees: data.fees?.map((fee) => ({
+      id: fee.id,
+      name: fee.name,
+      amount:
+        typeof fee.amount === "number" ? fee.amount : Number.parseFloat(String(fee.amount)) || 0,
+    })),
     transportationFee: data.transportationFee,
     additionalFees: data.additionalFees,
     saleItems: data.saleItems.map((item) => ({
       animalId: item.animalId,
-      price: item.price,
-      weight: item.weight,
-      carcassWeight: item.carcassWeight,
+      price:
+        typeof item.price === "number" ? item.price : Number.parseFloat(String(item.price)) || 0,
+      weight:
+        typeof item.weight === "number" ? item.weight : Number.parseFloat(String(item.weight)) || 0,
+      carcassWeight: (() => {
+        if (!item.carcassWeight) {
+          return undefined;
+        }
+        if (typeof item.carcassWeight === "number") {
+          return item.carcassWeight;
+        }
+        return Number.parseFloat(String(item.carcassWeight));
+      })(),
     })),
     observation: data.observation,
   };
@@ -157,14 +175,6 @@ export const getSalesBySaleType = createGetByFilterHandler<Sale>({
  */
 export async function addSale(data: SaleFormData): Promise<Sale> {
   try {
-    // Update animal statuses to "sold"
-    for (const item of data.saleItems) {
-      const animal = await getAnimalById(item.animalId);
-      if (animal) {
-        await updateAnimal(item.animalId, { status: "sold" });
-      }
-    }
-
     const createDto = transformSaleFormDataToDto(data);
     const sale = await apiClient.post<Sale>("/sales", createDto);
     const transformedSale = transformSale(sale);
@@ -179,6 +189,10 @@ export async function addSale(data: SaleFormData): Promise<Sale> {
     });
     const animalCodesArray = await Promise.all(animalCodesPromises);
     const animalCodes = animalCodesArray.join(", ");
+
+    // Update animal statuses to "sold"
+    const animalIds = data.saleItems.map((item) => item.animalId);
+    await updateAddedAnimalsStatus(animalIds);
 
     // Create linked financial records if needed
     if (data.paymentMethod === SalePaymentMethod.CASH_FLOW) {

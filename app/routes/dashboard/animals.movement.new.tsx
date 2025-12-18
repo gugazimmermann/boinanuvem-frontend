@@ -11,7 +11,7 @@ import { ROUTES } from "~/routes.config";
 import { getProperties } from "~/services/properties.service";
 import { getLocations } from "~/services/locations.service";
 import type { Location, Employee, ServiceProvider, Animal, Property } from "~/types";
-import { getAnimalById } from "~/services/animals.service";
+import { getAnimalById, getAnimalsByCompanyId } from "~/services/animals.service";
 import {
   addAnimalMovement,
   getAnimalMovementsByAnimalId,
@@ -57,7 +57,19 @@ export default function NewAnimalMovement() {
     [location.state?.animalIds]
   );
 
+  const destinationPropertyId = useMemo(
+    () => (location.state?.destinationPropertyId as string | undefined) || "",
+    [location.state?.destinationPropertyId]
+  );
+  const destinationLocationId = useMemo(
+    () => (location.state?.destinationLocationId as string | undefined) || "",
+    [location.state?.destinationLocationId]
+  );
+
   const [animals, setAnimals] = useState<Animal[]>([]);
+  const [allCompanyAnimals, setAllCompanyAnimals] = useState<Animal[]>([]);
+  const [animalSearchValue, setAnimalSearchValue] = useState("");
+  const [selectedAnimalIds, setSelectedAnimalIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const loadAnimals = async () => {
@@ -110,6 +122,20 @@ export default function NewAnimalMovement() {
     fetchData();
   }, [companyId]);
 
+  useEffect(() => {
+    const loadCompanyAnimals = async () => {
+      if (!companyId) return;
+      try {
+        const animalsData = await getAnimalsByCompanyId(companyId);
+        setAllCompanyAnimals(animalsData || []);
+      } catch (error) {
+        console.error("Failed to load company animals:", error);
+        setAllCompanyAnimals([]);
+      }
+    };
+    void loadCompanyAnimals();
+  }, [companyId]);
+
   type AnimalMovementFormData = MovementFormBaseData & {
     propertyId: string;
     locationId: string;
@@ -117,8 +143,8 @@ export default function NewAnimalMovement() {
 
   const movementForm = useMovementForm<AnimalMovementFormData>({
     initialData: {
-      propertyId: "",
-      locationId: "",
+      propertyId: destinationPropertyId || "",
+      locationId: destinationLocationId || "",
     },
     onSubmit: async () => {
       // Custom submit logic handled separately
@@ -135,6 +161,9 @@ export default function NewAnimalMovement() {
         newErrors.responsible =
           t.properties.details.movements.errors.noResponsible ||
           "Selecione pelo menos um responsável (funcionário ou prestador de serviço)";
+      }
+      if (animalIds.length === 0 && selectedAnimalIds.size === 0) {
+        newErrors.animals = t.animals.movement.noAnimalsSelected;
       }
       return Object.keys(newErrors).length === 0 ? true : newErrors;
     },
@@ -177,6 +206,23 @@ export default function NewAnimalMovement() {
     inferPropertyFromMovements();
   }, [animals, setFormData, formData.propertyId]);
 
+  useEffect(() => {
+    if (!destinationPropertyId) return;
+    if (formData.propertyId !== destinationPropertyId) {
+      setFormData((prev) => ({ ...prev, propertyId: destinationPropertyId }));
+    }
+    // only set location if destination matches the selected property
+    if (destinationLocationId && formData.locationId !== destinationLocationId) {
+      setFormData((prev) => ({ ...prev, locationId: destinationLocationId }));
+    }
+  }, [
+    destinationPropertyId,
+    destinationLocationId,
+    formData.propertyId,
+    formData.locationId,
+    setFormData,
+  ]);
+
   const locations = useMemo(() => {
     if (!formData.propertyId) {
       return [];
@@ -215,6 +261,9 @@ export default function NewAnimalMovement() {
       validationErrors.responsible =
         t.properties.details.movements.errors.noResponsible ||
         "Selecione pelo menos um responsável (funcionário ou prestador de serviço)";
+    }
+    if (animalIds.length === 0 && selectedAnimalIds.size === 0) {
+      validationErrors.animals = t.animals.movement.noAnimalsSelected;
     }
     return Object.keys(validationErrors).length === 0;
   };
@@ -274,20 +323,38 @@ export default function NewAnimalMovement() {
     }
   };
 
-  if (animalIds.length === 0) {
-    return (
-      <div className="space-y-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
-            {t.animals.movement.noAnimalsSelected}
-          </p>
-          <Button variant="outline" onClick={() => navigate(ROUTES.ANIMALS)}>
-            {t.team.new.back}
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  const handleAnimalCheckboxChange = (checked: boolean, animalId: string, animal: Animal) => {
+    setSelectedAnimalIds((prev) => {
+      const next = new Set(prev);
+      if (checked) {
+        next.add(animalId);
+      } else {
+        next.delete(animalId);
+      }
+      return next;
+    });
+    setAnimals((prev) => {
+      const exists = prev.some((x) => x.id === animalId);
+      if (checked) {
+        return exists ? prev : [...prev, animal];
+      }
+      return prev.filter((x) => x.id !== animalId);
+    });
+  };
+
+  const selectableAnimals = useMemo(() => {
+    const search = animalSearchValue.trim().toLowerCase();
+    const base = allCompanyAnimals;
+    if (!search) return base;
+    return base.filter((a) => {
+      return (
+        a.code.toLowerCase().includes(search) || a.registrationNumber.toLowerCase().includes(search)
+      );
+    });
+  }, [allCompanyAnimals, animalSearchValue]);
+
+  const effectiveAnimals = animals;
+  const isSelectingAnimalsInForm = animalIds.length === 0;
 
   return (
     <div className="space-y-6">
@@ -308,21 +375,69 @@ export default function NewAnimalMovement() {
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-            {t.animals.movement.selectedAnimals}
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {animals.map((animal) => (
-              <span
-                key={animal.id}
-                className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
-              >
-                {animal.code} - {animal.registrationNumber}
-              </span>
-            ))}
+        {isSelectingAnimalsInForm ? (
+          <div className="mb-6 space-y-3">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              {t.animals.movement.selectedAnimals}
+            </h2>
+            <Input
+              label={t.animals.searchPlaceholder}
+              value={animalSearchValue}
+              onChange={(e) => setAnimalSearchValue(e.target.value)}
+              disabled={isSubmitting}
+            />
+            <div className="max-h-64 overflow-auto rounded-md border border-gray-200 dark:border-gray-700">
+              {selectableAnimals.length === 0 ? (
+                <div className="p-4 text-sm text-gray-500 dark:text-gray-400">
+                  {t.animals.emptyState.title}
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {selectableAnimals.slice(0, 200).map((a) => {
+                    const checked = selectedAnimalIds.has(a.id);
+                    return (
+                      <label
+                        key={a.id}
+                        className="flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => {
+                            handleAnimalCheckboxChange(e.target.checked, a.id, a);
+                          }}
+                          disabled={isSubmitting}
+                        />
+                        <span className="text-sm text-gray-900 dark:text-gray-100">
+                          {a.code} - {a.registrationNumber}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            {errors.animals && (
+              <p className="text-sm text-red-600 dark:text-red-400">{errors.animals}</p>
+            )}
           </div>
-        </div>
+        ) : (
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              {t.animals.movement.selectedAnimals}
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {effectiveAnimals.map((animal) => (
+                <span
+                  key={animal.id}
+                  className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                >
+                  {animal.code} - {animal.registrationNumber}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-4">

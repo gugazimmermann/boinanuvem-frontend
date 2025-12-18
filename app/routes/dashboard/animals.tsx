@@ -8,6 +8,7 @@ import {
   StatusBadge,
   ConfirmationModal,
   FixedAlert,
+  Select,
   type TableColumn,
   type TableAction,
   type TableFilter,
@@ -16,8 +17,14 @@ import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
 import { useAuth } from "~/contexts/auth-context";
 import { deleteAnimal, getAnimalsByCompanyId } from "~/services/animals.service";
+import { getAnimalsByLastMovementLocation } from "~/services/animal-movements.service";
 import { getBirthsByCompanyId } from "~/services/births.service";
-import type { Animal, Birth } from "~/types";
+import { getAcquisitionsByCompanyId } from "~/services/acquisitions.service";
+import { getWeighingsByCompanyId } from "~/services/weighings.service";
+import { getBreedingsByCompanyId } from "~/services/breedings.service";
+import { getProperties } from "~/services/properties.service";
+import { getLocations } from "~/services/locations.service";
+import type { Animal, Birth, Location } from "~/types";
 import { ROUTES, getAnimalViewRoute, getAnimalMovementNewRoute } from "~/routes.config";
 import { usePermissions } from "~/utils/permissions";
 import { createRegistrationMeta, createRegistrationLoader } from "~/utils/route-helpers";
@@ -40,11 +47,27 @@ export default function Animals() {
   const { language } = useLanguage();
   const dateLocale = useDateLocale();
   const navigate = useNavigate();
-  const { canAdd, canEdit, canRemove } = usePermissions();
+  const { canAdd, canEdit, canRemove, canView } = usePermissions();
   const { currentUser } = useAuth();
   const companyId = currentUser?.companyId || "";
+  const canViewBirths = canView("records", "births");
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [births, setBirths] = useState<Birth[]>([]);
+  const [properties, setProperties] = useState<Awaited<ReturnType<typeof getProperties>>>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [selectedLocationId, setSelectedLocationId] = useState<string>("all");
+  const [animalIdsInSelectedLocation, setAnimalIdsInSelectedLocation] = useState<Set<string>>(
+    new Set()
+  );
+  const [acquisitions, setAcquisitions] = useState<
+    Awaited<ReturnType<typeof getAcquisitionsByCompanyId>>
+  >([]);
+  const [weighings, setWeighings] = useState<Awaited<ReturnType<typeof getWeighingsByCompanyId>>>(
+    []
+  );
+  const [breedings, setBreedings] = useState<Awaited<ReturnType<typeof getBreedingsByCompanyId>>>(
+    []
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isAnimalRegistrationModalOpen, setIsAnimalRegistrationModalOpen] = useState(false);
   const [selectedAnimals, setSelectedAnimals] = useState<Set<string>>(new Set());
@@ -56,12 +79,39 @@ export default function Animals() {
       if (!companyId) return;
       setIsLoading(true);
       try {
-        const [animalsData, birthsData] = await Promise.all([
+        const [
+          animalsData,
+          birthsData,
+          propertiesData,
+          acquisitionsData,
+          weighingsData,
+          locationsData,
+          breedingsData,
+        ] = await Promise.all([
           getAnimalsByCompanyId(companyId),
-          getBirthsByCompanyId(companyId),
+          canViewBirths ? getBirthsByCompanyId(companyId) : Promise.resolve(undefined),
+          getProperties(),
+          getAcquisitionsByCompanyId(companyId),
+          getWeighingsByCompanyId(companyId),
+          getLocations(),
+          getBreedingsByCompanyId(companyId),
         ]);
         setAnimals(animalsData || []);
         setBirths(birthsData || []);
+        setProperties(propertiesData || []);
+        setAcquisitions(acquisitionsData || []);
+        setWeighings(weighingsData || []);
+        setLocations((locationsData || []).filter((l) => l.companyId === companyId));
+        setBreedings(breedingsData || []);
+
+        // If the user should be able to view births but the API didn't return any,
+        // show a helpful message (commonly caused by missing backend permissions).
+        if (canViewBirths && birthsData === undefined) {
+          showAlert(
+            "Não foi possível carregar dados de nascimentos para completar a tabela",
+            "warning"
+          );
+        }
       } catch (error) {
         console.error("Failed to load animals:", error);
         showAlert("Erro ao carregar animais", "error");
@@ -70,7 +120,30 @@ export default function Animals() {
       }
     };
     loadData();
-  }, [companyId, showAlert]);
+  }, [companyId, canViewBirths, showAlert]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadLocationAnimalIds = async () => {
+      if (selectedLocationId === "all") {
+        setAnimalIdsInSelectedLocation(new Set());
+        return;
+      }
+      try {
+        const ids = await getAnimalsByLastMovementLocation(selectedLocationId);
+        if (cancelled) return;
+        setAnimalIdsInSelectedLocation(new Set(ids));
+      } catch (error) {
+        console.error("Failed to load animals by location:", error);
+        if (cancelled) return;
+        setAnimalIdsInSelectedLocation(new Set());
+      }
+    };
+    void loadLocationAnimalIds();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedLocationId]);
 
   // Create a map of births by animal ID for quick lookup
   const birthsByAnimalId = useMemo(() => {
@@ -80,6 +153,58 @@ export default function Animals() {
     }
     return map;
   }, [births]);
+
+  const propertiesById = useMemo(() => {
+    const map = new Map<string, (typeof properties)[number]>();
+    for (const p of properties) {
+      map.set(p.id, p);
+    }
+    return map;
+  }, [properties]);
+
+  const acquisitionItemsByAnimalId = useMemo(() => {
+    const map = new Map<string, (typeof acquisitions)[number]["acquisitionItems"][number]>();
+    for (const acq of acquisitions) {
+      for (const item of acq.acquisitionItems || []) {
+        if (item?.animalId) {
+          map.set(item.animalId, item);
+        }
+      }
+    }
+    return map;
+  }, [acquisitions]);
+
+  const acquisitionDateByAnimalId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const acq of acquisitions) {
+      for (const item of acq.acquisitionItems || []) {
+        if (item?.animalId) {
+          map.set(item.animalId, acq.acquisitionDate);
+        }
+      }
+    }
+    return map;
+  }, [acquisitions]);
+
+  const weighingsByAnimalId = useMemo(() => {
+    const map = new Map<string, typeof weighings>();
+    for (const w of weighings) {
+      const existing = map.get(w.animalId) || [];
+      existing.push(w);
+      map.set(w.animalId, existing);
+    }
+    return map;
+  }, [weighings]);
+
+  const breedingsByAnimalId = useMemo(() => {
+    const map = new Map<string, typeof breedings>();
+    for (const b of breedings) {
+      const existing = map.get(b.animalId) || [];
+      existing.push(b);
+      map.set(b.animalId, existing);
+    }
+    return map;
+  }, [breedings]);
 
   const getBirthByAnimalId = (animalId: string): Birth | undefined => {
     return birthsByAnimalId.get(animalId);
@@ -104,8 +229,13 @@ export default function Animals() {
     },
   });
 
+  const filteredAnimalsByLocation = useMemo(() => {
+    if (selectedLocationId === "all") return animals;
+    return animals.filter((a) => animalIdsInSelectedLocation.has(a.id));
+  }, [animals, selectedLocationId, animalIdsInSelectedLocation]);
+
   const listPage = useListPage({
-    data: animals,
+    data: filteredAnimalsByLocation,
     itemsPerPage: 10,
     initialSortColumn: "code",
     initialSortDirection: "asc",
@@ -144,6 +274,11 @@ export default function Animals() {
       language,
       dateLocale,
       birthsMap: birthsByAnimalId,
+      acquisitionItemsMap: acquisitionItemsByAnimalId,
+      acquisitionDateByAnimalId,
+      weighingsMap: weighingsByAnimalId,
+      breedingsMap: breedingsByAnimalId,
+      propertiesMap: propertiesById,
       TooltipComponent: Tooltip,
       StatusBadgeComponent: StatusBadge,
       navigate: (path: string) => {
@@ -152,7 +287,7 @@ export default function Animals() {
       handleDeleteAnimalClick: deleteHandler.handleDeleteClick,
       canEdit,
       canRemove,
-      includeProperties: true,
+      includeProperties: canViewBirths,
       includeActions: true,
       onStatusRender: (animal) => {
         let label: string = t.animals.table.active;
@@ -167,7 +302,22 @@ export default function Animals() {
         return { label, variant };
       },
     });
-  }, [t, language, dateLocale, navigate, canEdit, canRemove, deleteHandler, birthsByAnimalId]);
+  }, [
+    t,
+    language,
+    dateLocale,
+    navigate,
+    canEdit,
+    canRemove,
+    deleteHandler,
+    birthsByAnimalId,
+    acquisitionItemsByAnimalId,
+    acquisitionDateByAnimalId,
+    weighingsByAnimalId,
+    breedingsByAnimalId,
+    propertiesById,
+    canViewBirths,
+  ]);
 
   const headerActions: TableAction[] = canAdd("registration", "animals")
     ? [
@@ -280,6 +430,22 @@ export default function Animals() {
           value: listPage.searchValue,
           onChange: listPage.setSearchValue,
         }}
+        rightContent={
+          <div className="w-72">
+            <Select
+              label="Localização"
+              value={selectedLocationId}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                setSelectedLocationId(e.target.value);
+                listPage.clearSearch();
+              }}
+              options={[
+                { value: "all", label: "Todas" },
+                ...locations.map((l) => ({ value: l.id, label: `${l.name} (${l.code})` })),
+              ]}
+            />
+          </div>
+        }
         pagination={{
           currentPage: listPage.currentPage,
           totalPages: listPage.totalPages || 1,

@@ -1,14 +1,3 @@
-import type { Language } from "~/contexts/language-context";
-
-export function formatCurrency(value: number, language: Language = "pt"): string {
-  const localeMap: Record<Language, string> = {
-    pt: "pt-BR",
-    en: "en-US",
-    es: "es-ES",
-  };
-
-  return new Intl.NumberFormat(localeMap[language], {
-    style: "currency",
-    currency: "BRL",
-  }).format(value);
-}
+// This file is deprecated. Use formatCurrency from ~/utils/formatting instead.
+// Re-export for backward compatibility
+export { formatCurrency } from "./formatting";

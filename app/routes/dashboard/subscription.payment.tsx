@@ -6,14 +6,22 @@ import type { Plan } from "~/types/plan";
 import { PaymentForm } from "~/components/dashboard/payment-form";
 import { ROUTES } from "~/routes.config";
 import { requireMainUser } from "~/utils/route-guard";
-import { t } from "~/utils/translation-helpers";
+import { loadingText } from "~/utils/subscription-ui-text";
+import { SubscriptionSuccessUI } from "~/components/dashboard/subscription-success-ui";
 import {
-  backText,
-  goToPaymentsText,
-  loadingText,
-  subscriptionConfirmedMessage,
-  subscriptionConfirmedTitle,
-} from "~/utils/subscription-ui-text";
+  getPlanNotSelectedError,
+  getPlanNotFoundError,
+  getLoadPlanError,
+  getBackText,
+  getCompletePaymentTitle,
+  getCompletePaymentDescription,
+  getPlanSummaryTitle,
+  getPlanLabel,
+  getBillingCycleLabel,
+  getBillingCycleText,
+  getPeriodText,
+  getBackToPlansText,
+} from "~/utils/subscription-translations";
 
 export function meta() {
   return [
@@ -44,78 +52,18 @@ export default function SubscriptionPayment() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  // Translation helper functions
-  const getPlanNotSelectedError = useCallback((): string => {
-    return t(language, "Plano não selecionado", "Plan no seleccionado", "Plan not selected");
+  // Error message helpers
+  const getPlanNotSelectedErrorText = useCallback((): string => {
+    return getPlanNotSelectedError(language);
   }, [language]);
 
-  const getPlanNotFoundError = useCallback((): string => {
-    return t(language, "Plano não encontrado", "Plan no encontrado", "Plan not found");
+  const getPlanNotFoundErrorText = useCallback((): string => {
+    return getPlanNotFoundError(language);
   }, [language]);
 
-  const getLoadPlanError = useCallback((): string => {
-    return t(language, "Falha ao carregar plano", "Error al cargar plan", "Failed to load plan");
+  const getLoadPlanErrorText = useCallback((): string => {
+    return getLoadPlanError(language);
   }, [language]);
-
-  const getLoadingText = (): string => {
-    return loadingText(language);
-  };
-
-  const getBackText = (): string => {
-    return backText(language);
-  };
-
-  const getGoToPaymentsText = (): string => {
-    return goToPaymentsText(language);
-  };
-
-  const getCompletePaymentTitle = (): string => {
-    return t(language, "Complete seu Pagamento", "Completa tu Pago", "Complete Your Payment");
-  };
-
-  const getCompletePaymentDescription = (): string => {
-    return t(
-      language,
-      "Insira os detalhes do seu cartão para finalizar a assinatura",
-      "Ingresa los detalles de tu tarjeta para finalizar la suscripción",
-      "Enter your card details to complete the subscription"
-    );
-  };
-
-  const getPlanSummaryTitle = (): string => {
-    return t(language, "Resumo do Plano", "Resumen del Plan", "Plan Summary");
-  };
-
-  const getPlanLabel = (): string => {
-    return t(language, "Plano:", "Plan:", "Plan:");
-  };
-
-  const getBillingCycleLabel = (): string => {
-    return t(language, "Ciclo de Cobrança:", "Ciclo de Facturación:", "Billing Cycle:");
-  };
-
-  const getMonthlyLabel = (): string => {
-    return t(language, "Mensal", "Mensual", "Monthly");
-  };
-
-  const getAnnualLabel = (): string => {
-    return t(language, "Anual", "Anual", "Annual");
-  };
-
-  const getBillingCycleText = (): string => {
-    return billingCycle === "monthly" ? getMonthlyLabel() : getAnnualLabel();
-  };
-
-  const getPeriodText = (): string => {
-    if (billingCycle === "monthly") {
-      return t(language, "mês", "mes", "month");
-    }
-    return t(language, "ano", "año", "year");
-  };
-
-  const getBackToPlansText = (): string => {
-    return t(language, "← Voltar para Planos", "← Volver a Planes", "← Back to Plans");
-  };
 
   useEffect(() => {
     const state = location.state as LocationState | null;
@@ -123,7 +71,7 @@ export default function SubscriptionPayment() {
     const cycle = state?.billingCycle || "monthly";
 
     if (!planId) {
-      setError(getPlanNotSelectedError());
+      setError(getPlanNotSelectedErrorText());
       setIsLoading(false);
       return;
     }
@@ -137,21 +85,27 @@ export default function SubscriptionPayment() {
         const foundPlan = plansData.find((p) => p.id === planId);
 
         if (!foundPlan) {
-          setError(getPlanNotFoundError());
+          setError(getPlanNotFoundErrorText());
           return;
         }
 
         setPlan(foundPlan);
       } catch (err) {
         console.error("Failed to load plan:", err);
-        setError(err instanceof Error ? err.message : getLoadPlanError());
+        setError(err instanceof Error ? err.message : getLoadPlanErrorText());
       } finally {
         setIsLoading(false);
       }
     };
 
     loadPlan();
-  }, [location.state, language, getLoadPlanError, getPlanNotFoundError, getPlanNotSelectedError]);
+  }, [
+    location.state,
+    language,
+    getLoadPlanErrorText,
+    getPlanNotFoundErrorText,
+    getPlanNotSelectedErrorText,
+  ]);
 
   const handleSuccess = () => {
     setSuccess(true);
@@ -170,7 +124,7 @@ export default function SubscriptionPayment() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">{getLoadingText()}</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">{loadingText(language)}</p>
         </div>
       </div>
     );
@@ -185,7 +139,7 @@ export default function SubscriptionPayment() {
             onClick={() => navigate(ROUTES.SUBSCRIPTION)}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
           >
-            {getBackText()}
+            {getBackText(language)}
           </button>
         </div>
       </div>
@@ -193,39 +147,7 @@ export default function SubscriptionPayment() {
   }
 
   if (success) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center max-w-md">
-          <div className="mb-4 text-green-600 dark:text-green-400">
-            <svg
-              className="mx-auto h-16 w-16"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          </div>
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-            {subscriptionConfirmedTitle(language)}
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
-            {subscriptionConfirmedMessage(language)}
-          </p>
-          <button
-            onClick={() => navigate(ROUTES.PAYMENTS)}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
-          >
-            {getGoToPaymentsText()}
-          </button>
-        </div>
-      </div>
-    );
+    return <SubscriptionSuccessUI language={language} />;
   }
 
   if (!plan) {
@@ -233,30 +155,34 @@ export default function SubscriptionPayment() {
   }
 
   const displayPrice = billingCycle === "monthly" ? plan.monthlyPrice : plan.annualPrice;
-  const period = getPeriodText();
+  const period = getPeriodText(language, billingCycle);
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-          {getCompletePaymentTitle()}
+          {getCompletePaymentTitle(language)}
         </h1>
-        <p className="text-gray-600 dark:text-gray-400">{getCompletePaymentDescription()}</p>
+        <p className="text-gray-600 dark:text-gray-400">
+          {getCompletePaymentDescription(language)}
+        </p>
       </div>
 
       <div className="mb-6 p-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
-          {getPlanSummaryTitle()}
+          {getPlanSummaryTitle(language)}
         </h2>
         <div className="space-y-2">
           <div className="flex justify-between">
-            <span className="text-gray-600 dark:text-gray-400">{getPlanLabel()}</span>
+            <span className="text-gray-600 dark:text-gray-400">{getPlanLabel(language)}</span>
             <span className="font-medium text-gray-900 dark:text-gray-100">{plan.name}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600 dark:text-gray-400">{getBillingCycleLabel()}</span>
+            <span className="text-gray-600 dark:text-gray-400">
+              {getBillingCycleLabel(language)}
+            </span>
             <span className="font-medium text-gray-900 dark:text-gray-100">
-              {getBillingCycleText()}
+              {getBillingCycleText(language, billingCycle)}
             </span>
           </div>
           <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-200 dark:border-gray-700">
@@ -282,7 +208,7 @@ export default function SubscriptionPayment() {
           onClick={() => navigate(ROUTES.SUBSCRIPTION)}
           className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
         >
-          {getBackToPlansText()}
+          {getBackToPlansText(language)}
         </button>
       </div>
     </div>

@@ -54,6 +54,7 @@ export function LanguageProvider({ children }: { readonly children: ReactNode })
 
   useEffect(() => {
     localStorage.setItem("language", language);
+    // Use language code for HTML lang attribute (HTML spec uses language codes, not locale codes)
     document.documentElement.lang = language;
   }, [language]);
 

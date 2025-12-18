@@ -7,6 +7,8 @@ interface YearMonthFiltersProps {
   readonly onYearChange: (year: string) => void;
   readonly onMonthChange: (month: string) => void;
   readonly onPageChange?: (page: number) => void;
+  readonly yearOptions?: Array<{ value: string; label: string }>;
+  readonly monthOptions?: Array<{ value: string; label: string }>;
 }
 
 export function YearMonthFilters({
@@ -15,8 +17,12 @@ export function YearMonthFilters({
   onYearChange,
   onMonthChange,
   onPageChange,
+  yearOptions: customYearOptions,
+  monthOptions: customMonthOptions,
 }: YearMonthFiltersProps) {
-  const { yearOptions, monthOptions } = useDateFilters();
+  const { yearOptions: defaultYearOptions, monthOptions: defaultMonthOptions } = useDateFilters();
+  const yearOptions = customYearOptions ?? defaultYearOptions;
+  const monthOptions = customMonthOptions ?? defaultMonthOptions;
 
   const handleYearChange = (year: string) => {
     onYearChange(year);

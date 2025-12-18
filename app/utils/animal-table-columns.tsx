@@ -1,23 +1,33 @@
 import { differenceInMonths, differenceInDays, format } from "date-fns";
 import type { Locale } from "date-fns";
-import type { Animal, TableColumn, Language, Property } from "~/types";
+import type { ReactNode } from "react";
+import type {
+  Animal,
+  TableColumn,
+  Language,
+  Property,
+  AcquisitionItem,
+  Weighing,
+  Breeding,
+} from "~/types";
+import { BirthPurity } from "~/types";
 import { getBirthByAnimalId } from "~/services/births.service";
 import { getWeighingsByAnimalId } from "~/services/weighings.service";
-import { getBreedingsByAnimalId } from "~/services/breedings.service";
 import { formatDate } from "~/utils/formatting";
-import type { ReactNode } from "react";
-import { useState, useEffect } from "react";
 
 type StatusBadgeVariant = "success" | "default" | "warning";
 
 function BreedingStatusCell({
-  animalId,
   birth,
+  acquisitionItem,
+  breedings,
   StatusBadgeComponent,
   translations,
 }: Readonly<{
   animalId: string;
   birth: Awaited<ReturnType<typeof getBirthByAnimalId>> | undefined;
+  acquisitionItem: AcquisitionItem | undefined;
+  breedings?: Breeding[];
   StatusBadgeComponent: React.ComponentType<{ label: string; variant: StatusBadgeVariant }>;
   translations: {
     table: {
@@ -25,35 +35,12 @@ function BreedingStatusCell({
     };
   };
 }>) {
-  const [breedings, setBreedings] = useState<Awaited<ReturnType<typeof getBreedingsByAnimalId>>>(
-    []
-  );
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadBreedings = async () => {
-      try {
-        const data = await getBreedingsByAnimalId(animalId);
-        setBreedings(data);
-      } catch (error) {
-        console.error(`Failed to load breedings for animal ${animalId}:`, error);
-        setBreedings([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadBreedings();
-  }, [animalId]);
-
-  if (!birth?.gender || birth.gender !== "female") {
+  const gender = birth?.gender || acquisitionItem?.gender;
+  if (!gender || gender !== "female") {
     return <span className="text-gray-700 dark:text-gray-300">-</span>;
   }
 
-  if (loading) {
-    return <span className="text-gray-400">...</span>;
-  }
-
-  if (breedings.length === 0) {
+  if (!breedings || breedings.length === 0) {
     return <span className="text-gray-700 dark:text-gray-300">-</span>;
   }
 
@@ -75,6 +62,10 @@ export interface AnimalTableColumnsOptions {
   dateLocale: Locale;
   propertiesMap?: Map<string, Property>;
   birthsMap?: Map<string, Awaited<ReturnType<typeof getBirthByAnimalId>>>;
+  acquisitionItemsMap?: Map<string, AcquisitionItem>;
+  acquisitionDateByAnimalId?: Map<string, string>;
+  weighingsMap?: Map<string, Weighing[]>;
+  breedingsMap?: Map<string, Breeding[]>;
   translations: {
     table: {
       registration: string;
@@ -130,6 +121,10 @@ export function createAnimalTableColumns(
   const {
     propertiesMap,
     birthsMap,
+    acquisitionItemsMap,
+    acquisitionDateByAnimalId,
+    weighingsMap,
+    breedingsMap,
     language,
     dateLocale,
     translations,
@@ -146,6 +141,29 @@ export function createAnimalTableColumns(
 
   const getBirthByAnimalIdLocal = (animalId: string) => {
     return birthsMap?.get(animalId);
+  };
+
+  const getAcquisitionItemByAnimalIdLocal = (animalId: string) => {
+    return acquisitionItemsMap?.get(animalId);
+  };
+
+  const getAcquisitionDateByAnimalIdLocal = (animalId: string) => {
+    return acquisitionDateByAnimalId?.get(animalId);
+  };
+
+  const getWeighingsByAnimalIdLocal = (animalId: string): Weighing[] => {
+    return weighingsMap?.get(animalId) ?? [];
+  };
+
+  const getBreedingsByAnimalIdLocal = (animalId: string): Breeding[] => {
+    return breedingsMap?.get(animalId) ?? [];
+  };
+
+  const getLastWeighing = (weighings: Weighing[]): Weighing | undefined => {
+    const sorted = [...weighings].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+    return sorted[0];
   };
 
   const columns: TableColumn<Animal>[] = [
@@ -168,12 +186,16 @@ export function createAnimalTableColumns(
       sortable: true,
       render: (_, row) => {
         const birth = getBirthByAnimalIdLocal(row.id);
-        if (!birth?.breed) {
+        const acquisitionItem = getAcquisitionItemByAnimalIdLocal(row.id);
+        // For animals with birth records, only use birth breed
+        // For animals without birth records, use acquisition breed
+        const breed = birth?.breed || (birth ? undefined : acquisitionItem?.breed);
+        if (!breed) {
           return <span className="text-gray-700 dark:text-gray-300">-</span>;
         }
         return (
           <span className="text-gray-700 dark:text-gray-300">
-            {translations.breeds[birth.breed] || birth.breed}
+            {translations.breeds[breed] || breed}
           </span>
         );
       },
@@ -184,12 +206,23 @@ export function createAnimalTableColumns(
       sortable: true,
       render: (_, row) => {
         const birth = getBirthByAnimalIdLocal(row.id);
-        if (!birth?.purity) {
+        const acquisitionItem = getAcquisitionItemByAnimalIdLocal(row.id);
+
+        // For animals with birth records, only use birth purity and parents
+        // For animals without birth records, use acquisition purity and parents
+        const purity = birth?.purity || (birth ? undefined : acquisitionItem?.purity);
+        const hasParents = birth
+          ? Boolean(birth.motherId || birth.fatherId)
+          : Boolean(acquisitionItem?.motherId || acquisitionItem?.fatherId);
+
+        // Fallback: if there's no explicit purity AND no genealogy data, default to PO.
+        const resolvedPurity = purity || (hasParents ? undefined : BirthPurity.PO);
+        if (!resolvedPurity) {
           return <span className="text-gray-700 dark:text-gray-300">-</span>;
         }
         return (
           <span className="text-gray-700 dark:text-gray-300">
-            {translations.purity[birth.purity]}
+            {translations.purity[resolvedPurity] ?? String(resolvedPurity)}
           </span>
         );
       },
@@ -200,12 +233,16 @@ export function createAnimalTableColumns(
       sortable: true,
       render: (_, row) => {
         const birth = getBirthByAnimalIdLocal(row.id);
-        if (!birth?.gender) {
+        const acquisitionItem = getAcquisitionItemByAnimalIdLocal(row.id);
+        // For animals with birth records, only use birth gender
+        // For animals without birth records, use acquisition gender
+        const gender = birth?.gender || (birth ? undefined : acquisitionItem?.gender);
+        if (!gender) {
           return <span className="text-gray-700 dark:text-gray-300">-</span>;
         }
         return (
           <span className="text-gray-700 dark:text-gray-300">
-            {birth.gender ? translations.gender[birth.gender] : "-"}
+            {translations.gender[gender] ?? "-"}
           </span>
         );
       },
@@ -216,11 +253,15 @@ export function createAnimalTableColumns(
       sortable: true,
       render: (_, row) => {
         const birth = getBirthByAnimalIdLocal(row.id);
-        if (!birth?.birthDate) {
+        const acquisitionItem = getAcquisitionItemByAnimalIdLocal(row.id);
+        // For animals with birth records, only use birth date
+        // For animals without birth records, use acquisition birth date
+        const birthDateValue = birth?.birthDate || (birth ? undefined : acquisitionItem?.birthDate);
+        if (!birthDateValue) {
           return <span className="text-gray-700 dark:text-gray-300">-</span>;
         }
 
-        const birthDate = new Date(birth.birthDate);
+        const birthDate = new Date(birthDateValue);
         const today = new Date();
         const months = differenceInMonths(today, birthDate);
         const dateFormat = language === "en" ? "MM/dd/yyyy" : "dd/MM/yyyy";
@@ -230,9 +271,11 @@ export function createAnimalTableColumns(
             : format(birthDate, dateFormat, { locale: dateLocale });
 
         return (
-          <Tooltip content={formattedDate}>
+          <Tooltip
+            content={`${months} ${months === 1 ? translations.common.month : translations.common.months}`}
+          >
             <span className="text-gray-700 dark:text-gray-300 border-b border-dotted border-gray-400 dark:border-gray-500 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
-              {months} {months === 1 ? translations.common.month : translations.common.months}
+              {formattedDate}
             </span>
           </Tooltip>
         );
@@ -243,11 +286,20 @@ export function createAnimalTableColumns(
       label: translations.table.acquisitionDate,
       sortable: true,
       render: (_, row) => {
-        if (!row.acquisitionDate) {
+        // Only show acquisition date if the animal doesn't have a birth record
+        // Animals registered via birth should not show acquisition date
+        const birth = getBirthByAnimalIdLocal(row.id);
+        if (birth) {
           return <span className="text-gray-700 dark:text-gray-300">-</span>;
         }
 
-        const acquisitionDate = new Date(row.acquisitionDate);
+        const acquisitionDateValue =
+          getAcquisitionDateByAnimalIdLocal(row.id) || row.acquisitionDate;
+        if (!acquisitionDateValue) {
+          return <span className="text-gray-700 dark:text-gray-300">-</span>;
+        }
+
+        const acquisitionDate = new Date(acquisitionDateValue);
         const today = new Date();
         const months = differenceInMonths(today, acquisitionDate);
         const dateFormat = language === "en" ? "MM/dd/yyyy" : "dd/MM/yyyy";
@@ -257,9 +309,11 @@ export function createAnimalTableColumns(
             : format(acquisitionDate, dateFormat, { locale: dateLocale });
 
         return (
-          <Tooltip content={formattedDate}>
+          <Tooltip
+            content={`${months} ${months === 1 ? translations.common.month : translations.common.months}`}
+          >
             <span className="text-gray-700 dark:text-gray-300 border-b border-dotted border-gray-400 dark:border-gray-500 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
-              {months} {months === 1 ? translations.common.month : translations.common.months}
+              {formattedDate}
             </span>
           </Tooltip>
         );
@@ -269,17 +323,18 @@ export function createAnimalTableColumns(
       key: "weight",
       label: translations.table.weight,
       sortable: true,
-      render: (_, _row) => {
-        // Note: getWeighingsByAnimalId is async, but we can't await in render
-        // This will show "-" until data is loaded via a proper async component
-        const weighingsArray: Awaited<ReturnType<typeof getWeighingsByAnimalId>> = [];
-        const sortedWeighings = [...weighingsArray].sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        );
-        const lastWeighing = sortedWeighings[0];
+      render: (_, row) => {
+        const weighingsArray: Awaited<ReturnType<typeof getWeighingsByAnimalId>> =
+          getWeighingsByAnimalIdLocal(row.id);
+        const lastWeighing = getLastWeighing(weighingsArray);
+        const birth = getBirthByAnimalIdLocal(row.id);
+        const acquisitionItem = getAcquisitionItemByAnimalIdLocal(row.id);
+        // For animals with birth records, don't use acquisition weight as fallback
+        // For animals without birth records, use acquisition weight as fallback
+        const weight = lastWeighing?.weight ?? (birth ? undefined : acquisitionItem?.weight);
         return (
           <span className="text-gray-700 dark:text-gray-300">
-            {lastWeighing ? `${lastWeighing.weight}` : "-"}
+            {typeof weight === "number" ? `${weight}` : "-"}
           </span>
         );
       },
@@ -288,15 +343,16 @@ export function createAnimalTableColumns(
       key: "weightInArrobas",
       label: translations.table.weightInArrobas,
       sortable: true,
-      render: (_, _row) => {
-        // Note: getWeighingsByAnimalId is async, but we can't await in render
-        // This will show "-" until data is loaded via a proper async component
-        const weighingsArray: Awaited<ReturnType<typeof getWeighingsByAnimalId>> = [];
-        const sortedWeighings = [...weighingsArray].sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        );
-        const lastWeighing = sortedWeighings[0];
-        const weightInArrobas = lastWeighing ? (lastWeighing.weight / 30).toFixed(2) : null;
+      render: (_, row) => {
+        const weighingsArray: Awaited<ReturnType<typeof getWeighingsByAnimalId>> =
+          getWeighingsByAnimalIdLocal(row.id);
+        const lastWeighing = getLastWeighing(weighingsArray);
+        const birth = getBirthByAnimalIdLocal(row.id);
+        const acquisitionItem = getAcquisitionItemByAnimalIdLocal(row.id);
+        // For animals with birth records, don't use acquisition weight as fallback
+        // For animals without birth records, use acquisition weight as fallback
+        const weight = lastWeighing?.weight ?? (birth ? undefined : acquisitionItem?.weight);
+        const weightInArrobas = typeof weight === "number" ? (weight / 30).toFixed(2) : null;
         return (
           <span className="text-gray-700 dark:text-gray-300">
             {weightInArrobas ? `${weightInArrobas}` : "-"}
@@ -308,23 +364,34 @@ export function createAnimalTableColumns(
       key: "lastWeighingDate",
       label: translations.table.lastWeighingDate,
       sortable: true,
-      render: (_, _row) => {
-        // Note: getWeighingsByAnimalId is async, but we can't await in render
-        // This will show "-" until data is loaded via a proper async component
-        const weighingsArray: Awaited<ReturnType<typeof getWeighingsByAnimalId>> = [];
-        const sortedWeighings = [...weighingsArray].sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        );
-        const lastWeighing = sortedWeighings[0];
-        if (!lastWeighing) return <span className="text-gray-700 dark:text-gray-300">-</span>;
+      render: (_, row) => {
+        const weighingsArray: Awaited<ReturnType<typeof getWeighingsByAnimalId>> =
+          getWeighingsByAnimalIdLocal(row.id);
+        const lastWeighing = getLastWeighing(weighingsArray);
+        const birth = getBirthByAnimalIdLocal(row.id);
+        const acquisitionItem = getAcquisitionItemByAnimalIdLocal(row.id);
+
+        // For animals with birth records, only use birth date as fallback
+        // For animals without birth records, use acquisition date as fallback
+        const acquisitionDateFallback = birth
+          ? undefined
+          : getAcquisitionDateByAnimalIdLocal(row.id) || row.acquisitionDate;
+        const birthDateFallback = birth?.birthDate || acquisitionItem?.birthDate;
+
+        const referenceDateValue =
+          lastWeighing?.date || acquisitionDateFallback || birthDateFallback;
+
+        if (!referenceDateValue) {
+          return <span className="text-gray-700 dark:text-gray-300">-</span>;
+        }
 
         const dateFormat = language === "en" ? "MM/dd/yyyy" : "dd/MM/yyyy";
         const formattedDate =
           formatDateFn === formatDate
-            ? formatDateFn(new Date(lastWeighing.date), language)
-            : format(new Date(lastWeighing.date), dateFormat, { locale: dateLocale });
+            ? formatDateFn(new Date(referenceDateValue), language)
+            : format(new Date(referenceDateValue), dateFormat, { locale: dateLocale });
         const today = new Date();
-        const weighingDate = new Date(lastWeighing.date);
+        const weighingDate = new Date(referenceDateValue);
         const daysAgo = differenceInDays(today, weighingDate);
         const tooltipText = translations.common.daysAgo(daysAgo);
 
@@ -348,28 +415,27 @@ export function createAnimalTableColumns(
         </span>
       ),
       sortable: true,
-      render: (_, _row) => {
-        // Note: getWeighingsByAnimalId is async, but we can't await in render
-        // This will show "-" until data is loaded via a proper async component
-        const weighingsArray: Awaited<ReturnType<typeof getWeighingsByAnimalId>> = [];
+      render: (_, row) => {
+        const weighingsArray: Awaited<ReturnType<typeof getWeighingsByAnimalId>> =
+          getWeighingsByAnimalIdLocal(row.id);
         const sortedWeighings = [...weighingsArray].sort(
           (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
         );
 
+        // Only compute GMD when we have at least 2 weighings.
         if (sortedWeighings.length < 2) {
           return <span className="text-gray-700 dark:text-gray-300">-</span>;
         }
 
         const lastWeighing = sortedWeighings[0];
         const previousWeighing = sortedWeighings[1];
-
         const weightDifference = lastWeighing.weight - previousWeighing.weight;
         const daysDifference = differenceInDays(
           new Date(lastWeighing.date),
           new Date(previousWeighing.date)
         );
 
-        if (daysDifference === 0) {
+        if (daysDifference <= 0) {
           return <span className="text-gray-700 dark:text-gray-300">-</span>;
         }
 
@@ -405,6 +471,8 @@ export function createAnimalTableColumns(
         <BreedingStatusCell
           animalId={row.id}
           birth={getBirthByAnimalIdLocal(row.id)}
+          acquisitionItem={getAcquisitionItemByAnimalIdLocal(row.id)}
+          breedings={getBreedingsByAnimalIdLocal(row.id)}
           StatusBadgeComponent={StatusBadgeComponent}
           translations={translations}
         />

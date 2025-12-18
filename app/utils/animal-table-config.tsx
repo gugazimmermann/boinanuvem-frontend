@@ -1,5 +1,15 @@
 import type { Locale } from "date-fns";
-import type { Animal, TableColumn, Language } from "~/types";
+import type React from "react";
+import type {
+  Animal,
+  TableColumn,
+  Language,
+  AcquisitionItem,
+  Property,
+  Weighing,
+  Breeding,
+} from "~/types";
+import type { UserPermissions } from "~/types/permissions";
 import { getBirthByAnimalId } from "~/services/births.service";
 import { formatDate } from "~/utils/formatting";
 import type { AnimalTableColumnsOptions } from "./animal-table-columns";
@@ -7,8 +17,6 @@ import { createAnimalTableColumns } from "./animal-table-columns";
 import type { TranslationKey, Translations } from "~/i18n";
 import { getAnimalEditRoute } from "~/routes.config";
 import { TableActionButtons } from "~/components/ui";
-import type { UserPermissions } from "~/types/permissions";
-import type React from "react";
 
 /**
  * Build animal table translations object from translation keys
@@ -62,6 +70,11 @@ export interface GetAnimalTableColumnsConfigParams {
   language: Language;
   dateLocale: Locale;
   birthsMap: Map<string, Awaited<ReturnType<typeof getBirthByAnimalId>>>;
+  acquisitionItemsMap?: Map<string, AcquisitionItem>;
+  acquisitionDateByAnimalId?: Map<string, string>;
+  weighingsMap?: Map<string, Weighing[]>;
+  breedingsMap?: Map<string, Breeding[]>;
+  propertiesMap?: Map<string, Property>;
   TooltipComponent: React.ComponentType<{
     content: string;
     position?: "top" | "bottom";
@@ -91,6 +104,11 @@ export function getAnimalTableColumnsConfig(
     language,
     dateLocale,
     birthsMap,
+    acquisitionItemsMap,
+    acquisitionDateByAnimalId,
+    weighingsMap,
+    breedingsMap,
+    propertiesMap,
     TooltipComponent,
     StatusBadgeComponent,
     navigate,
@@ -107,7 +125,12 @@ export function getAnimalTableColumnsConfig(
   const result: AnimalTableColumnsOptions = {
     language,
     dateLocale,
+    propertiesMap,
     birthsMap,
+    acquisitionItemsMap,
+    acquisitionDateByAnimalId,
+    weighingsMap,
+    breedingsMap,
     translations,
     formatDateFn: formatDate,
     TooltipComponent: TooltipComponent as React.ComponentType<{

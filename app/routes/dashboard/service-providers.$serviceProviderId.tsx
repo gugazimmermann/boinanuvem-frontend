@@ -1,3 +1,4 @@
+import { useCallback, useMemo } from "react";
 import { useParams } from "react-router";
 import { useTranslation } from "~/i18n";
 import { ROUTES, getServiceProviderEditRoute, getMovementNewRoute } from "~/routes.config";
@@ -33,30 +34,45 @@ export default function ServiceProviderDetails() {
   const { serviceProviderId } = useParams<{ serviceProviderId: string }>();
   const t = useTranslation();
 
+  const mapEntityToData = useCallback((serviceProvider: ServiceProvider) => {
+    return {
+      id: serviceProvider.id,
+      code: serviceProvider.code,
+      name: serviceProvider.name,
+      cpf: serviceProvider.cpf,
+      cnpj: serviceProvider.cnpj,
+      email: serviceProvider.email,
+      phone: serviceProvider.phone,
+      propertyIds: serviceProvider.propertyIds,
+      createdAt: serviceProvider.createdAt,
+      status: serviceProvider.status,
+      street: serviceProvider.street,
+      number: serviceProvider.number,
+      complement: serviceProvider.complement,
+      neighborhood: serviceProvider.neighborhood,
+      city: serviceProvider.city,
+      state: serviceProvider.state,
+      zipCode: serviceProvider.zipCode,
+    };
+  }, []);
+
+  const movementsConfig = useMemo(
+    () => ({
+      getLocationMovements: getLocationMovementsByServiceProviderId,
+      getAnimalMovements: getAnimalMovementsByServiceProviderId,
+      getMovementNewRouteParam: (propertyId: string, entityId: string) =>
+        `${getMovementNewRoute(propertyId)}?serviceProviderId=${entityId}`,
+      entityType: "serviceProvider" as const,
+    }),
+    []
+  );
+
   return (
     <EntityDetailPage<ServiceProvider, ServiceProviderObservation>
       entityId={serviceProviderId}
       fetchEntity={getServiceProviderById}
       entityType="serviceProvider"
-      mapEntityToData={(serviceProvider) => ({
-        id: serviceProvider.id,
-        code: serviceProvider.code,
-        name: serviceProvider.name,
-        cpf: serviceProvider.cpf,
-        cnpj: serviceProvider.cnpj,
-        email: serviceProvider.email,
-        phone: serviceProvider.phone,
-        propertyIds: serviceProvider.propertyIds,
-        createdAt: serviceProvider.createdAt,
-        status: serviceProvider.status,
-        street: serviceProvider.street,
-        number: serviceProvider.number,
-        complement: serviceProvider.complement,
-        neighborhood: serviceProvider.neighborhood,
-        city: serviceProvider.city,
-        state: serviceProvider.state,
-        zipCode: serviceProvider.zipCode,
-      })}
+      mapEntityToData={mapEntityToData}
       translations={t.serviceProviders}
       routes={{
         list: ROUTES.SERVICE_PROVIDERS,
@@ -81,13 +97,7 @@ export default function ServiceProviderDetails() {
         getPayableTransactions: getAccountsPayableByServiceProviderId,
         gradientId: "colorNetServiceProvider",
       }}
-      movementsConfig={{
-        getLocationMovements: getLocationMovementsByServiceProviderId,
-        getAnimalMovements: getAnimalMovementsByServiceProviderId,
-        getMovementNewRouteParam: (propertyId, entityId) =>
-          `${getMovementNewRoute(propertyId)}?serviceProviderId=${entityId}`,
-        entityType: "serviceProvider",
-      }}
+      movementsConfig={movementsConfig}
       validTabs={["info", "activities", "movements", "observations", "finance"]}
     />
   );

@@ -3,6 +3,11 @@ import { ROUTE_NAMES } from "./routes.config";
 
 export default [
   index("routes/home.tsx"),
+  // Chrome occasionally requests this during dev; respond with empty JSON.
+  route(
+    ".well-known/appspecific/com.chrome.devtools.json",
+    "routes/well-known.appspecific.com.chrome.devtools[.]json.tsx"
+  ),
   route("sitemap.xml", "routes/sitemap[.]xml.tsx"),
   route("api/invoices/:invoiceId", "routes/api.invoices.$invoiceId.tsx"),
   route(ROUTE_NAMES.LOGIN, "routes/login.tsx"),
@@ -75,6 +80,14 @@ export default [
     route(ROUTE_NAMES.BIRTHS_NEW, "routes/dashboard/records.births.new.tsx"),
     route(ROUTE_NAMES.ACQUISITIONS, "routes/dashboard/records.acquisitions.tsx"),
     route(ROUTE_NAMES.ACQUISITIONS_NEW, "routes/dashboard/records.acquisitions.new.tsx"),
+    route(
+      ROUTE_NAMES.ACQUISITIONS_EDIT,
+      "routes/dashboard/records.acquisitions.edit.$acquisitionId.tsx"
+    ),
+    route(
+      ROUTE_NAMES.ACQUISITIONS_VIEW,
+      "routes/dashboard/records.acquisitions.$acquisitionId.tsx"
+    ),
     route(ROUTE_NAMES.SALES, "routes/dashboard/records.sales.tsx"),
     route(ROUTE_NAMES.SALES_NEW, "routes/dashboard/records.sales.new.tsx"),
     route(ROUTE_NAMES.SALES_EDIT, "routes/dashboard/records.sales.edit.$saleId.tsx"),

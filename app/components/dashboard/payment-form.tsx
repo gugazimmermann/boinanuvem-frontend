@@ -7,7 +7,16 @@ import { useLanguage } from "~/contexts/language-context";
 import { useTheme } from "~/contexts/theme-context";
 import { createSubscriptionWithPaymentMethod } from "~/services/subscriptions.service";
 import type { Plan } from "~/types/plan";
-import { t } from "~/utils/translation-helpers";
+import {
+  getLoadingPaymentFormText,
+  getCardElementNotFoundError,
+  getPaymentMethodError,
+  getPaymentProcessingError,
+  getCardDetailsLabel,
+  getPaymentButtonText,
+  getProcessingButtonText,
+  getStripeNotConfiguredMessage,
+} from "~/utils/subscription-translations";
 
 const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 
@@ -38,58 +47,6 @@ function PaymentFormContent({
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const getLoadingText = (): string => {
-    return t(
-      language,
-      "Carregando formulário de pagamento...",
-      "Cargando formulario de pago...",
-      "Loading payment form..."
-    );
-  };
-
-  const getCardElementNotFoundError = (): string => {
-    return t(
-      language,
-      "Elemento de cartão não encontrado",
-      "Elemento de tarjeta no encontrado",
-      "Card element not found"
-    );
-  };
-
-  const getPaymentMethodError = (): string => {
-    return t(
-      language,
-      "Falha ao criar método de pagamento",
-      "Error al crear método de pago",
-      "Failed to create payment method"
-    );
-  };
-
-  const getPaymentProcessingError = (): string => {
-    return t(
-      language,
-      "Falha ao processar pagamento",
-      "Error al procesar pago",
-      "Failed to process payment"
-    );
-  };
-
-  const getCardDetailsLabel = (): string => {
-    return t(language, "Detalhes do Cartão", "Detalles de la Tarjeta", "Card Details");
-  };
-
-  const getProcessingText = (): string => {
-    return t(language, "Processando...", "Procesando...", "Processing...");
-  };
-
-  const getConfirmSubscriptionText = (): string => {
-    return t(language, "Confirmar Assinatura", "Confirmar Suscripción", "Confirm Subscription");
-  };
-
-  const getButtonText = (): string => {
-    return isProcessing ? getProcessingText() : getConfirmSubscriptionText();
-  };
-
   const cardElementOptions = useMemo(
     () => ({
       style: {
@@ -118,13 +75,13 @@ function PaymentFormContent({
       return null;
     };
 
-    const errorMessage = extractErrorMessage(pmError) ?? getPaymentMethodError();
+    const errorMessage = extractErrorMessage(pmError) ?? getPaymentMethodError(language);
     setError(errorMessage);
     setIsProcessing(false);
   };
 
   const handlePaymentError = (err: unknown): void => {
-    const errorMessage = err instanceof Error ? err.message : getPaymentProcessingError();
+    const errorMessage = err instanceof Error ? err.message : getPaymentProcessingError(language);
     setError(errorMessage);
     onError(errorMessage);
   };
@@ -135,7 +92,9 @@ function PaymentFormContent({
       <div className="flex items-center justify-center py-8">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400 mb-4"></div>
-          <p className="text-sm text-gray-600 dark:text-gray-400">{getLoadingText()}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            {getLoadingPaymentFormText(language)}
+          </p>
         </div>
       </div>
     );
@@ -146,7 +105,7 @@ function PaymentFormContent({
 
     const cardElement = elements.getElement(CardElement);
     if (!cardElement) {
-      setError(getCardElementNotFoundError());
+      setError(getCardElementNotFoundError(language));
       return;
     }
 
@@ -184,7 +143,7 @@ function PaymentFormContent({
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          {getCardDetailsLabel()}
+          {getCardDetailsLabel(language)}
         </label>
         <div className="p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
           <CardElement options={cardElementOptions} />
@@ -202,7 +161,7 @@ function PaymentFormContent({
         disabled={isProcessing}
         className="w-full py-3 px-6 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {getButtonText()}
+        {isProcessing ? getProcessingButtonText(language) : getPaymentButtonText(language)}
       </button>
     </form>
   );
@@ -211,15 +170,6 @@ function PaymentFormContent({
 export function PaymentForm(props: Readonly<PaymentFormProps>) {
   const { theme } = useTheme();
   const { language } = useLanguage();
-
-  const getStripeNotConfiguredMessage = (): string => {
-    return t(
-      language,
-      "Stripe não está configurado. Por favor, entre em contato com o suporte.",
-      "Stripe no está configurado. Por favor, contacte al soporte.",
-      "Stripe is not configured. Please contact support."
-    );
-  };
 
   const options: StripeElementsOptions = useMemo(
     () => ({
@@ -242,7 +192,9 @@ export function PaymentForm(props: Readonly<PaymentFormProps>) {
   if (!stripePublishableKey) {
     return (
       <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-        <p className="text-sm text-red-600 dark:text-red-400">{getStripeNotConfiguredMessage()}</p>
+        <p className="text-sm text-red-600 dark:text-red-400">
+          {getStripeNotConfiguredMessage(language)}
+        </p>
       </div>
     );
   }

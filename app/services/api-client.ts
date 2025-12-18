@@ -40,8 +40,8 @@ export class ApiClient {
   private onAuthFailureCallback: OnAuthFailureCallback | null = null;
   private isRefreshing = false;
   private refreshPromise: Promise<{ access_token: string; refresh_token: string }> | null = null;
-  private inflightRequests = new Map<string, Promise<unknown>>();
-  private responseCache = new Map<string, { expiresAt: number; value: unknown }>();
+  private readonly inflightRequests = new Map<string, Promise<unknown>>();
+  private readonly responseCache = new Map<string, { expiresAt: number; value: unknown }>();
 
   constructor(baseUrl: string = API_BASE_URL) {
     this.baseUrl = baseUrl;
@@ -201,14 +201,112 @@ export class ApiClient {
   }
 
   /**
+   * Extract error message from JSON response body
+   */
+  private async extractJsonErrorMessage(response: Response): Promise<string | undefined> {
+    try {
+      const body = (await response.clone().json()) as unknown;
+      if (!body || typeof body !== "object") {
+        return undefined;
+      }
+      const record = body as Record<string, unknown>;
+      const maybeMessage = record.message;
+      const maybeError = record.error;
+
+      if (typeof maybeMessage === "string") {
+        return maybeMessage;
+      }
+      if (Array.isArray(maybeMessage)) {
+        return maybeMessage.filter((x) => typeof x === "string").join("; ");
+      }
+      if (typeof maybeError === "string") {
+        return maybeError;
+      }
+      return JSON.stringify(body);
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * Extract error message from text response body
+   */
+  private async extractTextErrorMessage(response: Response): Promise<string | undefined> {
+    try {
+      const text = await response.clone().text();
+      return text || undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * Extract error message from response body
+   */
+  private async extractErrorMessage(response: Response): Promise<string | undefined> {
+    try {
+      const contentType = response.headers.get("content-type") ?? "";
+      if (contentType.includes("application/json")) {
+        return await this.extractJsonErrorMessage(response);
+      }
+      return await this.extractTextErrorMessage(response);
+    } catch {
+      // Ignore parsing errors and fallback to status text.
+    }
+    return undefined;
+  }
+
+  /**
+   * Handle 429 rate limit response with retry logic
+   */
+  private async handle429Retry<T>(
+    endpoint: string,
+    options: RequestInit,
+    response: Response,
+    retryOn401: boolean,
+    retryOn429: number
+  ): Promise<T | undefined> {
+    const retryAfterHeader = response.headers.get("retry-after");
+    let delayMs = 500;
+    if (retryAfterHeader) {
+      const asSeconds = Number(retryAfterHeader);
+      if (Number.isFinite(asSeconds) && asSeconds >= 0) {
+        delayMs = Math.max(delayMs, Math.round(asSeconds * 1000));
+      }
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      const id = setTimeout(() => resolve(), delayMs);
+      if (options.signal) {
+        if (options.signal.aborted) {
+          clearTimeout(id);
+          reject(new DOMException("The operation was aborted.", "AbortError"));
+          return;
+        }
+        options.signal.addEventListener(
+          "abort",
+          () => {
+            clearTimeout(id);
+            reject(new DOMException("The operation was aborted.", "AbortError"));
+          },
+          { once: true }
+        );
+      }
+    });
+
+    return this.makeRequest<T>(endpoint, options, retryOn401, retryOn429 - 1);
+  }
+
+  /**
    * Make a request with automatic token refresh on 401
    */
   private async makeRequest<T>(
     endpoint: string,
     options: RequestInit,
     retryOn401 = true,
-    retryOn429 = 1
-  ): Promise<T> {
+    retryOn429 = 1,
+    allow404 = false
+  ): Promise<T | undefined> {
     // Handle both full URLs and relative paths
     const url = endpoint.startsWith("http") ? endpoint : `${this.baseUrl}${endpoint}`;
     let response = await fetch(url, options);
@@ -220,65 +318,16 @@ export class ApiClient {
 
     // If we get a 429, respect Retry-After and retry a limited number of times.
     if (response.status === 429 && retryOn429 > 0) {
-      const retryAfterHeader = response.headers.get("retry-after");
-      let delayMs = 500;
-      if (retryAfterHeader) {
-        const asSeconds = Number(retryAfterHeader);
-        if (Number.isFinite(asSeconds) && asSeconds >= 0) {
-          delayMs = Math.max(delayMs, Math.round(asSeconds * 1000));
-        }
-      }
-      await new Promise<void>((resolve, reject) => {
-        const id = setTimeout(() => resolve(), delayMs);
-        if (options.signal) {
-          if (options.signal.aborted) {
-            clearTimeout(id);
-            reject(new DOMException("The operation was aborted.", "AbortError"));
-            return;
-          }
-          options.signal.addEventListener(
-            "abort",
-            () => {
-              clearTimeout(id);
-              reject(new DOMException("The operation was aborted.", "AbortError"));
-            },
-            { once: true }
-          );
-        }
-      });
-      return this.makeRequest<T>(endpoint, options, retryOn401, retryOn429 - 1);
+      return this.handle429Retry<T>(endpoint, options, response, retryOn401, retryOn429);
     }
 
     if (!response.ok) {
-      // Try to extract a useful error message from the response body.
-      // NestJS (and many APIs) often return `{ message, error, statusCode }` for 4xx
-      // and may return plain text / HTML for 5xx depending on config.
-      let details: string | undefined;
-      try {
-        const contentType = response.headers.get("content-type") ?? "";
-        if (contentType.includes("application/json")) {
-          const body = (await response.clone().json()) as unknown;
-          if (body && typeof body === "object") {
-            const maybeMessage = (body as Record<string, unknown>).message;
-            const maybeError = (body as Record<string, unknown>).error;
-            if (typeof maybeMessage === "string") {
-              details = maybeMessage;
-            } else if (Array.isArray(maybeMessage)) {
-              details = maybeMessage.filter((x) => typeof x === "string").join("; ");
-            } else if (typeof maybeError === "string") {
-              details = maybeError;
-            } else {
-              details = JSON.stringify(body);
-            }
-          }
-        } else {
-          const text = await response.clone().text();
-          if (text) details = text;
-        }
-      } catch {
-        // Ignore parsing errors and fallback to status text.
+      // If 404 is allowed, return undefined instead of throwing
+      if (allow404 && response.status === 404) {
+        return undefined as T;
       }
 
+      const details = await this.extractErrorMessage(response);
       const suffix = details ? ` - ${details}` : "";
       throw new ApiError(
         `HTTP ${response.status}: ${response.statusText}${suffix}`,
@@ -300,6 +349,43 @@ export class ApiClient {
   }
 
   /**
+   * Build URL with query parameters
+   */
+  private buildUrlWithParams(endpoint: string, params?: Record<string, string>): string {
+    if (!params || Object.keys(params).length === 0) {
+      return endpoint;
+    }
+
+    const searchParams = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)) {
+      searchParams.append(key, value);
+    }
+    const queryString = searchParams.toString();
+    return `${endpoint}${endpoint.includes("?") ? "&" : "?"}${queryString}`;
+  }
+
+  /**
+   * Get cache key for a request
+   */
+  private getCacheKey(method: string, url: string, headers: HeadersInit): string {
+    const authHeader = (headers as Record<string, unknown>)?.Authorization;
+    const authString = typeof authHeader === "string" ? authHeader : "";
+    return `${method} ${url} :: ${authString}`;
+  }
+
+  /**
+   * Check and return cached response if available
+   */
+  private getCachedResponse<T>(cacheKey: string, cacheTtlMs: number): T | null {
+    if (cacheTtlMs <= 0) return null;
+    const cached = this.responseCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.value as T;
+    }
+    return null;
+  }
+
+  /**
    * Make a GET request to the specified endpoint
    */
   async get<T>(
@@ -314,36 +400,30 @@ export class ApiClient {
        * Set to 0 to disable caching for this request.
        */
       cacheTtlMs?: number;
+      /**
+       * If true, 404 responses will return undefined instead of throwing an error.
+       * Useful for optional resources where 404 is expected.
+       */
+      allow404?: boolean;
     }
   ): Promise<T> {
-    let url = endpoint;
+    const url = this.buildUrlWithParams(endpoint, params);
 
-    // Build query string if params provided
-    if (params && Object.keys(params).length > 0) {
-      const searchParams = new URLSearchParams();
-      for (const [key, value] of Object.entries(params)) {
-        searchParams.append(key, value);
-      }
-      const queryString = searchParams.toString();
-      url = `${endpoint}${endpoint.includes("?") ? "&" : "?"}${queryString}`;
-    }
-
+    const baseHeaders = this.getHeaders();
+    const additionalHeaders = options?.headers;
     const requestOptions: RequestInit = {
       method: "GET",
-      headers: { ...this.getHeaders(), ...(options?.headers ?? {}) },
+      headers: additionalHeaders ? { ...baseHeaders, ...additionalHeaders } : baseHeaders,
       signal: options?.signal,
     };
 
     const shouldDedupe = options?.dedupe ?? true;
     const cacheTtlMs = options?.cacheTtlMs ?? 5000;
-    const auth = (requestOptions.headers as Record<string, unknown>)?.Authorization ?? "";
-    const inflightKey = `GET ${url} :: ${String(auth)}`;
+    const inflightKey = this.getCacheKey("GET", url, requestOptions.headers!);
 
-    if (cacheTtlMs > 0) {
-      const cached = this.responseCache.get(inflightKey);
-      if (cached && cached.expiresAt > Date.now()) {
-        return cached.value as T;
-      }
+    const cached = this.getCachedResponse<T>(inflightKey, cacheTtlMs);
+    if (cached !== null) {
+      return cached;
     }
 
     if (shouldDedupe) {
@@ -351,12 +431,21 @@ export class ApiClient {
       if (existing) return existing as Promise<T>;
     }
 
-    const promise = this.makeRequest<T>(url, requestOptions, true, options?.retryOn429 ?? 1)
+    const allow404 = options?.allow404 ?? false;
+    const promise = this.makeRequest<T>(
+      url,
+      requestOptions,
+      true,
+      options?.retryOn429 ?? 1,
+      allow404
+    )
       .then((value) => {
-        if (cacheTtlMs > 0) {
+        if (cacheTtlMs > 0 && value !== undefined) {
           this.responseCache.set(inflightKey, { expiresAt: Date.now() + cacheTtlMs, value });
         }
-        return value;
+        // When allow404 is true, value might be undefined, but we return it as T
+        // Callers using allow404 should handle undefined (type assertion needed)
+        return value as T;
       })
       .finally(() => {
         this.inflightRequests.delete(inflightKey);
@@ -372,7 +461,7 @@ export class ApiClient {
    * Make a POST request to the specified endpoint
    */
   async post<T>(endpoint: string, data?: unknown, retryOn401 = true): Promise<T> {
-    return this.makeRequest<T>(
+    const result = await this.makeRequest<T>(
       endpoint,
       {
         method: "POST",
@@ -381,27 +470,39 @@ export class ApiClient {
       },
       retryOn401
     );
+    if (result === undefined) {
+      throw new ApiError("Unexpected undefined response", 500);
+    }
+    return result;
   }
 
   /**
    * Make a PUT request to the specified endpoint
    */
   async put<T>(endpoint: string, data?: unknown): Promise<T> {
-    return this.makeRequest<T>(endpoint, {
+    const result = await this.makeRequest<T>(endpoint, {
       method: "PUT",
       headers: this.getHeaders(),
       body: data ? JSON.stringify(data) : undefined,
     });
+    if (result === undefined) {
+      throw new ApiError("Unexpected undefined response", 500);
+    }
+    return result;
   }
 
   /**
    * Make a DELETE request to the specified endpoint
    */
   async delete<T>(endpoint: string): Promise<T> {
-    return this.makeRequest<T>(endpoint, {
+    const result = await this.makeRequest<T>(endpoint, {
       method: "DELETE",
       headers: this.getHeaders(),
     });
+    if (result === undefined) {
+      throw new ApiError("Unexpected undefined response", 500);
+    }
+    return result;
   }
 }
 

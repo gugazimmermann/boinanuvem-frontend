@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useParams } from "react-router";
 import { useTranslation } from "~/i18n";
 import { ROUTES, getBuyerEditRoute } from "~/routes.config";
@@ -5,6 +6,7 @@ import { getBuyerById } from "~/services/buyers.service";
 import type { Buyer } from "~/types";
 import { getCashFlowByBuyerId } from "~/services/cash-flow.service";
 import { getAccountsReceivableByBuyerId } from "~/services/accounts-receivable.service";
+import { getSalesByBuyerId } from "~/services/sales.service";
 import {
   getBuyerObservationsByBuyerId,
   addBuyerObservation,
@@ -31,30 +33,34 @@ export default function BuyerDetails() {
   const { buyerId } = useParams<{ buyerId: string }>();
   const t = useTranslation();
 
+  const mapEntityToData = useCallback((buyer: Buyer) => {
+    return {
+      id: buyer.id,
+      code: buyer.code,
+      name: buyer.name,
+      cpf: buyer.cpf,
+      cnpj: buyer.cnpj,
+      email: buyer.email,
+      phone: buyer.phone,
+      propertyIds: buyer.propertyIds,
+      createdAt: buyer.createdAt,
+      status: buyer.status,
+      street: buyer.street,
+      number: buyer.number,
+      complement: buyer.complement,
+      neighborhood: buyer.neighborhood,
+      city: buyer.city,
+      state: buyer.state,
+      zipCode: buyer.zipCode,
+    };
+  }, []);
+
   return (
     <EntityDetailPage<Buyer, BuyerObservation>
       entityId={buyerId}
       fetchEntity={getBuyerById}
       entityType="buyer"
-      mapEntityToData={(buyer) => ({
-        id: buyer.id,
-        code: buyer.code,
-        name: buyer.name,
-        cpf: buyer.cpf,
-        cnpj: buyer.cnpj,
-        email: buyer.email,
-        phone: buyer.phone,
-        propertyIds: buyer.propertyIds,
-        createdAt: buyer.createdAt,
-        status: buyer.status,
-        street: buyer.street,
-        number: buyer.number,
-        complement: buyer.complement,
-        neighborhood: buyer.neighborhood,
-        city: buyer.city,
-        state: buyer.state,
-        zipCode: buyer.zipCode,
-      })}
+      mapEntityToData={mapEntityToData}
       translations={t.buyers}
       routes={{
         list: ROUTES.BUYERS,
@@ -75,6 +81,7 @@ export default function BuyerDetails() {
       financeConfig={{
         getCashFlowTransactions: getCashFlowByBuyerId,
         getReceivableTransactions: getAccountsReceivableByBuyerId,
+        getSalesTransactions: getSalesByBuyerId,
         gradientId: "colorNetBuyer",
       }}
       validTabs={["info", "activities", "observations", "finance"]}

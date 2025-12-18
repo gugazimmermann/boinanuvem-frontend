@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router";
 import { useTranslation } from "~/i18n";
+import { useLanguage } from "~/contexts/language-context";
 import { ROUTES } from "~/routes.config";
 import { addSale } from "~/services/sales.service";
 import {
@@ -27,6 +28,7 @@ export async function loader({ request }: { request: Request }) {
 
 export default function NewSale() {
   const t = useTranslation();
+  const { language } = useLanguage();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const companyId = currentUser?.companyId || "";
@@ -40,7 +42,7 @@ export default function NewSale() {
   } = useSaleFormData({ companyId });
 
   const handleSubmit = async (data: SaleFormDataType) => {
-    const saleData = transformSaleFormData(data, hookCompanyId || companyId);
+    const saleData = transformSaleFormData(data, hookCompanyId || companyId, language);
     await addSale(saleData);
   };
 
@@ -51,7 +53,7 @@ export default function NewSale() {
   };
 
   const initialData: Partial<SaleFormDataType> = {
-    propertyId: properties[0]?.id || "",
+    propertyId: "",
     saleDate: new Date().toISOString().split("T")[0],
     selectedAnimalIds: preSelectedAnimalIds,
   };

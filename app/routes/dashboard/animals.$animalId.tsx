@@ -20,6 +20,7 @@ import {
 import { useTranslation } from "~/i18n";
 import { useLanguage } from "~/contexts/language-context";
 import { useDateLocale } from "~/hooks/use-date-locale";
+import { DateInput } from "~/components/ui/date-input";
 import {
   ROUTES,
   getAnimalEditRoute,
@@ -29,6 +30,7 @@ import {
   getSanitaryControlNewRoute,
   getSaleViewRoute,
   getLocationViewRoute,
+  getAnimalMovementNewRoute,
 } from "~/routes.config";
 import { createViewMeta } from "~/utils/route-helpers";
 import { getAnimalById, getAnimalsByCompanyId } from "~/services/animals.service";
@@ -58,7 +60,7 @@ import { getLocationById, getLocations } from "~/services/locations.service";
 import { getSalesByAnimalId } from "~/services/sales.service";
 import { getBuyerById, getBuyers } from "~/services/buyers.service";
 import { calculateAnimalProfitability } from "~/utils/profitability";
-import type { AnimalMovement, Breeding, Birth, BirthPurity, Weighing } from "~/types";
+import type { AnimalMovement, Breeding, Birth, BirthPurity, Weighing, AnimalBreed } from "~/types";
 import type { AnimalObservation } from "~/types/animal-observation";
 import { DASHBOARD_COLORS } from "~/components/dashboard/utils/colors";
 import { usePermissions } from "~/utils/permissions";
@@ -632,6 +634,7 @@ type AnimalDashboardTabProps = Readonly<{
   animalCostData: Awaited<ReturnType<typeof getAnimalTotalCost>> | null;
   totalCost: number;
   costPerKg: number;
+  costPerArroba: number;
   weighings: Weighing[];
   firstWeighing: Weighing | null;
   lastWeighing: Weighing | null;
@@ -648,6 +651,96 @@ type AnimalDashboardTabProps = Readonly<{
   navigate: (path: string) => void;
   t: ReturnType<typeof useTranslation>;
 }>;
+
+// Helper component for metric cards
+interface MetricCardProps {
+  readonly label: string;
+  readonly value: React.ReactNode;
+  readonly icon: string;
+  readonly iconBgColor: string;
+}
+
+function MetricCard({ label, value, icon, iconBgColor }: MetricCardProps) {
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{label}</p>
+          <div className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">{value}</div>
+        </div>
+        <div className={`w-10 h-10 ${iconBgColor} rounded-lg flex items-center justify-center`}>
+          <span className="text-lg">{icon}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Helper component for breed metric card
+interface BreedMetricCardProps {
+  readonly birth: { breed?: string | AnimalBreed } | undefined;
+  readonly t: ReturnType<typeof useTranslation>;
+}
+
+function BreedMetricCard({ birth, t }: BreedMetricCardProps) {
+  if (!birth?.breed) return null;
+  const breedKey = String(birth.breed) as keyof typeof t.animals.breeds;
+  return (
+    <MetricCard
+      label={t.animals.details.dashboard.breed}
+      value={(t.animals.breeds as Record<string, string>)[breedKey] || String(birth.breed)}
+      icon="🐄"
+      iconBgColor="bg-yellow-100 dark:bg-yellow-900/30"
+    />
+  );
+}
+
+// Helper component for gender metric card
+interface GenderMetricCardProps {
+  readonly birth: { gender?: string } | undefined;
+  readonly acquisitionItem: { gender?: string } | undefined;
+  readonly t: ReturnType<typeof useTranslation>;
+}
+
+function GenderMetricCard({ birth, acquisitionItem, t }: GenderMetricCardProps) {
+  const gender = birth?.gender || acquisitionItem?.gender;
+  if (!gender) return null;
+  const genderIcon = gender === "male" ? "♂" : "♀";
+  return (
+    <MetricCard
+      label={t.animals.details.dashboard.gender}
+      value={t.animals.gender[gender as "male" | "female"]}
+      icon={genderIcon}
+      iconBgColor="bg-pink-100 dark:bg-pink-900/30"
+    />
+  );
+}
+
+// Helper component for purity metric card
+interface PurityMetricCardProps {
+  readonly birth: { purity?: string | BirthPurity } | undefined;
+  readonly t: ReturnType<typeof useTranslation>;
+}
+
+function PurityMetricCard({ birth, t }: PurityMetricCardProps) {
+  if (!birth?.purity) return null;
+  const purityKey = String(birth.purity) as keyof typeof t.animals.purity;
+  return (
+    <MetricCard
+      label={t.animals.details.purity}
+      value={(t.animals.purity as Record<string, string>)[purityKey] || String(birth.purity)}
+      icon="⭐"
+      iconBgColor="bg-teal-100 dark:bg-teal-900/30"
+    />
+  );
+}
+
+// Helper function to format age display
+function formatAgeDisplay(age: number | null, t: ReturnType<typeof useTranslation>): string {
+  if (age === null) return "-";
+  const unit = age === 1 ? t.common.month : t.common.months;
+  return `${age} ${unit}`;
+}
 
 function AnimalDashboardTab({ animal, ...props }: AnimalDashboardTabProps) {
   const {
@@ -669,9 +762,9 @@ function AnimalDashboardTab({ animal, ...props }: AnimalDashboardTabProps) {
     animalMovements,
     locationsMap,
     daysInCurrentLocation,
-    animalCostData,
     totalCost,
     costPerKg,
+    costPerArroba,
     weighings,
     firstWeighing,
     lastWeighing,
@@ -698,73 +791,30 @@ function AnimalDashboardTab({ animal, ...props }: AnimalDashboardTabProps) {
           </h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.animals.table.weight}
-                </p>
-                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                  {currentWeight > 0 ? `${currentWeight} kg` : "-"}
-                </p>
-              </div>
-              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                <span className="text-lg">⚖️</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.animals.table.weightInArrobas}
-                </p>
-                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                  {weightInArrobas} @
-                </p>
-              </div>
-              <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                <span className="text-lg">📊</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.animals.table.gmd}
-                </p>
-                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                  {gmd ? `${gmd} kg/dia` : "-"}
-                </p>
-              </div>
-              <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-                <span className="text-lg">📈</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.animals.table.birthDate}
-                </p>
-                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                  {(() => {
-                    if (age === null) return "-";
-                    const unit = age === 1 ? t.common.month : t.common.months;
-                    return `${age} ${unit}`;
-                  })()}
-                </p>
-              </div>
-              <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
-                <span className="text-lg">🎂</span>
-              </div>
-            </div>
-          </div>
+          <MetricCard
+            label={t.animals.table.weight}
+            value={currentWeight > 0 ? `${currentWeight} kg` : "-"}
+            icon="⚖️"
+            iconBgColor="bg-blue-100 dark:bg-blue-900/30"
+          />
+          <MetricCard
+            label={t.animals.table.weightInArrobas}
+            value={`${weightInArrobas} @`}
+            icon="📊"
+            iconBgColor="bg-green-100 dark:bg-green-900/30"
+          />
+          <MetricCard
+            label={t.animals.table.gmd}
+            value={gmd ? `${gmd} kg/dia` : "-"}
+            icon="📈"
+            iconBgColor="bg-purple-100 dark:bg-purple-900/30"
+          />
+          <MetricCard
+            label={t.animals.table.birthDate}
+            value={formatAgeDisplay(age, t)}
+            icon="🎂"
+            iconBgColor="bg-orange-100 dark:bg-orange-900/30"
+          />
         </div>
       </div>
 
@@ -776,86 +826,26 @@ function AnimalDashboardTab({ animal, ...props }: AnimalDashboardTabProps) {
           </h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {t.animals.table.status}
-                </p>
-                <div className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                  <StatusBadge
-                    label={
-                      animal.status === "active" ? t.animals.table.active : t.animals.table.inactive
-                    }
-                    variant={animal.status === "active" ? "success" : "default"}
-                  />
-                </div>
-              </div>
-              <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
-                <span className="text-lg">✓</span>
-              </div>
-            </div>
-          </div>
-
-          {birth?.breed && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                    {t.animals.details.dashboard.breed}
-                  </p>
-                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                    {t.animals.breeds[birth.breed] || birth.breed}
-                  </p>
-                </div>
-                <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
-                  <span className="text-lg">🐄</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {(birth?.gender || acquisitionItem?.gender) && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                    {t.animals.details.dashboard.gender}
-                  </p>
-                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                    {
-                      t.animals.gender[
-                        (birth?.gender || acquisitionItem?.gender) as "male" | "female"
-                      ]
-                    }
-                  </p>
-                </div>
-                <div className="w-10 h-10 bg-pink-100 dark:bg-pink-900/30 rounded-lg flex items-center justify-center">
-                  <span className="text-lg">
-                    {birth?.gender === "male" || acquisitionItem?.gender === "male" ? "♂" : "♀"}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {birth?.purity && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                    {t.animals.details.purity}
-                  </p>
-                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                    {t.animals.purity[birth.purity]}
-                  </p>
-                </div>
-                <div className="w-10 h-10 bg-teal-100 dark:bg-teal-900/30 rounded-lg flex items-center justify-center">
-                  <span className="text-lg">⭐</span>
-                </div>
-              </div>
-            </div>
-          )}
+          <MetricCard
+            label={t.animals.table.status}
+            value={
+              <StatusBadge
+                label={
+                  animal.status === "active" ? t.animals.table.active : t.animals.table.inactive
+                }
+                variant={animal.status === "active" ? "success" : "default"}
+              />
+            }
+            icon="✓"
+            iconBgColor="bg-indigo-100 dark:bg-indigo-900/30"
+          />
+          <BreedMetricCard birth={birth ?? undefined} t={t} />
+          <GenderMetricCard
+            birth={birth ?? undefined}
+            acquisitionItem={acquisitionItem ?? undefined}
+            t={t}
+          />
+          <PurityMetricCard birth={birth ?? undefined} t={t} />
         </div>
       </div>
 
@@ -966,51 +956,63 @@ function AnimalDashboardTab({ animal, ...props }: AnimalDashboardTabProps) {
         </div>
       </div>
 
-      {animalCostData && (
-        <div>
-          <div className="flex items-center gap-3 mb-6">
-            <div className="h-1 w-12 bg-orange-500 rounded-full"></div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-              {t.animals.details.dashboard.costInformation}
-            </h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                    {t.animals.details.costs.totalCost}
-                  </p>
-                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                    {formatCurrency(totalCost)}
-                  </p>
-                </div>
-                <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                  <span className="text-lg">💰</span>
-                </div>
+      <div>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="h-1 w-12 bg-orange-500 rounded-full"></div>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+            {t.animals.details.dashboard.costInformation}
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  {t.animals.details.costs.totalCost}
+                </p>
+                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                  {formatCurrency(totalCost)}
+                </p>
+              </div>
+              <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                <span className="text-lg">💰</span>
               </div>
             </div>
+          </div>
 
-            {currentWeight > 0 && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                      {t.animals.details.dashboard.costPerKg}
-                    </p>
-                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                      {formatCurrency(costPerKg)}
-                    </p>
-                  </div>
-                  <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
-                    <span className="text-lg">📊</span>
-                  </div>
-                </div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  {t.animals.details.dashboard.costPerKg}
+                </p>
+                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                  {currentWeight > 0 ? formatCurrency(costPerKg) : "-"}
+                </p>
               </div>
-            )}
+              <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
+                <span className="text-lg">📊</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-gray-900/70 transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  {t.animals.details.dashboard.costPerArroba}
+                </p>
+                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                  {currentWeight > 0 ? formatCurrency(costPerArroba) : "-"}
+                </p>
+              </div>
+              <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
+                <span className="text-lg">🐂</span>
+              </div>
+            </div>
           </div>
         </div>
-      )}
+      </div>
 
       {weighings.length > 0 && (
         <div>
@@ -1271,6 +1273,37 @@ function AnimalDashboardTab({ animal, ...props }: AnimalDashboardTabProps) {
   );
 }
 
+// Helper function to build animals map
+function buildAnimalsMap(
+  allAnimals: Array<{ id: string; code: string; registrationNumber: string }>,
+  animal: Awaited<ReturnType<typeof getAnimalById>> | undefined
+): Map<string, { id: string; code: string; registrationNumber: string }> {
+  const map = new Map<string, { id: string; code: string; registrationNumber: string }>();
+  for (const a of allAnimals) {
+    map.set(a.id, { id: a.id, code: a.code, registrationNumber: a.registrationNumber });
+  }
+  if (animal) {
+    map.set(animal.id, {
+      id: animal.id,
+      code: animal.code,
+      registrationNumber: animal.registrationNumber,
+    });
+  }
+  return map;
+}
+
+// Helper function to build births map
+function buildBirthsMap(allBirths: Birth[], birth: Birth | undefined): Map<string, Birth> {
+  const map = new Map<string, Birth>();
+  for (const b of allBirths) {
+    map.set(b.animalId, b);
+  }
+  if (birth) {
+    map.set(birth.animalId, birth);
+  }
+  return map;
+}
+
 export default function AnimalDetails() {
   const { animalId } = useParams<{ animalId: string }>();
   const navigate = useNavigate();
@@ -1290,55 +1323,34 @@ export default function AnimalDetails() {
   const [allBirths, setAllBirths] = useState<Birth[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const loadInitialData = async (id: string, companyId: string) => {
+    setIsLoading(true);
+    try {
+      const [animalData, birthData, animalsData, birthsData] = await Promise.all([
+        getAnimalById(id),
+        getBirthByAnimalId(id),
+        getAnimalsByCompanyId(companyId),
+        getBirthsByCompanyId(companyId),
+      ]);
+      setAnimal(animalData);
+      setBirth(birthData);
+      setAllAnimals(animalsData || []);
+      setAllBirths(birthsData || []);
+    } catch (error) {
+      console.error("Failed to load animal data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadData = async () => {
-      if (!animalId || !currentUser?.companyId) return;
-      setIsLoading(true);
-      try {
-        const [animalData, birthData, animalsData, birthsData] = await Promise.all([
-          getAnimalById(animalId),
-          getBirthByAnimalId(animalId),
-          getAnimalsByCompanyId(currentUser.companyId),
-          getBirthsByCompanyId(currentUser.companyId),
-        ]);
-        setAnimal(animalData);
-        setBirth(birthData);
-        setAllAnimals(animalsData || []);
-        setAllBirths(birthsData || []);
-      } catch (error) {
-        console.error("Failed to load animal data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadData();
+    if (!animalId || !currentUser?.companyId) return;
+    loadInitialData(animalId, currentUser.companyId);
   }, [animalId, currentUser?.companyId]);
 
-  const animalsMap = useMemo(() => {
-    const map = new Map<string, { id: string; code: string; registrationNumber: string }>();
-    for (const a of allAnimals) {
-      map.set(a.id, { id: a.id, code: a.code, registrationNumber: a.registrationNumber });
-    }
-    if (animal) {
-      map.set(animal.id, {
-        id: animal.id,
-        code: animal.code,
-        registrationNumber: animal.registrationNumber,
-      });
-    }
-    return map;
-  }, [allAnimals, animal]);
+  const animalsMap = useMemo(() => buildAnimalsMap(allAnimals, animal), [allAnimals, animal]);
 
-  const birthsMap = useMemo(() => {
-    const map = new Map<string, Birth>();
-    for (const b of allBirths) {
-      map.set(b.animalId, b);
-    }
-    if (birth) {
-      map.set(birth.animalId, birth);
-    }
-    return map;
-  }, [allBirths, birth]);
+  const birthsMap = useMemo(() => buildBirthsMap(allBirths, birth), [allBirths, birth]);
 
   const getAnimalByIdLocal = useCallback(
     (id: string | undefined) => {
@@ -1370,17 +1382,18 @@ export default function AnimalDetails() {
     ReturnType<typeof computeAnimalBasicData>
   > | null>(null);
 
-  useEffect(() => {
-    const loadAnimalBasicData = async () => {
-      if (animal || birth) {
-        const data = await computeAnimalBasicData(animal ?? null, birth);
-        setAnimalBasicData(data);
-      } else {
-        setAnimalBasicData(null);
-      }
-    };
-    loadAnimalBasicData();
+  const loadBasicAnimalData = useCallback(async () => {
+    if (animal || birth) {
+      const data = await computeAnimalBasicData(animal ?? null, birth);
+      setAnimalBasicData(data);
+    } else {
+      setAnimalBasicData(null);
+    }
   }, [animal, birth]);
+
+  useEffect(() => {
+    loadBasicAnimalData();
+  }, [loadBasicAnimalData]);
 
   const {
     birth: computedBirth,
@@ -1401,13 +1414,14 @@ export default function AnimalDetails() {
     return "dashboard";
   });
 
-  useEffect(() => {
+  const handleTabChanges = useCallback(() => {
     handleTabChangeForActivities(activeTab, canAccessActivities, setActiveTab);
-  }, [activeTab, canAccessActivities]);
+    handleTabChangeForBreeding(isMale, activeTab, setActiveTab);
+  }, [activeTab, canAccessActivities, isMale]);
 
   useEffect(() => {
-    handleTabChangeForBreeding(isMale, activeTab, setActiveTab);
-  }, [isMale, activeTab]);
+    handleTabChanges();
+  }, [handleTabChanges]);
   const [weighingsCurrentPage, setWeighingsCurrentPage] = useState(1);
   const [weighingsSortState, setWeighingsSortState] = useState<{
     column: string | null;
@@ -1514,45 +1528,47 @@ export default function AnimalDetails() {
     }
   };
 
-  useEffect(() => {
-    const loadProfitability = async () => {
-      if (!animal) return;
-      const salesData = await getSalesByAnimalId(animal.id);
-      setAnimalSales(salesData);
+  const loadSalesProfitability = useCallback(async (animalId: string) => {
+    const salesData = await getSalesByAnimalId(animalId);
+    setAnimalSales(salesData);
 
-      const profitabilityPromises = salesData.map((sale) =>
-        calculateSaleProfitability(sale, animal.id)
-      );
-      const results = await Promise.all(profitabilityPromises);
-      const profitabilityMap = new Map(
-        results
-          .filter(
-            (
-              r
-            ): r is {
-              saleId: string;
-              profitability: Awaited<ReturnType<typeof calculateAnimalProfitability>>;
-            } => r !== null
-          )
-          .map((r) => [r.saleId, r.profitability])
-      );
-      setSalesProfitability(profitabilityMap);
-    };
-    loadProfitability();
-  }, [animal]);
+    const profitabilityPromises = salesData.map((sale) =>
+      calculateSaleProfitability(sale, animalId)
+    );
+    const results = await Promise.all(profitabilityPromises);
+    const profitabilityMap = new Map(
+      results
+        .filter(
+          (
+            r
+          ): r is {
+            saleId: string;
+            profitability: Awaited<ReturnType<typeof calculateAnimalProfitability>>;
+          } => r !== null
+        )
+        .map((r) => [r.saleId, r.profitability])
+    );
+    setSalesProfitability(profitabilityMap);
+  }, []);
+
+  useEffect(() => {
+    if (!animal) return;
+    loadSalesProfitability(animal.id);
+  }, [animal, loadSalesProfitability]);
 
   const [breedings, setBreedings] = useState<Breeding[]>([]);
 
+  const loadBreedingsData = async (animalId: string) => {
+    const breedingsData = await getBreedingsByAnimalId(animalId);
+    setBreedings(breedingsData);
+  };
+
   useEffect(() => {
-    const loadBreedings = async () => {
-      if (animal) {
-        const breedingsData = await getBreedingsByAnimalId(animal.id);
-        setBreedings(breedingsData);
-      } else {
-        setBreedings([]);
-      }
-    };
-    loadBreedings();
+    if (animal) {
+      loadBreedingsData(animal.id);
+    } else {
+      setBreedings([]);
+    }
   }, [animal]);
 
   const [sanitaryControls, setSanitaryControls] = useState<
@@ -1562,60 +1578,123 @@ export default function AnimalDetails() {
     Map<string, Awaited<ReturnType<typeof getInventoryItemById>>>
   >(new Map());
 
-  useEffect(() => {
-    const loadSanitaryControls = async () => {
-      if (animal) {
-        const sanitaryControlsData = await getSanitaryControlsByAnimalId(animal.id);
-        setSanitaryControls(sanitaryControlsData);
-
-        // Pre-load inventory items for sanitary controls
-        const itemIds = new Set<string>();
-        for (const control of sanitaryControlsData) {
-          for (const applied of control.appliedMedicines || []) {
-            itemIds.add(applied.itemId);
-          }
+  const loadInventoryItemsForControls = useCallback(
+    async (sanitaryControlsData: import("~/types/sanitary-control").SanitaryControl[]) => {
+      const itemIds = new Set<string>();
+      for (const control of sanitaryControlsData) {
+        for (const applied of control.appliedMedicines || []) {
+          itemIds.add(applied.itemId);
         }
-        const itemsMap = new Map<string, Awaited<ReturnType<typeof getInventoryItemById>>>();
-        await Promise.all(
-          Array.from(itemIds).map(async (itemId) => {
-            try {
-              const item = await getInventoryItemById(itemId);
-              if (item) {
-                itemsMap.set(itemId, item);
-              }
-            } catch (error) {
-              console.error(`Failed to load inventory item ${itemId}:`, error);
-            }
-          })
-        );
-        setInventoryItemsMap(itemsMap);
-      } else {
-        setSanitaryControls([]);
-        setInventoryItemsMap(new Map());
       }
-    };
-    loadSanitaryControls();
-  }, [animal]);
+      const itemsMap = new Map<string, Awaited<ReturnType<typeof getInventoryItemById>>>();
+      await Promise.all(
+        Array.from(itemIds).map(async (itemId) => {
+          try {
+            const item = await getInventoryItemById(itemId);
+            if (item) {
+              itemsMap.set(itemId, item);
+            }
+          } catch (error) {
+            console.error(`Failed to load inventory item ${itemId}:`, error);
+          }
+        })
+      );
+      setInventoryItemsMap(itemsMap);
+    },
+    []
+  );
+
+  const loadSanitaryControlsData = useCallback(
+    async (animalId: string) => {
+      const sanitaryControlsData = await getSanitaryControlsByAnimalId(animalId);
+      setSanitaryControls(sanitaryControlsData);
+      await loadInventoryItemsForControls(sanitaryControlsData);
+    },
+    [loadInventoryItemsForControls]
+  );
+
+  useEffect(() => {
+    if (animal) {
+      loadSanitaryControlsData(animal.id);
+    } else {
+      setSanitaryControls([]);
+      setInventoryItemsMap(new Map());
+    }
+  }, [animal, loadSanitaryControlsData]);
 
   const [weighings, setWeighings] = useState<Weighing[]>([]);
 
+  const loadWeighingsData = async (animalId: string) => {
+    const weighingsData = await getWeighingsByAnimalId(animalId);
+    setWeighings(weighingsData);
+  };
+
   useEffect(() => {
-    const loadWeighings = async () => {
-      if (animal) {
-        const weighingsData = await getWeighingsByAnimalId(animal.id);
-        setWeighings(weighingsData);
-      } else {
-        setWeighings([]);
-      }
-    };
-    loadWeighings();
+    if (animal) {
+      loadWeighingsData(animal.id);
+    } else {
+      setWeighings([]);
+    }
   }, [animal]);
 
-  const weighingsWithCalculations = useMemo(() => {
-    return calculateWeighingsWithCalculations(weighings);
-  }, [weighings]);
+  const createVirtualAcquisitionWeighing = useCallback(
+    (animalData: NonNullable<typeof animal>, weight: number): Weighing => {
+      const fallbackDate =
+        acquisition?.acquisitionDate ||
+        animalData.acquisitionDate ||
+        birth?.birthDate ||
+        animalData.createdAt ||
+        new Date().toISOString();
 
-  const weighingData = useMemo(() => computeWeighingData(weighings), [weighings]);
+      return {
+        id: `virtual-acquisition-${animalData.id}`,
+        animalId: animalData.id,
+        employeeIds: [],
+        serviceProviderIds: [],
+        date: fallbackDate,
+        weight,
+        observation: "Peso na aquisição",
+        createdAt: fallbackDate,
+        companyId: animalData.companyId,
+      };
+    },
+    [acquisition?.acquisitionDate, birth?.birthDate]
+  );
+
+  const weighingsForDisplay = useMemo((): Weighing[] => {
+    if (!animal) return weighings;
+
+    const acquisitionItemRaw = acquisition?.acquisitionItems?.find((x) => x.animalId === animal.id);
+    const acquisitionWeight = acquisitionItemRaw?.weight ?? 0;
+
+    // If we already have weighings, keep them as-is.
+    // If we don't, include a "virtual" initial weighing based on acquisition weight (and date when available).
+    if (weighings.length > 0) return weighings;
+    if (acquisitionWeight <= 0) return weighings;
+
+    return [createVirtualAcquisitionWeighing(animal, acquisitionWeight)];
+  }, [animal, acquisition, weighings, createVirtualAcquisitionWeighing]);
+
+  const weighingsWithCalculations = useMemo(() => {
+    return calculateWeighingsWithCalculations(weighingsForDisplay);
+  }, [weighingsForDisplay]);
+
+  const acquisitionWeightKg = useMemo(() => {
+    if (!animal?.id || !acquisition) return 0;
+    const item = acquisition.acquisitionItems?.find((x) => x.animalId === animal.id);
+    return item?.weight ?? 0;
+  }, [animal?.id, acquisition]);
+
+  const acquisitionCost = useMemo(() => {
+    if (!animal?.id || !acquisition) return 0;
+    const item = acquisition.acquisitionItems?.find((x) => x.animalId === animal.id);
+    return item?.price ?? 0;
+  }, [animal?.id, acquisition]);
+
+  const weighingData = useMemo(
+    () => computeWeighingData(weighings, { fallbackWeightKg: acquisitionWeightKg }),
+    [weighings, acquisitionWeightKg]
+  );
   const { sortedWeighings, lastWeighing, firstWeighing, currentWeight, weightInArrobas } =
     weighingData;
 
@@ -1669,21 +1748,22 @@ export default function AnimalDetails() {
   );
   const [calvingIntervals, setCalvingIntervals] = useState<number[]>([]);
 
+  const loadCalvingIntervalsData = async (animalId: string) => {
+    try {
+      const intervals = await getCalvingIntervalsByAnimalId(animalId);
+      setCalvingIntervals(intervals || []);
+    } catch (error) {
+      console.error("Failed to load calving intervals:", error);
+      setCalvingIntervals([]);
+    }
+  };
+
   useEffect(() => {
-    const loadCalvingIntervals = async () => {
-      if (!animal) {
-        setCalvingIntervals([]);
-        return;
-      }
-      try {
-        const intervals = await getCalvingIntervalsByAnimalId(animal.id);
-        setCalvingIntervals(intervals || []);
-      } catch (error) {
-        console.error("Failed to load calving intervals:", error);
-        setCalvingIntervals([]);
-      }
-    };
-    loadCalvingIntervals();
+    if (!animal) {
+      setCalvingIntervals([]);
+      return;
+    }
+    loadCalvingIntervalsData(animal.id);
   }, [animal]);
 
   const averageCalvingInterval =
@@ -1693,21 +1773,22 @@ export default function AnimalDetails() {
 
   const [animalMovements, setAnimalMovements] = useState<AnimalMovement[]>([]);
 
+  const loadAnimalMovementsData = async (animalId: string) => {
+    try {
+      const movements = await getAnimalMovementsByAnimalId(animalId);
+      setAnimalMovements(movements || []);
+    } catch (error) {
+      console.error("Failed to load animal movements:", error);
+      setAnimalMovements([]);
+    }
+  };
+
   useEffect(() => {
-    const loadAnimalMovements = async () => {
-      if (!animal?.id) {
-        setAnimalMovements([]);
-        return;
-      }
-      try {
-        const movements = await getAnimalMovementsByAnimalId(animal.id);
-        setAnimalMovements(movements || []);
-      } catch (error) {
-        console.error("Failed to load animal movements:", error);
-        setAnimalMovements([]);
-      }
-    };
-    loadAnimalMovements();
+    if (!animal?.id) {
+      setAnimalMovements([]);
+      return;
+    }
+    loadAnimalMovementsData(animal.id);
   }, [animal?.id]);
 
   const sortedMovements = useMemo(
@@ -1723,28 +1804,36 @@ export default function AnimalDetails() {
     ReturnType<typeof getPropertyById>
   > | null>(null);
 
+  const loadLocationFromMovement = async (locationId: string) => {
+    try {
+      const location = await getLocationById(locationId);
+      setCurrentLocation(location);
+      const property = await getPropertyById(location.propertyId);
+      setCurrentProperty(property);
+    } catch (error) {
+      console.error("Failed to load location:", error);
+      setCurrentLocation(null);
+      setCurrentProperty(null);
+    }
+  };
+
+  const loadPropertyFromAnimal = async (propertyId: string) => {
+    try {
+      const property = await getPropertyById(propertyId);
+      setCurrentProperty(property);
+      setCurrentLocation(null);
+    } catch (error) {
+      console.error("Failed to load property:", error);
+      setCurrentProperty(null);
+    }
+  };
+
   useEffect(() => {
     const loadLocationAndProperty = async () => {
       if (currentMovement?.locationId) {
-        try {
-          const location = await getLocationById(currentMovement.locationId);
-          setCurrentLocation(location);
-          const property = await getPropertyById(location.propertyId);
-          setCurrentProperty(property);
-        } catch (error) {
-          console.error("Failed to load location:", error);
-          setCurrentLocation(null);
-          setCurrentProperty(null);
-        }
+        await loadLocationFromMovement(currentMovement.locationId);
       } else if (animal?.propertyId) {
-        try {
-          const property = await getPropertyById(animal.propertyId);
-          setCurrentProperty(property);
-          setCurrentLocation(null);
-        } catch (error) {
-          console.error("Failed to load property:", error);
-          setCurrentProperty(null);
-        }
+        await loadPropertyFromAnimal(animal.propertyId);
       } else {
         setCurrentLocation(null);
         setCurrentProperty(null);
@@ -1763,15 +1852,11 @@ export default function AnimalDetails() {
     ReturnType<typeof getAnimalTotalCost>
   > | null>(null);
 
-  useEffect(() => {
-    const loadCostData = async () => {
-      if (!animal) {
-        setAnimalCostData(null);
-        return;
-      }
+  const loadAnimalCostData = useCallback(
+    async (animalId: string) => {
       try {
         const costData = await getAnimalTotalCost(
-          animal.id,
+          animalId,
           costsStartDate || undefined,
           costsEndDate || undefined
         );
@@ -1780,14 +1865,36 @@ export default function AnimalDetails() {
         console.error("Failed to load animal cost data:", error);
         setAnimalCostData(null);
       }
-    };
-    loadCostData();
-  }, [animal, costsStartDate, costsEndDate]);
-  const totalCost = animalCostData?.totalCost || 0;
-  const costPerKg = currentWeight > 0 ? totalCost / currentWeight : 0;
+    },
+    [costsStartDate, costsEndDate]
+  );
 
-  const weightGainSinceFirst =
-    firstWeighing && currentWeight > 0 ? currentWeight - firstWeighing.weight : null;
+  useEffect(() => {
+    if (!animal) {
+      setAnimalCostData(null);
+      return;
+    }
+    loadAnimalCostData(animal.id);
+  }, [animal, loadAnimalCostData]);
+
+  const calculateCostMetrics = () => {
+    // Total cost shown in animal dashboard should include acquisition cost (when applicable)
+    // plus allocated inventory consumption costs across locations.
+    const total = (animalCostData?.totalCost || 0) + acquisitionCost;
+    const perKg = currentWeight > 0 ? total / currentWeight : 0;
+    const arrobas = currentWeight > 0 ? currentWeight / 30 : 0;
+    const perArroba = arrobas > 0 ? total / arrobas : 0;
+    return { totalCost: total, costPerKg: perKg, costPerArroba: perArroba };
+  };
+
+  const { totalCost, costPerKg, costPerArroba } = calculateCostMetrics();
+
+  const calculateWeightGain = () => {
+    if (!firstWeighing || currentWeight <= 0) return null;
+    return currentWeight - firstWeighing.weight;
+  };
+
+  const weightGainSinceFirst = calculateWeightGain();
   const averageWeightGainPerMonth = useMemo(() => {
     if (!firstWeighing || !lastWeighing || weightGainSinceFirst === null) return null;
     const firstDate = new Date(firstWeighing.date);
@@ -1820,8 +1927,8 @@ export default function AnimalDetails() {
     return buildGenealogyTree(animal.id, animalsMap, birthsMap);
   }, [animal, animalsMap, birthsMap]);
 
-  const formatRelativeTime = useMemo(() => {
-    return (dateString: string) => {
+  const formatRelativeTime = useCallback(
+    (dateString: string): string => {
       const date = new Date(dateString);
       const now = new Date();
       const minutes = differenceInMinutes(now, date);
@@ -1847,36 +1954,82 @@ export default function AnimalDetails() {
       }
 
       return format(date, "dd/MM/yyyy", { locale: dateLocale });
-    };
-  }, [t, dateLocale]);
+    },
+    [t, dateLocale]
+  );
+
+  const renderLoadingState = () => (
+    <div className="flex items-center justify-center min-h-[400px]">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+        <p className="text-muted-foreground">{t.common.loading || "Carregando..."}</p>
+      </div>
+    </div>
+  );
+
+  const renderEmptyState = () => (
+    <div className="space-y-8">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
+        <p className="text-gray-600 dark:text-gray-400 mb-4">{t.animals.emptyState.title}</p>
+        <Button variant="outline" onClick={() => navigate(ROUTES.ANIMALS)}>
+          {t.team.new.back}
+        </Button>
+      </div>
+    </div>
+  );
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">{t.common.loading || "Carregando..."}</p>
-        </div>
-      </div>
-    );
+    return renderLoadingState();
   }
 
   if (!animal) {
-    return (
-      <div className="space-y-8">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
-          <p className="text-gray-600 dark:text-gray-400 mb-4">{t.animals.emptyState.title}</p>
-          <Button variant="outline" onClick={() => navigate(ROUTES.ANIMALS)}>
-            {t.team.new.back}
-          </Button>
-        </div>
-      </div>
-    );
+    return renderEmptyState();
   }
 
   const recentWeighings = sortedWeighings.slice(0, 5);
   const recentBreedingsList = breedings.slice(0, 5);
   const recentMovementsList = sortedMovements.slice(0, 5);
+
+  const getDashboardTabProps = () => ({
+    animal,
+    currentWeight,
+    weightInArrobas,
+    gmd,
+    age,
+    birth: birth ?? null,
+    acquisitionItem,
+    isMale,
+    sonsBirths,
+    breedings,
+    birthsAsMother,
+    confirmedBreedings,
+    pendingBreedings,
+    averageCalvingInterval,
+    currentLocation: currentLocation ?? undefined,
+    currentProperty: currentProperty ?? undefined,
+    animalMovements,
+    locationsMap,
+    daysInCurrentLocation,
+    animalCostData,
+    totalCost,
+    costPerKg,
+    costPerArroba,
+    weighings,
+    firstWeighing: firstWeighing ?? null,
+    lastWeighing: lastWeighing ?? null,
+    weightGainSinceFirst,
+    averageWeightGainPerMonth,
+    weightChartData,
+    recentWeighings,
+    recentBreedingsList,
+    recentMovementsList,
+    isDark,
+    formatDate,
+    formatRelativeTime,
+    formatCurrency,
+    navigate,
+    t,
+  });
 
   return (
     <div className="space-y-6">
@@ -1894,6 +2047,31 @@ export default function AnimalDetails() {
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{animal.code}</p>
         </div>
         <div className="flex items-center gap-3">
+          <Button
+            variant="primary"
+            onClick={() => {
+              const route = getAnimalMovementNewRoute([animal.id]);
+              navigate(route.pathname, { state: route.state });
+            }}
+            leftIcon={
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className="w-5 h-5"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"
+                />
+              </svg>
+            }
+          >
+            {t.animals.movement.addButton}
+          </Button>
           {canEdit("registration", "animals") && (
             <Button
               variant="outline"
@@ -1968,47 +2146,7 @@ export default function AnimalDetails() {
         </nav>
       </div>
 
-      {activeTab === "dashboard" && (
-        <AnimalDashboardTab
-          animal={animal}
-          currentWeight={currentWeight}
-          weightInArrobas={weightInArrobas}
-          gmd={gmd}
-          age={age}
-          birth={birth ?? null}
-          acquisitionItem={acquisitionItem}
-          isMale={isMale}
-          sonsBirths={sonsBirths}
-          breedings={breedings}
-          birthsAsMother={birthsAsMother}
-          confirmedBreedings={confirmedBreedings}
-          pendingBreedings={pendingBreedings}
-          averageCalvingInterval={averageCalvingInterval}
-          currentLocation={currentLocation ?? undefined}
-          currentProperty={currentProperty ?? undefined}
-          animalMovements={animalMovements}
-          locationsMap={locationsMap}
-          daysInCurrentLocation={daysInCurrentLocation}
-          animalCostData={animalCostData}
-          totalCost={totalCost}
-          costPerKg={costPerKg}
-          weighings={weighings}
-          firstWeighing={firstWeighing ?? null}
-          lastWeighing={lastWeighing ?? null}
-          weightGainSinceFirst={weightGainSinceFirst}
-          averageWeightGainPerMonth={averageWeightGainPerMonth}
-          weightChartData={weightChartData}
-          recentWeighings={recentWeighings}
-          recentBreedingsList={recentBreedingsList}
-          recentMovementsList={recentMovementsList}
-          isDark={isDark}
-          formatDate={formatDate}
-          formatRelativeTime={formatRelativeTime}
-          formatCurrency={formatCurrency}
-          navigate={navigate}
-          t={t}
-        />
-      )}
+      {activeTab === "dashboard" && <AnimalDashboardTab {...getDashboardTabProps()} />}
 
       {activeTab === "info" && (
         <div className="space-y-8">
@@ -2203,7 +2341,7 @@ export default function AnimalDetails() {
       )}
 
       {activeTab === "weighings" &&
-        weighings.length > 0 &&
+        weighingsForDisplay.length > 0 &&
         (() => {
           const sortedWeighingsForTable = weighingsWithCalculations.toSorted((a, b) => {
             const { column, direction } = weighingsSortState;
@@ -2349,7 +2487,7 @@ export default function AnimalDetails() {
           );
         })()}
 
-      {activeTab === "weighings" && weighings.length === 0 && (
+      {activeTab === "weighings" && weighingsForDisplay.length === 0 && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/50 p-6 border border-gray-200 dark:border-gray-700">
           <p className="text-sm text-gray-500 dark:text-gray-400">
             {t.animals.details.noWeighings}
@@ -3231,8 +3369,7 @@ export default function AnimalDetails() {
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         {t.locations.costs.startDate}
                       </label>
-                      <input
-                        type="date"
+                      <DateInput
                         value={costsStartDate}
                         onChange={(e) => setCostsStartDate(e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200"
@@ -3242,8 +3379,7 @@ export default function AnimalDetails() {
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         {t.locations.costs.endDate}
                       </label>
-                      <input
-                        type="date"
+                      <DateInput
                         value={costsEndDate}
                         onChange={(e) => setCostsEndDate(e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-200"
@@ -3269,11 +3405,20 @@ export default function AnimalDetails() {
                         {t.animals.details.costs?.totalCost}
                       </p>
                       <p className="text-2xl font-bold text-blue-900 dark:text-blue-100 mt-1">
-                        {animalCostData.totalCost.toLocaleString(localeForNumber, {
+                        {totalCost.toLocaleString(localeForNumber, {
                           style: "currency",
                           currency: "BRL",
                         })}
                       </p>
+                      {acquisitionCost > 0 && (
+                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                          {t.animals.details.costs?.acquisitionCost}:{" "}
+                          {acquisitionCost.toLocaleString(localeForNumber, {
+                            style: "currency",
+                            currency: "BRL",
+                          })}
+                        </p>
+                      )}
                       <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
                         {animalCostData.consumptionPeriods}{" "}
                         {t.animals.details.costs?.consumptionPeriods}
