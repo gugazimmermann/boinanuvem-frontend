@@ -37,7 +37,7 @@ describe("Table", () => {
         <Table columns={mockColumns} data={[]} />
       </LanguageProvider>
     );
-    expect(screen.getByText(/no vendors found/i)).toBeInTheDocument();
+    expect(screen.getByText(/no items found/i)).toBeInTheDocument();
   });
 
   it("should render loading state", () => {

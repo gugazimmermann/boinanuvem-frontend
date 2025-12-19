@@ -14,6 +14,7 @@ import { useAlert } from "~/hooks/use-alert";
 import { useDeleteHandler } from "~/hooks/use-delete-handler";
 import { useTableFilters, type FilterValue } from "~/hooks/use-table-filters";
 import { usePermissions } from "~/utils/permissions";
+import { useTranslation } from "~/i18n/use-translation";
 import type { Language } from "~/types";
 
 export interface RegistrationListPageConfig<
@@ -102,6 +103,7 @@ export function RegistrationListPage<
   } = config;
 
   const navigate = useNavigate();
+  const t = useTranslation();
   const { canAdd } = usePermissions();
   const { alertMessage, showAlert } = useAlert();
   const { filters } = useTableFilters({ filterOptions });
@@ -227,7 +229,7 @@ export function RegistrationListPage<
             ? emptyStateDescription(listPage.searchValue)
             : emptyStateDescriptionWithoutSearch,
           onClearSearch: listPage.clearSearch,
-          clearSearchLabel: "Clear search",
+          clearSearchLabel: t.common.clearSearch,
           onAddNew: () => {
             navigate(newRoute);
           },

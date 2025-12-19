@@ -66,6 +66,13 @@ export const es = {
       formatShort: (value: number) => `R$ ${(value / 1000).toFixed(0)}k`,
     },
     itemNotFound: "Artículo no encontrado",
+    add: "Agregar",
+    emptyStateDefaultTitle: "No se encontraron elementos",
+    emptyStateDefaultDescription:
+      "No hay datos disponibles. Intente nuevamente o agregue un nuevo elemento.",
+    emptyStateDefaultDescriptionWithSearch: (searchQuery: string) =>
+      `Su búsqueda "${searchQuery}" no encontró ningún elemento. Intente nuevamente o agregue un nuevo elemento.`,
+    emptyStateDefaultAddNew: "Agregar elemento",
   },
 
   sidebar: {

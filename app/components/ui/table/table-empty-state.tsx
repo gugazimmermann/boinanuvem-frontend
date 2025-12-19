@@ -24,14 +24,14 @@ export function TableEmptyState({
   icon,
 }: TableEmptyStateProps) {
   const t = useTranslation();
-  const defaultTitle = title || "No vendors found";
+  const defaultTitle = title || t.common.emptyStateDefaultTitle;
   const defaultClearSearchLabel = clearSearchLabel || t.common.clearSearch;
-  const defaultAddNewLabel = addNewLabel || "Add vendor";
+  const defaultAddNewLabel = addNewLabel || t.common.emptyStateDefaultAddNew;
   const displayDescription =
     description ||
     (searchQuery
-      ? `Your search "${searchQuery}" did not match any vendors. Please try again or create add a new vendor.`
-      : "No data available. Please try again or create add a new vendor.");
+      ? t.common.emptyStateDefaultDescriptionWithSearch(searchQuery)
+      : t.common.emptyStateDefaultDescription);
 
   const defaultIcon = (
     <svg

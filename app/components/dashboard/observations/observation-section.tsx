@@ -9,6 +9,7 @@ import {
   type SortDirection,
 } from "~/components/ui";
 import { useLanguage } from "~/contexts/language-context";
+import { useTranslation } from "~/i18n/use-translation";
 import { getObservationViewRoute } from "~/routes.config";
 import { ObservationForm } from "./observation-form";
 import type { Observation } from "~/hooks/use-observation-management";
@@ -87,6 +88,7 @@ export function ObservationSection<T extends Observation>(props: ObservationSect
 
   const navigate = useNavigate();
   const { language } = useLanguage();
+  const t = useTranslation();
   const [observations, setObservations] = useState<T[]>(initialObservations);
   const [searchValue, setSearchValue] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -431,7 +433,7 @@ export function ObservationSection<T extends Observation>(props: ObservationSect
                 }
               : undefined,
             clearSearchLabel: searchValue
-              ? translationKeys.clearSearch || "Limpar busca"
+              ? translationKeys.clearSearch || t.common.clearSearch
               : undefined,
             onAddNew: () => formState.setShowForm(true),
             addNewLabel: translationKeys.addObservation,

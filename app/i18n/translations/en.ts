@@ -66,6 +66,12 @@ export const en = {
       formatShort: (value: number) => `R$ ${(value / 1000).toFixed(0)}k`,
     },
     itemNotFound: "Item not found",
+    add: "Add",
+    emptyStateDefaultTitle: "No items found",
+    emptyStateDefaultDescription: "No data available. Please try again or add a new item.",
+    emptyStateDefaultDescriptionWithSearch: (searchQuery: string) =>
+      `Your search "${searchQuery}" did not match any items. Please try again or add a new item.`,
+    emptyStateDefaultAddNew: "Add item",
   },
 
   sidebar: {

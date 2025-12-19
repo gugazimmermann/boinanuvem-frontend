@@ -256,9 +256,9 @@ export function EntityForm({
                 if (isSubmitting) return t.common.loading;
                 if (submitButtonText) return submitButtonText;
                 if (isEdit) {
-                  return translations.edit?.save || translations.success?.updated || "Save";
+                  return translations.edit?.save || translations.success?.updated || t.common.save;
                 }
-                return translations.new?.addButton || "Add";
+                return translations.new?.addButton || t.common.add;
               })()}
             </Button>
           </div>

@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { RegistrationListPage } from "../registration-list-page";
+import { renderWithProviders } from "~/utils/test-utils";
 import { useNavigate } from "react-router";
 import { useListPage } from "~/hooks/use-list-page";
 import { useAlert } from "~/hooks/use-alert";
@@ -165,12 +166,12 @@ describe("RegistrationListPage", () => {
   });
 
   it("should create and render list page component", () => {
-    render(<RegistrationListPage {...mockConfig} />);
+    renderWithProviders(<RegistrationListPage {...mockConfig} />);
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
   it("should render table", () => {
-    render(<RegistrationListPage {...mockConfig} />);
+    renderWithProviders(<RegistrationListPage {...mockConfig} />);
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
 
@@ -185,7 +186,7 @@ describe("RegistrationListPage", () => {
       canDelete: vi.fn(() => true),
       canAdd: vi.fn(() => true),
     });
-    render(<RegistrationListPage {...mockConfig} />);
+    renderWithProviders(<RegistrationListPage {...mockConfig} />);
     const addButton = screen.getByTestId("add-button");
     expect(addButton).toBeInTheDocument();
     await user.click(addButton);
@@ -200,7 +201,7 @@ describe("RegistrationListPage", () => {
       canDelete: vi.fn(() => true),
       canAdd: vi.fn(() => false),
     });
-    render(<RegistrationListPage {...mockConfig} />);
+    renderWithProviders(<RegistrationListPage {...mockConfig} />);
     expect(screen.queryByTestId("add-button")).not.toBeInTheDocument();
   });
 
@@ -210,7 +211,7 @@ describe("RegistrationListPage", () => {
       variant: "primary" as const,
       onClick: vi.fn(),
     };
-    render(<RegistrationListPage {...mockConfig} headerActions={[customAction]} />);
+    renderWithProviders(<RegistrationListPage {...mockConfig} headerActions={[customAction]} />);
     expect(screen.getByTestId("add-button")).toHaveTextContent("Custom Action");
   });
 
@@ -230,7 +231,7 @@ describe("RegistrationListPage", () => {
       handleSort: vi.fn(),
       clearSearch: vi.fn(),
     });
-    render(<RegistrationListPage {...mockConfig} />);
+    renderWithProviders(<RegistrationListPage {...mockConfig} />);
     const rowButton = screen.getByTestId("row-button");
     await user.click(rowButton);
     expect(navigate).toHaveBeenCalledWith("/view/1");
@@ -251,7 +252,7 @@ describe("RegistrationListPage", () => {
       handleSort: vi.fn(),
       clearSearch: vi.fn(),
     });
-    render(<RegistrationListPage {...mockConfig} onRowClick={onRowClick} />);
+    renderWithProviders(<RegistrationListPage {...mockConfig} onRowClick={onRowClick} />);
     const rowButton = screen.getByTestId("row-button");
     await user.click(rowButton);
     expect(onRowClick).toHaveBeenCalledWith({ id: "1", name: "Test" });
@@ -270,7 +271,7 @@ describe("RegistrationListPage", () => {
       handleSort: vi.fn(),
       clearSearch: vi.fn(),
     });
-    render(<RegistrationListPage {...mockConfig} />);
+    renderWithProviders(<RegistrationListPage {...mockConfig} />);
     expect(screen.getByTestId("empty-description")).toHaveTextContent("No registrations found");
   });
 
@@ -287,7 +288,7 @@ describe("RegistrationListPage", () => {
       handleSort: vi.fn(),
       clearSearch: vi.fn(),
     });
-    render(<RegistrationListPage {...mockConfig} />);
+    renderWithProviders(<RegistrationListPage {...mockConfig} />);
     expect(screen.getByTestId("empty-description")).toHaveTextContent("No registrations");
   });
 
@@ -297,7 +298,7 @@ describe("RegistrationListPage", () => {
       showAlert: vi.fn(),
       clearAlert: vi.fn(),
     });
-    render(<RegistrationListPage {...mockConfig} />);
+    renderWithProviders(<RegistrationListPage {...mockConfig} />);
     expect(screen.getByTestId("alert")).toHaveTextContent("Success");
   });
 
@@ -309,7 +310,7 @@ describe("RegistrationListPage", () => {
       handleDelete: vi.fn(),
       selectedItem: { id: "1", name: "Test Item" },
     });
-    render(<RegistrationListPage {...mockConfig} />);
+    renderWithProviders(<RegistrationListPage {...mockConfig} />);
     expect(screen.getByTestId("delete-modal")).toBeInTheDocument();
   });
 
@@ -317,7 +318,7 @@ describe("RegistrationListPage", () => {
     const user = userEvent.setup();
     const navigate = vi.fn();
     mockUseNavigate.mockReturnValue(navigate);
-    render(<RegistrationListPage {...mockConfig} />);
+    renderWithProviders(<RegistrationListPage {...mockConfig} />);
     const emptyAddButton = screen.getByTestId("empty-add-button");
     await user.click(emptyAddButton);
     expect(navigate).toHaveBeenCalledWith("/new");
@@ -336,7 +337,9 @@ describe("RegistrationListPage", () => {
       onFilterChange: vi.fn(),
       filters: [],
     });
-    render(<RegistrationListPage {...mockConfig} additionalFilters={[additionalFilter]} />);
+    renderWithProviders(
+      <RegistrationListPage {...mockConfig} additionalFilters={[additionalFilter]} />
+    );
     // Filters should be included
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
@@ -365,7 +368,7 @@ describe("RegistrationListPage", () => {
           render: () => <button data-testid="action-button">Delete</button>,
         },
       ];
-      render(<RegistrationListPage {...mockConfig} columns={mockColumns} />);
+      renderWithProviders(<RegistrationListPage {...mockConfig} columns={mockColumns} />);
       // The action button should be rendered with onDelete prop
       expect(screen.getByTestId("action-button")).toBeInTheDocument();
     } finally {

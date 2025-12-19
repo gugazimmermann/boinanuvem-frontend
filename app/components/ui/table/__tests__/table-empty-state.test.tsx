@@ -7,6 +7,11 @@ vi.mock("~/i18n/use-translation", () => ({
   useTranslation: vi.fn(() => ({
     common: {
       clearSearch: "Clear search",
+      emptyStateDefaultTitle: "No vendors found",
+      emptyStateDefaultDescription: "No data available. Please try again or add a new item.",
+      emptyStateDefaultDescriptionWithSearch: (searchQuery: string) =>
+        `Your search "${searchQuery}" did not match any items. Please try again or add a new item.`,
+      emptyStateDefaultAddNew: "Add vendor",
     },
   })),
 }));

@@ -866,6 +866,7 @@ describe("EntityForm", () => {
       },
       common: {
         loading: "Loading...",
+        save: "Save",
       },
     } as unknown as ReturnType<typeof useTranslation>);
     render(<EntityForm {...defaultProps} isEdit={true} />);

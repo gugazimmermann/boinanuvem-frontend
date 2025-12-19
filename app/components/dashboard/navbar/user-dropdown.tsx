@@ -5,7 +5,7 @@ import { DropdownMenu } from "./dropdown-menu";
 import { UserInfo } from "./user-info";
 import { DropdownMenuItem } from "./dropdown-menu-item";
 import { ThemeToggleMenuItem } from "./theme-toggle-menu-item";
-import { LanguageSelectorMenuItem } from "./language-selector-menu-item";
+// import { LanguageSelectorMenuItem } from "./language-selector-menu-item";
 import { ROUTES } from "../../../routes.config";
 import { useTranslation } from "~/i18n";
 import type { TranslationKey } from "~/i18n";
@@ -99,7 +99,7 @@ export function UserDropdown({ name, email, initial, menuItems }: UserDropdownPr
         <UserInfo name={displayName} email={displayEmail} initial={displayInitial} />
         <hr className="border-gray-200 dark:border-gray-700" />
         <ThemeToggleMenuItem />
-        <LanguageSelectorMenuItem />
+        {/* <LanguageSelectorMenuItem /> */}
         <hr className="border-gray-200 dark:border-gray-700" />
         {items.map((item, index) =>
           item.divider ? (

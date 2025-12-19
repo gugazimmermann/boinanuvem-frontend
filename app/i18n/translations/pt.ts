@@ -65,6 +65,13 @@ export const pt = {
       formatShort: (value: number) => `R$ ${(value / 1000).toFixed(0)}k`,
     },
     itemNotFound: "Item não encontrado",
+    add: "Adicionar",
+    emptyStateDefaultTitle: "Nenhum item encontrado",
+    emptyStateDefaultDescription:
+      "Nenhum dado disponível. Tente novamente ou adicione um novo item.",
+    emptyStateDefaultDescriptionWithSearch: (searchQuery: string) =>
+      `Sua busca "${searchQuery}" não encontrou nenhum item. Tente novamente ou adicione um novo item.`,
+    emptyStateDefaultAddNew: "Adicionar item",
   },
 
   sidebar: {
